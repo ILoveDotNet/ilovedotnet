@@ -1,13 +1,14 @@
 ﻿module.exports = {
     important: true,
     content: ['**/*.html', '**/*.razor', '**/*.cs'],
-    darkMode: 'class',
-    purge: false,
+    darkMode: 'media',
     theme: {
         extend: {}
     },
     variants: {
         extend: {},
     },
-    plugins: [],
+    plugins: [
+        require('autoprefixer')
+    ],
 };
