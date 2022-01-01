@@ -5,26 +5,30 @@ namespace Web.Shared;
 
 public class ThemeBase : ComponentBase
 {
-    protected string Icon { get; set; } = "brightness-up";
-    protected bool MenuCollapsed { get; set; } = true;
+    internal string Icon { get; private set; } = "brightness-up";
+    internal bool MenuCollapsed { get; private set; } = true;
 
-    protected void ToggleMenu()
+    [Inject] private AppState AppState { get; set; } = default!;
+
+    internal void ToggleMenu()
     {
         MenuCollapsed = !MenuCollapsed;
     }
 
-    protected void FocusOutHandler()
+    internal void FocusOutHandler()
     {
         MenuCollapsed = true;
     }
 
-    protected void SetTheme(UITheme theme) 
+    internal void SetTheme(DisplayMode mode) 
     {
-        Icon = theme switch
+        Icon = mode switch
         {
-            UITheme.Light => "brightness-up",
-            UITheme.Dark => "moon",
+            DisplayMode.Light => "brightness-up",
+            DisplayMode.Dark => "moon",
             _ => "device-desktop"
         };
+
+        AppState.DisplayModeChanged(mode == DisplayMode.Dark);
     }
 }

@@ -1,6 +1,6 @@
 ﻿namespace Web.Models;
 
-public enum UITheme
+public enum DisplayMode
 {
     Light,
     Dark,
