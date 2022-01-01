@@ -1,7 +1,7 @@
 ﻿module.exports = {
     important: true,
     content: ['**/*.html', '**/*.razor', '**/*.cs'],
-    darkMode: 'media',
+    darkMode: 'class',
     theme: {
         extend: {}
     },
