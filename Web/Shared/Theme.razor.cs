@@ -5,7 +5,7 @@ namespace Web.Shared;
 
 public class ThemeBase : ComponentBase
 {
-    internal string Icon { get; private set; } = "brightness-up";
+    internal DisplayMode DisplayMode { get; private set; }
     internal bool MenuCollapsed { get; private set; } = true;
 
     [Inject] private AppState AppState { get; set; } = default!;
@@ -22,12 +22,7 @@ public class ThemeBase : ComponentBase
 
     internal void SetTheme(DisplayMode mode) 
     {
-        Icon = mode switch
-        {
-            DisplayMode.Light => "brightness-up",
-            DisplayMode.Dark => "moon",
-            _ => "device-desktop"
-        };
+        DisplayMode = mode;
 
         AppState.DisplayModeChanged(mode == DisplayMode.Dark);
     }
