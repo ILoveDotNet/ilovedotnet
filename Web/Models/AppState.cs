@@ -2,7 +2,7 @@
 
 internal class AppState
 {
-    internal event Action OnChange;
+    internal event Action OnChange = default!;
 
     private void NotifyStateChanged() => OnChange?.Invoke();
 }
