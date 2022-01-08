@@ -17,13 +17,11 @@ public class ThemeBase : ComponentBase, IAsyncDisposable
 
     protected override async Task OnInitializedAsync()
     {
-        DisplayMode = await LocalStorage.ContainKeyAsync($"{nameof(DisplayMode)}") ?
-                      await LocalStorage.GetItemAsync<DisplayMode>($"{nameof(DisplayMode)}") :
-                      DisplayMode.System;
+        DisplayMode = await LocalStorage.ContainKeyAsync($"{nameof(DisplayMode)}") &&
+                      Enum.TryParse(typeof(DisplayMode), await LocalStorage.GetItemAsStringAsync($"{nameof(DisplayMode)}"), true, out var displayMode)
+                      ? (DisplayMode)displayMode!
+                      : DisplayMode.System;
 
-        module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/displaymode.js");
-
-        await OnDisplayModeChanged();
     }
 
     internal void ToggleMenu()
@@ -40,9 +38,11 @@ public class ThemeBase : ComponentBase, IAsyncDisposable
     {
         DisplayMode = mode;
 
+        module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/displaymode.js");
+
         await OnDisplayModeChanged();
 
-        await LocalStorage.SetItemAsync($"{nameof(DisplayMode)}", mode.ToString());
+        await LocalStorage.SetItemAsStringAsync($"{nameof(DisplayMode)}", mode.ToString());
     }
 
     private async ValueTask OnDisplayModeChanged() 
@@ -52,7 +52,6 @@ public class ThemeBase : ComponentBase, IAsyncDisposable
             await module.InvokeVoidAsync("onDisplayModeChanged", $"{DisplayMode.ToString().ToLower()}");
         }
     }
-
 
     async ValueTask IAsyncDisposable.DisposeAsync()
     {
