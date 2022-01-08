@@ -1,29 +1,29 @@
 ﻿using Blazored.LocalStorage;
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 using Web.Models;
 
 namespace Web.Shared;
 
-public class ThemeBase : ComponentBase
+public class ThemeBase : ComponentBase, IAsyncDisposable
 {
+    private IJSObjectReference? module;
+
     internal DisplayMode DisplayMode { get; private set; }
     internal bool MenuCollapsed { get; private set; } = true;
 
-    [Inject] private AppState AppState { get; set; } = default!;
     [Inject] private ILocalStorageService LocalStorage { get; set; } = default!;
+    [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override async Task OnInitializedAsync()
     {
-        if (firstRender)
-        {
-            DisplayMode = await LocalStorage.ContainKeyAsync($"{nameof(DisplayMode)}") ?
-                          await LocalStorage.GetItemAsync<DisplayMode>($"{nameof(DisplayMode)}") :
-                          DisplayMode.Light;
+        DisplayMode = await LocalStorage.ContainKeyAsync($"{nameof(DisplayMode)}") ?
+                      await LocalStorage.GetItemAsync<DisplayMode>($"{nameof(DisplayMode)}") :
+                      DisplayMode.System;
 
-            AppState.DisplayModeChanged(DisplayMode == DisplayMode.Dark);
+        module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/displaymode.js");
 
-            await InvokeAsync(StateHasChanged);
-        }
+        await OnDisplayModeChanged();
     }
 
     internal void ToggleMenu()
@@ -40,8 +40,25 @@ public class ThemeBase : ComponentBase
     {
         DisplayMode = mode;
 
-        AppState.DisplayModeChanged(mode == DisplayMode.Dark);
+        await OnDisplayModeChanged();
 
         await LocalStorage.SetItemAsync($"{nameof(DisplayMode)}", mode.ToString());
+    }
+
+    private async ValueTask OnDisplayModeChanged() 
+    {
+        if (module is not null) 
+        {
+            await module.InvokeVoidAsync("onDisplayModeChanged", $"{DisplayMode.ToString().ToLower()}");
+        }
+    }
+
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        if (module is not null)
+        {
+            await module.DisposeAsync();
+        }
     }
 }
