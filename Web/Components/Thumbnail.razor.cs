@@ -10,6 +10,6 @@ public class ThumbnailBase : ComponentBase
     [Parameter] public string AltText { get; set; } = "banner";
     [Parameter] public string IconUrl { get; set; } = "https://via.placeholder.com/48x48";
     [Parameter] public string IconAlt { get; set; } = "stack logo";
-    [Parameter] public DateOnly CreatedOn { get; set; } = DateOnly.FromDateTime(DateTime.Now);
+    [Parameter] public DateTime CreatedOn { get; set; } = DateTime.Now;
     [Parameter] public TimeOnly EstimatedTimeToRead { get; set; } = TimeOnly.FromDateTime(DateTime.Now);
 }
