@@ -1,0 +1,127 @@
+﻿@page "/blogs/blazor-wasm-exception-handling-and-error-boundary"
+@inherits ExceptionHandlingAndErrorBoundaryBase
+@using Web.Pages.Blogs.Blazor.Wasm.Demo
+@using Humanizer
+
+<PageTitle>Blazor WASM Exception Handling and Error Boundary - I ❤️ DotNet</PageTitle>
+
+<HeadContent>
+
+</HeadContent>
+
+<section class="[ flex ] [ py-5 px-20 ] [ space-x-5 ]">
+    <article class="[ space-y-5 ]">
+        <header class="[ space-y-2 ]">
+            <figure>
+                <img srcset="image/blogs/blazor/wasm/blazor-wasm-exception-handling-and-error-boundary-400w.png 400w,
+                             image/blogs/blazor/wasm/blazor-wasm-exception-handling-and-error-boundary-1200w.png 1200w"
+                     sizes="(max-width: 400px) 480px,
+                            1200px"
+                     alt="Blazor wasm exception handling and error boundary" loading="lazy" />
+            </figure>
+            <h2 class="[ dark:text-white ] [ font-semibold text-xl ]">Blazor WASM Exception Handling and Error Boundary</h2>
+            <section class="[ flex flex-col md:flex-row justify-between ] [ space-y-1 md:space-y-0 ] [ dark:text-white ] [ font-bold ]">
+                <p>Authors - Abdul Rahman (Content Writer), Regina Sharon (Graphic Designer)</p>
+                <time datetime="2022-01-16 21:00:00">Last updated @(new DateTime(2022,1,16,22,30,0).Humanize())</time>
+            </section>
+        </header>
+        <section class="[ dark:text-white ] [ space-y-2 ] [ leading-relaxed ]">
+            <p>
+                Exceptions are common in all apps. We can handle known exceptions which we expect using <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">try</code>
+                <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">catch</code> blocks. But this cannot be the case always. Some times we might end up in unforeseen
+                run time unhandled exceptions. There are different ways to handle exceptions. Luckily with <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">blazor</code>
+                we have exception handling built in in two different ways.
+            </p>
+
+            <ol class="[ list-decimal ml-3.5 ]">
+                <li>Global Exception Handling</li>
+                <li>Error Boundary</li>
+            </ol>
+
+            <h3 class="[ font-semibold text-lg ]">Global Exception Handling</h3>
+
+            <p>
+                Blazor has global error handling element <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">@(@"<div id=""blazor-error-ui"">")</code> in <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">index.html</code>. This will act
+                as an global error handler which will catch any unhanled exception across blazor app and display nice error UI codesent inside
+                <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">@(@"<div id=""blazor-error-ui"">")</code> at the bottom of the screen by default and logs the error stack trace to browser
+                console. This will also have reload option to reload the app to restore the app to correct working state.
+            </p>
+
+            <DemoSnippet Title="Global Exception Handling">
+                <DemoContent>
+                    <p class="[ text-black ]"><b>Scenario - Let's simulate an error connecting to chat agent</b></p>
+                    <Chat></Chat>
+                </DemoContent>
+            </DemoSnippet>
+
+            <h3 class="[ font-semibold text-lg ]">Error Boundary</h3>
+
+            <p>
+                Though <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">@(@"<div id=""blazor-error-ui"">")</code> handles all unhandled exceptions it will be nice to restrict the error
+                handling boundary and have better control of the error message and error UI. That said <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">.Net 6</code> introduced
+                <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">@("<ErrorBoundary>")</code> to serve this purpose. We can wrap any component inside <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">@("<ErrorBoundary>")</code> and this
+                will take care of showing error UI when an unhandled exception occurs inside the component.
+            </p>
+
+            <DemoSnippet Title="Error Boundary">
+                <DemoContent>
+                    <ErrorBoundary>
+                        <p class="[ text-black ]"><b>Scenario - Let's simulate an error connecting to chat agent</b></p>
+                        <Chat></Chat>
+                    </ErrorBoundary>
+                </DemoContent>
+            </DemoSnippet>
+
+            <p>
+                We can control the error message with our own custom error message and error UI using <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">@("<ErrorContent>")</code>. From now incase of any
+                unhandled exception, our custom error UI will be displayed.
+            </p>
+
+            <DemoSnippet Title="Error Boundary with Custom Error UI">
+                <DemoContent>
+                    <ErrorBoundary>
+                        <ChildContent>
+                            <p class="[ text-black ]"><b>Scenario - Let's simulate an error connecting to chat agent</b></p>
+                            <Chat></Chat>
+                        </ChildContent>
+                        <ErrorContent>
+                            <div class="[ bg-red-500 ]">
+                                <p class="[ text-white ]">An error occured while establishing a connection. Please try again later.</p>
+                            </div>
+                        </ErrorContent>
+                    </ErrorBoundary>
+                </DemoContent>
+            </DemoSnippet>
+
+            <p>
+                So far so good. But doesn't this leave a bad user experience? How will the user retry the action? One way is to reload the page.
+                But there is an another easy option called Recovery in Error Boundary. All we need to do is to add a reference to Error Boundary
+                and call <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">errorBoundary?.Recover()</code> method to retry the action.
+            </p>
+
+            <DemoSnippet Title="Error Boundary with Custom Error UI and Recovery">
+                <DemoContent>
+                    <ErrorBoundary @ref="@errorBoundary">
+                        <ChildContent>
+                            <p class="[ text-black ]"><b>Scenario - Let's simulate an error connecting to chat agent</b></p>
+                            <Chat></Chat>
+                        </ChildContent>
+                        <ErrorContent>
+                            <div class="[ bg-red-500 ]">
+                                <p class="[ text-white ]">An error occured while establishing a connection. Please try again later.</p>
+                            </div>
+                        </ErrorContent>
+                    </ErrorBoundary>
+
+                    <button type="button" class="[ bg-fuchsia-500 ] [ px-4 py-2 ] [ rounded-md ] [ text-white ]" @onclick="Recover">
+                        Click to recover
+                        <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-activity ] [ inline ]" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                            <path d="M3 12h4l3 8l4 -16l3 8h4"></path>
+                        </svg>
+                    </button>
+                </DemoContent>
+            </DemoSnippet>
+        </section>
+    </article>
+</section>
