@@ -17,7 +17,7 @@ public class HeaderBase : ComponentBase, IAsyncDisposable
 
     protected override async Task OnInitializedAsync()
     {
-        module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/viewportsize.js");
+        module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/viewport.js");
 
         viewPortWidth = await module.InvokeAsync<ushort>("getViewPortWidth");
 
