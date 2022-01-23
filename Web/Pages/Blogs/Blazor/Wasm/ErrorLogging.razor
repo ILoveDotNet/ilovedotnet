@@ -1,0 +1,173 @@
+﻿@page "/blogs/blazor-wasm-error-logging"
+@using Web.Pages.Blogs.Blazor.Wasm.Demo
+@using Humanizer
+@inject IConfiguration configuration
+
+<PageTitle>Blazor WASM Error Logging - I ❤️ DotNet</PageTitle>
+
+<HeadContent>
+    <meta name="description" content="In this post I will teach you how to log error in your Blazor applications. All with live working demo.">
+    <meta name="keywords" content=".NET, DotNet, I Love DotNet, I ❤️ DotNet, Blazor, Blazor (WebAssembly), Blazor Wasm, C#, Entity Framework Core, LINQ, Exception Logging, Error Logging">
+    <meta name="url" content="https://www.ilovedotnet.org/blogs/blazor-wasm-error-logging/">
+    <meta name="identifier-URL" content="https://www.ilovedotnet.org/blogs/blazor-wasm-error-logging/">
+    <meta property="og:site_name" content="I Love DotNet" />
+    <meta property="og:type" content="article" />
+    <meta property="og:title" content="Blazor WASM Error Logging" />
+    <meta property="og:description" content="In this post I will teach you how to log error in your Blazor applications. All with live working demo." />
+    <meta property="og:url" content="https://www.ilovedotnet.org/blogs/blazor-wasm-error-logging/" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Blazor WASM Error Logging" />
+    <meta name="twitter:description" content="In this post I will teach you how to log error in your Blazor applications. All with live working demo." />
+    <meta name="twitter:url" content="https://www.ilovedotnet.org/blogs/blazor-wasm-error-logging/" />
+    <meta property="article:published_time" content="2022-01-23T22:30:00.000Z" />
+    <meta property="article:modified_time" content="2022-01-23T22:30:00.000Z" />
+    <meta property="article:tag" content=".NET" />
+    <meta property="article:tag" content="DotNet" />
+    <meta property="article:tag" content="I Love DotNet" />
+    <meta property="article:tag" content="I ❤️ DotNet" />
+    <meta property="article:tag" content="Blazor" />
+    <meta property="article:tag" content="Blazor (WebAssembly)" />
+    <meta property="article:tag" content="Blazor Wasm" />
+    <meta property="article:tag" content="C#" />
+    <meta property="article:tag" content="Entity Framework Core" />
+    <meta property="article:tag" content="LINQ" />
+    <meta property="article:tag" content="Exception Logging" />
+    <meta property="article:tag" content="Error Logging" />
+    <link rel="sitemap" type="application/xml" title="Sitemap" href="https://www.ilovedotnet.org/sitemap.xml" />
+    <link rel="alternate" type="application/rss+xml" href="https://www.ilovedotnet.org/atom.xml">
+    <link rel="alternate" href="https://www.ilovedotnet.org/blogs/blazor-wasm-error-logging/" hreflang="en" />
+    <link rel="alternate" href="https://www.ilovedotnet.org/blogs/blazor-wasm-error-logging/" hreflang="x-default" />
+    <link rel="canonical" href="https://www.ilovedotnet.org/blogs/blazor-wasm-error-logging/" />
+    <link rel="index" title="Blazor WASM Error Logging - I ❤️ DotNet" href="https://www.ilovedotnet.org/blogs/blazor-wasm-error-logging/" />
+    @(new MarkupString(
+    $@"<script type=""application/ld+json"">
+    {{
+        ""@context"": ""https://schema.org"",
+        ""@type"": ""Article"",
+        ""publisher"": {{
+            ""@type"": ""Organization"",
+            ""name"": ""I Love DotNet"",
+            ""url"": ""https://www.ilovedotnet.org/"",
+            ""logo"": {{
+                ""@type"": ""ImageObject"",
+                ""url"": ""https://www.ilovedotnet.org/favicon.ico"",
+                ""width"": 16,
+                ""height"": 16
+            }}
+        }},
+        ""author"": {{
+            ""@type"": ""Person"",
+            ""name"": ""Abdul Rahman Shabeek Mohamed"",
+            ""image"": {{
+                ""@type"": ""ImageObject"",
+                ""url"": ""//https://media-exp1.licdn.com/dms/image/C5603AQGIbBUf4NvSqA/profile-displayphoto-shrink_200_200/0/1588467007026?e=1648080000&v=beta&t=bbZe_QpTmS_g0w0DxVaJGLPgyXU1bu41QyppAIhZNss"",
+                ""width"": 250,
+                ""height"": 250
+            }},
+            ""url"": ""https://www.ilovedotnet.org/author/abdulrahman/"",
+            ""sameAs"": [
+                ""https://www.linkedin.com/in/fingers10""
+            ]
+        }},
+        ""headline"": ""Blazor WASM Error Logging"",
+        ""url"": ""https://www.ilovedotnet.org/blogs/blazor-wasm-error-logging/"",
+        ""datePublished"": ""2022-01-23T22:30:00.000Z"",
+        ""dateModified"": ""2022-01-23T22:30:00.000Z"",
+        ""image"": {{
+            ""@type"": ""ImageObject"",
+            ""url"": ""https://www.ilovedotnet.org/image/blogs/blazor/wasm/blazor-wasm-error-logging-1200w.png"",
+            ""width"": 1265,
+            ""height"": 827
+        }},
+        ""keywords"": ""I Love DotNet, Blogs, Blazor, Blazor (WebAssembly), Exception Handling, Error Boundary"",
+        ""description"": ""In this post I will teach you how to log error in your Blazor applications. All with live working demo."",
+        ""mainEntityOfPage"": {{
+            ""@type"": ""WebPage"",
+            ""@id"": ""https://www.ilovedotnet.org/""
+        }}
+    }}
+    </script>"))
+</HeadContent>
+
+<section class="[ flex ] [ p-5 md:px-20 ] [ space-x-5 ]">
+    <article class="[ space-y-5 ]">
+        <header class="[ space-y-2 ]">
+            <figure>
+                <img srcset="image/blogs/blazor/wasm/blazor-wasm-error-logging-400w.png 400w,
+                             image/blogs/blazor/wasm/blazor-wasm-error-logging-1200w.png 1200w"
+                     sizes="(max-width: 400px) 480px,
+                            1200px"
+                     alt="Blazor wasm exception handling and error boundary" loading="lazy" />
+            </figure>
+            <h2 class="[ dark:text-white ] [ font-semibold text-xl ]">Blazor WASM Error Logging</h2>
+            <section class="[ flex flex-col md:flex-row justify-between ] [ space-y-1 md:space-y-0 ] [ dark:text-white ] [ font-bold ]">
+                <p>Authors - <a href="@(configuration.GetValue<string>("authors:Abdul Rahman"))" class="[ underline ]" target="_blank">Abdul Rahman (Content Writer)</a>, <a href="@(configuration.GetValue<string>("authors:Regina Sharon"))" class="[ underline ]" target="_blank">Regina Sharon (Graphic Designer)</a></p>
+                <time datetime="2022-01-23 21:00:00">Last updated @(new DateTime(2022,1,23,22,30,0).Humanize())</time>
+            </section>
+        </header>
+        <section class="[ dark:text-white ] [ space-y-2 ] [ leading-relaxed ]">
+            <p>
+                In our previous article <NavLink class="[ underline ]" href="https://www.ilovedotnet.org/blogs/blazor-wasm-exception-handling-and-error-boundary">Blazor WASM Exception Handling and Error Boundary</NavLink>, 
+                we learnt how global exception works and how to handle exceptions using built in <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">ErrorBoundary</code> 
+                component. In this article, let's talk learn about Error Logging in Blazor WASM.
+            </p>
+
+            <p>
+                Logging is needed in all applications. This will help to find root cause or track user activity in any environment.
+                This can be done easily in server side applications with logging frameworks but for <abbr title="Single Page Application">SPA</abbr> 
+                like <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">Blazor <abbr title="Web Assembly">WASM</abbr></code> running in browser sandbox,
+                we will not be having direct access to file system or database and logging cannot be done like how we do in server side applications. We can use 
+                browser console to log <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">Information</code>, 
+                <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">Warning</code> or 
+                <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">Error</code>. But this will not help much in production. 
+                We can still make logging happen in production by processing <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">Exception</code> and posting the error details to backend API. 
+                Let's look on how to achieve this in <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">Blazor <abbr title="Web Assembly">WASM</abbr></code>. 
+            </p>
+
+            <p>
+                Let's start with simple <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">Subscription</code> component. 
+                This will throw error on <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">Subscribe Now</code> button click.
+            </p>
+
+            <GithubGistSnippet Title="Subscribe component to simulate exception" UserId="fingers10" FileName="63b860184af61f1d0274e1eb06e28151"></GithubGistSnippet>
+
+            <p>
+                To process the error, let's create an <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">Error</code> component.
+                This component takes Child Content <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">RenderFragment</code> as input.
+                This component also has <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">ProcessError</code> method to process the 
+                exception and log it to <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">browser console</code> or 
+                <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">backend API</code>. For simplicity I'm logging into browser console.
+            </p>
+
+            <GithubGistSnippet Title="Error component to log exception" UserId="fingers10" FileName="15e50550370685d5c14334e2c057f19e"></GithubGistSnippet>
+
+            <p>
+                Now lets wrap our <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">Subscription</code> component with 
+                <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">Error</code> component.
+            </p>
+
+            <GithubGistSnippet Title="Blazor Error logging with Error Component" UserId="fingers10" FileName="87f6fd800d66d3162e69eabbea5f8aec"></GithubGistSnippet>
+
+            <p>
+                That's it. Now if any exception occurs, <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">Sunscription</code> component 
+                will make use of <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">CascadingParameter Error</code> component and process 
+                the exception which then can be used to log to browser console or posted to backend API.
+            </p>
+
+            <DemoSnippet Title="Error Logging">
+                <DemoContent>
+                    <p class="[ text-black ] [ dark:text-white ]">
+                        <b>
+                            Scenario - Let's simulate an error logging when subscribing. Don't forget to check the browser console after clicking the 
+                            below button
+                        </b>
+                    </p>
+                    <Error>
+                        <Subscription></Subscription>
+                    </Error>
+                </DemoContent>
+            </DemoSnippet>
+
+        </section>
+    </article>
+</section>
