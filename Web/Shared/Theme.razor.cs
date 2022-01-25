@@ -41,8 +41,6 @@ public class ThemeBase : ComponentBase, IAsyncDisposable
         module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/displaymode.js");
 
         await OnDisplayModeChanged();
-
-        await LocalStorage.SetItemAsStringAsync($"{nameof(DisplayMode)}", mode.ToString());
     }
 
     private async ValueTask OnDisplayModeChanged() 
