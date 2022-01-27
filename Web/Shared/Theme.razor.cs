@@ -38,7 +38,10 @@ public class ThemeBase : ComponentBase, IAsyncDisposable
     {
         DisplayMode = mode;
 
-        module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/displaymode.js");
+        if (module is null)
+        { 
+            module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/displaymode.js");
+        }
 
         await OnDisplayModeChanged();
     }
