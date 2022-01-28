@@ -13,6 +13,8 @@ builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.
 
 builder.Services.AddScoped<AppState>();
 
+builder.Services.AddScoped<TableOfContents>();
+
 builder.Services.AddBlazoredLocalStorage(configuration => 
 {
     configuration.JsonSerializerOptions.WriteIndented = true;
