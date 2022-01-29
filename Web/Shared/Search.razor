@@ -1,0 +1,39 @@
+﻿@inherits SearchBase
+
+<section id="search" class="[ flex grow justify-center ]">
+    <button type="button" aria-label="Exit Search" class="[ @(!(SmallDevice && HideNonSearchItems) ? "hidden" : null) ] [ bg-white ] [ h-10 w-10 ] [ border-2 ] [ dark:bg-gray-800 dark:border-gray-800 ]"
+            @onclick="ExitSearch">
+        <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-arrow-left ] [ inline ] [ text-gray-500 ] [ stroke-1 ] [ dark:text-white ]" width="25" height="25" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <line x1="5" y1="12" x2="11" y2="18"></line>
+            <line x1="5" y1="12" x2="11" y2="6"></line>
+        </svg>
+    </button>
+    <div class="[ dropdown ] [ @(ShowSuggestions ? "is-active" : null) ] [ w-1/2 ] [ @(SmallDevice && !HideNonSearchItems ? "hidden" : null) ] [ @(SmallDevice && HideNonSearchItems ? "grow" : null) ]">
+        <div class="[ dropdown-trigger ] [ w-full ]">
+            <input type="search" placeholder="Search" class="[ w-full h-full ] [ px-4 ] [ border-2 ] [ focus:outline-none focus:border-gray-400 ] [ dark:bg-black dark:border-gray-800 dark:focus:border-b-white dark:md:focus:border-blue-800 dark:caret-white dark:text-white  ]"
+                   autocapitalize="none" autocomplete="off" autocorrect="off" aria-haspopup="true" aria-controls="dropdown-menu"
+                   @bind-value="@SearchText" @bind-value:event="oninput" @onkeyup="KeyUpHandler" />
+        </div>
+        <div class="[ dropdown-menu ] [ w-full ]" id="dropdown-menu" role="menu">
+            <div class="[ dropdown-content ] [ dark:bg-black ]">
+                @for (var index = 0; index < FilteredContents.Count; index++)
+                {
+                    var item = FilteredContents[index];
+                    <div id="@($"{_componentId}_{index}")" tabindex="-1" class="[ dropdown-item cursor-pointer ] [ dark:text-white ]">
+                        @FilteredContents[index].Title.ToLower()
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+    <button type="button" aria-label="Search" class="[ bg-white ] [ h-10 w-10 ] [ border-2 @(!SmallDevice ? "border-l-0" : null) ] [ dark:bg-gray-700 dark:border-gray-700 ]"
+            @onclick="Search">
+        <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-search ] [ inline ] [ text-gray-500 ] [ stroke-1 ] [ dark:text-white ]" width="25" height="25" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <circle cx="10" cy="10" r="7"></circle>
+            <line x1="21" y1="21" x2="15" y2="15"></line>
+        </svg>
+    </button>
+</section>
