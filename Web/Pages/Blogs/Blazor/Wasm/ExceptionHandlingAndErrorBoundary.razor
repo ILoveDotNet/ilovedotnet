@@ -15,23 +15,10 @@
 
 <section class="[ flex flex-col md:flex-row ] [ p-5 md:px-20 ] [ space-x-5 ]">
     <article class="[ md:basis-4/5 ] [ space-y-5 ]">
-        <header class="[ space-y-2 ]">
-            <figure>
-                <img srcset="@($"image/blogs/blazor/wasm/{Slug}-400w.svg 400w,image/blogs/blazor/wasm/{Slug}-1200w.svg 1200w")"
-                     sizes="(max-width: 400px) 480px,1200px"
-                     alt="@Title" class="[ w-full ]" loading="lazy" />
-            </figure>
-            <h2 class="[ dark:text-white ] [ font-semibold text-xl ]">@Title</h2>
-            <section class="[ flex flex-col md:flex-row justify-between ] [ space-y-1 md:space-y-0 ] [ dark:text-white ] [ font-bold ]">
-                <div>
-                    <p>Authors - <a href="@(configuration.GetValue<string>("authors:Abdul Rahman"))" class="[ underline ]" target="_blank">Abdul Rahman (Content Writer)</a>, <a href="@(configuration.GetValue<string>("authors:Regina Sharon"))" class="[ underline ]" target="_blank">Regina Sharon (Graphic Designer)</a></p>
-                    <time datetime="@ModifiedOn.ToString("yyyy-MM-dd HH:mm:ss")">Last updated @ModifiedOn.Humanize()</time>
-                </div>
-                <div>
-                    <SocialShare Url="@($"{BaseUrl}blogs/{Slug}/")"></SocialShare>
-                </div>
-            </section>
-        </header>
+        <ContentHeader Title=@Title
+                       ModifiedOn=@ModifiedOn
+                       Slug=@Slug>
+        </ContentHeader>
         <section class="[ dark:text-white ] [ space-y-2 ] [ leading-relaxed ]">
             <p>
                 Exceptions are common in all apps. We can handle known exceptions which we expect using <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">try</code>
@@ -156,23 +143,23 @@
             <h3 id="alternative-global-exception-handling" class="[ font-semibold text-lg ]">Alternative Global Exception Handling</h3>
 
             <p>
-                An alternative to using <NavLink class="[ underline ]" href="@($"blogs/{Slug}#error-boundary")">Error boundaries (ErrorBoundary)</NavLink> 
-                is to pass a custom <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">Error</code> component as a 
-                <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">CascadingValue</code>to child components. An advantage of 
-                using a component over using an injected service or a custom logger implementation is that a cascaded component can render content 
+                An alternative to using <NavLink class="[ underline ]" href="@($"blogs/{Slug}#error-boundary")">Error boundaries (ErrorBoundary)</NavLink>
+                is to pass a custom <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">Error</code> component as a
+                <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">CascadingValue</code>to child components. An advantage of
+                using a component over using an injected service or a custom logger implementation is that a cascaded component can render content
                 and apply CSS styles when an error occurs.
             </p>
 
             <GithubGistSnippet Title="Error component" UserId="fingers10" FileName="15e50550370685d5c14334e2c057f19e"></GithubGistSnippet>
 
             <p>
-                Now in the <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">App</code> component, wrap the 
-                <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">Router</code> component with the 
-                <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">Error</code> component. This permits the 
-                <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">Error</code> component to cascade down to any component of 
-                the app where the <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">Error</code> component is received as a 
-                <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">CascadingParameter</code>. We can then call error processing 
-                method <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">ProcessError</code> from 
+                Now in the <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">App</code> component, wrap the
+                <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">Router</code> component with the
+                <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">Error</code> component. This permits the
+                <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">Error</code> component to cascade down to any component of
+                the app where the <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">Error</code> component is received as a
+                <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">CascadingParameter</code>. We can then call error processing
+                method <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">ProcessError</code> from
                 <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">Error</code> component to handle error. To learn more about this,
                 head over to <NavLink class="[ underline ]" href="@($"{BaseUrl}blogs/blazor-wasm-error-logging/")">Blazor Wasm Error Logging</NavLink>
             </p>
@@ -184,16 +171,16 @@
     <aside class="[ flex flex-col md:basis-1/5 ] [ space-y-2 ]">
         @foreach (var content in tableOfContents.Contents.Where(content => content.Title != Title))
         {
-             <Thumbnail PosterUrl="@content.PosterUrl" 
-                    ContentUrl="@content.ContentUrl"
-                    Title="@content.Title"
-                    AltText="@content.Title"
-                    IconUrl="@content.IconUrl"
-                    IconAlt="@content.Type"
-                    CreatedOn="@content.CreatedOn"
-                    Author="@content.Author"
-                    Swap=true>
-            </Thumbnail>           
+            <Thumbnail PosterUrl="@content.PosterUrl"
+                   ContentUrl="@content.ContentUrl"
+                   Title="@content.Title"
+                   AltText="@content.Title"
+                   IconUrl="@content.IconUrl"
+                   IconAlt="@content.Type"
+                   CreatedOn="@content.CreatedOn"
+                   Author="@content.Author"
+                   Swap=true>
+            </Thumbnail>
         }
     </aside>
 </section>
@@ -202,8 +189,8 @@
     private string Title = "Blazor WASM Exception Handling and Error Boundary";
     private string Description = "In this post I will teach you how exception handling works and how to use error boundary in your Blazor applications. All with live working demo.";
     private string BaseUrl => configuration.GetValue<string>("baseUrl");
-    private DateTime CreatedOn = new DateTime(2022,1,16,22,30,0);
-    private DateTime ModifiedOn = new DateTime(2022,1,23,22,30,0);
+    private DateTime CreatedOn = new DateTime(2022, 1, 16, 22, 30, 0);
+    private DateTime ModifiedOn = new DateTime(2022, 1, 23, 22, 30, 0);
     private string Slug = "blazor-wasm-exception-handling-and-error-boundary";
     private List<string> Keywords = new(2) { "Exception Handling", "Error Boundary" };
 
