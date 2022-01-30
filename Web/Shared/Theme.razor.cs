@@ -1,5 +1,4 @@
-﻿using Blazored.LocalStorage;
-using Microsoft.AspNetCore.Components;
+﻿using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using Web.Models;
 
@@ -12,13 +11,13 @@ public class ThemeBase : ComponentBase, IAsyncDisposable
     internal DisplayMode DisplayMode { get; private set; }
     internal bool MenuCollapsed { get; private set; } = true;
 
-    [Inject] private ILocalStorageService LocalStorage { get; set; } = default!;
     [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
 
     protected override async Task OnInitializedAsync()
     {
-        DisplayMode = await LocalStorage.ContainKeyAsync($"{nameof(DisplayMode)}") &&
-                      Enum.TryParse(typeof(DisplayMode), await LocalStorage.GetItemAsStringAsync($"{nameof(DisplayMode)}"), true, out var displayMode)
+        module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/displaymode.js");
+
+        DisplayMode = Enum.TryParse(typeof(DisplayMode), await module.InvokeAsync<string>("getDisplayMode"), true, out var displayMode)
                       ? (DisplayMode)displayMode!
                       : DisplayMode.System;
 
@@ -38,17 +37,12 @@ public class ThemeBase : ComponentBase, IAsyncDisposable
     {
         DisplayMode = mode;
 
-        if (module is null)
-        { 
-            module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/displaymode.js");
-        }
-
         await OnDisplayModeChanged();
     }
 
-    private async ValueTask OnDisplayModeChanged() 
+    private async ValueTask OnDisplayModeChanged()
     {
-        if (module is not null) 
+        if (module is not null)
         {
             await module.InvokeVoidAsync("onDisplayModeChanged", $"{DisplayMode.ToString().ToLower()}");
         }

@@ -8,3 +8,7 @@
         localStorage.removeItem('DisplayMode');
     }
 }
+
+export function getDisplayMode() {
+    return ('DisplayMode' in localStorage) ? localStorage.getItem('DisplayMode') : null;
+}
