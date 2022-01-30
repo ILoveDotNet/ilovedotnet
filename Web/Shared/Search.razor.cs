@@ -10,7 +10,6 @@ public class SearchBase : ComponentBase, IAsyncDisposable
     const ushort SMALLDEVICEWIDTH = 640;
 
     private IJSObjectReference? module;
-    private DotNetObjectReference<SearchBase>? objRef;
     private ushort viewPortWidth;
     private short _selectedListItemIndex = -1;
     private string _searchText = string.Empty;
@@ -44,11 +43,9 @@ public class SearchBase : ComponentBase, IAsyncDisposable
 
     protected override async Task OnInitializedAsync()
     {
-        objRef = DotNetObjectReference.Create(this);
-
         module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/search.js");
 
-        viewPortWidth = await module.InvokeAsync<ushort>("getViewPortWidth", objRef, false);
+        viewPortWidth = await module.InvokeAsync<ushort>("getViewPortWidth");
 
         SmallDevice = viewPortWidth < SMALLDEVICEWIDTH;
     }
@@ -148,19 +145,9 @@ public class SearchBase : ComponentBase, IAsyncDisposable
 
     async ValueTask IAsyncDisposable.DisposeAsync()
     {
-        if (objRef is not null && module is not null)
+        if (module is not null)
         {
-            await module.InvokeAsync<ushort>("getViewPortWidth", objRef, true);
-            objRef.Dispose();
             await module.DisposeAsync();
         }
-    }
-
-    [JSInvokable]
-    public async Task WindowResized(bool smallDevice)
-    {
-        SmallDevice = smallDevice;
-        HideNonSearchItems = false;
-        await InvokeAsync(StateHasChanged);
     }
 }
