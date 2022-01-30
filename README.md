@@ -18,3 +18,4 @@ This is a .NET knowledge sharing platform with live demos crafted by developers 
 2. In any channels make sure the topic you wish to cover doesn't exists already. If it exists already please review the content and try to update it.
 3. A live working demo would be preferred in all content.
 4. Try to keep content simple and short.
+5. Any ideas to improve content are welcome.
