@@ -7,14 +7,10 @@ namespace Web.Shared;
 
 public class SearchBase : ComponentBase, IAsyncDisposable
 {
-    const ushort SMALLDEVICEWIDTH = 640;
-
     private IJSObjectReference? module;
-    private ushort viewPortWidth;
     private short _selectedListItemIndex = -1;
     private string _searchText = string.Empty;
 
-    protected bool SmallDevice;
     protected bool HideNonSearchItems;
     protected Guid _componentId = Guid.NewGuid();
     protected ElementReference SearchInput;
@@ -40,14 +36,11 @@ public class SearchBase : ComponentBase, IAsyncDisposable
     [Inject] private NavigationManager NavigationManager { get; set; } = default!;
 
     [Parameter, EditorRequired] public EventCallback<bool> ToggleNonSearchItems { get; set; }
+    [CascadingParameter] public bool SmallDevice { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
         module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/search.js");
-
-        viewPortWidth = await module.InvokeAsync<ushort>("getViewPortWidth");
-
-        SmallDevice = viewPortWidth < SMALLDEVICEWIDTH;
     }
 
     protected List<ContentMetaData> FilteredContents => TableOfContents.Contents
