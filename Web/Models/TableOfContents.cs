@@ -29,11 +29,11 @@ public class TableOfContents
             },
             new ContentMetaData
             {
-                Title = "Blazor WASM Dark Mode",
+                Title = "Blazor WASM Dark Theme and Light Theme",
                 Author = "Abdul Rahman",
-                PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-dark-mode-1200w.svg 1200w",
-                ThumbnailUrl = "image/blogs/blazor/wasm/blazor-wasm-dark-mode-400w.svg",
-                ContentUrl = "blogs/blazor-wasm-dark-mode",
+                PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-dark-theme-and-light-theme-1200w.svg",
+                ThumbnailUrl = "image/blogs/blazor/wasm/blazor-wasm-dark-theme-and-light-theme-400w.svg",
+                ContentUrl = "blogs/blazor-wasm-dark-theme-and-light-theme",
                 IconUrl = "image/icons/blazor.png",
                 Type = "Blazor",
                 CreatedOn = new DateTime(2022, 1, 30, 22, 30, 0)
