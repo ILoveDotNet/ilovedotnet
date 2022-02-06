@@ -41,18 +41,18 @@ jobs:
       - name: Publish .NET Core Project
         run: dotnet publish Web/Web.csproj -c Release -o Prerender/output --nologo
               
-      # Use NodeJS react-snap utitility to prerender static website
-      - name: Prerender Blazor client
-        working-directory: Prerender
-        run: npx react-snap
+      ## Use NodeJS react-snap utitility to prerender static website
+      #- name: Prerender Blazor client
+      #  working-directory: Prerender
+      #  run: npx react-snap
         
-      # replace scripts
-      - name: Replace scripts
-        working-directory: Prerender/output/wwwroot
-        run: |
-          find . -name "*.html" | while read htmlFile; do
-              sed -i 's/<script>var Module; window.__wasmmodulecallback__(); delete window.__wasmmodulecallback__;<\/script><script src="_framework\/dotnet.6.0.1.3nmi6qu0e8.js" defer="" integrity="sha256-VfsGmgr5USkz\/rOXTOCDPmHqC8auXF2SGNPyffbHiBA=" crossorigin="anonymous"><\/script>//g' $htmlFile
-          done
+      ## replace scripts
+      #- name: Replace scripts
+      #  working-directory: Prerender/output/wwwroot
+      #  run: |
+      #    find . -name "*.html" | while read htmlFile; do
+      #        sed -i 's/<script>var Module; window.__wasmmodulecallback__(); delete window.__wasmmodulecallback__;<\/script><script src="_framework\/dotnet.6.0.1.3nmi6qu0e8.js" defer="" integrity="sha256-VfsGmgr5USkz\/rOXTOCDPmHqC8auXF2SGNPyffbHiBA=" crossorigin="anonymous"><\/script>//g' $htmlFile
+      #    done
     
       ## change base tag in all html files to include subfolder
       #- name: Change base tag
@@ -63,35 +63,36 @@ jobs:
       #    done
     
       # Fix service worker pwa integrity issue
-      - name: Fix service-worker-assets.js hashes
-        working-directory: Prerender/output/wwwroot
-        run: |
-          # make sure you're in the wwwroot folder of the published application
-          jsFile=$(<service-worker-assets.js)
-          # remove JavaScript from contents so it can be interpreted as JSON
-          json=$(echo "$jsFile" | sed "s/self.assetsManifest = //g" | sed "s/;//g")
-          # grab the assets JSON array
-          assets=$(echo "$json" | jq '.assets[]' -c)
-          for asset in $assets
-          do
-            oldHash=$(echo "$asset" | jq '.hash')
-            #remove leading and trailing quotes
-            oldHash="${oldHash:1:-1}"
-            path=$(echo "$asset" | jq '.url')
-            #remove leading and trailing quotes
-            path="${path:1:-1}"
-            newHash="sha256-$(openssl dgst -sha256 -binary $path | openssl base64 -A)"
-            if [ $oldHash != $newHash ]; then
-              # escape slashes for json
-              oldHash=$(echo "$oldHash" | sed 's;/;\\/;g')
-              newHash=$(echo "$newHash" | sed 's;/;\\/;g')
-              echo "Updating hash for $path from $oldHash to $newHash"
-              # escape slashes second time for sed
-              oldHash=$(echo "$oldHash" | sed 's;/;\\/;g')
-              jsFile=$(echo -n "$jsFile" | sed "s;$oldHash;$newHash;g")
-            fi
-          done
-          echo -n "$jsFile" > service-worker-assets.js
+      #- name: Fix service-worker-assets.js hashes
+      #  working-directory: Prerender/output/wwwroot
+      #  run: |
+      #    # make sure you're in the wwwroot folder of the published application
+      #    jsFile=$(<service-worker-assets.js)
+      #    # remove JavaScript from contents so it can be interpreted as JSON
+      #    json=$(echo "$jsFile" | sed "s/self.assetsManifest = //g" | sed "s/;//g")
+      #    # grab the assets JSON array
+      #    assets=$(echo "$json" | jq '.assets[]' -c)
+      #    for asset in $assets
+      #    do
+      #      oldHash=$(echo "$asset" | jq '.hash')
+      #      #remove leading and trailing quotes
+      #      oldHash="${oldHash:1:-1}"
+      #      path=$(echo "$asset" | jq '.url')
+      #      #remove leading and trailing quotes
+      #      path="${path:1:-1}"
+      #      newHash="sha256-$(openssl dgst -sha256 -binary $path | openssl base64 -A)"
+      #      if [ $oldHash != $newHash ]; then
+      #        # escape slashes for json
+      #        oldHash=$(echo "$oldHash" | sed 's;/;\\/;g')
+      #        newHash=$(echo "$newHash" | sed 's;/;\\/;g')
+      #        echo "Updating hash for $path from $oldHash to $newHash"
+      #        # escape slashes second time for sed
+      #        oldHash=$(echo "$oldHash" | sed 's;/;\\/;g')
+      #        jsFile=$(echo -n "$jsFile" | sed "s;$oldHash;$newHash;g")
+      #      fi
+      #    done
+      #    echo -n "$jsFile" > service-worker-assets.js
+      
       # copy index.html to 404.html to serve the same file when a file is not found
       - name: Copy index.html to 404.html
         run: cp Prerender/output/wwwroot/index.html Prerender/output/wwwroot/404.html
