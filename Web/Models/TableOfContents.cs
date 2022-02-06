@@ -38,5 +38,16 @@ public class TableOfContents
                 Type = "Blazor",
                 CreatedOn = new DateTime(2022, 1, 30, 22, 30, 0)
             },
+            new ContentMetaData
+            {
+                Title = "Blazor WASM Javascript Interop and Isolation",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-javascript-interop-and-isolation-1200w.svg",
+                ThumbnailUrl = "image/blogs/blazor/wasm/blazor-wasm-javascript-interop-and-isolation-400w.svg",
+                ContentUrl = "blogs/blazor-wasm-javascript-interop-and-isolation",
+                IconUrl = "image/icons/blazor.png",
+                Type = "Blazor",
+                CreatedOn = new DateTime(2022, 2, 6, 22, 30, 0)
+            }
         };
 }
