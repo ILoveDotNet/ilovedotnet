@@ -13,5 +13,5 @@ blazorInterop.callDotNetStaticFromJs = () => {
 
 blazorInterop.callDotNetInstanceFromJs = (dotNetHelper) => {
     let message = dotNetHelper.invokeMethod('GetMessageFromDotNet');
-    alert(`Message from .Net Static Method - ${message}`);
+    alert(`Message from .Net Instance Method - ${message}`);
 }
