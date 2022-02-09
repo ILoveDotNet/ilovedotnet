@@ -3,12 +3,13 @@
 This is a .NET knowledge sharing platform with live demos crafted by developers for developers with love using .NET. The goal is to make sure this learning platform helps developers to up and run .NET easily in their projects. This platform will cover minimal knowledge, steps, content needed to start with .NET stack.
 
 # Road Map
-1. Blazor WASM
-2. LINQ
-3. Entity Framework Core
-4. C#
-5. ML.NET
+1. [Blazor WASM](https://github.com/orgs/ILoveDotNet/projects/2/views/1)
+2. [LINQ](https://github.com/orgs/ILoveDotNet/projects/6/views/1)
+3. [Entity Framework Core](https://github.com/orgs/ILoveDotNet/projects/4/views/1)
+4. [C#](https://github.com/orgs/ILoveDotNet/projects/5/views/1)
+5. [ML.NET](https://github.com/orgs/ILoveDotNet/projects/3/views/1)
 6. WEB API
+7. [DSA](https://github.com/orgs/ILoveDotNet/projects/7/views/1)
 
 # Help Needed
 1. We are making posters using SVG but we couldn't restrict the size to less than 50 - 100 kb. Our posters end up having 800 - 1200 kb. Anyone who has good knowledge on SVG can help us here.
