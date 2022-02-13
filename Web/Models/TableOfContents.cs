@@ -48,6 +48,17 @@ public class TableOfContents
                 IconUrl = "image/icons/blazor.png",
                 Type = "Blazor",
                 CreatedOn = new DateTime(2022, 2, 6, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+                Title = "Blazor WASM Styles and CSS Isolation",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-styles-and-css-isolation-1200w.svg",
+                ThumbnailUrl = "image/blogs/blazor/wasm/blazor-wasm-styles-and-css-isolation-400w.svg",
+                ContentUrl = "blogs/blazor-wasm-styles-and-css-isolation",
+                IconUrl = "image/icons/blazor.png",
+                Type = "Blazor",
+                CreatedOn = new DateTime(2022, 2, 13, 22, 30, 0)
             }
         };
 }
