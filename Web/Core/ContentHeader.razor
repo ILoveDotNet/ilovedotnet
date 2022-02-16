@@ -1,0 +1,29 @@
+﻿@using Humanizer
+@inject IConfiguration configuration
+
+<header class="[ space-y-2 ]">
+    <figure>
+        <img srcset="@($"image/blogs/blazor/wasm/{Slug}-400w.svg 400w,image/blogs/blazor/wasm/{Slug}-1200w.svg 1200w")"
+             sizes="(max-width: 400px) 480px,1200px"
+             alt="@Title" class="[ w-full ]" loading="lazy" />
+    </figure>
+    <h2 class="[ dark:text-white ] [ font-semibold text-xl ]">@Title</h2>
+    <section class="[ flex flex-col md:flex-row justify-between ] [ space-y-1 md:space-y-0 ] [ dark:text-white ] [ font-bold ]">
+        <div>
+            <p>Authors - <a href="@(configuration.GetValue<string>("authors:Abdul Rahman"))" class="[ underline ]" target="_blank">Abdul Rahman (Content Writer)</a>, <a href="@(configuration.GetValue<string>("authors:Regina Sharon"))" class="[ underline ]" target="_blank">Regina Sharon (Graphic Designer)</a></p>
+            <time datetime="@ModifiedOn.ToString("yyyy-MM-dd HH:mm:ss")">Last updated @ModifiedOn.Humanize()</time>
+        </div>
+        <div>
+            <SocialShare Title="@Title" Url="@($"{BaseUrl}blogs/{Slug}/")"></SocialShare>
+        </div>
+    </section>
+</header>
+
+
+@code {
+    private string BaseUrl => configuration.GetValue<string>("baseUrl");
+
+    [Parameter, EditorRequired] public string Title { get; set; } = default!;
+    [Parameter, EditorRequired] public DateTime ModifiedOn { get; set; }
+    [Parameter, EditorRequired] public string Slug { get; set; } = default!;
+}
