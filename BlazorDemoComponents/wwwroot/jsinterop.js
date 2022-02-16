@@ -7,7 +7,7 @@ blazorInterop.getViewportDimensions = () => {
 }
 
 blazorInterop.callDotNetStaticFromJs = () => {
-    let message = DotNet.invokeMethod('Web', 'GetMessageFromDotNet');
+    let message = DotNet.invokeMethod('BlazorDemoComponents', 'GetMessageFromDotNet');
     alert(`Message from .Net Static Method - ${message}`);
 }
 
