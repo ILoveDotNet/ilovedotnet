@@ -5,7 +5,7 @@ namespace Web.Models;
 public class TableOfContents
 {
     public List<ContentMetaData> Contents { get; set; } =
-        new(3)
+        new(5)
         {
             new ContentMetaData
             {
