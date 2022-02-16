@@ -1,7 +1,8 @@
-﻿@implements IAsyncDisposable
+﻿@using Microsoft.AspNetCore.Components.WebAssembly.Services
+@implements IAsyncDisposable
 
 <CascadingValue Value="SmallDevice">
-    <Router AppAssembly="@typeof(App).Assembly">
+    <Router AppAssembly="@typeof(Program).Assembly" OnNavigateAsync="@OnNavigateAsync">
         <Found Context="routeData">
             <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
             <FocusOnNavigate RouteData="@routeData" Selector="h1" />
@@ -23,6 +24,8 @@
     private bool SmallDevice;
 
     [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
+    [Inject] private LazyAssemblyLoader AssemblyLoader { get; set; } = default!;
+    [Inject] private ILogger<App> Logger { get; set; } = default!;
 
     protected override async Task OnInitializedAsync()
     {
@@ -31,6 +34,21 @@
         viewPortWidth = await module.InvokeAsync<ushort>("getViewPortWidth");
 
         SmallDevice = viewPortWidth < SMALLDEVICEWIDTH;
+    }
+
+    private async Task OnNavigateAsync(NavigationContext args)
+    {
+        try
+        {
+            if (args.Path.Contains("blogs", StringComparison.OrdinalIgnoreCase))
+            {
+                var assemblies = await AssemblyLoader.LoadAssembliesAsync(new[] { "Components.dll" });
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError("Error: {Message}", ex.Message);
+        }
     }
 
     async ValueTask IAsyncDisposable.DisposeAsync()
