@@ -1,4 +1,4 @@
-﻿namespace Web.Models;
+﻿namespace SharedModels;
 
 public class ContentMetaData
 {

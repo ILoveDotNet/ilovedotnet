@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
-using Web.Models;
+using SharedModels;
 
 namespace Web.Shared;
 
