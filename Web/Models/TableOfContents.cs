@@ -1,4 +1,6 @@
-﻿namespace Web.Models;
+﻿using SharedModels;
+
+namespace Web.Models;
 
 public class TableOfContents
 {

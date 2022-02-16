@@ -1,4 +1,4 @@
-﻿namespace BlazorDemoComponents.Models;
+﻿namespace SharedModels;
 
 public enum DisplayMode
 {
