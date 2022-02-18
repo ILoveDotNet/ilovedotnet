@@ -62,16 +62,16 @@ public class TableOfContents
                 Type = "Blazor",
                 CreatedOn = new DateTime(2022, 2, 13, 22, 30, 0)
             },
-            new ContentMetaData
-            {
-                Title = "Importance of Status Code in Web API",
-                Author = "Abdul Rahman",
-                PosterUrl = "image/blogs/webapi/web-api-importance-of-status-code-1200w.svg",
-                ThumbnailUrl = "image/blogs/webapi/web-api-importance-of-status-code-400w.svg",
-                ContentUrl = "blogs/web-api-importance-of-status-code",
-                IconUrl = "image/icons/webapi.png",
-                Type = "Web API",
-                CreatedOn = new DateTime(2022, 2, 20, 22, 30, 0)
-            }
+            //new ContentMetaData
+            //{
+            //    Title = "Importance of Status Code in Web API",
+            //    Author = "Abdul Rahman",
+            //    PosterUrl = "image/blogs/webapi/web-api-importance-of-status-code-1200w.svg",
+            //    ThumbnailUrl = "image/blogs/webapi/web-api-importance-of-status-code-400w.svg",
+            //    ContentUrl = "blogs/web-api-importance-of-status-code",
+            //    IconUrl = "image/icons/webapi.png",
+            //    Type = "Web API",
+            //    CreatedOn = new DateTime(2022, 2, 20, 22, 30, 0)
+            //}
         };
 }
