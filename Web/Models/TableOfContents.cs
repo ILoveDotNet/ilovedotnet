@@ -66,8 +66,8 @@ public class TableOfContents
             {
                 Title = "Importance of Status Code in Web API",
                 Author = "Abdul Rahman",
-                PosterUrl = "image/blogs/blazor/wasm/web-api-importance-of-status-code-1200w.svg",
-                ThumbnailUrl = "image/blogs/blazor/wasm/web-api-importance-of-status-code-400w.svg",
+                PosterUrl = "image/blogs/webapi/web-api-importance-of-status-code-1200w.svg",
+                ThumbnailUrl = "image/blogs/webapi/web-api-importance-of-status-code-400w.svg",
                 ContentUrl = "blogs/web-api-importance-of-status-code",
                 IconUrl = "image/icons/webapi.png",
                 Type = "Web API",
