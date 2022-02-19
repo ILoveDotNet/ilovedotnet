@@ -10,6 +10,7 @@ This is a .NET knowledge sharing platform with live demos crafted by developers 
 5. [ML.NET](https://github.com/orgs/ILoveDotNet/projects/3/views/1)
 6. [WEB API](https://github.com/orgs/ILoveDotNet/projects/8)
 7. [DSA](https://github.com/orgs/ILoveDotNet/projects/7/views/1)
+8. [Design Patterns](https://github.com/orgs/ILoveDotNet/projects/9)
 
 # Help Needed
 1. We are making posters using SVG but we couldn't restrict the size to less than 50 - 100 kb. Our posters end up having 800 - 1200 kb. Anyone who has good knowledge on SVG can help us here.
