@@ -1,5 +1,5 @@
 module.exports = {
-    content: ['**/*.html', '**/*.razor', '**/*.cs'],
+    content: ['../**/*.html', '../**/*.razor', '../**/*.cs'],
     extractors: [
         {
             extractor: (content) => {
