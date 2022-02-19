@@ -1,0 +1,100 @@
+﻿@page "/blogs/blazor-wasm-lazy-loading"
+@inherits FragmentNavigationBase
+@using BlazorDemoComponents
+@inject IConfiguration configuration
+
+<ContentHead Title=@Title
+             Description=@Description
+             CreatedOn=@CreatedOn
+             ModifiedOn=@ModifiedOn
+             Slug=@Slug
+             Keywords=@Keywords>
+</ContentHead>
+
+<section class="[ flex flex-col md:flex-row ] [ p-5 md:px-20 ] [ md:space-x-5 space-y-5 md:space-y-0 ]">
+    <article class="[ md:basis-4/5 ] [ space-y-5 ]">
+        <ContentHeader Title=@Title
+                       ModifiedOn=@ModifiedOn
+                       Slug=@Slug>
+        </ContentHeader>
+        <section class="[ dark:text-white ] [ space-y-2 ] [ leading-relaxed ]">
+            <p>
+                In this article, let's learn about what is lazy loading, why it is needed and how to implement lazy loading in Blazor WASM application.
+            </p>
+
+            <h3 class="[ font-semibold text-lg ]">What is Lazy Loading and Why it is needed?</h3>
+
+            <p>
+                Lazy loading in Blazor WASM helps to defer downloading of assemblies until the route in which the assembly components used are requested
+                by the end user. This helps to improve startup performance of large Blazor WASM applications
+            </p>
+
+            <p>
+                I ❤️ .NET makes use of lazy loading to load blog related components only when an blog is opened. It makes sense to not load all the
+                components and assemblies when the user just visit the home screen. Thus saving startup time and saving user bandwidth by avoiding
+                unnecessary downloads.
+            </p>
+
+            <h3 class="[ font-semibold text-lg ]">How to implement Lazy loading?</h3>
+
+            <p>
+                To implement lazy loading, we need to follow two steps.
+                <ol class="[ list-decimal ] [ ml-3.5 ]">
+                    <li>
+                        <NavLink class="[ underline ]" href="@($"blogs/{Slug}#project-configuration")" Match="NavLinkMatch.All">
+                            Project file configuration
+                        </NavLink>
+                    </li>
+                    <li>
+                        <NavLink class="[ underline ]" href="@($"blogs/{Slug}#router-configuration")" Match="NavLinkMatch.All">
+                            <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">Router</code> component configuration
+                        </NavLink>
+                    </li>
+                </ol>
+            </p>
+
+            <h4 id="project-configuration" class="[ font-semibold text-base ]">Project file configuration</h4>
+
+            <ol class="[ list-decimal ] [ ml-3.5 ]">
+                <li>First we need to find the components to be lazy loaded and move them to new assembly (Razor Class Library Project).</li>
+                <li>Next refer this new assembly in the Blazor WASM project.</li>
+                <li>Finally add the assembly name with <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">.dll</code> extension in the Blazor WASM .csproj using <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">BlazorWebAssemblyLazyLoad</code>.</li>
+                <li>Repeat step 2 for as many assemblies to be lazy loaded.</li>
+            </ol>
+
+            <GithubGistSnippet Title="Blazor WASM Lazy Loading Project File Configuration" UserId="fingers10" FileName="9c029a47dc00c262c76da049ee534d91"></GithubGistSnippet>
+
+            <p>
+                This will make Blazor framework to prevent the assemblies to be loaded at app launch thus improves the performance.
+            </p>
+
+            <h4 id="router-configuration" class="[ font-semibold text-base ]"><code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">Router</code> component configuration</h4>
+
+            <ol class="[ list-decimal ] [ ml-3.5 ]">
+                <li>Go to <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">App.razor</code> file.</li>
+                <li>Import <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">@@using Microsoft.AspNetCore.Components.WebAssembly.Services</code>.</li>
+                <li>Inject <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">@@inject LazyAssemblyLoader AssemblyLoader</code></li>
+                <li>In <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">Router</code> component, assign <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">OnNavigateAsync="@@OnNavigateAsync"</code>. This event gets triggered whenever we navigate to new page.</li>
+                <li>Now you can conditionally lazy load asssemblies based on route using <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">await AssemblyLoader.LoadAssembliesAsync(new[] { "Components.dll" });</code></li>
+            </ol>
+
+            <GithubGistSnippet Title="Blazor WASM Lazy Loading Project File Configuration" UserId="fingers10" FileName="f021dd591d91d06dfd47009a801e7587"></GithubGistSnippet>
+
+            <p>
+                Wow. We have completed lazy loading implementation in Blazor WASM application. Now that your Blazor WASM app will start up faster and 
+                lazy load assemblies on demand based on route thus increasing speed and saves user bandwidth.
+            </p>
+        </section>
+    </article>
+    <ContentRecommendation Title=@Title></ContentRecommendation>
+</section>
+
+@code {
+    private string Title = "Blazor WASM Lazy Loading";
+    private string Description = "In this post I will teach you how to lazy load assemblies in your Blazor applications. All with live working demo.";
+    private string BaseUrl => configuration.GetValue<string>("baseUrl");
+    private DateTime CreatedOn = new DateTime(2022, 2, 20, 22, 30, 0);
+    private DateTime ModifiedOn = new DateTime(2022, 2, 20, 22, 30, 0);
+    private string Slug = "blazor-wasm-lazy-loading";
+    private List<string> Keywords = new(1) { "Lazy Loading" };
+}
