@@ -62,6 +62,17 @@ public class TableOfContents
                 Type = "Blazor",
                 CreatedOn = new DateTime(2022, 2, 13, 22, 30, 0)
             },
+            new ContentMetaData
+            {
+                Title = "Blazor WASM Lazy Loading",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-lazy-loading-1200w.svg",
+                ThumbnailUrl = "image/blogs/blazor/wasm/blazor-wasm-lazy-loading-400w.svg",
+                ContentUrl = "blogs/blazor-wasm-lazy-loading",
+                IconUrl = "image/icons/blazor.png",
+                Type = "Blazor",
+                CreatedOn = new DateTime(2022, 2, 20, 22, 30, 0)
+            },
             //new ContentMetaData
             //{
             //    Title = "Importance of Status Code in Web API",
