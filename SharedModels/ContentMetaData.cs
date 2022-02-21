@@ -10,4 +10,5 @@ public class ContentMetaData
     public string IconUrl { get; set; } = default!;
     public string Type { get; set; } = default!;
     public DateTime CreatedOn { get; set; }
+    public DateTime ModifiedOn { get; set; }
 }
