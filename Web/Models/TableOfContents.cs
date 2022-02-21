@@ -16,7 +16,8 @@ public class TableOfContents
                 ContentUrl = "blogs/blazor-wasm-exception-handling-and-error-boundary",
                 IconUrl = "image/icons/blazor.png",
                 Type = "Blazor",
-                CreatedOn = new DateTime(2022, 1, 16, 22, 30, 0)
+                CreatedOn = new DateTime(2022, 1, 16, 22, 30, 0),
+                ModifiedOn = new DateTime(2022, 1, 23, 22, 30, 0)
             },
             new ContentMetaData
             {
@@ -27,7 +28,8 @@ public class TableOfContents
                 ContentUrl = "blogs/blazor-wasm-error-logging",
                 IconUrl = "image/icons/blazor.png",
                 Type = "Blazor",
-                CreatedOn = new DateTime(2022, 1, 23, 22, 30, 0)
+                CreatedOn = new DateTime(2022, 1, 23, 22, 30, 0),
+                ModifiedOn = new DateTime(2022, 1, 23, 22, 30, 0)
             },
             new ContentMetaData
             {
@@ -38,7 +40,8 @@ public class TableOfContents
                 ContentUrl = "blogs/blazor-wasm-dark-theme-and-light-theme",
                 IconUrl = "image/icons/blazor.png",
                 Type = "Blazor",
-                CreatedOn = new DateTime(2022, 1, 30, 22, 30, 0)
+                CreatedOn = new DateTime(2022, 1, 30, 22, 30, 0),
+                ModifiedOn = new DateTime(2022, 1, 30, 22, 30, 0)
             },
             new ContentMetaData
             {
@@ -49,7 +52,8 @@ public class TableOfContents
                 ContentUrl = "blogs/blazor-wasm-javascript-interop-and-isolation",
                 IconUrl = "image/icons/blazor.png",
                 Type = "Blazor",
-                CreatedOn = new DateTime(2022, 2, 6, 22, 30, 0)
+                CreatedOn = new DateTime(2022, 2, 6, 22, 30, 0),
+                ModifiedOn = new DateTime(2022, 2, 6, 22, 30, 0)
             },
             new ContentMetaData
             {
@@ -60,7 +64,8 @@ public class TableOfContents
                 ContentUrl = "blogs/blazor-wasm-styles-and-css-isolation",
                 IconUrl = "image/icons/blazor.png",
                 Type = "Blazor",
-                CreatedOn = new DateTime(2022, 2, 13, 22, 30, 0)
+                CreatedOn = new DateTime(2022, 2, 13, 22, 30, 0),
+                ModifiedOn = new DateTime(2022, 2, 20, 22, 30, 0)
             },
             new ContentMetaData
             {
@@ -71,7 +76,8 @@ public class TableOfContents
                 ContentUrl = "blogs/blazor-wasm-lazy-loading",
                 IconUrl = "image/icons/blazor.png",
                 Type = "Blazor",
-                CreatedOn = new DateTime(2022, 2, 20, 22, 30, 0)
+                CreatedOn = new DateTime(2022, 2, 20, 22, 30, 0),
+                ModifiedOn = new DateTime(2022, 2, 20, 22, 30, 0)
             },
             //new ContentMetaData
             //{
