@@ -5,7 +5,7 @@ namespace Web.Models;
 public class TableOfContents
 {
     public List<ContentMetaData> Contents { get; set; } =
-        new(6)
+        new(7)
         {
             new ContentMetaData
             {
@@ -78,6 +78,18 @@ public class TableOfContents
                 Type = "Blazor",
                 CreatedOn = new DateTime(2022, 2, 20, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 2, 20, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+                Title = "Blazor WASM App Settings",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-app-settings-1200w.svg",
+                ThumbnailUrl = "image/blogs/blazor/wasm/blazor-wasm-app-settings-400w.svg",
+                ContentUrl = "blogs/blazor-wasm-app-settings",
+                IconUrl = "image/icons/blazor.png",
+                Type = "Blazor",
+                CreatedOn = new DateTime(2022, 2, 27, 22, 30, 0),
+                ModifiedOn = new DateTime(2022, 2, 27, 22, 30, 0)
             },
             //new ContentMetaData
             //{
