@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using Toolbelt.Blazor.Extensions.DependencyInjection;
 using Web;
 using Web.Models;
 
@@ -12,5 +13,7 @@ builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.
 builder.Services.AddScoped<AppState>();
 
 builder.Services.AddScoped<TableOfContents>();
+
+builder.Services.AddHeadElementHelper();
 
 await builder.Build().RunAsync();
