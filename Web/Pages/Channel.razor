@@ -1,0 +1,58 @@
+﻿@page "/channel/{Name}"
+
+<section class="[ dark:bg-stone-900 ] [ flex flex-col ] [ space-y-5 ]">
+    <div class="[ flex items-center justify-around ] [ w-full ] [ h-52 ] [ bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 ]">
+        <h2 class="[ text-9xl uppercase ]">@Name</h2>
+    </div>
+    <div class="[ mx-24 ]">
+        <main class="[ flex ]">
+            <aside class="[ ]">
+                <figure class="[ mt-2 mr-2 ]">
+                    <img src="@($"/image/icons/{Name}.png")" alt="@Name" loading="lazy" height="48" width="48" class="[ rounded-full ]" />
+                </figure>
+            </aside>
+            <article class="[ flex flex-col justify-between ] [ dark:text-white ] [ mt-2 ]">
+                <h2 class="[ font-medium break-words capitalize ]">@Name</h2>
+                <section class="[ flex justify-between ]">
+                    <p>@Contents.Count Articles</p>
+                </section>
+            </article>
+        </main>
+    </div>
+    <div class="[ grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-1 mx-24 ]">
+        @foreach (var content in Contents)
+        {
+            <Thumbnail PosterUrl="@content.ThumbnailUrl"
+                   ContentUrl="@content.ContentUrl"
+                   Title="@content.Title"
+                   AltText="@content.Title"
+                   IconUrl="@content.IconUrl"
+                   IconAlt="@content.Type"
+                   CreatedOn="@content.CreatedOn"
+                   Author="@content.Author">
+            </Thumbnail>
+        }
+    </div>
+</section>
+
+@code {
+    private List<ContentMetaData> Contents = new(0);
+
+    [Inject] private NavigationManager NavigationManager { get; set; } = default!;
+    [Inject] private TableOfContents TableOfContents { get; set; } = default!;
+
+    [Parameter, EditorRequired] public string Name { get; set; } = default!;
+
+    protected override void OnInitialized()
+    {
+        Contents = TableOfContents.Contents
+                                  .Where(content => content.Type.Equals(Name, StringComparison.OrdinalIgnoreCase))
+                                  .OrderByDescending(content => content.CreatedOn)
+                                  .ToList();
+
+        if (Contents.Count == 0) 
+        {
+            NavigationManager.NavigateTo("/");
+        }
+    }
+}
