@@ -1,8 +1,58 @@
-﻿@page "/channel/{Name}"
+﻿@page "/channels/{Name}"
+@using Humanizer
+@using Toolbelt.Blazor.HeadElement
+@inject IConfiguration configuration
+
+<Title>@Title</Title>
+<Meta Property="description" Content="@Description" />
+<Meta Property="keywords" Content=".NET, DotNet, I Love DotNet, I ❤️ DotNet, Blazor, Blazor (WebAssembly), Blazor Wasm, C#, Entity Framework Core, LINQ, ML.NET, Web API" />
+<Meta Property="url" Content="@Url" />
+<Meta Property="identifier-URL" Content="@Url" />
+<Meta Property="og:site_name" Content="@Title" />
+<Meta Property="og:type" Content="website" />
+<Meta Property="og:title" Content="@Title" />
+<Meta Property="og:description" Content="@Description" />
+<Meta Property="og:url" Content="@Url" />
+<Meta Property="twitter:card" Content="summary" />
+<Meta Property="twitter:title" Content="@Title" />
+<Meta Property="twitter:description" Content="@Description" />
+<Meta Property="twitter:url" Content="@Url" />
+<Link Rel="sitemap" Href="@($"{BaseUrl}sitemap.xml")" />
+<Link Rel="alternate" Href="@($"{BaseUrl}atom.xml")" />
+<Link Rel="alternate" Href="@Url" />
+<Link Rel="alternate" Href="@Url" />
+<Link Rel="canonical" Href="@Url" />
+<Link Rel="index" Href="@Url" />
+<HeadContent>
+    @(new MarkupString(
+    $@"<script type=""application/ld+json"">
+    {{
+        ""@context"": ""https://schema.org"",
+        ""@type"": ""WebSite"",
+        ""publisher"": {{
+            ""@type"": ""Organization"",
+            ""name"": ""{Title}"",
+            ""url"": ""{Url}"",
+            ""logo"": {{
+                ""@type"": ""ImageObject"",
+                ""url"": ""{BaseUrl}favicon.ico"",
+                ""width"": 16,
+                ""height"": 16
+            }}
+        }},
+        ""url"": ""{Url}"",
+        ""mainEntityOfPage"": {{
+            ""@type"": ""WebPage"",
+            ""@id"": ""{Url}""
+        }},
+        ""description"": ""{Description}""
+    }}
+    </script>"))
+</HeadContent>
 
 <section class="[ dark:bg-stone-900 ] [ flex flex-col ] [ space-y-5 ]">
     <div class="[ flex items-center justify-around ] [ w-full ] [ h-52 ] [ bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 ]">
-        <h2 class="[ text-9xl uppercase ]">@Name</h2>
+        <h2 class="[ text-9xl uppercase ]">@ContentType</h2>
     </div>
     <div class="[ mx-24 ]">
         <main class="[ flex ]">
@@ -12,7 +62,7 @@
                 </figure>
             </aside>
             <article class="[ flex flex-col justify-between ] [ dark:text-white ] [ mt-2 ]">
-                <h2 class="[ font-medium break-words capitalize ]">@Name</h2>
+                <h2 class="[ font-medium break-words ]">@ContentType</h2>
                 <section class="[ flex justify-between ]">
                     <p>@Contents.Count Articles</p>
                 </section>
@@ -36,6 +86,11 @@
 </section>
 
 @code {
+    private string ContentType => $"{Name.Humanize(LetterCasing.Title)}";
+    private string Title => $"{ContentType} - I ❤️ DotNet";
+    private string Description => $"This is a .NET {ContentType} knowledge sharing channel with live demos crafted by developers for developers with love.";
+    private string BaseUrl => configuration.GetValue<string>("baseUrl");
+    private string Url => $"{BaseUrl}channels/{Name.ToLower()}";
     private List<ContentMetaData> Contents = new(0);
 
     [Inject] private NavigationManager NavigationManager { get; set; } = default!;
