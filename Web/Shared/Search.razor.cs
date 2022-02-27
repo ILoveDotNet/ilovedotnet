@@ -48,7 +48,9 @@ public class SearchBase : ComponentBase, IAsyncDisposable
     }
 
     protected List<ContentMetaData> FilteredContents => TableOfContents.Contents
-        .Where(content => content.Title.Contains(SearchText, StringComparison.OrdinalIgnoreCase)).ToList();
+        .Where(content => SearchText.Split(" ", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+                                    .Any(searchTerm => content.Title.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)))
+        .ToList();
 
     protected async Task Search()
     {
