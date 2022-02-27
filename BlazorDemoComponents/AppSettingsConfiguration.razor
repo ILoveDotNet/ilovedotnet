@@ -1,0 +1,43 @@
+﻿<section class="[ flex flex-col space-y-1 w-1/5 ]">
+    <button type="button" class="[ bg-cyan-500 ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ]" @onclick="GetBaseUrl">
+        <p class="[ text-white ]">Read Base Url</p>
+    </button>
+
+    @if (baseUrl is not null)
+    {
+       <p class="[ dark:text-white ]">Base Url: <a class="[ underline ]" href="@baseUrl" target="_blank">I ❤️ .NET</a></p>       
+    }
+
+    <button type="button" class="[ bg-fuchsia-500 ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ]" @onclick="GetAuthorProfiles">
+        <p class="[ text-white ]">Read Author Details</p>
+    </button>
+
+    @if (authors is not null)
+    {
+        <p class="[ dark:text-white ]">Author Details:</p>
+        <ul>
+        @foreach(var author in authors)
+        {
+            <li><a class="[ underline ]" href="@author.Value" target="_blank">@author.Key</a></li>      
+        }
+        </ul>        
+    }
+</section>
+
+@code {
+    private string? baseUrl;
+    private Dictionary<string, string>? authors;
+
+    [Inject] public IConfiguration Configuration { get; set; } = default!;
+
+    protected void GetBaseUrl()
+    {
+        baseUrl = Configuration.GetValue<string>("baseUrl");
+    }
+
+    protected void GetAuthorProfiles()
+    {
+        Console.WriteLine("test");
+        authors = Configuration.GetSection("authors").Get<Dictionary<string, string>>();
+    }
+}
