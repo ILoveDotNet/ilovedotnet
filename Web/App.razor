@@ -27,13 +27,18 @@
     [Inject] private LazyAssemblyLoader AssemblyLoader { get; set; } = default!;
     [Inject] private ILogger<App> Logger { get; set; } = default!;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/viewport.js");
+        if (firstRender)
+        {
+            module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/viewport.js");
 
-        viewPortWidth = await module.InvokeAsync<ushort>("getViewPortWidth");
+            viewPortWidth = await module.InvokeAsync<ushort>("getViewPortWidth");
 
-        SmallDevice = viewPortWidth < SMALLDEVICEWIDTH;
+            SmallDevice = viewPortWidth < SMALLDEVICEWIDTH;
+
+            StateHasChanged();
+        }
     }
 
     private async Task OnNavigateAsync(NavigationContext args)

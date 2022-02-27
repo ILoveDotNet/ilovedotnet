@@ -13,14 +13,18 @@ public class ThemeBase : ComponentBase, IAsyncDisposable
 
     [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/displaymode.js");
+        if (firstRender) 
+        {
+            module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/displaymode.js");
 
-        DisplayMode = Enum.TryParse(typeof(DisplayMode), await module.InvokeAsync<string>("getDisplayMode"), true, out var displayMode)
-                      ? (DisplayMode)displayMode!
-                      : DisplayMode.System;
+            DisplayMode = Enum.TryParse(typeof(DisplayMode), await module.InvokeAsync<string>("getDisplayMode"), true, out var displayMode)
+                          ? (DisplayMode)displayMode!
+                          : DisplayMode.System;
 
+            StateHasChanged();
+        }
     }
 
     internal void ToggleMenu()

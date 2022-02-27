@@ -11,10 +11,8 @@ public class FragmentNavigationBase : ComponentBase, IAsyncDisposable
     [Inject] private NavigationManager NavigationManager { get; set; } = default!;
     [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/scrollto.js");
-
         NavigationManager.LocationChanged += TryFragmentNavigation!;
     }
 
@@ -22,6 +20,8 @@ public class FragmentNavigationBase : ComponentBase, IAsyncDisposable
     {
         if (firstRender)
         {
+            module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/scrollto.js");
+
             await NavigationManager.NavigateToFragmentAsync(module);
         }
     }
