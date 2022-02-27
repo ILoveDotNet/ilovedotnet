@@ -39,9 +39,12 @@ public class SearchBase : ComponentBase, IAsyncDisposable
     [Parameter, EditorRequired] public EventCallback<bool> ToggleNonSearchItems { get; set; }
     [CascadingParameter] public bool SmallDevice { get; set; }
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/search.js");
+        if (firstRender) 
+        {
+            module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/search.js");
+        }
     }
 
     protected List<ContentMetaData> FilteredContents => TableOfContents.Contents

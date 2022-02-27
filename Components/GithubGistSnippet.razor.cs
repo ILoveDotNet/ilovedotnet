@@ -15,11 +15,16 @@ public class GithubGistSnippetBase : ComponentBase, IAsyncDisposable
     [Parameter, EditorRequired] public string UserId { get; set; } = default!;
     [Parameter, EditorRequired] public string FileName { get; set; } = default!;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Components/githubgist.js");
+        if (firstRender) 
+        {
+            module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Components/githubgist.js");
 
-        await module.InvokeVoidAsync("printSnippetFrom", Id, UserId, FileName);
+            await module.InvokeVoidAsync("printSnippetFrom", Id, UserId, FileName);
+
+            StateHasChanged();
+        }
     }
 
     async ValueTask IAsyncDisposable.DisposeAsync()
