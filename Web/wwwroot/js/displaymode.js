@@ -5,7 +5,7 @@
     }
     else {
         document.documentElement.classList.remove('dark');
-        localStorage.removeItem('DisplayMode');
+        localStorage.setItem('DisplayMode', 'light');
     }
 }
 
