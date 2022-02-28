@@ -1,7 +1,6 @@
 ﻿@page "/"
 @using Toolbelt.Blazor.HeadElement
 @inject IConfiguration configuration
-@inject TableOfContents tableOfContents
 
 <Meta Property="description" Content="@Description" />
 <Meta Property="keywords" Content=".NET, DotNet, I Love DotNet, I ❤️ DotNet, Blazor, Blazor (WebAssembly), Blazor Wasm, C#, Entity Framework Core, LINQ, ML.NET, Web API" />
@@ -50,8 +49,19 @@
 </HeadContent>
 
 <section class="[ dark:bg-stone-900 ] [ flex flex-col ] [ space-y-5 ] [ p-5 ]">
+    <div class="[ max-w-full ] [ hidden md:block ]">
+        <ul class="[ list-none ] [ flex items-center justify-start ] [ space-x-3 ] [ overflow-hidden overflow-x-auto ]">
+            <li class="[ cursor-pointer ] [ bg-black text-white dark:bg-white dark:text-black ] [ px-3 py-1 ] [ rounded-full ]"
+                onclick="@(() => FilterContent(null))">All</li>
+            @foreach(var contentType in TableOfContents.Contents.Select(content => content.Type).Distinct())
+            {
+                <li class="[ cursor-pointer ] [ bg-gray-200 text-black dark:bg-gray-600 dark:text-white ] [ px-3 py-1 ] [ rounded-full ]"
+                    @onclick="@(() => FilterContent(@contentType))">@contentType</li>
+            }
+        </ul>
+    </div>
     <div class="[ grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 ]">
-        @foreach (var content in tableOfContents.Contents.OrderByDescending(content => content.CreatedOn))
+        @foreach (var content in Contents)
         {
              <Thumbnail PosterUrl="@content.ThumbnailUrl" 
                     ContentUrl="@content.ContentUrl"
@@ -70,4 +80,26 @@
     private string Title = "I ❤️ DotNet";
     private string Description = "This is a .NET knowledge sharing platform with live demos crafted by developers for developers with love.";
     private string BaseUrl => configuration.GetValue<string>("baseUrl");
+    private List<ContentMetaData> Contents = new(0);
+
+    [Inject] private TableOfContents TableOfContents { get; set; } = default!;
+
+    protected override void OnInitialized()
+    {
+        FilterContent(null);
+    }
+
+    private void FilterContent(string? contentType)
+    {
+        if (contentType is null)
+        {
+            Contents = TableOfContents.Contents.OrderByDescending(content => content.CreatedOn).ToList();
+            return;
+        }   
+
+        Contents = TableOfContents.Contents
+                                  .Where(content => content.Type.Equals(contentType, StringComparison.OrdinalIgnoreCase))
+                                  .OrderByDescending(content => content.CreatedOn)
+                                  .ToList();
+    }
 }
