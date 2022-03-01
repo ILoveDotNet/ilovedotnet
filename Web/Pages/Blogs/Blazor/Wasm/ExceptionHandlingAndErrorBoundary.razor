@@ -2,172 +2,160 @@
 @inherits FragmentNavigationBase
 @using BlazorDemoComponents
 
-<ContentHead Title=@Title
-             Description=@Description
-             CreatedOn=@CreatedOn
-             ModifiedOn=@ModifiedOn
-             Slug=@Slug
-             Keywords=@Keywords>
-</ContentHead>
+<Content Title=@Title
+         Description=@Description
+         CreatedOn=@CreatedOn
+         ModifiedOn=@ModifiedOn
+         Slug=@Slug
+         Keywords=@Keywords>
+    <ContentBody>
+        <p>
+            Exceptions are common in all apps. We can handle known exceptions which we expect using <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">try</code>
+            <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">catch</code> blocks. But this cannot be the case always. Some times we might end up in unforeseen
+            run time unhandled exceptions. There are different ways to handle exceptions. Luckily with <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">blazor</code>
+            we have exception handling built in in two different ways.
+        </p>
 
-<section class="[ flex flex-col md:flex-row ] [ p-5 md:px-20 ] [ md:space-x-5 space-y-5 md:space-y-0 ]">
-    <article class="[ md:basis-4/5 ] [ space-y-5 ]">
-        <ContentHeader Title=@Title
-                       ModifiedOn=@ModifiedOn
-                       Slug=@Slug>
-        </ContentHeader>
-        <section class="[ dark:text-white ] [ space-y-2 ] [ leading-relaxed ]">
-            <p>
-                Exceptions are common in all apps. We can handle known exceptions which we expect using <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">try</code>
-                <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">catch</code> blocks. But this cannot be the case always. Some times we might end up in unforeseen
-                run time unhandled exceptions. There are different ways to handle exceptions. Luckily with <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">blazor</code>
-                we have exception handling built in in two different ways.
-            </p>
+        <GithubGistSnippet Title="Chat component to simulate exception" UserId="fingers10" FileName="c2b5d43dcc0017bafcecd995772f3f69"></GithubGistSnippet>
 
-            <GithubGistSnippet Title="Chat component to simulate exception" UserId="fingers10" FileName="c2b5d43dcc0017bafcecd995772f3f69"></GithubGistSnippet>
+        <ol class="[ list-decimal ] [ ml-3.5 ]">
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#global-exception-handling")" Match="NavLinkMatch.All">
+                    Global Exception Handling
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#error-boundary")" Match="NavLinkMatch.All">
+                    Error Boundary
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#alternative-global-exception-handling")" Match="NavLinkMatch.All">
+                    Alternative Global Exception Handling
+                </NavLink>
+            </li>
+        </ol>
 
-            <ol class="[ list-decimal ] [ ml-3.5 ]">
-                <li>
-                    <NavLink class="[ underline ]" href="@($"blogs/{Slug}#global-exception-handling")" Match="NavLinkMatch.All">
-                        Global Exception Handling
-                    </NavLink>
-                </li>
-                <li>
-                    <NavLink class="[ underline ]" href="@($"blogs/{Slug}#error-boundary")" Match="NavLinkMatch.All">
-                        Error Boundary
-                    </NavLink>
-                </li>
-                <li>
-                    <NavLink class="[ underline ]" href="@($"blogs/{Slug}#alternative-global-exception-handling")" Match="NavLinkMatch.All">
-                        Alternative Global Exception Handling
-                    </NavLink>
-                </li>
-            </ol>
+        <h3 id="global-exception-handling" class="[ font-semibold text-lg ]">Global Exception Handling</h3>
 
-            <h3 id="global-exception-handling" class="[ font-semibold text-lg ]">Global Exception Handling</h3>
+        <p>
+            Blazor has global error handling element <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">@(@"<div id=""blazor-error-ui"">")</code> in <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">index.html</code>. This will act
+            as an global error handler which will catch any unhanled exception across blazor app and display nice error UI codesent inside
+            <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">@(@"<div id=""blazor-error-ui"">")</code> at the bottom of the screen by default and logs the error stack trace to browser
+            console. This will also have reload option to reload the app to restore the app to correct working state.
+        </p>
 
-            <p>
-                Blazor has global error handling element <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">@(@"<div id=""blazor-error-ui"">")</code> in <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">index.html</code>. This will act
-                as an global error handler which will catch any unhanled exception across blazor app and display nice error UI codesent inside
-                <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">@(@"<div id=""blazor-error-ui"">")</code> at the bottom of the screen by default and logs the error stack trace to browser
-                console. This will also have reload option to reload the app to restore the app to correct working state.
-            </p>
+        <GithubGistSnippet Title="Blazor Global Exception Handling" UserId="fingers10" FileName="57a183a3489acca5760391d728bf712c"></GithubGistSnippet>
 
-            <GithubGistSnippet Title="Blazor Global Exception Handling" UserId="fingers10" FileName="57a183a3489acca5760391d728bf712c"></GithubGistSnippet>
+        <DemoSnippet Title="Global Exception Handling">
+            <DemoContent>
+                <p class="[ text-black ] [ dark:text-white ]"><b>Scenario - Let's simulate an error connecting to chat agent</b></p>
+                <Chat></Chat>
+            </DemoContent>
+        </DemoSnippet>
 
-            <DemoSnippet Title="Global Exception Handling">
-                <DemoContent>
+        <h3 id="error-boundary" class="[ font-semibold text-lg ]">Error Boundary</h3>
+
+        <p>
+            Though <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">@(@"<div id=""blazor-error-ui"">")</code> handles all unhandled exceptions it will be nice to restrict the error
+            handling boundary and have better control of the error message and error UI. That said <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">.Net 6</code> introduced
+            <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">@("<ErrorBoundary>")</code> to serve this purpose. We can wrap any component inside <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">@("<ErrorBoundary>")</code> and this
+            will take care of showing error UI when an unhandled exception occurs inside the component.
+        </p>
+
+        <GithubGistSnippet Title="Blazor Error Boundary" UserId="fingers10" FileName="b26cd84ae5ee60c935050cc372c7d727"></GithubGistSnippet>
+
+        <DemoSnippet Title="Error Boundary">
+            <DemoContent>
+                <ErrorBoundary>
                     <p class="[ text-black ] [ dark:text-white ]"><b>Scenario - Let's simulate an error connecting to chat agent</b></p>
                     <Chat></Chat>
-                </DemoContent>
-            </DemoSnippet>
+                </ErrorBoundary>
+            </DemoContent>
+        </DemoSnippet>
 
-            <h3 id="error-boundary" class="[ font-semibold text-lg ]">Error Boundary</h3>
+        <p>
+            We can control the error message with our own custom error message and error UI using <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">@("<ErrorContent>")</code>. From now incase of any
+            unhandled exception, our custom error UI will be displayed.
+        </p>
 
-            <p>
-                Though <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">@(@"<div id=""blazor-error-ui"">")</code> handles all unhandled exceptions it will be nice to restrict the error
-                handling boundary and have better control of the error message and error UI. That said <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">.Net 6</code> introduced
-                <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">@("<ErrorBoundary>")</code> to serve this purpose. We can wrap any component inside <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">@("<ErrorBoundary>")</code> and this
-                will take care of showing error UI when an unhandled exception occurs inside the component.
-            </p>
+        <GithubGistSnippet Title="Blazor Error Boundary with custom Error UI" UserId="fingers10" FileName="de665e941c3efd35ec2115db3c4b1a98"></GithubGistSnippet>
 
-            <GithubGistSnippet Title="Blazor Error Boundary" UserId="fingers10" FileName="b26cd84ae5ee60c935050cc372c7d727"></GithubGistSnippet>
-
-            <DemoSnippet Title="Error Boundary">
-                <DemoContent>
-                    <ErrorBoundary>
+        <DemoSnippet Title="Error Boundary with Custom Error UI">
+            <DemoContent>
+                <ErrorBoundary>
+                    <ChildContent>
                         <p class="[ text-black ] [ dark:text-white ]"><b>Scenario - Let's simulate an error connecting to chat agent</b></p>
                         <Chat></Chat>
-                    </ErrorBoundary>
-                </DemoContent>
-            </DemoSnippet>
+                    </ChildContent>
+                    <ErrorContent>
+                        <div class="[ bg-red-500 ]">
+                            <p class="[ text-white ]">An error occured while establishing a connection. Please try again later.</p>
+                        </div>
+                    </ErrorContent>
+                </ErrorBoundary>
+            </DemoContent>
+        </DemoSnippet>
 
-            <p>
-                We can control the error message with our own custom error message and error UI using <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">@("<ErrorContent>")</code>. From now incase of any
-                unhandled exception, our custom error UI will be displayed.
-            </p>
+        <p>
+            So far so good. But doesn't this leave a bad user experience? How will the user retry the action? One way is to reload the page.
+            But there is an another easy option called Recovery in Error Boundary. All we need to do is to add a reference to Error Boundary
+            and call <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">errorBoundary?.Recover()</code> method to retry the action.
+        </p>
 
-            <GithubGistSnippet Title="Blazor Error Boundary with custom Error UI" UserId="fingers10" FileName="de665e941c3efd35ec2115db3c4b1a98"></GithubGistSnippet>
+        <GithubGistSnippet Title="Blazor Error Boundary with custom Error UI and Recovery" UserId="fingers10" FileName="28dfa506cb0e53f4ce0469f735f89bfe"></GithubGistSnippet>
 
-            <DemoSnippet Title="Error Boundary with Custom Error UI">
-                <DemoContent>
-                    <ErrorBoundary>
-                        <ChildContent>
-                            <p class="[ text-black ] [ dark:text-white ]"><b>Scenario - Let's simulate an error connecting to chat agent</b></p>
-                            <Chat></Chat>
-                        </ChildContent>
-                        <ErrorContent>
-                            <div class="[ bg-red-500 ]">
-                                <p class="[ text-white ]">An error occured while establishing a connection. Please try again later.</p>
-                            </div>
-                        </ErrorContent>
-                    </ErrorBoundary>
-                </DemoContent>
-            </DemoSnippet>
+        <DemoSnippet Title="Error Boundary with Custom Error UI and Recovery">
+            <DemoContent>
+                <ErrorBoundary @ref="@errorBoundary">
+                    <ChildContent>
+                        <p class="[ text-black ] [ dark:text-white ]"><b>Scenario - Let's simulate an error connecting to chat agent</b></p>
+                        <Chat></Chat>
+                    </ChildContent>
+                    <ErrorContent>
+                        <div class="[ bg-red-500 ]">
+                            <p class="[ text-white ]">An error occured while establishing a connection. Please try again later.</p>
+                        </div>
+                    </ErrorContent>
+                </ErrorBoundary>
 
-            <p>
-                So far so good. But doesn't this leave a bad user experience? How will the user retry the action? One way is to reload the page.
-                But there is an another easy option called Recovery in Error Boundary. All we need to do is to add a reference to Error Boundary
-                and call <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">errorBoundary?.Recover()</code> method to retry the action.
-            </p>
+                <button type="button" class="[ bg-fuchsia-500 ] [ px-4 py-2 ] [ rounded-md ] [ text-white ]" @onclick="Recover">
+                    Click to recover
+                    <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-activity ] [ inline ]" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <path d="M3 12h4l3 8l4 -16l3 8h4"></path>
+                    </svg>
+                </button>
+            </DemoContent>
+        </DemoSnippet>
 
-            <GithubGistSnippet Title="Blazor Error Boundary with custom Error UI and Recovery" UserId="fingers10" FileName="28dfa506cb0e53f4ce0469f735f89bfe"></GithubGistSnippet>
+        <h3 id="alternative-global-exception-handling" class="[ font-semibold text-lg ]">Alternative Global Exception Handling</h3>
 
-            <DemoSnippet Title="Error Boundary with Custom Error UI and Recovery">
-                <DemoContent>
-                    <ErrorBoundary @ref="@errorBoundary">
-                        <ChildContent>
-                            <p class="[ text-black ] [ dark:text-white ]"><b>Scenario - Let's simulate an error connecting to chat agent</b></p>
-                            <Chat></Chat>
-                        </ChildContent>
-                        <ErrorContent>
-                            <div class="[ bg-red-500 ]">
-                                <p class="[ text-white ]">An error occured while establishing a connection. Please try again later.</p>
-                            </div>
-                        </ErrorContent>
-                    </ErrorBoundary>
+        <p>
+            An alternative to using <NavLink class="[ underline ]" href="@($"blogs/{Slug}#error-boundary")">Error boundaries (ErrorBoundary)</NavLink>
+            is to pass a custom <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">Error</code> component as a
+            <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">CascadingValue</code>to child components. An advantage of
+            using a component over using an injected service or a custom logger implementation is that a cascaded component can render content
+            and apply CSS styles when an error occurs.
+        </p>
 
-                    <button type="button" class="[ bg-fuchsia-500 ] [ px-4 py-2 ] [ rounded-md ] [ text-white ]" @onclick="Recover">
-                        Click to recover
-                        <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-activity ] [ inline ]" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                            <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                            <path d="M3 12h4l3 8l4 -16l3 8h4"></path>
-                        </svg>
-                    </button>
-                </DemoContent>
-            </DemoSnippet>
+        <GithubGistSnippet Title="Error component" UserId="fingers10" FileName="15e50550370685d5c14334e2c057f19e"></GithubGistSnippet>
 
-            <h3 id="alternative-global-exception-handling" class="[ font-semibold text-lg ]">Alternative Global Exception Handling</h3>
+        <p>
+            Now in the <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">App</code> component, wrap the
+            <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">Router</code> component with the
+            <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">Error</code> component. This permits the
+            <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">Error</code> component to cascade down to any component of
+            the app where the <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">Error</code> component is received as a
+            <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">CascadingParameter</code>. We can then call error processing
+            method <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">ProcessError</code> from
+            <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">Error</code> component to handle error. To learn more about this,
+            head over to <NavLink class="[ underline ]" href="blogs/blazor-wasm-error-logging/">Blazor Wasm Error Logging</NavLink>
+        </p>
 
-            <p>
-                An alternative to using <NavLink class="[ underline ]" href="@($"blogs/{Slug}#error-boundary")">Error boundaries (ErrorBoundary)</NavLink>
-                is to pass a custom <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">Error</code> component as a
-                <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">CascadingValue</code>to child components. An advantage of
-                using a component over using an injected service or a custom logger implementation is that a cascaded component can render content
-                and apply CSS styles when an error occurs.
-            </p>
-
-            <GithubGistSnippet Title="Error component" UserId="fingers10" FileName="15e50550370685d5c14334e2c057f19e"></GithubGistSnippet>
-
-            <p>
-                Now in the <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">App</code> component, wrap the
-                <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">Router</code> component with the
-                <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">Error</code> component. This permits the
-                <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">Error</code> component to cascade down to any component of
-                the app where the <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">Error</code> component is received as a
-                <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">CascadingParameter</code>. We can then call error processing
-                method <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">ProcessError</code> from
-                <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">Error</code> component to handle error. To learn more about this,
-                head over to <NavLink class="[ underline ]" href="blogs/blazor-wasm-error-logging/">Blazor Wasm Error Logging</NavLink>
-            </p>
-
-            <GithubGistSnippet Title="Alternative Global Exception Handling" UserId="fingers10" FileName="7e50f51c0b1585d328e3ff804dcf583c"></GithubGistSnippet>
-
-        </section>
-        <hr class="[ dark:text-white my-1.5 ]" />
-    </article>
-    <ContentRecommendation Title=@Title></ContentRecommendation>
-</section>
+        <GithubGistSnippet Title="Alternative Global Exception Handling" UserId="fingers10" FileName="7e50f51c0b1585d328e3ff804dcf583c"></GithubGistSnippet>
+    </ContentBody>
+</Content>
 
 @code {
     private string Title = "Blazor WASM Exception Handling and Error Boundary";

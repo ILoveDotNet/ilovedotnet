@@ -2,196 +2,185 @@
 @inherits FragmentNavigationBase
 @using BlazorDemoComponents
 
-<ContentHead Title=@Title
-             Description=@Description
-             CreatedOn=@CreatedOn
-             ModifiedOn=@ModifiedOn
-             Slug=@Slug
-             Keywords=@Keywords>
-</ContentHead>
+<Content Title=@Title
+         Description=@Description
+         CreatedOn=@CreatedOn
+         ModifiedOn=@ModifiedOn
+         Slug=@Slug
+         Keywords=@Keywords>
+    <ContentBody>
+        <p>
+            In Blazor WASM we should try to have minimal usage of Javascript. Though Blazor WASM runs on top of web assembly, we might sometime
+            require access to javascript for certain operations like displaying alert, prompt setting theme on html element, focusing a suggestion
+            from autocomplete input on up and down keyboard key press, getting viewport size or at few cases we might need to use the existing
+            javascript library to render chart, grid, etc.
+        </p>
 
-<section class="[ flex flex-col md:flex-row ] [ p-5 md:px-20 ] [ md:space-x-5 space-y-5 md:space-y-0 ]">
-    <article class="[ md:basis-4/5 ] [ space-y-5 ]">
-        <ContentHeader Title=@Title
-                       ModifiedOn=@ModifiedOn
-                       Slug=@Slug>
-        </ContentHeader>
-        <section class="[ dark:text-white ] [ space-y-2 ] [ leading-relaxed ]">
-            <p>
-                In Blazor WASM we should try to have minimal usage of Javascript. Though Blazor WASM runs on top of web assembly, we might sometime
-                require access to javascript for certain operations like displaying alert, prompt setting theme on html element, focusing a suggestion 
-                from autocomplete input on up and down keyboard key press, getting viewport size or at few cases we might need to use the existing
-                javascript library to render chart, grid, etc.
-            </p>
+        <p>
+            The above usecases can be solved in two different ways as mentioned below.
+            <ol class="[ list-decimal ] [ ml-3.5 ]">
+                <li>
+                    <NavLink class="[ underline ]" href="@($"blogs/{Slug}#javascript-interop")" Match="NavLinkMatch.All">
+                        Javascript Interop
+                    </NavLink>
+                    <ol class="[ list-disc ] [ ml-3.5 ]">
+                        <li>
+                            <NavLink class="[ underline ]" href="@($"blogs/{Slug}#javascript-interop-js-from-dotnet")" Match="NavLinkMatch.All">
+                                Calling JS functions from .Net
+                            </NavLink>
+                        </li>
+                        <li>
+                            <NavLink class="[ underline ]" href="@($"blogs/{Slug}#javascript-interop-dotnet-from-js")" Match="NavLinkMatch.All">
+                                Calling .Net methods from JS
+                            </NavLink>
+                        </li>
+                    </ol>
+                </li>
+                <li>
+                    <NavLink class="[ underline ]" href="@($"blogs/{Slug}#javascript-isolation")" Match="NavLinkMatch.All">
+                        Javascript Isolation
+                    </NavLink>
+                </li>
+            </ol>
+        </p>
 
-            <p>
-                The above usecases can be solved in two different ways as mentioned below.
-                <ol class="[ list-decimal ] [ ml-3.5 ]">
-                    <li>
-                        <NavLink class="[ underline ]" href="@($"blogs/{Slug}#javascript-interop")" Match="NavLinkMatch.All">
-                            Javascript Interop
-                        </NavLink>
-                        <ol class="[ list-disc ] [ ml-3.5 ]">
-                            <li>
-                                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#javascript-interop-js-from-dotnet")" Match="NavLinkMatch.All">
-                                    Calling JS functions from .Net
-                                </NavLink>
-                            </li>
-                            <li>
-                                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#javascript-interop-dotnet-from-js")" Match="NavLinkMatch.All">
-                                    Calling .Net methods from JS
-                                </NavLink>
-                            </li>
-                        </ol>
-                    </li>
-                    <li>
-                        <NavLink class="[ underline ]" href="@($"blogs/{Slug}#javascript-isolation")" Match="NavLinkMatch.All">
-                            Javascript Isolation
-                        </NavLink>
-                    </li>
-                </ol>
-            </p>
+        <h3 id="javascript-interop" class="[ font-semibold text-lg ]">Javascript Interop</h3>
 
-            <h3 id="javascript-interop" class="[ font-semibold text-lg ]">Javascript Interop</h3>
+        <p>
+            To start using <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">Javascript</code> using JS interop, first we
+            need our javascript code in a separate js file place inside <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">wwwroot</code>
+            and we need to inject <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">IJSRuntime</code> in the component to invoke our
+            javascript function.
+        </p>
 
-            <p>
-                To start using <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">Javascript</code> using JS interop, first we 
-                need our javascript code in a separate js file place inside <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">wwwroot</code> 
-                and we need to inject <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">IJSRuntime</code> in the component to invoke our 
-                javascript function. 
-            </p>
+        <p>
+            Let's look on how to display a simple javascript alert in blazor. We'll start with defining a <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">blazorInterop</code>
+            object just to make sure we don't pollute the global <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">window</code> object.
+            Now let's register a simple <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">displayAlert</code> function which
+            will take text and display it in javascript <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">alert()</code>.
+        </p>
 
-            <p>
-                Let's look on how to display a simple javascript alert in blazor. We'll start with defining a <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">blazorInterop</code> 
-                object just to make sure we don't pollute the global <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">window</code> object. 
-                Now let's register a simple <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">displayAlert</code> function which 
-                will take text and display it in javascript <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">alert()</code>.
-            </p>
+        <GithubGistSnippet Title="JS function to be called from .NET which returns no value" UserId="fingers10" FileName="97c3319d5cd3ba12030fd70039a510a0"></GithubGistSnippet>
 
-            <GithubGistSnippet Title="JS function to be called from .NET which returns no value" UserId="fingers10" FileName="97c3319d5cd3ba12030fd70039a510a0"></GithubGistSnippet>
+        <h4 id="javascript-interop-js-from-dotnet" class="[ font-semibold text-base ]">Calling JS from .Net</h4>
 
-            <h4 id="javascript-interop-js-from-dotnet" class="[ font-semibold text-base ]">Calling JS from .Net</h4>
+        <p>
+            Befor we proceed on invoking the function make sure to add a reference to your jsvascript file in <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">index.html</code>.
+            Now let's inject <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">IJSRuntimr</code> into our component and call
+            <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">blazorInterop.displayAlert("I ❤️ DotNet")</code> using
+            <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">InvokeVoidAsync</code> as we don't have any return
+            value from the javascript function.
+        </p>
 
-            <p>
-                Befor we proceed on invoking the function make sure to add a reference to your jsvascript file in <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">index.html</code>. 
-                Now let's inject <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">IJSRuntimr</code> into our component and call 
-                <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">blazorInterop.displayAlert("I ❤️ DotNet")</code> using 
-                <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">InvokeVoidAsync</code> as we don't have any return
-                value from the javascript function.
-            </p>
+        <GithubGistSnippet Title="Alert Component to call JS from .NET which returns no value" UserId="fingers10" FileName="0ddb3604c0fcdd77ef70ecf4d3943b06"></GithubGistSnippet>
 
-            <GithubGistSnippet Title="Alert Component to call JS from .NET which returns no value" UserId="fingers10" FileName="0ddb3604c0fcdd77ef70ecf4d3943b06"></GithubGistSnippet>
+        <DemoSnippet Title="Javascript Interop - Displaying Alert">
+            <DemoContent>
+                <JavascriptAlert></JavascriptAlert>
+            </DemoContent>
+        </DemoSnippet>
 
-            <DemoSnippet Title="Javascript Interop - Displaying Alert">
-                <DemoContent>
-                    <JavascriptAlert></JavascriptAlert>
-                </DemoContent>
-            </DemoSnippet>
+        <p>
+            Voila.. now we are using javascript logics in our blazor app. That's a fairly simple example. Let's look at another example where we
+            need some values from javascript function. If we want to find the current viewport width and height, then we can levearge javascript to
+            get window height and width and return it back to blazor. The steps are same like before except this time we need to call the javascript
+            function using <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">InvokeAsync&lt;WindowDimensions&gt;("blazorInterop.getViewportDimensions")</code>.
+        </p>
 
-            <p>
-                Voila.. now we are using javascript logics in our blazor app. That's a fairly simple example. Let's look at another example where we
-                need some values from javascript function. If we want to find the current viewport width and height, then we can levearge javascript to
-                get window height and width and return it back to blazor. The steps are same like before except this time we need to call the javascript
-                function using <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">InvokeAsync&lt;WindowDimensions&gt;("blazorInterop.getViewportDimensions")</code>.
-            </p>
+        <GithubGistSnippet Title="JS function to be called from .NET which returns value" UserId="fingers10" FileName="375be41a677d108fbe2ec654468b28c3"></GithubGistSnippet>
 
-            <GithubGistSnippet Title="JS function to be called from .NET which returns value" UserId="fingers10" FileName="375be41a677d108fbe2ec654468b28c3"></GithubGistSnippet>
+        <GithubGistSnippet Title="JS function to be called from .NET which returns value" UserId="fingers10" FileName="910132da990202eb248b24bd515ce565"></GithubGistSnippet>
 
-            <GithubGistSnippet Title="JS function to be called from .NET which returns value" UserId="fingers10" FileName="910132da990202eb248b24bd515ce565"></GithubGistSnippet>
+        <DemoSnippet Title="Javascript Interop - Finding Viewport Dimensions">
+            <DemoContent>
+                <JavascriptViewportDimensions></JavascriptViewportDimensions>
+            </DemoContent>
+        </DemoSnippet>
 
-            <DemoSnippet Title="Javascript Interop - Finding Viewport Dimensions">
-                <DemoContent>
-                    <JavascriptViewportDimensions></JavascriptViewportDimensions>
-                </DemoContent>
-            </DemoSnippet>
+        <h4 id="javascript-interop-dotnet-from-js" class="[ font-semibold text-base ]">Calling .Net from JS</h4>
 
-            <h4 id="javascript-interop-dotnet-from-js" class="[ font-semibold text-base ]">Calling .Net from JS</h4>
+        <p>
+            There are situations where you need to call a .Net method from JS function. One example is clicking on a point in chart to display
+            additional information. Now you need to pass some information from <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">JS</code>
+            to <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">.NET</code> and make API call to retrieve additional information.
+            You can call <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">static</code> method or
+            <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">.NET instance</code> method from JS. Let's see how to do
+            this in blazor.
+        </p>
 
-            <p>
-                There are situations where you need to call a .Net method from JS function. One example is clicking on a point in chart to display 
-                additional information. Now you need to pass some information from <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">JS</code> 
-                to <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">.NET</code> and make API call to retrieve additional information.
-                You can call <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">static</code> method or 
-                <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">.NET instance</code> method from JS. Let's see how to do 
-                this in blazor.
-            </p>
+        <h5 class="[ font-semibold text-sm ]">Invoking Static Method</h5>
 
-            <h5 class="[ font-semibold text-sm ]">Invoking Static Method</h5>
+        <p>
+            Calling a <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">static</code> method is pretty simple. All you need
+            to do is to add <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">[JSInvokable]</code> attribute to your
+            <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">.NET static</code> method and call the
+            static .Net method from JS using <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">DotNet.invokeMethod('Namespace', '.Net Static Method Name')</code>.
+        </p>
 
-            <p>
-                Calling a <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">static</code> method is pretty simple. All you need 
-                to do is to add <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">[JSInvokable]</code> attribute to your 
-                <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">.NET static</code> method and call the 
-                static .Net method from JS using <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">DotNet.invokeMethod('Namespace', '.Net Static Method Name')</code>.
-            </p>
+        <GithubGistSnippet Title=".NET static method to be called from JS" UserId="fingers10" FileName="a2fa2758d1eb84a385cf081ef3cbb391"></GithubGistSnippet>
 
-            <GithubGistSnippet Title=".NET static method to be called from JS" UserId="fingers10" FileName="a2fa2758d1eb84a385cf081ef3cbb391"></GithubGistSnippet>
+        <GithubGistSnippet Title=".NET static method to be called from JS" UserId="fingers10" FileName="281c5631294b193187dda864b6cd6f48"></GithubGistSnippet>
 
-            <GithubGistSnippet Title=".NET static method to be called from JS" UserId="fingers10" FileName="281c5631294b193187dda864b6cd6f48"></GithubGistSnippet>
+        <DemoSnippet Title="Javascript Interop - Calling .Net Static Method From JS">
+            <DemoContent>
+                <DotNetStaticMethodFromJavascript></DotNetStaticMethodFromJavascript>
+            </DemoContent>
+        </DemoSnippet>
 
-            <DemoSnippet Title="Javascript Interop - Calling .Net Static Method From JS">
-                <DemoContent>
-                    <DotNetStaticMethodFromJavascript></DotNetStaticMethodFromJavascript>
-                </DemoContent>
-            </DemoSnippet>
+        <h5 class="[ font-semibold text-sm ]">Invoking Instance Method</h5>
 
-            <h5 class="[ font-semibold text-sm ]">Invoking Instance Method</h5>
+        <p>
+            Calling an <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">component instance</code> method needs an
+            <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">.NET instance by reference</code> to be passed to JS.
+            This can be done by warpping the component instance inside <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">DotNetObjectReference&lt;ComponentInstance&gt;</code>
+            and calling create on it. Then we can invoke .NET method from JS using <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">InvokeMethod</code> or
+            <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">InvokeMethodAsync</code> from the passed instance reference.
+            Finally we need to <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">dispose</code> the
+            <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">DotNetObjectReference</code>.
+        </p>
 
-            <p>
-                Calling an <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">component instance</code> method needs an 
-                <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">.NET instance by reference</code> to be passed to JS. 
-                This can be done by warpping the component instance inside <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">DotNetObjectReference&lt;ComponentInstance&gt;</code> 
-                and calling create on it. Then we can invoke .NET method from JS using <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">InvokeMethod</code> or 
-                <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">InvokeMethodAsync</code> from the passed instance reference. 
-                Finally we need to <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">dispose</code> the 
-                <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">DotNetObjectReference</code>.
-            </p>
+        <GithubGistSnippet Title=".NET instance method to be called from JS" UserId="fingers10" FileName="d2204803bb0cef42e4285efb4636fa98"></GithubGistSnippet>
 
-            <GithubGistSnippet Title=".NET instance method to be called from JS" UserId="fingers10" FileName="d2204803bb0cef42e4285efb4636fa98"></GithubGistSnippet>
+        <GithubGistSnippet Title=".NET instance method to be called from JS" UserId="fingers10" FileName="f06b0b70a1c74444d1d6483cb09a08f2"></GithubGistSnippet>
 
-            <GithubGistSnippet Title=".NET instance method to be called from JS" UserId="fingers10" FileName="f06b0b70a1c74444d1d6483cb09a08f2"></GithubGistSnippet>
+        <DemoSnippet Title="Javascript Interop - Calling .Net Instance Method From JS">
+            <DemoContent>
+                <DotNetInstanceMethodFromJavascript></DotNetInstanceMethodFromJavascript>
+            </DemoContent>
+        </DemoSnippet>
 
-            <DemoSnippet Title="Javascript Interop - Calling .Net Instance Method From JS">
-                <DemoContent>
-                    <DotNetInstanceMethodFromJavascript></DotNetInstanceMethodFromJavascript>
-                </DemoContent>
-            </DemoSnippet>
+        <h3 id="javascript-isolation" class="[ font-semibold text-lg ]">Javascript Isolation</h3>
 
-            <h3 id="javascript-isolation" class="[ font-semibold text-lg ]">Javascript Isolation</h3>
+        <p>
+            Blazor supports JS isolation in standard JS modules. This has the following benefits:
+            <ol class="[ list-disc ] [ ml-3.5 ]">
+                <li>No need to add reference to js file in index.html</li>
+                <li>Imported JS no longer pollutes the global namespace.</li>
+                <li>Consumers of a library and components aren't required to import the related JS.</li>
+            </ol>
+        </p>
 
-            <p>
-                Blazor supports JS isolation in standard JS modules. This has the following benefits:
-                <ol class="[ list-disc ] [ ml-3.5 ]">
-                    <li>No need to add reference to js file in index.html</li>
-                    <li>Imported JS no longer pollutes the global namespace.</li>
-                    <li>Consumers of a library and components aren't required to import the related JS.</li>
-                </ol>
-            </p>
+        <p>
+            With Javascript Isolation, the steps are same but with an extra step to load <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">JS Module</code>
+            using <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">IJSRuntime</code> into
+            <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">IJSObjectReference (module)</code>.
+            After loading the module, we need to call JS functions using <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">IJSObjectReference module InvokeAsync</code>
+            instead of <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">IJSRuntime</code>. We also need to
+            make sure the module is <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">disposed</code> on
+            <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">component dispose</code>.
+        </p>
 
-            <p>
-                With Javascript Isolation, the steps are same but with an extra step to load <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">JS Module</code> 
-                using <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">IJSRuntime</code> into 
-                <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">IJSObjectReference (module)</code>. 
-                After loading the module, we need to call JS functions using <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">IJSObjectReference module InvokeAsync</code> 
-                instead of <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">IJSRuntime</code>. We also need to 
-                make sure the module is <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">disposed</code> on 
-                <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">component dispose</code>.
-            </p>
+        <GithubGistSnippet Title=".NET instance method to be called from JS Module" UserId="fingers10" FileName="6024a6acdb759562b052e1eab2c68126"></GithubGistSnippet>
 
-            <GithubGistSnippet Title=".NET instance method to be called from JS Module" UserId="fingers10" FileName="6024a6acdb759562b052e1eab2c68126"></GithubGistSnippet>
+        <GithubGistSnippet Title=".NET instance method to be called from JS Module" UserId="fingers10" FileName="e83808f737d36a23304e6546cd34b964"></GithubGistSnippet>
 
-            <GithubGistSnippet Title=".NET instance method to be called from JS Module" UserId="fingers10" FileName="e83808f737d36a23304e6546cd34b964"></GithubGistSnippet>
-
-            <DemoSnippet Title="Javascript Isolation - Calling Javascript prompt from JS Module">
-                <DemoContent>
-                    <JavascriptIsolation></JavascriptIsolation>
-                </DemoContent>
-            </DemoSnippet>
-        </section>
-        <hr class="[ dark:text-white my-1.5 ]" />
-    </article>
-    <ContentRecommendation Title=@Title></ContentRecommendation>
-</section>
+        <DemoSnippet Title="Javascript Isolation - Calling Javascript prompt from JS Module">
+            <DemoContent>
+                <JavascriptIsolation></JavascriptIsolation>
+            </DemoContent>
+        </DemoSnippet>
+    </ContentBody>
+</Content>
 
 @code {
     private string Title = "Blazor WASM Javascript Interop and Isolation";
