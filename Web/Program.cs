@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.AspNetCore.Components.WebAssembly.Services;
+using SharedModels;
 using Toolbelt.Blazor.Extensions.DependencyInjection;
 using Web;
 using Web.Models;
