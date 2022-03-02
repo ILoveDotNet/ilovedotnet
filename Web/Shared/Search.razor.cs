@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
 using SharedModels;
-using Web.Models;
 
 namespace Web.Shared;
 
@@ -41,7 +40,7 @@ public class SearchBase : ComponentBase, IAsyncDisposable
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender) 
+        if (firstRender)
         {
             module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/search.js");
         }
