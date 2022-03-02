@@ -17,7 +17,7 @@ public class GithubGistSnippetBase : ComponentBase, IAsyncDisposable
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender) 
+        if (firstRender)
         {
             module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Components/githubgist.js");
 
