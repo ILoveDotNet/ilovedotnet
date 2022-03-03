@@ -3,7 +3,7 @@
 public class TableOfContents
 {
     public List<ContentMetaData> Contents { get; set; } =
-        new(7)
+        new(8)
         {
             new ContentMetaData
             {
@@ -89,16 +89,16 @@ public class TableOfContents
                 CreatedOn = new DateTime(2022, 2, 27, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 2, 27, 22, 30, 0)
             },
-            //new ContentMetaData
-            //{
-            //    Title = "Importance of Status Code in Web API",
-            //    Author = "Abdul Rahman",
-            //    PosterUrl = "image/blogs/webapi/web-api-importance-of-status-code-1200w.svg",
-            //    ThumbnailUrl = "image/blogs/webapi/web-api-importance-of-status-code-400w.svg",
-            //    ContentUrl = "blogs/web-api-importance-of-status-code",
-            //    IconUrl = "image/icons/webapi.png",
-            //    Type = "Web API",
-            //    CreatedOn = new DateTime(2022, 2, 20, 22, 30, 0)
-            //}
+            new ContentMetaData
+            {
+                Title = "Importance of Status Code in Web API",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/webapi/webapi-importance-of-status-code-1200w.svg",
+                ThumbnailUrl = "image/blogs/webapi/webapi-importance-of-status-code-400w.svg",
+                ContentUrl = "blogs/webapi-importance-of-status-code",
+                IconUrl = "image/icons/webapi.png",
+                Type = "WebAPI",
+                CreatedOn = new DateTime(2022, 3, 6, 22, 30, 0)
+            },
         };
 }
