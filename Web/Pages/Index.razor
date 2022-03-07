@@ -55,17 +55,7 @@
 </HeadContent>
 
 <section class="[ dark:bg-stone-900 ] [ flex flex-col ] [ space-y-5 ] [ p-5 ]">
-    <div class="[ max-w-full ]">
-        <ul class="[ list-none ] [ flex items-center justify-start ] [ space-x-3 ] [ overflow-hidden overflow-x-auto ]">
-            <li class="@($"[ cursor-pointer ] [ px-3 py-1 ] [ rounded-full ] [ {(selectedContentType == null ? activeClass : inActiveClass)} ]")"
-                onclick="@(() => FilterContent(null))">All</li>
-            @foreach(var contentType in TableOfContents.Contents.Select(content => content.Type).Distinct())
-            {
-                <li class="@($"[ cursor-pointer ] [ px-3 py-1 ] [ rounded-full ] [ {(selectedContentType is not null && selectedContentType.Equals(contentType, StringComparison.OrdinalIgnoreCase) ? activeClass : inActiveClass)} ]")"
-                    @onclick="@(() => FilterContent(@contentType))">@contentType</li>
-            }
-        </ul>
-    </div>
+    <ContentFilter OnFilterContents="RefreshContent"></ContentFilter>
     <div class="[ grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 ]">
         @foreach (var content in Contents)
         {
@@ -87,30 +77,9 @@
     private string Description = "This is a .NET knowledge sharing platform with live demos crafted by developers for developers with love.";
     private string BaseUrl => configuration.GetValue<string>("baseUrl");
     private List<ContentMetaData> Contents = new(0);
-    private string? selectedContentType = null;
-    private string activeClass = "bg-black text-white dark:bg-white dark:text-black";
-    private string inActiveClass = "bg-gray-200 text-black dark:bg-gray-600 dark:text-white";
 
-    [Inject] private TableOfContents TableOfContents { get; set; } = default!;
-
-    protected override void OnInitialized()
+    private void RefreshContent(List<ContentMetaData> filteredContents)
     {
-        FilterContent(null);
-    }
-
-    private void FilterContent(string? contentType)
-    {
-        selectedContentType = contentType;
-
-        if (selectedContentType is null)
-        {
-            Contents = TableOfContents.Contents.OrderByDescending(content => content.CreatedOn).ToList();
-            return;
-        }   
-
-        Contents = TableOfContents.Contents
-                                  .Where(content => content.Type.Equals(selectedContentType, StringComparison.OrdinalIgnoreCase))
-                                  .OrderByDescending(content => content.CreatedOn)
-                                  .ToList();
+        Contents = filteredContents;
     }
 }
