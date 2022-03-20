@@ -3,7 +3,7 @@
 public class TableOfContents
 {
     public List<ContentMetaData> Contents { get; set; } =
-        new(9)
+        new(10)
         {
             new ContentMetaData
             {
@@ -111,6 +111,18 @@ public class TableOfContents
                 Type = "Talk",
                 CreatedOn = new DateTime(2022, 3, 13, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 3, 13, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+                Title = "Blazor WASM Introduction",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-introduction.svg",
+                ThumbnailUrl = "image/blogs/blazor/wasm/blazor-wasm-introduction.svg",
+                ContentUrl = "blogs/blazor-wasm-introduction",
+                IconUrl = "image/icons/blazor.png",
+                Type = "Blazor",
+                CreatedOn = new DateTime(2022, 3, 20, 22, 30, 0),
+                ModifiedOn = new DateTime(2022, 3, 20, 22, 30, 0)
             }
         };
 }
