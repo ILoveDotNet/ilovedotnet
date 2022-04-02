@@ -3,7 +3,7 @@
 public class TableOfContents
 {
     public List<ContentMetaData> Contents { get; set; } =
-        new(11)
+        new(12)
         {
             new ContentMetaData
             {
@@ -135,6 +135,18 @@ public class TableOfContents
                 Type = "TDD",
                 CreatedOn = new DateTime(2022, 3, 27, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 3, 27, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+                Title = "Implementing TDD in C# .Net",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/tdd/implementing-tdd-in-csharp-dotnet.svg",
+                ThumbnailUrl = "image/blogs/tdd/implementing-tdd-in-csharp-dotnet.svg",
+                ContentUrl = "blogs/implementing-tdd-in-csharp-dotnet",
+                IconUrl = "image/icons/tdd.png",
+                Type = "TDD",
+                CreatedOn = new DateTime(2022, 4, 3, 22, 30, 0),
+                ModifiedOn = new DateTime(2022, 4, 3, 22, 30, 0)
             }
         };
 }
