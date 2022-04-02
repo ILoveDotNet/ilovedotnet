@@ -1,0 +1,397 @@
+﻿@page "/blogs/implementing-tdd-in-csharp-dotnet"
+@inject TableOfContents tableOfContents
+
+<Content Title=@Title
+         Description=@Description
+         CreatedOn=@CreatedOn
+         ModifiedOn=@ModifiedOn
+         Slug=@Slug
+         PosterPath=@PosterPath
+         Keywords=@Keywords
+         Channel="@Channel"
+         ContentType="@ContentType"
+         TotalContents=@TotalContents>
+    <ContentBody>
+        <p>
+            In our previous article <NavLink class="[ underline ]" href="blogs/introducing-tdd-in-csharp-dotnet">Introducing TDD in C# .NET</NavLink>,
+            we learnt what is the principle of TDD, it's advantages and disadvantages. We also learnt the terms <code class="[ p-0.5 ] [ border border-black ] [ dark:border-white ]">Red, Green, Refactor</code>
+            in TDD. In this article, let's learn about how to practice and implement TDD in C# .NET.
+        </p>
+        
+        <h3 class="[ font-semibold text-lg ]">Scenario</h3>
+
+        <p>
+            Let’s take a simple scenario where a user needs to book a ticket. The user needs to fill a form with basic details to 
+            book the ticket.
+        </p>
+
+        <ul>
+            <li>Ticket Booking</li>
+            <li>TicketBookingCore (TicketBookingRequestProcessor) (.Net Core Class Library)</li>
+            <li>TicketBookingCore.Tests (TicketBookingRequestProcessorTests) (XUnit test project)</li>
+        </ul>
+        
+        <ul class="[ list-disc ] [ ml-3.5 ]">
+            <li>Getting started with TDD.</li>
+            <li>Testing and implementing business logic.</li>
+            <li>Adding features in asp.net core app.</li>
+        </ul>
+        
+        <p>
+            Let’s first start with creating a test project named TicketBookingCore.Test for business logic. We will start writing 
+            the first failing test and continue from that. Then let’s work on adding additional business logic by implementing tests 
+            and iterating through the TDD cycle. We have more complex requirements that will force us to decouple dependencies and 
+            we need to mock those classes while writing the test.
+        </p>
+        
+        <p>
+            Finally let’s see how to implement TDD with web project. It is your responsibility to check the user entered information 
+            and implement TDD.
+        </p>
+        
+        <h3 class="[ font-semibold text-lg ]">Using TDD to write business logic</h3>
+
+        <h4 class="[ font-semibold text-base ]">Requirements</h4>
+        
+        <ol class="[ list-decimal ] [ ml-3.5 ]">
+            <li>Response should contain the same values as request after booking.</li>
+            <li>Booking should be saved to database.</li>
+        </ol>
+        
+        <h3 class="[ font-semibold text-lg ]">Understand the First Requirement</h3>
+
+        <p>
+            The user will submit a form to book a ticket which will make a call to TicketBookingRequestProcessor to book a ticket. 
+            The processor must return the same data after the booking is successful. To do this lets first think of the API. The 
+            TicketBookingRequestProcessor will use Book to book a ticket and it will receive TicketBookingRequest as input and return 
+            TicketBookingResponse as result.
+        </p>
+        
+        <figure>
+            <img src="./image/blogs/tdd/implementation/first requirement.jpg" alt="First Requirement" class="[ w-full ]" />
+        </figure>
+
+        <p>
+            This simple requirement is good to start with TDD.
+        </p>
+
+        <h3 class="[ font-semibold text-lg ]">Create a Red unit test</h3>
+
+        <ol class="[ list-decimal ] [ ml-3.5 ]">
+            <li>Create a new C# XUnit test project named TicketBookingCore.Tests.</li>
+            <li>As you need to test TicketBookingProcessor Class, create a new class named TicketBookingRequestProcessorTests.</li>
+            <li>Create a first test method as ShouldReturnTicketBookingResultWithRequestValues.</li>
+            <li>Mark the method with [Fact] attribute to indicate it as a test.</li>
+            <li>Now create a processor instance as TicketBookingRequestProcessor and press Ctrl + . to create a class in a new file.</li>
+        </ol>
+        
+        <GithubGistSnippet Title="TDD Red Phase - First Requirement - New Unit Test" UserId="fingers10" FileName="955b56e96a1a23cabb385b378fcc214c"></GithubGistSnippet>
+        
+        <p>
+            Create a TicketBookingRequest with FirstName, LastName and Email properties and set the values and again press Ctrl + . 
+            to create the class in new file.
+        </p>
+        
+        <GithubGistSnippet Title="TDD Red Phase - First Requirement - Creating Request Class" UserId="fingers10" FileName="38ee8c87a3b119d899cec183fe96fcce"></GithubGistSnippet>
+
+        <p>
+            Add the following line TicketBookingResponse response = processor.Book(request); and press Ctrl + . to generate the Book 
+            method in TicketBookingRequestProcessor class.
+        </p>
+
+        <p>
+            Next, we need to assert if the input and output are equal.
+        </p>
+
+        <p>
+            To Assert the input and output, first, create TicketBookingResponse class with the same properties as TicketBookingRequest.
+        </p>
+        
+        <p>
+            Modify the Book Method in TicketBookingRequestProcessor to return TicketBookingResponse.
+        </p>
+
+        <GithubGistSnippet Title="TDD Red Phase - First Requirement - Creating Response Class" UserId="fingers10" FileName="d005b70faa746ef6a16ed0d6baa27434"></GithubGistSnippet>
+        
+        <p>
+            We are all set with AAA (Arrange, Act, and Assert) of unit tests.
+        </p>
+
+        <GithubGistSnippet Title="TDD Red Phase - First Requriement - Arrange Assert Act" UserId="fingers10" FileName="adc44a738ab466b132dca895287b051e"></GithubGistSnippet>
+
+        <p>
+            Press Ctrl + E, T to open Test Explorer. You can now see the test is listed in the test explorer. Now Click on the Run 
+            (Green Triangle) button. You can see that the test fails with NotImplementedException.
+        </p>
+        
+        <figure>
+            <img src="./image/blogs/tdd/implementation/first red test.jpg" alt="First Red Test" class="[ w-full ]" />
+        </figure>
+
+        <p>
+            Great, we completed the 1st step of TDD (Red Phase).
+        </p>
+
+        <h3 class="[ font-semibold text-lg ]">Write Code to make test Green</h3>
+
+        <p>
+            Now let’s go to 2nd step of TDD (Green Phase) and write the bare minimum code required to make the test pass.
+        </p>
+
+        <p>
+            Implemented the below code in Book Method of TicketBookingRequestProcessor class.
+        </p>
+
+        <GithubGistSnippet Title="TDD Green Phase - First Requirement - Adding Minimal Requried Code" UserId="fingers10" FileName="78f4f9a08f2938fe698e0d52de34a4a6"></GithubGistSnippet>
+
+        <p>
+            That’s it. Now again run the test. The test passes and turns green.
+        </p>
+
+        <figure>
+            <img src="./image/blogs/tdd/implementation/first green test.jpg" alt="First Green Test" class="[ w-full ]" />
+        </figure>
+
+        <p>
+            Great, we completed the 2nd step of TDD (Green Phase).
+        </p>
+
+        <h3 class="[ font-semibold text-lg ]">Refactor to improve the code</h3>
+
+        <p>
+            Now we are in the 3rd step of TDD (Refactor Phase). We can refactor and improve the code as follows,
+        </p>
+
+        <ol class="[ list-decimal ] [ ml-3.5 ]">
+            <li>
+                Create New .Net Core Class Library Named TicketBookingCore and move TicketBookingRequest, TicketBookingRequestProcessor and 
+                TicketBookingResponse into this project.
+            </li>
+            <li>Fix Namespaces of the files in TicketBookingCore project.</li>
+            <li>Change the access modifier of all classes and methods to the public.</li>
+            <li>
+                Create a base class TicketBookingBase and move the properties from TicketBookingRequest and TicketBookingResponse and inherit from 
+                TicketBookingBase class.
+            </li>
+            <li>Add a reference to TicketBookingCore project in the TicketBookingCore.Tests project.</li>            
+            <li>Now Build the solution and run the tests again.</li>
+            <li>The test should pass.</li>
+        </ol>
+
+        <p>
+            The new project structure should look like shown below:
+        </p>
+
+        <figure>
+            <img src="./image/blogs/tdd/implementation/solution explorer.jpg" alt="Solution Explorer" class="[ w-full ]" />
+        </figure>
+
+        <p>
+            Great, we completed the 3rd step of TDD (Refactor Phase).
+        </p>
+
+        <p>
+            Now let’s write another test using TDD to quickly verify that request is not null while calling a Book method.
+        </p>
+
+        <GithubGistSnippet Title="TDD Red Phase - First Requirement - Another Unit Test" UserId="fingers10" FileName="dbf5fd165414c68d9106d3b5aebd791c"></GithubGistSnippet>
+
+        <p>
+            Now if you run the above from test explorer, the test will fail with NullReferenceException instead of ArgumentNullException, as shown below:
+        </p>
+
+        <figure>
+            <img src="./image/blogs/tdd/implementation/second red test.jpg" alt="Second Red Test" class="[ w-full ]" />
+        </figure>
+
+        <p>
+            Now let’s write the minimum required code to make the test pass.
+        </p>
+        
+        <GithubGistSnippet Title="TDD Green Phase - First Requriement - Minimal Required Code to Make Test Pass" UserId="fingers10" FileName="0ca0f7c58b7d6bb44d9e3a87c11f5c0e"></GithubGistSnippet>
+
+        <p>
+            Now run the test again and the test will pass.
+        </p>
+
+        <figure>
+            <img src="./image/blogs/tdd/implementation/second green test.jpg" alt="Second Green Test" class="[ w-full ]" />
+        </figure>
+
+        <p>
+            The next step is to refactor. We don’t have anything in Book method to refactor but that doesn’t mean that we have nothing we can also 
+            refactor our tests.
+        </p>
+
+        <p>
+            Since we need TicketBookingRequestProcessor in both the test, we can remove that from both the test and move it to 
+            TicketBookingRequestProcessorTests constructor and use that in our test methods.
+        </p>
+
+        <GithubGistSnippet Title="TDD Refactor Phase - First Requriement - Refactoring Tests" UserId="fingers10" FileName="6e6fc5dd18c4aed919684f3106f3afc5"></GithubGistSnippet>
+
+        <h3 class="[ font-semibold text-lg ]">Understand the second Requirement</h3>
+
+        <p>
+            Now we need to save the booking to the database. To save to database we need to modify the book method to save the booking to the 
+            database and return the booking request values.
+        </p>
+
+        <figure>
+            <img src="./image/blogs/tdd/implementation/second requirement.jpg" alt="Second Requirement" class="[ w-full ]" />
+        </figure>
+
+        <h3 class="[ font-semibold text-lg ]">Decouple the Dependencies</h3>
+
+        <p>
+            If you look at the above image, TicketBookingRequestProcessor has too many responsibilities. One is to process the booking request and 
+            another is to save it to the database.
+        </p>
+
+        <p>
+            But this violates the Single Responsibility Principle (SRP) – which says a class should have a single responsibility. So, to adhere to 
+            the SRP principle, we need to move the save to database logic to a separate class like TicketBookingRepository.
+        </p>
+
+        <figure>
+            <img src="./image/blogs/tdd/implementation/save concrete.jpg" alt="Save Concrete" class="[ w-full ]" />
+        </figure>
+
+        <p>
+            We can now save the TicketBooking object to the database using the TicketBookingRepository class. But now TicketBookingRequestProcessor 
+            depends on the TicketBookingRepository class to save to the database. This is not for the unit test, as the test needs to run in 
+            isolation. So here comes the Dependency Inversion Principle (DI), which says a class should always depend on abstraction, not on 
+            implementation. We can implement this by introducing a new interface ITicketBookingRepository. This interface implements 
+            TicketBookingRepository and saves to the database.
+        </p>
+
+        <figure>
+            <img src="./image/blogs/tdd/implementation/save abstraction.jpg" alt="Save Abstraction" class="[ w-full ]" />
+        </figure>
+
+        <p>
+            So now TicketBookingRequestProcessor depends on ITicketBookingRepository and we don’t need to worry about the database. This means to 
+            write a test we can create a mock (fake) object and use that to save to database and we can verify by this from the mock object that 
+            Save method is called at least once. This is how we can use interface to decouple the dependencies.
+        </p>
+
+        <p>
+            Now let’s create a failing Red unit test,
+        </p>
+
+        <ol class="[ list-decimal ] [ ml-3.5 ]">
+            <li>Create a new test method ShouldSaveToDatabase.</li>
+            <li>Create a request object and pass it to the processor save method.</li>
+        </ol>
+
+        <GithubGistSnippet Title="TDD Red Phase - Second Requirement - New Failing Test" UserId="fingers10" FileName="afde5f4046eade6a762094c98452e6a8"></GithubGistSnippet>
+
+        <p>
+            Now to save to database, we need ITicketBookingRepository and that needs to be injected to TicketBookingRequestProcessor.
+        </p>
+
+        <ol class="[ list-decimal ] [ ml-3.5 ]">
+            <li>Add ITicketBookingRepository to TicketBookingCore project</li>
+            <li>Add Save() method with TicketBooking object as a parameter.</li>
+            <li>Press Ctrl + . to create a TicketBooking class and inherit from the TicketBookingBase class.</li>
+        </ol>
+
+        <GithubGistSnippet Title="TDD Red Phase - Second Requirement - New Failing Test Compilation Fix" UserId="fingers10" FileName="aead570149e65c986fe7ae134d61e342"></GithubGistSnippet>
+
+        <p>
+            Now we need a mock object for ITicketBookingRepository. We can use the mock library to fake the repository.
+        </p>
+
+        <ol class="[ list-decimal ] [ ml-3.5 ]">
+            <li>Add _ticketBookingRepositoryMock = new Mock&lt;ITicketBookingRepository&gt;(); to TicketBookingRequestProcessorTests constructor.</li>
+            <li>
+                Press Ctrl + . to download install Moq nuget package and repeat to add a private readonly field 
+                Mock&lt;ITicketBookingRepository&gt; _ticketBookingRepositoryMock for that repository.
+            </li>
+            <li>
+                Pass the field to TicketBookingRequestProcessor constructor and press Ctrl + . to add that as a parameter to 
+                TicketBookingRequestProcessor class.
+            </li>
+        </ol>
+
+        <GithubGistSnippet Title="TDD Red Phase - Second Requirement - New Failing Test Mocking Dependencies" UserId="fingers10" FileName="66bc11c7f0e59a5ae9c72bc0f83d45dd"></GithubGistSnippet>
+
+        <p>
+            Now we need to write a setup in mock repository to make a callback when Save is called in that repository. And we need to assert that 
+            the Save method in the repository is called at least once and verifies the properties in the callback object.
+        </p>
+
+        <GithubGistSnippet Title="TDD Red Phase - Second Requirement - New Failing Test Asserting" UserId="fingers10" FileName="0d62b81110c9f5ed40aceb0ffb444b58"></GithubGistSnippet>
+
+        <p>Now we are done with test setup. Run the test and the test should fail.</p>
+
+        <figure>
+            <img src="./image/blogs/tdd/implementation/third red test.jpg" alt="Third Red Test" class="[ w-full ]" />
+        </figure>
+
+        <h3 class="[ font-semibold text-lg ]">Writing code to make the test pass</h3>
+
+        <p>
+            Now we need to write the minimum code to make the test pass which is to create a private readonly field for ITicketBookingRepository 
+            make a call to Save method in repository inside the Book method in processor class.
+        </p>
+
+        <GithubGistSnippet Title="TDD Green Phase - Second Requirement - Minimal Requried Code" UserId="fingers10" FileName="def9dcecf248023a4a6a17bade49fa28"></GithubGistSnippet>
+
+        <p>Now if you run the test, the test will pass.</p>
+
+        <figure>
+            <img src="./image/blogs/tdd/implementation/third green test.jpg" alt="Third Green Test" class="[ w-full ]" />
+        </figure>
+
+        <h3 class="[ font-semibold text-lg ]">Refactor the code</h3>
+
+        <p>Now we can improve the code by doing some refactoring.</p>
+
+        <ol class="[ list-decimal ] [ ml-3.5 ]">
+            <li>According to Do Not Repeat Principle (DRY), we should avoid repeating the same code.</li>
+            <li>
+                In the TicketBookingRequestProcessorTests class, the same TicketBookingRequest object is constructed and used in two methods. This 
+                can be moved to the TicketBookingRequestProcessorTests constructor and can be made as a private readonly field.
+            </li>
+            <li>
+                In the TicketBookingProcessor class, we can see that the mapping of properties is done twice. This mapping can be extracted into a 
+                generic method.
+            </li>
+        </ol>
+
+        <p>
+            Now your code should look like as follows:
+        </p>
+
+        <GithubGistSnippet Title="TDD Complete Code" UserId="fingers10" FileName="3343c70499f3817c2e976c7eb255e3d8"></GithubGistSnippet>
+
+        <p>Now run all the tests. All the tests should pass.</p>
+
+        <figure>
+            <img src="./image/blogs/tdd/implementation/all green test.jpg" alt="All Green Test" class="[ w-full ]" />
+        </figure>
+        
+        <p>
+            In this article, we learned how to implement TDD in C# .Net applications. We learned the TDD principle, advantages and 
+            disadvantages of TDD, understanding the requirements and starting from the test project then slowly building the actual 
+            requirement. We also learned how to decouple dependencies and mock them in a unit test. TDD is all about iterating the 
+            RED, GREEN and Refactor cycle over and again to develop our requirement. This is a demo project and it has a lot of 
+            scope for improvement. We learned TDD with XUnit Project, but the same can be applied to NUnit or MSTest projects as 
+            well.
+        </p>
+    </ContentBody>
+</Content>
+
+@code {
+    private string Title = "Implementing TDD in C# .Net";
+    private string Description = "In this post I will teach you how to practice and implement TDD in C# .NET. All with live working demo.";
+    private DateTime CreatedOn = new DateTime(2022, 4, 3, 22, 30, 0);
+    private DateTime ModifiedOn = new DateTime(2022, 4, 3, 22, 30, 0);
+    private string Slug = "implementing-tdd-in-csharp-dotnet";
+    private string PosterPath = "blogs/tdd";
+    private string Channel = "tdd";
+    private string ContentType = "blogs";
+    private ushort TotalContents => (ushort)tableOfContents.Contents.Count(content => content.Type.Equals("TDD", StringComparison.CurrentCultureIgnoreCase));
+    private List<string> Keywords = new(2) { "TDD", "Test Driven Development" };
+}
