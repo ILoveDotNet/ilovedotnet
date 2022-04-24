@@ -12,6 +12,8 @@ This is a .NET knowledge sharing platform with live demos crafted by developers 
 7. [DSA](https://github.com/orgs/ILoveDotNet/projects/7/views/1)
 8. [Design Patterns](https://github.com/orgs/ILoveDotNet/projects/9)
 9. [TDD](https://github.com/orgs/ILoveDotNet/projects/10/views/1)
+10. [String Builder](https://github.com/orgs/ILoveDotNet/projects/11/views/1)
+11. [Regex](https://github.com/orgs/ILoveDotNet/projects/12/views/1)
 
 # Help Needed
 1. We are making posters using SVG but we couldn't restrict the size to less than 50 - 100 kb. Our posters end up having 800 - 1200 kb. Anyone who has good knowledge on SVG can help us here.
