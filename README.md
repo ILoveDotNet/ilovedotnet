@@ -16,6 +16,13 @@ This is a .NET knowledge sharing platform with live demos crafted by developers 
 11. [Regex](https://github.com/orgs/ILoveDotNet/projects/12/views/1)
 12. [OOPS](https://github.com/orgs/ILoveDotNet/projects/13/views/1)
 
+# Our Official Network
+| Platform | Link                                                         |
+|----------|--------------------------------------------------------------|
+| Site     | https://www.ilovedotnet.org                                  |
+| YouTube  | https://www.youtube.com/channel/UCOS3wCw7SVXjXXffMPqid7A     |
+| LinkedIn | https://www.linkedin.com/groups/9083706/                     |
+
 # Help Needed
 1. We are making posters using SVG but we couldn't restrict the size to less than 50 - 100 kb. Our posters end up having 800 - 1200 kb. Anyone who has good knowledge on SVG can help us here.
 
