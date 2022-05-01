@@ -1,4 +1,5 @@
 ﻿@page "/blogs/oops-encapsulation"
+@using OOPSDemoComponents
 @inject TableOfContents tableOfContents
 
 <Content Title=@Title
@@ -51,6 +52,15 @@
 
         <GithubGistSnippet Title="Not properly Encapsulated" UserId="fingers10" FileName="0d7fe3e50211bce67fea33c5a0e77e91"></GithubGistSnippet>
 
+        <DemoSnippet Title="Not properly Encapsulated">
+            <p class="[ text-black ] [ dark:text-white ]">
+                <b>
+                    Scenario - Let's try creating a square class that violates invariant <ContentHighlight>edges.Length == 4</ContentHighlight>.
+                </b>
+            </p>
+            <NotProperlyEncapsulated></NotProperlyEncapsulated>
+        </DemoSnippet>
+
         <h3 class="[ font-semibold text-lg ]">How to introduce Encapsulation?</h3>
 
         <p>
@@ -61,6 +71,32 @@
         </p>
 
         <GithubGistSnippet Title="Properly Encapsulated" UserId="fingers10" FileName="25d573b415173245c0050941cf49f307"></GithubGistSnippet>
+
+        <DemoSnippet Title="Properly Encapsulated">
+            <p class="[ text-black ] [ dark:text-white ]">
+                <b>
+                    Scenario - Let's try creating a square class that violates invariant <ContentHighlight>edges.Length == 4</ContentHighlight>.
+                </b>
+            </p>
+           <ErrorBoundary @ref="@errorBoundary">
+                <ChildContent>
+                    <ProperlyEncapsulated></ProperlyEncapsulated>
+                </ChildContent>
+                <ErrorContent>
+                    <div class="[ bg-red-500 ]">
+                        <p class="[ text-white ]">Square must have 4 edges.</p>
+                    </div>
+                </ErrorContent>
+            </ErrorBoundary>
+
+            <button type="button" class="[ bg-fuchsia-500 ] [ px-4 py-2 ] [ rounded-md ] [ text-white ]" @onclick="Recover">
+                Click to try again
+                <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-activity ] [ inline ]" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                    <path d="M3 12h4l3 8l4 -16l3 8h4"></path>
+                </svg>
+            </button>
+        </DemoSnippet>
 
         <h3 class="[ font-semibold text-lg ]">Summary</h3>
 
@@ -86,4 +122,11 @@
     private string ContentType = "blogs";
     private ushort TotalContents => (ushort)tableOfContents.Contents.Count(content => content.Type.Equals("OOPS", StringComparison.CurrentCultureIgnoreCase));
     private List<string> Keywords = new(1) { "Encapsulation" };
+
+    private ErrorBoundary errorBoundary = default!;
+
+    private void Recover()
+    {
+        errorBoundary?.Recover();
+    }
 }
