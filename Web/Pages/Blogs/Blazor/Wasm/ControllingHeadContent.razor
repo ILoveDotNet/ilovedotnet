@@ -1,0 +1,229 @@
+﻿@page "/blogs/blazor-wasm-controlling-head-content"
+@inherits FragmentNavigationBase
+@inject TableOfContents tableOfContents
+
+<Content Title=@Title
+         Description=@Description
+         CreatedOn=@CreatedOn
+         ModifiedOn=@ModifiedOn
+         Slug=@Slug
+         PosterPath=@PosterPath
+         Keywords=@Keywords
+         Channel="@Channel"
+         ContentType="@ContentType"
+         TotalContents=@TotalContents>
+    <ContentBody>
+        <p>
+            In this article, let's learn about how to control head content like page title, meta tags and other script tags in Blazor WASM application.
+        </p>
+
+        <p>
+            Prior to .NET 6.0 there is no straight forward way to control head content in Blazor WASM application. We need to do some javascript hacks to 
+            achieve this. With .NET 6.0, we got a new, easy and simple way to control head content. Now Razor components can modify the HTML &lt;head&gt; 
+            element content of a page, including setting the page's title (&lt;title&gt; element) and modifying metadata (&lt;meta&gt; elements).
+        </p>
+
+        <p>
+            Table of Contents
+        </p>
+
+        <ol class="[ list-decimal ] [ ml-3.5 ]">
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#why")" Match="NavLinkMatch.All">
+                    Why we need to control Head Content?
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#steps")" Match="NavLinkMatch.All">
+                    Steps
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#headoutlet")" Match="NavLinkMatch.All">
+                    <ContentHighlight>HeadOutlet</ContentHighlight> Component
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#pagetitle")" Match="NavLinkMatch.All">
+                    <ContentHighlight>PageTitle</ContentHighlight> Component
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#headcontent")" Match="NavLinkMatch.All">
+                    <ContentHighlight>HeadContent</ContentHighlight> Component
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#drawbacks")" Match="NavLinkMatch.All">
+                    Drawbacks
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#alternatives")" Match="NavLinkMatch.All">
+                    Alternatives
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#example")" Match="NavLinkMatch.All">
+                    Realworld Example 
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
+                    Summary
+                </NavLink>
+            </li>
+        </ol>
+
+        <h3 id="why" class="[ font-semibold text-lg ]">Why we need to control Head Content?</h3>
+
+        <p>
+            With Blazor WASM the responsibility of rendering HTML is on the client side and this brings a new challenge Search Engine Optimization (SEO) and 
+            Social Media Optimization (SMO). Search engine bots crawl our sites to list it in the search engine results while Social media bots crawl our sites 
+            when we share them on social media which makes the sharing link to look good with eye catching posters or with pages body content.
+        </p>
+
+        <p>
+            Ofcourse the (&lt;body&gt;) content of our site is more important but (&lt;head&gt;) content gives extra control with &lt;meta&gt; tags for 
+            SEO and SMO optimization.
+        </p>
+
+        <h3 id="steps" class="[ font-semibold text-lg ]">Steps</h3>
+
+        <ol class="[ list-decimal ] [ ml-3.5 ]">
+            <li>Add <ContentHighlight>HeadOutlet</ContentHighlight> Component - <ContentHighlight>builder.RootComponents.Add&lt;HeadOutlet&gt;("head::after");</ContentHighlight> in Program.cs.</li>
+            <li>Add <ContentHighlight>PageTitle</ContentHighlight> Component - <ContentHighlight>&lt;PageTitle&gt;Your Page Title&lt;/PageTitle&gt;</ContentHighlight> inside your component or page.</li>
+            <li>Add <ContentHighlight>HeadContent</ContentHighlight> Component - <ContentHighlight>&lt;HeadContent&gt;&lt;meta name="description" content="description"&gt;&lt;/HeadContent&gt;</ContentHighlight> inside your component or page.</li>
+        </ol>
+
+        <h3 id="headoutlet" class="[ font-semibold text-lg ]"><ContentHighlight>HeadOutlet</ContentHighlight> Component</h3>
+
+        <p>
+            This is fairly a straight forward step and this will mostly be available and configured already in Program.cs in new Blazor WASM projects. If not 
+            all you need to do is to add the following line <ContentHighlight>builder.RootComponents.Add&lt;HeadOutlet&gt;("head::after");</ContentHighlight> 
+            in Program.cs.
+        </p>
+
+        <p>
+            This component takes the responsibilty of appending the content of <ContentHighlight>PageTitle</ContentHighlight> and <ContentHighlight>HeadContent</ContentHighlight> 
+            to (&lt;head&gt;) tag using <ContentHighlight>::after</ContentHighlight> pseudo element.
+        </p>
+
+        <h3 id="pagetitle" class="[ font-semibold text-lg ]"><ContentHighlight>PageTitle</ContentHighlight> Component</h3>
+
+        <p>
+            The <ContentHighlight>PageTitle</ContentHighlight> component is used to control page &lt;title&gt; when rendering HTML to a HeadOutlet component. This 
+            can be placed anywhere inside component or page in your blazor application.
+        </p>
+        
+        <GithubGistSnippet Title="PageTitle" UserId="fingers10" FileName="6c392cc8ae9bb5b6418ac6d64022b37f"></GithubGistSnippet>
+
+        <DemoSnippet Title="PageTitle Demo">
+            <p class="[ text-black ] [ dark:text-white ]">
+                This example binds <ContentHighlight>&lt;title&gt;</ContentHighlight> element to <ContentHighlight>PageTitle</ContentHighlight>.
+            </p>
+            <br />
+            <p>
+                <label>
+                    Try giving new <ContentHighlight>PageTitle</ContentHighlight>.
+                    <input class="[ w-full h-full ] [ px-4 py-2 ] [ border-2 ] [ focus:outline-none focus:border-gray-400 ] [ dark:bg-black dark:border-gray-800 dark:focus:border-b-white dark:md:focus:border-blue-800 dark:caret-white dark:text-white ]" 
+                    @bind-value="Title"
+                    @bind-value:event="oninput" />
+                </label>
+            </p>
+        </DemoSnippet>
+
+        <h3 id="headcontent" class="[ font-semibold text-lg ]"><ContentHighlight>HeadContent</ContentHighlight> Component</h3>
+
+        <p>
+            The <ContentHighlight>HeadContent</ContentHighlight> component is similar to <ContentHighlight>PageTitle</ContentHighlight> component but used to 
+            append its content to the &lt;head&gt; when rendering HTML to a HeadOutlet component. We can also give &lt;title&gt;inside this component. This 
+            can be placed anywhere inside component or page in your blazor application.
+        </p>
+
+        <GithubGistSnippet Title="HeadContent" UserId="fingers10" FileName="648865991869267dc92ae7d2e2e6622d"></GithubGistSnippet>
+
+        <DemoSnippet Title="HeadContent Demo">
+            <p class="[ text-black ] [ dark:text-white ]">
+                This example appends <ContentHighlight>&lt;meta name="Head Content Demo" content="Head Content Demo"&gt;</ContentHighlight> to <ContentHighlight>&lt;head&gt;</ContentHighlight> 
+                element. You can inspect this page head to verify this. I have added screenshot for your reference.
+            </p>
+            <br />
+            <HeadContent>
+                <meta name="Head Content Demo" content="Head Content Demo">
+            </HeadContent>
+            <figure>
+                <img src="./image/blogs/blazor/wasm/headcontent/head content demo screenshot.png" alt="Blazor WASM HeadContent Demo Screenshot" class="[ w-full ]" />
+            </figure>
+        </DemoSnippet>
+
+        <h3 id="drawbacks" class="[ font-semibold text-lg ]">Drawbacks</h3>
+
+        <p>
+            Browsers are more forgiving that sometimes they ignore our mistakes. Here is why?
+        </p>
+
+        <details open="true">
+            <summary>What if we use <ContentHighlight>PageTitle</ContentHighlight> twice?</summary>
+            <GithubGistSnippet Title="Multiple PageTitle" UserId="fingers10" FileName="9cb00ab55c133d34a6c34ad622bb8d49"></GithubGistSnippet>
+            <p>
+                Blazor will not create two title tags inside of the head of your document. Instead, the last PageTitle component to be rendered will be 
+                reflected as the title of your document.
+            </p>
+        </details>
+
+        <details open="true">
+            <summary>What if we give <ContentHighlight>&lt;title&gt;</ContentHighlight> inside <ContentHighlight>HeadContent</ContentHighlight>?</summary>
+            <GithubGistSnippet Title="Page Title in both PageTitle and HeadContent" UserId="fingers10" FileName="2cb7873ae9b547e261fb3084cdc11e80"></GithubGistSnippet>
+            <p>
+                Browser will use second title. But I recommend using <ContentHighlight>PageTitle</ContentHighlight> component for titles as it designed for 
+                that and it takes care of creating and updating.
+            </p>
+        </details>
+
+        <details open="true">
+            <summary>What if we have mutiple <ContentHighlight>HeadContent</ContentHighlight>?</summary>
+            <GithubGistSnippet Title="Multiple HeadContent" UserId="fingers10" FileName="22c0a74c6cbb7ae03bbf03f322e65d0f"></GithubGistSnippet>
+            <p>
+                Blazor will not merge instead it will replace the contents of last <ContentHighlight>HeadContent</ContentHighlight> and remaining will be lost.
+            </p>
+        </details>
+
+        <h3 id="alternatives" class="[ font-semibold text-lg ]">Alternatives</h3>
+
+        <p>
+            We can overcome the above drawbacks with <Navlink class="[ underline ]" href="https://github.com/jsakamoto/Toolbelt.Blazor.HeadElement" target="_blank">Toolbelt.Blazor.HeadElement</Navlink>. 
+            This is an awesome Nuget Package which covers some edge cases that are not covered by <ContentHighlight>PageTitle</ContentHighlight> and 
+            <ContentHighlight>HeadContent</ContentHighlight> components.
+        </p>
+
+        <h3 id="example" class="[ font-semibold text-lg ]">Realworld example</h3>
+
+        <p>
+            Here is I ❤️ DotNet's HeadContent Configuration - A good Real world example.
+        </p>
+
+        <GithubGistSnippet Title="Multiple HeadContent" UserId="fingers10" FileName="56c1076746d054caf00fc453feffa4f8"></GithubGistSnippet>
+        
+        <h3 id="summary" class="[ font-semibold text-lg ]">Summary</h3>
+
+        <p>
+            In this article, we learn't about what is <ContentHighlight>HeadOutlet</ContentHighlight>, <ContentHighlight>HeadContent</ContentHighlight> and 
+            <ContentHighlight>PageTitle</ContentHighlight> and how to control <ContentHighlight>&lt;head&gt;</ContentHighlight> content in HTML in blazor WASM 
+            application. Make sure to use this for dynamic head contents. For static head contents it is better to add them directly in index.html.
+        </p>
+    </ContentBody>
+</Content>
+
+@code {
+    private string Title = "Blazor WASM Controlling Head Content";
+    private string Description = "In this post I will teach how to control head content in your Blazor applications. All with live working demo.";
+    private DateTime CreatedOn = new DateTime(2022, 5, 8, 22, 30, 0);
+    private DateTime ModifiedOn = new DateTime(2022, 5, 8, 22, 30, 0);
+    private string Slug = "blazor-wasm-controlling-head-content";
+    private string PosterPath = "blogs/blazor/wasm";
+    private string Channel = "blazor";
+    private string ContentType = "blogs";
+    private ushort TotalContents => (ushort)tableOfContents.Contents.Count(content => content.Type.Equals("Blazor", StringComparison.CurrentCultureIgnoreCase));
+    private List<string> Keywords = new(3) { "Head Outlet", "Page Title", "Head Content" }; 
+}
