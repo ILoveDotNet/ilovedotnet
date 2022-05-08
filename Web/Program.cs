@@ -1,3 +1,4 @@
+using Blazor.Analytics;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.AspNetCore.Components.WebAssembly.Services;
@@ -25,4 +26,6 @@ static void ConfigureServices(IServiceCollection services, string baseAddress)
     services.AddScoped<LazyAssemblyLoader>();
 
     services.AddHeadElementHelper();
+
+    services.AddGoogleAnalytics("G-PY5ZL88NSM");
 }
