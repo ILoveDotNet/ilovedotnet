@@ -208,17 +208,17 @@ public class TableOfContents
                 CreatedOn = new DateTime(2022, 5, 8, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 5, 8, 22, 30, 0)
             },
-            //new ContentMetaData
-            //{
-            //    Title = "OOPS Abstraction",
-            //    Author = "Abdul Rahman",
-            //    PosterUrl = "image/blogs/oops/oops-abstraction.svg",
-            //    ThumbnailUrl = "image/blogs/oops/oops-abstraction.svg",
-            //    ContentUrl = "blogs/oops-abstraction",
-            //    IconUrl = "image/icons/oops.png",
-            //    Type = "OOPS",
-            //    CreatedOn = new DateTime(2022, 5, 8, 22, 30, 0),
-            //    ModifiedOn = new DateTime(2022, 5, 8, 22, 30, 0)
-            //}
+            new ContentMetaData
+            {
+                Title = "OOPS Abstraction",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/oops/oops-abstraction.svg",
+                ThumbnailUrl = "image/blogs/oops/oops-abstraction.svg",
+                ContentUrl = "blogs/oops-abstraction",
+                IconUrl = "image/icons/oops.png",
+                Type = "OOPS",
+                CreatedOn = new DateTime(2022, 5, 15, 22, 30, 0),
+                ModifiedOn = new DateTime(2022, 5, 15, 22, 30, 0)
+            }
         };
 }

@@ -1,4 +1,5 @@
 ﻿@page "/blogs/oops-abstraction"
+@using OOPSDemoComponents
 @inject TableOfContents tableOfContents
 
 <Content Title=@Title
@@ -106,17 +107,51 @@
 
         <details open="true">
             <summary>NormalizeStudentName - Higher-order abstractions</summary>
-            <div class="[ ml-3.5 ]">
-                <p>Lower-order abstractions</p>
-                <ul class="[ list-disc ] [ ml-3.5 ]">
-                    <li>Replace</li>
-                    <li>Trim</li>
-                    <li>Substring</li>
-                </ul>
+            <div class="[ ml-5 ]">
+                <details open="true">
+                    <summary>Lower-order abstractions</summary>
+                    <div class="[ ml-6 ]">
+                        <ul class="[ list-disc ] [ ml-3 ]">
+                            <li>Replace</li>
+                            <li>Trim</li>
+                            <li>Substring</li>
+                        </ul>
+                    </div>
+                </details>
             </div>
         </details>
 
+        <figure>
+            <img src="./image/blogs/oops/abstraction/abstraction order.png" alt="Abstraction Hierarchy?" class="[ w-full ]" />
+        </figure>
+
         <GithubGistSnippet Title="OOPS Abstraction Hierarchy" UserId="fingers10" FileName="3be223a94ffe5957c4251e0c743fe118"></GithubGistSnippet>
+
+        <DemoSnippet Title="Abstracted Email Address">
+            <p class="[ text-black ] [ dark:text-white ]">
+                <b>
+                    Scenario - Let's try creating a email address that is properly abstracted from <ContentHighlight>string</ContentHighlight>.
+                </b>
+            </p>
+           <ErrorBoundary @ref="@errorBoundary">
+                <ChildContent>
+                    <AbstractionHierarchy></AbstractionHierarchy>
+                </ChildContent>
+                <ErrorContent>
+                    <div class="[ bg-red-500 ]">
+                        <p class="[ text-white ]">Invalid Email Address.</p>
+                    </div>
+                </ErrorContent>
+            </ErrorBoundary>
+
+            <button type="button" class="[ bg-fuchsia-500 ] [ px-4 py-2 ] [ rounded-md ] [ text-white ]" @onclick="Recover">
+                Click to try again
+                <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-activity ] [ inline ]" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                    <path d="M3 12h4l3 8l4 -16l3 8h4"></path>
+                </svg>
+            </button>
+        </DemoSnippet>
 
         <p>
             This class represents Email Address and it has hierarchy of abstractions. It abstracts away the work with strings and creates its own higher order 
@@ -169,12 +204,19 @@
 @code {
     private string Title = "OOPS Abstraction";
     private string Description = "In this post I will teach what is abstraction in object oriented programming. All with live working demo.";
-    private DateTime CreatedOn = new DateTime(2022, 5, 8, 22, 30, 0);
-    private DateTime ModifiedOn = new DateTime(2022, 5, 8, 22, 30, 0);
+    private DateTime CreatedOn = new DateTime(2022, 5, 15, 22, 30, 0);
+    private DateTime ModifiedOn = new DateTime(2022, 5, 15, 22, 30, 0);
     private string Slug = "oops-abstraction";
     private string PosterPath = "blogs/oops";
     private string Channel = "oops";
     private string ContentType = "blogs";
     private ushort TotalContents => (ushort)tableOfContents.Contents.Count(content => content.Type.Equals("OOPS", StringComparison.CurrentCultureIgnoreCase));
     private List<string> Keywords = new(1) { "Abstraction" };
+
+    private ErrorBoundary errorBoundary = default!;
+
+    private void Recover()
+    {
+        errorBoundary?.Recover();
+    }
 }
