@@ -24,9 +24,6 @@ This is a .NET knowledge sharing platform with live demos crafted by developers 
 | YouTube  | https://www.youtube.com/channel/UCOS3wCw7SVXjXXffMPqid7A     |
 | LinkedIn | https://www.linkedin.com/groups/9083706/                     |
 
-# Help Needed
-1. We are making posters using SVG but we couldn't restrict the size to less than 50 - 100 kb. Our posters end up having 800 - 1200 kb. Anyone who has good knowledge on SVG can help us here.
-
 # Contribution Guidelines
 1. You can contribute for any of the channels mentioned in road map.
 2. In any channels make sure the topic you wish to cover doesn't exists already. If it exists already please review the content and try to update it.
