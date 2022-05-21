@@ -1,0 +1,50 @@
+﻿@inject AppStateDemo AppState;
+@implements IDisposable;
+
+<section class="[ flex flex-col ] [ bg-gray-200 ] [ text-black dark:text-white ] [ dark:bg-gray-800 dark:bg-gray-800/80 dark:text-white ]">
+    <div class="[ bg-fuchsia-500 ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ] [ rounded-none ]">
+        <h5>Chat 1</h5>
+    </div>
+    <div class="[ flex flex-col ]">
+        @foreach (var message in AppState.messages1)
+        {
+            <p>@message</p>
+        }
+    </div>
+    <div class="[ grow flex ]">
+        <input class="[ basis-5/6 ] [ w-full h-full ] [ px-2 py-1 ] [ border-2 ] [ focus:outline-none focus:border-gray-400 ] [ dark:bg-black dark:border-gray-800 dark:focus:border-b-white dark:md:focus:border-blue-800 dark:caret-white dark:text-white ]" 
+               placeholder="Message"
+               @bind-value="inputMessage"
+               @bind-value:event="oninput" />
+        <button type="button" 
+                class="[ basis-1/6 ] [ bg-cyan-500 ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ] [ rounded-none ]" 
+                disabled="@(string.IsNullOrWhiteSpace(inputMessage))"
+                @onclick="SendMessage">
+                <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-send ]" width="24" height="24" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                   <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                   <line x1="10" y1="14" x2="21" y2="3"></line>
+                   <path d="M21 3l-6.5 18a0.55 .55 0 0 1 -1 0l-3.5 -7l-7 -3.5a0.55 .55 0 0 1 0 -1l18 -6.5"></path>
+                </svg>
+        </button>
+    </div>
+</section>
+
+@code {
+    private string? inputMessage;
+    
+    protected override void OnInitialized()
+    {
+        AppState.OnChange += StateHasChanged;
+    }
+
+    void SendMessage()
+    {
+        AppState.SendMessageToChat2(inputMessage!);
+        inputMessage = null;
+    }
+    
+    public void Dispose()
+    {
+        AppState.OnChange -= StateHasChanged;
+    }
+}

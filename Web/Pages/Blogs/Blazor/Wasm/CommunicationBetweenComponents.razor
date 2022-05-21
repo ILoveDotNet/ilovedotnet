@@ -1,4 +1,5 @@
 ﻿@page "/blogs/blazor-wasm-communication-between-components"
+@using BlazorDemoComponents
 @inherits FragmentNavigationBase
 @inject TableOfContents tableOfContents
 
@@ -16,11 +17,172 @@
         <p>
             In this article, let's learn about how to communicate between components in Blazor WASM application.
         </p>
+
+        <h3 class="[ font-semibold text-lg ]">Table of Contents</h3>
+        
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#component-parameters")" Match="NavLinkMatch.All">
+                    Component Parameters
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#cascading-values-and-parameters")" Match="NavLinkMatch.All">
+                    Cascading Values and Parameters
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#event-callbacks")" Match="NavLinkMatch.All">
+                    Event Callbacks
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#state-container")" Match="NavLinkMatch.All">
+                    State Container
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
+                    Summary
+                </NavLink>
+            </li>
+        </ol>
+
+        <h3 id="component-parameters" class="[ font-semibold text-lg ]">Component Parameters</h3>
+
+        <p>
+            The simple and straight forward way is by passing values as <ContentHighlight>Component Parameters</ContentHighlight>. Component parameters 
+            pass data to components and are defined using <ContentHighlight>public C# properties</ContentHighlight> on the component class with 
+            the <ContentHighlight>[Parameter]</ContentHighlight> attribute.
+        </p>
+
+        <GithubGistSnippet Title="Component Parameters Demo" UserId="fingers10" FileName="52edfed991e8c184f60861dcbc16630d"></GithubGistSnippet>
+
+        <DemoSnippet Title="Component Parameters Demo">
+            <p class="[ text-black ] [ dark:text-white ]">
+                In this example you can pass <ContentHighlight>Title</ContentHighlight> and <ContentHighlight>Descripiton</ContentHighlight> to component 
+                using <ContentHighlight>Component Parameters</ContentHighlight>.
+            </p>
+            <ol class="[ list-decimal ] [ ml-4 ]">
+                <li>Add <ContentHighlight>[Parameter]</ContentHighlight> attribute to component property.</li>
+                <li>Pass data to component explicitly or assign a variable from ancestor or parent component.</li>
+            </ol>
+            <br />
+            <div>
+                <ComponentParameterDemo Title="Component Parameter" Description="Communication using Component Parameter"></ComponentParameterDemo>
+            </div>
+        </DemoSnippet>
+        
+        <h3 id="cascading-values-and-parameters" class="[ font-semibold text-lg ]">Cascading Values and Parameters</h3>
+
+        <p>
+            <ContentHighlight>Cascading values and parameters</ContentHighlight> provide a convenient way to flow data down a component hierarchy from an 
+            ancestor component or parent component to any number of descendent components or child components. Unlike <ContentHighlight>Component parameters</ContentHighlight>, 
+            cascading values and parameters don't require an attribute assignment for each descendent component or child component where the data is consumed. 
+            Cascading values and parameters also allow components to coordinate with each other across a component hierarchy.
+        </p>
+
+        <GithubGistSnippet Title="Cascading Values and Parameters Demo" UserId="fingers10" FileName="bff1e106974e69b6daa4510626e87bb3"></GithubGistSnippet>
+        
+        <DemoSnippet Title="Cascading Values and Parameters Demo">
+            <p class="[ text-black ] [ dark:text-white ]">
+                In this example you can get <ContentHighlight>Cascading Value</ContentHighlight> from ancestor component or parent component. The following 
+                component binds the <ContentHighlight>SmallDevice</ContentHighlight> cascading value from <ContentHighlight>App.razor</ContentHighlight> to a 
+                cascading parameter, optionally using the same name of <ContentHighlight>SmallDevice</ContentHighlight>. The parameter is used by 
+                I ❤️ DotNet to identify the device.
+            </p>
+            <ol class="[ list-decimal ] [ ml-4 ]">
+                <li>Pass <ContentHighlight>&lt;CascadingValue&gt; Value="SmallDevice"</ContentHighlight> from ancestor or parent component</li>
+                <li>Add <ContentHighlight>[CascadingParameter]</ContentHighlight> attribute to component property and give the same name to property.</li>
+            </ol>
+            <br />
+            <div>
+                <CascadingValuesAndParametersDemo></CascadingValuesAndParametersDemo>
+            </div>
+        </DemoSnippet>
+
+        <h3 id="event-callbacks" class="[ font-semibold text-lg ]">Event Callbacks</h3>
+
+        <p>
+            <ContentHighlight>EventCallback</ContentHighlight> and <ContentHighlight>EventCallback&lt;T&gt;</ContentHighlight> are used to pass data from child 
+            component to parent component upon a certain event like button click. We can also assign synchronous or asynchronous methods and communicate to 
+            parent component using event callbacks along with data.
+        </p>
+
+        <GithubGistSnippet Title="Event Callbacks Demo" UserId="fingers10" FileName="75314c9ee5d7a6a39d8db6896b76414f"></GithubGistSnippet>
+
+        <DemoSnippet Title="Event Callbacks Demo">
+            <p class="[ text-black ] [ dark:text-white ]">
+                In this example you can click on button in Child Component and this will invoke <ContentHighlight>OnClick EventCallback&lt;string&gt;</ContentHighlight> 
+                from child component and pass the <ContentHighlight>message</ContentHighlight> from child component to parent component.
+            </p>
+            <ol class="[ list-decimal ] [ ml-4 ]">
+                <li>Add <ContentHighlight>[Parameter] public EventCallback&lt;string&gt; OnClick { get; set; }</ContentHighlight> to child compnent.</li>
+                <li>Then on any event invoke <ContentHighlight>OnClick.InvokeAsync("Hello from Child Component")</ContentHighlight> from child component.</li>
+                <li>
+                    Render <ContentHighlight>&lt;EventCallbackChildDemo OnClick="ClickHandler"&gt;&lt;/EventCallbackChildDemo&gt;</ContentHighlight> from 
+                    parent component and bind <ContentHighlight>ClickHandler</ContentHighlight>.
+                </li>
+                <li>Now click on button from Child Component.</li>
+            </ol>
+            <br />
+            <div>
+                <EventCallbackParentDemo></EventCallbackParentDemo>
+            </div>
+        </DemoSnippet>
+
+        <h3 id="state-container" class="[ font-semibold text-lg ]">State Container</h3>
+
+        <p>
+            This last method is the complex way to communicate between many components across the whole application. We need to register this state container 
+            as <ContentHighlight>Scoped</ContentHighlight> or <ContentHighlight>Singleton</ContentHighlight> service and <ContentHighlight>inject</ContentHighlight> 
+            the same and use it to store and pass data between components on any event.
+        </p>
+
+        <GithubGistSnippet Title="State Container Demo" UserId="fingers10" FileName="ec8c37cb99f26e43d5042b779c0d07e5"></GithubGistSnippet>
+
+        <DemoSnippet Title="State Container Demo">
+            <p class="[ text-black ] [ dark:text-white ]">
+                In this example you can see the usage of <ContentHighlight>State Container - AppStateDemo</ContentHighlight> used to communicate between two 
+                components.
+            </p>
+            <ol class="[ list-decimal ] [ ml-4 ]">
+                <li>
+                    Create a <ContentHighlight>AppStateDemo.cs</ContentHighlight> class with <ContentHighlight>event</ContentHighlight> and 
+                    <ContentHighlight>Action</ContentHighlight> and methods to notify changes. This class stores messages and there is also an 
+                    <ContentHighlight>OnChange</ContentHighlight> event which will be needed by components to store message.
+                </li>
+                <li>
+                    Register <ContentHighlight>services.AddScoped&lt;AppStateDemo&gt;();</ContentHighlight> in <ContentHighlight>Program.cs</ContentHighlight> 
+                    as <ContentHighlight>Scoped</ContentHighlight> or <ContentHighlight>Singleton</ContentHighlight> service.
+                </li>
+                <li>
+                    <ContentHighlight>@@inject AppStateDemo AppStateDemo</ContentHighlight> in chat components to send message on button click.
+                </li>
+                <li>
+                    StateContainer component ties chat component together. Chat component handles <ContentHighlight>OnChange</ContentHighlight> event exposed 
+                    by <ContentHighlight>AppStateDemo</ContentHighlight> class. Whenever messgae is sent <ContentHighlight>StateHasChanged</ContentHighlight> 
+                    will be invoked and the chat component will re-render new messages.
+                </li>
+                <li>
+                    Please note that it's important to unsubscribe components <ContentHighlight>StateHasChanged</ContentHighlight> method from 
+                    <ContentHighlight>AppStateDemo</ContentHighlight>'s <ContentHighlight>OnChange</ContentHighlight> event using 
+                    <ContentHighlight>IDisposable</ContentHighlight> interface else this will introduce a memory leak.
+                </li>
+            </ol>
+            <br />
+            <div>
+                <StateContainerDemo></StateContainerDemo>
+            </div>
+        </DemoSnippet>
         
         <h3 id="summary" class="[ font-semibold text-lg ]">Summary</h3>
 
         <p>
-            In this article, we learn't how to <ContentHighlight>Communicate</ContentHighlight> between components in blazor WASM application.
+            In this article, we learn't how to <ContentHighlight>Communicate</ContentHighlight> between components in blazor WASM application using 4 different 
+            techniques. We started with simple straight forward <ContentHighlight>Component Parameters</ContentHighlight> and <ContentHighlight>Cascading Parameters</ContentHighlight> 
+            and then moved to <ContentHighlight>EventCallback</ContentHighlight> and finally to <ContentHighlight>State Container</ContentHighlight>. I would 
+            recommend to make use of simple straight forward ways unless you need a complex state container.
         </p>
     </ContentBody>
 </Content>
@@ -35,5 +197,5 @@
     private string Channel = "blazor";
     private string ContentType = "blogs";
     private ushort TotalContents => (ushort)tableOfContents.Contents.Count(content => content.Type.Equals("Blazor", StringComparison.CurrentCultureIgnoreCase));
-    private List<string> Keywords = new(1) { "Communication" }; 
+    private List<string> Keywords = new(6) { "Communication", "Component Parameter", "Cascading Value", "Cascading Parameter", "Event Callback", "State Container" };
 }
