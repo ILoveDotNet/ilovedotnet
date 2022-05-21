@@ -21,6 +21,8 @@ static void ConfigureServices(IServiceCollection services, string baseAddress)
 
     services.AddScoped<AppState>();
 
+    services.AddScoped<AppStateDemo>();
+
     services.AddScoped<TableOfContents>();
 
     services.AddScoped<LazyAssemblyLoader>();
