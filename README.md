@@ -5,7 +5,7 @@ This is a .NET knowledge sharing platform with live demos crafted by developers 
 # Road Map
 1. [Blazor WASM](https://github.com/orgs/ILoveDotNet/projects/2/views/1)
 2. [LINQ](https://github.com/orgs/ILoveDotNet/projects/6/views/1)
-3. [Entity Framework Core](https://github.com/orgs/ILoveDotNet/projects/4/views/1)
+3. [Entity Framework](https://github.com/orgs/ILoveDotNet/projects/4/views/1)
 4. [C#](https://github.com/orgs/ILoveDotNet/projects/5/views/1)
 5. [ML.NET](https://github.com/orgs/ILoveDotNet/projects/3/views/1)
 6. [WEB API](https://github.com/orgs/ILoveDotNet/projects/8)
