@@ -19,12 +19,12 @@ This is a .NET knowledge sharing platform with live demos crafted by developers 
 14. [Swagger](https://github.com/orgs/ILoveDotNet/projects/15/views/1)
 
 # Our Official Network
-| Platform  | Link                                                         |
-|-----------|--------------------------------------------------------------|
-| Site      | https://www.ilovedotnet.org                                  |
-| YouTube   | https://www.youtube.com/channel/UCOS3wCw7SVXjXXffMPqid7A     |
-| LinkedIn  | https://www.linkedin.com/groups/9083706/                     |
-| Instagram | https://www.instagram.com/ilovedotnet
+| Platform  | Link                                                         | Status |
+|-----------|--------------------------------------------------------------|--------|
+| Website   | https://www.ilovedotnet.org                                  | [![Website](https://img.shields.io/website?label=ILoveDotNet.org&color=blueviolet&style=for-the-badge&url=https%3A%2F%2Filovedotnet.org)](https://ilovedotnet.org) |
+| YouTube   | https://www.youtube.com/channel/UCOS3wCw7SVXjXXffMPqid7A     | [![Youtube Channel](https://img.shields.io/website?label=Youtube%20I%20%E2%9D%A4%EF%B8%8F%20.NET&color=red&style=for-the-badge&url=https%3A%2F%2Fwww.youtube.com%2Fchannel%2FUCOS3wCw7SVXjXXffMPqid7A)](https://www.youtube.com/channel/UCOS3wCw7SVXjXXffMPqid7A)         |
+| LinkedIn  | https://www.linkedin.com/groups/9083706/                     | [![LinkedIn Group](https://img.shields.io/website?label=LinkedIn%20I%20%E2%9D%A4%EF%B8%8F%20.NET&color=blue&style=for-the-badge&url=https%3A%2F%2Fwww.linkedin.com%2Fgroups%2F9083706%2F)](https://www.linkedin.com/groups/9083706/) |
+| Instagram | https://www.instagram.com/ilovedotnet/                        | [![Instagram](https://img.shields.io/website?label=Instagram%20I%20%E2%9D%A4%EF%B8%8F%20.NET&color=orange&style=for-the-badge&url=https%3A%2F%2Finstagram.com%2Filovedotnet%2F)](https://instagram.com/ilovedotnet/) |
 
 # Contribution Guidelines
 1. You can contribute for any of the channels mentioned in road map.
