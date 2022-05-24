@@ -19,11 +19,12 @@ This is a .NET knowledge sharing platform with live demos crafted by developers 
 14. [Swagger](https://github.com/orgs/ILoveDotNet/projects/15/views/1)
 
 # Our Official Network
-| Platform | Link                                                         |
-|----------|--------------------------------------------------------------|
-| Site     | https://www.ilovedotnet.org                                  |
-| YouTube  | https://www.youtube.com/channel/UCOS3wCw7SVXjXXffMPqid7A     |
-| LinkedIn | https://www.linkedin.com/groups/9083706/                     |
+| Platform  | Link                                                         |
+|-----------|--------------------------------------------------------------|
+| Site      | https://www.ilovedotnet.org                                  |
+| YouTube   | https://www.youtube.com/channel/UCOS3wCw7SVXjXXffMPqid7A     |
+| LinkedIn  | https://www.linkedin.com/groups/9083706/                     |
+| Instagram | https://www.instagram.com/ilovedotnet
 
 # Contribution Guidelines
 1. You can contribute for any of the channels mentioned in road map.
