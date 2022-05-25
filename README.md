@@ -27,7 +27,7 @@ This is a .NET knowledge sharing platform with live demos crafted by developers 
 | Instagram | https://www.instagram.com/ilovedotnet/                        | [![Instagram](https://img.shields.io/website?label=Instagram%20I%20%E2%9D%A4%EF%B8%8F%20.NET&color=orange&style=for-the-badge&url=https%3A%2F%2Finstagram.com%2Filovedotnet%2F)](https://instagram.com/ilovedotnet/) |
 
 # Contribution Guidelines
-1. You can contribute for any of the channels mentioned in road map.
+1. You can contribute for any of the channels mentioned in road map. If the channel you wish to contribute is not available then you can add channel to road map and contribute. 
 2. In any channels make sure the topic you wish to cover doesn't exists already. If it exists already please review the content and try to update it.
 3. A live working demo would be preferred in all content.
 4. Try to keep content simple and short.
