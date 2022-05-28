@@ -1,0 +1,182 @@
+﻿@page "/blogs/blazor-wasm-forms"
+@using BlazorDemoComponents
+@inherits FragmentNavigationBase
+@inject TableOfContents tableOfContents
+
+<Content Title=@Title
+         Description=@Description
+         CreatedOn=@CreatedOn
+         ModifiedOn=@ModifiedOn
+         Slug=@Slug
+         PosterPath=@PosterPath
+         Keywords=@Keywords
+         Channel="@Channel"
+         ContentType="@ContentType"
+         TotalContents=@TotalContents>
+    <ContentBody>
+        <p>
+            In this article, let's learn about how to collect data using forms in Blazor WASM application.
+        </p>
+
+        <h3 class="[ font-semibold text-lg ]">Table of Contents</h3>
+        
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#why")" Match="NavLinkMatch.All">
+                    Why Forms?
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#introducing-editform")" Match="NavLinkMatch.All">
+                    Introducing EditForm
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#binding-model-with-editform")" Match="NavLinkMatch.All">
+                    Binding Model with EditForm
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#binding-editcontext-with-editform")" Match="NavLinkMatch.All">
+                    Binding EditContext with EditForm
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#handling-form-submission")" Match="NavLinkMatch.All">
+                    Handling Form Submission
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
+                    Summary
+                </NavLink>
+            </li>
+        </ol>
+
+        <h3 id="why" class="[ font-semibold text-lg ]">Why Forms?</h3>
+
+        <p>
+            Forms are key part of any web application as they used to collect data from the user and submit to server for further processing. This information 
+            might range from the user details that we collect as part of a sign-up process down to a single textbox that allows users to leave comments or 
+            post messages in an collaborative application.
+        </p>
+
+        <h3 id="introducing-editform" class="[ font-semibold text-lg ]">Introducing EditForm</h3>
+
+        <p>
+            The Blazor framework renders forms using a built-in component called <ContentHighlight>EditForm</ContentHighlight>. We can bind a model to this 
+            component to collect different types of data and process it. Although it is possible to create forms using the standard 
+            <ContentHighlight>&lt;form&gt;</ContentHighlight> HTML element, it is recommend to use the <ContentHighlight>EditForm</ContentHighlight> component 
+            because of the additional features and benefits it provides.
+        </p>
+        
+        <p>
+            <strong>Note:</strong> If you have not done so already, I recommend you read the article on 
+            <NavLink class="[ underline ]" href="blogs/blazor-wasm-data-binding">Blazor Wasm Data Binding</NavLink>.
+        </p>
+
+        <h3 id="binding-model-with-editform" class="[ font-semibold text-lg ]">Binding Model with EditForm</h3>
+
+        <p>
+            To start working with EditForm, we need to create a model class that will hold the data that we want to collect.
+        </p>
+        
+        <GithubGistSnippet Title="EditForm With Model Demo" UserId="fingers10" FileName="148eb1d4bfbd25db7d130079f437c84a"></GithubGistSnippet>
+
+        <DemoSnippet Title="EditForm With Model Demo">
+            <p class="[ text-black ] [ dark:text-white ]">
+                The following form accepts user input using:
+            </p>
+            <ol class="[ list-decimal ] [ ml-4 ]">
+                <li>The properties defined in the preceding Starship model.</li>
+                <li>Several of Blazor's built-in form components.</li>
+                <li>
+                    The EditForm in the example creates an EditContext based on the assigned Starship instance 
+                    <ContentHighlight>(Model="@@starship")</ContentHighlight> and handles a valid form.
+                </li>
+                <li>Message is printed on submit.</li>
+            </ol>
+            <br />
+            <div>
+                <EditFormModelDemo></EditFormModelDemo>
+            </div>
+        </DemoSnippet>
+
+        <h3 id="binding-editcontext-with-editform" class="[ font-semibold text-lg ]">Binding EditContext with EditForm</h3>
+        
+        <p>
+            An EditForm creates an <ContentHighlight>EditContext</ContentHighlight> based on the assigned model instance as a cascading value for other 
+            components in the form. The EditContext tracks metadata about the edit process, including which fields have been modified and the current validation 
+            messages.
+        </p>
+
+        <p>
+            <strong>
+                Assigning to either an <ContentHighlight>EditForm.Model</ContentHighlight> or an <ContentHighlight>EditForm.EditContext</ContentHighlight> 
+                can bind a form to data.
+            </strong>
+        </p>
+
+        <GithubGistSnippet Title="EditForm With EditContext Demo" UserId="fingers10" FileName="0c0820c02d890296f15a59a2265f9aff"></GithubGistSnippet>
+
+        <DemoSnippet Title="EditForm With EditContext Demo">
+            <p class="[ text-black ] [ dark:text-white ]">
+                The following form accepts user input using:
+            </p>
+            <ol class="[ list-decimal ] [ ml-4 ]">
+                <li>
+                    A shortened version of the preceding Starfleet Starship Database form is used that only accepts a value for the starship's identifier. 
+                    The other Starship properties receive valid default values when an instance of the Starship type is created.
+                </li>
+                <li>The HandleSubmit method executes when the Submit button is selected.</li>
+                <li>The form is validated by calling EditContext.Validate in the HandleSubmit method.</li>
+                <li>Message is printed on submit.</li>
+            </ol>
+            <br />
+            <div>
+                <EditFormEditContextDemo></EditFormEditContextDemo>
+            </div>
+        </DemoSnippet>
+        
+        <h3 id="handling-form-submission" class="[ font-semibold text-lg ]">Handling Form Submission</h3>
+
+        <p>
+            When the user submits the form, the EditForm component calls the <ContentHighlight>EditForm.OnSubmit</ContentHighlight> event handler.
+            This event handler is passed the EditContext as a parameter. The EditContext provides access to the EditForm's model and the form's
+            current state.
+        </p>
+
+        <p>
+            The EditForm provides the following callbacks for handling form submission:
+        </p>
+
+        <ul class="[ list-decimal ] [ ml-4 ]">
+            <li>Use OnValidSubmit to assign an event handler to run when a form with valid fields is submitted.</li>
+            <li>Use OnInvalidSubmit to assign an event handler to run when a form with invalid fields is submitted.</li>
+            <li>
+                Use OnSubmit to assign an event handler to run regardless of the form fields' validation status. The form is validated by calling 
+                EditContext.Validate in the event handler method. If Validate returns true, the form is valid.
+            </li>
+        </ul>
+        
+        <h3 id="summary" class="[ font-semibold text-lg ]">Summary</h3>
+
+        <p>
+            In this article, we learn't what is <ContentHighlight>EditForm</ContentHighlight> and how to use <ContentHighlight>Forms</ContentHighlight> in 
+            blazor application by binding either to a <ContentHighlight>Model</ContentHighlight> or to a <ContentHighlight>EditContext</ContentHighlight>.
+        </p>
+    </ContentBody>
+</Content>
+
+@code {
+    private string Title = "Blazor WASM Forms";
+    private string Description = "In this post I will teach how to use forms in your Blazor applications. All with live working demo.";
+    private DateTime CreatedOn = new DateTime(2022, 5, 29, 22, 30, 0);
+    private DateTime ModifiedOn = new DateTime(2022, 5, 29, 22, 30, 0);
+    private string Slug = "blazor-wasm-forms";
+    private string PosterPath = "blogs/blazor/wasm";
+    private string Channel = "blazor";
+    private string ContentType = "blogs";
+    private ushort TotalContents => (ushort)tableOfContents.Contents.Count(content => content.Type.Equals("Blazor", StringComparison.CurrentCultureIgnoreCase));
+    private List<string> Keywords = new(4) { "Forms", "Model", "EditContext", "EditForm" };
+}
