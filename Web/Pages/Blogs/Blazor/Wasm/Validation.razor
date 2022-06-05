@@ -23,9 +23,6 @@
             <NavLink class="[ underline ]" href="blogs/blazor-wasm-forms">Blazor Wasm Forms</NavLink>.
         </p>        
 
-        @*https://blazor-university.com/forms/validation/*@
-        @*https://docs.microsoft.com/en-us/aspnet/core/blazor/forms-validation?view=aspnetcore-6.0*@
-
         <h3 class="[ font-semibold text-lg ]">Table of Contents</h3>
         
         <ol class="[ list-decimal ] [ ml-4 ]">
@@ -47,11 +44,6 @@
             <li>
                 <NavLink class="[ underline ]" href="@($"blogs/{Slug}#fluent-validations")" Match="NavLinkMatch.All">
                     Fluent Validations
-                </NavLink>
-            </li>
-            <li>
-                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#handling-form-submission")" Match="NavLinkMatch.All">
-                    Handling Form Submission
                 </NavLink>
             </li>
             <li>
@@ -77,20 +69,46 @@
             <ContentHighlight>EditForm</ContentHighlight> component will enable form validation based on .NET Data Annotation attributes
         </p>
 
-        <GithubGistSnippet Title="EditForm With Model Demo" UserId="fingers10" FileName="3c1af0fb93f6e8a80e22985d739dbd05"></GithubGistSnippet>
+        <GithubGistSnippet Title="Data Annotations Validation Demo" UserId="fingers10" FileName="3c1af0fb93f6e8a80e22985d739dbd05"></GithubGistSnippet>
 
-        <DemoSnippet Title="EditForm With Model Demo">
+        <DemoSnippet Title="Data Annotations Validation Demo">
             <p class="[ text-black ] [ dark:text-white ]">
-                The following form accepts user input using:
+                To demonstrate how an <ContentHighlight>EditForm</ContentHighlight> component works with <ContentHighlight>Data Annotations</ContentHighlight> 
+                validation
             </p>
             <ol class="[ list-decimal ] [ ml-4 ]">
-                <li>The properties defined in the preceding Starship model.</li>
+                <li>Consider the above <ContentHighlight>ExampleModel</ContentHighlight> type.</li>
                 <li>Several of Blazor's built-in form components.</li>
                 <li>
-                    The EditForm in the example creates an EditContext based on the assigned Starship instance 
-                    <ContentHighlight>(Model="@@starship")</ContentHighlight> and handles a valid form.
+                    The <ContentHighlight>Name</ContentHighlight> property is marked required with the <ContentHighlight>RequiredAttribute</ContentHighlight> 
+                    and specifies a <ContentHighlight>StringLengthAttribute</ContentHighlight> maximum string length limit and error message.
                 </li>
-                <li>Message is printed on submit.</li>
+                <li>
+                    The <ContentHighlight>HandleValidSubmit</ContentHighlight> method is assigned to <ContentHighlight>OnValidSubmit</ContentHighlight>. 
+                    The handler is called if the form passes validation.
+                </li>
+                <li>
+                    The data annotations validator (<ContentHighlight>DataAnnotationsValidator</ContentHighlight> component) attaches validation support using 
+                    data annotations:
+                    <ol class="[ list-decimal ] [ ml-4 ]">
+                        <li>
+                            If the &lt;input&gt; form field is left blank when the <strong><ContentHighlight>Submit</ContentHighlight></strong> button is 
+                            selected, an error appears in the validation summary (<ContentHighlight>ValidationSummary</ContentHighlight> component) 
+                            ("<ContentHighlight>The Name field is required.</ContentHighlight>") and <ContentHighlight>HandleValidSubmit</ContentHighlight> 
+                            is <strong>not</strong> called.
+                        </li>
+                        <li>
+                            If the &lt;input&gt; form field more than ten characters when the <strong><ContentHighlight>Submit</ContentHighlight></strong> 
+                            button is selected, an error appears in the validation summary (<ContentHighlight>ValidationSummary</ContentHighlight> component) 
+                            ("<ContentHighlight>Name is too long.</ContentHighlight>") and <ContentHighlight>HandleValidSubmit</ContentHighlight> 
+                            is <strong>not</strong> called.
+                        </li>
+                        <li>
+                            If the &lt;input&gt; form field contains a valid value when the <strong><ContentHighlight>Submit</ContentHighlight></strong> 
+                            button is selected, <ContentHighlight>HandleValidSubmit</ContentHighlight> is called.
+                        </li>
+                    </ol>
+                </li>
             </ol>
             <br />
             <div>
@@ -101,42 +119,117 @@
         <h3 id="displaying-error-messages" class="[ font-semibold text-lg ]">Displaying Error Messages</h3>
 
         <p>
-            
+            Validation error messages can be displayed to the user in two ways. We can add a <ContentHighlight>ValidationSummary</ContentHighlight> to show a 
+            comprehensive list of all errors in the form. We can also use the <ContentHighlight>ValidationMessage</ContentHighlight> component to display 
+            error messages for a specific input on the form. These components are not mutually exclusive, so it is possible to use both at the same time.
+            The ValidationSummary component can simply be dropped into an EditForm in our mark-up; no additional parameters are required at all.
+        </p>
+
+        <p>
+            As the <ContentHighlight>ValidationMessage</ContentHighlight> component displays error messages for a single field, it requires us to specify the 
+            identity of the field.
+        </p>
+
+        <p>
+            In the above demo when you submit the form with invalid value, you can see two error messages getting displayed. The error message above text box 
+            is from <ContentHighlight>ValidationSummary</ContentHighlight> and the error message below the text box is from 
+            <ContentHighlight>ValidationMessage</ContentHighlight>.
         </p>
         
         <h3 id="fluent-validations" class="[ font-semibold text-lg ]">Fluent Validations</h3>
         
         <p>
-            
+            <NavLink class="[ underline ]" href="https://docs.fluentvalidation.net/en/latest/" target="_blank">FluentValidation</NavLink> is a popular validation library for 
+            <ContentHighlight>.NET</ContentHighlight> by <NavLink class="[ underline ]" href="https://github.com/jeremyskinner" target="_blank">Jeremy 
+            Skinner</NavLink>. It has some advantages over .NET's built-in DataAnnotations validation system, such as a richer set of rules, easier configuration, 
+            and easier extensibility.
         </p>
-
-        <h3 id="handling-form-submission" class="[ font-semibold text-lg ]">Handling Form Submission</h3>
-
+        
         <p>
-            When the user submits the form, the EditForm component calls the <ContentHighlight>EditForm.OnSubmit</ContentHighlight> event handler.
-            This event handler is passed the EditContext as a parameter. The EditContext provides access to the EditForm's model and the form's
-            current state.
+            FluentValidation does not provide integration with Blazor out of the box. Let's learn how to make Fluent Validation integrate and work nicely with Blazor. Lets start by using the same <ContentHighlight>ExampleModel</ContentHighlight> 
+            and configure and validate using Fluent Validation using below steps.
         </p>
 
-        <p>
-            The EditForm provides the following callbacks for handling form submission:
-        </p>
-
-        <ul class="[ list-decimal ] [ ml-4 ]">
-            <li>Use <ContentHighlight>OnValidSubmit</ContentHighlight> to assign an event handler to run when a form with valid fields is submitted.</li>
-            <li>Use <ContentHighlight>OnInvalidSubmit</ContentHighlight> to assign an event handler to run when a form with invalid fields is submitted.</li>
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>Install Nuget Package - <NavLink class="[ underline ]" href="https://www.nuget.org/packages/FluentValidation/" target="_blank">FluentValidation</NavLink></li>
             <li>
-                Use <ContentHighlight>OnSubmit</ContentHighlight> to assign an event handler to run regardless of the form fields' validation status. 
-                The form is validated by calling <ContentHighlight>EditContext.Validate</ContentHighlight> in the event handler method. If Validate 
-                returns true, the form is valid.
+                Add the below <ContentHighlight>FluentValidator&lt;TValidator&gt;</ContentHighlight> to your project. This code snippet updated version of 
+                Fluent Validatoe originally created by <NavLink class="[ underline ]" href="https://github.com/SteveSandersonMS" target="_blank">Steve Sanderson</NavLink>. 
+                I have added original source link in the snippet.
             </li>
-        </ul>
+            <li>Now Create a <ContentHighlight>YourModelClassValidator : AbstractValidator&lt;YourModelClass&gt;</ContentHighlight></li>
+            <li>Finally add <ContentHighlight>&lt;FluentValidator TValidator="YourModelClassValidator" /&gt;</ContentHighlight></li>
+        </ol>
+
+        <GithubGistSnippet Title="Fluent Validator" UserId="fingers10" FileName="87138195212d74be14a4734b24154d17"></GithubGistSnippet>
+
+        <GithubGistSnippet Title="Fluent Validator Demo" UserId="fingers10" FileName="fbb2963b68f0d04563244bd504afcf65"></GithubGistSnippet>
+
+        <DemoSnippet Title="Fluent Validation Demo">
+            <p class="[ text-black ] [ dark:text-white ]">
+                To demonstrate how an <ContentHighlight>EditForm</ContentHighlight> component works with <ContentHighlight>Fluent Validation</ContentHighlight> 
+            </p>
+            <ol class="[ list-decimal ] [ ml-4 ]">
+                <li>Consider the above <ContentHighlight>FluentExampleModel</ContentHighlight> type.</li>
+                <li>Several of Blazor's built-in form components.</li>
+                <li>
+                    A <ContentHighlight>FluentExampleModelValidator</ContentHighlight> is created and that has necessary rules defined. 
+                    The <ContentHighlight>Name</ContentHighlight> property is chained with the <ContentHighlight>NotEmpty()</ContentHighlight> rule and error 
+                    message and again chained with <ContentHighlight>MaximumLength(10)</ContentHighlight> maximum string length limit and error message.
+                </li>
+                <li>
+                    The <ContentHighlight>HandleValidSubmit</ContentHighlight> method is assigned to <ContentHighlight>OnValidSubmit</ContentHighlight>. 
+                    The handler is called if the form passes validation.
+                </li>
+                <li>
+                    The data annotations validator (<ContentHighlight>FluentValidator</ContentHighlight> component) attaches validation support using 
+                    fluent validation rules:
+                    <ol class="[ list-decimal ] [ ml-4 ]">
+                        <li>
+                            If the &lt;input&gt; form field is left blank when the <strong><ContentHighlight>Submit</ContentHighlight></strong> button is 
+                            selected, an error appears in the validation summary (<ContentHighlight>ValidationSummary</ContentHighlight> component) 
+                            ("<ContentHighlight>The Name field is required.</ContentHighlight>") and <ContentHighlight>HandleValidSubmit</ContentHighlight> 
+                            is <strong>not</strong> called.
+                        </li>
+                        <li>
+                            If the &lt;input&gt; form field more than ten characters when the <strong><ContentHighlight>Submit</ContentHighlight></strong> 
+                            button is selected, an error appears in the validation summary (<ContentHighlight>ValidationSummary</ContentHighlight> component) 
+                            ("<ContentHighlight>Name is too long.</ContentHighlight>") and <ContentHighlight>HandleValidSubmit</ContentHighlight> 
+                            is <strong>not</strong> called.
+                        </li>
+                        <li>
+                            If the &lt;input&gt; form field contains a valid value when the <strong><ContentHighlight>Submit</ContentHighlight></strong> 
+                            button is selected, <ContentHighlight>HandleValidSubmit</ContentHighlight> is called.
+                        </li>
+                    </ol>
+                </li>
+            </ol>
+            <br />
+            <div>
+                <FluentValidationDemo></FluentValidationDemo>
+            </div>
+        </DemoSnippet>
+
+        <p>
+            <strong>
+                Note that I use the above method in my production apps and it works well as of now. But there are several third party libraries you can use to 
+                do this as mentioned in <NavLink class="[ underline ]" href="https://docs.fluentvalidation.net/en/latest/blazor.html" target="_blank">Fluent Validation official site</NavLink>:
+            </strong>
+            <ul>
+                <li><NavLink class="[ underline ]" href="https://github.com/Blazored/FluentValidation" target="_blank">Blazored.FluentValidation</NavLink></li>
+                <li><NavLink class="[ underline ]" href="https://github.com/mrpmorris/blazor-validation" target="_blank">Blazor-Validation</NavLink></li>                
+                <li><NavLink class="[ underline ]" href="https://github.com/ryanelian/FluentValidation.Blazor" target="_blank">Accelist.FluentValidation.Blazor</NavLink></li>                
+                <li><NavLink class="[ underline ]" href="https://github.com/Liero/vNext.BlazorComponents.FluentValidation" target="_blank">vNext.BlazorComponents.FluentValidation</NavLink></li>
+            </ul>
+        </p>
         
         <h3 id="summary" class="[ font-semibold text-lg ]">Summary</h3>
 
         <p>
             In this article, we learn't how to validate data collected using <ContentHighlight>Forms</ContentHighlight> in blazor application using various 
-            techniques and how to display the error messages feedback to user.
+            techniques like <ContentHighlight>DataAnnotationsValidator</ContentHighlight> using .NET's built in Data Annotation Validation Attrinutes and 
+            <ContentHighlight>FluentValidator</ContentHighlight> using FluentValidation Library and how to display the error messages and feedback to user.
+            DataAnnotations Validator is suffice for simple scenarios but for complex scenarios, I'd recommend FluentValidator.
         </p>
     </ContentBody>
 </Content>
@@ -151,5 +244,5 @@
     private string Channel = "blazor";
     private string ContentType = "blogs";
     private ushort TotalContents => (ushort)tableOfContents.Contents.Count(content => content.Type.Equals("Blazor", StringComparison.CurrentCultureIgnoreCase));
-    private List<string> Keywords = new(2) { "Forms", "Validation" };
+    private List<string> Keywords = new(3) { "Forms", "Validation", "Fluent Validation" };
 }
