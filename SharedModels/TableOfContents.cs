@@ -7,6 +7,7 @@ public class TableOfContents
         {
             new ContentMetaData
             {
+                Order = 11,
                 Title = "Blazor WASM Exception Handling and Error Boundary",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-exception-handling-and-error-boundary.svg",
@@ -19,6 +20,7 @@ public class TableOfContents
             },
             new ContentMetaData
             {
+                Order = 12,
                 Title = "Blazor WASM Error Logging",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-error-logging.svg",
@@ -31,6 +33,7 @@ public class TableOfContents
             },
             new ContentMetaData
             {
+                Order = 14,
                 Title = "Blazor WASM Dark Theme and Light Theme",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-dark-theme-and-light-theme.svg",
@@ -43,6 +46,7 @@ public class TableOfContents
             },
             new ContentMetaData
             {
+                Order = 10,
                 Title = "Blazor WASM Javascript Interop and Isolation",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-javascript-interop-and-isolation.svg",
@@ -55,6 +59,7 @@ public class TableOfContents
             },
             new ContentMetaData
             {
+                Order = 9,
                 Title = "Blazor WASM Styles and CSS Isolation",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-styles-and-css-isolation.svg",
@@ -67,6 +72,7 @@ public class TableOfContents
             },
             new ContentMetaData
             {
+                Order = 13,
                 Title = "Blazor WASM Lazy Loading",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-lazy-loading.svg",
@@ -79,6 +85,7 @@ public class TableOfContents
             },
             new ContentMetaData
             {
+                Order = 15,
                 Title = "Blazor WASM App Settings",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-app-settings.svg",
@@ -91,6 +98,7 @@ public class TableOfContents
             },
             new ContentMetaData
             {
+                Order = 1,
                 Title = "Importance of Status Code in Web API",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/webapi/webapi-importance-of-status-code.svg",
@@ -102,6 +110,7 @@ public class TableOfContents
             },
             new ContentMetaData
             {
+                Order = 1,
                 Title = "Blazor - SPA from ASP.NET Family",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/talks/blazor-spa-from-aspnet-family.svg",
@@ -114,6 +123,7 @@ public class TableOfContents
             },
             new ContentMetaData
             {
+                Order = 1,
                 Title = "Blazor WASM Introduction",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-introduction.svg",
@@ -126,6 +136,7 @@ public class TableOfContents
             },
             new ContentMetaData
             {
+                Order = 1,
                 Title = "Introducing TDD in C# .Net",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/tdd/introducing-tdd-in-csharp-dotnet.svg",
@@ -138,6 +149,7 @@ public class TableOfContents
             },
             new ContentMetaData
             {
+                Order = 2,
                 Title = "Implementing TDD in C# .Net",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/tdd/implementing-tdd-in-csharp-dotnet.svg",
@@ -150,6 +162,7 @@ public class TableOfContents
             },
             new ContentMetaData
             {
+                Order = 2,
                 Title = "Blazor WASM Components",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-components.svg",
@@ -162,6 +175,7 @@ public class TableOfContents
             },
             new ContentMetaData
             {
+                Order = 4,
                 Title = "Blazor WASM Event Handling And Event Arguments",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-event-handling-and-event-arguments.svg",
@@ -174,6 +188,7 @@ public class TableOfContents
             },
             new ContentMetaData
             {
+                Order = 3,
                 Title = "Blazor WASM Data Binding",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-data-binding.svg",
@@ -186,6 +201,7 @@ public class TableOfContents
             },
             new ContentMetaData
             {
+                Order = 1,
                 Title = "OOPS Encapsulation",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/oops/oops-encapsulation.svg",
@@ -198,6 +214,7 @@ public class TableOfContents
             },
             new ContentMetaData
             {
+                Order = 8,
                 Title = "Blazor WASM Controlling Head Content",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-controlling-head-content.svg",
@@ -210,6 +227,7 @@ public class TableOfContents
             },
             new ContentMetaData
             {
+                Order = 2,
                 Title = "OOPS Abstraction",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/oops/oops-abstraction.svg",
@@ -222,6 +240,7 @@ public class TableOfContents
             },
             new ContentMetaData
             {
+                Order = 5,
                 Title = "Blazor WASM Communication Between Components",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-communication-between-components.svg",
@@ -234,6 +253,7 @@ public class TableOfContents
             },
             new ContentMetaData
             {
+                Order = 6,
                 Title = "Blazor WASM Forms",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-forms.svg",
@@ -246,6 +266,7 @@ public class TableOfContents
             },
             new ContentMetaData
             {
+                Order = 7,
                 Title = "Blazor WASM Forms Validation",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-forms-validation.svg",

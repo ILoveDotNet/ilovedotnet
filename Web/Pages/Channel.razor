@@ -1,7 +1,6 @@
 ﻿@page "/channels/{Name}"
-@using System.Globalization
+@inherits ChannelBase
 @using Toolbelt.Blazor.HeadElement
-@inject IConfiguration configuration
 
 <Title>@Title</Title>
 <Meta Property="description" Content="@Description" />
@@ -74,45 +73,42 @@
         </main>
         <NavLink href="https://github.com/ILoveDotNet/ilovedotnet" target="_blank" class="[ md:bg-red-700 ] [ text-red-500 md:text-white uppercase ] [ px-3 py-2 ] [ font-semibold ]">Improve</NavLink>
     </div>
-    <div class="[ grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-1 px-5 md:px-24 ]">
-        @foreach (var content in Contents)
-        {
-            <Thumbnail PosterUrl="@content.ThumbnailUrl"
-                   ContentUrl="@content.ContentUrl"
-                   Title="@content.Title"
-                   AltText="@content.Title"
-                   IconUrl="@content.IconUrl"
-                   IconAlt="@content.Type"
-                   CreatedOn="@content.CreatedOn"
-                   Author="@content.Author">
-            </Thumbnail>
-        }
-    </div>
+    <section class="[ px-5 md:px-24 ]">
+        <ul class="[ flex justify-start ]">
+            <li class="[ p-3 ] [ cursor-pointer ] [ uppercase ] [ @(ShowArticleTab ? "border-b-2 text-white font-bold bg-slate-800" : "text-zinc-400") ]" @onclick="OnArticleTabClick">Articles</li>
+            <li class="[ p-3 ] [ cursor-pointer ] [ uppercase ] [ @(ShowLearningPathTab ? "border-b-2 text-white font-bold bg-slate-800" : "text-zinc-400") ]"@onclick="OnLearningPathTabClick">Learning Path</li>
+        </ul>
+        <div class="@(ShowArticleTab ? null : "hidden")">
+            <div class="[ grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-1 pt-1 ]">
+                @foreach (var content in Contents)
+                {
+                    <Thumbnail PosterUrl="@content.ThumbnailUrl"
+                           ContentUrl="@content.ContentUrl"
+                           Title="@content.Title"
+                           AltText="@content.Title"
+                           IconUrl="@content.IconUrl"
+                           IconAlt="@content.Type"
+                           CreatedOn="@content.CreatedOn"
+                           Author="@content.Author">
+                    </Thumbnail>
+                }
+            </div>
+        </div>
+        <div class="@(ShowLearningPathTab ? null : "hidden")">
+            <div class="[ grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-1 pt-1 ]">
+                @foreach (var content in LearningPathContents)
+                {
+                    <Thumbnail PosterUrl="@content.ThumbnailUrl"
+                           ContentUrl="@content.ContentUrl"
+                           Title="@content.Title"
+                           AltText="@content.Title"
+                           IconUrl="@content.IconUrl"
+                           IconAlt="@content.Type"
+                           CreatedOn="@content.CreatedOn"
+                           Author="@content.Author">
+                    </Thumbnail>
+                }
+            </div>
+        </div>
+    </section>
 </section>
-
-@code {
-    private string ContentType => $"{CultureInfo.CurrentUICulture.TextInfo.ToTitleCase(Name)}";
-    private string Title => $"{ContentType} - I ❤️ DotNet";
-    private string Description => $"This is a .NET {ContentType} knowledge sharing channel with live demos crafted by developers for developers with love.";
-    private string BaseUrl => configuration.GetValue<string>("baseUrl");
-    private string Url => $"{BaseUrl}channels/{Name.ToLower()}";
-    private List<ContentMetaData> Contents = new(0);
-
-    [Inject] private NavigationManager NavigationManager { get; set; } = default!;
-    [Inject] private TableOfContents TableOfContents { get; set; } = default!;
-
-    [Parameter, EditorRequired] public string Name { get; set; } = default!;
-
-    protected override void OnInitialized()
-    {
-        Contents = TableOfContents.Contents
-                                  .Where(content => content.Type.Equals(Name, StringComparison.OrdinalIgnoreCase))
-                                  .OrderByDescending(content => content.CreatedOn)
-                                  .ToList();
-
-        if (Contents.Count == 0) 
-        {
-            NavigationManager.NavigateTo("/");
-        }
-    }
-}
