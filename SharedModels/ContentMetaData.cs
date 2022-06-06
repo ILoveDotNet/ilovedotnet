@@ -2,6 +2,7 @@
 
 public class ContentMetaData
 {
+    public sbyte Order { get; set; }
     public string Title { get; set; } = default!;
     public string Author { get; set; } = default!;
     public string PosterUrl { get; set; } = default!;
