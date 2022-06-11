@@ -7,10 +7,10 @@ namespace BlazorDemoComponents;
 public class FluentValidator<TValidator> : ComponentBase where TValidator : IValidator, new()
 {
     private static readonly char[] _separators = new[] { '.', '[' };
-    private TValidator _validator;
+    private TValidator _validator = default!;
 
-    [CascadingParameter] private EditContext EditContext { get; set; }
-
+    [CascadingParameter] private EditContext EditContext { get; set; } = default!;
+    
     protected override void OnInitialized()
     {
         _validator = new TValidator();
@@ -20,10 +20,10 @@ public class FluentValidator<TValidator> : ComponentBase where TValidator : IVal
         // (e.g., on submit)
 
         EditContext.OnFieldChanged += (sender, eventArgs)
-            => ValidateModel((EditContext)sender, messages);
+            => ValidateModel((EditContext)sender!, messages);
 
         EditContext.OnValidationRequested += (sender, eventArgs)
-            => ValidateModel((EditContext)sender, messages);
+            => ValidateModel((EditContext)sender!, messages);
     }
 
     private void ValidateModel(EditContext editContext, ValidationMessageStore messages)
@@ -66,9 +66,9 @@ public class FluentValidator<TValidator> : ComponentBase where TValidator : IVal
                 // This code assumes C# conventions (one indexer named Item with one param)
                 nextToken = nextToken.Substring(0, nextToken.Length - 1);
                 var prop = obj.GetType().GetProperty("Item");
-                var indexerType = prop.GetIndexParameters()[0].ParameterType;
+                var indexerType = prop!.GetIndexParameters()[0].ParameterType;
                 var indexerValue = Convert.ChangeType(nextToken, indexerType);
-                newObj = prop.GetValue(obj, new object[] { indexerValue });
+                newObj = prop.GetValue(obj, new object[] { indexerValue })!;
             }
             else
             {
@@ -78,7 +78,7 @@ public class FluentValidator<TValidator> : ComponentBase where TValidator : IVal
                 {
                     throw new InvalidOperationException($"Could not find property named {nextToken} on object of type {obj.GetType().FullName}.");
                 }
-                newObj = prop.GetValue(obj);
+                newObj = prop.GetValue(obj)!;
             }
 
             if (newObj == null)
