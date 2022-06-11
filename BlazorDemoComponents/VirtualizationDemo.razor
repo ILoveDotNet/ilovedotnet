@@ -1,0 +1,22 @@
+﻿@inject TableOfContents tableOfContents
+@using Microsoft.AspNetCore.Components.Web.Virtualization
+
+<div style="height:500px;overflow-y:scroll">
+    @if (EnableVirtualization)
+    {
+        <Virtualize Items="@tableOfContents.Contents.OrderByDescending(content => content.CreatedOn).ToList()" Context="content">
+            <VirtualizationContent @key="@($"{content.Type}-{content.Order}")" Details="content"></VirtualizationContent>
+        </Virtualize>
+    }
+    else
+    {
+        @foreach (var content in tableOfContents.Contents.OrderByDescending(content => content.CreatedOn).ToList())
+        {
+            <VirtualizationContent Details="content"></VirtualizationContent>
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public bool EnableVirtualization { get; set; }
+}
