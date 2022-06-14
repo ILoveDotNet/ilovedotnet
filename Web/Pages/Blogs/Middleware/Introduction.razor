@@ -1,0 +1,106 @@
+﻿@page "/blogs/introducing-middleware-in-aspnet"
+@inherits FragmentNavigationBase
+@inject TableOfContents tableOfContents
+
+<Content Title=@Title
+         Description=@Description
+         CreatedOn=@CreatedOn
+         ModifiedOn=@ModifiedOn
+         Slug=@Slug
+         PosterPath=@PosterPath
+         Keywords=@Keywords
+         Channel="@Channel"
+         ContentType="@ContentType"
+         TotalContents=@TotalContents>
+    <ContentBody>
+        <p>
+            In this article, let's learn about <ContentHighlight>Middleware</ContentHighlight> in ASP.NET.
+        </p>
+
+        <h3 class="[ font-semibold text-lg ]">Table of Contents</h3>
+        
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
+                    Introduction
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#what-is-middleware")" Match="NavLinkMatch.All">
+                    What is middleware?
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#middleware-visualization")" Match="NavLinkMatch.All">
+                    Middleware visualization
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
+                    Summary
+                </NavLink>
+            </li>
+        </ol>
+
+        <h3 id="introduction" class="[ font-semibold text-lg ]">Introduction</h3>
+        
+        <p>
+            In ASP.NET Core, the HTTP pipeline is built from middleware—components that see every request and response and decide how to act upon them, 
+            and whether to forward each one to the next component in the pipeline. Let's learn what middleware is and how to write middleware components 
+            of our own to enhance ASP.NET Core web applications.
+        </p>
+
+        <h3 id="what-is-middleware" class="[ font-semibold text-lg ]">What is middleware?</h3>
+
+        <p>
+            Middleware's are C# classes and logics connected by chain of responsibility pattern to handle and terminate request pipeline in the order of 
+            appearance. Middleware's are configured by default in Startup and the order in which they run are important. Request's are processed from top 
+            to bottom and outside to inside and back again. These are created once in Startup.
+        </p>
+
+        <p>
+            Each Middleware component can:
+        </p>
+
+        <ul class="[ list-disc ] [ ml-4 ]">
+            <li>Chooses whether to pass the request to the next component in the pipeline.</li>
+            <li>Can perform work before and after the next component in the pipeline.</li>
+        </ul>
+        
+        <h3 id="middleware-visualization" class="[ font-semibold text-lg ]">Middleware visualization</h3>
+
+        <p>
+            Request delegates are used to build the request pipeline. The request delegates handle each HTTP request. The ASP.NET Core request pipeline 
+            consists of a sequence of request delegates, called one after the other. The following diagram demonstrates the concept. The thread of execution 
+            follows the violet arrows.
+        </p>
+        
+        <figure>
+            <img src="./image/blogs/middleware/introduction/Middleware Visualization.png" alt="ASP.NET Core Middleware Visualization" class="[ w-full ]" />
+        </figure>
+
+        <p>
+            Each delegate can perform operations before and after the next delegate. Exception-handling delegates should be called early in the pipeline, so 
+            they can catch exceptions that occur in later stages of the pipeline.
+        </p>
+        
+        <h3 id="summary" class="[ font-semibold text-lg ]">Summary</h3>
+
+        <p>
+            In this article, we learn't what is <ContentHighlight>Middleware</ContentHighlight> in ASP.NET and how it functions.
+        </p>
+    </ContentBody>
+</Content>
+
+@code {
+    private string Title = "Introducing Middleware in ASP.NET";
+    private string Description = "In this post I will introduce you to Middleware in ASP.NET. All with live working demo.";
+    private DateTime CreatedOn = new DateTime(2022, 6, 19, 22, 30, 0);
+    private DateTime ModifiedOn = new DateTime(2022, 6, 19, 22, 30, 0);
+    private string Slug = "introducing-middleware-in-aspnet";
+    private string PosterPath = "blogs/middleware";
+    private string Channel = "middleware";
+    private string ContentType = "blogs";
+    private ushort TotalContents => (ushort)tableOfContents.Contents.Count(content => content.Type.Equals("Middleware", StringComparison.CurrentCultureIgnoreCase));
+    private List<string> Keywords = new(2) { "ASP.NET", "HTTP Request Pipeline" };
+}
