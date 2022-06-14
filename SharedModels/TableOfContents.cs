@@ -3,7 +3,7 @@
 public class TableOfContents
 {
     public List<ContentMetaData> Contents { get; set; } =
-        new(22)
+        new(23)
         {
             new ContentMetaData
             {
@@ -289,6 +289,19 @@ public class TableOfContents
                 Type = "Blazor",
                 CreatedOn = new DateTime(2022, 6, 12, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 6, 12, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+                Order = 1,
+                Title = "Introducing Middleware in ASP.NET",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/middleware/introducing-middleware-in-aspnet.svg",
+                ThumbnailUrl = "image/blogs/middleware/introducing-middleware-in-aspnet.svg",
+                ContentUrl = "blogs/introducing-middleware-in-aspnet",
+                IconUrl = "image/icons/middleware.png",
+                Type = "Middleware",
+                CreatedOn = new DateTime(2022, 6, 19, 22, 30, 0),
+                ModifiedOn = new DateTime(2022, 6, 19, 22, 30, 0)
             }
         };
 }
