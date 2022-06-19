@@ -1,0 +1,95 @@
+﻿@page "/learningpath"
+@using Toolbelt.Blazor.HeadElement
+@inject IConfiguration configuration
+@inject TableOfContents tableOfContents
+
+<Title>@Title</Title>
+<Meta Property="description" Content="@Description" />
+<Meta Property="keywords" Content=".NET, DotNet, I Love DotNet, I ❤️ DotNet, Blazor, Blazor (WebAssembly), Blazor Wasm, C#, Entity Framework, LINQ, ML.NET, Web API, TDD, OOPS, Middleware, JWT" />
+<Meta Property="url" Content="@BaseUrl" />
+<Meta Property="identifier-URL" Content="@BaseUrl" />
+<Meta Property="og:site_name" Content="@Title" />
+<Meta Property="og:type" Content="website" />
+<Meta Property="og:title" Content="@Title" />
+<Meta Property="og:image" Content="@($"{BaseUrl}image/brand/mini-logo.png")" />
+<Meta Property="og:image:alt" Content="DotNet bot with heart and DotNet brand" />
+<Meta Property="og:description" Content="@Description" />
+<Meta Property="og:url" Content="@BaseUrl" />
+<Meta Property="twitter:card" Content="summary" />
+<Meta Property="twitter:title" Content="@Title" />
+<Meta Property="twitter:image" Content="@($"{BaseUrl}image/brand/mini-logo.png")" />
+<Meta Property="twitter:image:alt" Content="DotNet bot with heart and DotNet brand" />
+<Meta Property="twitter:description" Content="@Description" />
+<Meta Property="twitter:url" Content="@BaseUrl" />
+<Link Rel="sitemap" Href="@($"{BaseUrl}sitemap.xml")" type="application/xml" title="Sitemap" />
+<Link Rel="alternate" Href="@($"{BaseUrl}atom.xml")" type="application/rss+xml" />
+<Link Rel="alternate" Href="@BaseUrl" hreflang="en" />
+<Link Rel="alternate" Href="@BaseUrl" hreflang="x-default" />
+<Link Rel="canonical" Href="@BaseUrl" />
+<Link Rel="index" Href="@BaseUrl" title="@Title" />
+<HeadContent>
+    @(new MarkupString(
+    $@"<script type=""application/ld+json"">
+    {{
+        ""@context"": ""https://schema.org"",
+        ""@type"": ""WebSite"",
+        ""publisher"": {{
+            ""@type"": ""Organization"",
+            ""name"": ""{Title}"",
+            ""url"": ""{BaseUrl}"",
+            ""logo"": {{
+                ""@type"": ""ImageObject"",
+                ""url"": ""{BaseUrl}favicon.ico"",
+                ""width"": 16,
+                ""height"": 16
+            }}
+        }},
+        ""url"": ""{BaseUrl}"",
+        ""mainEntityOfPage"": {{
+            ""@type"": ""WebPage"",
+            ""@id"": ""{BaseUrl}""
+        }},
+        ""description"": ""{Description}""
+    }}
+    </script>"))
+</HeadContent>
+
+<section class="[ dark:bg-stone-900 ] [ flex flex-col ] [ space-y-5 ] [ p-5 ]">
+    
+   @foreach (var channel in tableOfContents.Contents.GroupBy(content => content.Type).OrderBy(channel => channel.Key))
+   {
+        <article class="[ flex flex-col ] [ space-y-2 ]">
+            <header class="[ flex items-center justify-center ] [ space-x-2 ]">
+                <NavLink href="@($"channels/{channel.Key.ToLower()}")">
+                    <img src="@channel.First().IconUrl" alt="@channel.Key" loading="lazy" height="48" width="48" class="[ rounded-full ]" />
+                </NavLink>
+                <h2 class="[ text-3xl ] [ text-center ] [ text-gray-900 dark:text-white ] [ font-bold ]">@channel.Key</h2>
+            </header>
+            <table class="[ table-fixed border-collapse ] [ bg-white ] [ border-2 ] [ dark:bg-black dark:border-slate-500 ] [ w-full ]">
+                <thead>
+                    <tr class="[ bg-gray-100 ] [ dark:bg-slate-500 ]">
+                        <th class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Title</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var content in channel.OrderBy(content => content.Order))
+                    {
+                        <tr>
+                            <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">
+                                <NavLink href="@content.ContentUrl" class="[ underline ]" Match="NavLinkMatch.All">
+                                    @content.Title
+                                </NavLink>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </article>
+   }
+</section>
+
+@code {
+    private string Title = "Learning Path - I ❤️ DotNet";
+    private string Description = "This is a .NET knowledge sharing platform with live demos crafted by developers for developers with love.";
+    private string BaseUrl => configuration.GetValue<string>("baseUrl");
+}
