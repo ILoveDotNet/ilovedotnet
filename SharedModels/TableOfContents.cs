@@ -305,7 +305,7 @@ public class TableOfContents
             },
             //new ContentMetaData
             //{
-            //    Order = 1,
+            //    Order = 2,
             //    Title = "Types of Middleware in ASP.NET",
             //    Author = "Abdul Rahman",
             //    PosterUrl = "image/blogs/middleware/types-of-middleware-in-aspnet.svg",
