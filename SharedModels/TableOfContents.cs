@@ -303,18 +303,18 @@ public class TableOfContents
                 CreatedOn = new DateTime(2022, 6, 19, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 6, 19, 22, 30, 0)
             },
-            //new ContentMetaData
-            //{
-            //    Order = 2,
-            //    Title = "Types of Middleware in ASP.NET",
-            //    Author = "Abdul Rahman",
-            //    PosterUrl = "image/blogs/middleware/types-of-middleware-in-aspnet.svg",
-            //    ThumbnailUrl = "image/blogs/middleware/types-of-middleware-in-aspnet.svg",
-            //    ContentUrl = "blogs/types-of-middleware-in-aspnet",
-            //    IconUrl = "image/icons/middleware.png",
-            //    Type = "Middleware",
-            //    CreatedOn = new DateTime(2022, 6, 26, 22, 30, 0),
-            //    ModifiedOn = new DateTime(2022, 6, 26, 22, 30, 0)
-            //}
+            new ContentMetaData
+            {
+                Order = 2,
+                Title = "Types of Middleware in ASP.NET",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/middleware/types-of-middleware-in-aspnet.svg",
+                ThumbnailUrl = "image/blogs/middleware/types-of-middleware-in-aspnet.svg",
+                ContentUrl = "blogs/types-of-middleware-in-aspnet",
+                IconUrl = "image/icons/middleware.png",
+                Type = "Middleware",
+                CreatedOn = new DateTime(2022, 6, 26, 22, 30, 0),
+                ModifiedOn = new DateTime(2022, 6, 26, 22, 30, 0)
+            }
         };
 }
