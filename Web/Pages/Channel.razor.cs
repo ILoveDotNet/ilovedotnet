@@ -25,8 +25,7 @@ public class ChannelBase : ComponentBase
     protected override void OnInitialized()
     {
         var channelContents = TableOfContents.Contents
-                                  .Where(content => content.Type.Equals(Name, StringComparison.OrdinalIgnoreCase)
-                                                 && content.CreatedOn.Date <= DateTime.Today.Date)
+                                  .Where(content => content.Type.Equals(Name, StringComparison.OrdinalIgnoreCase))
                                   .ToList();
 
 
