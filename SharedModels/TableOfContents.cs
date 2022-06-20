@@ -2,8 +2,13 @@
 
 public class TableOfContents
 {
-    public List<ContentMetaData> Contents { get; set; } =
-        new(24)
+    private readonly List<ContentMetaData> FullContents = new(24);
+    public IReadOnlyList<ContentMetaData> Contents => FullContents.Where(content => content.CreatedOn.Date <= DateTime.Today.Date).ToList();
+
+    public TableOfContents()
+    {
+        FullContents =
+            new(24)
         {
             new ContentMetaData
             {
@@ -317,4 +322,5 @@ public class TableOfContents
                 ModifiedOn = new DateTime(2022, 6, 26, 22, 30, 0)
             }
         };
+    }
 }
