@@ -32,26 +32,43 @@ jobs:
           node-version: '16.13.0'
       - run: npm install
         working-directory: ./Web
+        
+      # Restore Dependencies
+      - name: Restore dependencies
+        run: dotnet restore
+        
+      # Build Project
+      - name: Build
+        run: dotnet build ./ILoveDotNet.sln --configuration Release --no-restore
+        
+      # Run Tests
+      - name: Test
+        run: dotnet test ./ILoveDotNet.sln --configuration Release --no-build --verbosity normal --logger trx --results-directory "TestResults-${{ matrix.dotnet-version }}"
+      - name: Upload dotnet test results
+        uses: actions/upload-artifact@v2
+        with:
+          name: dotnet-results-${{ matrix.dotnet-version }}
+          path: TestResults-${{ matrix.dotnet-version }}
+          retention-days: 3
+          
+      # Use always() to always run this step to publish test results when there are test failures
+        if: ${{ always() }}
 
-      # clean output
-      - name: Remove Files
-        run: rm -rf Prerender/output
-
-      # publishes Blazor project to the release-folder
+      # Publishes Blazor project to the release-folder
       - name: Publish .NET Core Project
-        run: dotnet publish Web/Web.csproj -c Release -o Prerender/output --nologo
+        run: dotnet publish Web/Web.csproj -c Release --no-restore --no-build -o dist/Web --nologo
       
       # copy index.html to 404.html to serve the same file when a file is not found
       - name: Copy index.html to 404.html
-        run: cp Prerender/output/wwwroot/index.html Prerender/output/wwwroot/404.html
+        run: cp dist/Web/wwwroot/index.html dist/Web/wwwroot/404.html
 
       # add .nojekyll file to tell GitHub pages to not treat this as a Jekyll project. (Allow files and folders starting with an underscore)
       - name: Add .nojekyll file
-        run: touch Prerender/output/wwwroot/.nojekyll
+        run: touch dist/Web/wwwroot/.nojekyll
 
       - name: Commit wwwroot to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@3.7.1
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BRANCH: gh-pages
-          FOLDER: Prerender/output/wwwroot
+          FOLDER: dist/Web/wwwroot
