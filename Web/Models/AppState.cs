@@ -9,6 +9,12 @@ internal class AppState
         ShowNavigation = !ShowNavigation;
         NotifyStateChanged();
     }
+
+    public void HideSideBar() 
+    {
+        ShowNavigation = false;
+        NotifyStateChanged();
+    }
     
     internal event Action OnChange = default!;
 
