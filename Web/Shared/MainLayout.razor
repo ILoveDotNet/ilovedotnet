@@ -1,7 +1,24 @@
 ﻿@inherits LayoutComponentBase
+@inject AppState AppState
+@implements IDisposable
 
 <Header></Header>
-<main id="main">
+<main id="main" class="[ @(AppState.ShowNavigation ? "md:pl-16" : null) ]">
     @Body
 </main>
-<Navigation></Navigation>
+@if (AppState.ShowNavigation)
+{
+    <Navigation></Navigation>
+}
+
+@code {
+    protected override void OnInitialized()
+    {
+        AppState.OnChange += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        AppState.OnChange -= StateHasChanged;
+    }
+}
