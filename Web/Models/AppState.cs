@@ -4,13 +4,13 @@ internal class AppState
 {
     public bool ShowNavigation { get; private set; } = true;
 
-    public void ToggleSideBar() 
+    public void ToggleNavigationMenu() 
     {
         ShowNavigation = !ShowNavigation;
         NotifyStateChanged();
     }
 
-    public void HideSideBar() 
+    public void HideNavigationMenu() 
     {
         ShowNavigation = false;
         NotifyStateChanged();
