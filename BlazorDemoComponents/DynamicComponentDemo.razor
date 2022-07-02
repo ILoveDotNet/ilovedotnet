@@ -1,0 +1,55 @@
+﻿<select class="[ w-full h-full ] [ px-4 py-2 ] [ border-2 ] [ focus:outline-none focus:border-gray-400 ] [ dark:bg-black dark:border-gray-800 dark:focus:border-b-white dark:md:focus:border-blue-800 dark:caret-white dark:text-white ]" 
+        @onchange="RenderComponent">
+    <option>Select</option>
+    <option value="@(nameof(TextboxComponent))">Text Box</option>
+    <option value="@(nameof(CheckboxComponent))">Check Box</option>
+    <option value="@(nameof(RadiobuttonComponent))">Radio Button</option>
+</select>
+
+@if(type is not null)
+{
+    <DynamicComponent Type="@type" Parameters="@components[type.Name].Parameters"></DynamicComponent>
+} 
+
+@code {
+    Type? type;
+    private Dictionary<string, ComponentMetadata> components = new()
+    {
+        {
+            nameof(TextboxComponent),
+            new ComponentMetadata
+            {
+                Name = "Text Box",
+                Parameters = new() { { "Name", "Text Box" }, { "ReadOnly", false } }
+            }
+        },
+        {
+            nameof(CheckboxComponent),
+            new ComponentMetadata
+            {
+                Name = "Check Box",
+                Parameters = new() { { "Name", "Check Box" } }
+            }
+        },
+        {
+            nameof(RadiobuttonComponent),
+            new ComponentMetadata
+            {
+                Name = "Radio Button",
+                Parameters = new() { { "Name", "Radio Button" } }
+            }
+        }
+    };
+
+    public void RenderComponent(ChangeEventArgs eventArgs)
+    {
+        type = Type.GetType($"BlazorDemoComponents.{eventArgs.Value}");
+    }
+
+    public class ComponentMetadata
+    {
+        public string? Name { get; set; }
+        public Dictionary<string, object> Parameters { get; set; } = 
+            new Dictionary<string, object>();
+    }
+}
