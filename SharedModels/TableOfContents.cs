@@ -320,6 +320,19 @@ public class TableOfContents
                 Type = "Middleware",
                 CreatedOn = new DateTime(2022, 6, 26, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 6, 26, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+                Order = 17,
+                Title = "Blazor WASM Dynamic Component",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-dynamic-component.svg",
+                ThumbnailUrl = "image/blogs/blazor/wasm/blazor-wasm-dynamic-component.svg",
+                ContentUrl = "blogs/blazor-wasm-dynamic-component",
+                IconUrl = "image/icons/blazor.png",
+                Type = "Blazor",
+                CreatedOn = new DateTime(2022, 7, 3, 22, 30, 0),
+                ModifiedOn = new DateTime(2022, 7, 3, 22, 30, 0)
             }
         };
     }
