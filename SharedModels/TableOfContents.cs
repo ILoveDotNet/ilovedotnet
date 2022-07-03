@@ -333,6 +333,19 @@ public class TableOfContents
                 Type = "Blazor",
                 CreatedOn = new DateTime(2022, 7, 3, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 7, 3, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+                Order = 18,
+                Title = "Blazor WASM Publishing",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-publishing.svg",
+                ThumbnailUrl = "image/blogs/blazor/wasm/blazor-wasm-publishing.svg",
+                ContentUrl = "blogs/blazor-wasm-publishing",
+                IconUrl = "image/icons/blazor.png",
+                Type = "Blazor",
+                CreatedOn = new DateTime(2022, 7, 10, 22, 30, 0),
+                ModifiedOn = new DateTime(2022, 7, 10, 22, 30, 0)
             }
         };
     }
