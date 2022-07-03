@@ -26,6 +26,16 @@
                 </NavLink>
             </li>
             <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#publishing-to-iis")" Match="NavLinkMatch.All">
+                    Publishing to IIS
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#publishing-to-github-pages")" Match="NavLinkMatch.All">
+                    Publishing to GitHub Pages
+                </NavLink>
+            </li>
+            <li>
                 <NavLink class="[ underline ]" href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
                     Summary
                 </NavLink>
@@ -33,6 +43,94 @@
         </ol>
 
         <h3 id="introduction" class="[ font-semibold text-lg ]">Introduction</h3>
+
+        <p>
+            After developing our application, we need to publish and deploy to hosting server to make it available for users. With the Blazor WebAssembly 
+            hosting model:
+        </p>
+
+        <ul class="[ list-disc ] [ ml-4 ]">
+            <li>The Blazor app, its dependencies, and the .NET runtime are downloaded to the browser in parallel.</li>
+            <li>The app is executed directly on the browser UI thread.</li>
+        </ul>
+
+        <h3 id="publishing-to-iis" class="[ font-semibold text-lg ]">Publishing to IIS</h3>
+
+        <h4 class="[ font-semibold text-base ]">Prerequisites</h4>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>Install IIS in your machine.</li>
+            <li>Install URL Rewrite module from <NavLink class="[ underline ]" href="https://www.iis.net/downloads/microsoft/url-rewrite" target="blank">here</NavLink>.</li>
+            <li>Install Hosting Bundle for Latest .NET Version from <NavLink class="[ underline ]" href="https://dotnet.microsoft.com/en-us/download/dotnet/6.0/runtime" target="blank">here</NavLink>. .NET 6.0 is the latest version at the time of writing.</li>
+            <li>Restart the machine after installing all the above prerequisites.</li>
+        </ol>
+
+        <h4 class="[ font-semibold text-base ]">Publishing</h4>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>Open the project in Visual Studio.</li>
+            <li>Right click the project and click on publish.</li>
+            <li>Click on New Publish Profile.</li>
+            <li>Select Folder target and click on Next.</li>
+            <li>Leave the path to default location or change it to new path.</li>
+            <li>CLick on publish.</li>
+        </ol>
+
+        <p>
+            If there are no build errors, then your application will be published successfully in the folder you have mentioned. After the publishing is 
+            successful, we will move on to configure IIS.
+        </p>
+
+        <h4 class="[ font-semibold text-base ]">Configuring IIS</h4>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>Open IIS and right-click on Sites >> Add Web Site.</li>
+            <li>An “Add Website” pop up box will open. Here we need to furnish details in four fields.</li>
+            <li>Site name: Put any name of your choice. Here I put "ilovedotnet".</li>
+            <li>Physical Path: The path to the folder where you have published your application.</li>
+            <li>Binding Type: Select https.</li>
+            <li>SSL Certificate: Select IIS Express Development Certificate.</li>
+        </ol>
+
+        <p>
+            Next step is to configure the “Application Pool” for our site. The application pool name will be the same as the “Site name” we have provided in 
+            the last step. Therefore, in this case, the application pool name will be “ilovedotnet”. 
+        </p>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>Click to “Application Pools” from the left panel.</li>
+            <li>Double click on the pool “ilovedotnet”.</li>
+            <li>It will open an “edit application pool” window.</li>
+            <li>Select “No Managed Code” from the .NET CLR version drop-down.</li>
+        </ol>
+
+        <h4 class="[ font-semibold text-base ]">Troubleshooting common hosting issues</h4>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>
+                <blockquote>
+                    HTTP Error 500.19 – Internal Server Error - The requested page cannot be accessed because the related configuration data for the page 
+                    is invalid. 
+                </blockquote>
+
+                <p>
+                    This error message is clear. The publish folder is inaccessible because of insufficient permissions. Grant Read permission to the 
+                    IIS_IUSRS group on the publish folder so that it can access Web.config file.
+                </p>
+            </li>
+            <li>
+                <blockquote>
+                    If the website is loading but data is not getting populated and you get a 500 Internal server error.
+                </blockquote>
+
+                <p>
+                    Make sure that your connection string is in the correct format. The user id that you have specified in your connection string should 
+                    have db_datareader and db_datawriter permissions. If the issue persists then provide the user with db_owner permission
+                </p>
+            </li>
+        </ol>
+
+        <h3 id="publishing-to-github-pages" class="[ font-semibold text-lg ]">Publishing to GitHub Pages</h3>
 
         <p>
 
