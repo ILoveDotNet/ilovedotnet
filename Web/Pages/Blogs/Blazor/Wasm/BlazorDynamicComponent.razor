@@ -1,4 +1,5 @@
 ﻿@page "/blogs/blazor-wasm-dynamic-component"
+@inherits FragmentNavigationBase
 @using BlazorDemoComponents
 @inject TableOfContents tableOfContents
 
@@ -14,28 +15,146 @@
          TotalContents=@TotalContents>
     <ContentBody>
         <p>
-            
+            In this article, let's learn about <ContentHighlight>&lt;DynamicComponent&gt;</ContentHighlight> in Blazor.
         </p>
 
-        <h3 class="[ font-semibold text-lg ]">What is Dynamic Component in blazor?</h3>
+        <h3 class="[ font-semibold text-lg ]">Table of Contents</h3>
+        
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#what-is-dynamic-component")" Match="NavLinkMatch.All">
+                    What is Dynamic Component?
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#how-to-use-dynamic-component-in-blazor")" Match="NavLinkMatch.All">
+                    How to use Dynamic Component in blazor? 
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#when-to-use-dynamic-component-in-blazor")" Match="NavLinkMatch.All">
+                    When to use Dynamic Component in blazor? 
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#steps")" Match="NavLinkMatch.All">
+                    Steps 
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
+                    Summary
+                </NavLink>
+            </li>
+        </ol>
+
+        <h3 id="what-is-dynamic-component" class="[ font-semibold text-lg ]">What is Dynamic Component in blazor?</h3>
 
         <p>
-            
+            As its name implies, <ContentHighlight>&lt;DynamicComponent&gt;</ContentHighlight> is a component that allows us to dynamically render 
+            components. The idea is that we pass the type of the component to render, and, optionally, its parameters, and voila, the component is 
+            rendered.
         </p>
 
-        <DemoSnippet Title="Dynamic Component">
+        <p>
+            You don't need to iterate through components and use complex conditionals, use reflection, declare a bunch of <ContentHighlight>RenderFragments</ContentHighlight>, 
+            or even build your own render tree. It can get complicated when dealing with parameters and complex data graphs, and none of these solutions are 
+            any good, really.
+        </p>
+
+        <h3 id="how-to-use-dynamic-component-in-blazor" class="[ font-semibold text-lg ]">How to use Dynamic Component in blazor?</h3>
+
+        <p>
+            To start using <ContentHighlight>&lt;DynamicComponent&gt;</ContentHighlight>, consider the following example
+        </p>
+
+        <p>
+            In the above example,
+        </p>
+
+        <ul class="[ list-disc ] [ ml-4 ]">
+            <li><ContentHighlight>componentType</ContentHighlight> specifies the type.</li>
+            <li><ContentHighlight>parameters</ContentHighlight> specifies component parameters to pass to the <ContentHighlight>componentType</ContentHighlight> component.</li>
+        </ul>
+
+        <GithubGistSnippet Title="Simple Dynamic Component" UserId="fingers10" FileName="dadd0babe24b9f50a13776e6d87f4912"></GithubGistSnippet>
+
+        <h3 id="when-to-use-dynamic-component-in-blazor" class="[ font-semibold text-lg ]">When to use Dynamic Component in blazor?</h3>
+
+        <p>
+            <ContentHighlight>&lt;DynamicComponent&gt;</ContentHighlight> is can be in following scenarios,
+        </p>
+
+        <ul class="[ list-disc ] [ ml-4 ]">
+            <li>Dynamically Rendering Widget components in dashboard based on User Preference or UI Settings.</li>
+            <li>Dynamically generating forms from a JSON data stored in database.</li>
+            <li>
+                Dynamically Rendering components based on user choice for different line of business. Example collecting data from user for type of 
+                insurance selected. Each insurance component can have different validations and business logics.
+            </li>
+        </ul>
+
+        <p>
+            Let's try rendering simple input components based on user selection. Let's create 3 components.
+        </p>
+
+        <p>
+            A simple <ContentHighlight>&lt;input type="text" /&gt;</ContentHighlight>
+        </p>
+
+        <GithubGistSnippet Title="Text Box Component" UserId="fingers10" FileName="82cb694f9147dd30705c5e783bfc4258"></GithubGistSnippet>
+
+        <p>
+            A simple <ContentHighlight>&lt;input type="checkbox" /&gt;</ContentHighlight>
+        </p>
+
+        <GithubGistSnippet Title="Check Box Component" UserId="fingers10" FileName="6c1e68ef390b314aa2606633d042fdf0"></GithubGistSnippet>
+
+        <p>
+            A simple <ContentHighlight>&lt;input type="radio" /&gt;</ContentHighlight>
+        </p>
+
+        <GithubGistSnippet Title="Radio Button Component" UserId="fingers10" FileName="716770bc6e1808b856ff65f8effbb4cc"></GithubGistSnippet>
+
+        <h3 id="steps" class="[ font-semibold text-lg ]">Steps</h3>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>
+                Let's start by adding all the three components as option in <ContentHighlight>&lt;select&gt;</ContentHighlight> drop down and hook an 
+                <ContentHighlight>@@onchange="RenderComponent"</ContentHighlight>.
+            </li>
+            <li>
+                When the user select's a choice from dropdown, we can get the component type in the <ContentHighlight>@@onchange</ContentHighlight> event 
+                using event args as <ContentHighlight>type = Type.GetType($"BlazorDemoComponents.{eventArgs.Value}");</ContentHighlight>.
+            </li>
+            <li>
+                Now <ContentHighlight>&lt;DynamicComponent&gt;</ContentHighlight> will render the selected component and pass the parameters using 
+                <ContentHighlight>Parameters="@@components[type.Name].Parameters"</ContentHighlight>. Here we are passing <ContentHighlight>Label</ContentHighlight> 
+                parameter to each input component using <ContentHighlight>IDictionary&lt;string, object&gt;</ContentHighlight> parameter.
+            </li>
+            <li>
+                Note that <ContentHighlight>Type</ContentHighlight> is required parameter and <ContentHighlight>Parameters</ContentHighlight> is optional 
+                parameter in <ContentHighlight>&lt;DynamicComponent&gt;</ContentHighlight>.
+            </li>
+        </ol>
+
+        <GithubGistSnippet Title="Dynamically Rendering Input Components" UserId="fingers10" FileName="c813114d80a4080bf20fbee82424f14b"></GithubGistSnippet>
+
+        <DemoSnippet Title="Dynamically Rendering Input Components Demo">
             <p class="[ text-black ] [ dark:text-white ]">
                 <b>
-                    Scenario - Let's try rendering the components dynamically
+                    Scenario - Let's try rendering the input components dynamically
                 </b>
             </p>
             <DynamicComponentDemo></DynamicComponentDemo>
         </DemoSnippet>
 
-        <h3 class="[ font-semibold text-lg ]">Summary</h3>
+        <h3 id="summary" class="[ font-semibold text-lg ]">Summary</h3>
 
         <p>
-            
+            In this post, we walked through the new <ContentHighlight>&lt;DynamicComponent&gt;</ContentHighlight>, which allows you to render components when 
+            you don’t know your types at runtime. We were able to render a component based on what a user selects from a drop-down list. We also explored how 
+            to pass in parameters to the <ContentHighlight>&lt;DynamicComponent&gt;</ContentHighlight> as well.
         </p>
     </ContentBody>
 </Content>
