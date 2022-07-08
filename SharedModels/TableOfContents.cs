@@ -2,13 +2,13 @@
 
 public class TableOfContents
 {
-    private readonly List<ContentMetaData> FullContents = new(24);
+    private readonly List<ContentMetaData> FullContents = new(27);
     public IReadOnlyList<ContentMetaData> Contents => FullContents.Where(content => content.CreatedOn.Date <= DateTime.Today.Date).ToList();
 
     public TableOfContents()
     {
         FullContents =
-            new(24)
+            new(27)
         {
             new ContentMetaData
             {
@@ -346,6 +346,19 @@ public class TableOfContents
                 Type = "Blazor",
                 CreatedOn = new DateTime(2022, 7, 10, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 7, 10, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+                Order = 19,
+                Title = "Blazor WASM Publishing to GitHub Pages",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-publishing-to-github-pages.svg",
+                ThumbnailUrl = "image/blogs/blazor/wasm/blazor-wasm-publishing-to-github-pages.svg",
+                ContentUrl = "blogs/blazor-wasm-publishing-to-github-pages",
+                IconUrl = "image/icons/blazor.png",
+                Type = "Blazor",
+                CreatedOn = new DateTime(2022, 7, 17, 22, 30, 0),
+                ModifiedOn = new DateTime(2022, 7, 17, 22, 30, 0)
             }
         };
     }
