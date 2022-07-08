@@ -337,11 +337,11 @@ public class TableOfContents
             new ContentMetaData
             {
                 Order = 18,
-                Title = "Blazor WASM Publishing",
+                Title = "Blazor WASM Publishing to IIS",
                 Author = "Abdul Rahman",
-                PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-publishing.svg",
-                ThumbnailUrl = "image/blogs/blazor/wasm/blazor-wasm-publishing.svg",
-                ContentUrl = "blogs/blazor-wasm-publishing",
+                PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-publishing-to-iis.svg",
+                ThumbnailUrl = "image/blogs/blazor/wasm/blazor-wasm-publishing-to-iis.svg",
+                ContentUrl = "blogs/blazor-wasm-publishing-to-iis",
                 IconUrl = "image/icons/blazor.png",
                 Type = "Blazor",
                 CreatedOn = new DateTime(2022, 7, 10, 22, 30, 0),

@@ -1,4 +1,4 @@
-﻿@page "/blogs/blazor-wasm-publishing"
+﻿@page "/blogs/blazor-wasm-publishing-to-iis"
 @inherits FragmentNavigationBase
 @inject TableOfContents tableOfContents
 
@@ -14,7 +14,7 @@
          TotalContents=@TotalContents>
     <ContentBody>
         <p>
-            In this article, let's learn about <ContentHighlight>Publishing</ContentHighlight> Blazor apps.
+            In this article, let's learn about <ContentHighlight>Publishing</ContentHighlight> Blazor apps to IIS.
         </p>
 
         <h3 class="[ font-semibold text-lg ]">Table of Contents</h3>
@@ -31,11 +31,6 @@
                 </NavLink>
             </li>
             <li>
-                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#publishing-to-github-pages")" Match="NavLinkMatch.All">
-                    Publishing to GitHub Pages
-                </NavLink>
-            </li>
-            <li>
                 <NavLink class="[ underline ]" href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
                     Summary
                 </NavLink>
@@ -45,7 +40,9 @@
         <h3 id="introduction" class="[ font-semibold text-lg ]">Introduction</h3>
 
         <p>
-            After developing our application, we need to publish and deploy to hosting server to make it available for users. With the Blazor WebAssembly 
+            With ASP.NET Blazor WebAssembly (WASM) you can create .NET web applications that run completely inside of the browser sandbox. The publish 
+            output of a Blazor WASM project are <strong>all static files</strong>. Now that you can run .NET web applications without server-side code, 
+            you can deploy these applications to IIS or various static site hosts, such as Azure Static Web Apps and GitHub Pages.With the Blazor WebAssembly 
             hosting model:
         </p>
 
@@ -81,14 +78,22 @@
             successful, we will move on to configure IIS.
         </p>
 
+        <p>
+            <strong>Note:</strong> In the publish directory, you will find a <ContentHighlight>web.config</ContentHighlight> file and a 
+            <ContentHighlight>wwwroot</ContentHighlight> folder. The config file helps you host your application in IIS, but you don't need that file for 
+            static site hosts. 
+        </p>
+
         <h4 class="[ font-semibold text-base ]">Configuring IIS</h4>
 
         <ol class="[ list-decimal ] [ ml-4 ]">
             <li>Open IIS and right-click on Sites >> Add Web Site.</li>
-            <li>An “Add Website” pop up box will open. Here we need to furnish details in four fields.</li>
+            <li>An “Add Website” pop up box will open. Here we need to furnish details in six fields.</li>
             <li>Site name: Put any name of your choice. Here I put "ilovedotnet".</li>
             <li>Physical Path: The path to the folder where you have published your application.</li>
             <li>Binding Type: Select https.</li>
+            <li>(Optional) - Binding Port: Change to anyport example, 44353 or leave it to 443.</li>
+            <li>(Optional) - Host name: This is the name we put in the browser to access our application. We will put ilovedotnet.com for this demo.</li>
             <li>SSL Certificate: Select IIS Express Development Certificate.</li>
         </ol>
 
@@ -104,9 +109,30 @@
             <li>Select “No Managed Code” from the .NET CLR version drop-down.</li>
         </ol>
 
+        <h4 class="[ font-semibold text-base ]">Configuring DNS Host</h4>
+
+        <p>
+            The last step is to configure our DNS host file.
+        </p>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>Navigate to <ContentHighlight>C:\Windows\System32\drivers\etc</ContentHighlight> path in your machine and open the “hosts” file using any text editor.</li>
+            <li>We need to add the hostname that we provided in IIS against the localhost IP address.</li>
+        </ol>
+
         <h4 class="[ font-semibold text-base ]">Troubleshooting common hosting issues</h4>
 
         <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>
+                <blockquote>
+                    If you are unable to open the website and get a DNS not found an error.
+                </blockquote>
+
+                <p>
+                    Check if the hostname is configured correctly in the host file. Make sure that your machine is not connected to any VPN server. Also, 
+                    if you are using any Web proxy then disable it.
+                </p>
+            </li>
             <li>
                 <blockquote>
                     HTTP Error 500.19 – Internal Server Error - The requested page cannot be accessed because the related configuration data for the page 
@@ -130,12 +156,6 @@
             </li>
         </ol>
 
-        <h3 id="publishing-to-github-pages" class="[ font-semibold text-lg ]">Publishing to GitHub Pages</h3>
-
-        <p>
-
-        </p>
-
         <h3 id="summary" class="[ font-semibold text-lg ]">Summary</h3>
 
         <p>
@@ -145,14 +165,14 @@
 </Content>
 
 @code {
-    private string Title = "Blazor WASM Publishing";
-    private string Description = "In this post I will teach how to publish your Blazor applications. All with live working demo.";
+    private string Title = "Blazor WASM Publishing to IIS";
+    private string Description = "In this post I will teach how to publish your Blazor applications to IIS. All with live working demo.";
     private DateTime CreatedOn = new DateTime(2022, 7, 10, 22, 30, 0);
     private DateTime ModifiedOn = new DateTime(2022, 7, 10, 22, 30, 0);
-    private string Slug = "blazor-wasm-publishing";
+    private string Slug = "blazor-wasm-publishing-to-iis";
     private string PosterPath = "blogs/blazor/wasm";
     private string Channel = "blazor";
     private string ContentType = "blogs";
     private ushort TotalContents => (ushort)tableOfContents.Contents.Count(content => content.Type.Equals("Blazor", StringComparison.CurrentCultureIgnoreCase));
-    private List<string> Keywords = new(3) { "Publishing", "IIS", "GitHub Pages" };
+    private List<string> Keywords = new(2) { "Publishing", "IIS" };
 }
