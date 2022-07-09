@@ -42,7 +42,7 @@
         <p>
             With ASP.NET Blazor WebAssembly (WASM) you can create .NET web applications that run completely inside of the browser sandbox. The publish 
             output of a Blazor WASM project are <strong>all static files</strong>. Now that you can run .NET web applications without server-side code, 
-            you can deploy these applications to IIS or various static site hosts, such as Azure Static Web Apps and GitHub Pages.With the Blazor WebAssembly 
+            you can deploy these applications to various static site hosts, such as Azure Static Web Apps and GitHub Pages. With the Blazor WebAssembly 
             hosting model:
         </p>
 
@@ -53,39 +53,244 @@
 
         <h3 id="publishing-to-github-pages" class="[ font-semibold text-lg ]">Publishing to GitHub Pages</h3>
 
+        <h4 class="[ font-semibold text-base ]">Prerequisites</h4>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>Create a Blazor Wasm Project.</li>
+            <li>Add <ContentHighlight>PublishSPAforGitHubPages.Build</ContentHighlight> Nuget Package.</li>
+            <li>
+                <p>
+                    Application source code must be inside of a GitHub repository. So, you need to create a local Git repository and commit your 
+                    source code to the repository using these commands.
+                </p>
+                <GithubGistSnippet Title="Create Local Repository" UserId="fingers10" FileName="ba35eed4720d5cc91d6b315a8ee404f1"></GithubGistSnippet>
+            </li>
+        </ol>
+
+        <h4 class="[ font-semibold text-base ]">Push Blazor Project to GitHub</h4>
+
         <p>
-            For this, your application source code must be inside of a GitHub repository. First, you need to create a local Git repository and commit your 
-            source code to the repository using these commands:
+            Create a new GitHub repository (<NavLink class="[ underline ]" href="https://docs.github.com/en/github/getting-started-with-github/create-a-repo" target="blank">instructions</NavLink>) 
+            and copy the commands to "push an existing repository from the command line" from the empty GitHub repository page, here's what it should looks 
+            like but with a different URL:
         </p>
 
-        <h4 class="[ font-semibold text-base ]">Push Blaozr Project to GitHub</h4>
-
-        <ol>
-
-        </ol>
+        <GithubGistSnippet Title="Push to GitHub Repository" UserId="fingers10" FileName="f8df74eb610c92a260e42e7e0db22367"></GithubGistSnippet>
 
         <h4 class="[ font-semibold text-base ]">Create a GitHub Actions Workflow</h4>
 
-        <ol>
+        <p>
+            Now that your source code has been pushed to GitHub, you'll need to create a <b>GitHub Actions Workflow</b> that builds your project, commits the 
+            output and pushes the code to a separate GitHub branch. GitHub Pages will use this separate branch (usually named '<b>gh-pages</b>') as the static 
+            files for your site.
+        </p>
 
-        </ol>
+        <p>
+            Start by navigating to the <b>Actions</b> tab in your GitHub repository and click on the link '<b>set up a workflow yourself</b>':
+        </p>
 
-        <h4 class="[ font-semibold text-base ]">GitHub Pages</h4>
+        <figure>
+            <img src="./image/blogs/blazor/wasm/publishing-to-github-pages/create github actions workflow.png" loading="lazy" alt="create github actions workflow" class="[ w-full ]" />
+        </figure>
+        
+        <p>
+            Clicking that link will take you to the 'Edit new file' page. The file that you are about to create will instruct GitHub Actions how to build and 
+            deploy your project using YAML.These Workflow YAML files will be stored under the folder '.github/workflows/'.
+        </p>
 
-        <ol>
+        <p>
+            <strong>Note:</strong> Check out the GitHub Actions documentation to learn more about creating workflows.
+        </p>
 
-        </ol>
+        <p>
+            On the right side you can browse the GitHub Actions marketplace and read documentation. The GitHub Actions marketplace already has a ton of 
+            pre-made actions so you don't have reinvent the wheel. For example, when you search for '.NET', the first result is 'Setup .NET Core SDK' which 
+            is an action provided by the GitHub organization. You'll be using this action in the next steps.
+        </p>
+
+        <figure>
+            <img src="./image/blogs/blazor/wasm/publishing-to-github-pages/configure github actions workflow.png" loading="lazy" alt="configure github actions workflow" class="[ w-full ]" />
+        </figure>
+
+        <p>
+            Delete all code in this file so you can build your workflow from scratch. The first line you'll need to add is the 'name' property. 
+            Give a meaningful name for your workflow:
+        </p>
+
+        <GithubGistSnippet Title="Give a meaning name" UserId="fingers10" FileName="e2e21773117dd578df32cd6d3544b489"></GithubGistSnippet>
+
+        <p>
+            Next, you need to specify what will trigger the workflow. Add the following lines:
+        </p>
+
+        <GithubGistSnippet Title="Setup Trigger" UserId="fingers10" FileName="1a1f1cfc761aeecde8700959f1ef0a02"></GithubGistSnippet>
+
+        <p>
+            These lines instruct GitHub Actions to run your workflow on every <ContentHighlight>git push</ContentHighlight> and 
+            <ContentHighlight>pull request</ContentHighlight> to the main-branch.
+        </p>
+
+        <p>
+            Now, you must configure your jobs, and which image each job will run on. Give your job a meaningful name following the kebab-case naming 
+            convention such as <ContentHighlight>deploy-to-github-pages</ContentHighlight>.
+        </p>
+
+        <p>
+            Configure your job to run on Ubuntu by adding <ContentHighlight>runs-on: ubuntu-latest</ContentHighlight>, and add an empty steps property.
+        </p>
+
+        <GithubGistSnippet Title="Setup Job" UserId="fingers10" FileName="881e6301a50552d2889d9439f7d40e09"></GithubGistSnippet>
+
+        <p>
+            The first step to add will be using the <ContentHighlight>checkout</ContentHighlight> action provided by GitHub. Without passing any parameters to 
+            the action, the <ContentHighlight>checkout</ContentHighlight> action will by default perform a <ContentHighlight>git checkout</ContentHighlight> 
+            against your main branch.
+        </p>
+
+        <GithubGistSnippet Title="Setup Job" UserId="fingers10" FileName="23ff30f361e3935a17bd8f7083da8d85"></GithubGistSnippet>
+
+        <p>
+            Once this action is performed, your code will be available to work with.
+        </p>
+
+        <p>
+            To build and publish the Blazor application, you'll also need to have the .NET Core SDK which doesn't come pre-installed with the Ubuntu machine. 
+            Using the <ContentHighlight>setup-dotnet</ContentHighlight> action provided by GitHub, you can easily install the .NET SDK on top of the Ubuntu 
+            machine:
+        </p>
+
+        <GithubGistSnippet Title="Setup .NET" UserId="fingers10" FileName="8dfaa09ad89e2a01bef855e3ea1cddaa"></GithubGistSnippet>
+
+        <p>
+            By passing in the <ContentHighlight>dotnet-version</ContentHighlight> parameter, you can specify which version of the .NET SDK you want to install.
+        </p>
+
+        <p>
+            Next install <ContentHighlight>wasm-tools</ContentHighlight> workload to enable trimming on publish. Using the <ContentHighlight>run</ContentHighlight> property, you can specify which commands to execute. Add a 
+            <ContentHighlight>run</ContentHighlight> property with value of your <ContentHighlight>dotnet workload install wasm-tools</ContentHighlight> command.
+        </p>
+
+        <GithubGistSnippet Title="Install WASM Tools Workload" UserId="fingers10" FileName="bec4b5207d2a05a94b9d4701a1b87116"></GithubGistSnippet>
+
+        <p>
+            Now that the .NET Core SDK is installed, you can run the <ContentHighlight>dotnet publish</ContentHighlight> command to build and deploy your 
+            Blazor app. Using the <ContentHighlight>run</ContentHighlight> property, you can specify which commands to execute. Add a 
+            <ContentHighlight>run</ContentHighlight> property with value of your <ContentHighlight>dotnet publish</ContentHighlight> command.
+        </p>
+
+        <GithubGistSnippet Title="Publish Project" UserId="fingers10" FileName="2030c326fd3577ae035a09ca9b36173d"></GithubGistSnippet>
+
+        <ul class="[ list-disc ] [ ml-4 ]">
+            <li>Using the <ContentHighlight>-c</ContentHighlight> (--configuration) argument, you can tell to build the project using the Release configuration.</li>
+            <li>
+                Using the <ContentHighlight>-p</ContentHighlight> (--configuration) argument, you can tell to publish the project for GitHub Pages deployment. This 
+                will generate necessary files like <ContentHighlight>404.html</ContentHighlight>, <ContentHighlight>nojeykyll</ContentHighlight> and rewrite the 
+                <ContentHighlight>base</ContentHighlight> url in all pages to match to your github username.
+            </li>
+            <li>
+                Using the <ContentHighlight>-o</ContentHighlight> (--output) argument, you can specify where to put the published files. 
+                <b>Tell dotnet to publish the project to the <ContentHighlight>dist/Web</ContentHighlight> folder</b>.
+            </li>
+            <li>The <ContentHighlight>--nologo</ContentHighlight> argument will prevent some unnecessary lines from being output to the console.</li>
+        </ul>
+
+        <p>
+            Now that you have successfully published the project to the 'dist/Web' folder, you can use another very helpful action from the marketplace called 
+            <NavLink class="[ underline ]" href="https://github.com/marketplace/actions/deploy-to-github-pages" target="blank">'github-pages-deploy-action'</NavLink>.
+            This action will make it easy to publish your static files to GitHub Pages.
+        </p>
+
+        <GithubGistSnippet Title="Commit to GitHub Pages" UserId="fingers10" FileName="48bb61664440b171f01ab7082d700b29"></GithubGistSnippet>
+
+        <ul class="[ list-disc ] [ ml-4 ]">
+            <li>
+                The <ContentHighlight>${{ secrets.GITHUB_TOKEN }}</ContentHighlight> resolves to a <strong>token used for securely communicating with GitHub on 
+                your behalf</strong>. This token is available by default in all workflows and permissions are limited to the repository that contains your 
+                workflow. <strong>By passing it into the <ContentHighlight>GITHUB_TOKEN</ContentHighlight> property, the action can use it to create and push 
+                to the 'gh-pages' branch</strong>.
+            </li>
+            <li>
+                The <ContentHighlight>BRANCH</ContentHighlight> property will configure which branch the action will create and push to. 
+                <strong>Set this to 'gh-pages'</strong>.
+            </li>
+            <li>The <ContentHighlight>FOLDER</ContentHighlight> property will configure which folder and files will be pushed to the 'gh-pages' branch. 
+                <strong>Set this to 'dist/Web/wwwroot'</strong>. This is where the project will be published, and all the static resources are in the 
+                wwwroot-subfolder.
+            </li>
+        </ul>
+
+        <p>
+            Now that all steps are in place, commit the file:
+        </p>
+
+        <figure>
+            <img src="./image/blogs/blazor/wasm/publishing-to-github-pages/commit github actions workflow.png" loading="lazy" alt="commit github actions workflow" class="[ w-full ]" />
+        </figure>
+
+        <p>
+            Navigate back to the GitHub Actions overview page by pressing the "Actions" tab.
+        </p>
+
+        <figure>
+            <img src="./image/blogs/blazor/wasm/publishing-to-github-pages/github actions workflow created.png" loading="lazy" alt="github actions workflow created" class="[ w-full ]" />
+        </figure>
+
+        <p>
+            You can now find your GitHub Action Workflow and the workflow runs on this page. Click on your first run which was automatically created when 
+            you committed the workflow, and watch it publish your project to the 'gh-pages' branch:
+        </p>
+
+        <figure>
+            <img src="./image/blogs/blazor/wasm/publishing-to-github-pages/github actions workflow run completed.png" loading="lazy" alt="github actions workflow run completed" class="[ w-full ]" />
+        </figure>
+
+        <p>
+            Once completed, you can see the result by navigating to the 'gh-pages' branch in your repository:
+        </p>
+
+        <figure>
+            <img src="./image/blogs/blazor/wasm/publishing-to-github-pages/gh-pages branch.png" loading="lazy" alt="gh-pages branch" class="[ w-full ]" />
+        </figure>
+
+        <p>
+            The last step is to <strong>enable GitHub pages in the repository settings</strong>. Navigate to the settings by clicking on the <strong>'Settings' 
+            tab</strong>. Scroll down to the <b>'GitHub Pages'</b> section and <b>select the 'gh-pages' branch in the 'Source' dropdown</b>.
+        </p>
+
+       <figure>
+            <img src="./image/blogs/blazor/wasm/publishing-to-github-pages/github pages.png" loading="lazy" alt="github pages" class="[ w-full ]" />
+       </figure>
+
+       <p>
+           After a few seconds to a minute, the GitHub Pages site should be available at <ContentHighlight><strong>'[YOUR_USERNAME].github.io/[YOUR_REPOSITORY_NAME]'</strong></ContentHighlight>.
+       </p>
+
+       <p>
+           Here is the complete workflow configuration:
+       </p>
+
+       <GithubGistSnippet Title="Complete GitHub Pages Workflow" UserId="fingers10" FileName="252b888ea885d29c91ce993efb33a714"></GithubGistSnippet>
 
         <h4 class="[ font-semibold text-base ]">Configure CNAME</h4>
 
-        <ol>
+        <p>
+            You can also use custom domain to load your blazor wasm app.
+        </p>
 
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>Purachse your custom domain.</li>
+            <li>Add <ContentHighlight>&lt;GHPagesBase&gt;/&lt;/GHPagesBase&gt;</ContentHighlight> property in your <ContentHighlight>.csproj</ContentHighlight>.</li>
+            <li>Add a <ContentHighlight>CNAME</ContentHighlight> file with your domain name <ContentHighlight>ilovedotnet.org</ContentHighlight> as content and commit in <ContentHighlight>gh-pages</ContentHighlight> branch.</li>
+            <li>Configure GitHub IP Address in your DNS Settings from your domain provider. You can leanr more about configuring custom domain for your GitHub Pages from <NavLink class="[ underline ]" href="https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site" target="blank">here</NavLink>.</li>
+            <li>Add your domain name in the custom domain text box in github pages configuration.</li>
+            <li>After some time your site will be published under your domain.</li>
         </ol>
 
         <h3 id="summary" class="[ font-semibold text-lg ]">Summary</h3>
 
         <p>
-
+            Blazor WebAssembly can be served as static files. These files can be hosted in static hosting sites such as GitHub Pages. Using GitHub Actions 
+            you can create a workflow to automatically deploy the Blazor application to GitHub pages.
         </p>
     </ContentBody>
 </Content>
@@ -100,5 +305,5 @@
     private string Channel = "blazor";
     private string ContentType = "blogs";
     private ushort TotalContents => (ushort)tableOfContents.Contents.Count(content => content.Type.Equals("Blazor", StringComparison.CurrentCultureIgnoreCase));
-    private List<string> Keywords = new(2) { "Publishing", "GitHub Pages" };
+    private List<string> Keywords = new(6) { "Publishing", "GitHub Pages", "GitHub", "CI/CD", "Continuous Integration", "Continuous Deployment" };
 }
