@@ -19,6 +19,7 @@ This is a .NET knowledge sharing platform with live demos crafted by developers 
 14. [Swagger](https://github.com/orgs/ILoveDotNet/projects/15/views/1)
 15. [Middlewares](https://github.com/orgs/ILoveDotNet/projects/16/views/1)
 16. [JWT](https://github.com/orgs/ILoveDotNet/projects/17/views/1)
+16. [Dependency Injection](https://github.com/orgs/ILoveDotNet/projects/18/views/1)
 
 # Our Official Network
 | Platform  | Link                                                         | Status                                     |
