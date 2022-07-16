@@ -2,13 +2,13 @@
 
 public class TableOfContents
 {
-    private readonly List<ContentMetaData> FullContents = new(27);
+    private readonly List<ContentMetaData> FullContents = new(28);
     public IReadOnlyList<ContentMetaData> Contents => FullContents.Where(content => content.CreatedOn.Date <= DateTime.Today.Date).ToList();
 
     public TableOfContents()
     {
         FullContents =
-            new(27)
+            new(28)
         {
             new ContentMetaData
             {
@@ -359,6 +359,19 @@ public class TableOfContents
                 Type = "Blazor",
                 CreatedOn = new DateTime(2022, 7, 17, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 7, 17, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+                Order = 1,
+                Title = "Introducing Dependency Injection in .NET",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/dependency-injection/introducing-dependency-injection-in-dotnet.svg",
+                ThumbnailUrl = "image/blogs/dependency-injection/introducing-dependency-injection-in-dotnet.svg",
+                ContentUrl = "blogs/introducing-dependency-injection-in-dotnet",
+                IconUrl = "image/icons/dependency-injection.png",
+                Type = "Dependency-Injection",
+                CreatedOn = new DateTime(2022, 7, 24, 22, 30, 0),
+                ModifiedOn = new DateTime(2022, 7, 24, 22, 30, 0)
             }
         };
     }
