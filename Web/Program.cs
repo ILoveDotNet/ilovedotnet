@@ -29,6 +29,8 @@ static void ConfigureServices(IServiceCollection services, string baseAddress)
 
     services.AddScoped<TableOfContents>();
 
+    services.AddScoped<Sitemaps>();
+
     services.AddScoped<LazyAssemblyLoader>();
 
     services.AddHeadElementHelper();
