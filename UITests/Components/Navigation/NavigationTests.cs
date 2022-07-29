@@ -13,7 +13,7 @@ public class NavigationTests
         var cut = ctx.RenderComponent<Web.Shared.Navigation>();
 
         // Assert
-        cut.MarkupMatches($@"<nav class=""[ sticky bottom-0 h-14 md:fixed md:top-14 md:left-0 md:h-full md:w-16 ] 
+        cut.MarkupMatches($@"<nav class=""[ fixed bottom-0 h-14 w-full md:top-14 md:left-0 md:h-full md:w-16 ] 
                                           [ bg-white ] [ dark:bg-gray-800 dark:bg-gray-800/80 ] [ backdrop-blur-sm bg-white/30 ] [ md:pt-2 ]
                                           [ flex justify-around items-center md:flex-col md:justify-start md:space-y-4 ]"">
                                   <a class=""[ flex flex-col items-center ] active"" href=""/"">
