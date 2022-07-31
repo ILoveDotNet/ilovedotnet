@@ -385,7 +385,20 @@ public class TableOfContents
                 Type = "Dependency-Injection",
                 CreatedOn = new DateTime(2022, 7, 31, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 7, 31, 22, 30, 0)
-            }
+            },
+            new ContentMetaData
+            {
+                Order = 19,
+                Title = "Blazor WASM Pre Rendering",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-pre-rendering.svg",
+                ThumbnailUrl = "image/blogs/blazor/wasm/blazor-wasm-pre-rendering.svg",
+                ContentUrl = "blogs/blazor-wasm-pre-rendering",
+                IconUrl = "image/icons/blazor.png",
+                Type = "Blazor",
+                CreatedOn = new DateTime(2022, 8, 7, 22, 30, 0),
+                ModifiedOn = new DateTime(2022, 8, 7, 22, 30, 0)
+            },
         };
     }
 }
