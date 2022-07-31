@@ -1,0 +1,175 @@
+﻿@page "/blogs/blazor-wasm-pre-rendering"
+@inherits FragmentNavigationBase
+@inject TableOfContents tableOfContents
+
+<Content Title=@Title
+         Description=@Description
+         CreatedOn=@CreatedOn
+         ModifiedOn=@ModifiedOn
+         Slug=@Slug
+         PosterPath=@PosterPath
+         Keywords=@Keywords
+         Channel="@Channel"
+         ContentType="@ContentType"
+         TotalContents=@TotalContents
+         FileName=@nameof(PreRendering)>
+    <ContentBody>
+        <p>
+            In this article, let's learn about <ContentHighlight>Pre Rendering</ContentHighlight> Blazor apps during publish time to improve 
+            <abbr title="Search Engine Optimization">SEO</abbr> and <abbr title="Social Media Optimization">SMO</abbr>.
+        </p>
+
+        <p>
+            <strong>Note:</strong> If you have not done so already, I recommend you read the article on
+            <NavLink class="[ underline ]" href="blogs/blazor-wasm-publishing-to-github-pages" Match="NavLinkMatch.All">Publishing to GitHub Pages</NavLink>
+            and <NavLink class="[ underline ]" href="blogs/blazor-wasm-publishing-to-iis" Match="NavLinkMatch.All">Publishing to IIS</NavLink>.
+        </p>
+
+        <h3 class="[ font-semibold text-lg ]">Table of Contents</h3>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
+                    Introduction
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#seo-problem-with-spa")" Match="NavLinkMatch.All">
+                    SEO problem with SPA
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#seo-solution-for-spa")" Match="NavLinkMatch.All">
+                    SEO solution for SPA
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#pre-render-at-publish-time")" Match="NavLinkMatch.All">
+                    Pre-render Blazor WASM at publish time
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
+                    Summary
+                </NavLink>
+            </li>
+        </ol>
+
+        <h3 id="introduction" class="[ font-semibold text-lg ]">Introduction</h3>
+
+        <p>
+            The output of a published Blazor WebAssembly application consists of static files exclusively. But just like other single page application (SPA) 
+            frameworks, Blazor WASM is not properly indexed by search engines. This makes it very hard to do <NavLink class="[ underline ]" href="https://developer.mozilla.org/en-US/docs/Glossary/SEO" target="_blank">Search Engine Optimization</NavLink> 
+            (<abbr title="Search Engine Optimization">SEO</abbr>). Prerendering can improve Search Engine Optimization (SEO) by rendering content for the initial HTTP response that search engines can use 
+            to calculate page rank.
+        </p>
+
+        <h3 id="seo-problem-with-spa" class="[ font-semibold text-lg ]">SEO problem with SPA</h3>
+
+        <p>
+            Search engines crawl your website using "crawlers" also called "spiders" sometimes. These crawlers are essentially bots visiting every page it 
+            can find on your website. The content on those pages are then added to the search index. But what do crawlers see when they visit SPA's? For 
+            Blazor WASM applications, this is what crawlers see:
+        </p>
+
+        <GithubGistSnippet Title="What crawlers see without prerendering" UserId="fingers10" FileName="9e4de6a7e829e0472189c8735dbbd9bc"></GithubGistSnippet>
+
+        <p>
+            <strong>The only thing the crawlers see are the words "Loading…" or a blank screen.</strong>
+        </p>
+
+        <p>
+            To optimize for search engines at the margins, you can add some content above and below, or use the title and description meta tags in the head, 
+            but that won’t get you far. The reason why it doesn’t see your entire SPA, is because most search engine crawlers do not execute JavaScript.
+        </p>
+
+        <h3 id="seo-solution-for-spa" class="[ font-semibold text-lg ]">SEO solution for SPA</h3>
+
+        <p>
+            Many SPA frameworks have support for rendering the same application on both client and server. Being able to render both server and client side 
+            combines best of both worlds. You have the speed and SEO benefits from server rendered applications and the UX benefits of a SPA. Server side 
+            pre-rendering is a great solution, but it does require your code to be executed on a server which is not possible if you’re using a static site 
+            host.
+        </p>
+
+        <p>
+            So instead of pre-rendering server side at request time, you can pre-render at publish-time. You can then host the HTML files outputted at 
+            publish-time on static site hosts, giving you the best performance, best SEO, best UX, and a more affordable hosting.
+        </p>
+
+        <h3 id="pre-render-at-publish-time" class="[ font-semibold text-lg ]">Pre-render Blazor WASM at publish time</h3>
+
+        <h4 class="[ font-semibold text-base ]">Steps</h4>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>Install <ContentHighlight>BlazorWasmPreRender.Build</ContentHighlight> Nuget package.</li>
+            <li>
+                <p>Configure Services registration</p>
+
+                <p>
+                    If you are registering any services (except HttpClient that isn't specially configured) to the service provider at the startup of your 
+                    Blazor WebAssembly app, please extract that process to the static method named 
+                    <ContentHighlight>static void ConfigureServices(IServiceCollection services, string baseAddress)</ContentHighlight>.
+                </p>
+
+                <GithubGistSnippet Title="Blazor Wasm Pre Rendering Program Before Extraction" UserId="fingers10" FileName="135fdbccacc441e70637f91780ed512f"></GithubGistSnippet>
+
+                <GithubGistSnippet Title="Blazor Wasm Pre Rendering Program After Extraction" UserId="fingers10" FileName="8f297813f67bb4bef2deb7ab172a6209"></GithubGistSnippet>
+
+                <p>
+                    <strong>Note:</strong> The "ConfigureServices" local function must be "static" local function.
+                </p>
+
+                <p>
+                    The <ContentHighlight>ConfigureServices()</ContentHighlight> method can also have an <ContentHighlight>IConfiguration</ContentHighlight> 
+                    argument reflected with the contents of the <ContentHighlight>wwwroot/appsetting.json</ContentHighlight> JSON file.
+                </p>
+            </li>
+            <li>Publish the project.</li>
+        </ol>
+
+        <p>
+            Now after pre rendering the project during publish, you can check the <ContentHighlight>wwwroot/index.html</ContentHighlight> to see the pre 
+            rendered contents. Now that crawlers can see:
+        </p>
+
+        <GithubGistSnippet Title="What crawlers see with prerendering" UserId="fingers10" FileName="59ee411bdfeb7235cfb536aee9b36732"></GithubGistSnippet>
+
+        <p>
+            More detailed documentation can be found in <NavLink class="[ underline ]" href="https://github.com/jsakamoto/BlazorWasmPreRendering.Build" target="_blank">BlazorWasmPreRendering.Build GitHub Readme</NavLink>.
+        </p>
+
+        <h3 id="summary" class="[ font-semibold text-lg ]">Summary</h3>
+
+        <p>
+            SPA frameworks like Blazor require the execution of JavaScript to function. Most search engine crawler’s don’t execute JavaScript which means 
+            JavaScript generated content won’t be indexed. Google’s crawlers do execute JavaScript and they can successfully index Blazor WASM apps. To 
+            optimize for other search engines, you can pre-render Blazor WASM on the server, but that requires server side code execution.
+        </p>
+
+        <p>
+            For static site hosts like GitHub Actions and Azure Static Web Apps, server side code execution is not available. Instead of pre-rendering in 
+            response to HTTP requests, you can move the pre-rendering to the build pipeline. Using "BlazorWasmPreRender.Build" package will improve the 
+            internet search results of your static hosting Blazor Wasm app with only minimal or no code changes.
+        </p>
+
+        <p>
+            Additionally, you can integrate these pre-rendering tools inside of your continuous integration and continuous deployment pipelines. Using GitHub 
+            Actions, you can pre-render your Blazor application and deploy it to GitHub Pages. Deploying pre-rendered applications to GitHub Pages will 
+            increase SEO but also resolve those pesky HTTP 404 errors.
+        </p>
+    </ContentBody>
+</Content>
+
+@code {
+    private string Title = "Blazor WASM Pre Rendering";
+    private string Description = "In this post I will teach how to prerender Blazor applications during publish time to improve SEO. All with live working demo.";
+    private DateTime CreatedOn = new DateTime(2022, 8, 7, 22, 30, 0);
+    private DateTime ModifiedOn = new DateTime(2022, 8, 7, 22, 30, 0);
+    private string Slug = "blazor-wasm-pre-rendering";
+    private string PosterPath = "Blogs/Blazor/Wasm";
+    private string Channel = "blazor";
+    private string ContentType = "blogs";
+    private ushort TotalContents => (ushort)tableOfContents.Contents.Count(content => content.Type.Equals("Blazor", StringComparison.CurrentCultureIgnoreCase));
+    private List<string> Keywords = new(7) { "Pre Rendering", "SPA Prerendering", "Blazor WASM Prerendering", "Search Engine Optimization", "SEO", "Social Media Optimization", "SMO" };
+}
