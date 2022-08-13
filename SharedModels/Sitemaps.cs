@@ -6,6 +6,7 @@ public class Sitemaps
         "sitemap.xml",
         "sitemap-blog-blazor-wasm.xml",
         "sitemap-blog-dependency-injection.xml",
+        "sitemap-blog-linq.xml",
         "sitemap-blog-middleware.xml",
         "sitemap-blog-oops.xml",
         "sitemap-blog-tdd.xml",
