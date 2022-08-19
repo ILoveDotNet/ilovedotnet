@@ -1,6 +1,6 @@
 ﻿namespace LINQDemoComponents;
 
-internal class ProductSource
+public class ProductSource
 {
     private readonly List<Product> FullProducts = new(31);
     public IReadOnlyList<Product> Products => FullProducts.ToList();
@@ -12,13 +12,19 @@ internal class ProductSource
             {
                 new Product
                 {
-                    Name = "IPhone",
-                    Price = 100000
+                    Id = 1,
+                    Name = "HL Road Frame",
+                    Color = "Black",
+                    Price = 1000m,
+                    Size = "58"
                 },
                 new Product
                 {
-                    Name = "Google",
-                    Price = 70000
+                    Id = 2,
+                    Name = "HL Road Frame",
+                    Color = "Red",
+                    Price = 1000m,
+                    Size = "58"
                 }
             };
     }

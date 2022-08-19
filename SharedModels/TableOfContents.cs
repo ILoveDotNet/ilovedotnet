@@ -2,13 +2,13 @@
 
 public class TableOfContents
 {
-    private readonly List<ContentMetaData> FullContents = new(31);
+    private readonly List<ContentMetaData> FullContents = new(32);
     public IReadOnlyList<ContentMetaData> Contents => FullContents.Where(content => content.CreatedOn.Date <= DateTime.Today.Date).ToList();
 
     public TableOfContents()
     {
         FullContents =
-            new(31)
+            new(32)
         {
             new ContentMetaData
             {
@@ -412,6 +412,19 @@ public class TableOfContents
                 CreatedOn = new DateTime(2022, 8, 14, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 8, 14, 22, 30, 0)
             },
+            new ContentMetaData
+            {
+                Order = 2,
+                Title = "LINQ Select",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/linq/linq-select.svg",
+                ThumbnailUrl = "image/blogs/linq/linq-select.svg",
+                ContentUrl = "blogs/linq-select",
+                IconUrl = "image/icons/linq.png",
+                Type = "LINQ",
+                CreatedOn = new DateTime(2022, 8, 21, 22, 30, 0),
+                ModifiedOn = new DateTime(2022, 8, 21, 22, 30, 0)
+            }
         };
     }
 }
