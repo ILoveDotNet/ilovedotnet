@@ -9,6 +9,7 @@ public class Sitemaps
         "sitemap-blog-linq.xml",
         "sitemap-blog-middleware.xml",
         "sitemap-blog-oops.xml",
+        "sitemap-blog-python.xml",
         "sitemap-blog-tdd.xml",
         "sitemap-blog-webapi.xml",
         "sitemap-channels.xml",
