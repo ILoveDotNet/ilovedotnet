@@ -2,13 +2,13 @@
 
 public class TableOfContents
 {
-    private readonly List<ContentMetaData> FullContents = new(33);
+    private readonly List<ContentMetaData> FullContents = new(34);
     public IReadOnlyList<ContentMetaData> Contents => FullContents.Where(content => content.CreatedOn.Date <= DateTime.Today.Date).ToList();
 
     public TableOfContents()
     {
         FullContents =
-            new(33)
+            new(34)
         {
             new ContentMetaData
             {
@@ -437,6 +437,19 @@ public class TableOfContents
                 Type = "LINQ",
                 CreatedOn = new DateTime(2022, 8, 28, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 8, 28, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+                Order = 1,
+                Title = "Python Interoperating with Dotnet",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/python/python-interoperating-with-dotnet.svg",
+                ThumbnailUrl = "image/blogs/python/python-interoperating-with-dotnet.svg",
+                ContentUrl = "blogs/python-interoperating-with-dotnet",
+                IconUrl = "image/icons/python.png",
+                Type = "Python",
+                CreatedOn = new DateTime(2022, 9, 11, 22, 30, 0),
+                ModifiedOn = new DateTime(2022, 9, 11, 22, 30, 0)
             }
         };
     }
