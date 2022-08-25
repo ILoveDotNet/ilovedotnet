@@ -1,24 +1,44 @@
-﻿<EditForm Model="@queryModel" OnValidSubmit="@HandleValidSubmit">
-    <DataAnnotationsValidator />
+﻿<ErrorBoundary @ref="@errorBoundary">
+    <ChildContent>
+        <EditForm Model="@queryModel" OnValidSubmit="@HandleValidSubmit">
+            <DataAnnotationsValidator />
 
-    <label>
-        Query
-        <InputTextArea class="[ w-full h-full ] [ px-4 py-2 ] [ border-2 ] [ focus:outline-none focus:border-gray-400 ] [ dark:bg-black dark:border-gray-800 dark:focus:border-b-white dark:md:focus:border-blue-800 dark:caret-white dark:text-white ]"
-                  rows="5"
-                  placeholder="product => product.Price > 100"
-                  @bind-Value="queryModel.Query" />
-    </label>
+            <label>
+                Query
+                <InputTextArea class="[ w-full h-full ] [ px-4 py-2 ] [ border-2 ] [ focus:outline-none focus:border-gray-400 ] [ dark:bg-black dark:border-gray-800 dark:focus:border-b-white dark:md:focus:border-blue-800 dark:caret-white dark:text-white ]"
+                               rows="5"
+                               placeholder=@(@"product => product.Color.StartsWith(""B"") || product. Id == 2")
+                               @bind-Value="queryModel.Query" />
+            </label>
 
-    <ValidationMessage For=@(() => queryModel.Query) />
+            <ValidationMessage For=@(() => queryModel.Query) />
 
-    <button type="submit" class="[ bg-cyan-500 ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ]">
-        Filter Products
-    </button>
+            <button type="submit" class="[ bg-cyan-500 ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ]">
+                Filter Products
+            </button>
 
-    <button type="button" class="[ bg-fuchsia-500 ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ]" @onclick="ResetProducts">
-        Reset
-    </button>
-</EditForm>
+            <button type="button" class="[ bg-fuchsia-500 ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ]" @onclick="ResetProducts">
+                Reset
+            </button>
+        </EditForm>
+    </ChildContent>
+    <ErrorContent>
+        <div class="[ bg-red-500 ]">
+            <p class="[ text-white ]">@errorMessage</p>
+        </div>
+
+        @if (errorMessage is not null)
+        {
+            <button type="button" class="[ bg-green-500 ] [ px-4 py-2 ] [ rounded-md ] [ text-white ]" @onclick="Recover">
+                Click to recover
+                <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-activity ] [ inline ]" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                    <path d="M3 12h4l3 8l4 -16l3 8h4"></path>
+                </svg>
+            </button>
+        }
+    </ErrorContent>
+</ErrorBoundary>
 
 <table class="[ table-fixed border-collapse ] [ bg-white ] [ border-2 ] [ dark:bg-black dark:border-slate-500 ] [ mt-2 ]">
     <thead>
@@ -54,7 +74,15 @@
 
     private EditContext? editContext;
     private QueryModel queryModel = new();
+    private ErrorBoundary errorBoundary = default!;
+    private string? errorMessage;
     private IEnumerable<Product> products = new ProductSource().Products;
+
+    private void Recover()
+    {
+        errorBoundary?.Recover();
+        errorMessage = null;
+    }
 
     protected override void OnInitialized()
     {
@@ -63,11 +91,19 @@
 
     private void HandleValidSubmit()
     {
-        var expr = DynamicExpressionParser.ParseLambda<Product, bool>(new ParsingConfig(), true, queryModel.Query);
+        try
+        {
+            var expr = DynamicExpressionParser.ParseLambda<Product, bool>(new ParsingConfig(), true, queryModel.Query);
 
-        var func = expr.Compile();
+            var func = expr.Compile();
 
-        products = new ProductSource().Products.Where(func);
+            products = new ProductSource().Products.Where(func);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+            throw;
+        }
     }
 
     private void ResetProducts()

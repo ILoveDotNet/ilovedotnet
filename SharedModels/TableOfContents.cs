@@ -2,13 +2,13 @@
 
 public class TableOfContents
 {
-    private readonly List<ContentMetaData> FullContents = new(34);
+    private readonly List<ContentMetaData> FullContents = new(35);
     public IReadOnlyList<ContentMetaData> Contents => FullContents.Where(content => content.CreatedOn.Date <= DateTime.Today.Date).ToList();
 
     public TableOfContents()
     {
         FullContents =
-            new(34)
+            new(35)
         {
             new ContentMetaData
             {
@@ -437,6 +437,19 @@ public class TableOfContents
                 Type = "LINQ",
                 CreatedOn = new DateTime(2022, 8, 28, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 8, 28, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+                Order = 4,
+                Title = "LINQ Where",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/linq/linq-where.svg",
+                ThumbnailUrl = "image/blogs/linq/linq-where.svg",
+                ContentUrl = "blogs/linq-where",
+                IconUrl = "image/icons/linq.png",
+                Type = "LINQ",
+                CreatedOn = new DateTime(2022, 9, 4, 22, 30, 0),
+                ModifiedOn = new DateTime(2022, 9, 4, 22, 30, 0)
             },
             new ContentMetaData
             {
