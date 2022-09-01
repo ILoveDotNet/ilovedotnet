@@ -2,13 +2,13 @@
 
 public class TableOfContents
 {
-    private readonly List<ContentMetaData> FullContents = new(35);
+    private readonly List<ContentMetaData> FullContents = new(36);
     public IReadOnlyList<ContentMetaData> Contents => FullContents.Where(content => content.CreatedOn.Date <= DateTime.Today.Date).ToList();
 
     public TableOfContents()
     {
         FullContents =
-            new(35)
+            new(36)
         {
             new ContentMetaData
             {
@@ -463,6 +463,19 @@ public class TableOfContents
                 Type = "Python",
                 CreatedOn = new DateTime(2022, 9, 11, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 9, 11, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+                Order = 2,
+                Title = "Profiling Web API with Mini Profiler",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/webapi/profiling-webapi-with-mini-profiler.svg",
+                ThumbnailUrl = "image/blogs/webapi/profiling-webapi-with-mini-profiler.svg",
+                ContentUrl = "blogs/profiling-webapi-with-mini-profiler",
+                IconUrl = "image/icons/webapi.png",
+                Type = "WebAPI",
+                CreatedOn = new DateTime(2022, 9, 18, 22, 30, 0),
+                ModifiedOn = new DateTime(2022, 9, 18, 22, 30, 0)
             }
         };
     }
