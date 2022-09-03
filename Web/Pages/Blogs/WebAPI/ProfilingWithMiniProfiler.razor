@@ -36,6 +36,11 @@
                 </NavLink>
             </li>
             <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#custom-profiling")" Match="NavLinkMatch.All">
+                    Custom Profiling
+                </NavLink>
+            </li>
+            <li>
                 <NavLink class="[ underline ]" href="@($"blogs/{Slug}#persisting-profiling-data-in-database")" Match="NavLinkMatch.All">
                     Persisting Profiling Data in Database
                 </NavLink>
@@ -48,6 +53,11 @@
             <li>
                 <NavLink class="[ underline ]" href="@($"blogs/{Slug}#useful-configurations")" Match="NavLinkMatch.All">
                     Useful Configurations
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#complete-configurations")" Match="NavLinkMatch.All">
+                    Complete Configurations
                 </NavLink>
             </li>
             <li>
@@ -82,31 +92,167 @@
 
         <ol class="[ list-decimal ] [ ml-4 ]">
             <li>Install <ContentHighlight>MiniProfiler.AspNetCore.Mvc</ContentHighlight> and <ContentHighlight>MiniProfiler.EntityFrameworkCore</ContentHighlight> Nuget Packages.</li>
-            <li>Add <ContentHighlight>AddMiniProfiler</ContentHighlight> services to dependency injection container.</li>
+            <li>
+                <p>
+                    Add <ContentHighlight>AddMiniProfiler</ContentHighlight> and <ContentHighlight>AddEntityFramework</ContentHighlight> services to dependency injection container and 
+                    configure <ContentHighlight>RouteBasePath</ContentHighlight>.
+                </p>
+
+                <GithubGistSnippet Title="WebAPI Mini Profiler Configuration" UserId="fingers10" FileName="9594d5f99ac498af3232cb089b23167e"></GithubGistSnippet>
+            </li>
             <li>Configure <ContentHighlight>app.UseMiniProfiler()</ContentHighlight> to the request pipeline.</li>
+            <li>Your project is ready for profiling. Build the project and run it. Call your API via Swagger or any other tools.</li>
         </ol>
 
-        <p>
+        <figure>
+            <img src="./image/blogs/webapi/profiling-webapi-with-mini-profiler/Swagger Response.png" alt="Swagger Response" class="[ w-full ]" />
+        </figure>
 
+        <p>
+            To see the results navigate to <ContentHighlight>https://localhost:5001/profiler/results-index</ContentHighlight> in your browser.
         </p>
+
+        <figure>
+            <img src="./image/blogs/webapi/profiling-webapi-with-mini-profiler/Profiler Results Index.png" alt="Profiler Results Index" class="[ w-full ]" />
+        </figure>
+
+        <p>
+            To check the details of API call, click on respective entry from profiling results index page.
+        </p>
+
+        <figure>
+            <img src="./image/blogs/webapi/profiling-webapi-with-mini-profiler/Profiler Results.png" alt="Profiler Results" class="[ w-full ]" />
+        </figure>
+
+        <p>
+            From the details page you can get insights on how much time each step took along with the database queries used in the API call. This will help you to quickly identify the major 
+            bottleneck in your API. Note that if your not using Entity Framework for data access then you need to do additional configuration to record database queries. You can find them in 
+            their official documentation on how to profile sql using the following <NavLink class="[ underlinw ]" href="https://miniprofiler.com/dotnet/HowTo/ProfileSql" target="_blank">link</NavLink>.
+        </p>
+
+        <h3 id="custom-profiling" class="[ font-semibold text-lg ]">Custom Profiling</h3>
+
+        <p>
+            Now to analyse further and see which portion of our code block or logic takes more time we can wrap the code block using <ContentHighlight>MiniProfiler.Current.Step</ContentHighlight>. 
+            I'm using <ContentHighlight>MinimalAPI</ContentHighlight> introduced in .NET 6 as example here.
+        </p>
+
+        <GithubGistSnippet Title="WebAPI Mini Profiler with Custom Step" UserId="fingers10" FileName="669c2311da903128d85dc106ead2d5ff"></GithubGistSnippet>
+
+        <p>
+            Now if we again run the app and navigate to profiler results, we can notice the timings recorded for our custom step.
+        </p>
+
+        <figure>
+            <img src="./image/blogs/webapi/profiling-webapi-with-mini-profiler/Profiler Results WIth Custom Step.png" alt="Profiler Results WIth Custom Step" class="[ w-full ]" />
+        </figure>
 
         <h3 id="persisting-profiling-data-in-database" class="[ font-semibold text-lg ]">Persisting Profiling Data in Database</h3>
 
         <p>
-
+            We can also store the profiling data in database for further analysis. To do so we need to add another provider Nuget Package given by MiniProfiler. I'm using Postgres SQL and I'll 
+            be installing corresponding provider. You can find the list of available providers in the following 
+            <Navlink class="[ underline ]" href="https://miniprofiler.com/dotnet/NuGet" target="_blank">link</Navlink>.
         </p>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>Install Nuget Package <ContentHighlight>MiniProfiler.Providers.PostgreSql</ContentHighlight>.</li>
+            <li>
+                <p>
+                    Modify your Mini Profiler Configuration and pass the Provider in the options as shown below.
+                </p>
+
+                <GithubGistSnippet Title="WebAPI Mini Profiler Persisting Data Configuration" UserId="fingers10" FileName="02721ab70dabfae779f4e580e9600915"></GithubGistSnippet>
+            </li>
+            <li>
+                <p>
+                    Note that you need to create database tables to store profiling details. This is a manual step. You can get the database scripts using the below code.
+                </p>
+
+                <GithubGistSnippet Title="WebAPI Mini Profiler Persisting Data Database Scripts" UserId="fingers10" FileName="f73a0dd6e04b87ff1d66bfe38279684e"></GithubGistSnippet>
+
+                <figure>
+                    <img src="./image/blogs/webapi/profiling-webapi-with-mini-profiler/Database Tables.png" alt="Database Tables" class="[ w-full ]" />
+                </figure>
+            </li>
+        </ol>
+
+        <p>
+            Now after creating database run the API and check the database. Now all the profile results are stored in Database and can be seen anytime for further analysis.
+        </p>
+
+        <figure>
+            <img src="./image/blogs/webapi/profiling-webapi-with-mini-profiler/Profiler Index Query Result.png" alt="Profiler Index Query Result" class="[ w-full ]" />
+        </figure>
+
+        <figure>
+            <img src="./image/blogs/webapi/profiling-webapi-with-mini-profiler/Profiler Query Result.png" alt="Profiler Query Result" class="[ w-full ]" />
+        </figure>
 
         <h3 id="authorization" class="[ font-semibold text-lg ]">Authorization</h3>
 
         <p>
-
+            The profiling data is sensitive data and will provide lot of insight about the code flow so you don’t want it to be available to everyone who is having access to application but 
+            only to certain group or role of user. Luckily, access of profiling data can be restricted with authorization mechanism.
         </p>
+
+        <p>
+            To do so, modify the MiniProfiler Configuration as follows,
+        </p>
+
+        <GithubGistSnippet Title="WebAPI Mini Profiler Authorization Configuration" UserId="fingers10" FileName="c3cf24706ff67e8aa48c87a602f96316"></GithubGistSnippet>
+
+        <p>
+            For simplicity, I have added code only for checking if user is authorized or not, but it can be enhanced to check if user is in certain role or not. thus restricting access to only 
+            certain group or role of user. With these changes only authorized user can access the profile results.
+        </p>
+
+        <p>
+            Now when we try to navigate to profiling results page, we get unauthorized error.
+        </p>
+
+        <figure>
+            <img src="./image/blogs/webapi/profiling-webapi-with-mini-profiler/UnAuthorized Access.png" alt="UnAuthorized Access" class="[ w-full ]" />
+        </figure>
 
         <h3 id="useful-configurations" class="[ font-semibold text-lg ]">Useful Configurations</h3>
 
-        <p>
+        <table class="[ table-fixed border-collapse ] [ bg-white ] [ border-2 ] [ dark:bg-black dark:border-slate-500 ]">
+            <thead>
+                <tr class="[ bg-gray-100 ] [ dark:bg-slate-500 ]">
+                    <th class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Configuration</th>
+                    <th class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">Exclude certain request path from profiling</td>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ] [ text-center ]"><ContentHighlight>options.IgnoredPaths.Add("/swagger");</ContentHighlight></td>
+                </tr>
+                <tr>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">Include only certain request path for profiling</td>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ] [ text-center ]">
+                        <ContentHighlight>options.ShouldProfile = request => ShouldProfile(request);</ContentHighlight>
 
+                        <p>You can implement ShouldProfile menthod as follows.</p>
+
+                        <ContentHighlight>bool ShouldProfile(HttpRequest request) => request.Path.StartsWithSegments("/api");</ContentHighlight>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">Configure theme</td>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ] [ text-center ]"><ContentHighlight>options.ColorScheme = ColorScheme.Dark;</ContentHighlight></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3 id="complete-configurations" class="[ font-semibold text-lg ]">Complete Configurations</h3>
+
+        <p>
+            Here is the complete configuration that I have used for this demo.
         </p>
+
+        <GithubGistSnippet Title="WebAPI Mini Profiler Complete Configuration" UserId="fingers10" FileName="3f833422aa426f783019d4869d39821e"></GithubGistSnippet>
 
         <h3 id="summary" class="[ font-semibold text-lg ]">Summary</h3>
 
