@@ -1,0 +1,109 @@
+﻿<ErrorBoundary @ref="@errorBoundary">
+    <ChildContent>
+        <EditForm Model="@queryModel" OnValidSubmit="@HandleValidSubmit">
+            <DataAnnotationsValidator />
+
+            <label>
+                Query
+                <InputTextArea class="[ w-full h-full ] [ px-4 py-2 ] [ border-2 ] [ focus:outline-none focus:border-gray-400 ] [ dark:bg-black dark:border-gray-800 dark:focus:border-b-white dark:md:focus:border-blue-800 dark:caret-white dark:text-white ]"
+                               rows="5"
+                               placeholder=@(@"product => product.Color == ""Green""")
+                               @bind-Value="queryModel.Query" />
+            </label>
+
+            <ValidationMessage For=@(() => queryModel.Query) />
+
+            <button type="submit" class="[ bg-cyan-500 ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ]">
+                Get First Or Default Product
+            </button>
+
+            <button type="button" class="[ bg-fuchsia-500 ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ]" @onclick="ResetProducts">
+                Reset
+            </button>
+        </EditForm>
+    </ChildContent>
+    <ErrorContent>
+        <div class="[ bg-red-500 ]">
+            <p class="[ text-white ]">@errorMessage</p>
+        </div>
+
+        @if (errorMessage is not null)
+        {
+            <button type="button" class="[ bg-green-500 ] [ px-4 py-2 ] [ rounded-md ] [ text-white ]" @onclick="Recover">
+                Click to recover
+                <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-activity ] [ inline ]" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                    <path d="M3 12h4l3 8l4 -16l3 8h4"></path>
+                </svg>
+            </button>
+        }
+    </ErrorContent>
+</ErrorBoundary>
+
+<table class="[ table-fixed border-collapse ] [ bg-white ] [ border-2 ] [ dark:bg-black dark:border-slate-500 ] [ mt-2 ]">
+    <thead>
+        <tr class="[ bg-gray-100 ] [ dark:bg-slate-500 ]">
+            <th class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Id</th>
+            <th class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Name</th>
+            <th class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Color</th>
+            <th class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Price</th>
+            <th class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Size</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var product in products)
+        {
+            <tr>
+                <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">@product.Id</td>
+                <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">@product.Name</td>
+                <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">@product.Color</td>
+                <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">@product.Price</td>
+                <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">@product.Size</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code
+{
+    public class QueryModel
+    {
+        [Required]
+        public string? Query { get; set; }
+    }
+
+    private EditContext? editContext;
+    private QueryModel queryModel = new();
+    private ErrorBoundary errorBoundary = default!;
+    private string? errorMessage;
+    private IEnumerable<Product> products = new ProductSource().Products;
+
+    private void Recover()
+    {
+        errorBoundary?.Recover();
+        errorMessage = null;
+    }
+
+    protected override void OnInitialized()
+    {
+        editContext = new(queryModel);
+    }
+
+    private void HandleValidSubmit()
+    {
+        try
+        {
+            products = products.AsQueryable().FirstOrDefault(queryModel.Query).ToDynamicList<Product>();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+            throw;
+        }
+    }
+
+    private void ResetProducts()
+    {
+        products = new ProductSource().Products;
+    }
+}

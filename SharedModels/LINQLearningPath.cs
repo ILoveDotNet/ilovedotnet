@@ -61,6 +61,19 @@ public class LINQLearningPath
                 CreatedOn = new DateTime(2022, 9, 4, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 9, 4, 22, 30, 0)
             },
+            new ContentMetaData
+            {
+                Order = 5,
+                Title = "Using LINQ to Select Single Data",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/linq/using-linq-to-select-single-data.svg",
+                ThumbnailUrl = "image/blogs/linq/using-linq-to-select-single-data.svg",
+                ContentUrl = "blogs/using-linq-to-select-single-data",
+                IconUrl = "image/icons/linq.png",
+                Type = "LINQ",
+                CreatedOn = new DateTime(2022, 9, 25, 22, 30, 0),
+                ModifiedOn = new DateTime(2022, 9, 25, 22, 30, 0)
+            }
         };
     }
 }
