@@ -51,11 +51,11 @@ public class LINQLearningPath
             new ContentMetaData
             {
                 Order = 4,
-                Title = "LINQ Where",
+                Title = "Using LINQ Where to Filter Data",
                 Author = "Abdul Rahman",
-                PosterUrl = "image/blogs/linq/linq-where.svg",
-                ThumbnailUrl = "image/blogs/linq/linq-where.svg",
-                ContentUrl = "blogs/linq-where",
+                PosterUrl = "image/blogs/linq/using-linq-where-to-filter-data.svg",
+                ThumbnailUrl = "image/blogs/linq/using-linq-where-to-filter-data.svg",
+                ContentUrl = "blogs/using-linq-where-to-filter-data",
                 IconUrl = "image/icons/linq.png",
                 Type = "LINQ",
                 CreatedOn = new DateTime(2022, 9, 4, 22, 30, 0),
