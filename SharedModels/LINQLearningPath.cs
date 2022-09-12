@@ -25,11 +25,11 @@ public class LINQLearningPath
             new ContentMetaData
             {
                 Order = 2,
-                Title = "LINQ Select",
+                Title = "Using LINQ to Select and Project Data",
                 Author = "Abdul Rahman",
-                PosterUrl = "image/blogs/linq/linq-select.svg",
-                ThumbnailUrl = "image/blogs/linq/linq-select.svg",
-                ContentUrl = "blogs/linq-select",
+                PosterUrl = "image/blogs/linq/using-linq-to-select-and-project-data.svg",
+                ThumbnailUrl = "image/blogs/linq/using-linq-to-select-and-project-data.svg",
+                ContentUrl = "blogs/using-linq-to-select-and-project-data",
                 IconUrl = "image/icons/linq.png",
                 Type = "LINQ",
                 CreatedOn = new DateTime(2022, 8, 21, 22, 30, 0),
