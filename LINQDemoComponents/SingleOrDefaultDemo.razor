@@ -93,7 +93,12 @@
     {
         try
         {
-            products = products.AsQueryable().SingleOrDefault(queryModel.Query).ToDynamicList<Product>();
+            var expr = DynamicExpressionParser.ParseLambda<Product, bool>(new ParsingConfig(), true, queryModel.Query);
+
+            var func = expr.Compile();
+
+            var product = products.AsQueryable().SingleOrDefault(func, new Product { Id = -1, Name = "Not Found", Color = "Not Found", Price = -1, Size = "Not Found" });
+            products = new List<Product>(1) { product };
         }
         catch (Exception ex)
         {
