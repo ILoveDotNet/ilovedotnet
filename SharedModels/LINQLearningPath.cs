@@ -38,11 +38,11 @@ public class LINQLearningPath
             new ContentMetaData
             {
                 Order = 3,
-                Title = "LINQ OrderBy",
+                Title = "Using LINQ OrderBy to Sort Data",
                 Author = "Abdul Rahman",
-                PosterUrl = "image/blogs/linq/linq-orderby.svg",
-                ThumbnailUrl = "image/blogs/linq/linq-orderby.svg",
-                ContentUrl = "blogs/linq-orderby",
+                PosterUrl = "image/blogs/linq/using-linq-orderby-to-sort-data.svg",
+                ThumbnailUrl = "image/blogs/linq/using-linq-orderby-to-sort-data.svg",
+                ContentUrl = "blogs/using-linq-orderby-to-sort-data",
                 IconUrl = "image/icons/linq.png",
                 Type = "LINQ",
                 CreatedOn = new DateTime(2022, 8, 28, 22, 30, 0),
