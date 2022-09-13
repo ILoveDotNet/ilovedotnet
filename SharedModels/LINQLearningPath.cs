@@ -89,7 +89,7 @@ public class LINQLearningPath
             },
             new ContentMetaData
             {
-                Order = 6,
+                Order = 7,
                 Title = "Using LINQ Single to Select Single Data",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/linq/using-linq-single-to-select-single-data.svg",
