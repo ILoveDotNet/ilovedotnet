@@ -73,6 +73,19 @@ public class LINQLearningPath
                 Type = "LINQ",
                 CreatedOn = new DateTime(2022, 9, 25, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 9, 25, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+                Order = 6,
+                Title = "Using LINQ Last to Select Single Data",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/linq/using-linq-last-to-select-single-data.svg",
+                ThumbnailUrl = "image/blogs/linq/using-linq-last-to-select-single-data.svg",
+                ContentUrl = "blogs/using-linq-last-to-select-single-data",
+                IconUrl = "image/icons/linq.png",
+                Type = "LINQ",
+                CreatedOn = new DateTime(2022, 10, 2, 22, 30, 0),
+                ModifiedOn = new DateTime(2022, 10, 2, 22, 30, 0)
             }
         };
     }
