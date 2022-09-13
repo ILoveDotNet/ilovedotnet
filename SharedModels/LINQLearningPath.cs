@@ -64,11 +64,11 @@ public class LINQLearningPath
             new ContentMetaData
             {
                 Order = 5,
-                Title = "Using LINQ to Select Single Data",
+                Title = "Using LINQ First to Select Single Data",
                 Author = "Abdul Rahman",
-                PosterUrl = "image/blogs/linq/using-linq-to-select-single-data.svg",
-                ThumbnailUrl = "image/blogs/linq/using-linq-to-select-single-data.svg",
-                ContentUrl = "blogs/using-linq-to-select-single-data",
+                PosterUrl = "image/blogs/linq/using-linq-first-to-select-single-data.svg",
+                ThumbnailUrl = "image/blogs/linq/using-linq-first-to-select-single-data.svg",
+                ContentUrl = "blogs/using-linq-first-to-select-single-data",
                 IconUrl = "image/icons/linq.png",
                 Type = "LINQ",
                 CreatedOn = new DateTime(2022, 9, 25, 22, 30, 0),
