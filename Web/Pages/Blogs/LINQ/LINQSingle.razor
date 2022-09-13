@@ -1,0 +1,157 @@
+﻿@page "/blogs/using-linq-single-to-select-single-data"
+@inherits FragmentNavigationBase
+@inject TableOfContents tableOfContents
+@using LINQDemoComponents
+
+<Content Title=@Title
+         Description=@Description
+         CreatedOn=@CreatedOn
+         ModifiedOn=@ModifiedOn
+         Slug=@Slug
+         PosterPath=@PosterPath
+         Keywords=@Keywords
+         Channel="@Channel"
+         ContentType="@ContentType"
+         TotalContents=@TotalContents
+         FileName=@nameof(LINQSingle)>
+    <ContentBody>
+        <p>
+            In this article, let's learn about how to use <ContentHighlight>Single</ContentHighlight> and <ContentHighlight>SingleOrDefault</ContentHighlight> 
+            in <ContentHighlight>LINQ</ContentHighlight> in .NET.
+        </p>
+
+        <p>
+            <strong>Note:</strong> If you have not done so already, I recommend you read the article on
+            <NavLink class="[ underline ]" href="blogs/using-linq-last-to-select-single-data" Match="NavLinkMatch.All">Using LINQ Last to Select Single Data in Collections</NavLink>.
+        </p>
+
+        <h3 class="[ font-semibold text-lg ]">Table of Contents</h3>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
+                    Introduction
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#single")" Match="NavLinkMatch.All">
+                    Search for only one element using Single
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#single-or-default")" Match="NavLinkMatch.All">
+                    Search for only one element using SingleOrDefault
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#when-to-use-which")" Match="NavLinkMatch.All">
+                    When to use which?
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
+                    Summary
+                </NavLink>
+            </li>
+        </ol>
+
+        <h3 id="introduction" class="[ font-semibold text-lg ]">Introduction</h3>
+
+        <p>
+            We can select single piece of data from a collection using LINQ. We're going to use Single() and SingleOrDefault() methods. Let's take a look at each of these methods and how 
+            they work.
+        </p>
+
+        <h3 id="single" class="[ font-semibold text-lg ]">Search for only one element using Single</h3>
+
+        <p>
+            If you're familiar with your collection and you know there's only a single item you're looking for, you can use the Single method, passing in your lambda expression of what you're 
+            looking for. It will search through the collection forward. It'll throw an exception if the collection is null or if more than one element is returned. So this one, it truly only 
+            wants a single value to match in that collection.
+        </p>
+
+        <GithubGistSnippet Title="LINQ Single" UserId="fingers10" FileName="fba7e4415dafd3cc218ca92caa08b68d"></GithubGistSnippet>
+
+        <DemoSnippet Title="LINQ Single Clause Demo">
+            <p>
+                Let's try LINQ Single
+            </p>
+
+            <ul class="[ list-disc ] [ ml-4 ]">
+                <li>We have <ContentHighlight>Product</ContentHighlight> class with following properties - <ContentHighlight>Id, Name, Color, Price, Size</ContentHighlight></li>
+                <li>Enter the column names you would like to select.</li>
+                <li>Click on Get Single product</li>
+                <li>Click on reset to try other combination</li>
+            </ul>
+
+            <SingleDemo></SingleDemo>
+        </DemoSnippet>
+
+        <h3 id="single-or-default" class="[ font-semibold text-lg ]">Search for only one element using SingleOrDefault</h3>
+
+        <p>
+            The other option is SingleOrDefault. Again, you pass in the expression and optionally a default value. Now this will throw an exception if the collection is null or more than one 
+            element is returned. Otherwise, if it doesn't find anything, it will return a null or whatever default value you supplied.
+        </p>
+
+        <GithubGistSnippet Title="LINQ SingleOrDefault" UserId="fingers10" FileName="6abf17a0ce82e4a9ff34b671a2127bb7"></GithubGistSnippet>
+
+        <DemoSnippet Title="LINQ SingleOrDefault Clause Demo">
+            <p>
+                Let's try LINQ SingleOrDefault
+            </p>
+
+            <ul class="[ list-disc ] [ ml-4 ]">
+                <li>We have <ContentHighlight>Product</ContentHighlight> class with following properties - <ContentHighlight>Id, Name, Color, Price, Size</ContentHighlight></li>
+                <li>Enter the column names you would like to select.</li>
+                <li>Click on Single Or Default product</li>
+                <li>Click on reset to try other combination</li>
+            </ul>
+
+            <SingleOrDefaultDemo></SingleOrDefaultDemo>
+        </DemoSnippet>
+
+        <h3 id="when-to-use-which" class="[ font-semibold text-lg ]">When to use which?</h3>
+        
+        <p>
+            So now I've shown you all these LINQ queries, but which ones do you use and when do you use them? So I'm going to do a comparison between the First() and Last() methods versus the 
+            FirstOrDefault() and the LastOrDefault() methods. If you expect the element to be present in the collection, you can use First() or Last(). But if you're not sure if that element 
+            is present, then use FirstOrDefault() or LastOrDefault(), and that has to do with exceptions, right? Because the First() and Last() is going to throw an exception if something is 
+            not found. So if you want to handle that or maybe rethrow an exception if something's not found, you could use First() or Last(). Me, I'd rather not deal with exceptions, so I 
+            really prefer FirstOrDefault() or the LastOrDefault(). Also, this gives us back a null or some other default value, and I find it easier to check for null than actually check for 
+            an exception. Well, how about First() versus Single()? Well, these are pretty similar because if you expect the element to be present, you can use First() or you can use Single(). 
+            If you want to handle or throw an exception if it's not found, you could use First(), you could use Single(). Here's where it really matters. First() is only going to search until 
+            it finds the element, then it stops. Single(), however, has to search the entire list every time. And the reason why is because, remember, it has to check to see if there are 
+            multiples so it knows whether or not to throw that exception. So what does that mean? It means that First() is faster than Single(). Single() is always going to be slower because 
+            it always has to search. If you've got a collection of 10,000 items, and First(), you're looking for the first thing, and it happens to get it at five, it's done. Single() still 
+            has to go through all the rest of the collection. So what about SingleOrDefault() versus FirstOrDefault()? Well, if you expect the element to be present, SingleOrDefault() works. 
+            If you're not sure if the element is present, use FirstOrDefault(). If you want to handle or throw an exception if something's not found, SingleOrDefault()'s fine. But if you don't 
+            want to handle exceptions, you're really more interested in getting back a null or your own default value, take advantage of FirstOrDefault(). Now again, SingleOrDefault() must 
+            search the entire list every time you call it, whereas FirstOrDefault() searches only until it finds the element. That means that SingleOrDefault() is always going to be slower 
+            than FirstOrDefault(). So again, I would typically use the FirstOrDefault().
+        </p>
+
+        <h3 id="summary" class="[ font-semibold text-lg ]">Summary</h3>
+
+        <p>
+            In this article we learn't how to locate single data within collection using <ContentHighlight>Single</ContentHighlight> and <ContentHighlight>SingleOrDefault</ContentHighlight>. 
+            We saw that there's an option to supply your own default value, that sometimes you need to catch exceptions or sometimes you need to check for null or that default value, depending 
+            on the method that you're calling. Now I always like using all the <ContentHighlight>OrDefault()</ContentHighlight> methods so that I can avoid anybody throwing exceptions. To me, 
+            throwing exceptions are not something that you want to use as a regular way of programming. Those should be exceptions. All these can be used with any 
+            <ContentHighlight>IEnumerable</ContentHighlight> or <ContentHighlight>IQueryable</ContentHighlight> types.
+        </p>
+    </ContentBody>
+</Content>
+
+@code {
+    private string Title = "Using LINQ Single to Select Single Data";
+    private string Description = "In this post I will teach you how to select single data within collections using LINQ in .NET. All with live working demo.";
+    private DateTime CreatedOn = new DateTime(2022, 10, 9, 22, 30, 0);
+    private DateTime ModifiedOn = new DateTime(2022, 10, 9, 22, 30, 0);
+    private string Slug = "using-linq-single-to-select-single-data";
+    private string PosterPath = "Blogs/LINQ";
+    private string Channel = "linq";
+    private string ContentType = "blogs";
+    private ushort TotalContents => (ushort)tableOfContents.Contents.Count(content => content.Type.Equals("LINQ", StringComparison.CurrentCultureIgnoreCase));
+    private List<string> Keywords = new(3) { "Single", "SingleOrDefault", "Full Search" };
+}
