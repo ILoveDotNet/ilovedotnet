@@ -99,6 +99,19 @@ public class LINQLearningPath
                 Type = "LINQ",
                 CreatedOn = new DateTime(2022, 10, 9, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 10, 9, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+                Order = 8,
+                Title = "Using LINQ Take to Select Specific Data",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/linq/using-linq-take-to-select-specific-data.svg",
+                ThumbnailUrl = "image/blogs/linq/using-linq-take-to-select-specific-data.svg",
+                ContentUrl = "blogs/using-linq-take-to-select-specific-data",
+                IconUrl = "image/icons/linq.png",
+                Type = "LINQ",
+                CreatedOn = new DateTime(2022, 10, 16, 22, 30, 0),
+                ModifiedOn = new DateTime(2022, 10, 16, 22, 30, 0)
             }
         };
     }
