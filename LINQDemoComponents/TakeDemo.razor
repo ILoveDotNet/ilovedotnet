@@ -7,14 +7,14 @@
                 Query
                 <InputTextArea class="[ w-full h-full ] [ px-4 py-2 ] [ border-2 ] [ focus:outline-none focus:border-gray-400 ] [ dark:bg-black dark:border-gray-800 dark:focus:border-b-white dark:md:focus:border-blue-800 dark:caret-white dark:text-white ]"
                                rows="5"
-                               placeholder=@(@"product => product.Color == ""Red""")
+                               placeholder=@(@"2 or 1..2")
                                @bind-Value="queryModel.Query" />
             </label>
 
             <ValidationMessage For=@(() => queryModel.Query) />
 
             <button type="submit" class="[ bg-cyan-500 ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ]">
-                Get Single Product
+                Take Products
             </button>
 
             <button type="button" class="[ bg-fuchsia-500 ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ]" @onclick="ResetProducts">
@@ -93,8 +93,8 @@
     {
         try
         {
-            var product = products.AsQueryable().Single(queryModel.Query);
-            products = new List<Product>(1) { product };
+            var partitionedProducts = products.AsQueryable().Take(queryModel.Query).ToList();
+            products = partitionedProducts;
         }
         catch (Exception ex)
         {
