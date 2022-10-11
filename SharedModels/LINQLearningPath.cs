@@ -112,6 +112,19 @@ public class LINQLearningPath
                 Type = "LINQ",
                 CreatedOn = new DateTime(2022, 10, 16, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 10, 16, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+                Order = 9,
+                Title = "Using LINQ Skip to Select Specific Data",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/linq/using-linq-skip-to-select-specific-data.svg",
+                ThumbnailUrl = "image/blogs/linq/using-linq-skip-to-select-specific-data.svg",
+                ContentUrl = "blogs/using-linq-skip-to-select-specific-data",
+                IconUrl = "image/icons/linq.png",
+                Type = "LINQ",
+                CreatedOn = new DateTime(2022, 10, 23, 22, 30, 0),
+                ModifiedOn = new DateTime(2022, 10, 23, 22, 30, 0)
             }
         };
     }
