@@ -125,6 +125,19 @@ public class LINQLearningPath
                 Type = "LINQ",
                 CreatedOn = new DateTime(2022, 10, 23, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 10, 23, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+                Order = 10,
+                Title = "Using LINQ Distinct to Select Specific Data",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/linq/using-linq-distinct-to-select-specific-data.svg",
+                ThumbnailUrl = "image/blogs/linq/using-linq-distinct-to-select-specific-data.svg",
+                ContentUrl = "blogs/using-linq-distinct-to-select-specific-data",
+                IconUrl = "image/icons/linq.png",
+                Type = "LINQ",
+                CreatedOn = new DateTime(2022, 11, 6, 22, 30, 0),
+                ModifiedOn = new DateTime(2022, 11, 6, 22, 30, 0)
             }
         };
     }
