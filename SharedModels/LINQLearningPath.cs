@@ -129,11 +129,11 @@ public class LINQLearningPath
             new ContentMetaData
             {
                 Order = 10,
-                Title = "Using LINQ Distinct to Select Specific Data",
+                Title = "Using LINQ Distinct to Select Unique Data",
                 Author = "Abdul Rahman",
-                PosterUrl = "image/blogs/linq/using-linq-distinct-to-select-specific-data.svg",
-                ThumbnailUrl = "image/blogs/linq/using-linq-distinct-to-select-specific-data.svg",
-                ContentUrl = "blogs/using-linq-distinct-to-select-specific-data",
+                PosterUrl = "image/blogs/linq/using-linq-distinct-to-select-unique-data.svg",
+                ThumbnailUrl = "image/blogs/linq/using-linq-distinct-to-select-unique-data.svg",
+                ContentUrl = "blogs/using-linq-distinct-to-select-unique-data",
                 IconUrl = "image/icons/linq.png",
                 Type = "LINQ",
                 CreatedOn = new DateTime(2022, 11, 6, 22, 30, 0),
