@@ -138,6 +138,19 @@ public class LINQLearningPath
                 Type = "LINQ",
                 CreatedOn = new DateTime(2022, 11, 6, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 11, 6, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+                Order = 11,
+                Title = "Using LINQ Chunk to Split Data",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/linq/using-linq-chunk-to-split-data.svg",
+                ThumbnailUrl = "image/blogs/linq/using-linq-chunk-to-split-data.svg",
+                ContentUrl = "blogs/using-linq-chunk-to-split-data",
+                IconUrl = "image/icons/linq.png",
+                Type = "LINQ",
+                CreatedOn = new DateTime(2022, 11, 13, 22, 30, 0),
+                ModifiedOn = new DateTime(2022, 11, 13, 22, 30, 0)
             }
         };
     }
