@@ -93,7 +93,11 @@
     {
         try
         {
-            var partitionedProducts = products.AsQueryable().DistinctBy(queryModel.Query);
+            var expr = DynamicExpressionParser.ParseLambda<Product, bool>(new ParsingConfig(), true, queryModel.Query);
+
+            var func = expr.Compile();
+
+            var partitionedProducts = products.AsQueryable().DistinctBy(func);
             products = partitionedProducts;
         }
         catch (Exception ex)
