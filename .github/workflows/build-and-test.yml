@@ -1,0 +1,55 @@
+name: github pages
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout the code
+      - uses: actions/checkout@v2
+
+      # Install .NET Core SDK
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 6.0.x
+          
+      # Install dotnet wasm buildtools workload
+      - name: Install .NET WASM Build Tools
+        run: dotnet workload install wasm-tools
+          
+      # Install Node JS
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v2.4.1
+        with:
+          node-version: '16.13.0'
+      - run: npm install
+        working-directory: ./Web
+        
+      # Restore Dependencies
+      - name: Restore dependencies
+        run: dotnet restore
+        
+      # Build Project
+      - name: Build
+        run: dotnet build ./ILoveDotNet.sln --configuration Release --no-restore
+        
+      # Run Tests
+      - name: Test
+        run: dotnet test ./ILoveDotNet.sln --configuration Release --no-build --verbosity normal --logger trx --results-directory "TestResults-${{ matrix.dotnet-version }}"
+      - name: Upload dotnet test results
+        uses: actions/upload-artifact@v2
+        with:
+          name: dotnet-results-${{ matrix.dotnet-version }}
+          path: TestResults-${{ matrix.dotnet-version }}
+          retention-days: 3
+          
+      # Use always() to always run this step to publish test results when there are test failures
+        if: ${{ always() }}
