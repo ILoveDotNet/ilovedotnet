@@ -45,19 +45,6 @@ jobs:
       - name: Build
         run: dotnet build ./ILoveDotNet.sln --configuration Release --no-restore
         
-      # Run Tests
-      - name: Test
-        run: dotnet test ./ILoveDotNet.sln --configuration Release --no-build --verbosity normal --logger trx --results-directory "TestResults-${{ matrix.dotnet-version }}"
-      - name: Upload dotnet test results
-        uses: actions/upload-artifact@v2
-        with:
-          name: dotnet-results-${{ matrix.dotnet-version }}
-          path: TestResults-${{ matrix.dotnet-version }}
-          retention-days: 3
-          
-      # Use always() to always run this step to publish test results when there are test failures
-        if: ${{ always() }}
-        
       # Publishes Blazor project to the release-folder
       - name: Publish .NET Core Project
         run: dotnet publish Web/Web.csproj -c:Release -p:GHPages=true --no-restore -o dist/Web --nologo
