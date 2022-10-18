@@ -39,29 +39,42 @@
     </ErrorContent>
 </ErrorBoundary>
 
-<table class="[ table-fixed border-collapse ] [ bg-white ] [ border-2 ] [ dark:bg-black dark:border-slate-500 ] [ mt-2 ] [ w-full ]">
-    <thead>
-        <tr class="[ bg-gray-100 ] [ dark:bg-slate-500 ]">
-            <th class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Id</th>
-            <th class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Name</th>
-            <th class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Color</th>
-            <th class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Price</th>
-            <th class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Size</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var product in products)
-        {
-            <tr>
-                <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">@product.Id</td>
-                <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">@product.Name</td>
-                <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">@product.Color</td>
-                <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">@product.Price</td>
-                <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">@product.Size</td>
+<section>
+    <table class="[ table-fixed border-collapse ] [ bg-white ] [ border-2 ] [ dark:bg-black dark:border-slate-500 ] [ mt-2 ] [ w-full ]">
+        <thead>
+            <tr class="[ bg-gray-100 ] [ dark:bg-slate-500 ]">
+                <th class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Id</th>
+                <th class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Name</th>
+                <th class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Color</th>
+                <th class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Price</th>
+                <th class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Size</th>
             </tr>
-        }
-    </tbody>
-</table>
+        </thead>
+        <tbody>
+            @foreach (var product in products)
+            {
+                <tr>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">@product.Id</td>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">@product.Name</td>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">@product.Color</td>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">@product.Price</td>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">@product.Size</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    @if (chunked) 
+    {
+        <div class="[ flex flex-row justify-between ]">
+            <button type="button" class="[ bg-cyan-500 ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ]" disabled="@disablePrevious" @onclick="OnPreviousClick">
+                Previous
+            </button>
+            <button type="button" class="[ bg-cyan-500 ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ]" disabled="@disableNext" @onclick="OnNextClick">
+                Next
+            </button>
+        </div>
+    }
+</section>
 
 @code
 {
@@ -76,6 +89,12 @@
     private ErrorBoundary errorBoundary = default!;
     private string? errorMessage;
     private IEnumerable<Product> products = new ProductSource().Products;
+    private bool chunked;
+    private IEnumerable<IEnumerable<Product>> chunkedProducts = Enumerable.Empty<IEnumerable<Product>>();
+    private int totalChunks => chunkedProducts.Count();
+    private int currentChunk = 0;
+    private bool disableNext => currentChunk == totalChunks - 1;
+    private bool disablePrevious => currentChunk == 0;
 
     private void Recover()
     {
@@ -92,8 +111,9 @@
     {
         try
         {
-            var splitProducts = products.AsQueryable().Chunk(queryModel.Query).ToList();
-            products = splitProducts[0].ToList();
+            chunkedProducts = products.AsQueryable().Chunk(queryModel.Query);
+            products = chunkedProducts.ElementAt(0);
+            chunked = true;
         }
         catch (Exception ex)
         {
@@ -102,8 +122,20 @@
         }
     }
 
+    private void OnNextClick() 
+    {
+        products = chunkedProducts.ElementAt(++currentChunk);
+    }
+
+    private void OnPreviousClick() 
+    {
+        products = chunkedProducts.ElementAt(--currentChunk);
+    }
+
     private void ResetProducts()
     {
         products = new ProductSource().Products;
+        chunked = false;
+        currentChunk = 0;
     }
 }
