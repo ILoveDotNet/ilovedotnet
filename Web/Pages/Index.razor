@@ -1,7 +1,9 @@
 ﻿@page "/"
-@using Toolbelt.Blazor.HeadElement
+@using Microsoft.AspNetCore.Components.WebAssembly.Hosting
 @using SharedComponents
+@using Toolbelt.Blazor.HeadElement
 @inject IConfiguration configuration
+@inject IWebAssemblyHostEnvironment hostEnvironment
 @inject Sitemaps sitemap
 
 <Meta Property="description" Content="@Description" />
@@ -60,7 +62,10 @@
 <section class="[ dark:bg-stone-900 ] [ flex flex-col ] [ space-y-5 ] [ p-5 ]">
     <ContentFilter OnFilterContents="RefreshContent"></ContentFilter>
     <div class="[ grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 ]">
-        <GoogleAdSense></GoogleAdSense>
+        @if (hostEnvironment.IsProduction()) 
+        {
+            <GoogleAdSense></GoogleAdSense>
+        }
         @foreach (var content in Contents)
         {
              <Thumbnail PosterUrl="@content.ThumbnailUrl" 
