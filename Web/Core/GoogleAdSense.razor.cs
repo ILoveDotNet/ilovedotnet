@@ -1,11 +1,14 @@
 ﻿using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 
 namespace Components;
 
 public class GoogleAdSenseBase : ComponentBase
 {
     protected string Id = Guid.NewGuid().ToString();
-    protected RenderFragment Ads { get; set; }
+    protected RenderFragment Ads { get; set; } = default!;
+
+    [Inject] public IWebAssemblyHostEnvironment HostEnvironment { get; set; } = default!;
 
     [Parameter] public string Slot { get; set; } = "2741354693";
     [Parameter] public string Style { get; set; } = "display:block";
