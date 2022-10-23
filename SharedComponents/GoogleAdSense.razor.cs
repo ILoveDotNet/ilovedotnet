@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 
-namespace Components;
+namespace SharedComponents;
 
 public class GoogleAdSenseBase : ComponentBase
 {
