@@ -2,10 +2,17 @@
 @inject TableOfContents tableOfContents
 
 <aside class="[ flex flex-col md:basis-1/4 ] [ space-y-2 ]">
-    @foreach (var content in tableOfContents.Contents
-                                            .Where(content => !content.Title.Equals(Title, StringComparison.OrdinalIgnoreCase))
-                                            .OrderByDescending(content => content.CreatedOn))
+    <GoogleAdSense></GoogleAdSense>
+    @foreach (var (content, index) in tableOfContents.Contents
+                                                     .Where(content => !content.Title.Equals(Title, StringComparison.OrdinalIgnoreCase))
+                                                     .OrderByDescending(content => content.CreatedOn)
+                                                     .Select((content, index) => (content, index)))
     {
+        @if (AdSpace.Contains(index + 1)) 
+        {
+            <GoogleAdSense></GoogleAdSense>
+        }
+
         @if (SmallDevice)
         {
             <section class="[ flex flex-col justify-between ] [ h-full ]">
@@ -58,9 +65,21 @@
             </NavLink>
         }
     }
+    <GoogleAdSense></GoogleAdSense>
 </aside>
 
 @code {
+    private List<int> AdSpace = new(0);
+
     [Parameter, EditorRequired] public string Title { get; set; } = default!;
     [CascadingParameter] public bool SmallDevice { get; set; }
+
+    protected override void OnInitialized()
+    {
+        Random random = new();
+        for (int i = 4; i <= tableOfContents.Contents.Count - 4; i = i + 4)
+        {
+            AdSpace.Add(random.Next(i, i + 5));
+        }
+    }
 }
