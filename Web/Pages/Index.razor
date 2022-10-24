@@ -61,9 +61,13 @@
     <ContentFilter OnFilterContents="RefreshContent"></ContentFilter>
     <div class="[ grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 ]">
         <GoogleAdSense></GoogleAdSense>
-        @foreach (var content in Contents)
+        @foreach (var (content, index) in Contents.Select((content, index) => (content, index)))
         {
-             <Thumbnail PosterUrl="@content.ThumbnailUrl" 
+            @if (AdSpace.Contains(index + 1)) 
+            {
+                <GoogleAdSense></GoogleAdSense>
+            }
+            <Thumbnail PosterUrl="@content.ThumbnailUrl" 
                     ContentUrl="@content.ContentUrl"
                     Title="@content.Title"
                     AltText="@content.Title"
@@ -82,9 +86,15 @@
     private string Description = "This is a .NET knowledge sharing platform with live demos crafted by developers for developers with love.";
     private string BaseUrl => configuration.GetValue<string>("baseUrl");
     private List<ContentMetaData> Contents = new(0);
+    private List<int> AdSpace = new(0);
 
     private void RefreshContent(List<ContentMetaData> filteredContents)
     {
         Contents = filteredContents;
+        Random random = new();
+        for (int i = 4; i <= Contents.Count - 4; i = i+4)
+        {
+            AdSpace.Add(random.Next(i, i + 5));
+        }
     }
 }
