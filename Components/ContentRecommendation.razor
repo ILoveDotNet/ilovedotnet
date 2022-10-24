@@ -1,4 +1,5 @@
 @using Humanizer
+@inject AdSpaceService adSpaceService
 @inject TableOfContents tableOfContents
 
 <aside class="[ flex flex-col md:basis-1/4 ] [ space-y-2 ]">
@@ -8,7 +9,7 @@
                                                      .OrderByDescending(content => content.CreatedOn)
                                                      .SelectWithIndex())
     {
-        @if (AdSpace.Contains(index + 1)) 
+        @if (adSpaceService.AdSpace.Contains(index + 1)) 
         {
             <GoogleAdSense></GoogleAdSense>
         }
@@ -69,17 +70,6 @@
 </aside>
 
 @code {
-    private List<int> AdSpace = new(0);
-
     [Parameter, EditorRequired] public string Title { get; set; } = default!;
     [CascadingParameter] public bool SmallDevice { get; set; }
-
-    protected override void OnInitialized()
-    {
-        Random random = new();
-        for (int i = 4; i <= tableOfContents.Contents.Count - 4; i = i + 4)
-        {
-            AdSpace.Add(random.Next(i, i + 5));
-        }
-    }
 }
