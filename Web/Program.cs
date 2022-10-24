@@ -31,6 +31,8 @@ static void ConfigureServices(IServiceCollection services, string baseAddress)
 
     services.AddScoped<Sitemaps>();
 
+    services.AddTransient<AdSpaceService>();
+
     services.AddScoped<LazyAssemblyLoader>();
 
     services.AddHeadElementHelper();
