@@ -4,7 +4,7 @@ public class AdSpaceService
 {
     private readonly Random random = new();
 
-    public readonly List<int> AdSpace = new();
+    private readonly List<int> AdSpace = new();
 
     public AdSpaceService(TableOfContents tableOfContents)
     {
@@ -12,5 +12,10 @@ public class AdSpaceService
         {
             AdSpace.Add(random.Next(i, i + 5));
         }
+    }
+
+    public bool CanDisplayAd(int index) 
+    {
+        return AdSpace.Contains(index);
     }
 }
