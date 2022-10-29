@@ -1,6 +1,6 @@
 ﻿@page "/blogs/blazor-wasm-javascript-interop-and-isolation"
-@inherits FragmentNavigationBase
 @using BlazorDemoComponents
+@inherits FragmentNavigationBase
 @inject TableOfContents tableOfContents
 
 <Content Title=@Title
@@ -16,54 +16,69 @@
          FileName=@nameof(JavascriptInteropAndIsolation)>
     <ContentBody>
         <p>
-            In Blazor WASM we should try to have minimal usage of Javascript. Though Blazor WASM runs on top of web assembly, we might sometime
-            require access to javascript for certain operations like displaying alert, prompt setting theme on html element, focusing a suggestion
-            from autocomplete input on up and down keyboard key press, getting viewport size or at few cases we might need to use the existing
-            javascript library to render chart, grid, etc.
+            In this article let's learn about <ContentHighlight>Javascript Interop</ContentHighlight> and <ContentHighlight>Javascript Isolation</ContentHighlight>.
         </p>
 
-        <p>
-            The above usecases can be solved in two different ways as mentioned below.
-            <ol class="[ list-decimal ] [ ml-4 ]">
-                <li>
-                    <NavLink class="[ underline ]" href="@($"blogs/{Slug}#javascript-interop")" Match="NavLinkMatch.All">
-                        Javascript Interop
-                    </NavLink>
-                    <ol class="[ list-disc ] [ ml-4 ]">
-                        <li>
-                            <NavLink class="[ underline ]" href="@($"blogs/{Slug}#javascript-interop-js-from-dotnet")" Match="NavLinkMatch.All">
-                                Calling JS functions from .Net
-                            </NavLink>
-                        </li>
-                        <li>
-                            <NavLink class="[ underline ]" href="@($"blogs/{Slug}#javascript-interop-dotnet-from-js")" Match="NavLinkMatch.All">
-                                Calling .Net methods from JS
-                            </NavLink>
-                        </li>
-                    </ol>
+        <h3 class="[ font-semibold text-lg ]">Table of Contents</h3>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
+                    Introduction
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#javascript-interop")" Match="NavLinkMatch.All">
+                    Javascript Interop
+                </NavLink>
+                <ol class="[ list-disc ] [ ml-4 ]">
+                    <li>
+                        <NavLink class="[ underline ]" href="@($"blogs/{Slug}#javascript-interop-js-from-dotnet")" Match="NavLinkMatch.All">
+                            Calling JS functions from .Net
+                        </NavLink>
+                    </li>
+                    <li>
+                        <NavLink class="[ underline ]" href="@($"blogs/{Slug}#javascript-interop-dotnet-from-js")" Match="NavLinkMatch.All">
+                            Calling .Net methods from JS
+                        </NavLink>
+                    </li>
+                </ol>
                 </li>
                 <li>
                     <NavLink class="[ underline ]" href="@($"blogs/{Slug}#javascript-isolation")" Match="NavLinkMatch.All">
                         Javascript Isolation
                     </NavLink>
                 </li>
-            </ol>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
+                    Summary
+                </NavLink>
+            </li>
+        </ol>
+
+        <h3 id="introduction" class="[ font-semibold text-lg ]">Introduction</h3>
+
+        <p>
+            In Blazor WASM we should try to have minimal usage of Javascript. Though Blazor WASM runs on top of web assembly, we might sometime require access to javascript for certain 
+            operations like displaying alert, prompt setting theme on html element, focusing a suggestion from autocomplete input on up and down keyboard key press, getting viewport size 
+            or at few cases we might need to use the existing javascript library to render chart, grid, etc.
+        </p>
+
+        <p>
+            The above usecases can be solved in two different ways as mentioned below.
         </p>
 
         <h3 id="javascript-interop" class="[ font-semibold text-lg ]">Javascript Interop</h3>
 
         <p>
-            To start using <ContentHighlight>Javascript</ContentHighlight> using JS interop, first we
-            need our javascript code in a separate js file place inside <ContentHighlight>wwwroot</ContentHighlight>
-            and we need to inject <ContentHighlight>IJSRuntime</ContentHighlight> in the component to invoke our
-            javascript function.
+            To start using <ContentHighlight>Javascript</ContentHighlight> using JS interop, first we need our javascript code in a separate js file place inside 
+            <ContentHighlight>wwwroot</ContentHighlight> and we need to inject <ContentHighlight>IJSRuntime</ContentHighlight> in the component to invoke our javascript function.
         </p>
 
         <p>
-            Let's look on how to display a simple javascript alert in blazor. We'll start with defining a <ContentHighlight>blazorInterop</ContentHighlight>
-            object just to make sure we don't pollute the global <ContentHighlight>window</ContentHighlight> object.
-            Now let's register a simple <ContentHighlight>displayAlert</ContentHighlight> function which
-            will take text and display it in javascript <ContentHighlight>alert()</ContentHighlight>.
+            Let's look on how to display a simple javascript alert in blazor. We'll start with defining a <ContentHighlight>blazorInterop</ContentHighlight> object just to make sure we don't 
+            pollute the global <ContentHighlight>window</ContentHighlight> object. Now let's register a simple <ContentHighlight>displayAlert</ContentHighlight> function which will take text 
+            and display it in javascript <ContentHighlight>alert()</ContentHighlight>.
         </p>
 
         <GithubGistSnippet Title="JS function to be called from .NET which returns no value" UserId="fingers10" FileName="97c3319d5cd3ba12030fd70039a510a0"></GithubGistSnippet>
@@ -71,11 +86,9 @@
         <h4 id="javascript-interop-js-from-dotnet" class="[ font-semibold text-base ]">Calling JS from .Net</h4>
 
         <p>
-            Befor we proceed on invoking the function make sure to add a reference to your jsvascript file in <ContentHighlight>index.html</ContentHighlight>.
-            Now let's inject <ContentHighlight>IJSRuntimr</ContentHighlight> into our component and call
-            <ContentHighlight>blazorInterop.displayAlert("I ❤️ DotNet")</ContentHighlight> using
-            <ContentHighlight>InvokeVoidAsync</ContentHighlight> as we don't have any return
-            value from the javascript function.
+            Befor we proceed on invoking the function make sure to add a reference to your jsvascript file in <ContentHighlight>index.html</ContentHighlight>. Now let's inject 
+            <ContentHighlight>IJSRuntimr</ContentHighlight> into our component and call <ContentHighlight>blazorInterop.displayAlert("I ❤️ DotNet")</ContentHighlight> using
+            <ContentHighlight>InvokeVoidAsync</ContentHighlight> as we don't have any return value from the javascript function.
         </p>
 
         <GithubGistSnippet Title="Alert Component to call JS from .NET which returns no value" UserId="fingers10" FileName="0ddb3604c0fcdd77ef70ecf4d3943b06"></GithubGistSnippet>
@@ -85,10 +98,9 @@
         </DemoSnippet>
 
         <p>
-            Voila.. now we are using javascript logics in our blazor app. That's a fairly simple example. Let's look at another example where we
-            need some values from javascript function. If we want to find the current viewport width and height, then we can levearge javascript to
-            get window height and width and return it back to blazor. The steps are same like before except this time we need to call the javascript
-            function using <ContentHighlight>InvokeAsync&lt;WindowDimensions&gt;("blazorInterop.getViewportDimensions")</ContentHighlight>.
+            Voila.. now we are using javascript logics in our blazor app. That's a fairly simple example. Let's look at another example where we need some values from javascript function. 
+            If we want to find the current viewport width and height, then we can levearge javascript to get window height and width and return it back to blazor. The steps are same like 
+            before except this time we need to call the javascript function using <ContentHighlight CssClasses="[ break-all ]">InvokeAsync&lt;WindowDimensions&gt;("blazorInterop.getViewportDimensions")</ContentHighlight>.
         </p>
 
         <GithubGistSnippet Title="JS function to be called from .NET which returns value" UserId="fingers10" FileName="375be41a677d108fbe2ec654468b28c3"></GithubGistSnippet>
@@ -102,21 +114,16 @@
         <h4 id="javascript-interop-dotnet-from-js" class="[ font-semibold text-base ]">Calling .Net from JS</h4>
 
         <p>
-            There are situations where you need to call a .Net method from JS function. One example is clicking on a point in chart to display
-            additional information. Now you need to pass some information from <ContentHighlight>JS</ContentHighlight>
-            to <ContentHighlight>.NET</ContentHighlight> and make API call to retrieve additional information.
-            You can call <ContentHighlight>static</ContentHighlight> method or
-            <ContentHighlight>.NET instance</ContentHighlight> method from JS. Let's see how to do
-            this in blazor.
+            There are situations where you need to call a .Net method from JS function. One example is clicking on a point in chart to display additional information. Now you need to pass some 
+            information from <ContentHighlight>JS</ContentHighlight> to <ContentHighlight>.NET</ContentHighlight> and make API call to retrieve additional information. You can call 
+            <ContentHighlight>static</ContentHighlight> method or <ContentHighlight>.NET instance</ContentHighlight> method from JS. Let's see how to do this in blazor.
         </p>
 
         <h5 class="[ font-semibold text-sm ]">Invoking Static Method</h5>
 
         <p>
-            Calling a <ContentHighlight>static</ContentHighlight> method is pretty simple. All you need
-            to do is to add <ContentHighlight>[JSInvokable]</ContentHighlight> attribute to your
-            <ContentHighlight>.NET static</ContentHighlight> method and call the
-            static .Net method from JS using <ContentHighlight>DotNet.invokeMethod('Namespace', '.Net Static Method Name')</ContentHighlight>.
+            Calling a <ContentHighlight>static</ContentHighlight> method is pretty simple. All you need to do is to add <ContentHighlight>[JSInvokable]</ContentHighlight> attribute to your
+            <ContentHighlight>.NET static</ContentHighlight> method and call the static .Net method from JS using <ContentHighlight CssClasses="[ break-all ]">DotNet.invokeMethod('Namespace', '.Net Static Method Name')</ContentHighlight>.
         </p>
 
         <GithubGistSnippet Title=".NET static method to be called from JS" UserId="fingers10" FileName="a2fa2758d1eb84a385cf081ef3cbb391"></GithubGistSnippet>
@@ -130,13 +137,10 @@
         <h5 class="[ font-semibold text-sm ]">Invoking Instance Method</h5>
 
         <p>
-            Calling an <ContentHighlight>component instance</ContentHighlight> method needs an
-            <ContentHighlight>.NET instance by reference</ContentHighlight> to be passed to JS.
-            This can be done by warpping the component instance inside <ContentHighlight>DotNetObjectReference&lt;ComponentInstance&gt;</ContentHighlight>
-            and calling create on it. Then we can invoke .NET method from JS using <ContentHighlight>InvokeMethod</ContentHighlight> or
-            <ContentHighlight>InvokeMethodAsync</ContentHighlight> from the passed instance reference.
-            Finally we need to <ContentHighlight>dispose</ContentHighlight> the
-            <ContentHighlight>DotNetObjectReference</ContentHighlight>.
+            Calling an <ContentHighlight>component instance</ContentHighlight> method needs an <ContentHighlight>.NET instance by reference</ContentHighlight> to be passed to JS. This can be 
+            done by warpping the component instance inside <ContentHighlight>DotNetObjectReference&lt;ComponentInstance&gt;</ContentHighlight> and calling create on it. Then we can invoke .NET 
+            method from JS using <ContentHighlight>InvokeMethod</ContentHighlight> or <ContentHighlight>InvokeMethodAsync</ContentHighlight> from the passed instance reference. Finally we need 
+            to <ContentHighlight>dispose</ContentHighlight> the <ContentHighlight>DotNetObjectReference</ContentHighlight>.
         </p>
 
         <GithubGistSnippet Title=".NET instance method to be called from JS" UserId="fingers10" FileName="d2204803bb0cef42e4285efb4636fa98"></GithubGistSnippet>
@@ -159,13 +163,10 @@
         </p>
 
         <p>
-            With Javascript Isolation, the steps are same but with an extra step to load <ContentHighlight>JS Module</ContentHighlight>
-            using <ContentHighlight>IJSRuntime</ContentHighlight> into
-            <ContentHighlight>IJSObjectReference (module)</ContentHighlight>.
-            After loading the module, we need to call JS functions using <ContentHighlight>IJSObjectReference module InvokeAsync</ContentHighlight>
-            instead of <ContentHighlight>IJSRuntime</ContentHighlight>. We also need to
-            make sure the module is <ContentHighlight>disposed</ContentHighlight> on
-            <ContentHighlight>component dispose</ContentHighlight>.
+            With Javascript Isolation, the steps are same but with an extra step to load <ContentHighlight>JS Module</ContentHighlight> using <ContentHighlight>IJSRuntime</ContentHighlight> 
+            into <ContentHighlight>IJSObjectReference (module)</ContentHighlight>. After loading the module, we need to call JS functions using 
+            <ContentHighlight>IJSObjectReference module InvokeAsync</ContentHighlight> instead of <ContentHighlight>IJSRuntime</ContentHighlight>. We also need to make sure the module is 
+            <ContentHighlight>disposed</ContentHighlight> on <ContentHighlight>component dispose</ContentHighlight>.
         </p>
 
         <GithubGistSnippet Title=".NET instance method to be called from JS Module" UserId="fingers10" FileName="6024a6acdb759562b052e1eab2c68126"></GithubGistSnippet>
@@ -175,6 +176,13 @@
         <DemoSnippet Title="Javascript Isolation - Calling Javascript prompt from JS Module">
             <JavascriptIsolation></JavascriptIsolation>
         </DemoSnippet>
+
+        <h3 id="summary" class="[ font-semibold text-lg ]">Summary</h3>
+
+        <p>
+            I'm happy that you have reached to the end of this article. We learnt what is Javascript Interop and Javascript Isolation. We saw how to call JS functions from .NET and vice versa 
+            with a live working demo. I hope you enjoyed this.
+        </p>
     </ContentBody>
 </Content>
 
