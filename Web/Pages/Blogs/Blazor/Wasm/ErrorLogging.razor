@@ -1,5 +1,6 @@
 ﻿@page "/blogs/blazor-wasm-error-logging"
 @using BlazorDemoComponents
+@inherits FragmentNavigationBase
 @inject TableOfContents tableOfContents
 
 <Content Title=@Title
@@ -16,50 +17,66 @@
     <ContentBody>
         <p>
             In our previous article <NavLink class="[ underline ]" href="blogs/blazor-wasm-exception-handling-and-error-boundary">Blazor WASM Exception Handling and Error Boundary</NavLink>,
-            we learnt how global exception works and how to handle exceptions using built in <ContentHighlight>ErrorBoundary</ContentHighlight>
-            component. In this article, let's learn about Error Logging in Blazor WASM.
+            we learnt how global exception works and how to handle exceptions using built in <ContentHighlight>ErrorBoundary</ContentHighlight> component. In this article, let's learn about 
+            Error Logging in Blazor WASM.
         </p>
+        
+        <h3 class="[ font-semibold text-lg ]">Table of Contents</h3>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
+                    Introduction
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#creating-error-component-to-log-error")" Match="NavLinkMatch.All">
+                    Creating Error component to log error
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
+                    Summary
+                </NavLink>
+            </li>
+        </ol>
+
+        <h3 id="introduction" class="[ font-semibold text-lg ]">Introduction</h3>
 
         <p>
-            Logging is needed in all applications. This will help to find root cause or track user activity in any environment.
-            This can be done easily in server side applications with logging frameworks but for <abbr title="Single Page Application">SPA</abbr>
-            like <ContentHighlight>Blazor <abbr title="Web Assembly">WASM</abbr></ContentHighlight> running in browser sandbox,
-            we will not be having direct access to file system or database and logging cannot be done like how we do in server side applications. We can use
-            browser console to log <ContentHighlight>Information</ContentHighlight>,
-            <ContentHighlight>Warning</ContentHighlight> or
-            <ContentHighlight>Error</ContentHighlight>. But this will not help much in production.
-            We can still make logging happen in production by processing <ContentHighlight>Exception</ContentHighlight> and posting the error details to backend API.
-            Let's look on how to achieve this in <ContentHighlight>Blazor <abbr title="Web Assembly">WASM</abbr></ContentHighlight>.
+            Logging is needed in all applications. This will help to find root cause or track user activity in any environment. This can be done easily in server side applications with logging 
+            frameworks but for <abbr title="Single Page Application">SPA</abbr> like <ContentHighlight>Blazor <abbr title="Web Assembly">WASM</abbr></ContentHighlight> running in browser 
+            sandbox, we will not be having direct access to file system or database and logging cannot be done like how we do in server side applications. We can use browser console to log 
+            <ContentHighlight>Information</ContentHighlight>, <ContentHighlight>Warning</ContentHighlight> or <ContentHighlight>Error</ContentHighlight>. But this will not help much in 
+            production. We can still make logging happen in production by processing <ContentHighlight>Exception</ContentHighlight> and posting the error details to backend API. Let's look on 
+            how to achieve this in <ContentHighlight>Blazor <abbr title="Web Assembly">WASM</abbr></ContentHighlight>.
         </p>
 
+        <h3 id="creating-error-component-to-log-error" class="[ font-semibold text-lg ]">Creating Error component to log error</h3>
+
         <p>
-            Let's start with simple <ContentHighlight>Subscription</ContentHighlight> component.
-            This will throw error on <ContentHighlight>Subscribe Now</ContentHighlight> button click.
+            Let's start with simple <ContentHighlight>Subscription</ContentHighlight> component. This will throw error on <ContentHighlight>Subscribe Now</ContentHighlight> button click.
         </p>
 
         <GithubGistSnippet Title="Subscribe component to simulate exception" UserId="fingers10" FileName="63b860184af61f1d0274e1eb06e28151"></GithubGistSnippet>
 
         <p>
-            To process the error, let's create an <ContentHighlight>Error</ContentHighlight> component.
-            This component takes Child Content <ContentHighlight>RenderFragment</ContentHighlight> as input.
-            This component also has <ContentHighlight>ProcessError</ContentHighlight> method to process the
-            exception and log it to <ContentHighlight>browser console</ContentHighlight> or
-            <ContentHighlight>backend API</ContentHighlight>. For simplicity I'm logging into browser console.
+            To process the error, let's create an <ContentHighlight>Error</ContentHighlight> component. This component takes Child Content <ContentHighlight>RenderFragment</ContentHighlight> 
+            as input. This component also has <ContentHighlight>ProcessError</ContentHighlight> method to process the exception and log it to 
+            <ContentHighlight>browser console</ContentHighlight> or <ContentHighlight>backend API</ContentHighlight>. For simplicity I'm logging into browser console.
         </p>
 
         <GithubGistSnippet Title="Error component to log exception" UserId="fingers10" FileName="15e50550370685d5c14334e2c057f19e"></GithubGistSnippet>
 
         <p>
-            Now lets wrap our <ContentHighlight>Subscription</ContentHighlight> component with
-            <ContentHighlight>Error</ContentHighlight> component.
+            Now lets wrap our <ContentHighlight>Subscription</ContentHighlight> component with <ContentHighlight>Error</ContentHighlight> component.
         </p>
 
         <GithubGistSnippet Title="Blazor Error logging with Error Component" UserId="fingers10" FileName="87f6fd800d66d3162e69eabbea5f8aec"></GithubGistSnippet>
 
         <p>
-            That's it. Now if any exception occurs, <ContentHighlight>Sunscription</ContentHighlight> component
-            will make use of <ContentHighlight>CascadingParameter Error</ContentHighlight> component and process
-            the exception which then can be used to log to browser console or posted to backend API.
+            That's it. Now if any exception occurs, <ContentHighlight>Subscription</ContentHighlight> component will make use of <ContentHighlight>CascadingParameter Error</ContentHighlight> 
+            component and process the exception which then can be used to log to browser console or posted to backend API.
         </p>
 
         <DemoSnippet Title="Error Logging">
@@ -73,6 +90,13 @@
                 <Subscription></Subscription>
             </Error>
         </DemoSnippet>
+
+        <h3 id="summary" class="[ font-semibold text-lg ]">Summary</h3>
+
+        <p>
+            I'm happy that you have reached to the end of this article. Here we learnt how to log exceptions in blazor wasm applications by wrapping the components in a error component. Once 
+            we get the error we can notify users in a beautiful way and log to azure app insights or to any external system.
+        </p>
     </ContentBody>
 </Content>
 
