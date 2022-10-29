@@ -176,7 +176,7 @@ public class BlazorLearningPath
                 IconUrl = "image/icons/blazor.png",
                 Type = "Blazor",
                 CreatedOn = new DateTime(2022, 2, 20, 22, 30, 0),
-                ModifiedOn = new DateTime(2022, 2, 20, 22, 30, 0)
+                ModifiedOn = new DateTime(2022, 10, 29, 22, 30, 0)
             },
             new ContentMetaData
             {
