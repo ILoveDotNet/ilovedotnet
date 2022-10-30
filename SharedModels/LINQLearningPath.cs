@@ -136,8 +136,8 @@ public class LINQLearningPath
                 ContentUrl = "blogs/using-linq-distinct-to-select-unique-data",
                 IconUrl = "image/icons/linq.png",
                 Type = "LINQ",
-                CreatedOn = new DateTime(2022, 11, 6, 22, 30, 0),
-                ModifiedOn = new DateTime(2022, 11, 6, 22, 30, 0)
+                CreatedOn = new DateTime(2022, 10, 30, 22, 30, 0),
+                ModifiedOn = new DateTime(2022, 10, 30, 22, 30, 0)
             },
             new ContentMetaData
             {
@@ -149,8 +149,8 @@ public class LINQLearningPath
                 ContentUrl = "blogs/using-linq-chunk-to-split-data",
                 IconUrl = "image/icons/linq.png",
                 Type = "LINQ",
-                CreatedOn = new DateTime(2022, 11, 13, 22, 30, 0),
-                ModifiedOn = new DateTime(2022, 11, 13, 22, 30, 0)
+                CreatedOn = new DateTime(2022, 11, 6, 22, 30, 0),
+                ModifiedOn = new DateTime(2022, 11, 6, 22, 30, 0)
             }
         };
     }
