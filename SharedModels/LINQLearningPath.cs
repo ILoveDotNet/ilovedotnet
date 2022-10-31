@@ -164,6 +164,19 @@ public class LINQLearningPath
                 Type = "LINQ",
                 CreatedOn = new DateTime(2022, 11, 13, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 11, 13, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+                Order = 13,
+                Title = "Using LINQ Any to Find Type of Data",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/linq/using-linq-any-to-find-type-of-data.svg",
+                ThumbnailUrl = "image/blogs/linq/using-linq-any-to-find-type-of-data.svg",
+                ContentUrl = "blogs/using-linq-any-to-find-type-of-data",
+                IconUrl = "image/icons/linq.png",
+                Type = "LINQ",
+                CreatedOn = new DateTime(2022, 11, 20, 22, 30, 0),
+                ModifiedOn = new DateTime(2022, 11, 20, 22, 30, 0)
             }
         };
     }
