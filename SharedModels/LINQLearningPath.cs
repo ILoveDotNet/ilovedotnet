@@ -154,7 +154,7 @@ public class LINQLearningPath
             },
             new ContentMetaData
             {
-                Order = 11,
+                Order = 12,
                 Title = "Using LINQ All to Find Type of Data",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/linq/using-linq-all-to-find-type-of-data.svg",
