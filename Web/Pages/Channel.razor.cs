@@ -9,7 +9,7 @@ public class ChannelBase : ComponentBase
     protected string ContentType => $"{CultureInfo.CurrentUICulture.TextInfo.ToTitleCase(Name)}";
     protected string Title => $"{ContentType} - I ❤️ DotNet";
     protected string Description => $"This is a .NET {ContentType} knowledge sharing channel with live demos crafted by developers for developers with love.";
-    protected string BaseUrl => Configuration.GetValue<string>("baseUrl");
+    protected string BaseUrl => Configuration.GetValue<string>("baseUrl")!;
     protected string Url => $"{BaseUrl}channels/{Name.ToLower()}";
     protected List<ContentMetaData> Contents = new(0);
     protected List<ContentMetaData> LearningPathContents = new(0);
