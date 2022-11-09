@@ -19,7 +19,8 @@ public class WebAPILearningPath
                 ContentUrl = "blogs/webapi-importance-of-status-code",
                 IconUrl = "image/icons/webapi.png",
                 Type = "WebAPI",
-                CreatedOn = new DateTime(2022, 3, 6, 22, 30, 0)
+                CreatedOn = new DateTime(2022, 3, 6, 22, 30, 0),
+                ModifiedOn = new DateTime(2022, 3, 6, 22, 30, 0)
             },
             new ContentMetaData
             {

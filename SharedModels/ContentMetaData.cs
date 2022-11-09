@@ -2,14 +2,14 @@
 
 public class ContentMetaData
 {
-    public sbyte Order { get; set; }
-    public string Title { get; set; } = default!;
-    public string Author { get; set; } = default!;
-    public string PosterUrl { get; set; } = default!;
-    public string ThumbnailUrl { get; set; } = default!;
-    public string ContentUrl { get; set; } = default!;
-    public string IconUrl { get; set; } = default!;
-    public string Type { get; set; } = default!;
-    public DateTime CreatedOn { get; set; }
-    public DateTime ModifiedOn { get; set; }
+    public required sbyte Order { get; set; }
+    public required string Title { get; set; }
+    public required string Author { get; set; }
+    public required string PosterUrl { get; set; }
+    public required string ThumbnailUrl { get; set; }
+    public required string ContentUrl { get; set; }
+    public required string IconUrl { get; set; }
+    public required string Type { get; set; }
+    public required DateTime CreatedOn { get; set; }
+    public required DateTime ModifiedOn { get; set; }
 }
