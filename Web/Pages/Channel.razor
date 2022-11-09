@@ -1,6 +1,8 @@
 ﻿@page "/channels/{Name}"
-@inherits ChannelBase
+@using SharedComponents
 @using Toolbelt.Blazor.HeadElement
+@inherits ChannelBase
+@inject AdSpaceService adSpaceService
 @inject Sitemaps sitemap
 
 <Title>@Title</Title>
@@ -87,8 +89,14 @@
         </ul>
         <div class="@(ShowArticleTab ? null : "hidden")">
             <div class="[ grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-2 pt-1 ]">
-                @foreach (var content in Contents)
+                <GoogleAdSense></GoogleAdSense>
+                @foreach (var (content, index) in Contents.SelectWithIndex())
                 {
+                    @if (adSpaceService.CanDisplayAd(index + 1))
+                    {
+                        <GoogleAdSense></GoogleAdSense>
+                    }
+
                     <Thumbnail PosterUrl="@content.ThumbnailUrl"
                            ContentUrl="@content.ContentUrl"
                            Title="@content.Title"
@@ -99,12 +107,19 @@
                            Author="@content.Author">
                     </Thumbnail>
                 }
+                <GoogleAdSense></GoogleAdSense>
             </div>
         </div>
         <div class="@(ShowLearningPathTab ? null : "hidden")">
             <div class="[ grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-2 pt-1 ]">
-                @foreach (var content in LearningPathContents)
+                <GoogleAdSense></GoogleAdSense>
+                @foreach (var (content, index) in LearningPathContents.SelectWithIndex())
                 {
+                    @if (adSpaceService.CanDisplayAd(index + 1))
+                    {
+                        <GoogleAdSense></GoogleAdSense>
+                    }
+
                     <Thumbnail PosterUrl="@content.ThumbnailUrl"
                            ContentUrl="@content.ContentUrl"
                            Title="@content.Title"
@@ -115,6 +130,7 @@
                            Author="@content.Author">
                     </Thumbnail>
                 }
+                <GoogleAdSense></GoogleAdSense>
             </div>
         </div>
     </section>
