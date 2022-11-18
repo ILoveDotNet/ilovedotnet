@@ -2,6 +2,7 @@ using Blazor.Analytics;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.AspNetCore.Components.WebAssembly.Services;
+using SharedComponents;
 using SharedModels;
 using Toolbelt.Blazor.Extensions.DependencyInjection;
 using Web;
@@ -38,6 +39,8 @@ static void ConfigureServices(IServiceCollection services, string baseAddress)
     services.AddHeadElementHelper();
 
     services.AddGoogleAnalytics("G-PY5ZL88NSM");
+
+    services.AddGoogleAdSense("ca-pub-1536083653226834");
 
     services.AddTransient<TransientServiceDemo>();
 
