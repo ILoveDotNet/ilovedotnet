@@ -37,7 +37,7 @@ public class GoogleAdSenseBase : ComponentBase
                     {
                         new KeyValuePair<string, object>("class", "adsbygoogle"),
                         new KeyValuePair<string, object>("style", $"display:block;{Style}"),
-                        new KeyValuePair<string, object>("data-ad-format", Format),
+                        new KeyValuePair<string, object>("data-ad-format", Format.ToString().ToLower()),
                         new KeyValuePair<string, object>("data-ad-client", GoogleAdSense.ClientId),
                         new KeyValuePair<string, object>("data-ad-layout-key", LayoutKey),
                         new KeyValuePair<string, object>("data-ad-slot", Slot)
@@ -48,7 +48,7 @@ public class GoogleAdSenseBase : ComponentBase
                     {
                         new KeyValuePair<string, object>("class", "adsbygoogle"),
                         new KeyValuePair<string, object>("style", $"display:block;{Style}"),
-                        new KeyValuePair<string, object>("data-ad-format", Format),
+                        new KeyValuePair<string, object>("data-ad-format", Format.ToString().ToLower()),
                         new KeyValuePair<string, object>("data-ad-client", GoogleAdSense.ClientId),
                         new KeyValuePair<string, object>("data-ad-slot", Slot)
                     });
@@ -59,7 +59,7 @@ public class GoogleAdSenseBase : ComponentBase
                         new KeyValuePair<string, object>("class", "adsbygoogle"),
                         new KeyValuePair<string, object>("style", $"display:block;{Style}"),
                         new KeyValuePair<string, object>("data-ad-layout", "in-article"),
-                        new KeyValuePair<string, object>("data-ad-format", Format),
+                        new KeyValuePair<string, object>("data-ad-format", Format.ToString().ToLower()),
                         new KeyValuePair<string, object>("data-ad-client", GoogleAdSense.ClientId),
                         new KeyValuePair<string, object>("data-ad-slot", Slot)
                     });
