@@ -10,6 +10,6 @@ module.exports = {
         },
     ],
     css: ['wwwroot/css/app.min.css'],
-    safelist: ['blazor-error-boundary'],
+    safelist: ['blazor-error-boundary', 'fc-close'],
     output: 'wwwroot/css/app.min.css'
 };
