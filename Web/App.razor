@@ -1,5 +1,8 @@
-﻿@using Microsoft.AspNetCore.Components.WebAssembly.Services
+﻿@using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+@using Microsoft.AspNetCore.Components.WebAssembly.Services
+@using System.Reflection;
 @implements IAsyncDisposable
+@inject IWebAssemblyHostEnvironment Environment
 
 <CascadingValue Value="SmallDevice">
     <Router AppAssembly="@typeof(Program).Assembly" OnNavigateAsync="@OnNavigateAsync">
@@ -31,6 +34,7 @@
     private ushort viewPortWidth;
     private IJSObjectReference? module;
     private bool SmallDevice = true;
+    private string assemblyExtension => Environment.IsProduction() ? "dat" : "dll";
 
     [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
     [Inject] private LazyAssemblyLoader AssemblyLoader { get; set; } = default!;
@@ -59,26 +63,26 @@
             {
                 HideNavigationMenu();
 
-                await AssemblyLoader.LoadAssembliesAsync(new[] { "Components.dll" });
+                await AssemblyLoader.LoadAssembliesAsync(new[] { $"Components.{assemblyExtension}" });
 
                 if (args.Path.Contains("blazor", StringComparison.OrdinalIgnoreCase))
                 {
-                    await AssemblyLoader.LoadAssembliesAsync(new[] { "BlazorDemoComponents.dll" });
+                    await AssemblyLoader.LoadAssembliesAsync(new[] { $"BlazorDemoComponents.{assemblyExtension}" });
                 }
 
                 if (args.Path.Contains("oops", StringComparison.OrdinalIgnoreCase))
                 {
-                    await AssemblyLoader.LoadAssembliesAsync(new[] { "OOPSDemoComponents.dll" });
+                    await AssemblyLoader.LoadAssembliesAsync(new[] { $"OOPSDemoComponents.{assemblyExtension}" });
                 }
 
                 if (args.Path.Contains("dependency-injection", StringComparison.OrdinalIgnoreCase))
                 {
-                    await AssemblyLoader.LoadAssembliesAsync(new[] { "DependencyInjectionDemoComponents.dll" });
+                    await AssemblyLoader.LoadAssembliesAsync(new[] { $"DependencyInjectionDemoComponents.{assemblyExtension}" });
                 }
 
                 if (args.Path.Contains("linq", StringComparison.OrdinalIgnoreCase))
                 {
-                    await AssemblyLoader.LoadAssembliesAsync(new[] { "LINQDemoComponents.dll" });
+                    await AssemblyLoader.LoadAssembliesAsync(new[] { $"LINQDemoComponents.{assemblyExtension}" });
                 }
             }
 
@@ -86,7 +90,7 @@
             {
                 HideNavigationMenu();
 
-                await AssemblyLoader.LoadAssembliesAsync(new[] { "Components.dll" });
+                await AssemblyLoader.LoadAssembliesAsync(new[] { $"Components.{assemblyExtension}" });
             }
         }
         catch (Exception ex)
