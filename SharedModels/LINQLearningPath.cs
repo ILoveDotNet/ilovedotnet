@@ -190,6 +190,45 @@ public class LINQLearningPath
                 Type = "LINQ",
                 CreatedOn = new DateTime(2022, 11, 27, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 11, 27, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+                Order = 14,
+                Title = "Using LINQ Sequence Equal to Find Difference",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/linq/using-linq-sequence-equal-to-find-difference.svg",
+                ThumbnailUrl = "image/blogs/linq/using-linq-sequence-equal-to-find-difference.svg",
+                ContentUrl = "blogs/using-linq-sequence-equal-to-find-difference",
+                IconUrl = "image/icons/linq.png",
+                Type = "LINQ",
+                CreatedOn = new DateTime(2022, 12, 4, 22, 30, 0),
+                ModifiedOn = new DateTime(2022, 12, 4, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+                Order = 14,
+                Title = "Using LINQ Except to Find Difference",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/linq/using-linq-except-to-find-difference.svg",
+                ThumbnailUrl = "image/blogs/linq/using-linq-except-to-find-difference.svg",
+                ContentUrl = "blogs/using-linq-except-to-find-difference",
+                IconUrl = "image/icons/linq.png",
+                Type = "LINQ",
+                CreatedOn = new DateTime(2022, 12, 11, 22, 30, 0),
+                ModifiedOn = new DateTime(2022, 12, 11, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+                Order = 14,
+                Title = "Using LINQ Intersect to Find Difference",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/linq/using-linq-intersect-to-find-difference.svg",
+                ThumbnailUrl = "image/blogs/linq/using-linq-intersect-to-find-difference.svg",
+                ContentUrl = "blogs/using-linq-intersect-to-find-difference",
+                IconUrl = "image/icons/linq.png",
+                Type = "LINQ",
+                CreatedOn = new DateTime(2022, 12, 18, 22, 30, 0),
+                ModifiedOn = new DateTime(2022, 12, 18, 22, 30, 0)
             }
         };
     }
