@@ -2,7 +2,7 @@
 
 public class TableOfContents
 {
-    private readonly List<ContentMetaData> FullContents = new(36);
+    private readonly List<ContentMetaData> FullContents = new(49);
     public IReadOnlyList<ContentMetaData> Contents => FullContents.Where(content => content.CreatedOn.Date <= DateTime.Today.Date).ToList();
 
     public TableOfContents()

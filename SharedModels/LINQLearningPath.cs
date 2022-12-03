@@ -2,12 +2,12 @@
 
 public class LINQLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(4);
+    public readonly List<ContentMetaData> FullContents = new(17);
 
     public LINQLearningPath()
     {
         FullContents =
-        new(4)
+        new(17)
         {
             new ContentMetaData
             {
@@ -193,7 +193,7 @@ public class LINQLearningPath
             },
             new ContentMetaData
             {
-                Order = 14,
+                Order = 15,
                 Title = "Using LINQ Sequence Equal to Find Difference",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/linq/using-linq-sequence-equal-to-find-difference.svg",
@@ -206,7 +206,7 @@ public class LINQLearningPath
             },
             new ContentMetaData
             {
-                Order = 14,
+                Order = 16,
                 Title = "Using LINQ Except to Find Difference",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/linq/using-linq-except-to-find-difference.svg",
@@ -219,7 +219,7 @@ public class LINQLearningPath
             },
             new ContentMetaData
             {
-                Order = 14,
+                Order = 17,
                 Title = "Using LINQ Intersect to Find Difference",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/linq/using-linq-intersect-to-find-difference.svg",
