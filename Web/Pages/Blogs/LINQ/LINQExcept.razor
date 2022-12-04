@@ -1,4 +1,4 @@
-﻿@page "/blogs/using-linq-except-to-find-difference"
+﻿@page "/blogs/using-linq-except-to-find-difference-in-data"
 @using LINQDemoComponents
 @inherits FragmentNavigationBase
 @inject TableOfContents tableOfContents
@@ -21,7 +21,7 @@
 
         <p>
             <strong>Note:</strong> If you have not done so already, I recommend you read the article on
-            <NavLink class="[ underline ]" href="blogs/using-linq-sequence-equal-to-find-difference" Match="NavLinkMatch.All">Using LINQ Sequence Equal to Find Difference</NavLink>.
+            <NavLink class="[ underline ]" href="blogs/using-linq-sequence-equal-to-find-equality-of-data" Match="NavLinkMatch.All">Using LINQ Sequence Equal to Find Equality</NavLink>.
         </p>
 
         <h3 class="[ font-semibold text-lg ]">Table of Contents</h3>
@@ -33,13 +33,18 @@
                 </NavLink>
             </li>
             <li>
-                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#contains")" Match="NavLinkMatch.All">
-                    Using LINQ Contains to find Primitive types
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#primitive-types")" Match="NavLinkMatch.All">
+                    Using LINQ Except to compare primitive types
                 </NavLink>
             </li>
             <li>
-                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#contains-with-comparer")" Match="NavLinkMatch.All">
-                    Using LINQ Contains to find Object types
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#objects")" Match="NavLinkMatch.All">
+                    Using LINQ Except to compare objects
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#equality-comparer")" Match="NavLinkMatch.All">
+                    Using LINQ Except to compare with Equality Comparer
                 </NavLink>
             </li>
             <li>
@@ -52,46 +57,78 @@
         <h3 id="introduction" class="[ font-semibold text-lg ]">Introduction</h3>
 
         <p>
-            We can determine the type of data contained within the collection using LINQ <ContentHighlight>Contains()</ContentHighlight> method. The idea here is to find out if any items in a 
-            collection meet a specific condition. For primitivr data types like <ContentHighlight>int</ContentHighlight>, <ContentHighlight>decimal</ContentHighlight>, 
-            <ContentHighlight>string</ContentHighlight>, etc we can just compare the values against other value in the collection but for <ContentHighlight>Class</ContentHighlight>, we need 
-            to implement <ContentHighlight>EqualityComparer</ContentHighlight> class to do comparisons.
+            When working with two collections, we can find the difference between them using LINQ <ContentHighlight>Except()</ContentHighlight> method. The idea here is to find out
+            values in one which is not in other and returns the list of exceptions. With <ContentHighlight>Except()</ContentHighlight>, we can compare
+            two collections for Difference.
         </p>
-
-        <h3 id="contains" class="[ font-semibold text-lg ]">Using LINQ Contains to find Primitive types</h3>
 
         <p>
-            LINQ <ContentHighlight>Contains()</ContentHighlight> is used to answer questions about collection such as, any students passed the exam?, Do any orders got shipped? Do any customers 
-            opted for newsletters?. Let's take a look at syntax. The syntax for Contains() is we apply the Contains() method to some <ContentHighlight>IEnumerable&lt;T&gt;</ContentHighlight> collection 
-            and we specify a predicate. This is then going to check if any items within the collection match the given condition. For example, 
-            <ContentHighlight CssClasses="[ break-all ]">IEnumerable&lt;T&gt;.Contains(predicate)</ContentHighlight>. This will return a boolean value true or false indicating do 
-            any element in the collection met the criteria?.
+            LINQ <ContentHighlight>Except()</ContentHighlight> is used to answer questions about collection such as
         </p>
 
-        <GithubGistSnippet Title="LINQ Contains" UserId="fingers10" FileName="16fcd23b99a02d9b595db00adb10de1a"></GithubGistSnippet>
+        <ul class="[ list-disc ] [ ml-4 ]">
+            <li>Find phones that do not have sales</li>
+            <li>Find customers who have not ordered specific product</li>
+            <li>Compare data in tables between different environments</li>
+        </ul>
 
-        <DemoSnippet Title="LINQ Contains Clause Demo">
+        <h3 id="primitive-types" class="[ font-semibold text-lg ]">Using LINQ Except to compare primitive types</h3>
+
+        <p>
+            Primitive data types like <ContentHighlight>int</ContentHighlight>, <ContentHighlight>decimal</ContentHighlight>, <ContentHighlight>string</ContentHighlight>, etc can just
+            compare the values against other value in the collection
+        </p>
+
+        <GithubGistSnippet Title="LINQ Except Primitive Types" UserId="fingers10" FileName="61c769b2cc14509b34637a4acc088f2a"></GithubGistSnippet>
+
+        <DemoSnippet Title="LINQ Except Clause Demo">
             <p>
-                Let's try LINQ Contains
+                Let's try LINQ Except with integer type
             </p>
 
-            <ul class="[ list-disc ] [ ml-4 ]">
-                <li>We have <ContentHighlight>Product</ContentHighlight> class with following properties - <ContentHighlight>Id, Name, Color, Price, Size</ContentHighlight></li>
-                <li>Enter the color to find if any color matches the available colors.</li>
-                <li>Click on Contains Color</li>
+            <ol class="[ list-decimal ] [ ml-4 ]">
+                <li>Enter number and add it to respective sequence</li>
+                <li>For demo purpose I have restricted sequence length to 3</li>
+                <li>Click on Check Except button to view the result</li>
                 <li>Click on reset to try other combination</li>
-            </ul>
+            </ol>
 
-            <ContainsDemo></ContainsDemo>
+            <ExceptDemo></ExceptDemo>
         </DemoSnippet>
 
         <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
 
-        <h3 id="contains-with-comparer" class="[ font-semibold text-lg ]">Using LINQ Contains to find Object types</h3>
+        <h3 id="objects" class="[ font-semibold text-lg ]">Using LINQ Except to compare Object types</h3>
 
         <p>
-            So, searching for primitive data types with <ContentHighlight>Contains()</ContentHighlight> is easy and straight forward, but with objects by default it's going to work by 
-            comparing object references. But in most cases we want to make comparison based on one or more properties in the object. To do that we need to start by creating 
+            Except checks for reference equality of two objects for <ContentHighlight>object</ContentHighlight> data types.
+        </p>
+
+        <GithubGistSnippet Title="LINQ Except Objects" UserId="fingers10" FileName="2d00b00132628463fc1138957a5d1ccb"></GithubGistSnippet>
+
+        <DemoSnippet Title="LINQ Except Clause Objects Demo">
+            <p>
+                Let's try LINQ Except with objects
+            </p>
+
+            <ul class="[ list-disc ] [ ml-4 ]">
+                <li>We have <ContentHighlight>Product</ContentHighlight> class with following properties - <ContentHighlight>Id, Name</ContentHighlight></li>
+                <li>The tables are loaded with two product collection.</li>
+                <li>Click on Except button to view the result.</li>
+                <li>Click on Assign to same reference button to make two collection to point to same reference.</li>
+                <li>Click on reset to try other combination</li>
+            </ul>
+
+            <ExceptObjectDemo></ExceptObjectDemo>
+        </DemoSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="equality-comparer" class="[ font-semibold text-lg ]">Using LINQ Except to compare with Equality Comparer</h3>
+
+        <p>
+            So, equality for primitive data types with <ContentHighlight>Except()</ContentHighlight> is easy and straight forward, but with objects by default it's going to work by
+            comparing object references. But in most cases we want to make comparison based on one or more properties in the object. To do that we need to start by creating
             <ContentHighlight>EqualityComparer&lt;T&gt;</ContentHighlight> class.
         </p>
 
@@ -102,23 +139,24 @@
             <li>Also override <ContentHighlight>GetHashCode()</ContentHighlight> method and return unique value for every single object.</li>
         </ol>
 
-        <GithubGistSnippet Title="LINQ Contains Product Comparer" UserId="fingers10" FileName="d2f61c2c1f75811433bf047b60f354e8"></GithubGistSnippet>
+        <GithubGistSnippet Title="LINQ Except Product Comparer" UserId="fingers10" FileName="24b9d73992162315dcf8481e4d636d3c"></GithubGistSnippet>
 
-        <GithubGistSnippet Title="LINQ Contains With Product Comparer" UserId="fingers10" FileName="d4cce1714518e487b8d1d1a27636ac50"></GithubGistSnippet>
+        <GithubGistSnippet Title="LINQ Except With Product Comparer" UserId="fingers10" FileName="71176dc3397e34cc85d5386ea913b185"></GithubGistSnippet>
 
-        <DemoSnippet Title="LINQ Contains Clause with Comparer Demo">
+        <DemoSnippet Title="LINQ Except Clause with Comparer Demo">
             <p>
-                Let's try LINQ Contains with Comparer
+                Let's try LINQ Except with Comparer
             </p>
 
             <ul class="[ list-disc ] [ ml-4 ]">
-                <li>We have <ContentHighlight>Product</ContentHighlight> class with following properties - <ContentHighlight>Id, Name, Color, Price, Size</ContentHighlight></li>
-                <li>Enter the product id to find if any product matches the condition.</li>
-                <li>Click on Contains Product</li>
+                <li>We have <ContentHighlight>Product</ContentHighlight> class with following properties - <ContentHighlight>Id, Name</ContentHighlight></li>
+                <li>The tables are loaded with two product collection.</li>
+                <li>Click on Check Except button to view the result.</li>
+                <li>Unlike previous demo, here we use <ContentHighlight>ProductComparer</ContentHighlight> to compare objects based on their property values. So they will be equal irrespective of reference.</li>
                 <li>Click on reset to try other combination</li>
             </ul>
 
-            <ContainsWithComparerDemo></ContainsWithComparerDemo>
+            <ExceptWithComparerDemo></ExceptWithComparerDemo>
         </DemoSnippet>
 
         <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
@@ -126,8 +164,8 @@
         <h3 id="summary" class="[ font-semibold text-lg ]">Summary</h3>
 
         <p>
-            In this article we learn't how to check for data within collection using <ContentHighlight>Except</ContentHighlight>. This can be used to find if item is within 
-            collection matches a criteria or not and also we can find object item using Comparer. All these can be used with any <ContentHighlight>IEnumerable</ContentHighlight> or 
+            In this article we learn't how to check for difference in data between collections using <ContentHighlight>Except</ContentHighlight>. This can be used to find if item is between 
+            collection matches or not and also we can compare object item using Comparer. All these can be used with any <ContentHighlight>IEnumerable</ContentHighlight> or
             <ContentHighlight>IQueryable</ContentHighlight> types.
         </p>
     </ContentBody>
@@ -138,10 +176,10 @@
     private string Description = "In this post I will teach you how to find difference between collections using LINQ in .NET. All with live working demo.";
     private DateTime CreatedOn = new DateTime(2022, 12, 11, 22, 30, 0);
     private DateTime ModifiedOn = new DateTime(2022, 12, 11, 22, 30, 0);
-    private string Slug = "using-linq-except-to-find-difference";
+    private string Slug = "using-linq-except-to-find-difference-in-data";
     private string PosterPath = "Blogs/LINQ";
     private string Channel = "linq";
     private string ContentType = "blogs";
     private ushort TotalContents => (ushort)tableOfContents.Contents.Count(content => content.Type.Equals("LINQ", StringComparison.CurrentCultureIgnoreCase));
-    private List<string> Keywords = new(1) { "Except" };
+    private List<string> Keywords = new(3) { "Except", "Difference", "Compare" };
 }
