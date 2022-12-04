@@ -1,0 +1,71 @@
+﻿<section class="[ flex flex-row ] [ space-x-1 ]">
+    <table class="[ table-fixed border-collapse ] [ bg-white ] [ border-2 ] [ dark:bg-black dark:border-slate-500 ] [ mt-2 ] [ w-full ]">
+        <thead>
+            <tr class="[ bg-gray-100 ] [ dark:bg-slate-500 ]">
+                <th class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Id</th>
+                <th class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Name</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var product in products)
+            {
+                <tr>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">@product.Id</td>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">@product.Name</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    <table class="[ table-fixed border-collapse ] [ bg-white ] [ border-2 ] [ dark:bg-black dark:border-slate-500 ] [ mt-2 ] [ w-full ]">
+        <thead>
+            <tr class="[ bg-gray-100 ] [ dark:bg-slate-500 ]">
+                <th class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Id</th>
+                <th class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Name</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var product in anotherProducts)
+            {
+                <tr>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">@product.Id</td>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">@product.Name</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</section>
+
+<p>Result : @result</p>
+
+<button type="button" class="[ bg-cyan-500 ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ]" @onclick="HandleSequenceEqual">
+    Check Sequence Equal
+</button>
+
+<button type="button" class="[ bg-fuchsia-500 ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ]" @onclick="ResetSequence">
+    Reset
+</button>
+
+@code
+{
+    private IEnumerable<Product> products = new ProductSource().Products;
+    private IEnumerable<Product> anotherProducts = new ProductSource().Products;
+    private ProductComparer productComparer = new();
+    private bool? result;
+
+    private void HandleAssignReference()
+    {
+        products = anotherProducts;
+    }
+
+    private void HandleSequenceEqual()
+    {
+        result = products.SequenceEqual(anotherProducts, productComparer);
+    }
+
+    private void ResetSequence()
+    {
+        products = new ProductSource().Products;
+        anotherProducts = new ProductSource().Products;
+        result = null;
+    }
+}
