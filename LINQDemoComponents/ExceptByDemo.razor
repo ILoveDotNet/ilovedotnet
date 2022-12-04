@@ -1,33 +1,49 @@
 ﻿<section class="[ flex flex-col ] [ space-y-1 ]">
-    <IntegerSequenceDemo Numbers="numbers"></IntegerSequenceDemo>
-    <IntegerSequenceDemo Numbers="anotherNumbers"></IntegerSequenceDemo>
+    <IntegerSequenceDemo Numbers="productIds"></IntegerSequenceDemo>
+    <table class="[ table-fixed border-collapse ] [ bg-white ] [ border-2 ] [ dark:bg-black dark:border-slate-500 ] [ mt-2 ] [ w-full ]">
+        <thead>
+            <tr class="[ bg-gray-100 ] [ dark:bg-slate-500 ]">
+                <th class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Id</th>
+                <th class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Name</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var product in products)
+            {
+                    <tr>
+                        <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">@product.Id</td>
+                        <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">@product.Name</td>
+                    </tr>
+            }
+        </tbody>
+    </table>
 </section>
 
-<p>Difference : @string.Join(", ", difference)</p>
+<p>Difference Product Ids : @string.Join(", ", difference.Select(product => product.Id))</p>
 
-<button type="button" class="[ bg-cyan-500 ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ]" @onclick="HandleSequenceEqual">
-    Check Except Difference
+<button type="button" class="[ bg-cyan-500 ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ]" @onclick="HandleExceptBy">
+    Check Except By Difference
 </button>
 
-<button type="button" class="[ bg-fuchsia-500 ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ]" @onclick="ResetSequence">
+<button type="button" class="[ bg-fuchsia-500 ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ]" @onclick="Reset">
     Reset
 </button>
 
 @code
 {
-    private List<int> numbers = new(3);
-    private List<int> anotherNumbers = new(3);
-    private List<int> difference = new();
+    private List<int> productIds = new(3);
+    private IEnumerable<Product> products = new ProductSource().Products;
+    private List<Product> difference = new();
 
-    private void HandleSequenceEqual()
+    private void HandleExceptBy()
     {
-        difference = numbers.Except(anotherNumbers).ToList();
+        difference = products.ExceptBy(productIds, product => product.Id).ToList();
     }
 
-    private void ResetSequence()
+    private void Reset()
     {
-        numbers = new(3);
-        anotherNumbers = new(3);
+        productIds = new(3);
+        products = new ProductSource().Products;
         difference = new();
     }
 }

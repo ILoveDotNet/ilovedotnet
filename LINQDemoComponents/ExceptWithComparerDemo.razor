@@ -35,37 +35,32 @@
     </table>
 </section>
 
-<p>Result : @result</p>
+<p>Difference Product Id : @string.Join(",", result.Select(product => product.Id))</p>
 
-<button type="button" class="[ bg-cyan-500 ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ]" @onclick="HandleSequenceEqual">
-    Check Sequence Equal
+<button type="button" class="[ bg-cyan-500 ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ]" @onclick="HandleExcept">
+    Check Except Difference
 </button>
 
-<button type="button" class="[ bg-fuchsia-500 ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ]" @onclick="ResetSequence">
+<button type="button" class="[ bg-fuchsia-500 ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ]" @onclick="Reset">
     Reset
 </button>
 
 @code
 {
     private IEnumerable<Product> products = new ProductSource().Products;
-    private IEnumerable<Product> anotherProducts = new ProductSource().Products;
+    private IEnumerable<Product> anotherProducts = new ProductSource().Products.SkipLast(2);
     private ProductComparer productComparer = new();
-    private bool? result;
+    private IEnumerable<Product> result = Enumerable.Empty<Product>();
 
-    private void HandleAssignReference()
+    private void HandleExcept()
     {
-        products = anotherProducts;
+        result = products.Except(anotherProducts, productComparer).ToList();
     }
 
-    private void HandleSequenceEqual()
-    {
-        result = products.SequenceEqual(anotherProducts, productComparer);
-    }
-
-    private void ResetSequence()
+    private void Reset()
     {
         products = new ProductSource().Products;
-        anotherProducts = new ProductSource().Products;
-        result = null;
+        anotherProducts = new ProductSource().Products.SkipLast(2);
+        result = Enumerable.Empty<Product>();
     }
 }
