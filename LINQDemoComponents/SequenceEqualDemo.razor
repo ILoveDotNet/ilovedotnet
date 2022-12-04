@@ -1,67 +1,33 @@
-﻿<EditForm Model="@queryModel" OnValidSubmit="@HandleValidSubmit">
-    <DataAnnotationsValidator />
+﻿<section class="[ flex flex-col ] [ space-y-1 ]">
+    <IntegerSequenceDemo Numbers="numbers"></IntegerSequenceDemo>
+    <IntegerSequenceDemo Numbers="anotherNumbers"></IntegerSequenceDemo>
+</section>
 
-    <label>
-        Query
-        <InputText class="[ w-full h-full ] [ px-4 py-2 ] [ border-2 ] [ focus:outline-none focus:border-gray-400 ] [ dark:bg-black dark:border-gray-800 dark:focus:border-b-white dark:md:focus:border-blue-800 dark:caret-white dark:text-white ]"
-                   placeholder="Red"
-                   @bind-Value="queryModel.Query" />
-    </label>
+<p>Result : @result</p>
 
-    <ValidationMessage For=@(() => queryModel.Query) />
+<button type="button" class="[ bg-cyan-500 ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ]" @onclick="HandleSequenceEqual">
+    Check Sequence Equal
+</button>
 
-    <p>Result: @result</p>
-
-    <button type="submit" class="[ bg-cyan-500 ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ]" @onclick="HandleValidSubmit">
-        Contains Color
-    </button>
-
-    <button type="button" class="[ bg-fuchsia-500 ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ]" @onclick="ResetColors">
-        Reset
-    </button>
-</EditForm>
-
-<table class="[ table-fixed border-collapse ] [ bg-white ] [ border-2 ] [ dark:bg-black dark:border-slate-500 ] [ mt-2 ] [ w-full ]">
-    <thead>
-        <tr class="[ bg-gray-100 ] [ dark:bg-slate-500 ]">
-            <th class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Color</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var color in colors)
-        {
-            <tr>
-                <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">@color</td>
-            </tr>
-        }
-    </tbody>
-</table>
+<button type="button" class="[ bg-fuchsia-500 ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ]" @onclick="ResetSequence">
+    Reset
+</button>
 
 @code
 {
-    public class QueryModel
-    {
-        [Required]
-        public string? Query { get; set; }
-    }
-
-    private EditContext? editContext;
-    private QueryModel queryModel = new();
-    private IEnumerable<string> colors = new ProductSource().Products.Select(product => product.Color);
+    private List<int> numbers = new(3);
+    private List<int> anotherNumbers = new(3);
     private bool? result;
 
-    protected override void OnInitialized()
+    private void HandleSequenceEqual()
     {
-        editContext = new(queryModel);
+        result = numbers.SequenceEqual(anotherNumbers);
     }
 
-    private void HandleValidSubmit()
+    private void ResetSequence()
     {
-        result = colors.Contains(queryModel.Query);
-    }
-
-    private void ResetColors()
-    {
+        numbers = new(3);
+        anotherNumbers = new(3);
         result = null;
     }
 }
