@@ -2,7 +2,7 @@
 
 public class ProductSource
 {
-    private readonly List<Product> FullProducts = new(31);
+    private readonly List<Product> FullProducts = new(6);
     public IReadOnlyList<Product> Products => FullProducts.ToList();
 
     public ProductSource()
