@@ -1,33 +1,66 @@
-﻿<section class="[ flex flex-col ] [ space-y-1 ]">
-    <IntegerSequenceDemo Numbers="numbers"></IntegerSequenceDemo>
-    <IntegerSequenceDemo Numbers="anotherNumbers"></IntegerSequenceDemo>
+﻿<section class="[ flex flex-row ] [ space-x-1 ]">
+    <table class="[ table-fixed border-collapse ] [ bg-white ] [ border-2 ] [ dark:bg-black dark:border-slate-500 ] [ mt-2 ] [ w-full ]">
+        <thead>
+            <tr class="[ bg-gray-100 ] [ dark:bg-slate-500 ]">
+                <th class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Id</th>
+                <th class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Name</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var product in products)
+            {
+                <tr>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">@product.Id</td>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">@product.Name</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    <table class="[ table-fixed border-collapse ] [ bg-white ] [ border-2 ] [ dark:bg-black dark:border-slate-500 ] [ mt-2 ] [ w-full ]">
+        <thead>
+            <tr class="[ bg-gray-100 ] [ dark:bg-slate-500 ]">
+                <th class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Id</th>
+                <th class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Name</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var product in anotherProducts)
+            {
+                <tr>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">@product.Id</td>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">@product.Name</td>
+                </tr>
+            }
+        </tbody>
+    </table>
 </section>
 
-<p>Common : @string.Join(", ", common)</p>
+<p>Combined Products without duplicates : @string.Join(", ", result.Select(product => product.Id))</p>
 
-<button type="button" class="[ bg-cyan-500 ] [ text-white ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ]" @onclick="HandleIntersect">
-    Check Intersect Common
+<button type="button" class="[ bg-cyan-500 ] [ text-white ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ]" @onclick="HandleUnionBy">
+    Combine with Union By
 </button>
 
-<button type="button" class="[ bg-fuchsia-500 ] [ text-white ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ]" @onclick="ResetSequence">
+<button type="button" class="[ bg-fuchsia-500 ] [ text-white ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ]" @onclick="Reset">
     Reset
 </button>
 
 @code
 {
-    private List<int> numbers = new(3);
-    private List<int> anotherNumbers = new(3);
-    private List<int> common = new();
+    private IEnumerable<Product> products = new ProductSource().Products;
+    private IEnumerable<Product> anotherProducts = new ProductSource().Products;
+    private IEnumerable<Product> result = Enumerable.Empty<Product>();
 
-    private void HandleIntersect()
+    private void HandleUnionBy()
     {
-        common = numbers.Intersect(anotherNumbers).ToList();
+        result = products.UnionBy(anotherProducts, product => product.Id)
+                         .ToList();
     }
 
-    private void ResetSequence()
+    private void Reset()
     {
-        numbers = new(3);
-        anotherNumbers = new(3);
-        common = new();
+        products = new ProductSource().Products;
+        anotherProducts = new ProductSource().Products;
+        result = Enumerable.Empty<Product>();
     }
 }
