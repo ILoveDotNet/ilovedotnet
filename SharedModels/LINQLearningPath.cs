@@ -217,19 +217,19 @@ public class LINQLearningPath
                 CreatedOn = new DateTime(2022, 12, 11, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 12, 11, 22, 30, 0)
             },
-            //new ContentMetaData
-            //{
-            //    Order = 17,
-            //    Title = "Using LINQ Intersect to Find Common data",
-            //    Author = "Abdul Rahman",
-            //    PosterUrl = "image/blogs/linq/using-linq-intersect-to-find-common-data.svg",
-            //    ThumbnailUrl = "image/blogs/linq/using-linq-intersect-to-find-common-data.svg",
-            //    ContentUrl = "blogs/using-linq-intersect-to-find-common-data",
-            //    IconUrl = "image/icons/linq.png",
-            //    Type = "LINQ",
-            //    CreatedOn = new DateTime(2022, 12, 18, 22, 30, 0),
-            //    ModifiedOn = new DateTime(2022, 12, 18, 22, 30, 0)
-            //}
+            new ContentMetaData
+            {
+               Order = 17,
+               Title = "Using LINQ Intersect to Find Common data",
+               Author = "Abdul Rahman",
+               PosterUrl = "image/blogs/linq/using-linq-intersect-to-find-common-data.svg",
+               ThumbnailUrl = "image/blogs/linq/using-linq-intersect-to-find-common-data.svg",
+               ContentUrl = "blogs/using-linq-intersect-to-find-common-data",
+               IconUrl = "image/icons/linq.png",
+               Type = "LINQ",
+               CreatedOn = new DateTime(2022, 12, 18, 22, 30, 0),
+               ModifiedOn = new DateTime(2022, 12, 18, 22, 30, 0)
+            }
         };
     }
 }
