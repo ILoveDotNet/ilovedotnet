@@ -2,12 +2,12 @@
 
 public class LINQLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(17);
+    public readonly List<ContentMetaData> FullContents = new(19);
 
     public LINQLearningPath()
     {
         FullContents =
-        new(17)
+        new(19)
         {
             new ContentMetaData
             {
@@ -229,6 +229,32 @@ public class LINQLearningPath
                Type = "LINQ",
                CreatedOn = new DateTime(2022, 12, 18, 22, 30, 0),
                ModifiedOn = new DateTime(2022, 12, 18, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+               Order = 17,
+               Title = "Using LINQ Union to combine data",
+               Author = "Abdul Rahman",
+               PosterUrl = "image/blogs/linq/using-linq-union-to-combine-data.svg",
+               ThumbnailUrl = "image/blogs/linq/using-linq-union-to-combine-data.svg",
+               ContentUrl = "blogs/using-linq-union-to-combine-data",
+               IconUrl = "image/icons/linq.png",
+               Type = "LINQ",
+               CreatedOn = new DateTime(2022, 12, 25, 22, 30, 0),
+               ModifiedOn = new DateTime(2022, 12, 25, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+               Order = 17,
+               Title = "Using LINQ Concat to combine data",
+               Author = "Abdul Rahman",
+               PosterUrl = "image/blogs/linq/using-linq-concat-to-combine-data.svg",
+               ThumbnailUrl = "image/blogs/linq/using-linq-concat-to-combine-data.svg",
+               ContentUrl = "blogs/using-linq-concat-to-combine-data",
+               IconUrl = "image/icons/linq.png",
+               Type = "LINQ",
+               CreatedOn = new DateTime(2023, 1, 1, 22, 30, 0),
+               ModifiedOn = new DateTime(2023, 1, 1, 22, 30, 0)
             }
         };
     }
