@@ -232,7 +232,7 @@ public class LINQLearningPath
             },
             new ContentMetaData
             {
-               Order = 17,
+               Order = 18,
                Title = "Using LINQ Union to combine data",
                Author = "Abdul Rahman",
                PosterUrl = "image/blogs/linq/using-linq-union-to-combine-data.svg",
@@ -245,7 +245,7 @@ public class LINQLearningPath
             },
             new ContentMetaData
             {
-               Order = 17,
+               Order = 19,
                Title = "Using LINQ Concat to combine data",
                Author = "Abdul Rahman",
                PosterUrl = "image/blogs/linq/using-linq-concat-to-combine-data.svg",
