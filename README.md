@@ -24,6 +24,7 @@ This is a .NET knowledge sharing platform with live demos crafted by developers 
 17. [Dependency Injection](https://github.com/orgs/ILoveDotNet/projects/18/views/1)
 18. [Minimal API](https://github.com/orgs/ILoveDotNet/projects/20)
 19. [CLI](https://github.com/orgs/ILoveDotNet/projects/21/views/1)
+20. [HTTP Client](https://github.com/orgs/ILoveDotNet/projects/22/views/1)
 
 # Our Official Network
 | Platform  | Link                                      | Status                                                                                                                                                                                                                               |
