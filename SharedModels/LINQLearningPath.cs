@@ -2,12 +2,12 @@
 
 public class LINQLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(19);
+    public readonly List<ContentMetaData> FullContents = new(20);
 
     public LINQLearningPath()
     {
         FullContents =
-        new(19)
+        new(20)
         {
             new ContentMetaData
             {
@@ -255,6 +255,19 @@ public class LINQLearningPath
                Type = "LINQ",
                CreatedOn = new DateTime(2023, 1, 1, 22, 30, 0),
                ModifiedOn = new DateTime(2023, 1, 1, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+               Order = 20,
+               Title = "Using LINQ Join to combine data",
+               Author = "Abdul Rahman",
+               PosterUrl = "image/blogs/linq/using-linq-join-to-combine-data.svg",
+               ThumbnailUrl = "image/blogs/linq/using-linq-join-to-combine-data.svg",
+               ContentUrl = "blogs/using-linq-join-to-combine-data",
+               IconUrl = "image/icons/linq.png",
+               Type = "LINQ",
+               CreatedOn = new DateTime(2023, 1, 8, 22, 30, 0),
+               ModifiedOn = new DateTime(2023, 1, 8, 22, 30, 0)
             }
         };
     }

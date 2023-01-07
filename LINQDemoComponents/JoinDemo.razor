@@ -1,0 +1,55 @@
+﻿<section class="[ flex flex-col ] [ space-y-1 ]">
+    <IntegerSequenceDemo Numbers="numbers"></IntegerSequenceDemo>
+    <IntegerSequenceDemo Numbers="anotherNumbers"></IntegerSequenceDemo>
+</section>
+
+<p>Joined sequence</p>
+
+<table class="[ table-fixed border-collapse ] [ bg-white ] [ border-2 ] [ dark:bg-black dark:border-slate-500 ] [ mt-2 ] [ w-full ]">
+    <thead>
+        <tr class="[ bg-gray-100 ] [ dark:bg-slate-500 ]">
+            <th class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Number</th>
+            <th class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Another Number</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var pair in join)
+        {
+            <tr>
+                <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">@pair.Item1</td>
+                <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">@pair.Item2</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<button type="button" class="[ bg-cyan-500 ] [ text-white ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ]" @onclick="HandleJoin">
+    Join
+</button>
+
+<button type="button" class="[ bg-fuchsia-500 ] [ text-white ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ]" @onclick="ResetSequence">
+    Reset
+</button>
+
+@code
+{
+    private List<int> numbers = new(3);
+    private List<int> anotherNumbers = new(3);
+    private List<Tuple<int, int>> join = new();
+
+    private void HandleJoin()
+    {
+        join = numbers.Join(anotherNumbers, 
+                            number => number, 
+                            anotherNumber => anotherNumber,
+                            (number, anotherNumber) => Tuple.Create<int,int>(number, anotherNumber))
+                      .ToList();
+    }
+
+    private void ResetSequence()
+    {
+        numbers = new(3);
+        anotherNumbers = new(3);
+        join = new();
+    }
+}
