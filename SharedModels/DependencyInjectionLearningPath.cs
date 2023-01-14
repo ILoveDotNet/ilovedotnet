@@ -33,7 +33,7 @@ public class DependencyInjectionLearningPath
                 IconUrl = "image/icons/dependency-injection.png",
                 Type = "Dependency-Injection",
                 CreatedOn = new DateTime(2022, 7, 31, 22, 30, 0),
-                ModifiedOn = new DateTime(2022, 7, 31, 22, 30, 0)
+                ModifiedOn = new DateTime(2023, 1, 15, 22, 30, 0)
             },
         };
     }
