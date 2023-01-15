@@ -1,0 +1,124 @@
+﻿@page "/blogs/simulating-left-outer-join-using-linq"
+@using LINQDemoComponents
+@inherits FragmentNavigationBase
+@inject TableOfContents tableOfContents
+
+<Content Title=@Title
+         Description=@Description
+         CreatedOn=@CreatedOn
+         ModifiedOn=@ModifiedOn
+         Slug=@Slug
+         PosterPath=@PosterPath
+         Keywords=@Keywords
+         Channel="@Channel"
+         ContentType="@ContentType"
+         TotalContents=@TotalContents
+         FileName=@nameof(LINQLeftOuterJoin)>
+    <ContentBody>
+        <p>
+            In this article, let's learn about how to do <ContentHighlight>Left Outer Join</ContentHighlight> in <ContentHighlight>LINQ</ContentHighlight> in .NET.
+        </p>
+
+        <p>
+            <strong>Note:</strong> If you have not done so already, I recommend you read the article on
+            <NavLink class="[ underline ]" href="blogs/using-linq-group-join-to-combine-data" Match="NavLinkMatch.All">Using LINQ Group Join to combine data</NavLink>.
+        </p>
+
+        <h3 class="[ font-semibold text-lg ]">Table of Contents</h3>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
+                    Introduction
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#left-outer-join")" Match="NavLinkMatch.All">
+                    Simulating Left Outer Join using LINQ
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
+                    Summary
+                </NavLink>
+            </li>
+        </ol>
+
+        <h3 id="introduction" class="[ font-semibold text-lg ]">Introduction</h3>
+
+        <p>
+            A <ContentHighlight>LEFT OUTER JOIN</ContentHighlight> in <abbr title="Structured Query Language">SQL</abbr> returns all the rows from the 
+            <ContentHighlight>left table</ContentHighlight>, and the matching rows from the <ContentHighlight>right table</ContentHighlight>. If there is no match, the result will 
+            contain <ContentHighlight>NULL</ContentHighlight> values for the <ContentHighlight>right table's</ContentHighlight> columns.
+        </p>
+
+        <p>
+            It is needed when you want to return all the records from one table <ContentHighlight>the left table</ContentHighlight> and any matching records from another table 
+            <ContentHighlight>the right table</ContentHighlight>. This is useful when you want to include records from one table that do not have matching records in the other table.
+        </p>
+
+        <h3 id="left-outer-join" class="[ font-semibold text-lg ]">Simulating Left Outer Join using LINQ</h3>
+
+        <p>
+            Simulating Left Outer Join can be done using both <ContentHighlight>Method Syntax</ContentHighlight> and <ContentHighlight>Query Syntax</ContentHighlight>.
+        </p>
+
+        <p>With <ContentHighlight>Method Syntax</ContentHighlight> we can use,</p>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li><ContentHighlight>SelectMany()</ContentHighlight> method to select the 'right' collection.</li>
+            <li><ContentHighlight>Where()</ContentHighlight> method to filter the 'right' collection.</li>
+            <li><ContentHighlight>DefaultIfEmpty()</ContentHighlight> for 'right' collection.</li>
+        </ol>
+
+        <p>With <ContentHighlight>Query Syntax</ContentHighlight> we can use,</p>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li><ContentHighlight>inner join</ContentHighlight> using <ContentHighlight>into</ContentHighlight> and a second <ContentHighlight>from</ContentHighlight> statement.</li>
+            <li><ContentHighlight>null</ContentHighlight> object may be returned in 'right' collection.</li>
+            <li><ContentHighlight>DefaultIfEmpty()</ContentHighlight> for 'right' collection.</li>
+        </ol>
+
+        <GithubGistSnippet Title="LINQ Left Outer Join Using Group Join" UserId="fingers10" FileName="37010a829f84321e40b96183dc1bec20"></GithubGistSnippet>
+
+        <DemoSnippet Title="LINQ Left Outer Join Using Group Join">
+            <p>
+                Let's try Left Outer Join using LINQ GroupJoin
+            </p>
+
+            <ul class="[ list-disc ] [ ml-4 ]">
+                <li>We have <ContentHighlight>Product</ContentHighlight> class with following properties - <ContentHighlight>Id, Name</ContentHighlight></li>
+                <li>We have <ContentHighlight>Sale</ContentHighlight> class with following properties - <ContentHighlight>Id, Price</ContentHighlight></li>
+                <li>The tables are loaded with product and sale collection.</li>
+                <li>The Key Expression here is the <ContentHighlight>Product ID</ContentHighlight>.</li>
+                <li>Click on Left Outer Join Button to view the result.</li>
+                <li>Click on reset to try other combination</li>
+            </ul>
+
+            <LeftOuterJoinDemo></LeftOuterJoinDemo>
+        </DemoSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="summary" class="[ font-semibold text-lg ]">Summary</h3>
+
+        <p>
+            In this article we learn't how to combine data between collections by doing a <ContentHighlight>Left Outer Join</ContentHighlight> using LINQ. This allows you to group 
+            elements from one collection with elements from another collection based on a specified key representing one-to-many relationship. All these can be used with any 
+            <ContentHighlight>IEnumerable</ContentHighlight> or <ContentHighlight>IQueryable</ContentHighlight> types.
+        </p>
+    </ContentBody>
+</Content>
+
+@code {
+    private string Title = "Simulating Left Outer Join using LINQ";
+    private string Description = "In this post I will teach you how to do left outer join between collections using LINQ in .NET. All with live working demo.";
+    private DateTime CreatedOn = new DateTime(2023, 1, 22, 22, 30, 0);
+    private DateTime ModifiedOn = new DateTime(2023, 1, 22, 22, 30, 0);
+    private string Slug = "simulating-left-outer-join-using-linq";
+    private string PosterPath = "Blogs/LINQ";
+    private string Channel = "linq";
+    private string ContentType = "blogs";
+    private ushort TotalContents => (ushort)tableOfContents.Contents.Count(content => content.Type.Equals("LINQ", StringComparison.CurrentCultureIgnoreCase));
+    private List<string> Keywords = new(4) { "Combine", "into", "Left Outer Join", "Left Join" };
+}

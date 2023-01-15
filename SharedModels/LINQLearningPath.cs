@@ -2,12 +2,12 @@
 
 public class LINQLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(21);
+    public readonly List<ContentMetaData> FullContents = new(22);
 
     public LINQLearningPath()
     {
         FullContents =
-        new(21)
+        new(22)
         {
             new ContentMetaData
             {
@@ -281,6 +281,19 @@ public class LINQLearningPath
                Type = "LINQ",
                CreatedOn = new DateTime(2023, 1, 15, 22, 30, 0),
                ModifiedOn = new DateTime(2023, 1, 15, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+               Order = 22,
+               Title = "Simulating Left Outer Join using LINQ",
+               Author = "Abdul Rahman",
+               PosterUrl = "image/blogs/linq/simulating-left-outer-join-using-linq.svg",
+               ThumbnailUrl = "image/blogs/linq/simulating-left-outer-join-using-linq.svg",
+               ContentUrl = "blogs/simulating-left-outer-join-using-linq",
+               IconUrl = "image/icons/linq.png",
+               Type = "LINQ",
+               CreatedOn = new DateTime(2023, 1, 22, 22, 30, 0),
+               ModifiedOn = new DateTime(2023, 1, 22, 22, 30, 0)
             }
         };
     }
