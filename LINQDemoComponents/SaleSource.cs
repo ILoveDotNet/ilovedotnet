@@ -2,13 +2,13 @@
 
 public class SaleSource
 {
-    private readonly List<Sale> FullSales = new(2);
+    private readonly List<Sale> FullSales = new(3);
     public IReadOnlyList<Sale> Sales => FullSales.ToList();
 
     public SaleSource()
     {
         FullSales =
-            new()
+            new(3)
             {
                 new Sale
                 {
@@ -16,6 +16,13 @@ public class SaleSource
                     ProductId = 1,
                     Price = 1000m,
                     ProductColor = "Black"
+                },
+                new Sale
+                {
+                    Id = 789,
+                    ProductId = 1,
+                    Price = 1000m,
+                    ProductColor = "Red"
                 },
                 new Sale
                 {
