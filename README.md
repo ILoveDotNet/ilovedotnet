@@ -25,12 +25,13 @@ This is a .NET knowledge sharing platform with live demos crafted by developers 
 18. [Minimal API](https://github.com/orgs/ILoveDotNet/projects/20)
 19. [CLI](https://github.com/orgs/ILoveDotNet/projects/21/views/1)
 20. [HTTP Client](https://github.com/orgs/ILoveDotNet/projects/22/views/1)
+21. [Report](https://github.com/orgs/ILoveDotNet/projects/23/views/1)
 
 # Our Official Network
 | Platform  | Link                                      | Status                                                                                                                                                                                                                               |
 |-----------|-------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Website   | https://ilovedotnet.org                   | [![Website](https://img.shields.io/website?label=ILoveDotNet.org&color=blueviolet&style=for-the-badge&url=https%3A%2F%2Filovedotnet.org)](https://ilovedotnet.org)                                                                   |
-| YouTube   | https://youtube.com/@ilovedotnet			| [![Youtube Channel](https://img.shields.io/website?label=Youtube%20I%20%E2%9D%A4%EF%B8%8F%20.NET&color=red&style=for-the-badge&url=https%3A%2F%2Fyoutube.com%2F@ilovedotnet)](https://youtube.com/@ilovedotnet)                      |
+| YouTube   | https://youtube.com/@ilovedotnet		    | [![Youtube Channel](https://img.shields.io/website?label=Youtube%20I%20%E2%9D%A4%EF%B8%8F%20.NET&color=red&style=for-the-badge&url=https%3A%2F%2Fyoutube.com%2F@ilovedotnet)](https://youtube.com/@ilovedotnet)                      |
 | LinkedIn  | https://www.linkedin.com/groups/9083706/  | [![LinkedIn Group](https://img.shields.io/website?label=LinkedIn%20I%20%E2%9D%A4%EF%B8%8F%20.NET&color=blue&style=for-the-badge&url=https%3A%2F%2Fwww.linkedin.com%2Fgroups%2F9083706%2F)](https://www.linkedin.com/groups/9083706/) |
 | Instagram | https://instagram.com/ilovedotnet/        | [![Instagram](https://img.shields.io/website?label=Instagram%20I%20%E2%9D%A4%EF%B8%8F%20.NET&color=orange&style=for-the-badge&url=https%3A%2F%2Finstagram.com%2Filovedotnet%2F)](https://instagram.com/ilovedotnet/)                 |
 
