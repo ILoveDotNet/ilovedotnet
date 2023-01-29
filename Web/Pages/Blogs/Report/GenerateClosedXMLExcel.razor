@@ -1,0 +1,310 @@
+﻿@page "/blogs/generate-excel-report-using-closed-xml-in-dotnet"
+@inherits FragmentNavigationBase
+@inject TableOfContents tableOfContents
+
+<Content Title=@Title
+         Description=@Description
+         CreatedOn=@CreatedOn
+         ModifiedOn=@ModifiedOn
+         Slug=@Slug
+         PosterPath=@PosterPath
+         Keywords=@Keywords
+         Channel="@Channel"
+         ContentType="@ContentType"
+         TotalContents=@TotalContents
+         FileName=@nameof(GenerateClosedXMLExcel)>
+    <ContentBody>
+        <p>
+            In this article, let's learn about how to do <ContentHighlight>Generate Excel Report</ContentHighlight> using <ContentHighlight>ClosedXML.Report</ContentHighlight> in .NET.
+        </p>
+
+        <h3 class="[ font-semibold text-lg ]">Table of Contents</h3>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
+                    Introduction
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#what-is-closed-xml")" Match="NavLinkMatch.All">
+                    What is Closed XML ?
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#why-closed-xml")" Match="NavLinkMatch.All">
+                    Why Closed XML ?
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#simple-excel-report")" Match="NavLinkMatch.All">
+                    Generating Simple Excel Report
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#complex-excel-report")" Match="NavLinkMatch.All">
+                    Generating Complex Excel Report
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#more-information")" Match="NavLinkMatch.All">
+                    More Information
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
+                    Summary
+                </NavLink>
+            </li>
+        </ol>
+
+        <h3 id="introduction" class="[ font-semibold text-lg ]">Introduction</h3>
+
+        <p>
+            Reports are needed in an enterprise to provide insights into key performance indicators, track progress towards goals, do some analysis, and make informed decisions. The most 
+            common report formats availabe are in PDF, Word, Power Point, Excel, etc. Excel reports are preferred because they are widely available, easy to use, and provide a variety of 
+            data visualization options. Additionally, Excel allows for easy data manipulation and calculation, making it a convenient tool for generating reports.
+        </p>
+
+        <p>
+            Six years ago, we used to generate reports using <ContentHighlight>Crystal Reports</ContentHighlight> in .NET for back-office monitoring in applications. Designing reports was 
+            tedious and sometimes complex, as it required an understanding of and proficiency in Crystal Reports. While there were other tools available for generating reports, they required 
+            Microsoft Office/Interop to be installed on the target servers.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="what-is-closed-xml" class="[ font-semibold text-lg ]">What is Closed XML ?</h3>
+
+        <p>
+            <NavLink class="[ underline ]" href="https://github.com/ClosedXML/ClosedXML.Report" target="_blank"><ContentHighlight>ClosedXML.Report</ContentHighlight></NavLink> is an open-source 
+            .NET library built on top of <NavLink class="[ underline ]" href="https://github.com/ClosedXML/ClosedXML" target="_blank"><ContentHighlight>ClosedXML</ContentHighlight></NavLink> 
+            that allows developers to <ContentHighlight>create, read, and manipulate Microsoft Excel documents</ContentHighlight> in an <ContentHighlight>XML-based format (Office Open XML)</ContentHighlight>. 
+            It provides an API that simplifies the process of working with Excel files, allowing developers to create, update, and manipulate spreadsheets without having to use Microsoft Excel 
+            itself. This makes it an attractive option for automating Excel-related tasks and integrating Excel functionality into custom applications. With Closed XML, developers can create 
+            custom reports, data visualizations, and other Excel-based solutions, without having to depend on Microsoft Excel being installed on the target system.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="why-closed-xml" class="[ font-semibold text-lg ]">Why Closed XML ?</h3>
+
+        <p>
+            Closed XML is an open-source project and has a large community of developers and users. Its repository is maintained on GitHub and is actively updated by the development team.
+        </p>
+
+        <p>
+            As with any open-source software, it is important to thoroughly evaluate the source code and the project's reputation before using it in production. You can assess the 
+            trustworthiness of Closed XML by looking at its code quality, the number of contributors, and the frequency of updates.
+        </p>
+
+        <p>
+            Overall, Closed XML has a positive reputation and is widely used by many developers. It is an active project with regular updates, and the development team is responsive to issues 
+            and feature requests. You can review its GitHub repository and the community feedback to determine its trustworthiness.
+        </p>
+
+        <p>
+            We can consider using Closed XML Report for the following options and benefits,
+        </p>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>It is open source and it is built on top of <ContentHighlight>ClosedXML</ContentHighlight></li>
+            <li>No need to install Microsoft Excel or Interop in target server</li>
+            <li>Integrate Excel into custom applications</li>
+            <li>Save development time</li>
+            <li>Improve data processing performance</li>
+            <li>It is compatible with latest .NET</li>
+            <li>Get all the benefits of excel</li>
+        </ol>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="simple-excel-report" class="[ font-semibold text-lg ]">Generating Simple Excel Report</h3>
+
+        <p>
+            Sometimes, we have a list of records that needs to be directly exported to Excel. With <ContentHighlight>ClosedXML.Report</ContentHighlight>, this is a simple and easy process, 
+            which can be accomplished in four steps.
+        </p>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>Install <ContentHighlight>ClosedXML.Report</ContentHighlight> Nuget Package</li>
+            <li>
+                <p>Convert <ContentHighlight>List / IEnumerable</ContentHighlight> data to <ContentHighlight>DataTable</ContentHighlight></p>
+                <GithubGistSnippet Title="Convert IEnumerable to DataTable" UserId="fingers10" FileName="f15f20d0b2028f3bac259cb8955a193b"></GithubGistSnippet>
+            </li>
+            <li>
+                <p>Add <ContentHighlight>DataTable</ContentHighlight> to Excel <ContentHighlight>WorkSheet</ContentHighlight></p>
+                <GithubGistSnippet Title="Add DataTable to Excel WorkSheet using Closed XML" UserId="fingers10" FileName="59b7990842d5adb9905bcf81a8d6111b"></GithubGistSnippet>
+            </li>
+            <li>
+                <p>Save it to excel file or <ContentHighlight>MemoryStream</ContentHighlight> and get <ContentHighlight>bytes[]</ContentHighlight> from workbook and send to browser for download</p>
+                <GithubGistSnippet Title="Save Closed XML WorkSheet to File" UserId="fingers10" FileName="2ff4f82695fc43afbe1fc2724c694a5f"></GithubGistSnippet>
+            </li>
+        </ol>
+
+        <GithubGistSnippet Title="Generating Simple Excel Report" UserId="fingers10" FileName="66a9c69639354f6ee47859cb8ecdef5f"></GithubGistSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <DemoSnippet Title="Generate Simple Excel Report Using ">
+            <p>
+                I attempted to export a table of contents from I Love .NET, and the output is as follows.
+            </p>
+            
+            <figure>
+                <img src="./image/blogs/report/generate-excel-report-using-closed-xml-in-dotnet/Simple Report Using Closed XML.png" alt="Simple Report Using Closed XML" class="[ w-full ]" />
+            </figure>
+        </DemoSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="complex-excel-report" class="[ font-semibold text-lg ]">Generating Complex Excel Report</h3>
+
+        <p>
+            In an enterprise, it is common to have complex data sets that need to be generated as Excel files. The data may include nested lists of data, such as one-to-many relationships, and 
+            this can be displayed in Excel as nested tables. This is also possible using <ContentHighlight>ClosedXML.Report</ContentHighlight>, and can be achieved in five steps.
+        </p>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>Install <ContentHighlight>ClosedXML.Report</ContentHighlight> Nuget Package</li>
+            <li>
+                <p>
+                    Design a report Template. This step involves more work. We need to design a excel template to be used and add it in our project directory and enable copy to output on build. 
+                    This template used in next step. We need to follow simple rules when designing the template.
+                </p>
+
+                <figure>
+                    <img src="./image/blogs/report/generate-excel-report-using-closed-xml-in-dotnet/Copy to Output.png" alt="Copy to Output" class="[ w-1/2 ]" />
+                </figure>
+
+                <ol class="[ list-decimal ] [ ml-4 ]">
+                    <li>
+                        <p>
+                            The first column <ContentHighlight>A</ContentHighlight> needs to be left empty in Excel as it is used by ClosedXML for internal processing.
+                        </p>
+
+                        <figure>
+                            <img src="./image/blogs/report/generate-excel-report-using-closed-xml-in-dotnet/Empty Column A.png" alt="Empty Column A" class="[ w-1/4 ]" />
+                        </figure>
+                    </li>
+                    <li>
+                        <p>
+                            We need to use <ContentHighlight>{{PropertyName}}</ContentHighlight> placeholder to let Closed XML know what data needs to be replaced in the excel cells.
+                        </p>
+
+                        <figure>
+                            <img src="./image/blogs/report/generate-excel-report-using-closed-xml-in-dotnet/Placeholder.png" alt="Placeholder" class="[ w-full ]" />
+                        </figure>
+
+                        <p>
+                            The placeholder can contain any valid <ContentHighlight>C#</ContentHighlight> expression like <ContentHighlight>{{GeneratedOn.ToString("dd-MM-yyyy")}}</ContentHighlight>. 
+                            You can either format the data in code itself or use excel to do formatting or apply any styles in excel to cell while designing template. You can also place images. This 
+                            can be useful when we generate Confidential report and add confidential classification image to report directly in excel.
+                        </p>
+                    </li>
+                    <li>
+                        <p>
+                            While building a document, <ContentHighlight>ClosedXML.Report</ContentHighlight> finds all named ranges and determines data sources by their name. 
+                            <ContentHighlight>Range</ContentHighlight> name should coincide with the name of the variable serving a data source for this range. For nested tables, the range 
+                            name is built using an <ContentHighlight>underscore (_)</ContentHighlight>. E.g., to output values from <ContentHighlight>Data[].AuthorChannels[].ArticleDetails[]</ContentHighlight> 
+                            the range name must be <ContentHighlight>Data_AuthorChannels_ArticleDetails</ContentHighlight>.
+                        </p>
+
+                        <p>
+                            Also we need to make sure that each data range must have minimum of one column and two rows (one row for data and an empty row for CLosedXML to do processing). That said, 
+                            let's see some ranges in action.
+                        </p>
+
+                        <figure>
+                            <img src="./image/blogs/report/generate-excel-report-using-closed-xml-in-dotnet/Article Details Named Range.png" alt="Article Details Named Range" class="[ w-full ]" />
+                        </figure>
+
+                        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+                        <figure>
+                            <img src="./image/blogs/report/generate-excel-report-using-closed-xml-in-dotnet/Author Channels Named Range.png" alt="Author Channels Named Range.png" class="[ w-full ]" />
+                        </figure>
+
+                        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+                        <figure>
+                            <img src="./image/blogs/report/generate-excel-report-using-closed-xml-in-dotnet/Data Named Range.png" alt="Data Named Range" class="[ w-full ]" />
+                        </figure>
+                    </li>
+                </ol>
+            </li>
+            <li>
+                <p>Load the template and add data variable to template</p>
+                <GithubGistSnippet Title="Load the Excel Template and Data Variable to Template" UserId="fingers10" FileName="6aff559ac5ac23ac0efa48575ef54019"></GithubGistSnippet>
+            </li>
+            <li>
+                <p>Generate the report using template</p>
+                <GithubGistSnippet Title="Generate Excel using ClosedXML Report Template" UserId="fingers10" FileName="4f901c355ed7927b2f9420c50186fc1f"></GithubGistSnippet>
+            </li>
+            <li>
+                <p>Save it to excel file or <ContentHighlight>MemoryStream</ContentHighlight> and get <ContentHighlight>bytes[]</ContentHighlight> from workbook and send to browser for download</p>
+                <GithubGistSnippet Title="Save Closed XML Template to File" UserId="fingers10" FileName="0a1da192498f9ee64763b97e69042365"></GithubGistSnippet>
+            </li>
+        </ol>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <GithubGistSnippet Title="Generate Complex Report Using Closed XML" UserId="fingers10" FileName="fc5150c586bdbad1bec23341ef12bb54"></GithubGistSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <DemoSnippet Title="Generating Complex Excel Report">
+            <p>
+                I attempted to export complex real-world data from I Love .NET, and the output is as follows. You can alos notice how Generated Date get formatted as expected.
+            </p>
+
+            <p>Template:</p>
+
+            <figure>
+                <img src="./image/blogs/report/generate-excel-report-using-closed-xml-in-dotnet/Content Report Template.png" alt="Content Report Template" class="[ w-full ]" />
+            </figure>
+
+            <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+            <p>Report:</p>
+
+            <figure>
+                <img src="./image/blogs/report/generate-excel-report-using-closed-xml-in-dotnet/Complex Report Using Closed XML.png" alt="Complex Report Using Closed XML" class="[ w-full ]" />
+            </figure>
+        </DemoSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="more-information" class="[ font-semibold text-lg ]">More Information</h3>
+
+        <p>
+            Additional information can be found in the official documentation, accessible via the <NavLink class="underline" href="https://closedxml.github.io/ClosedXML.Report/docs/en/" target="_blank">official documentation</NavLink>. 
+            They support various types of reports and provide sample templates on their website.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="summary" class="[ font-semibold text-lg ]">Summary</h3>
+
+        <p>
+            In this article we learn't how to generate simple and complex excel report using <ContentHighlight>ClosedXML.Report</ContentHighlight>. Closed XML is a .NET library that enables 
+            developers to create, read, and manipulate Microsoft Excel files without using Microsoft Excel. It provides an API that simplifies the process of working with Excel files, making 
+            it easier to automate tasks, integrate Excel into custom applications, and improve data processing performance. Closed XML is an open-source project with an active community of 
+            developers and users, and is regularly updated. By using Closed XML, developers can efficiently and effectively generate Excel reports and other solutions, without having to depend 
+            on Microsoft Excel being installed on the target system.
+        </p>
+    </ContentBody>
+</Content>
+
+@code {
+    private string Title = "Generate Excel Report using Closed XML in .NET";
+    private string Description = "In this post I will teach you how to generate excel report using Closed XML in .NET. All with live working demo.";
+    private DateTime CreatedOn = new DateTime(2023, 1, 29, 22, 30, 0);
+    private DateTime ModifiedOn = new DateTime(2023, 1, 29, 22, 30, 0);
+    private string Slug = "generate-excel-report-using-closed-xml-in-dotnet";
+    private string PosterPath = "Blogs/Report";
+    private string Channel = "report";
+    private string ContentType = "blogs";
+    private ushort TotalContents => (ushort)tableOfContents.Contents.Count(content => content.Type.Equals("report", StringComparison.CurrentCultureIgnoreCase));
+    private List<string> Keywords = new(8) { "Microsoft Excel", "Excel Report", "Closed XML", "Report Template", "Complex Report", "Simple Report", "xlsx", "xls" };
+}
