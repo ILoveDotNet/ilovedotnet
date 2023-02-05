@@ -2,12 +2,12 @@
 
 public class LINQLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(22);
+    public readonly List<ContentMetaData> FullContents = new(23);
 
     public LINQLearningPath()
     {
         FullContents =
-        new(22)
+        new(23)
         {
             new ContentMetaData
             {
@@ -294,6 +294,19 @@ public class LINQLearningPath
                Type = "LINQ",
                CreatedOn = new DateTime(2023, 1, 22, 22, 30, 0),
                ModifiedOn = new DateTime(2023, 1, 22, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+               Order = 23,
+               Title = "Using LINQ Group By to group data",
+               Author = "Abdul Rahman",
+               PosterUrl = "image/blogs/linq/using-linq-group-by-to-group-data.svg",
+               ThumbnailUrl = "image/blogs/linq/using-linq-group-by-to-group-data.svg",
+               ContentUrl = "blogs/using-linq-group-by-to-group-data",
+               IconUrl = "image/icons/linq.png",
+               Type = "LINQ",
+               CreatedOn = new DateTime(2023, 2, 5, 22, 30, 0),
+               ModifiedOn = new DateTime(2023, 2, 5, 22, 30, 0)
             }
         };
     }
