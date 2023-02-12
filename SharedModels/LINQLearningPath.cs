@@ -2,12 +2,12 @@
 
 public class LINQLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(23);
+    public readonly List<ContentMetaData> FullContents = new(24);
 
     public LINQLearningPath()
     {
         FullContents =
-        new(23)
+        new(24)
         {
             new ContentMetaData
             {
@@ -307,6 +307,19 @@ public class LINQLearningPath
                Type = "LINQ",
                CreatedOn = new DateTime(2023, 2, 5, 22, 30, 0),
                ModifiedOn = new DateTime(2023, 2, 5, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+               Order = 24,
+               Title = "Using LINQ Count Min Max Average and Sum to Aggregate data",
+               Author = "Abdul Rahman",
+               PosterUrl = "image/blogs/linq/using-linq-count-min-max-average-sum-to-aggregate-data.svg",
+               ThumbnailUrl = "image/blogs/linq/using-linq-count-min-max-average-sum-to-aggregate-data.svg",
+               ContentUrl = "blogs/using-linq-count-min-max-average-sum-to-aggregate-data",
+               IconUrl = "image/icons/linq.png",
+               Type = "LINQ",
+               CreatedOn = new DateTime(2023, 2, 12, 22, 30, 0),
+               ModifiedOn = new DateTime(2023, 2, 12, 22, 30, 0)
             }
         };
     }

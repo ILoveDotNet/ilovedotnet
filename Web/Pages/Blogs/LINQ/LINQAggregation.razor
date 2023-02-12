@@ -1,0 +1,344 @@
+﻿@page "/blogs/using-linq-count-min-max-average-sum-to-aggregate-data"
+@using LINQDemoComponents
+@inherits FragmentNavigationBase
+@inject TableOfContents tableOfContents
+
+<Content Title=@Title
+         Description=@Description
+         CreatedOn=@CreatedOn
+         ModifiedOn=@ModifiedOn
+         Slug=@Slug
+         PosterPath=@PosterPath
+         Keywords=@Keywords
+         Channel="@Channel"
+         ContentType="@ContentType"
+         TotalContents=@TotalContents
+         FileName=@nameof(LINQAggregation)>
+    <ContentBody>
+        <p>
+            In this article, let's learn about how to use <ContentHighlight>Count</ContentHighlight>, <ContentHighlight>Min</ContentHighlight>, <ContentHighlight>Max</ContentHighlight>, 
+            <ContentHighlight>MinBy</ContentHighlight>, <ContentHighlight>MaxBy</ContentHighlight>, <ContentHighlight>Average</ContentHighlight>, <ContentHighlight>Sum</ContentHighlight> 
+            and <ContentHighlight>Aggregate</ContentHighlight> in <ContentHighlight>LINQ</ContentHighlight> in .NET.
+        </p>
+
+        <p>
+            <strong>Note:</strong> If you have not done so already, I recommend you read the article on
+            <NavLink class="[ underline ]" href="blogs/using-linq-group-by-to-group-data" Match="NavLinkMatch.All">Using LINQ Group By to group data</NavLink>.
+        </p>
+
+        <h3 class="[ font-semibold text-lg ]">Table of Contents</h3>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
+                    Introduction
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#count")" Match="NavLinkMatch.All">
+                    Count()
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#min")" Match="NavLinkMatch.All">
+                    Min()
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#max")" Match="NavLinkMatch.All">
+                    Max()
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#min-by")" Match="NavLinkMatch.All">
+                    MinBy()
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#max-by")" Match="NavLinkMatch.All">
+                    MaxBy()
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#average")" Match="NavLinkMatch.All">
+                    Average()
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#sum")" Match="NavLinkMatch.All">
+                    Sum()
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#aggregate")" Match="NavLinkMatch.All">
+                    Aggregate()
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
+                    Summary
+                </NavLink>
+            </li>
+        </ol>
+
+        <h3 id="introduction" class="[ font-semibold text-lg ]">Introduction</h3>
+
+        <p>
+            When working with group of data we often need to do calculate some aggregate value out of it. With LINQ, the aggregate functions such as <ContentHighlight>Count</ContentHighlight>, 
+            <ContentHighlight>Min</ContentHighlight>, <ContentHighlight>Max</ContentHighlight>, <ContentHighlight>MinBy</ContentHighlight>, <ContentHighlight>MaxBy</ContentHighlight>, 
+            <ContentHighlight>Average</ContentHighlight>, <ContentHighlight>Sum</ContentHighlight> and <ContentHighlight>Aggregate</ContentHighlight> are used to calculate a <strong>single value
+            from a property</strong>  in collection of objects. The Aggregate method is always applied after the query executes, which means it's already gotten the whole collection by applying 
+            all the where clauses and everything, it retrieves the list, and then the method is applied.
+        </p>
+
+        <p>
+            LINQ <ContentHighlight>Aggregate</ContentHighlight> functions is used to answer questions about collection such as 
+        </p>
+
+        <ul class="[ list-disc ] [ ml-4 ]">
+            <li>Finding the average sales happened during the season</li>
+            <li>Validating the count of records</li>
+            <li>Finding the total products value in a store</li>
+            <li>Minimum / Maxmimum tempertaure recorded in a day</li>
+        </ul>
+
+        <h3 id="count" class="[ font-semibold text-lg ]">Count()</h3>
+
+        <p>
+            The <ContentHighlight>Count()</ContentHighlight> function returns the number of elements in a collection. This is a handy way to quickly determine the size of a collection, 
+            and can be useful in a variety of scenarios, such as verifying that a list contains a minimum number of items before processing it further.
+        </p>
+
+        <GithubGistSnippet Title="LINQ Count Clause" UserId="fingers10" FileName="cc63724584b749c4230451093f565a3a"></GithubGistSnippet>
+
+        <DemoSnippet Title="LINQ Count Demo">
+            <p>
+                Let's try LINQ Count with Objects
+            </p>
+
+            <ul class="[ list-disc ] [ ml-4 ]">
+                <li>We have <ContentHighlight>Product</ContentHighlight> class with following properties - <ContentHighlight>Id, Name, Color, Price, Size</ContentHighlight>.</li>
+                <li>The tables is loaded with product collection.</li>
+                <li>Click on Count Button to view the result.</li>
+                <li>Click on reset to try other combination</li>
+            </ul>
+
+            <CountDemo></CountDemo>
+        </DemoSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="min" class="[ font-semibold text-lg ]">Min()</h3>
+        
+        <p>
+            The <ContentHighlight>Min()</ContentHighlight> function return the minimum value from a collection of numbers. For example, you can use Min to find the smallest number in 
+            a list of prices.
+        </p>
+
+        <GithubGistSnippet Title="LINQ Min Clause" UserId="fingers10" FileName="551b2e762c7044e8e85355ca0c564354"></GithubGistSnippet>
+
+        <DemoSnippet Title="LINQ Min Demo">
+            <p>
+                Let's try LINQ Min with Objects
+            </p>
+
+            <ul class="[ list-disc ] [ ml-4 ]">
+                <li>We have <ContentHighlight>Product</ContentHighlight> class with following properties - <ContentHighlight>Id, Name, Color, Price, Size</ContentHighlight>.</li>
+                <li>The tables is loaded with product collection.</li>
+                <li>The key expression here is <ContentHighlight>Price</ContentHighlight>.</li>
+                <li>Click on Min Button to view the result.</li>
+                <li>Click on reset to try other combination</li>
+            </ul>
+
+            <MinDemo></MinDemo>
+        </DemoSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="max" class="[ font-semibold text-lg ]">Max()</h3>
+        
+        <p>
+            The <ContentHighlight>Max()</ContentHighlight> function return the maximum value from a collection of numbers. For example, you can use Max to find the largest number in 
+            a list of heights.
+        </p>
+
+        <GithubGistSnippet Title="LINQ Max Clause" UserId="fingers10" FileName="564b2c744a6b9c35300679e2e04a27e8"></GithubGistSnippet>
+
+        <DemoSnippet Title="LINQ Max Demo">
+            <p>
+                Let's try LINQ Max with Objects
+            </p>
+
+            <ul class="[ list-disc ] [ ml-4 ]">
+                <li>We have <ContentHighlight>Product</ContentHighlight> class with following properties - <ContentHighlight>Id, Name, Color, Price, Size</ContentHighlight>.</li>
+                <li>The tables is loaded with product collection.</li>
+                <li>The key expression here is <ContentHighlight>Price</ContentHighlight>.</li>
+                <li>Click on Max Button to view the result.</li>
+                <li>Click on reset to try other combination</li>
+            </ul>
+
+            <MaxDemo></MaxDemo>
+        </DemoSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="min-by" class="[ font-semibold text-lg ]">MinBy()</h3>
+
+        <p>
+            The <ContentHighlight>MinBy()</ContentHighlight> function is similar to Min, but instead of finding the minimum value in a collection of numbers, they find the minimum value 
+            based on a specific property of the objects in the collection. For example, you could use MinBy to find the employee with the lowest salary.
+        </p>
+
+        <GithubGistSnippet Title="LINQ MinBy Clause" UserId="fingers10" FileName="8ca7a78029715b149aa8113576dc256e"></GithubGistSnippet>
+
+        <DemoSnippet Title="LINQ MinBy Demo">
+            <p>
+                Let's try LINQ MinBy with Objects
+            </p>
+
+            <ul class="[ list-disc ] [ ml-4 ]">
+                <li>We have <ContentHighlight>Product</ContentHighlight> class with following properties - <ContentHighlight>Id, Name, Color, Price, Size</ContentHighlight>.</li>
+                <li>The tables is loaded with product collection.</li>
+                <li>The key expression here is <ContentHighlight>Price</ContentHighlight>.</li>
+                <li>Click on MinBy Button to view the result.</li>
+                <li>Click on reset to try other combination</li>
+            </ul>
+
+            <MinByDemo></MinByDemo>
+        </DemoSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="max-by" class="[ font-semibold text-lg ]">MaxBy()</h3>
+
+        <p>
+            The <ContentHighlight>MaxBy()</ContentHighlight> function is similar to Max, but instead of finding the maximum value in a collection of numbers, they find the maximum value 
+            based on a specific property of the objects in the collection. For example, you could use MaxBy to find the student with the highest grade.
+        </p>
+
+        <GithubGistSnippet Title="LINQ MaxBy Clause" UserId="fingers10" FileName="41384cf5967ac56e0a5c6df40bb323b1"></GithubGistSnippet>
+
+        <DemoSnippet Title="LINQ MaxBy Demo">
+            <p>
+                Let's try LINQ MaxBy with Objects
+            </p>
+
+            <ul class="[ list-disc ] [ ml-4 ]">
+                <li>We have <ContentHighlight>Product</ContentHighlight> class with following properties - <ContentHighlight>Id, Name, Color, Price, Size</ContentHighlight>.</li>
+                <li>The tables is loaded with product collection.</li>
+                <li>The key expression here is <ContentHighlight>Price</ContentHighlight>.</li>
+                <li>Click on MaxBy Button to view the result.</li>
+                <li>Click on reset to try other combination</li>
+            </ul>
+
+            <MaxByDemo></MaxByDemo>
+        </DemoSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="average" class="[ font-semibold text-lg ]">Average()</h3>
+
+        <p>
+            The <ContentHighlight>Average()</ContentHighlight> function returns the average value of a collection of numbers. This can be useful for determining the mean value in a 
+            collection of data, such as the average height of a group of people.
+        </p>
+
+        <GithubGistSnippet Title="LINQ Average Clause" UserId="fingers10" FileName="14a7bf0df1f94fb7c89bc31dffed4505"></GithubGistSnippet>
+
+        <DemoSnippet Title="LINQ Average Demo">
+            <p>
+                Let's try LINQ Average with Objects
+            </p>
+
+            <ul class="[ list-disc ] [ ml-4 ]">
+                <li>We have <ContentHighlight>Product</ContentHighlight> class with following properties - <ContentHighlight>Id, Name, Color, Price, Size</ContentHighlight>.</li>
+                <li>The tables is loaded with product collection.</li>
+                <li>The key expression here is <ContentHighlight>Price</ContentHighlight>.</li>
+                <li>Click on Average Button to view the result.</li>
+                <li>Click on reset to try other combination</li>
+            </ul>
+
+            <AverageDemo></AverageDemo>
+        </DemoSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="sum" class="[ font-semibold text-lg ]">Sum()</h3>
+
+        <p>
+            The <ContentHighlight>Sum()</ContentHighlight> function returns the total sum of a collection of numbers. This can be useful for computing the total cost of a group of items, 
+            for example, compute the sum of total sale happened in a day.
+        </p>
+
+        <GithubGistSnippet Title="LINQ Sum Clause" UserId="fingers10" FileName="6ba4c3d464fc0cb260394c1669fbc2aa"></GithubGistSnippet>
+
+        <DemoSnippet Title="LINQ Sum Demo">
+            <p>
+                Let's try LINQ Sum with Objects
+            </p>
+
+            <ul class="[ list-disc ] [ ml-4 ]">
+                <li>We have <ContentHighlight>Product</ContentHighlight> class with following properties - <ContentHighlight>Id, Name, Color, Price, Size</ContentHighlight>.</li>
+                <li>The tables is loaded with product collection.</li>
+                <li>The key expression here is <ContentHighlight>Price</ContentHighlight>.</li>
+                <li>Click on Sum Button to view the result.</li>
+                <li>Click on reset to try other combination</li>
+            </ul>
+
+            <SumDemo></SumDemo>
+        </DemoSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="aggregate" class="[ font-semibold text-lg ]">Aggregate()</h3>
+
+        <p>
+            The <ContentHighlight>Aggregate()</ContentHighlight> function is the most flexible of the aggregate functions in LINQ, allowing you to perform custom aggregations on a 
+            collection of data. For example, you could use Aggregate to find the product of all the numbers in a collection, or to concatenate all the strings in a list into a single 
+            string.
+        </p>
+
+        <GithubGistSnippet Title="LINQ Aggregate Clause" UserId="fingers10" FileName="7e109416987e7187724ec737e536441b"></GithubGistSnippet>
+
+        <DemoSnippet Title="LINQ Aggregate Demo">
+            <p>
+                Let's try LINQ Aggregate with Objects
+            </p>
+
+            <ul class="[ list-disc ] [ ml-4 ]">
+                <li>We have <ContentHighlight>Product</ContentHighlight> class with following properties - <ContentHighlight>Id, Name, Color, Price, Quantity</ContentHighlight>.</li>
+                <li>The tables is loaded with product collection.</li>
+                <li>The key expression here is <ContentHighlight>Price, Quantity</ContentHighlight>.</li>
+                <li>Click on Aggregate Button to view the result.</li>
+                <li>Click on reset to try other combination</li>
+            </ul>
+
+            <AggregateDemo></AggregateDemo>
+        </DemoSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="summary" class="[ font-semibold text-lg ]">Summary</h3>
+
+        <p>
+            In this article we learn't how to use aggregate functions on group of data using <ContentHighlight>Count</ContentHighlight>, <ContentHighlight>Min</ContentHighlight>, 
+            <ContentHighlight>Max</ContentHighlight>, <ContentHighlight>MinBy</ContentHighlight>, <ContentHighlight>MaxBy</ContentHighlight>, <ContentHighlight>Average</ContentHighlight>, 
+            <ContentHighlight>Sum</ContentHighlight> and <ContentHighlight>Aggregate</ContentHighlight>. LINQ aggregate functions are a valuable tool for working with collections of data in C#. 
+            Whether you're counting items, finding the minimum or maximum value, computing the average or sum, or even performing custom aggregations, LINQ makes it simple and efficient to 
+            perform these operations. All these can be used with any <ContentHighlight>IEnumerable</ContentHighlight> or <ContentHighlight>IQueryable</ContentHighlight> types.
+        </p>
+    </ContentBody>
+</Content>
+
+@code {
+    private string Title = "Using LINQ Count Min Max Average and Sum to Aggregate data";
+    private string Description = "In this post I will teach you how to aggregate data in collections using LINQ in .NET. All with live working demo.";
+    private DateTime CreatedOn = new DateTime(2023, 2, 12, 22, 30, 0);
+    private DateTime ModifiedOn = new DateTime(2023, 2, 12, 22, 30, 0);
+    private string Slug = "using-linq-count-min-max-average-sum-to-aggregate-data";
+    private string PosterPath = "Blogs/LINQ";
+    private string Channel = "linq";
+    private string ContentType = "blogs";
+    private ushort TotalContents => (ushort)tableOfContents.Contents.Count(content => content.Type.Equals("LINQ", StringComparison.CurrentCultureIgnoreCase));
+    private List<string> Keywords = new(8) { "Count", "Min", "Max", "MinBy", "MaxBy", "Average", "Sum", "Aggregate" };
+}
