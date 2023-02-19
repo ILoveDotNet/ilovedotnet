@@ -1,6 +1,6 @@
 ﻿namespace SharedModels;
 
-public class TalkLearningPath 
+public class TalkLearningPath
 {
     public readonly List<ContentMetaData> FullContents = new(1);
 

@@ -1,6 +1,6 @@
 ﻿namespace SharedModels;
 
-public class AdSpaceService 
+public class AdSpaceService
 {
     private readonly Random random = new();
 
@@ -14,7 +14,7 @@ public class AdSpaceService
         }
     }
 
-    public bool CanDisplayAd(int index) 
+    public bool CanDisplayAd(int index)
     {
         return AdSpace.Contains(index);
     }

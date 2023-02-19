@@ -1,6 +1,6 @@
 ﻿namespace SharedModels;
 
-public class PythonLearningPath 
+public class PythonLearningPath
 {
     public readonly List<ContentMetaData> FullContents = new(1);
 

@@ -90,7 +90,7 @@ public enum GoogleAdSenseAdFormat
     AutoRelaxed
 }
 
-public class GoogleAdSenseService 
+public class GoogleAdSenseService
 {
     public GoogleAdSenseService(string clientId)
     {
@@ -102,7 +102,7 @@ public class GoogleAdSenseService
 
 public static class GoogleAdSenseServiceResgitration
 {
-    public static IServiceCollection AddGoogleAdSense(this IServiceCollection services, string clientId) 
+    public static IServiceCollection AddGoogleAdSense(this IServiceCollection services, string clientId)
     {
         services.AddSingleton(new GoogleAdSenseService(clientId));
         return services;

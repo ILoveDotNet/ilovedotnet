@@ -1,6 +1,6 @@
 ﻿namespace SharedModels;
 
-public class OOPSLearningPath 
+public class OOPSLearningPath
 {
     public readonly List<ContentMetaData> FullContents = new(2);
 

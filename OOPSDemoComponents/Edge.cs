@@ -1,5 +1,5 @@
 ﻿namespace OOPSDemoComponents;
 
-public class Edge 
+public class Edge
 {
 }

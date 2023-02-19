@@ -1,6 +1,6 @@
 ﻿namespace SharedModels;
 
-public class TDDLearningPath 
+public class TDDLearningPath
 {
     public readonly List<ContentMetaData> FullContents = new(2);
 

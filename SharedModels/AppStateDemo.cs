@@ -11,11 +11,11 @@ public class AppStateDemo
         NotifyStateChanged();
     }
 
-    public void SendMessageToChat2(string message) 
+    public void SendMessageToChat2(string message)
     {
         messages2.Add(message);
         NotifyStateChanged();
     }
-    
+
     private void NotifyStateChanged() => OnChange?.Invoke();
 }

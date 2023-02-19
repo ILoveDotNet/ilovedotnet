@@ -1,6 +1,6 @@
 ﻿namespace SharedModels;
 
-public class MiddlewareLearningPath 
+public class MiddlewareLearningPath
 {
     public readonly List<ContentMetaData> FullContents = new(2);
 

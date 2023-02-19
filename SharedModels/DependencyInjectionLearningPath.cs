@@ -1,6 +1,6 @@
 ﻿namespace SharedModels;
 
-public class DependencyInjectionLearningPath 
+public class DependencyInjectionLearningPath
 {
     public readonly List<ContentMetaData> FullContents = new(2);
 

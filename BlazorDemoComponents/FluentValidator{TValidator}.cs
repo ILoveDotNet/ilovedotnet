@@ -10,7 +10,7 @@ public class FluentValidator<TValidator> : ComponentBase where TValidator : IVal
     private TValidator _validator = default!;
 
     [CascadingParameter] private EditContext EditContext { get; set; } = default!;
-    
+
     protected override void OnInitialized()
     {
         _validator = new TValidator();

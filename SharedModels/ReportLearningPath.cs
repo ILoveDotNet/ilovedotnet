@@ -1,6 +1,6 @@
 ﻿namespace SharedModels;
 
-public class ReportLearningPath 
+public class ReportLearningPath
 {
     public readonly List<ContentMetaData> FullContents = new(1);
 

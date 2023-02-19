@@ -3,7 +3,7 @@
 public class BlazorLearningPath
 {
     public readonly List<ContentMetaData> FullContents = new(20);
-    
+
     public BlazorLearningPath()
     {
         FullContents =

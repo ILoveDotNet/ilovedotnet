@@ -1,6 +1,6 @@
 namespace LINQDemoComponents;
 
-public class ProductSale 
+public class ProductSale
 {
     public int ProductId { get; set; }
     public string Name { get; set; } = default!;

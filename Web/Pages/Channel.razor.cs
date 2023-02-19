@@ -41,7 +41,7 @@ public class ChannelBase : ComponentBase
         }
     }
 
-    protected void OnArticleTabClick() 
+    protected void OnArticleTabClick()
     {
         ShowArticleTab = true;
         ShowLearningPathTab = false;

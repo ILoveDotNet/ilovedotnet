@@ -1,6 +1,6 @@
 ﻿namespace SharedModels;
 
-public class WebAPILearningPath 
+public class WebAPILearningPath
 {
     public readonly List<ContentMetaData> FullContents = new(2);
 
