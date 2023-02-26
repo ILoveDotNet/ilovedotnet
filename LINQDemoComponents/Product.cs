@@ -7,4 +7,6 @@ public class Product
     public int Quantity { get; set; }
     public decimal Price { get; set; }
     public string Size { get; set; } = default!;
+    public decimal? TotalStock { get; set; }
+    public decimal? TotalSale { get; set; }
 }

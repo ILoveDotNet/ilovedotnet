@@ -15,21 +15,24 @@ public class SaleSource
                     Id = 123,
                     ProductId = 1,
                     Price = 1000m,
-                    ProductColor = "Black"
+                    ProductColor = "Black",
+                    Quantity = 1
                 },
                 new Sale
                 {
                     Id = 789,
                     ProductId = 1,
                     Price = 1000m,
-                    ProductColor = "Red"
+                    ProductColor = "Red",
+                    Quantity = 2
                 },
                 new Sale
                 {
                     Id = 456,
                     ProductId = 2,
                     Price = 1000m,
-                    ProductColor = "White"
+                    ProductColor = "White",
+                    Quantity = 3
                 }
             };
     }

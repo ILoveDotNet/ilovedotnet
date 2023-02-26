@@ -6,4 +6,5 @@ public class Sale
     public int ProductId { get; set; }
     public decimal Price { get; set; }
     public string ProductColor { get; set; } = default!;
+    public int Quantity { get; set; }
 }

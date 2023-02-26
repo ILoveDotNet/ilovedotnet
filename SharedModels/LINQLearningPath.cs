@@ -2,12 +2,12 @@
 
 public class LINQLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(24);
+    public readonly List<ContentMetaData> FullContents = new(25);
 
     public LINQLearningPath()
     {
         FullContents =
-        new(24)
+        new(25)
         {
             new ContentMetaData
             {
@@ -320,6 +320,19 @@ public class LINQLearningPath
                Type = "LINQ",
                CreatedOn = new DateTime(2023, 2, 12, 22, 30, 0),
                ModifiedOn = new DateTime(2023, 2, 12, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+               Order = 25,
+               Title = "Using LINQ For Each to Iterate Collections",
+               Author = "Abdul Rahman",
+               PosterUrl = "image/blogs/linq/using-linq-for-each-to-iterate-collections.svg",
+               ThumbnailUrl = "image/blogs/linq/using-linq-for-each-to-iterate-collections.svg",
+               ContentUrl = "blogs/using-linq-for-each-to-iterate-collections",
+               IconUrl = "image/icons/linq.png",
+               Type = "LINQ",
+               CreatedOn = new DateTime(2023, 2, 26, 22, 30, 0),
+               ModifiedOn = new DateTime(2023, 2, 26, 22, 30, 0)
             }
         };
     }
