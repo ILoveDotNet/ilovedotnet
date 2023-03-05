@@ -26,6 +26,7 @@ This is a .NET knowledge sharing platform with live demos crafted by developers 
 19. [CLI](https://github.com/orgs/ILoveDotNet/projects/21/views/1)
 20. [HTTP Client](https://github.com/orgs/ILoveDotNet/projects/22/views/1)
 21. [Report](https://github.com/orgs/ILoveDotNet/projects/23/views/1)
+22. [Concurrency](https://github.com/orgs/ILoveDotNet/projects/24/views/1)
 
 # Our Official Network
 | Platform  | Link                                      | Status                                                                                                                                                                                                                               |
