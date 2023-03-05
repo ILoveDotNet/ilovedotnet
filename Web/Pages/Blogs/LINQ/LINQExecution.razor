@@ -1,0 +1,285 @@
+﻿@page "/blogs/understanding-linq-deferred-immediate-streaming-and-non-streaming-executions"
+@using LINQDemoComponents
+@inherits FragmentNavigationBase
+@inject TableOfContents tableOfContents
+
+<Content Title=@Title
+         Description=@Description
+         CreatedOn=@CreatedOn
+         ModifiedOn=@ModifiedOn
+         Slug=@Slug
+         PosterPath=@PosterPath
+         Keywords=@Keywords
+         Channel="@Channel"
+         ContentType="@ContentType"
+         TotalContents=@TotalContents
+         FileName=@nameof(LINQExecution)>
+    <ContentBody>
+        <p>
+            In this article, let's learn about how <ContentHighlight>Execution</ContentHighlight> and <ContentHighlight>Operators</ContentHighlight> works in 
+            <ContentHighlight>LINQ</ContentHighlight> in .NET.
+        </p>
+
+        <p>
+            <strong>Note:</strong> If you have not done so already, I recommend you read the article on
+            <NavLink class="[ underline ]" href="blogs/using-linq-for-each-to-iterate-collections" Match="NavLinkMatch.All">Using LINQ For Each to iterate Collections</NavLink>.
+        </p>
+
+        <h3 class="[ font-semibold text-lg ]">Table of Contents</h3>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
+                    Introduction
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#immediate-execution")" Match="NavLinkMatch.All">
+                    Immediate Execution
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#deferred-execution")" Match="NavLinkMatch.All">
+                    Deferred Execution
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#streaming-operators")" Match="NavLinkMatch.All">
+                    Streaming Operators
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#non-streaming-operators")" Match="NavLinkMatch.All">
+                    Non-Streaming Operators
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#classification-table")" Match="NavLinkMatch.All">
+                    Classification Table
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
+                    Summary
+                </NavLink>
+            </li>
+        </ol>
+
+        <h3 id="introduction" class="[ font-semibold text-lg ]">Introduction</h3>
+
+        <p>
+            LINQ to Objects has two ways of running its standard query operator methods: right away or later on. When using the later option, it can either stream the data or not. 
+            Knowing which option you're using can help you understand the results you get from your query, especially if the data is changing or if you're building a query on top of 
+            another one. This topic organizes the standard query operators by how they work.
+        </p>
+
+        <p>LINQ has four Manners of Execution. They are,</p>
+
+        <ul class="[ list-disc ] [ ml-4 ]">
+            <li><ContentHighlight>Immediate</ContentHighlight></li>
+            <li><ContentHighlight>Deferred</ContentHighlight></li>
+            <li><ContentHighlight>Streaming</ContentHighlight></li>
+            <li><ContentHighlight>Non-Streaming</ContentHighlight></li>
+        </ul>
+
+        <figure>
+            <img src="./image/blogs/linq/execution-strategy/LINQ Execution Strategy.png" alt="LINQ Execution Strategy" class="[ w-full ]" />
+        </figure>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <p>
+            Understanding LINQ <ContentHighlight>Execution Manners</ContentHighlight> and <ContentHighlight>Operators</ContentHighlight> has the following advantages
+        </p>
+
+        <ul class="[ list-disc ] [ ml-4 ]">
+            <li>Better Performance.</li>
+            <li>Less Iterations.</li>
+        </ul>
+
+        <h3 id="immediate-execution" class="[ font-semibold text-lg ]">Immediate Execution</h3>
+        
+        <p>
+            <ContentHighlight>Immediate</ContentHighlight> execution in LINQ to Objects means that the data is read and the operation is done right away. Standard query operators that 
+            return a single / scalar value always work this way. You can make a query execute immediately by using either <ContentHighlight>Enumerable.ToList()</ContentHighlight> or 
+            <ContentHighlight>Enumerable.ToArray()</ContentHighlight> methods. Immediate execution helps you save time by reusing the results of your query instead of running it again. 
+            The query results are stored for later use after being retrieved once.
+        </p>
+
+        <GithubGistSnippet Title="LINQ Immediate Execution" UserId="fingers10" FileName="f1ce02efca0683fb022ac2cac8a45c87"></GithubGistSnippet>
+
+        <DemoSnippet Title="LINQ Immeduate Execution Demo">
+            <p>
+                Let's try LINQ Immediate Execution with Objects
+            </p>
+
+            <ul class="[ list-disc ] [ ml-4 ]">
+                <li>We create an array of integers called numbers with the values { 1, 2, 3, 4, 5 }.</li>
+                <li>Then, we use the LINQ extension method Sum to calculate the sum of all the numbers in the array.</li>
+                <li>Since Sum is an immediate execution operator, the result is calculated immediately and assigned to the sum variable.</li>
+                <li>Click on Immediate Execution Button.</li>
+                <li>Click on reset to try other combination.</li>
+            </ul>
+
+            <ImmediateExecutionDemo></ImmediateExecutionDemo>
+        </DemoSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="deferred-execution" class="[ font-semibold text-lg ]">Deferred Execution</h3>
+
+        <p>
+            <ContentHighlight>Deferred</ContentHighlight> execution in LINQ to Objects means that the query doesn't run when it's defined in the code. Instead, it runs only when you 
+            actually use the query results, for example in a foreach statement. This means that the query results can change depending on what's in the data source at the time the query 
+            is used, not when it's written. If you use the query results multiple times, you might get different results each time. Most standard query operators that return 
+            <ContentHighlight>IEnumerable&lt;T&gt;</ContentHighlight> or <ContentHighlight>IOrderedEnumerable&lt;TElement&gt;</ContentHighlight> work this way. Deferred execution lets 
+            you reuse queries, and it fetches updated data from the data source each time you iterate through the query results.
+        </p>
+
+        <p>
+            Query operators that use deferred execution can also be divided into two types: streaming and non-streaming.
+        </p>
+
+        <GithubGistSnippet Title="Deferred Execution" UserId="fingers10" FileName="3d80f5eabdbce9d4f7fd8256c51167d4"></GithubGistSnippet>
+
+        <DemoSnippet Title="LINQ Deferred Execution Demo">
+            <p>
+                Let's try LINQ Deferred Execution with Objects
+            </p>
+
+            <ul class="[ list-disc ] [ ml-4 ]">
+                <li>We create an array of integers called numbers with the values { 1, 2, 3, 4, 5 }.</li>
+                <li>Then, we define a LINQ query using the Where operator to select only the even numbers from the numbers array.</li>
+                <li>Since Where is a deferred execution operator, the query is not actually executed until we enumerate it</li>
+                <li>Next, we change the value of the fourth element in the numbers array to 8. This means that the original source data has changed since we defined the query</li>
+                <li>Finally, we enumerate the query results using a foreach loop and print them to the console using Console.WriteLine. Notice that the query results only include the even numbers in the original array (2 and 4), even though we changed one of the source elements to 8. This is because the query execution is deferred until we enumerate the query, and it uses the updated source data at that time</li>
+                <li>Click on Deferred Execution Button.</li>
+                <li>Click on reset to try other combination.</li>
+            </ul>
+
+            <DeferredExecutionDemo></DeferredExecutionDemo>
+        </DemoSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="streaming-operators" class="[ font-semibold text-lg ]">Streaming Operators</h3>
+        
+        <p>
+            <ContentHighlight>Streaming</ContentHighlight> operators in LINQ to Objects don't need to read all the source data before they start returning elements. Instead, they work on 
+            each source element one at a time and return the result immediately if applicable. A streaming operator keeps reading source elements until it can produce a result element. 
+            This means that sometimes it has to read more than one source element to make one result element.
+        </p>
+
+        <GithubGistSnippet Title="LINQ Streaming Operators" UserId="fingers10" FileName="2b96e180fcc732ca0cac88f91311b737"></GithubGistSnippet>
+
+        <DemoSnippet Title="LINQ Streaming Operators Demo">
+            <p>
+                Let's try LINQ Streaming Operators with Objects
+            </p>
+
+            <ul class="[ list-disc ] [ ml-4 ]">
+                <li>We create an array of integers called numbers with the values { 1, 2, 3, 4, 5 }.</li>
+                <li>Then, we define a LINQ query using the Where and Select operators.</li>
+                <li>The Where operator is a deferred execution streaming operator that selects only the even numbers from the numbers array.</li>
+                <li>The Select operator is also a deferred execution streaming operator that multiplies each even number by 2.</li>
+                <li>Next, we change the value of the fourth element in the numbers array to 8.</li>
+                <li>This means that the original source data has changed since we defined the query.</li>
+                <li>Finally, we enumerate the query results using a foreach loop and print them to the console using Console.WriteLine. </li>
+                <li>Notice that the query results include the even numbers in the original array (2 and 4), but multiplied by 2 (4 and 8), even though we changed one of the source elements to 8. This is because the query execution is deferred until we enumerate the query, and it uses the updated source data at that time. Also, the query execution is streaming, so it doesn't have to read all the source data before yielding elements.</li>
+                <li>Click on Streaming Execution Button.</li>
+                <li>Click on reset to try other combination.</li>
+            </ul>
+
+            <StreamingExecutionDemo></StreamingExecutionDemo>
+        </DemoSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="non-streaming-operators" class="[ font-semibold text-lg ]">Non-Streaming Operators</h3>
+        
+        <p>
+            <ContentHighlight>Non-streaming</ContentHighlight> operators in LINQ to Objects need to read all the source data before they can start returning (yielding) any result elements. 
+            Sorting and grouping are examples of non-streaming operators. When a non-streaming operator runs, it reads all the source data, puts it into a data structure, performs the 
+            operation, and then returns (yields) the resulting elements.
+        </p>
+
+        <GithubGistSnippet Title="LINQ Non-Streaming Operators" UserId="fingers10" FileName="1ada71b0b4f101ef537be1fffea256e9"></GithubGistSnippet>
+
+        <DemoSnippet Title="LINQ Non-Streaming Operators Demo">
+            <p>
+                Let's try LINQ Non-Streaming Operators with Objects
+            </p>
+
+            <ul class="[ list-disc ] [ ml-4 ]">
+                <li>We create an array of integers called numbers with the values { 1, 2, 3, 4, 5 }.</li>
+                <li>Then, we define a LINQ query using the OrderBy and Take operators.</li>
+                <li>The OrderBy operator is a deferred execution non-streaming operator that sorts the numbers array in ascending order.</li>
+                <li>The Take operator is also a deferred execution non-streaming operator that selects the first 3 elements of the sorted array.</li>
+                <li>Next, we change the value of the fourth element in the numbers array to 8.</li>
+                <li>This means that the original source data has changed since we defined the query.</li>
+                <li>Finally, we enumerate the query results using a foreach loop and print them to the console using Console.WriteLine.</li>
+                <li>Notice that the query results include the first 3 elements of the sorted numbers array (1, 2, and 3), even though we changed one of the source elements to 8. This is because the query execution is deferred until we enumerate the query, and it uses the updated source data at that time. Also, the query execution is non-streaming, so it has to read all the source data before yielding elements.</li>
+                <li>Click on Non-Streaming Execution Button.</li>
+                <li>Click on reset to try other combination.</li>
+            </ul>
+
+            <NonStreamingExecutionDemo></NonStreamingExecutionDemo>
+        </DemoSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="classification-table" class="[ font-semibold text-lg ]">Classification Table</h3>
+
+        <p>
+            The following table classifies each standard query operator method according to its method of execution.
+        </p>
+
+        <table class="[ table-fixed border-collapse ] [ bg-white ] [ border-2 ] [ dark:bg-black dark:border-slate-500 ]">
+            <thead>
+                <tr class="[ bg-gray-100 ] [ dark:bg-slate-500 ]">
+                    <th class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Manner of Execution</th>
+                    <th class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Query Operators</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr class="[ bg-yellow-100 ] [ dark:bg-yellow-600 ]">
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">Immediate Execution</td>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">Aggregate, All, Any, Average, Cast, Concat, Contains, Count, DefaultIfEmpty, Distinct, ElementAt, ElementAtOrDefault, Except, First, FirstOrDefault, GroupBy (with overload), GroupJoin, Intersect, Join, Last, LastOrDefault, LongCount, Max, Min, OfType, OrderBy, OrderByDescending, Range, Repeat, Reverse, Select, SelectMany, SequenceEqual, Single, SingleOrDefault, Skip, SkipWhile, Sum, Take, TakeWhile, ThenBy, ThenByDescending, ToArray, ToDictionary, ToList, Union, Where, Zip</td>
+                </tr>
+                <tr class="[ bg-green-100 ] [ dark:bg-green-600 ]">
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">Deferred Execution - Streaming</td>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">AsEnumerable, AsQueryable, Cast, Concat, DefaultIfEmpty, Distinct, GroupBy (without overload), Join, OfType, Reverse, Select, SelectMany, Take, TakeWhile, Union, Where</td>
+                </tr>
+                <tr>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">Deferred Execution - Non-Streaming</td>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">Aggregate, All, Any, Average, Contains, Count, ElementAt, ElementAtOrDefault, Except, First, FirstOrDefault, GroupBy (with overload), GroupJoin, Intersect, Last, LastOrDefault, LongCount, Max, Min, OrderBy, OrderByDescending, Single, SingleOrDefault, Skip, SkipWhile, Sum, ThenBy, ThenByDescending, ToArray, ToDictionary, ToList, Zip</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="summary" class="[ font-semibold text-lg ]">Summary</h3>
+
+        <p>
+            In this article we learn't how LINQ <ContentHighlight>Execution</ContentHighlight> and <ContentHighlight>Operators</ContentHighlight> work. We saw how 
+            <ContentHighlight>Deferred</ContentHighlight> and <ContentHighlight>Immediate</ContentHighlight> execution works along with <ContentHighlight>Streaming</ContentHighlight> 
+            and <ContentHighlight>Non-Streaming</ContentHighlight> operators. We learnt the advantages of deferred execution and how to use <ContentHighlight>yield</ContentHighlight> 
+            keyword in streaming operations with a live demo. With this I'm completing my LINQ series. Feel free to checkout LINQ learning path in 
+            <NavLink class="[ underline ]" href="channels/linq">LINQ Channel</NavLink>.
+        </p>
+    </ContentBody>
+</Content>
+
+@code {
+    private string Title = "Understanding LINQ Deferred, Immediate, Streaming and Non-Streaming Executions";
+    private string Description = "In this post I will teach you deferred and immediate execution with streaming and non-streaming operations in LINQ in .NET. All with live working demo.";
+    private DateTime CreatedOn = new DateTime(2023, 3, 5, 22, 30, 0);
+    private DateTime ModifiedOn = new DateTime(2023, 3, 5, 22, 30, 0);
+    private string Slug = "understanding-linq-deferred-immediate-streaming-and-non-streaming-executions";
+    private string PosterPath = "Blogs/LINQ";
+    private string Channel = "linq";
+    private string ContentType = "blogs";
+    private ushort TotalContents => (ushort)tableOfContents.Contents.Count(content => content.Type.Equals("LINQ", StringComparison.CurrentCultureIgnoreCase));
+    private List<string> Keywords = new(6) { "Deferred", "Immediate", "Streaming", "Non-Streaming", "Execution", "Operators" };
+}

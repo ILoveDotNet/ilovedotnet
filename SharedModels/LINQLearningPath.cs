@@ -2,12 +2,12 @@
 
 public class LINQLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(25);
+    public readonly List<ContentMetaData> FullContents = new(26);
 
     public LINQLearningPath()
     {
         FullContents =
-        new(25)
+        new(26)
         {
             new ContentMetaData
             {
@@ -333,6 +333,19 @@ public class LINQLearningPath
                Type = "LINQ",
                CreatedOn = new DateTime(2023, 2, 26, 22, 30, 0),
                ModifiedOn = new DateTime(2023, 2, 26, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+               Order = 26,
+               Title = "Understanding LINQ Deferred, Immediate, Streaming and Non-Streaming Executions",
+               Author = "Abdul Rahman",
+               PosterUrl = "image/blogs/linq/understanding-linq-deferred-immediate-streaming-and-non-streaming-executions.svg",
+               ThumbnailUrl = "image/blogs/linq/understanding-linq-deferred-immediate-streaming-and-non-streaming-executions.svg",
+               ContentUrl = "blogs/understanding-linq-deferred-immediate-streaming-and-non-streaming-executions",
+               IconUrl = "image/icons/linq.png",
+               Type = "LINQ",
+               CreatedOn = new DateTime(2023, 3, 5, 22, 30, 0),
+               ModifiedOn = new DateTime(2023, 3, 5, 22, 30, 0)
             }
         };
     }
