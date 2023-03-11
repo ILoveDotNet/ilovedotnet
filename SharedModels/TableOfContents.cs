@@ -2,13 +2,14 @@
 
 public class TableOfContents
 {
-    private readonly List<ContentMetaData> FullContents = new(60);
+    private readonly List<ContentMetaData> FullContents = new(61);
     public IReadOnlyList<ContentMetaData> Contents => FullContents.Where(content => content.CreatedOn.Date <= DateTime.Today.Date).ToList();
 
     public TableOfContents()
     {
         FullContents.AddRange(new BlazorLearningPath().FullContents);
         FullContents.AddRange(new DependencyInjectionLearningPath().FullContents);
+        FullContents.AddRange(new DesignPatternLearningPath().FullContents);
         FullContents.AddRange(new LINQLearningPath().FullContents);
         FullContents.AddRange(new MiddlewareLearningPath().FullContents);
         FullContents.AddRange(new OOPSLearningPath().FullContents);
