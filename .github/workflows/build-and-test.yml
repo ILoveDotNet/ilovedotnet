@@ -50,7 +50,7 @@ jobs:
         run: dotnet list package --deprecated --include-transitive
         
       # Build Project
-      - name: Build
+      - name: Build Solution
         run: dotnet build ./ILoveDotNet.sln --configuration Release --no-restore
       
       # Install dotnet report generator
@@ -58,12 +58,20 @@ jobs:
         run: dotnet tool install -g dotnet-reportgenerator-globaltool
         
       # Run Tests
-      - name: Test
+      - name: Run Test
         run: dotnet test --configuration Release --no-build --verbosity normal --collect:"XPlat Code Coverage"
       
-      # Generate Report
-      - name: Generate Report
+      # Generate Test Report
+      - name: Generate Test Report
         run: reportgenerator -reports:./**/Coverage.cobertura.xml -targetdir:"./Test/Report" -reporttypes:Html
+      
+      # Upload Test Report
+      - name: Upload Test Result
+        uses: actions/upload-artifact@v2
+        with:
+          name: dotnet-results-${{ matrix.dotnet-version }}
+          path: ./Test/Report
+          retention-days: 3
       
       # Use always() to always run this step to publish test results when there are test failures
         if: ${{ always() }}
