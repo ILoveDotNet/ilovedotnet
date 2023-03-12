@@ -75,3 +75,20 @@ jobs:
       
       # Use always() to always run this step to publish test results when there are test failures
         if: ${{ always() }}
+  
+  deploy:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: ${{ github.actor != 'dependabot[bot]' }}
+    steps:
+      # Publishes Blazor project to the release-folder
+      - name: Publish .NET Core Project
+        run: dotnet publish Web/Web.csproj -c:Release -p:GHPages=true --no-restore -o dist/Web --nologo
+        
+      - name: Commit wwwroot to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@3.7.1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: gh-pages
+          FOLDER: dist/Web/wwwroot
+      
