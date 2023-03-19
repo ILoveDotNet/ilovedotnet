@@ -1,0 +1,222 @@
+@page "/blogs/creational-design-pattern-singleton"
+@using DesignPatternDemoComponents
+@inherits FragmentNavigationBase
+@inject TableOfContents tableOfContents
+
+<Content Title=@Title
+         Description=@Description
+         CreatedOn=@CreatedOn
+         ModifiedOn=@ModifiedOn
+         Slug=@Slug
+         PosterPath=@PosterPath
+         Keywords=@Keywords
+         Channel="@Channel"
+         ContentType="@ContentType"
+         TotalContents=@TotalContents
+         FileName=@nameof(Singleton)>
+    <ContentBody>
+        <p>
+            In this article, let's learn about <ContentHighlight>Singleton Design Pattern</ContentHighlight> in .NET.
+        </p>
+
+        <h3 class="[ font-semibold text-lg ]">Table of Contents</h3>
+        
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
+                    Introduction
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#structure")" Match="NavLinkMatch.All">
+                    Structure
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#thread-safety")" Match="NavLinkMatch.All">
+                    Thread Safety
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#use-cases")" Match="NavLinkMatch.All">
+                    Use Cases
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#consequences")" Match="NavLinkMatch.All">
+                    Consequences
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#related-patterns")" Match="NavLinkMatch.All">
+                    Related Patterns
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
+                    Summary
+                </NavLink>
+            </li>
+        </ol>
+
+        <h3 id="introduction" class="[ font-semibold text-lg ]">Introduction</h3>
+        
+        <p>
+            The <ContentHighlight>singleton</ContentHighlight> pattern is a design pattern that ensures <ContentHighlight>only one instance</ContentHighlight> of a <ContentHighlight>class</ContentHighlight> 
+            is created and provides a way to access it globally. It's commonly used for creating objects like loggers, where you only want one instance for the entire application.
+        </p>
+
+        <p>
+            To implement the pattern, we make the class responsible for <ContentHighlight>managing its own instance</ContentHighlight> by making the <ContentHighlight>constructor</ContentHighlight> 
+            <ContentHighlight>private</ContentHighlight> or <ContentHighlight>protected</ContentHighlight>. We create a <ContentHighlight>static</ContentHighlight> property or method 
+            that returns the <ContentHighlight>instance</ContentHighlight> of the <ContentHighlight>class</ContentHighlight> and make sure that it's only created the first time it's 
+            accessed (<ContentHighlight>lazy</ContentHighlight> instantiation). Any other methods of the class are defined as regular instance methods and accessed through the 
+            <ContentHighlight>static</ContentHighlight> property or method.
+        </p>
+
+        <p>
+            By using the singleton pattern, we can avoid multiple instances interfering with each other, resulting in messages being logged multiple times or not at all.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="structure" class="[ font-semibold text-lg ]">Structure</h3>
+        
+        <p>
+            Let's apply the singleton pattern structure to our real-life logger example. This pattern structure can be used for other real-life scenarios as well.
+        </p>
+
+        <p>
+            To map our logger example to the singleton pattern, we simply need to create a <ContentHighlight>class</ContentHighlight> called <ContentHighlight>Logger</ContentHighlight>, 
+            which will be the singleton. The <ContentHighlight>Logger class</ContentHighlight> will have a <ContentHighlight>public static</ContentHighlight> property called 
+            <ContentHighlight>"instance"</ContentHighlight>, which will contain a <ContentHighlight>private</ContentHighlight> backing field to store the instance value. The log method 
+            in the <ContentHighlight>Logger class</ContentHighlight> corresponds to what is known as a singleton operation in the pattern structure.
+        </p>
+
+        <GithubGistSnippet Title="Singleton Pattern" UserId="fingers10" FileName="bbc746507c51c3fbd973d2f6224cc8cc"></GithubGistSnippet>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>Create a <ContentHighlight>Logger class</ContentHighlight> and add a <ContentHighlight>protected constructor</ContentHighlight> to it so that clients cannot instantiate it but can subclass it.</li>
+            <li>Add a <ContentHighlight>static</ContentHighlight> Instance property and a <ContentHighlight>private</ContentHighlight> backing field that must be <ContentHighlight>nullable</ContentHighlight>.</li>
+            <li>In the getter of the Instance property, check whether it's <ContentHighlight>null</ContentHighlight>. If it is, instantiate and store a <ContentHighlight>Logger</ContentHighlight> instance. Always return that instance to ensure that only one instance of the Singleton class, <ContentHighlight>Logger</ContentHighlight> in this case, exists at any given time.</li>
+            <li>Add a Singleton operation method, Log, for testing purposes. Every instance of the <ContentHighlight>Logger</ContentHighlight> that's returned when getting the Instance property has access to it.</li>
+            <li>Test the <ContentHighlight>Singleton</ContentHighlight> pattern by attempting to create a new instance of <ContentHighlight>Logger</ContentHighlight>, which should fail due to the <ContentHighlight>protected constructor</ContentHighlight>. Then, retrieve two instances of <ContentHighlight>Logger</ContentHighlight> via <ContentHighlight>Logger.Instance</ContentHighlight> and compare them. If they are the same instance and match the <ContentHighlight>Logger.Instance</ContentHighlight> property, write that to the <ContentHighlight>console output window</ContentHighlight>.</li>
+            <li>Log a few messages as an example to ensure that each call does the same thing.</li>
+        </ol>
+
+        <p>
+            Note: Be aware of the potential issue with Singleton pattern, which is that it can cause difficulty in testing and mocking, and can also introduce global state, leading to 
+            unexpected behavior.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="thread-safety" class="[ font-semibold text-lg ]">Thread Safety</h3>
+
+        <p>
+            That's all what we've done here is a naïve form of lazy initialization. <ContentHighlight>Lazy initialization</ContentHighlight> is the principle that states that we're only going 
+            to create an instance of a <ContentHighlight>class</ContentHighlight> once we need it and not when it's constructed. The problem is that this code is not guaranteed to be 
+            <ContentHighlight>thread-safe</ContentHighlight>. Let's see how to make it thread-safe!!.
+        </p>
+
+        <GithubGistSnippet Title="Thread Safe Singleton Pattern" UserId="fingers10" FileName="ec21a7472804b9ac79d04301c8f13e0b"></GithubGistSnippet>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>Let's Use <ContentHighlight>.NET's</ContentHighlight> built-in <ContentHighlight>thread-safe</ContentHighlight> way of dealing with lazy initialization by implementing <ContentHighlight>Lazy&lt;T&gt;</ContentHighlight>.</li>
+            <li>Add a <ContentHighlight>new static</ContentHighlight> field of type Lazy&lt;T&gt; to replace the old <ContentHighlight>static private Logger</ContentHighlight> instance, and make it <ContentHighlight>readonly</ContentHighlight>.</li>
+            <li>Initialize the lazyLogger, passing through a method for constructing the Logger when accessing the value property for the first time.</li>
+            <li>Remove the old private static Logger instance and return the value of the lazyLogger in the property getter.</li>
+            <li>Test the implementation to ensure it returns the same output as the previous implementation but in a thread-safe manner.</li>
+        </ol>
+
+        <p>
+            Note: In this case, Lazy of T is used to ensure thread-safe, on-demand initialization of the Singleton class. This way, the Logger instance is only constructed when needed, 
+            not at the time of the Singleton's construction, which can cause issues with thread safety.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <p>
+            That's all we need to do to apply the singleton pattern structure to our logger example. Now, we can move on to implementing this in a demo.
+        </p>
+
+        <DemoSnippet Title="Singleton Pattern Demo">
+            <p>
+                Let's try Singleton Demo, Click on the Singleton Button to see the demo on the screen.
+            </p>
+            <GithubGistSnippet Title="Singleton Pattern Demo" UserId="fingers10" FileName="cd4d1248b92ae419036f4a2aa84595d7"></GithubGistSnippet>
+            <SingletonDemo></SingletonDemo>
+        </DemoSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="use-cases" class="[ font-semibold text-lg ]">Use Cases</h3>
+
+        <p>
+            The singleton pattern is useful when there needs to be only one instance of a class that can be accessed from a well-known access point, like our logger example. It's also 
+            helpful when we want the sole instance to be extended by subclassing, without modifying any client code, which is possible by using a 
+            <ContentHighlight>protected constructor</ContentHighlight>.
+        </p>
+
+        <p>
+            Overall, the singleton pattern has certain consequences, which need to be considered before implementing it in a design.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="consequences" class="[ font-semibold text-lg ]">Consequences</h3>
+
+        <p>
+            The Singleton pattern has several consequences that should be taken into account. Since the Singleton class controls access to its sole instance, it has strict control over 
+            how and when clients can access it. This is beneficial and better than global variables, which can clutter the namespace with instances. The Singleton class can also be 
+            subclassed, enabling you to configure your application with the desired instance of the class at runtime. Additionally, if you want to allow multiple instances in the future, 
+            you can make this change without having to modify any client code because the Singleton class manages instance management.
+        </p>
+
+        <p>
+            However, the Singleton pattern has one disadvantage, which is that it <ContentHighlight>violates the single responsibility principle</ContentHighlight> by having objects control 
+            their own lifecycle. But, in modern languages, an <ContentHighlight>Inversion of Control (IOC)</ContentHighlight> container can handle these tasks, and the Singleton class doesn't 
+            have to manage its lifetime anymore.
+        </p>
+
+        <p>
+            Despite these points, the Singleton pattern is a useful starting point because of its simplicity. Finally, let's have a look at related patterns.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="related-patterns" class="[ font-semibold text-lg ]">Related Patterns</h3>
+
+        <p>
+            There are several patterns that are related to the singleton pattern because they can also be implemented as singletons. In the upcoming articles, we will learn about three 
+            such creational patterns: the <ContentHighlight>abstract factory</ContentHighlight> pattern, the <ContentHighlight>builder</ContentHighlight> pattern, and the 
+            <ContentHighlight>prototype</ContentHighlight> pattern. In addition, the singleton pattern is related to the <ContentHighlight>state</ContentHighlight> pattern 
+            because state objects are often implemented as singletons.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="summary" class="[ font-semibold text-lg ]">Summary</h3>
+
+        <p>
+            In this article we learn't what is <ContentHighlight>Singleton Design Pattern</ContentHighlight>, which makes sure that a class has <ContentHighlight>only one instance</ContentHighlight>, 
+            and provides a way to access it from anywhere in the code. We can create a simple implementation by adding a <ContentHighlight>static Instance property and backing field 
+            with a private or protected constructor</ContentHighlight>. However, this implementation may not be <ContentHighlight>thread-safe</ContentHighlight>. A better approach is to use 
+            <ContentHighlight>lazy initialization via Lazy of T</ContentHighlight>. We covered both implementations in this article. In the next article, we will learn about the 
+            <ContentHighlight>factory method</ContentHighlight> pattern, which is one of the two factory patterns described by the <ContentHighlight>Gang of Four</ContentHighlight>.
+        </p>
+    </ContentBody>
+</Content>
+
+@code {
+    private string Title = "Creational Design Pattern - Singleton";
+    private string Description = "In this post I will teach you Creational Singleton Design Pattern in .NET. All with live working demo.";
+    private DateTime CreatedOn = new DateTime(2023, 3, 19, 22, 30, 0);
+    private DateTime ModifiedOn = new DateTime(2023, 3, 19, 22, 30, 0);
+    private string Slug = "creational-design-pattern-singleton";
+    private string PosterPath = "Blogs/Design-Pattern";
+    private string Channel = "design-pattern";
+    private string ContentType = "blogs";
+    private ushort TotalContents => (ushort)tableOfContents.Contents.Count(content => content.Type.Equals("Design-Pattern", StringComparison.CurrentCultureIgnoreCase));
+    private List<string> Keywords = new(2) { "Creational", "Singleton" };
+}
