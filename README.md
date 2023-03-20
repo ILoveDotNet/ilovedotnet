@@ -28,6 +28,15 @@ This is a .NET knowledge sharing platform with live demos crafted by developers 
 21. [Report](https://github.com/orgs/ILoveDotNet/projects/23/views/1)
 22. [Concurrency](https://github.com/orgs/ILoveDotNet/projects/24/views/1)
 
+# Please help by giving a star
+Choosing a project idea could be difficult. We need to ensure stability and maintainability of our projects. Surveys show that GitHub stars count play an important factor when assessing quality.
+
+⭐ Please give this repository a star. It takes seconds and help thousands of developers! ⭐
+![image](https://user-images.githubusercontent.com/43729469/226332116-b72e565b-5658-4a73-bb15-bb279e1a9f94.png)
+
+# Please share with the community
+As an open-source project without funding, I cannot afford advertising I ❤️ .NET in a typical way. Instead, the project relies on community interactions. Please consider sharing a post about I ❤️ .NET and the value it provides. It really does help!
+
 # Our Official Network
 | Platform  | Link                                      | Status                                                                                                                                                                                                                               |
 |-----------|-------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
