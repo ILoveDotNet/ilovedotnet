@@ -2,12 +2,12 @@
 
 public class BlazorLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(20);
+    public readonly List<ContentMetaData> FullContents = new(21);
 
     public BlazorLearningPath()
     {
         FullContents =
-        new(20)
+        new(21)
         {
             new ContentMetaData
             {
@@ -268,6 +268,19 @@ public class BlazorLearningPath
                 Type = "Blazor",
                 CreatedOn = new DateTime(2022, 8, 7, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 8, 7, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+                Order = 21,
+                Title = "Blazor WASM Dockerizing",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-dockerizing.svg",
+                ThumbnailUrl = "image/blogs/blazor/wasm/blazor-wasm-dockerizing.svg",
+                ContentUrl = "blogs/blazor-wasm-dockerizing",
+                IconUrl = "image/icons/blazor.png",
+                Type = "Blazor",
+                CreatedOn = new DateTime(2023, 3, 26, 22, 30, 0),
+                ModifiedOn = new DateTime(2023, 3, 26, 22, 30, 0)
             }
         };
     }
