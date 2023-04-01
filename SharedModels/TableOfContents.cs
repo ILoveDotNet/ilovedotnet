@@ -2,7 +2,7 @@
 
 public class TableOfContents
 {
-    private readonly List<ContentMetaData> FullContents = new(63);
+    private readonly List<ContentMetaData> FullContents = new(64);
     public IReadOnlyList<ContentMetaData> Contents => FullContents.Where(content => content.CreatedOn.Date <= DateTime.Today.Date).ToList();
 
     public TableOfContents()
@@ -15,6 +15,7 @@ public class TableOfContents
         FullContents.AddRange(new OOPSLearningPath().FullContents);
         FullContents.AddRange(new PythonLearningPath().FullContents);
         FullContents.AddRange(new ReportLearningPath().FullContents);
+        FullContents.AddRange(new SOLIDLearningPath().FullContents);
         FullContents.AddRange(new TalkLearningPath().FullContents);
         FullContents.AddRange(new TDDLearningPath().FullContents);
         FullContents.AddRange(new WebAPILearningPath().FullContents);
