@@ -33,7 +33,7 @@ This is a .NET knowledge sharing platform with live demos crafted by developers 
 Choosing a project idea could be difficult. We need to ensure stability and maintainability of our projects. Surveys show that GitHub stars count play an important factor when assessing quality.
 
 ⭐ Please give this repository a star. It takes seconds and help thousands of developers! ⭐
-![image](https://user-images.githubusercontent.com/43729469/226332116-b72e565b-5658-4a73-bb15-bb279e1a9f94.png)
+![star-request](https://user-images.githubusercontent.com/43729469/230750826-cb1c3494-3341-4ef7-9648-96554853a8cd.png)
 
 # Please share with the community
 As an open-source project without funding, I cannot afford advertising I ❤️ .NET in a typical way. Instead, the project relies on community interactions. Please consider sharing a post about I ❤️ .NET and the value it provides. It really does help!
