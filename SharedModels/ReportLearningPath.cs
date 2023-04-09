@@ -2,12 +2,12 @@
 
 public class ReportLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(2);
+    public readonly List<ContentMetaData> FullContents = new(3);
 
     public ReportLearningPath()
     {
         FullContents =
-        new(2)
+        new(3)
         {
             new ContentMetaData
             {
@@ -34,6 +34,19 @@ public class ReportLearningPath
                 Type = "Report",
                 CreatedOn = new DateTime(2023, 2, 19, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 2, 19, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+                Order = 3,
+                Title = "Convert HTML to PDF Report in .NET",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/report/convert-html-to-pdf-report-in-dotnet.svg",
+                ThumbnailUrl = "image/blogs/report/convert-html-to-pdf-report-in-dotnet.svg",
+                ContentUrl = "blogs/convert-html-to-pdf-report-in-dotnet",
+                IconUrl = "image/icons/report.png",
+                Type = "Report",
+                CreatedOn = new DateTime(2023, 4, 9, 22, 30, 0),
+                ModifiedOn = new DateTime(2023, 4, 9, 22, 30, 0)
             }
         };
     }

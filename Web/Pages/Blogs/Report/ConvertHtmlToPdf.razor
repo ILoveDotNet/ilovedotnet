@@ -1,0 +1,251 @@
+﻿@page "/blogs/convert-html-to-pdf-report-in-dotnet"
+@using ReportDemoComponents
+@inherits FragmentNavigationBase
+@inject TableOfContents tableOfContents
+
+<Content Title=@Title
+         Description=@Description
+         CreatedOn=@CreatedOn
+         ModifiedOn=@ModifiedOn
+         Slug=@Slug
+         PosterPath=@PosterPath
+         Keywords=@Keywords
+         Channel="@Channel"
+         ContentType="@ContentType"
+         TotalContents=@TotalContents
+         FileName=@nameof(ConvertHtmlToPdf)>
+    <ContentBody>
+        <p>
+            In this article, let's learn about how to do <ContentHighlight>Convert HTML to PDF</ContentHighlight> in .NET.
+        </p>
+
+        <h3 class="[ font-semibold text-lg ]">Table of Contents</h3>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
+                    Introduction
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#why-html-to-pdf")" Match="NavLinkMatch.All">
+                    Why HTML to PDF ?
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#using-wkhtmltopdf")" Match="NavLinkMatch.All">
+                    Using <ContentHighlight>wkhtmltopdf</ContentHighlight>
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#using-chrome-headless")" Match="NavLinkMatch.All">
+                    Using <ContentHighlight>Chrome Headless</ContentHighlight>
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#using-selenium-web-driver")" Match="NavLinkMatch.All">
+                    Using <ContentHighlight>Selenium Webdriver</ContentHighlight>
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#using-window-print")" Match="NavLinkMatch.All">
+                    Using <ContentHighlight>window.print()</ContentHighlight>
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
+                    Summary
+                </NavLink>
+            </li>
+        </ol>
+
+        <h3 id="introduction" class="[ font-semibold text-lg ]">Introduction</h3>
+
+        <p>
+            Converting <ContentHighlight>HTML</ContentHighlight> to <ContentHighlight>PDF</ContentHighlight> is a common requirement in many software applications. The need 
+            arises to create <abbr title="Portable Document Format">PDF</abbr> versions of <abbr title="Hyper Text Markup Language">HTML</abbr> documents for archiving or 
+            printing purposes, or to generate reports, invoices, and other types of documents. In this article, we will explore different approaches to convert HTML to PDF 
+            using .NET.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="why-html-to-pdf" class="[ font-semibold text-lg ]">Why HTML to PDF ?</h3>
+
+        <p>
+            HTML is a markup language that is designed to be displayed in web browsers. However, it is not designed to be printed or saved as a document. Converting HTML to 
+            PDF allows you to preserve the original layout, formatting, and graphics of the HTML document, as well as to add features such as headers, footers, and page 
+            numbers. HTML5 combined with CSS3 gives the most powerful and flexible and dynamic layout that can used easily converted to PDF using print media query.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="using-wkhtmltopdf" class="[ font-semibold text-lg ]">Using <ContentHighlight>wkhtmltopdf</ContentHighlight></h3>
+
+        <p>
+            <ContentHighlight>wkhtmltopdf</ContentHighlight> is a command-line tool that converts HTML to PDF using the WebKit rendering engine. To use wkhtmltopdf in .NET,
+        </p>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>Download and install <ContentHighlight>wkhtmltopdf</ContentHighlight> latest version from <NavLink class="[ underline ]" href="https://wkhtmltopdf.org/downloads.html" target="_blank">here</NavLink>.</li>
+            <li>Use the below code.</li>
+            <li>And call the method as <ContentHighlight CssClasses="[ break-all ]">HtmlToPdf("test", new string[] { "https://www.google.com" }, new string[] { "-s A5" });</ContentHighlight></li>
+            <li>
+                If you need to convert HTML string to PDF, the tweak the above method and replace the Arguments to Process StartInfo as 
+                <ContentHighlight CssClasses="[ break-all ]">$@@"/C echo | set /p=""{htmlText}"" | ""{pdfHtmlToPdfExePath}"" {((options == null) ? "" : string.Join(" ", options))} - ""C:\Users\xxxx\Desktop\{outputFilename}""";</ContentHighlight>
+            </li>
+        </ol>
+
+        <GithubGistSnippet Title="Convert HTML to PDF using wkhtmltopdf" UserId="fingers10" FileName="9c5c00ee7a67810ba65da232110905cf"></GithubGistSnippet>
+
+        <h4 id="drawbacks-using-wkhtmltopdf" class="[ font-semibold text-lg ]">Drawbacks using <ContentHighlight>wkhtmltopdf</ContentHighlight></h4>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>
+                The latest build of <ContentHighlight>wkhtmltopdf</ContentHighlight> as of writing this article does not support latest HTML5 and CSS3. Hence if you try to 
+                export any html that as <abbr title="Cascading Style Sheet">CSS</abbr> GRID then the output will not be as expected.
+            </li>
+            <li>You need to handle concurrency issues.</li>
+        </ol>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="using-chrome-headless" class="[ font-semibold text-lg ]">Using <ContentHighlight>Chrome Headless</ContentHighlight></h3>
+
+        <p>
+            <ContentHighlight>Chrome headless</ContentHighlight> is a feature of the Google Chrome browser that allows you to run Chrome in a headless environment, without a 
+            graphical user interface. This feature can be used to convert HTML to PDF by printing the HTML document to a PDF file. To use chrome headless in .NET,
+        </p>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>Download and install <ContentHighlight>Chrome headless</ContentHighlight> latest version from <NavLink class="[ underline ]" href="https://www.google.com/intl/en_in/chrome/" target="_blank">here</NavLink>.</li>
+            <li>Use the below code.</li>
+            <li>This will convert html file to pdf file.</li>
+            <li>
+                If you need to convert some url to pdf then use the following as Argument to Process StartInfo 
+                <ContentHighlight CssClasses="[ break-all ]">@@"/C --headless --disable-gpu --run-all-compositor-stages-before-draw --print-to-pdf-no-header --print-to-pdf=""C:/Users/Abdul Rahman/Desktop/test.pdf"" ""https://www.google.com"""</ContentHighlight>
+            </li>
+        </ol>
+
+        <GithubGistSnippet Title="Convert HTML to PDF using Chrome Headless" UserId="fingers10" FileName="ce5beee3428e6fb11a14db04ad605d8e"></GithubGistSnippet>
+
+        <h4 id="drawbacks-using-chrome-headless" class="[ font-semibold text-lg ]">Drawbacks using <ContentHighlight>Chrome Headless</ContentHighlight></h4>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>
+                This works as expected with latest HTML5 and CSS3 features. Output will be same as you view in browser but when running this via <ContentHighlight>IIS</ContentHighlight> 
+                you need to run the <ContentHighlight>AppliactionPool</ContentHighlight> of your application under <ContentHighlight>LocalSystem Identity</ContentHighlight> or you need to 
+                provide <ContentHighlight>read/write</ContentHighlight> access to <ContentHighlight>IISUSRS</ContentHighlight>.
+            </li>
+        </ol>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="using-selenium-web-driver" class="[ font-semibold text-lg ]">Using <ContentHighlight>Selenium Webdriver</ContentHighlight></h3>
+
+        <p>
+            <ContentHighlight>Selenium WebDriver</ContentHighlight> is a popular <ContentHighlight>Nuget</ContentHighlight> package used for automating web browsers. It can be 
+            used to open a webpage and interact with it programmatically, including printing the page. To use Selenium Webdriver in .NET,
+        </p>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>Install Nuget Packages <ContentHighlight>Selenium.WebDriver</ContentHighlight> and <ContentHighlight>Selenium.WebDriver.ChromeDriver</ContentHighlight>.</li>
+            <li>Use the below code.</li>
+        </ol>
+
+        <GithubGistSnippet Title="Convert HTML to PDF using Selenium WebDriver" UserId="fingers10" FileName="b5878b7d4acdd45827665a1481bb04fd"></GithubGistSnippet>
+
+        <h4 id="advantages-using-selenium-webdriver" class="[ font-semibold text-lg ]">Drawbacks using <ContentHighlight>Selenium WebDriver</ContentHighlight></h4>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>This approach needs latest chrome browser to be installed in the server where the app runs.</li>
+            <li>
+                If the chrome browser version in server is updated then <ContentHighlight>Selenium.WebDriver.ChromeDriver</ContentHighlight> Nuget package needs to be updated. 
+                Else this will throw run time error due to version mismatch.
+            </li>
+        </ol>
+
+        <h4 id="drawbacks-using-selenium-webdriver" class="[ font-semibold text-lg ]">Advantages using <ContentHighlight>Selenium WebDriver</ContentHighlight></h4>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>This just needs an Nuget installation and works as expected with latest HTML5 and CSS3 features. Output will be same as you view in browser.</li>
+        </ol>
+
+        <p>
+            <strong>Note:</strong>The above drawbacks can be overcome if we are running app in <ContentHighlight>docker</ContentHighlight>. All we need to do is to install 
+            chrome when building app image using <ContentHighlight>Dockerfile</ContentHighlight>.
+        </p>
+
+        <p>
+            <strong>Note:</strong>With this approach, please make sure to add <ContentHighlight CssClasses="[ break-all ]">&lt;PublishChromeDriver&gt;true&lt;/PublishChromeDriver&gt;</ContentHighlight> 
+            in <ContentHighlight>.csproj</ContentHighlight> file as shown below:
+        </p>
+
+        <GithubGistSnippet Title="Convert HTML to PDF using Selenium WebDriver Project Settings" UserId="fingers10" FileName="893ff9c1e0c185199b34e93e95710238"></GithubGistSnippet>
+
+        <p>
+            This will publish the chrome driver when publishing the project.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="using-window-print" class="[ font-semibold text-lg ]">Using <ContentHighlight>window.print()</ContentHighlight></h3>
+
+        <p>
+            If the users are using your app from browser then you can rely on <ContentHighlight>JavaScript</ContentHighlight> and use <ContentHighlight>window.print()</ContentHighlight> 
+            and necessary print media css to generate PDF from the browser. For example generating invoice from browser in an inventory app.
+        </p>
+
+        <GithubGistSnippet Title="Convert HTML to PDF using window print" UserId="fingers10" FileName="e898deea9550b6a3b1ce8ca132a9c04b"></GithubGistSnippet>
+
+        <DemoSnippet Title="HTML to PDF Demo using window.print()">
+            <p class="[ text-black ] [ dark:text-white ]">
+                <b>
+                    Scenario - Let's try converting this page HTML to PDF from I ❤️ .NET. The examples uses staright window.print() method but the ideas are open to control and 
+                    change layout & appearance using print media css.
+                </b>
+            </p>
+            <HTMLtoPdfDemo></HTMLtoPdfDemo>
+        </DemoSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h4 id="drawbacks-using-window-print" class="[ font-semibold text-lg ]">Drawbacks using <ContentHighlight>window.print()</ContentHighlight></h4>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>In SPA like Blazor, we need to do some workaround with <ContentHighlight>iframe</ContentHighlight> to print sections of page.</li>
+        </ol>
+
+        <h4 id="advantages-using-window-print" class="[ font-semibold text-lg ]">Advantages using <ContentHighlight>window.print()</ContentHighlight></h4>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>No dependency on any tools.</li>
+            <li>PDF generated directly from HTML, CSS and JS in browser.</li>
+            <li>Faster</li>
+            <li>Supports all the latest CSS properties.</li>
+        </ol>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="summary" class="[ font-semibold text-lg ]">Summary</h3>
+
+        <p>
+            In this article we learn't how to convert HTML to PDF in .NET. Converting HTML to PDF is a common requirement in many software applications. There are several ways 
+            to convert HTML to PDF using .NET. The most preferred approach is to use browser <ContentHighlight>window.print()</ContentHighlight> in front end apps and use 
+            <ContentHighlight>Selenium Webdriver</ContentHighlight> in backend API's.
+        </p>
+    </ContentBody>
+</Content>
+
+@code {
+    private string Title = "Convert HTML to PDF Report in .NET";
+    private string Description = "In this post I will teach you how to convert html to pdf report in .NET. All with live working demo.";
+    private DateTime CreatedOn = new DateTime(2023, 4, 9, 22, 30, 0);
+    private DateTime ModifiedOn = new DateTime(2023, 4, 9, 22, 30, 0);
+    private string Slug = "convert-html-to-pdf-report-in-dotnet";
+    private string PosterPath = "Blogs/Report";
+    private string Channel = "report";
+    private string ContentType = "blogs";
+    private ushort TotalContents => (ushort)tableOfContents.Contents.Count(content => content.Type.Equals("report", StringComparison.CurrentCultureIgnoreCase));
+    private List<string> Keywords = new(2) { "HTML", "PDF" };
+}
