@@ -2,12 +2,12 @@
 
 public class SOLIDLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(2);
+    public readonly List<ContentMetaData> FullContents = new(3);
 
     public SOLIDLearningPath()
     {
         FullContents =
-        new(2)
+        new(3)
         {
             new ContentMetaData
             {
@@ -34,6 +34,19 @@ public class SOLIDLearningPath
                 Type = "SOLID",
                 CreatedOn = new DateTime(2023, 4, 16, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 4, 16, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+                Order = 3,
+                Title = "Open Closed Principle in SOLID",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/solid/open-closed-principle-in-solid.svg",
+                ThumbnailUrl = "image/blogs/solid/open-closed-principle-in-solid.svg",
+                ContentUrl = "blogs/open-closed-principle-in-solid",
+                IconUrl = "image/icons/solid.png",
+                Type = "SOLID",
+                CreatedOn = new DateTime(2023, 4, 23, 22, 30, 0),
+                ModifiedOn = new DateTime(2023, 4, 23, 22, 30, 0)
             },
         };
     }
