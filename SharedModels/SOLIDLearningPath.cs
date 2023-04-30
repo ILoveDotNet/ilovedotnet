@@ -2,12 +2,12 @@
 
 public class SOLIDLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(3);
+    public readonly List<ContentMetaData> FullContents = new(4);
 
     public SOLIDLearningPath()
     {
         FullContents =
-        new(3)
+        new(4)
         {
             new ContentMetaData
             {
@@ -47,6 +47,19 @@ public class SOLIDLearningPath
                 Type = "SOLID",
                 CreatedOn = new DateTime(2023, 4, 23, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 4, 23, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+                Order = 4,
+                Title = "Liskov Substitution Principle in SOLID",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/solid/liskov-substitution-principle-in-solid.png",
+                ThumbnailUrl = "image/blogs/solid/liskov-substitution-principle-in-solid.png",
+                ContentUrl = "blogs/liskov-substitution-principle-in-solid",
+                IconUrl = "image/icons/solid.png",
+                Type = "SOLID",
+                CreatedOn = new DateTime(2023, 4, 30, 22, 30, 0),
+                ModifiedOn = new DateTime(2023, 4, 30, 22, 30, 0)
             },
         };
     }
