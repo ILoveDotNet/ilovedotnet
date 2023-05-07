@@ -2,12 +2,12 @@
 
 public class SOLIDLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(4);
+    public readonly List<ContentMetaData> FullContents = new(5);
 
     public SOLIDLearningPath()
     {
         FullContents =
-        new(4)
+        new(5)
         {
             new ContentMetaData
             {
@@ -60,6 +60,19 @@ public class SOLIDLearningPath
                 Type = "SOLID",
                 CreatedOn = new DateTime(2023, 4, 30, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 4, 30, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+                Order = 5,
+                Title = "Interface Segregation Principle in SOLID",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/solid/interface-segregation-principle-in-solid.png",
+                ThumbnailUrl = "image/blogs/solid/interface-segregation-principle-in-solid.png",
+                ContentUrl = "blogs/interface-segregation-principle-in-solid",
+                IconUrl = "image/icons/solid.png",
+                Type = "SOLID",
+                CreatedOn = new DateTime(2023, 5, 7, 22, 30, 0),
+                ModifiedOn = new DateTime(2023, 5, 7, 22, 30, 0)
             },
         };
     }
