@@ -2,12 +2,12 @@
 
 public class SOLIDLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(5);
+    public readonly List<ContentMetaData> FullContents = new(6);
 
     public SOLIDLearningPath()
     {
         FullContents =
-        new(5)
+        new(6)
         {
             new ContentMetaData
             {
@@ -73,6 +73,19 @@ public class SOLIDLearningPath
                 Type = "SOLID",
                 CreatedOn = new DateTime(2023, 5, 7, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 5, 7, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+                Order = 6,
+                Title = "Dependency Inversion Principle in SOLID",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/solid/dependency-inversion-principle-in-solid.png",
+                ThumbnailUrl = "image/blogs/solid/dependency-inversion-principle-in-solid.png",
+                ContentUrl = "blogs/dependency-inversion-principle-in-solid",
+                IconUrl = "image/icons/solid.png",
+                Type = "SOLID",
+                CreatedOn = new DateTime(2023, 5, 14, 22, 30, 0),
+                ModifiedOn = new DateTime(2023, 5, 14, 22, 30, 0)
             },
         };
     }
