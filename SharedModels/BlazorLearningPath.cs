@@ -2,12 +2,12 @@
 
 public class BlazorLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(21);
+    public readonly List<ContentMetaData> FullContents = new(22);
 
     public BlazorLearningPath()
     {
         FullContents =
-        new(21)
+        new(22)
         {
             new ContentMetaData
             {
@@ -281,6 +281,19 @@ public class BlazorLearningPath
                 Type = "Blazor",
                 CreatedOn = new DateTime(2023, 3, 26, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 3, 26, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+                Order = 22,
+                Title = "Blazor WASM Publishing to AWS Amplify",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-publishing-to-aws-amplify.png",
+                ThumbnailUrl = "image/blogs/blazor/wasm/blazor-wasm-publishing-to-aws-amplify.png",
+                ContentUrl = "blogs/blazor-wasm-publishing-to-aws-amplify",
+                IconUrl = "image/icons/blazor.png",
+                Type = "Blazor",
+                CreatedOn = new DateTime(2023, 5, 21, 22, 30, 0),
+                ModifiedOn = new DateTime(2023, 5, 21, 22, 30, 0)
             }
         };
     }
