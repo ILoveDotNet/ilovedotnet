@@ -1,0 +1,177 @@
+﻿@page "/blogs/unit-testing-middlewares-in-asp-net-webapi"
+@inherits FragmentNavigationBase
+@inject TableOfContents tableOfContents
+
+<Content Title=@Title
+         Description=@Description
+         CreatedOn=@CreatedOn
+         ModifiedOn=@ModifiedOn
+         Slug=@Slug
+         PosterPath=@PosterPath
+         Keywords=@Keywords
+         Channel="@Channel"
+         ContentType="@ContentType"
+         TotalContents=@TotalContents
+         FileName=@nameof(UnitTestingMiddlewaresInASPNET)>
+    <ContentBody>
+        <p>
+            In this article, let's learn about how to unit test <ContentHighlight>Middlewares</ContentHighlight> in <ContentHighlight>WebAPI</ContentHighlight> in ASP.NET Core.
+        </p>
+
+        <h3 class="[ font-semibold text-lg ]">Table of Contents</h3>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
+                    Introduction
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#why-unit-testing")" Match="NavLinkMatch.All">
+                    Why Unit Testing?
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#what-is-a-middleware")" Match="NavLinkMatch.All">
+                    What is a Middleware?
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#when-to-use-middleware")" Match="NavLinkMatch.All">
+                    When to use Middleware?
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#unit-testing-middleware")" Match="NavLinkMatch.All">
+                    Unit Testing Middleware
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
+                    Summary
+                </NavLink>
+            </li>
+        </ol>
+
+        <h3 id="introduction" class="[ font-semibold text-lg ]">Introduction</h3>
+
+        <p>
+            <ContentHighlight>Unit testing</ContentHighlight> is a crucial practice in software development that ensures the reliability and functionality of code components. 
+            When it comes to <ContentHighlight>ASP.NET Core middleware</ContentHighlight>, unit testing becomes essential for <ContentHighlight>custom middleware</ContentHighlight> 
+            that includes custom behavior. In this article, we will explore the importance of unit testing middleware, understand what middleware is, and provide practical examples 
+            using C# to demonstrate how to effectively test ASP.NET Core middleware.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="why-unit-testing" class="[ font-semibold text-lg ]">Why Unit Testing ?</h3>
+
+        <p>
+            Unit testing custom middleware allows developers to verify the behavior and functionality of their code. It provides confidence that the middleware functions as 
+            intended, adding value to the application. Unit tests <ContentHighlight>catch bugs early in the development process</ContentHighlight>, <ContentHighlight>allowing 
+            for quick identification and resolution</ContentHighlight>. By testing middleware, developers can <ContentHighlight>isolate and validate specific behaviors without 
+            the need for complex integration testing</ContentHighlight>, reducing the dependencies on external components.
+        </p>
+
+        <p>
+            <strong>Note:</strong> If you have not done so already, I recommend you read the article on
+            <NavLink class="[ underline ]" href="blogs/implementing-tdd-in-csharp-dotnet" Match="NavLinkMatch.All">Implementing TDD in C# .Net</NavLink>.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="what-is-a-middleware" class="[ font-semibold text-lg ]">What is a Middleware ?</h3>
+
+        <p>
+            In the context of ASP.NET Core, middleware refers to components that are placed in the application's request pipeline. It sits between the client and the server, 
+            <ContentHighlight>processing requests and generating responses</ContentHighlight>. Middleware performs various tasks, such as authentication, logging, exception 
+            handling, and modifying HTTP headers. Each middleware component is responsible for a specific functionality, and they are executed sequentially as the request flows 
+            through the pipeline.
+        </p>
+
+        <p>
+            <strong>Note:</strong> If you have not done so already, I recommend you read the article on
+            <NavLink class="[ underline ]" href="blogs/introducing-middleware-in-aspnet" Match="NavLinkMatch.All">Introducing Middleware in ASP.NET</NavLink>.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="when-to-use-middleware" class="[ font-semibold text-lg ]">When to use Middleware ?</h3>
+
+        <p>
+            Custom middleware is often required when the <ContentHighlight>built-in ASP.NET Core middleware does not meet specific application requirements</ContentHighlight>. 
+            It allows developers to extend the request pipeline with their own logic. Some scenarios where custom middleware might be used include:
+        </p>
+
+        <ul class="[ ml-4 ] [ list-disc ]">
+            <li>Adding security headers to HTTP responses.</li>
+            <li>Implementing custom logging or error handling.</li>
+            <li>Modifying request or response data.</li>
+            <li>Enforcing specific authorization rules.</li>
+        </ul>
+
+        <h3 id="unit-testing-middleware" class="[ font-semibold text-lg ]">Unit Testing Middleware</h3>
+
+        <p>
+             Let's consider an example of unit testing an ASP.NET Core middleware named <ContentHighlight>AddingSecurityHeadersMiddleware</ContentHighlight>. This middleware 
+             adds security headers to the HTTP response.
+        </p>
+
+        <GithubGistSnippet Title="WebAPI Middleware" UserId="fingers10" FileName="f832993359c9e9eb6afc4a3aa44f4e58"></GithubGistSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <p>
+            To begin, we create a test class called <ContentHighlight>AddSecurityHeadersMiddlewareTests</ContentHighlight> and write a test method named 
+            <ContentHighlight>InvokeAsync_SetsExpectedResponseHeaders</ContentHighlight>. In this test, we want to ensure that the expected response headers are added by the 
+            middleware.
+        </p>
+
+        <p>
+            Now let's add test to this middleware. The steps are,
+        </p>
+
+        <p>
+            In the test method, we set up the dependencies required for the test. This includes creating an instance of the <ContentHighlight>HttpContext</ContentHighlight> 
+            using <ContentHighlight>DefaultHttpContext</ContentHighlight> and mocking the <ContentHighlight>RequestDelegate</ContentHighlight>, which represents the 
+            <ContentHighlight>next</ContentHighlight> middleware in the pipeline. To <ContentHighlight>isolate</ContentHighlight> the test, we use an action that returns a 
+            completed task instead of invoking the actual next middleware.
+        </p>
+
+        <p>
+            Next, we instantiate the middleware by passing the mocked <ContentHighlight>RequestDelegate</ContentHighlight> to its <ContentHighlight>constructor</ContentHighlight>. 
+            Then, we call the <ContentHighlight>InvokeAsync</ContentHighlight> method of the middleware, passing the created <ContentHighlight>HttpContext</ContentHighlight>.
+        </p>
+
+        <p>
+            Finally, we <ContentHighlight>assert</ContentHighlight> the values of the response headers added by the middleware by accessing the <ContentHighlight>Response.Headers</ContentHighlight> 
+            collection of the <ContentHighlight>HttpContext</ContentHighlight>. We compare the obtained values with the expected values using assertions.
+        </p>
+
+        <GithubGistSnippet Title="WebAPI Middleware Test" UserId="fingers10" FileName="938bc21071b45e27be8d594aa47848f1"></GithubGistSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="summary" class="[ font-semibold text-lg ]">Summary</h3>
+
+        <p>
+            <ContentHighlight>Unit testing</ContentHighlight> <ContentHighlight>custom ASP.NET Core middleware</ContentHighlight> ensures the reliability and correctness of 
+            the code. By testing middleware components, developers can verify their <ContentHighlight>behavior and functionality in isolation, reducing the need for complex 
+            integration tests</ContentHighlight>. Through practical examples and the use of mocking techniques, developers can effectively test their middleware, enhancing 
+            the overall quality of ASP.NET Core applications.
+        </p>
+    </ContentBody>
+</Content>
+
+@code {
+    private string Title = "Unit Testing Middlewares in ASP.NET Web API";
+    private string Description = "In this post I will teach how to unit test middlewares in ASP.NET web api. All with live working demo.";
+    private DateTime CreatedOn = new DateTime(2023, 6, 4, 22, 30, 0);
+    private DateTime ModifiedOn = new DateTime(2023, 6, 4, 22, 30, 0);
+    private string Slug = "unit-testing-middlewares-in-asp-net-webapi";
+    private string PosterPath = "Blogs/WebAPI";
+    private string Channel = "webapi";
+    private string ContentType = "blogs";
+    private ushort TotalContents => (ushort)tableOfContents.Contents.Count(content => content.Type.Equals("WebAPI", StringComparison.CurrentCultureIgnoreCase));
+    private List<string> Keywords = new(2) { "Unit Test", "Middlewares" };
+}
