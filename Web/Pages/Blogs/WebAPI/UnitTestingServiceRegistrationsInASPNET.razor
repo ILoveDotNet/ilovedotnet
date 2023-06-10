@@ -1,0 +1,210 @@
+﻿@page "/blogs/unit-testing-service-registrations-in-asp-net-webapi"
+@inherits FragmentNavigationBase
+@inject TableOfContents tableOfContents
+
+<Content Title=@Title
+         Description=@Description
+         CreatedOn=@CreatedOn
+         ModifiedOn=@ModifiedOn
+         Slug=@Slug
+         PosterPath=@PosterPath
+         Keywords=@Keywords
+         Channel="@Channel"
+         ContentType="@ContentType"
+         TotalContents=@TotalContents
+         FileName=@nameof(UnitTestingServiceRegistrationsInASPNET)>
+    <ContentBody>
+        <p>
+            In this article, let's learn about how to unit test <ContentHighlight>Service Registrations</ContentHighlight> in <ContentHighlight>WebAPI</ContentHighlight> in ASP.NET Core.
+        </p>
+
+        <h3 class="[ font-semibold text-lg ]">Table of Contents</h3>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
+                    Introduction
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#why-unit-testing")" Match="NavLinkMatch.All">
+                    Why Unit Testing?
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#what-is-a-service-registration")" Match="NavLinkMatch.All">
+                    What is a Service Registration?
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#when-to-use-service-registration")" Match="NavLinkMatch.All">
+                    When to use Service Registration?
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#unit-testing-service-registration")" Match="NavLinkMatch.All">
+                    Unit Testing Service Registration
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
+                    Summary
+                </NavLink>
+            </li>
+        </ol>
+
+        <h3 id="introduction" class="[ font-semibold text-lg ]">Introduction</h3>
+
+        <p>
+            In ASP.NET Core, <ContentHighlight>service registration</ContentHighlight> plays a vital role in setting up the dependencies required for an application to 
+            function correctly. Unit testing the service registration ensures that the services are <ContentHighlight>registered and configured properly, preventing runtime 
+            errors and ensuring the smooth operation of the application</ContentHighlight>. In this article, we will explore the importance of unit testing service registration 
+            and provide examples using C# to demonstrate its implementation.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="why-unit-testing" class="[ font-semibold text-lg ]">Why Unit Testing ?</h3>
+
+        <p>
+            <ContentHighlight>Unit testing</ContentHighlight> is a crucial practice in software development as it helps identify issues early in the development process. When 
+            it comes to service registration, unit testing offers the following benefits:
+        </p>
+
+        <ul class="[ list-disc ] [ ml-4 ]">
+            <li><ContentHighlight>Validation</ContentHighlight>: Unit tests verify that the necessary services are registered correctly, avoiding runtime errors caused by missing or misconfigured dependencies.</li>
+            <li><ContentHighlight>Refactoring</ContentHighlight>: Unit tests provide a safety net when refactoring code by ensuring that service registration remains intact during code changes.</li>
+            <li><ContentHighlight>Documentation</ContentHighlight>: Well-written unit tests serve as living documentation, illustrating how services should be registered and ensuring consistency across the application.</li>
+        </ul>
+
+        <p>
+            <strong>Note:</strong> If you have not done so already, I recommend you read the article on
+            <NavLink class="[ underline ]" href="blogs/implementing-tdd-in-csharp-dotnet" Match="NavLinkMatch.All">Implementing TDD in C# .Net</NavLink>.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="what-is-a-service-registration" class="[ font-semibold text-lg ]">What is a Service Registration ?</h3>
+
+        <p>
+            <ContentHighlight>Service registration</ContentHighlight> involves adding services to the <ContentHighlight>Inversion of Control (IoC)</ContentHighlight> container, 
+            allowing them to be resolved and injected throughout an application. The IoC container manages the <ContentHighlight>creation and lifetime</ContentHighlight> of 
+            these services, promoting <ContentHighlight>loose coupling and modular architecture</ContentHighlight>. Service registration typically occurs during application 
+            startup, configuring dependencies required by various components, such as repositories, services, and middleware.
+        </p>
+
+        <p>
+            <strong>Note:</strong> If you have not done so already, I recommend you read the article on
+            <NavLink class="[ underline ]" href="blogs/introducing-dependency-injection-in-dotnet" Match="NavLinkMatch.All">Introducing Dependency Injection in .NET</NavLink>.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="when-to-use-service-registration" class="[ font-semibold text-lg ]">When to use Service Registration ?</h3>
+
+        <p>
+            Service Registration should be used to <ContentHighlight>register services that are required by the application to function correctly</ContentHighlight>. It can be 
+            anything from a simple service to a complex service that requires multiple dependencies. The following are some examples of services that should be registered:
+        </p>
+
+        <ul class="[ list-disc ] [ ml-4 ]">
+            <li>Database Contexts</li>
+            <li>Repositories</li>
+            <li>Services</li>
+            <li>Middleware</li>
+            <li>Logging</li>
+        </ul>
+
+        <h3 id="unit-testing-service-registration" class="[ font-semibold text-lg ]">Unit Testing Service Registration</h3>
+
+        <p>
+            <ContentHighlight>Service registration</ContentHighlight> should be <ContentHighlight>unit tested</ContentHighlight> when you want to ensure that specific 
+            <ContentHighlight>services are correctly registered within the IoC container</ContentHighlight>. This validation can be crucial, especially for critical services 
+            that need to be available for the application to function properly. Let's explore an example that demonstrates unit testing service registration:
+        </p>
+
+        <p>
+             Consider a scenario where we have a program class responsible for setting up an API. The class contains two extension methods, 
+             <ContentHighlight>RegisterBusinessServices</ContentHighlight> and <ContentHighlight>RegisterDataServices</ContentHighlight>, that handle the registration of 
+             services for the business and data access layers, respectively.
+        </p>
+
+        <GithubGistSnippet Title="WebAPI Service Registration" UserId="fingers10" FileName="4546d00abe16961ae7ee067cf66bd66b"></GithubGistSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <p>
+            To unit test the <ContentHighlight>RegisterDataServices</ContentHighlight> method, follow these steps:
+        </p>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>
+                Create a new test <ContentHighlight>class</ContentHighlight>, let's call it <ContentHighlight>ServiceCollectionTests</ContentHighlight>, and add a test method 
+                using the <ContentHighlight>[Fact]</ContentHighlight> attribute.
+            </li>
+            <li>
+                In the test method, instantiate a <ContentHighlight>ServiceCollection</ContentHighlight> from the 
+                <ContentHighlight CssClasses="[ break-all ]">Microsoft.Extensions.DependencyInjection</ContentHighlight> <ContentHighlight>namespace</ContentHighlight>. This 
+                collection will act as the container for our services.
+            </li>
+            <li>
+                Use a <ContentHighlight>ConfigurationBuilder</ContentHighlight> from <ContentHighlight CssClasses="[ break-all ]">Microsoft.Extensions.Configuration</ContentHighlight> 
+                to create an <ContentHighlight>in-memory</ContentHighlight> instance of <ContentHighlight>IConfiguration</ContentHighlight>. This allows us to mock the 
+                configuration required by the <ContentHighlight>RegisterDataServices</ContentHighlight> method.
+            </li>
+            <li>In the configuration, provide a <ContentHighlight>connection string key-value pair</ContentHighlight> that satisfies the method's requirements.</li>
+            <li>Call the <ContentHighlight>RegisterDataServices</ContentHighlight> method, passing the created <ContentHighlight>configuration</ContentHighlight> object.</li>
+            <li>Build a <ContentHighlight>ServiceProvider</ContentHighlight> instance from the <ContentHighlight>ServiceCollection</ContentHighlight> to use for assertions.</li>
+            <li>
+                Perform <ContentHighlight>assertions</ContentHighlight> using the <ContentHighlight>GetService</ContentHighlight> method on the 
+                <ContentHighlight>ServiceProvider</ContentHighlight>. Check if the desired service, such as <ContentHighlight>IILoveDotNetRepository</ContentHighlight>, is not 
+                null to ensure it has been registered.
+            </li>
+            <li>Optionally, use <ContentHighlight>Assert.IsType</ContentHighlight> to verify that the registered concrete implementation matches a specific type.</li>
+        </ol>
+
+        <GithubGistSnippet Title="WebAPI Service Registration Test" UserId="fingers10" FileName="5dd6032abae4822b8581b81ef34eeae7"></GithubGistSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <p>
+            In the above code, we have a <ContentHighlight>ServiceRegistration class</ContentHighlight> that contains extension methods for registering services. In the 
+            <ContentHighlight>RegisterDataServices</ContentHighlight> method, we register a <ContentHighlight>DbContext</ContentHighlight> and 
+            <ContentHighlight>IILoveDotNetRepository</ContentHighlight> using <ContentHighlight>AddScoped</ContentHighlight>.
+        </p>
+
+        <p>
+            The <ContentHighlight>ServiceCollectionTests class</ContentHighlight> contains a unit test method, 
+            <ContentHighlight CssClasses="[ break-all ]">RegisterDataServices_ShouldRegisterIILoveDotNetRepository</ContentHighlight>, which validates the registration 
+            of <ContentHighlight>IILoveDotNetRepository</ContentHighlight>. It uses a <ContentHighlight>IConfiguration</ContentHighlight> to provide the required configuration 
+            for the test.
+        </p>
+
+        <p>
+            By executing this test, you can ensure that the <ContentHighlight>RegisterDataServices</ContentHighlight> method correctly registers the 
+            <ContentHighlight>IILoveDotNetRepository</ContentHighlight> service within the <ContentHighlight>ServiceCollection</ContentHighlight> container.
+        </p>
+
+        <h3 id="summary" class="[ font-semibold text-lg ]">Summary</h3>
+
+        <p>
+            Unit testing service registration in ASP.NET Core is a crucial step to ensure that services are correctly registered and configured. By writing unit tests, you can 
+            <ContentHighlight>validate the registration process, identify issues early on</ContentHighlight>, and maintain a reliable and robust application. The examples and 
+            techniques covered in this article provide a solid foundation for performing unit tests on service registration, promoting software quality and maintainability in 
+            ASP.NET Core applications.
+        </p>
+    </ContentBody>
+</Content>
+
+@code {
+    private string Title = "Unit Testing Middlewares in ASP.NET Web API";
+    private string Description = "In this post I will teach how to unit test middlewares in ASP.NET web api. All with live working demo.";
+    private DateTime CreatedOn = new DateTime(2023, 6, 11, 22, 30, 0);
+    private DateTime ModifiedOn = new DateTime(2023, 6, 11, 22, 30, 0);
+    private string Slug = "unit-testing-service-registrations-in-asp-net-webapi";
+    private string PosterPath = "Blogs/WebAPI";
+    private string Channel = "webapi";
+    private string ContentType = "blogs";
+    private ushort TotalContents => (ushort)tableOfContents.Contents.Count(content => content.Type.Equals("WebAPI", StringComparison.CurrentCultureIgnoreCase));
+    private List<string> Keywords = new(2) { "Unit Test", "Service Registration" };
+}

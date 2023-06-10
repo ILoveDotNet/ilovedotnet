@@ -2,12 +2,12 @@
 
 public class WebAPILearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(4);
+    public readonly List<ContentMetaData> FullContents = new(5);
 
     public WebAPILearningPath()
     {
         FullContents =
-        new(4)
+        new(5)
         {
             new ContentMetaData
             {
@@ -60,6 +60,19 @@ public class WebAPILearningPath
                 Type = "WebAPI",
                 CreatedOn = new DateTime(2023, 6, 4, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 6, 4, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+                Order = 5,
+                Title = "Unit Testing Service Registrations in ASP.NET Web API",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/webapi/unit-testing-service-registrations-in-asp-net-webapi.png",
+                ThumbnailUrl = "image/blogs/webapi/unit-testing-service-registrations-in-asp-net-webapi.png",
+                ContentUrl = "blogs/unit-testing-service-registrations-in-asp-net-webapi",
+                IconUrl = "image/icons/webapi.png",
+                Type = "WebAPI",
+                CreatedOn = new DateTime(2023, 6, 11, 22, 30, 0),
+                ModifiedOn = new DateTime(2023, 6, 11, 22, 30, 0)
             }
         };
     }
