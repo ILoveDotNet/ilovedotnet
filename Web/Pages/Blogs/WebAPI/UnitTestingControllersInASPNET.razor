@@ -1,0 +1,217 @@
+﻿@page "/blogs/unit-testing-controllers-in-asp-net-webapi"
+@inherits FragmentNavigationBase
+@inject TableOfContents tableOfContents
+
+<Content Title=@Title
+         Description=@Description
+         CreatedOn=@CreatedOn
+         ModifiedOn=@ModifiedOn
+         Slug=@Slug
+         PosterPath=@PosterPath
+         Keywords=@Keywords
+         Channel="@Channel"
+         ContentType="@ContentType"
+         TotalContents=@TotalContents
+         FileName=@nameof(UnitTestingControllersInASPNET)>
+    <ContentBody>
+        <p>
+            In this article, let's learn about how to unit test <ContentHighlight>Controllers</ContentHighlight> in <ContentHighlight>WebAPI</ContentHighlight> in ASP.NET Core.
+        </p>
+
+        <h3 class="[ font-semibold text-lg ]">Table of Contents</h3>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
+                    Introduction
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#why-unit-testing")" Match="NavLinkMatch.All">
+                    Why Unit Testing?
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#what-is-a-controller")" Match="NavLinkMatch.All">
+                    What is a Controller?
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#unit-testing-controller")" Match="NavLinkMatch.All">
+                    Unit Testing Controller
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#verifying-action-result")" Match="NavLinkMatch.All">
+                    Verifying Action Result
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#verifying-model-type")" Match="NavLinkMatch.All">
+                    Verifying Model Type
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#verifying-model-content")" Match="NavLinkMatch.All">
+                    Verifying Model Content
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#combining-all-together")" Match="NavLinkMatch.All">
+                    Combining All Together
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
+                    Summary
+                </NavLink>
+            </li>
+        </ol>
+
+        <h3 id="introduction" class="[ font-semibold text-lg ]">Introduction</h3>
+
+        <p>
+            In this article, we will focus on unit testing <ContentHighlight>thick controllers</ContentHighlight>, which are controllers that contain behavior suitable for 
+            testing. While it's ideal to start with thin controllers, it's not always possible, especially when working with existing projects or teams that have different 
+            design decisions. Writing pragmatic unit tests for thick controllers can greatly improve the application's reliability.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="why-unit-testing" class="[ font-semibold text-lg ]">Why Unit Testing ?</h3>
+
+        <p>
+            <ContentHighlight>Unit testing</ContentHighlight> allows developers to <ContentHighlight>verify the behavior and logic of individual units of code in isolation</ContentHighlight>. 
+            By writing tests, you can ensure that your code functions correctly and remains reliable even after making changes or adding new features. Unit tests help catch 
+            bugs early in the development process and provide confidence in the correctness of the code.
+        </p>
+
+        <p>
+            <strong>Note:</strong> If you have not done so already, I recommend you read the article on
+            <NavLink class="[ underline ]" href="blogs/implementing-tdd-in-csharp-dotnet" Match="NavLinkMatch.All">Implementing TDD in C# .Net</NavLink>.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="what-is-a-controller" class="[ font-semibold text-lg ]">What is a Controller ?</h3>
+
+        <p>
+            When it comes to testing <ContentHighlight>API controllers</ContentHighlight> in ASP.NET Core, it's important to consider the <ContentHighlight>behavior contained</ContentHighlight> 
+            within the controllers. Controllers can be categorized as <ContentHighlight>thick</ContentHighlight> or <ContentHighlight>thin</ContentHighlight>. Thick controllers 
+            contain logic and behavior that can be tested, such as <ContentHighlight>model state checks, database calls, mapping code, and conditional code</ContentHighlight>. 
+            On the other hand, thin controllers delegate the implementation of behavior to other components and typically <ContentHighlight>don't require unit testing</ContentHighlight>.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="unit-testing-controller" class="[ font-semibold text-lg ]">Unit Testing Controller</h3>
+
+        <p>
+            To test API controllers in ASP.NET Core, it's crucial to isolate the controller's behavior from <ContentHighlight>external dependencies, such as model binding, 
+            filters, and routing</ContentHighlight>. Unit testing should focus on testing the controller's behavior itself, avoiding testing the ASP.NET Core framework.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="verifying-action-result" class="[ font-semibold text-lg ]">Veriyfing Action Result</h3>
+
+        <p>
+            One aspect of testing API controllers is verifying the type of <ContentHighlight>ActionResult</ContentHighlight> returned from a specific action. In many cases, 
+            <ContentHighlight>ActionResult&lt;T&gt;</ContentHighlight> is used as the <ContentHighlight>return</ContentHighlight> type, allowing for flexibility in returning 
+            different types of <ContentHighlight>action results</ContentHighlight>. To test the <ContentHighlight>ActionResult</ContentHighlight> type, you can 
+            <ContentHighlight>assert</ContentHighlight> that the returned <ContentHighlight>result</ContentHighlight> is of the expected type, such as 
+            <ContentHighlight>OkObjectResult</ContentHighlight>, <ContentHighlight>NotFoundObjectResult</ContentHighlight>, or <ContentHighlight>BadRequestObjectResult</ContentHighlight>.
+        </p>
+
+        <p>
+            Here's an example of testing the type of ActionResult returned from the <ContentHighlight>GetBlogs</ContentHighlight> action:
+        </p>
+
+        <GithubGistSnippet Title="WebAPI Controller Action Result Test" UserId="fingers10" FileName="3a1c376a43c881519026e49d3746ed57"></GithubGistSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="verifying-model-type" class="[ font-semibold text-lg ]">Veriyfing Model Type</h3>
+
+        <p>
+            Another important aspect of testing API controllers is verifying the expected <ContentHighlight>model type</ContentHighlight> returned by the action. The model 
+            type is the <ContentHighlight>generic type</ContentHighlight> parameter of the <ContentHighlight>ActionResult&lt;T&gt;</ContentHighlight>. You can use the 
+            <ContentHighlight CssClasses="[ break-all ]">Assert.IsAssignableFrom</ContentHighlight> method to check if the returned model is assignable to the expected type.
+        </p>
+
+        <p>
+            For example, let's verify that the returned model from the <ContentHighlight>GetBlogs</ContentHighlight> action is of type 
+            <ContentHighlight>IEnumerable&lt;BlogDto&gt;</ContentHighlight>:
+        </p>
+
+        <GithubGistSnippet Title="WebAPI Controller Model Type Test" UserId="fingers10" FileName="e156d954fc0d4ecabb203376ef7baf95"></GithubGistSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="verifying-model-content" class="[ font-semibold text-lg ]">Veriyfing Model Content</h3>
+
+        <p>
+            Finally, we're going to verify whether the returned <ContentHighlight>DTO</ContentHighlight>, in our case an <ContentHighlight>IEnumerable&lt;BlogDto&gt;</ContentHighlight>, 
+            is correctly constructed by the action. We expect it to contain as many objects as were inputted, and in our case, we input three blogs. So what we want to test is 
+            that we end up with three blog DTOs.
+        </p>
+
+        <p>
+            <ContentHighlight CssClasses="[ break-all ]">GetBlogs_GetActionMustReturnNumberOfInputtedBlogs</ContentHighlight>. There is, again, nothing to arrange. To act, we 
+            execute the <ContentHighlight>GetBlogs</ContentHighlight> method again. And to assert, we first need to get a hold of the action result. We know how to do that by 
+            now, as it's the same as what we did in the two previous demos. Once we've got that action result, we can cast the result of the action result to an 
+            <ContentHighlight>OkObjectResult</ContentHighlight> and get the <ContentHighlight>Value</ContentHighlight> property. Once we have that value, we can cast it to an 
+            <ContentHighlight>IEnumerable&lt;BlogDto&gt;</ContentHighlight> and <ContentHighlight>count</ContentHighlight> it.
+        </p>
+
+        <GithubGistSnippet Title="WebAPI Controller Model Content Test" UserId="fingers10" FileName="d8e356cfc53e09b42795171df4bbc7cb"></GithubGistSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="combining-all-together" class="[ font-semibold text-lg ]">Combining All Together</h3>
+
+        <p>
+            So far we focused on testing individual aspects of the controller's behavior. However, it is often useful to combine multiple asserts related to the same action in 
+            one unit test. This not only makes the test code more concise but also provides a clearer overview of the expected behavior.
+        </p>
+
+        <p>
+            To combine the asserts and fix the <ContentHighlight>null</ContentHighlight> reference issues, we can make use of the <ContentHighlight>ActionResult&lt;T&gt;</ContentHighlight> 
+            type's pattern matching capabilities. This allows us to simplify the code and handle <ContentHighlight>null</ContentHighlight> values more effectively.
+        </p>
+
+        <p>
+            Let's update our test to incorporate these improvements:
+        </p>
+
+        <GithubGistSnippet Title="WebAPI Controller Complete Test" UserId="fingers10" FileName="f6e6ed14a179930de5b95529db97538b"></GithubGistSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="summary" class="[ font-semibold text-lg ]">Summary</h3>
+
+        <p>
+            In this article, we explored the process of <ContentHighlight>unit testing controllers</ContentHighlight> in ASP.NET Core. We discussed the importance of unit 
+            testing and when it is suitable to test API controllers. We focused on testing the <ContentHighlight>behavior of the controllers</ContentHighlight> and provided 
+            examples of <ContentHighlight>verifying ActionResult types, model types, and model content</ContentHighlight> using C#.
+        </p>
+
+        <p>
+            Unit testing controllers allows us to ensure that the expected behavior is correctly implemented and provides valuable feedback on the reliability of our application. 
+            By isolating the tests and using mocks or framework techniques, we can focus solely on testing our code.
+        </p>
+    </ContentBody>
+</Content>
+
+@code {
+    private string Title = "Unit Testing Controllers in ASP.NET Web API";
+    private string Description = "In this post I will teach how to unit test controllers in ASP.NET web api. All with live working demo.";
+    private DateTime CreatedOn = new DateTime(2023, 6, 18, 22, 30, 0);
+    private DateTime ModifiedOn = new DateTime(2023, 6, 18, 22, 30, 0);
+    private string Slug = "unit-testing-controllers-in-asp-net-webapi";
+    private string PosterPath = "Blogs/WebAPI";
+    private string Channel = "webapi";
+    private string ContentType = "blogs";
+    private ushort TotalContents => (ushort)tableOfContents.Contents.Count(content => content.Type.Equals("WebAPI", StringComparison.CurrentCultureIgnoreCase));
+    private List<string> Keywords = new(2) { "Unit Test", "Controllers" };
+}
