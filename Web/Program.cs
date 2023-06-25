@@ -30,6 +30,8 @@ static void ConfigureServices(IServiceCollection services, string baseAddress)
 
     services.AddScoped<TableOfContents>();
 
+    services.AddScoped<Achievements>();
+
     services.AddScoped<Sitemaps>();
 
     services.AddTransient<AdSpaceService>();

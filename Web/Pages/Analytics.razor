@@ -1,0 +1,93 @@
+﻿@page "/analytics"
+@using Toolbelt.Blazor.HeadElement
+@inject IConfiguration configuration
+@inject Sitemaps sitemap
+@inject Achievements achievements
+
+<Title>@Title</Title>
+<Meta Property="description" Content="@Description" />
+<Meta Property="keywords" Content=".NET, DotNet, I Love DotNet, I ❤️ DotNet, Blazor, Blazor (WebAssembly), Blazor Wasm, C#, Entity Framework, LINQ, ML.NET, Web API, TDD, OOPS, Middleware, JWT, Dependency Injection, Report, Design Pattern, SOLID" />
+<Meta Property="url" Content="@BaseUrl" />
+<Meta Property="identifier-URL" Content="@BaseUrl" />
+<Meta Property="og:site_name" Content="@Title" />
+<Meta Property="og:type" Content="website" />
+<Meta Property="og:title" Content="@Title" />
+<Meta Property="og:image" Content="@($"{BaseUrl}image/brand/mini-logo.png")" />
+<Meta Property="og:image:alt" Content="DotNet bot with heart and DotNet brand" />
+<Meta Property="og:description" Content="@Description" />
+<Meta Property="og:url" Content="@BaseUrl" />
+<Meta Property="twitter:card" Content="summary" />
+<Meta Property="twitter:title" Content="@Title" />
+<Meta Property="twitter:image" Content="@($"{BaseUrl}image/brand/mini-logo.png")" />
+<Meta Property="twitter:image:alt" Content="DotNet bot with heart and DotNet brand" />
+<Meta Property="twitter:description" Content="@Description" />
+<Meta Property="twitter:url" Content="@BaseUrl" />
+@foreach (var sitemap in sitemap.Files)
+{
+    <Link Rel="sitemap" Href="@($"{BaseUrl}{sitemap}")" type="application/xml" title="Sitemap" />
+}
+<Link Rel="alternate" Href="@($"{BaseUrl}atom.xml")" type="application/rss+xml" />
+<Link Rel="alternate" Href="@BaseUrl" hreflang="en" />
+<Link Rel="alternate" Href="@BaseUrl" hreflang="x-default" />
+<Link Rel="canonical" Href="@BaseUrl" />
+<Link Rel="index" Href="@BaseUrl" title="@Title" />
+<HeadContent>
+    @(new MarkupString(
+    $$""""
+        <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            "publisher": {
+                "@type": "Organization",
+                "name": "{{Title}}",
+                "url": "{{BaseUrl}}",
+                "logo": {
+                    "@type": "ImageObject",
+                    "url": "{{BaseUrl}}favicon.ico",
+                    "width": 16,
+                    "height": 16
+                }
+            },
+            "url": "{{BaseUrl}}",
+            "mainEntityOfPage": {
+                "@type": "WebPage",
+                "@id": "{{BaseUrl}}"
+            },
+            "description": "{{Description}}"
+        }
+        </script>
+        """"
+        ))
+</HeadContent>
+
+<section class="[ dark:bg-stone-900 ] [ flex flex-col ] [ space-y-5 ] [ p-5 ]">
+
+    <h2 class="[ dark:text-white ] [ font-semibold text-xl ]">Analytics</h2>
+
+    <p>
+        This page is for analytics purpose only. Here you can see the progress we are making in terms of page views and visitors. This is because of the support from community. 
+        Thank you for your support.
+    </p>
+
+    <h3 class="[ dark:text-white ] [ font-semibold text-lg ]">Google Search Impact</h3>
+
+    <div class="[ grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-4 ]">
+        @foreach (var googleSearchImpact in achievements.GoogleSearchImpacts.OrderByDescending(x => x.Date))
+        {
+            <article>
+                <header class="[ bg-black text-white dark:bg-white dark:text-black ]">@googleSearchImpact.Date.ToString("yyyy-MM-dd")</header>
+                <div style="background-image: url(./image/analytics/google-search-console/achievement.svg);background-repeat: no-repeat;background-size: auto;background-position: center;height: 12rem;width: 12rem;display: flex;align-items: center;justify-content: center;">
+                    <span style="color: black;font-weight: bold;font-size: large;padding-top: 10px;">@googleSearchImpact.Clicks</span>
+                </div>
+            </article>
+        }
+    </div>
+
+</section>
+
+@code {
+    private string Title = "Analytics - I ❤️ DotNet";
+    private string Description = "This is a .NET knowledge sharing platform with live demos crafted by developers for developers with love.";
+    private string BaseUrl => configuration.GetValue<string>("baseUrl")!;
+}
