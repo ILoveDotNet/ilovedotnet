@@ -2,12 +2,12 @@
 
 public class BlazorLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(22);
+    public readonly List<ContentMetaData> FullContents = new(23);
 
     public BlazorLearningPath()
     {
         FullContents =
-        new(22)
+        new(23)
         {
             new ContentMetaData
             {
@@ -294,6 +294,19 @@ public class BlazorLearningPath
                 Type = "Blazor",
                 CreatedOn = new DateTime(2023, 5, 21, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 5, 21, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+                Order = 23,
+                Title = "How to generate barcode in Blazor WASM",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/blazor/wasm/how-to-generate-barcode-in-blazor-wasm.png",
+                ThumbnailUrl = "image/blogs/blazor/wasm/how-to-generate-barcode-in-blazor-wasm.png",
+                ContentUrl = "blogs/how-to-generate-barcode-in-blazor-wasm",
+                IconUrl = "image/icons/blazor.png",
+                Type = "Blazor",
+                CreatedOn = new DateTime(2023, 6, 25, 22, 30, 0),
+                ModifiedOn = new DateTime(2023, 6, 25, 22, 30, 0)
             }
         };
     }

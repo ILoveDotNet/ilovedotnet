@@ -1,0 +1,44 @@
+@using Microsoft.JSInterop
+
+@implements IAsyncDisposable
+
+<input class="[ w-full h-full ] [ px-4 py-2 ] [ border-2 ] [ focus:outline-none focus:border-gray-400 ] [ dark:bg-black dark:border-gray-800 dark:focus:border-b-white dark:md:focus:border-blue-800 dark:caret-white dark:text-white ]" 
+       @bind="inputValue" />
+       
+<p>@inputValue</p>
+
+<button type="button" class="[ bg-cyan-500 ] [ text-white ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ]" @onclick="GenerateBarCode">
+    Generate Barcode
+</button>
+
+<canvas id="bwipcanvas" width=1 height=1 style="border:1px solid #fff;background-color:white;"></canvas>
+
+@code {
+    private string inputValue = "ilovedotnet.org";
+    private IJSObjectReference? module;
+    [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/BlazorDemoComponents/generatebwipbarcode.js");
+        }
+    }
+
+    private async Task GenerateBarCode()
+    {
+        if (module is not null)
+        {
+            await module.InvokeVoidAsync("generateBarcode", inputValue);
+        }
+    }
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        if (module is not null)
+        {
+            await module.DisposeAsync();
+        }
+    }
+}
