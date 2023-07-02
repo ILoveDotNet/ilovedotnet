@@ -1,0 +1,90 @@
+@using Microsoft.JSInterop
+
+@implements IAsyncDisposable
+
+<HeadContent>
+    <style>
+        #barcode-section-to-print, #barcode-section-to-print * {
+            display: none;
+        }
+    </style>
+</HeadContent>
+
+<input type="number" 
+       min="1"
+       class="[ w-full h-full ] [ px-4 py-2 ] [ border-2 ] [ focus:outline-none focus:border-gray-400 ] [ dark:bg-black dark:border-gray-800 dark:focus:border-b-white dark:md:focus:border-blue-800 dark:caret-white dark:text-white ]" 
+       @bind="Count" />
+
+<button type="button" 
+        class="[ bg-cyan-500 ] [ text-white ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ]" @onclick="PrintBarCode">
+    Print Barcode
+</button>
+
+<section id="barcode-section-to-print">
+    @for (int i = 0; i < _rows; i++)
+    {
+        <article>
+            @for (int j = 0; j < (i == _rows - 1 ? _remainder == 0 ? 2 : 1 : 2); j++)
+            {
+                <section>
+                    <header>@_brandName</header>
+                    <main>@_siteUrl</main>
+                    <footer>
+                        <canvas id="@($"canvas{i}{j}")" width="1" height="1" style="border: 1px solid #fff" data-text="@_barcodeText"></canvas>
+                    </footer>
+                </section>
+            }
+        </article>
+    }
+</section>
+
+@code {
+    private int _rows = 0;
+    private int _remainder = 0;
+    private int _count = 1;
+    private string _brandName = "I ❤️ .NET";
+    private string _siteUrl = "https://ilovedotnet.org";
+    private string _barcodeText = "12345";
+
+    public int Count
+    {
+        get => _count;
+        set
+        {
+            _count = value;
+            _rows = Math.DivRem(_count, 2, out _remainder) + _remainder;
+        }
+    }   
+
+    private IJSObjectReference? module;
+    [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
+
+    protected override void OnInitialized()
+    {
+        _rows = Math.DivRem(_count, 2, out _remainder) + _remainder;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/BlazorDemoComponents/printbwipbarcode.js");
+        }
+    }
+
+    private async Task PrintBarCode()
+    {
+        if (module is not null)
+        {
+            await module.InvokeVoidAsync("printBarcode");
+        }
+    }
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        if (module is not null)
+        {
+            await module.DisposeAsync();
+        }
+    }
+}

@@ -2,12 +2,12 @@
 
 public class BlazorLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(23);
+    public readonly List<ContentMetaData> FullContents = new(24);
 
     public BlazorLearningPath()
     {
         FullContents =
-        new(23)
+        new(24)
         {
             new ContentMetaData
             {
@@ -307,6 +307,19 @@ public class BlazorLearningPath
                 Type = "Blazor",
                 CreatedOn = new DateTime(2023, 6, 25, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 6, 25, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+                Order = 24,
+                Title = "Printing barcode to label printer from Blazor WASM",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/blazor/wasm/printing-barcode-to-label-printer-from-blazor-wasm.png",
+                ThumbnailUrl = "image/blogs/blazor/wasm/printing-barcode-to-label-printer-from-blazor-wasm.png",
+                ContentUrl = "blogs/printing-barcode-to-label-printer-from-blazor-wasm",
+                IconUrl = "image/icons/blazor.png",
+                Type = "Blazor",
+                CreatedOn = new DateTime(2023, 7, 2, 22, 30, 0),
+                ModifiedOn = new DateTime(2023, 7, 2, 22, 30, 0)
             }
         };
     }
