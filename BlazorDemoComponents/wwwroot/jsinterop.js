@@ -1,17 +1,23 @@
 ﻿var blazorInterop = blazorInterop || {};
 
-blazorInterop.displayAlert = (textToDisplay) => { alert(textToDisplay); };
+export function displayAlert(textToDisplay) 
+{ 
+    alert(textToDisplay); 
+};
 
-blazorInterop.getViewportDimensions = () => {
+export function getViewportDimensions() 
+{
     return { width: window.innerWidth, height: window.innerHeight };
 }
 
-blazorInterop.callDotNetStaticFromJs = () => {
+export function callDotNetStaticFromJs()
+{
     let message = DotNet.invokeMethod('BlazorDemoComponents', 'GetMessageFromDotNet');
     alert(`Message from .Net Static Method - ${message}`);
 }
 
-blazorInterop.callDotNetInstanceFromJs = (dotNetHelper) => {
+export function callDotNetInstanceFromJs(dotNetHelper)
+{
     let message = dotNetHelper.invokeMethod('GetMessageFromDotNet');
     alert(`Message from .Net Instance Method - ${message}`);
 }

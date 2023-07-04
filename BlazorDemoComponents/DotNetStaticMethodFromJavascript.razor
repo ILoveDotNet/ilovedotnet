@@ -1,4 +1,8 @@
-﻿<button class="[ bg-fuchsia-500 ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ]" @onclick="() => DisplayAlert()">
+﻿@using Microsoft.JSInterop
+
+@implements IAsyncDisposable
+
+<button class="[ bg-fuchsia-500 ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ]" @onclick="() => CallDotNetFromJs()">
     <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-brand-javascript ] [ text-white ]" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
         <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
         <path d="M20 4l-2 14.5l-6 2l-6 -2l-2 -14.5z"></path>
@@ -10,11 +14,31 @@
 
 
 @code {
+    private IJSObjectReference? module;
     [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
 
-    private async Task DisplayAlert()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        await JSRuntime.InvokeVoidAsync("blazorInterop.callDotNetStaticFromJs");
+        if (firstRender)
+        {
+            module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/BlazorDemoComponents/jsinterop.js");
+        }
+    }
+
+    private async Task CallDotNetFromJs()
+    {
+        if (module is not null)
+        {
+            await module.InvokeVoidAsync("callDotNetStaticFromJs");
+        }
+    }
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        if (module is not null)
+        {
+            await module.DisposeAsync();
+        }
     }
 
     [JSInvokable]

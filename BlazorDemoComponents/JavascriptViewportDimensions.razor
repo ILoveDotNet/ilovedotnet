@@ -1,4 +1,8 @@
-﻿<button class="[ bg-fuchsia-500 ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ]" @onclick="() => DisplayAlert()">
+﻿@using Microsoft.JSInterop
+
+@implements IAsyncDisposable
+
+<button class="[ bg-fuchsia-500 ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ]" @onclick="() => DisplayDimensions()">
     <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-dimensions ] [ text-white ]" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
         <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
         <path d="M3 5h11"></path>
@@ -18,12 +22,32 @@
 @code {
     private WindowDimensions windowDimensions = new();
 
+    private IJSObjectReference? module;
     [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
 
-    private async Task DisplayAlert()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        windowDimensions = await JSRuntime.InvokeAsync<WindowDimensions>("blazorInterop.getViewportDimensions");
-        Console.WriteLine(windowDimensions.Height);
+        if (firstRender)
+        {
+            module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/BlazorDemoComponents/jsinterop.js");
+        }
+    }
+
+    private async Task DisplayDimensions()
+    {
+        if (module is not null)
+        {
+            windowDimensions = await module.InvokeAsync<WindowDimensions>("getViewportDimensions");
+            Console.WriteLine(windowDimensions.Height);
+        }
+    }
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        if (module is not null)
+        {
+            await module.DisposeAsync();
+        }
     }
 
     public class WindowDimensions
