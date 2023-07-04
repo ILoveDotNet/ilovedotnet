@@ -3,6 +3,7 @@ import("./bwip.min.js");
 export function printBarcode() {
     var iframe = document.querySelector('#barcode-print') || document.createElement('iframe');
     iframe.setAttribute("id", "barcode-print");
+    iframe.setAttribute("style", "display:none;");
     document.body.appendChild(iframe);
     iframe.contentWindow.document.body.innerHTML = document.querySelector('#barcode-section-to-print').innerHTML;
     var printScript = document.createElement("script");
