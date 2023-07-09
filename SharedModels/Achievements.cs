@@ -25,6 +25,7 @@ public class Achievements
             new() { Date = new DateOnly(2023, 5, 31), Clicks = 1800 },
             new() { Date = new DateOnly(2023, 6, 8), Clicks = 2000 },
             new() { Date = new DateOnly(2023, 6, 16), Clicks = 2200 },
+            new() { Date = new DateOnly(2023, 7, 7), Clicks = 2500 },
         };
     }    
 }
