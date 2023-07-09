@@ -28,6 +28,7 @@ This is a .NET knowledge sharing platform with live demos crafted by developers 
 21. [Report](https://github.com/orgs/ILoveDotNet/projects/23/views/1)
 22. [Concurrency](https://github.com/orgs/ILoveDotNet/projects/24/views/1)
 23. [SOLID](https://github.com/orgs/ILoveDotNet/projects/25/views/1)
+24. [Background Services](https://github.com/orgs/ILoveDotNet/projects/26/views/1)
 
 # Please help by giving a star
 Choosing a project idea could be difficult. We need to ensure stability and maintainability of our projects. Surveys show that GitHub stars count play an important factor when assessing quality.
