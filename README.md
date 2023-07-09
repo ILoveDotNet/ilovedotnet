@@ -6,28 +6,28 @@ This is a .NET knowledge sharing platform with live demos crafted by developers 
 
 # Road Map
 1. [Blazor WASM](https://github.com/orgs/ILoveDotNet/projects/2)
-2. [LINQ](https://github.com/orgs/ILoveDotNet/projects/6)
+2. [LINQ](https://github.com/orgs/ILoveDotNet/projects/6) ![CLOSED](https://img.shields.io/badge/CLOSED-FF0000)
 3. [Entity Framework](https://github.com/orgs/ILoveDotNet/projects/4)
 4. [C#](https://github.com/orgs/ILoveDotNet/projects/5)
 5. [ML.NET](https://github.com/orgs/ILoveDotNet/projects/3)
 6. [WEB API](https://github.com/orgs/ILoveDotNet/projects/8)
 7. [DSA](https://github.com/orgs/ILoveDotNet/projects/7)
 8. [Design Patterns](https://github.com/orgs/ILoveDotNet/projects/9)
-9. [TDD](https://github.com/orgs/ILoveDotNet/projects/10)
+9. [TDD](https://github.com/orgs/ILoveDotNet/projects/10) ![CLOSED](https://img.shields.io/badge/CLOSED-FF0000)
 10. [String Builder](https://github.com/orgs/ILoveDotNet/projects/11)
 11. [Regex](https://github.com/orgs/ILoveDotNet/projects/12)
 12. [OOPS](https://github.com/orgs/ILoveDotNet/projects/13)
 13. [Expression Trees](https://github.com/orgs/ILoveDotNet/projects/14)
 14. [Swagger](https://github.com/orgs/ILoveDotNet/projects/15)
-15. [Middlewares](https://github.com/orgs/ILoveDotNet/projects/16)
+15. [Middlewares](https://github.com/orgs/ILoveDotNet/projects/16) ![CLOSED](https://img.shields.io/badge/CLOSED-FF0000)
 16. [JWT](https://github.com/orgs/ILoveDotNet/projects/17)
-17. [Dependency Injection](https://github.com/orgs/ILoveDotNet/projects/18)
+17. [Dependency Injection](https://github.com/orgs/ILoveDotNet/projects/18) ![CLOSED](https://img.shields.io/badge/CLOSED-FF0000)
 18. [Minimal API](https://github.com/orgs/ILoveDotNet/projects/20)
 19. [CLI](https://github.com/orgs/ILoveDotNet/projects/21)
 20. [HTTP Client](https://github.com/orgs/ILoveDotNet/projects/22)
 21. [Report](https://github.com/orgs/ILoveDotNet/projects/23)
 22. [Concurrency](https://github.com/orgs/ILoveDotNet/projects/24)
-23. [SOLID](https://github.com/orgs/ILoveDotNet/projects/25)
+23. [SOLID](https://github.com/orgs/ILoveDotNet/projects/25) ![CLOSED](https://img.shields.io/badge/CLOSED-FF0000)
 24. [Background Services](https://github.com/orgs/ILoveDotNet/projects/26)
 
 # Please help by giving a star
@@ -50,6 +50,7 @@ As an open-source project without funding, I cannot afford advertising I ❤️ 
 # Contribution Guidelines
 1. You can contribute for any of the channels mentioned in road map. If the channel you wish to contribute is not available then you can add channel to road map and contribute. 
 2. In any channel make sure the topic you wish to cover doesn't exists already. If it exists already please review the content and try to update it.
-3. A live working demo would be preferred in all content.
-4. Try to keep content simple and short.
-5. Any ideas to improve content are welcome.
+3. If the channel is closed and you wish to add new content the please raise an PR with the content and we will review it.
+4. A live working demo would be preferred in all content.
+5. Try to keep content simple and short.
+6. Any ideas to improve content are welcome.
