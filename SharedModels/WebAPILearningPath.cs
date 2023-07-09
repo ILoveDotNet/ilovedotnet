@@ -2,12 +2,12 @@
 
 public class WebAPILearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(6);
+    public readonly List<ContentMetaData> FullContents = new(7);
 
     public WebAPILearningPath()
     {
         FullContents =
-        new(6)
+        new(7)
         {
             new ContentMetaData
             {
@@ -86,6 +86,19 @@ public class WebAPILearningPath
                 Type = "WebAPI",
                 CreatedOn = new DateTime(2023, 6, 18, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 6, 18, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+                Order = 7,
+                Title = "Perform Background Workloads in Hosted Service using Channels in ASP.NET Web API",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/webapi/perform-background-workloads-in-hosted-service-using-channels-in-asp-net-webapi.png",
+                ThumbnailUrl = "image/blogs/webapi/perform-background-workloads-in-hosted-service-using-channels-in-asp-net-webapi.png",
+                ContentUrl = "blogs/perform-background-workloads-in-hosted-service-using-channels-in-asp-net-webapi",
+                IconUrl = "image/icons/webapi.png",
+                Type = "WebAPI",
+                CreatedOn = new DateTime(2023, 7, 9, 22, 30, 0),
+                ModifiedOn = new DateTime(2023, 7, 9, 22, 30, 0)
             }
         };
     }

@@ -1,0 +1,191 @@
+@page "/blogs/perform-background-workloads-in-hosted-service-using-channels-in-asp-net-webapi"
+@inherits FragmentNavigationBase
+@inject TableOfContents tableOfContents
+
+<Content Title=@Title
+         Description=@Description
+         CreatedOn=@CreatedOn
+         ModifiedOn=@ModifiedOn
+         Slug=@Slug
+         PosterPath=@PosterPath
+         Keywords=@Keywords
+         Channel="@Channel"
+         ContentType="@ContentType"
+         TotalContents=@TotalContents
+         FileName=@nameof(UsingChannelsToPerformBackgroundWorkloadInHostedService)>
+    <ContentBody>
+        <p>
+            In this article, let's learn about how to perform background workloads with the help of <ContentHighlight>Channels</ContentHighlight> inside 
+            <ContentHighlight>Hosted Service</ContentHighlight> in <ContentHighlight>WebAPI</ContentHighlight> in ASP.NET Core.
+        </p>
+
+        <h3 class="[ font-semibold text-lg ]">Table of Contents</h3>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
+                    Introduction
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#what-are-channels")" Match="NavLinkMatch.All">
+                    What are Channels?
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#what-is-hosted-service")" Match="NavLinkMatch.All">
+                    What is Hosted Service?
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#performing-background-workloads-in-hosted-service")" Match="NavLinkMatch.All">
+                    Performing Background Workloads in Hosted Service
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
+                    Summary
+                </NavLink>
+            </li>
+        </ol>
+
+        <h3 id="introduction" class="[ font-semibold text-lg ]">Introduction</h3>
+
+        <p>
+            <ContentHighlight>I got an requirement to do data migration from one of my client and the constraint they have is to do it via an endpoint in web api
+            </ContentHighlight>. Initially I thought it might be simple data migration but then I realized that it is not just a simple data migration but it is 
+            a huge data migration. Though we recommended alternate approached the client was not ready to touch production database data outside the application. 
+            So we decided to do it via an web api endpoint. But the problem is that the data migration will take more than 30 minutes to complete and the request 
+            will timeout. So upon further analysis I came to know about <ContentHighlight>Channels</ContentHighlight> and 
+            <ContentHighlight>Hosted Service</ContentHighlight> in ASP.NET Core. Before we start lets understand what are channels and hosted service. This 
+            problem provides an example of a potential use case for a hosted service.
+        </p>
+
+        <p>
+            Other use cases include:
+        </p>
+
+        <ul class="[ ml-4 ] [ list-disc ]">
+            <li><ContentHighlight>Processing uploaded excel in background</ContentHighlight></li>
+            <li><ContentHighlight>Sending emails in background</ContentHighlight></li>
+            <li><ContentHighlight>Other long running operations</ContentHighlight>, etc</li>
+        </ul>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="what-are-channels" class="[ font-semibold text-lg ]">What are Channels ?</h3>
+
+        <p>
+            A channel is a synchronisation concept which supports passing data between <ContentHighlight>producers</ContentHighlight> and 
+            <ContentHighlight>consumers</ContentHighlight> <ContentHighlight>concurrently</ContentHighlight>. One or many producers can 
+            <ContentHighlight>write</ContentHighlight> data into the channel, which are then <ContentHighlight>read</ContentHighlight> by one or many consumers. 
+            Logically a channel is effectively an efficient, <ContentHighlight>thread-safe queue</ContentHighlight>. Channels are available under 
+            <ContentHighlight CssClasses="[ break-all ]">System.Threading.Channels</ContentHighlight> namespace
+        </p>
+
+        <p>
+            To know more about <ContentHighlight>Channels</ContentHighlight> is outside the scope of this article. I'll write a separate article on channels in 
+            ASP.NET Core. For now lets walkthrough how to use Channels.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <GithubGistSnippet Title="Data Migration Channel" UserId="fingers10" FileName="fa0f4c25e71935eff1303bcd2a9ac6ef"></GithubGistSnippet>
+
+        <p>
+            In the above code, the <ContentHighlight>DataMigrationChannel</ContentHighlight> <ContentHighlight>class</ContentHighlight> provides a 
+            <ContentHighlight>bounded channel</ContentHighlight> for communication between <ContentHighlight>producers</ContentHighlight> and 
+            <ContentHighlight>consumers</ContentHighlight>. Producers can add items to the channel using the <ContentHighlight>MigrateData</ContentHighlight> 
+            method, and consumers can read all the items from the channel <ContentHighlight>asynchronously</ContentHighlight> using the 
+            <ContentHighlight>ReadAllAsync</ContentHighlight> method. The class ensures that <ContentHighlight>only one writer and one reader</ContentHighlight> 
+            can access the channel at a time and provides a limit on the number of messages that can be stored in the channel.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="what-is-hosted-service" class="[ font-semibold text-lg ]">What is Hosted Service ?</h3>
+
+        <p>
+            <ContentHighlight>Hosted services</ContentHighlight> in ASP.NET Core have been available since <ContentHighlight>version 2.1</ContentHighlight>, and 
+            they support <ContentHighlight>performing background tasks outside of the main requests flow</ContentHighlight>. The best way to understand when and 
+            where hosted services can be applied is to begin using them. In this article, we'll dive straight in and create our first hosted service. Hosted 
+            services are based on the <ContentHighlight>abstract</ContentHighlight> concept of a <ContentHighlight>background service</ContentHighlight>. The 
+            terms <ContentHighlight>hosted service</ContentHighlight> and <ContentHighlight>background service</ContentHighlight> are often used interchangeably. 
+            I'll refer to them by both names throughout this article. Hosted services are available under 
+            <ContentHighlight CssClasses="[ break-all ]">Microsoft.Extensions.Hosting</ContentHighlight> namespace.
+        </p>
+
+        <p>
+            To know more about <ContentHighlight>Hosted Service</ContentHighlight> or <ContentHighlight>Background Service</ContentHighlight> is outside the scope 
+            of this article. I'll write a separate article on Background Services in ASP.NET Core. For now lets understand walkthrough how to use Hosted Service.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <GithubGistSnippet Title="Data Migration Hosted Service" UserId="fingers10" FileName="f066589f4d0439c6d02eade7ed08f537"></GithubGistSnippet>
+
+        <p>
+            In the above code, the <ContentHighlight>DataMigrationService</ContentHighlight> <ContentHighlight>class</ContentHighlight> extends 
+            <ContentHighlight>BackgroundService</ContentHighlight> and is responsible for executing data migration tasks <ContentHighlight>asynchronously</ContentHighlight> 
+            in the background. It reads items from the <ContentHighlight>dataMigrationChannel</ContentHighlight> using an 
+            <ContentHighlight>IAsyncEnumerable&lt;bool&gt;</ContentHighlight>, performs the migration logic, and logs information about the start and completion of the 
+            migration using the provided logger. The service relies on <ContentHighlight>dependency injection</ContentHighlight> to access the necessary dependencies, 
+            such as the <ContentHighlight>DataMigrationChannel</ContentHighlight>, <ContentHighlight>logger</ContentHighlight>, and 
+            <ContentHighlight>service provider</ContentHighlight>.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="performing-background-workloads-in-hosted-service" class="[ font-semibold text-lg ]">Prform Background Workloads in Hosted Service</h3>
+
+        <p>
+            So far we learn't what are channels and hosted service. Now lets see how to coordinate request and hosted service to perform background workloads. 
+            We'll use <ContentHighlight CssClasses="[ break-all ]">System.Threading.Channels</ContentHighlight> to transfer data between requests and hosted 
+            services. Our goal will be to offload a long-running processing workload to a hosted service so that we improve the response time for requests 
+            received. The user will simply make a request to the API, the API will register a request in Channels and the API will return a response immediately. 
+            The hosted service will then process the request in the background.
+        </p>
+
+        <p>
+            Before we look at the endpoint code, we need to register the Channel and Hosted Service in the <ContentHighlight>Program</ContentHighlight> class 
+            as shown below.
+        </p>
+
+        <GithubGistSnippet Title="Registering Hosted Service and Channel" UserId="fingers10" FileName="78cb7a47103526ffbf93b431ac70e3bf"></GithubGistSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <GithubGistSnippet Title="Coordinating Request and Hosted Service" UserId="fingers10" FileName="d740cf3b57820778e62bb0ed3231e28d"></GithubGistSnippet>
+
+        <p>
+            In the above code, the <ContentHighlight>DataMigration</ContentHighlight> <ContentHighlight>class</ContentHighlight> represents an 
+            <ContentHighlight>API controller</ContentHighlight> for handling data migration requests. It exposes a single 
+            <ContentHighlight>HTTP PUT</ContentHighlight> action method that triggers the data <ContentHighlight>migration</ContentHighlight> process by invoking 
+            the <ContentHighlight>MigrateData</ContentHighlight> method on the injected <ContentHighlight>DataMigrationChannel</ContentHighlight> instance.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="summary" class="[ font-semibold text-lg ]">Summary</h3>
+
+        <p>
+            In this article we learn't how to perform background workloads outside request life cycle using channels in hosted services in ASP.NET web api. We 
+            started with use case and under stood alternate use cases and then we learn't what are channels and hosted service. Then we learn't how to coordinate 
+            request and hosted service to perform background workloads. I hope you enjoyed reading this article. Now it's time to extend the idea like connecting 
+            producer and consumer via cloud and start implementing for similar use cases in your projects.
+        </p>
+    </ContentBody>
+</Content>
+
+@code {
+    private string Title = "Perform Background Workloads in Hosted Service using Channels in ASP.NET Web API";
+    private string Description = "In this post I will teach how to perform background workloads outside request life cycle using channels in hosted services in ASP.NET web api. All with live working demo.";
+    private DateTime CreatedOn = new DateTime(2023, 7, 9, 22, 30, 0);
+    private DateTime ModifiedOn = new DateTime(2023, 7, 9, 22, 30, 0);
+    private string Slug = "perform-background-workloads-in-hosted-service-using-channels-in-asp-net-webapi";
+    private string PosterPath = "Blogs/WebAPI";
+    private string Channel = "webapi";
+    private string ContentType = "blogs";
+    private ushort TotalContents => (ushort)tableOfContents.Contents.Count(content => content.Type.Equals("WebAPI", StringComparison.CurrentCultureIgnoreCase));
+    private List<string> Keywords = new(3) { "Hosted Service", "Background Workload", "Channels" };
+}
