@@ -2,12 +2,12 @@
 
 public class WebAPILearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(7);
+    public readonly List<ContentMetaData> FullContents = new(8);
 
     public WebAPILearningPath()
     {
         FullContents =
-        new(7)
+        new(8)
         {
             new ContentMetaData
             {
@@ -99,6 +99,19 @@ public class WebAPILearningPath
                 Type = "WebAPI",
                 CreatedOn = new DateTime(2023, 7, 9, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 7, 9, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+                Order = 8,
+                Title = "Functional testing your ASP.NET WEB API",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/webapi/functional-testing-your-asp-net-webapi.png",
+                ThumbnailUrl = "image/blogs/webapi/functional-testing-your-asp-net-webapi.png",
+                ContentUrl = "blogs/functional-testing-your-asp-net-webapi",
+                IconUrl = "image/icons/webapi.png",
+                Type = "WebAPI",
+                CreatedOn = new DateTime(2023, 7, 16, 22, 30, 0),
+                ModifiedOn = new DateTime(2023, 7, 16, 22, 30, 0)
             }
         };
     }
