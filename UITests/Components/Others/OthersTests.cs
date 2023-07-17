@@ -15,7 +15,7 @@ public class OthersTests
 
         // Assert
         var menu = cut.Find("#others > div");
-        Assert.Equal(menu.GetAttribute("class"), "dropdown is-right is-active");
+        Assert.Equal("dropdown is-right is-active", menu.GetAttribute("class"));
     }
 
     [Fact]
@@ -33,6 +33,6 @@ public class OthersTests
 
         // Assert
         var menu = cut.Find("#others > div");
-        Assert.Equal(menu.GetAttribute("class"), "dropdown is-right ");
+        Assert.Equal("dropdown is-right ", menu.GetAttribute("class"));
     }
 }
