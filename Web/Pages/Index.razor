@@ -3,6 +3,7 @@
 @inject AdSpaceService adSpaceService
 @inject IConfiguration configuration
 @inject Sitemaps sitemap
+@inject TableOfContents tableOfContents
 
 <Meta Property="description" Content="@Description" />
 <Meta Property="keywords" Content=".NET, DotNet, I Love DotNet, I ❤️ DotNet, Blazor, Blazor (WebAssembly), Blazor Wasm, C#, Entity Framework, LINQ, ML.NET, Web API, TDD, OOPS, Middleware, JWT, Dependency Injection, Report, Design Pattern, SOLID" />
@@ -61,7 +62,7 @@
 </HeadContent>
 
 <section class="[ dark:bg-stone-900 ] [ flex flex-col ] [ space-y-5 ] [ p-5 ]">
-    <ContentFilter OnFilterContents="RefreshContent"></ContentFilter>
+    <ContentTypes OnSelectedContentType="FilterContent"></ContentTypes>
     <div class="[ grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 ]">
         <GoogleAdSense Type="GoogleAdSenseAdType.InFeed" Format="GoogleAdSenseAdFormat.Fluid" LayoutKey="-7m+de+1z+n+3" Slot="2741354693"></GoogleAdSense>
         @foreach (var (content, index) in Contents.SelectWithIndex())
@@ -83,16 +84,45 @@
         }
         <GoogleAdSense Type="GoogleAdSenseAdType.InFeed" Format="GoogleAdSenseAdFormat.Fluid" LayoutKey="-7m+de+1z+n+3" Slot="2741354693"></GoogleAdSense>
     </div>
+    <div class="[ flex items-center justify-center ] [ border-b-2 ] [ dark:border-gray-800 ]">
+        <button type="button" 
+                class="[ cursor-pointer ] [ px-3 py-1 ] [ rounded-md ] [ whitespace-nowrap ] [ flex items-center justify-center ] [ disabled:opacity-75 disabled:cursor-not-allowed ]"
+                @onclick="ShowMoreContents"
+                disabled="@(Take >= tableOfContents.SelectedContentTypeTotalCount(SelectedContentType))">
+            <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-caret-down ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                <path d="M6 10l6 6l6 -6h-12"></path>
+            </svg>
+            <p>Show more</p>
+        </button>
+    </div>
 </section>
 
 @code {
     private string Title = "I ❤️ DotNet";
     private string Description = "This is a .NET knowledge sharing platform with live demos crafted by developers for developers with love.";
     private string BaseUrl => configuration.GetValue<string>("baseUrl")!;
-    private List<ContentMetaData> Contents = new(0);
+    private IEnumerable<ContentMetaData> Contents = Enumerable.Empty<ContentMetaData>();
+    private string? SelectedContentType;
+    private int Count = 1;
+    private int Take => TableOfContents.PageSize * Count;
 
-    private void RefreshContent(List<ContentMetaData> filteredContents)
+    protected override void OnInitialized()
     {
-        Contents = filteredContents;
+        Contents = tableOfContents.FilteredAndPagedContents();
+    }
+
+    private void FilterContent(string? selectedContentType)
+    {
+        SelectedContentType = selectedContentType;
+        Count = 1;
+
+        Contents = tableOfContents.FilteredAndPagedContents(selectedContentType);
+    }
+
+    private void ShowMoreContents()
+    {
+        Count++;
+        Contents = tableOfContents.FilteredAndPagedContents(SelectedContentType, 0, Take);
     }
 }
