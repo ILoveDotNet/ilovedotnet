@@ -8,9 +8,9 @@ public class AdSpaceService
 
     public AdSpaceService(TableOfContents tableOfContents)
     {
-        for (int i = 4; i <= tableOfContents.Contents.Count - 4; i += 4)
+        for (int i = 2; i <= tableOfContents.Contents.Count - 2; i += 2)
         {
-            AdSpace.Add(random.Next(i, i + 5));
+            AdSpace.Add(random.Next(i, i + 3));
         }
     }
 
