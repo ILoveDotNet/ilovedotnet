@@ -1,0 +1,28 @@
+﻿<div class="[ max-w-full ]">
+    <ul class="[ list-none ] [ flex items-center justify-start ] [ space-x-3 ] [ overflow-hidden overflow-x-auto ]">
+        <li class="@($"[ cursor-pointer ] [ px-3 py-1 ] [ rounded-md ] [ whitespace-nowrap ] [ {(selectedContentType is null ? activeClass : inActiveClass)} ]")"
+            onclick="@(() => SelectedContentType(null))">All</li>
+        @foreach (var contentType in TableOfContents.AvailableContentTypes)
+        {
+            <li class="@($"[ cursor-pointer ] [ px-3 py-1 ] [ rounded-md ] [ whitespace-nowrap ] [ {(selectedContentType is not null && selectedContentType.Equals(contentType, StringComparison.OrdinalIgnoreCase) ? activeClass : inActiveClass)} ]")"
+            @onclick="@(() => SelectedContentType(@contentType))">@contentType.Replace("-", " ")</li>
+        }
+    </ul>
+</div>
+
+@code {
+    private string? selectedContentType = null;
+    private string activeClass = "bg-black text-white dark:bg-white dark:text-black";
+    private string inActiveClass = "bg-gray-200 text-black dark:bg-gray-600 dark:text-white";
+
+    [Inject] private TableOfContents TableOfContents { get; set; } = default!;
+
+    [Parameter, EditorRequired] public EventCallback<string?> OnSelectedContentType { get; set; } = default!;
+
+    private async Task SelectedContentType(string? contentType)
+    {
+        selectedContentType = contentType;
+
+        await OnSelectedContentType.InvokeAsync(contentType);
+    }
+}
