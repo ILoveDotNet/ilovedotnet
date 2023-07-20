@@ -24,7 +24,7 @@ export function printBarcode() {
                                         text: barcodeCanvas.dataset.text, // Text to encode
                                         scale: 2, // 2x scaling factor
                                         height: 6, // Bar height, in millimeters
-                                        includetext: true, // Show human-readable text
+                                        includetext: false, // Show human-readable text
                                         textxalign: "center", // Always good to set this
                                     });
                                 });
