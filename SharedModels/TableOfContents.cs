@@ -2,8 +2,30 @@
 
 public class TableOfContents
 {
+    public const int PageSize = 6;
     private readonly List<ContentMetaData> FullContents = new(79);
-    public IReadOnlyList<ContentMetaData> Contents => FullContents.Where(content => content.CreatedOn.Date <= DateTime.Today.Date).ToList();
+    public IReadOnlyList<ContentMetaData> Contents 
+            => FullContents
+                .Where(content => content.CreatedOn.Date <= DateTime.Today.Date)
+                .ToList();
+
+    public IReadOnlyList<ContentMetaData> FilteredAndPagedContents(string? selectedContentType = null, int skip = 0, int take = PageSize) 
+            => Contents
+                .Where(content => !string.IsNullOrWhiteSpace(selectedContentType) ? content.Type.Equals(selectedContentType, StringComparison.OrdinalIgnoreCase) : true)
+                .OrderByDescending(content => content.CreatedOn)
+                .Take(skip..take)
+                .ToList();
+
+    public IReadOnlyList<string> AvailableContentTypes 
+            => FullContents
+                .Select(content => content.Type)
+                .Distinct()
+                .ToList();
+
+    public int SelectedContentTypeTotalCount(string? selectedContentType = null) 
+            => Contents
+                .Where(content => !string.IsNullOrWhiteSpace(selectedContentType) ? content.Type.Equals(selectedContentType, StringComparison.OrdinalIgnoreCase) : true)
+                .Count();
 
     public TableOfContents()
     {
