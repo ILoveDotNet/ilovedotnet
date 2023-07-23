@@ -1,0 +1,255 @@
+@page "/blogs/faking-dependencies-in-functional-testing-in-asp-net-webapi"
+@inherits FragmentNavigationBase
+@inject TableOfContents tableOfContents
+
+<Content Title=@Title
+         Description=@Description
+         CreatedOn=@CreatedOn
+         ModifiedOn=@ModifiedOn
+         Slug=@Slug
+         PosterPath=@PosterPath
+         Keywords=@Keywords
+         Channel="@Channel"
+         ContentType="@ContentType"
+         TotalContents=@TotalContents
+         FileName=@nameof(FakingDependenciesInFunctionalTestingInASPNET)>
+    <ContentBody>
+        <p>
+            In this article, let's learn about how to fake dependencies in <ContentHighlight>Functional Test</ContentHighlight> in 
+            <ContentHighlight>WebAPI</ContentHighlight> in ASP.NET Core.
+        </p>
+
+        <p>
+            <strong>Note:</strong> If you have not done so already, I recommend you read the article on
+            <NavLink class="[ underline ]" href="blogs/functional-testing-your-asp-net-webapi" Match="NavLinkMatch.All">Functional testing your ASP.NET WEB API</NavLink>.
+        </p>
+
+        <h3 class="[ font-semibold text-lg ]">Table of Contents</h3>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
+                    Introduction
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#why-to-fake-dependencies")" Match="NavLinkMatch.All">
+                    Why to Fake Dependencies?
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#faking-database")" Match="NavLinkMatch.All">
+                    Faking Database
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#replacing-services")" Match="NavLinkMatch.All">
+                    Replacing Services
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
+                    Summary
+                </NavLink>
+            </li>
+        </ol>
+
+        <h3 id="introduction" class="[ font-semibold text-lg ]">Introduction</h3>
+
+        <p>
+            There are situations where we need to <ContentHighlight>fake dependencies or replace services</ContentHighlight> in our Functional Test. We'll learn 
+            about where to place the <ContentHighlight>boundary</ContentHighlight> for integration tests and how this relates to the <ContentHighlight>external 
+            dependencies, such as a database, queues, etc</ContentHighlight>. And we'll create a fake for a dependency at that defined boundary.
+        </p>
+
+        <p>
+            Let's begin by creating a new test method named <ContentHighlight CssClasses="[ break-all ]">GetWeatherForecastFromDatabase</ContentHighlight>, and 
+            we'll copy previous test to send the request and deserialize the response. So at this point, running the test results in a <ContentHighlight>failure</ContentHighlight>. 
+            Before we complete this test and its implementation, let's review the architecture of the API. We're building a cloud-native web API, so let's 
+            imagine that we're going to use some cloud services such as a managed database.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <GithubGistSnippet Title="Test to validate data from database" UserId="fingers10" FileName="9aeaed5d429eae4ab68a30418d566a17"></GithubGistSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <figure>
+            <img src="./image/blogs/webapi/faking-dependencies-in-functional-testing-in-asp-net-webapi/Failing Test.png" alt="Failing Test" class="[ w-full ]" />
+        </figure>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <p>
+            We have <ContentHighlight CssClasses="[ break-all ]">WeatherForecastDbContext</ContentHighlight> class in our API project. This is configured with 
+            cloud connection string and registed in <ContentHighlight>Program.cs</ContentHighlight>. We are going to inject this into our action method and read 
+            the weather forecast data from database. I'm going to get into details of setting up <ContentHighlight>DbContext</ContentHighlight>. I'll cover this 
+            in my <ContentHighlight>EntityFramework</ContentHighlight> Learning Path.
+        </p>
+
+        <figure>
+            <caption>Endpoint to return values from Database</caption>
+            <img src="./image/blogs/webapi/faking-dependencies-in-functional-testing-in-asp-net-webapi/From Database Endpoint.png" alt="From Database Endpoint" class="[ w-full ]" />
+        </figure>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <figure>
+            <caption>Swagger output from Endpoint to return values from Database</caption>
+            <img src="./image/blogs/webapi/faking-dependencies-in-functional-testing-in-asp-net-webapi/Swagger Response.png" alt="Swagger Response" class="[ w-full ]" />
+        </figure>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="why-to-fake-dependencies" class="[ font-semibold text-lg ]">Why to Fake Dependencies ?</h3>
+
+        <p>
+            Rather than using services from our <ContentHighlight>real cloud provider</ContentHighlight> in this article, which would complicate the setup to 
+            follow along, it's good enough to use our imagination. When working with cloud providers, it's common to use language-specific SDKs that they supply 
+            and maintain to code against their managed services. The implementations just hold the data in memory to mimic a real service, and that's sufficient 
+            for this scenario.
+        </p>
+
+        <p>
+            The benefits of faking in functional tests include:
+        </p>
+
+        <ul class="[ list-disc ] [ ml-4 ]">
+            <li>Savings in <ContentHighlight>cost</ContentHighlight>.</li>
+            <li>Faster <ContentHighlight>time</ContentHighlight> to complete the test.</li>
+            <li><ContentHighlight>Simple & Easy</ContentHighlight> to setup.</li>
+        </ul>
+
+        <p>
+            Therefore, lets fake these kind of dependencies.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+        
+        <h3 id="faking-database" class="[ font-semibold text-lg ]">Faking Database</h3>
+
+        <p>
+            In this example in our API, we are going to use <ContentHighlight>EntityFramework</ContentHighlight> to connect to cloud database. We can fake the 
+            database by using an <ContentHighlight>in-memory sqlite</ContentHighlight> database provider to run our tests. Reason to use in memory sqlite 
+            provider than in memory database is to make sure relation constraints are working as expected.
+        </p>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>
+                <p>
+                    Add reference to <ContentHighlight CssClasses="[ break-all ]">Microsoft.EntityFrameworkCore.Sqlite</ContentHighlight> Nuget Package in 
+                    <ContentHighlight CssClasses="[ break-all ]">FunctionalTest.csproj</ContentHighlight>.
+                </p>
+            </li>
+            <li>
+                <p>
+                    Add static <ContentHighlight>DatabaseHelper.cs</ContentHighlight> helper class to <ContentHighlight>Initialize</ContentHighlight> and 
+                    <ContentHighlight>Reset</ContentHighlight> Data for used in tests. Note that these will be used to 
+                    <ContentHighlight>reset</ContentHighlight> and <ContentHighlight>initialized</ContentHighlight> for each test.
+                </p>
+
+                <GithubGistSnippet Title="Database Helper" UserId="fingers10" FileName="198f10d8fd559b377b28b42a4690a3b6"></GithubGistSnippet>
+
+                <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+            </li>
+            <li>
+                <p>
+                    Finally we need to configure in memory sqlite db in <ContentHighlight>ConfigureTestServices</ContentHighlight> inside 
+                    <ContentHighlight>WithWebHostBuilder</ContentHighlight> to <ContentHighlight>override</ContentHighlight> the <ContentHighlight>Service 
+                    Registration</ContentHighlight> in <ContentHighlight>WebApplicationFactory</ContentHighlight> from <ContentHighlight>Program.cs</ContentHighlight>. 
+                </p>
+
+                <p>
+                    We need to find <ContentHighlight>WeatherForecastDbContext</ContentHighlight> and <ContentHighlight>remove</ContentHighlight> and then 
+                    <ContentHighlight>create a sqlite in-memory connection and re-register WeatherForecastDbContext</ContentHighlight> with the sqlite in-memory 
+                    connection. And we are creating a <ContentHighlight>ServiceProvider Scope</ContentHighlight> and get 
+                    <ContentHighlight>WeatherForecastDbContext</ContentHighlight> from <ContentHighlight>Scope</ContentHighlight> and use that instance to 
+                    <ContentHighlight>ResetDatabase</ContentHighlight> and <ContentHighlight>InitializeDatabase</ContentHighlight> from 
+                    <ContentHighlight>DatabaseHelper.cs</ContentHighlight>. This is shown in the below code.
+                </p>
+
+                <GithubGistSnippet Title="Custom Web Application Factory" UserId="fingers10" FileName="c7f9db023e04afa7dd2be9327b9d42a5"></GithubGistSnippet>
+            </li>
+        </ol>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <p>
+            Thats it. We are done with setup. Now the tests will run in the following flow.
+        </p>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>Start Test Method.</li>
+            <li>Create HTTP Client.</li>
+            <li>Create WebApplicationFactory.</li>
+            <li>Run Program.cs.</li>
+            <li>Service Registration.</li>
+            <li>Overriding Service Registration with ConfigureTestServices.</li>
+            <li>Build Web Application.</li>
+            <li>Test Code Execution.</li>
+        </ol>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <p>
+            Now lets run the test and see the result.
+        </p>
+
+        <figure>
+            <img src="./image/blogs/webapi/faking-dependencies-in-functional-testing-in-asp-net-webapi/Passing Test.png" alt="Passing Test" class="[ w-full ]" />
+        </figure>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="replacing-services" class="[ font-semibold text-lg ]">Replacing Services</h3>
+
+        <p>
+            Now that we learnt how to fake database. We can also apply the same technique to <ContentHighlight>replace services</ContentHighlight> in our 
+            <ContentHighlight>Functional Test</ContentHighlight>. Let's say we have a <ContentHighlight>ExternalAPIService</ContentHighlight> service in our API which 
+            implements <ContentHighlight>IExternalAPIService</ContentHighlight>. We can replace this service with a 
+            <ContentHighlight>FakeExternalAPIService</ContentHighlight> service in our <ContentHighlight>Functional Test</ContentHighlight>.
+        </p>
+
+        <p>
+            All we need to do is to find the <ContentHighlight>ExternalAPIService</ContentHighlight> and <ContentHighlight>remove</ContentHighlight> and then 
+            <ContentHighlight>create a FakeExternalAPIService</ContentHighlight> with expected output from that service and re-register 
+            <ContentHighlight>ExternalAPIService</ContentHighlight> with <ContentHighlight>FakeExternalAPIService</ContentHighlight>. 
+            This is shown in the below code.
+        </p>
+
+        <GithubGistSnippet Title="Replacing Services" UserId="fingers10" FileName="ebb22e6e0c8c3af21ce48742faa4b1c1"></GithubGistSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <p>
+            But this way of replacing services will be difficult to maintain as we need to write a lot of code to test all scenarios. So I'll teach you another 
+            better way in next article.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+        
+        <h3 id="summary" class="[ font-semibold text-lg ]">Summary</h3>
+
+        <p>
+            In this article, we learnt about how to fake dependencies in <ContentHighlight>Functional Test</ContentHighlight> in 
+            <ContentHighlight>WebAPI</ContentHighlight> in ASP.NET Core. We learnt about where to place the <ContentHighlight>boundary</ContentHighlight> for 
+            integration tests and how this relates to the <ContentHighlight>external dependencies, such as a database, queues, etc</ContentHighlight>. This idea 
+            can be extended and applied to any cloud based dependencies. In our next article, we'll learn about how to <ContentHighlight>Replace</ContentHighlight> 
+            services in <ContentHighlight>Functional Test</ContentHighlight> in <ContentHighlight>WebAPI</ContentHighlight> in ASP.NET Core.
+        </p>
+    </ContentBody>
+</Content>
+
+@code {
+    private string Title = "Faking Dependencies in Functional testing in ASP.NET WEB API";
+    private string Description = "In this post I will teach how to fake dependencies in functional testing in ASP.NET web api. All with live working demo.";
+    private DateTime CreatedOn = new DateTime(2023, 7, 23, 22, 30, 0);
+    private DateTime ModifiedOn = new DateTime(2023, 7, 23, 22, 30, 0);
+    private string Slug = "faking-dependencies-in-functional-testing-in-asp-net-webapi";
+    private string PosterPath = "Blogs/WebAPI";
+    private string Channel = "webapi";
+    private string ContentType = "blogs";
+    private ushort TotalContents => (ushort)tableOfContents.Contents.Count(content => content.Type.Equals("WebAPI", StringComparison.CurrentCultureIgnoreCase));
+    private List<string> Keywords = new(3) { "Faking Dependencies", "Functional Test", "Integration Test" };
+}
