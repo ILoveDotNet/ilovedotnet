@@ -1,4 +1,4 @@
-﻿namespace SharedModels;
+namespace SharedModels;
 
 public class TableOfContents
 {
@@ -11,7 +11,7 @@ public class TableOfContents
 
     public IReadOnlyList<ContentMetaData> FilteredAndPagedContents(string? selectedContentType = null, int skip = 0, int take = PageSize) 
             => Contents
-                .Where(content => !string.IsNullOrWhiteSpace(selectedContentType) ? content.Type.Equals(selectedContentType, StringComparison.OrdinalIgnoreCase) : true)
+                .Where(content => string.IsNullOrWhiteSpace(selectedContentType) || content.Type.Equals(selectedContentType, StringComparison.OrdinalIgnoreCase))
                 .OrderByDescending(content => content.CreatedOn)
                 .Take(skip..take)
                 .ToList();
@@ -24,7 +24,7 @@ public class TableOfContents
 
     public int SelectedContentTypeTotalCount(string? selectedContentType = null) 
             => Contents
-                .Where(content => !string.IsNullOrWhiteSpace(selectedContentType) ? content.Type.Equals(selectedContentType, StringComparison.OrdinalIgnoreCase) : true)
+                .Where(content => string.IsNullOrWhiteSpace(selectedContentType) || content.Type.Equals(selectedContentType, StringComparison.OrdinalIgnoreCase))
                 .Count();
 
     public TableOfContents()
