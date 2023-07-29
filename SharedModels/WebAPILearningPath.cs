@@ -2,12 +2,12 @@
 
 public class WebAPILearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(9);
+    public readonly List<ContentMetaData> FullContents = new(10);
 
     public WebAPILearningPath()
     {
         FullContents =
-        new(9)
+        new(10)
         {
             new ContentMetaData
             {
@@ -125,6 +125,19 @@ public class WebAPILearningPath
                 Type = "WebAPI",
                 CreatedOn = new DateTime(2023, 7, 23, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 7, 23, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+                Order = 10,
+                Title = "Using WireMock.NET in Functional testing in ASP.NET WEB API",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/webapi/using-wiremock-net-in-functional-testing-in-asp-net-webapi.png",
+                ThumbnailUrl = "image/blogs/webapi/using-wiremock-net-in-functional-testing-in-asp-net-webapi.png",
+                ContentUrl = "blogs/using-wiremock-net-in-functional-testing-in-asp-net-webapi",
+                IconUrl = "image/icons/webapi.png",
+                Type = "WebAPI",
+                CreatedOn = new DateTime(2023, 7, 30, 22, 30, 0),
+                ModifiedOn = new DateTime(2023, 7, 30, 22, 30, 0)
             }
         };
     }

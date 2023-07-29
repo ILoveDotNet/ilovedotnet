@@ -1,0 +1,257 @@
+@page "/blogs/using-wiremock-net-in-functional-testing-in-asp-net-webapi"
+@inherits FragmentNavigationBase
+@inject TableOfContents tableOfContents
+
+<Content Title=@Title
+         Description=@Description
+         CreatedOn=@CreatedOn
+         ModifiedOn=@ModifiedOn
+         Slug=@Slug
+         PosterPath=@PosterPath
+         Keywords=@Keywords
+         Channel="@Channel"
+         ContentType="@ContentType"
+         TotalContents=@TotalContents
+         FileName=@nameof(UsingWireMockNetInFunctionalTestingInASPNET)>
+    <ContentBody>
+        <p>
+            In this article, let's learn about how to use <ContentHighlight>WireMock.NET</ContentHighlight> in 
+            <ContentHighlight>Functional Test</ContentHighlight> in <ContentHighlight>WebAPI</ContentHighlight> in ASP.NET Core.
+        </p>
+
+        <p>
+            <strong>Note:</strong> If you have not done so already, I recommend you read the article on
+            <NavLink class="[ underline ]" href="blogs/faking-dependencies-in-functional-testing-in-asp-net-webapi" Match="NavLinkMatch.All">Faking Dependencies in Functional testing in ASP.NET WEB API</NavLink>.
+        </p>
+
+        <h3 class="[ font-semibold text-lg ]">Table of Contents</h3>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
+                    Introduction
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#why-to-use-wiremock-net")" Match="NavLinkMatch.All">
+                    Why to use WireMock.NET?
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#implementing-wiremock-net")" Match="NavLinkMatch.All">
+                    Implementing WireMock.NET
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
+                    Summary
+                </NavLink>
+            </li>
+        </ol>
+
+        <h3 id="introduction" class="[ font-semibold text-lg ]">Introduction</h3>
+
+        <p>
+            In our previous article we saw how to replace services in functional test and that approach has a drawback of writing lot of code to test all the 
+            possible scenarios. We can overcome this drawback by using <ContentHighlight>WireMock.NET</ContentHighlight>. It helps us to simplify the test code 
+            and also helps us to test all the possible scenarios. In this article, we'll learn about how to use <ContentHighlight>WireMock.NET</ContentHighlight> 
+            in functional test.
+        </p>
+
+        <p>
+            Let's start by adding <ContentHighlight CssClasses="[ break-all ]">Task&lt;WeatherForecast&gt; GetWeatherForecast()</ContentHighlight> to our 
+            <ContentHighlight>IExternalAPIService</ContentHighlight> and implement it in <ContentHighlight>ExternalAPIService</ContentHighlight>. Before we dive 
+            into this implementation, lets first add URL and <ContentHighlight>HttpClient</ContentHighlight> configuration in our <ContentHighlight>Program.cs</ContentHighlight>.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <GithubGistSnippet Title="App Settings for External API Call in Web API" UserId="fingers10" FileName="f8ad45af3f92ea4df9fc8e6492aca3da"></GithubGistSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <p>
+            Now in the <ContentHighlight>Program.cs</ContentHighlight>, lets add the <ContentHighlight>HttpClient</ContentHighlight> configuration as shown below.
+        </p>
+
+        <GithubGistSnippet Title="HTTP Client Configuration" UserId="fingers10" FileName="e73e8e29bf118a7c6c3eb780432d544c"></GithubGistSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <p>
+            Now all we need to do is to inject the above <ContentHighlight>WeatherClient HTTP Client</ContentHighlight> inside our 
+            <ContentHighlight>ExternalAPIService</ContentHighlight> and make a call to get weather information as shown below.
+        </p>
+
+        <GithubGistSnippet Title="External API call to get weather information" UserId="fingers10" FileName="5a15506a6a2eb8e20806f40c9a87a6b4"></GithubGistSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <p>
+            Next we need to call the <ContentHighlight>GetWeatherForecast</ContentHighlight> method from our <ContentHighlight>WeatherForecastController</ContentHighlight> 
+            as shown below.
+        </p>
+
+        <figure>
+            <caption>Endpoint to return values from Database</caption>
+            <img src="./image/blogs/webapi/using-wiremock-net-in-functional-testing-in-asp-net-webapi/From API Endpoint.png" alt="From API Endpoint" class="[ w-full ]" />
+        </figure>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <p>
+            Here is the swagger response from the <ContentHighlight>GetWeatherForecastFromAPI</ContentHighlight> endpoint.
+        </p>
+
+        <figure>
+            <caption>Swagger output from Endpoint to return values from API</caption>
+            <img src="./image/blogs/webapi/using-wiremock-net-in-functional-testing-in-asp-net-webapi/Swagger Response.png" alt="Swagger Response" class="[ w-full ]" />
+        </figure>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="why-to-use-wiremock-net" class="[ font-semibold text-lg ]">Why to use WireMock.NET ?</h3>
+
+        <p>
+            <ContentHighlight>WireMock.NET</ContentHighlight> is a powerful tool that can accurately emulate the behavior of an <ContentHighlight>HTTP API</ContentHighlight> 
+            by <ContentHighlight>capturing incoming requests and directing them to a WireMock.NET HTTP server</ContentHighlight>. This capability grants us the 
+            ability to define expectations, call the API, and verify its behavior, making it ideal for extensive testing of code interactions with external services.
+        </p>
+
+        <p>
+            With WireMock.NET, <ContentHighlight>we can effectively mock real API endpoints and utilize its comprehensive features for HTTP response stubbing, 
+            including matching stubs based on URL/Path, headers, cookies, and body content patterns</ContentHighlight>.
+        </p>
+
+        <p>
+            The benefits of using WireMock.NET in functional tests include:
+        </p>
+
+        <ul class="[ list-disc ] [ ml-4 ]">
+            <li><ContentHighlight>No need to write lot of mock code for HTTP calls</ContentHighlight>. WireMock.NET helps to test actual behavior.</li>
+            <li>WireMock.NET helps when <ContentHighlight>External API calls have rate limitation</ContentHighlight>.</li>
+            <li><ContentHighlight>Easy to setup</ContentHighlight> and cover all possible status code behaviors.</li>
+        </ul>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+        
+        <h3 id="implementing-wiremock-net" class="[ font-semibold text-lg ]">Implementing WireMock.NET</h3>
+
+        <p>
+            The steps to implement WireMock.NET in functional test are as follows:
+        </p>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>
+                <p>
+                    Add reference to <ContentHighlight CssClasses="[ break-all ]">WireMock.NET</ContentHighlight> Nuget Package in 
+                    <ContentHighlight CssClasses="[ break-all ]">FunctionalTest.csproj</ContentHighlight>.
+                </p>
+            </li>
+            <li>
+                <p>
+                    Now Create <ContentHighlight>appsettings.Test.json</ContentHighlight> in <ContentHighlight>FunctionalTest</ContentHighlight> project and right 
+                    click on the file and select <ContentHighlight>Properties</ContentHighlight> and set <ContentHighlight>Copy to Output Directory</ContentHighlight>.
+                </p>
+            </li>
+            <li>
+                <p>
+                    Now configure the <ContentHighlight>appsettings.Test.json</ContentHighlight> in <ContentHighlight>WebHostBuilder</ContentHighlight> inside 
+                    <ContentHighlight>CustomWebApplicationFactory</ContentHighlight> in <ContentHighlight>FunctionalTest.cs</ContentHighlight> as shown below.
+                </p>
+
+                <GithubGistSnippet Title="appsettings.Test.json configuration in Functional Test" UserId="fingers10" FileName="4e42f73ea077f6e650ac90f4050e6bbf"></GithubGistSnippet>
+
+                <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+            </li>
+            <li>
+                The above configuration will replace the Weather API URL in the test. Now we need to setup the WireMock.NET server. For that we need to create 
+                <ContentHighlight>Fixture</ContentHighlight> to be used in all the tests. So lets create a <ContentHighlight>ExternalAPIFixture class</ContentHighlight> 
+                as shown below
+
+                <GithubGistSnippet Title="WireMock ExternalAPI Fixture to respond to API Calls" UserId="fingers10" FileName="f3cb927d3e1c1059c68dc7fb56255ddd"></GithubGistSnippet>
+
+                <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+                <p>
+                    The above <ContentHighlight>class</ContentHighlight> is responsible for starting the <ContentHighlight>WireMock.NET server</ContentHighlight> 
+                    in <ContentHighlight>port 50000</ContentHighlight> in <ContentHighlight>https mode</ContentHighlight> and also for stopping it. The key thing 
+                    is the <ContentHighlight>SetupGetWeather</ContentHighlight> where we setup request matching particular Path in WireMock.NET server and also the 
+                    response to be returned. With thi setup when we call External API in Functional Test WireMock kicks in and when the path matches, it will give 
+                    the expected response to be <ContentHighlight>asserted</ContentHighlight> in test.
+                </p>
+
+                <p>
+                    You can refer to the <ContentHighlight>WireMock.NET</ContentHighlight> 
+                    <NavLink href="https://wiremock.org/docs/solutions/dotnet/" class="[ underline ]" target="_blank">documentation</NavLink> 
+                    for more details on how to setup the request and response for various cases like timeouts, auth failure, etc.
+                </p>
+            </li>
+            <li>
+                Now we are left with our test. So lets add the test as shown below.
+
+                <GithubGistSnippet Title="Get From API Functional Test using WireMock.NET" UserId="fingers10" FileName="0d0b9172fb1a61e66543c8d85980c52b"></GithubGistSnippet>
+
+                <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+                <p>
+                    In the above code if you notice, we are injecting <ContentHighlight>ExternalAPIFixture</ContentHighlight> and using it to setup the WireMock.NET before running 
+                    the test and also to stop the WireMock.NET server after the test. The <ContentHighlight>SetupGetWeather</ContentHighlight> method is responsible for setting up 
+                    the WireMock.NET server to respond to the request.
+                </p>
+            </li>
+        </ol>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <p>
+            Thats it. We are done with setup. Now the tests will run in the following flow.
+        </p>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>Start Test Method.</li>
+            <li>Create HTTP Client.</li>
+            <li>Create WebApplicationFactory.</li>
+            <li>Run Program.cs.</li>
+            <li>Service Registration.</li>
+            <li>Overriding Service Registration and Configuration with ConfigureTestServices.</li>
+            <li>Build Web Application.</li>
+            <li>WireMock.NET Setup.</li>
+            <li>Test Code Execution.</li>
+        </ol>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <p>
+            Now lets run the test and see the result.
+        </p>
+
+        <figure>
+            <img src="./image/blogs/webapi/using-wiremock-net-in-functional-testing-in-asp-net-webapi/Passing Test.png" alt="Passing Test" class="[ w-full ]" />
+        </figure>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="summary" class="[ font-semibold text-lg ]">Summary</h3>
+
+        <p>
+            In this article, we learnt about how to use <ContentHighlight>WireMock.NET</ContentHighlight> in functional test in ASP.NET Web API. We also saw the 
+            benefits of using <ContentHighlight>WireMock.NET</ContentHighlight> in functional test. The complete source code for this article can be found 
+            <NavLink href="https://github.com/fingers10/ILoveDotNetFunctionalTest" class="[ underline ]" target="_blank">here</NavLink>. Hope you find this information useful. 
+            In our next article we will continue to learn how to setup <ContentHighlight>Authentication</ContentHighlight> in Functional Test in ASP.NET Web API.
+        </p>
+    </ContentBody>
+</Content>
+
+@code {
+    private string Title = "Using WireMock.NET in Functional testing in ASP.NET WEB API";
+    private string Description = "In this post I will teach how to use wiremock.net in functional testing in ASP.NET web api. All with live working demo.";
+    private DateTime CreatedOn = new DateTime(2023, 7, 30, 22, 30, 0);
+    private DateTime ModifiedOn = new DateTime(2023, 7, 30, 22, 30, 0);
+    private string Slug = "using-wiremock-net-in-functional-testing-in-asp-net-webapi";
+    private string PosterPath = "Blogs/WebAPI";
+    private string Channel = "webapi";
+    private string ContentType = "blogs";
+    private ushort TotalContents => (ushort)tableOfContents.Contents.Count(content => content.Type.Equals("WebAPI", StringComparison.CurrentCultureIgnoreCase));
+    private List<string> Keywords = new(3) { "WireMock.Net", "Functional Test", "Integration Test" };
+}
