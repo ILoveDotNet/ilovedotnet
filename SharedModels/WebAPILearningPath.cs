@@ -2,12 +2,12 @@
 
 public class WebAPILearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(10);
+    public readonly List<ContentMetaData> FullContents = new(11);
 
     public WebAPILearningPath()
     {
         FullContents =
-        new(10)
+        new(11)
         {
             new ContentMetaData
             {
@@ -138,6 +138,19 @@ public class WebAPILearningPath
                 Type = "WebAPI",
                 CreatedOn = new DateTime(2023, 7, 30, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 7, 30, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+                Order = 11,
+                Title = "Configuring Authentication in Functional testing in ASP.NET WEB API",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/webapi/configuring-authentication-in-functional-testing-in-asp-net-webapi.png",
+                ThumbnailUrl = "image/blogs/webapi/configuring-authentication-in-functional-testing-in-asp-net-webapi.png",
+                ContentUrl = "blogs/configuring-authentication-in-functional-testing-in-asp-net-webapi",
+                IconUrl = "image/icons/webapi.png",
+                Type = "WebAPI",
+                CreatedOn = new DateTime(2023, 8, 6, 22, 30, 0),
+                ModifiedOn = new DateTime(2023, 8, 6, 22, 30, 0)
             }
         };
     }
