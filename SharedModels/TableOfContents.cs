@@ -27,6 +27,13 @@ public class TableOfContents
                 .Where(content => string.IsNullOrWhiteSpace(selectedContentType) || content.Type.Equals(selectedContentType, StringComparison.OrdinalIgnoreCase))
                 .Count();
 
+    public IReadOnlyList<ContentMetaData> ExceptAndPagedContents(string title, int skip = 0, int take = PageSize) 
+            => Contents
+                .Where(content => !content.Title.Equals(title, StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(content => content.CreatedOn)
+                .Take(skip..take)
+                .ToList();
+
     public TableOfContents()
     {
         FullContents.AddRange(new BlazorLearningPath().FullContents);

@@ -4,10 +4,7 @@
 
 <aside class="[ flex flex-col md:basis-1/4 ] [ space-y-2 ]">
     <GoogleAdSense Type="GoogleAdSenseAdType.InFeed" Format="GoogleAdSenseAdFormat.Fluid" LayoutKey="-7m+de+1z+n+3" Slot="2741354693"></GoogleAdSense>
-    @foreach (var (content, index) in tableOfContents.Contents
-                                                     .Where(content => !content.Title.Equals(Title, StringComparison.OrdinalIgnoreCase))
-                                                     .OrderByDescending(content => content.CreatedOn)
-                                                     .SelectWithIndex())
+    @foreach (var (content, index) in Contents.SelectWithIndex())
     {
         @if (adSpaceService.CanDisplayAd(index + 1))
         {
@@ -66,10 +63,36 @@
             </NavLink>
         }
     }
+    <div class="[ flex items-center justify-center ]">
+        <button type="button" 
+                class="[ cursor-pointer ] [ px-3 py-1 ] [ rounded-md ] [ whitespace-nowrap ] [ flex items-center justify-center ] [ disabled:opacity-75 disabled:cursor-not-allowed ]"
+                @onclick="ShowMoreContents"
+                disabled="@(Take >= tableOfContents.Contents.Count - 1)">
+            <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-caret-down ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                <path d="M6 10l6 6l6 -6h-12"></path>
+            </svg>
+            <p>Show more</p>
+        </button>
+    </div>
     <GoogleAdSense Type="GoogleAdSenseAdType.InFeed" Format="GoogleAdSenseAdFormat.Fluid" LayoutKey="-7m+de+1z+n+3" Slot="2741354693"></GoogleAdSense>
 </aside>
 
 @code {
     [Parameter, EditorRequired] public string Title { get; set; } = default!;
     [CascadingParameter] public bool SmallDevice { get; set; }
+    private IEnumerable<ContentMetaData> Contents = Enumerable.Empty<ContentMetaData>();
+    private int Count = 1;
+    private int Take => TableOfContents.PageSize * Count;
+
+    protected override void OnInitialized()
+    {
+        Contents = tableOfContents.ExceptAndPagedContents(Title);
+    }
+
+    private void ShowMoreContents()
+    {
+        Count++;
+        Contents = tableOfContents.ExceptAndPagedContents(Title, 0, Take);
+    }
 }
