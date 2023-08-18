@@ -59,6 +59,30 @@
         </script>
         """"
         ))
+
+    <style type="text/css">
+        #google-search-impact-chart {
+            display: grid;
+            align-items: center;
+            justify-items: center;
+            grid-template-columns: 20px 1fr;
+            grid-template-rows: 400px 60px;
+            grid-template-areas:
+                "data-axis chart"
+                ".         primary-axis";
+        }
+        #google-search-impact-chart > table {
+            grid-area: chart;
+        }
+        #google-search-impact-chart > .primary-axis {
+            grid-area: primary-axis;
+        }
+        #google-search-impact-chart > .data-axis {
+            grid-area: data-axis;
+            writing-mode: tb-rl;
+            transform: rotateZ(180deg);
+        }
+    </style>
 </HeadContent>
 
 <section class="[ dark:bg-stone-900 ] [ flex flex-col ] [ space-y-5 ] [ p-5 ]">
@@ -74,16 +98,33 @@
 
     <h3 class="[ dark:text-white ] [ font-semibold text-lg ]">Google Search Impact</h3>
 
-    <div class="[ grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-4 ]">
-        @foreach (var googleSearchImpact in achievements.GoogleSearchImpacts.OrderByDescending(x => x.Date))
-        {
-            <article>
-                <header class="[ bg-black text-white text-center ] [ dark:bg-white dark:text-black ]">@googleSearchImpact.Date.ToString("yyyy-MM-dd")</header>
-                <div class="[ bg-cover bg-center ] [ h-48 w-48 ] [ flex items-center justify-center ] [ mx-auto ]" style="background-image: url(./image/analytics/google-search-console/achievement.svg)">
-                    <span class="[ text-black text-lg ] [ font-bold ]">@googleSearchImpact.Clicks</span>
-                </div>
-            </article>
-        }
+    <div id="google-search-impact-chart" class="[ w-full ]">
+        <table class="[ charts-css column show-heading show-labels show-data-axes show-primary-axis data-spacing-5 ]" style="height: 400px">
+            <caption> Google Search Impact </caption>
+            <thead>
+                <tr>
+                    <th scope="col"> Achieved On </th>
+                    <th scope="col"> Clicks </th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var googleSearchImpact in GroupedAchievements)
+                {
+                    var date = new DateTime(googleSearchImpact.Key.Year, googleSearchImpact.Key.Month, 1);
+                    var clicks = googleSearchImpact.Sum(x => x.Clicks);
+                    <tr>
+                        <th scope="row" class="[ pt-16 md:pt-8 ]"> @($"{date:MMM yy}") </th>
+                        <td style="--size: calc( @clicks / @CurrentAchievement )" class="[ bg-gradient-to-b from-indigo-500 via-purple-500 to-pink-500 ]"> 
+                            <span class="data" style="margin-top: -20px;"> @clicks </span> 
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <div class="primary-axis"> Achieved On </div>
+
+        <div class="data-axis"> Clicks </div>
     </div>
 
 </section>
@@ -92,4 +133,6 @@
     private string Title = "Analytics - I ❤️ DotNet";
     private string Description = "This is a .NET knowledge sharing platform with live demos crafted by developers for developers with love.";
     private string BaseUrl => configuration.GetValue<string>("baseUrl")!;
+    private IEnumerable<IGrouping<DateOnly, GoogleSearchImpact>> GroupedAchievements => achievements.GoogleSearchImpacts.GroupBy(x => DateOnly.FromDateTime(new DateTime(x.Date.Year, x.Date.Month, 1)));
+    private long CurrentAchievement => GroupedAchievements.Max(x => x.Sum(x => x.Clicks));
 }
