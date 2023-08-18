@@ -3,7 +3,7 @@
 public class TableOfContents
 {
     public const int PageSize = 6;
-    private readonly List<ContentMetaData> FullContents = new(83);
+    private readonly List<ContentMetaData> FullContents = new(84);
     public IReadOnlyList<ContentMetaData> Contents 
             => FullContents
                 .Where(content => content.CreatedOn.Date <= DateTime.Today.Date)
@@ -39,6 +39,7 @@ public class TableOfContents
         FullContents.AddRange(new BlazorLearningPath().FullContents);
         FullContents.AddRange(new DependencyInjectionLearningPath().FullContents);
         FullContents.AddRange(new DesignPatternLearningPath().FullContents);
+        FullContents.AddRange(new HTTPClientLearningPath().FullContents);
         FullContents.AddRange(new LINQLearningPath().FullContents);
         FullContents.AddRange(new MiddlewareLearningPath().FullContents);
         FullContents.AddRange(new OOPSLearningPath().FullContents);
