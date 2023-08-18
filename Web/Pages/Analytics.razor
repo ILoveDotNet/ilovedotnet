@@ -111,7 +111,7 @@
                 @foreach (var googleSearchImpact in GroupedAchievements)
                 {
                     var date = new DateTime(googleSearchImpact.Key.Year, googleSearchImpact.Key.Month, 1);
-                    var clicks = googleSearchImpact.Sum(x => x.Clicks);
+                    var clicks = googleSearchImpact.Max(x => x.Clicks);
                     <tr>
                         <th scope="row" class="[ pt-16 md:pt-8 ]"> @($"{date:MMM yy}") </th>
                         <td style="--size: calc( @clicks / @CurrentAchievement )" class="[ bg-gradient-to-b from-indigo-500 via-purple-500 to-pink-500 ]"> 
@@ -133,6 +133,6 @@
     private string Title = "Analytics - I ❤️ DotNet";
     private string Description = "This is a .NET knowledge sharing platform with live demos crafted by developers for developers with love.";
     private string BaseUrl => configuration.GetValue<string>("baseUrl")!;
-    private IEnumerable<IGrouping<DateOnly, GoogleSearchImpact>> GroupedAchievements => achievements.GoogleSearchImpacts.GroupBy(x => DateOnly.FromDateTime(new DateTime(x.Date.Year, x.Date.Month, 1)));
-    private long CurrentAchievement => GroupedAchievements.Max(x => x.Sum(x => x.Clicks));
+    private IEnumerable<IGrouping<DateOnly, GoogleSearchImpact>> GroupedAchievements => achievements.GoogleSearchImpacts.GroupBy(x => new DateOnly(x.Date.Year, x.Date.Month, 1));
+    private long CurrentAchievement => GroupedAchievements.Max(x => x.Max(y => y.Clicks));
 }
