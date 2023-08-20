@@ -33,6 +33,11 @@
                 </NavLink>
             </li>
             <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#clarifying-streams")" Match="NavLinkMatch.All">
+                    Clarifying Streams
+                </NavLink>
+            </li>
+            <li>
                 <NavLink class="[ underline ]" href="@($"blogs/{Slug}#using-stream-while-reading-data-from-api")" Match="NavLinkMatch.All">
                     Using Stream while reading data from API
                 </NavLink>
@@ -52,7 +57,16 @@
         <h3 id="introduction" class="[ font-semibold text-lg ]">Introduction</h3>
 
         <p>
-            
+            <ContentHighlight>Streams</ContentHighlight> help us to keep the <ContentHighlight>memory footprint of our application as low as possible and the 
+            performance high</ContentHighlight>. In this article let's get <ContentHighlight>clarified</ContentHighlight> with Stream and learn the 
+            <ContentHighlight>advantages</ContentHighlight> of working with Streams and use that knowledge with <ContentHighlight>HTTP Client</ContentHighlight>. 
+            We will read the data using Streams and send the data using Streams and get the performance improvement.
+        </p>
+
+        <p>
+            A <ContentHighlight>Stream</ContentHighlight> is an <ContentHighlight>abstract representation of a sequence of bytes</ContentHighlight>, which can 
+            be data like <ContentHighlight>files, input/output devices, or network traffic</ContentHighlight>. Streams offer a unified way to interact with 
+            various types of input and output without getting into specific technical details of the underlying system or devices.
         </p>
 
         <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
@@ -60,31 +74,128 @@
         <h3 id="advantages-of-working-with-stream" class="[ font-semibold text-lg ]">Advantages of working with Stream</h3>
 
         <p>
-            
+            Stream enable both reading from and writing to above mentioned data sources, even in cases of network traffic and in-memory objects. This 
+            <ContentHighlight>eliminates the need for large in-between temporary variables</ContentHighlight> thus helps in,
         </p>
 
+        <ul class="[ list-disc ] [ ml-4 ]">
+            <li><ContentHighlight>Reducing memory usage</ContentHighlight></li>
+            <li><ContentHighlight>Enhancing performance</ContentHighlight></li>
+        </ul>
+
         <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="clarifying-streams" class="[ font-semibold text-lg ]">Clarifying Streams</h3>
+
+        <p>
+            Before we proceed, let's address a potential confusion about the term <ContentHighlight>Stream</ContentHighlight>. The stream I'm referring to now 
+            is the <ContentHighlight>abstraction</ContentHighlight> we establish using the <ContentHighlight>Stream class</ContentHighlight>. This abstraction 
+            represents a <ContentHighlight>coding concept</ContentHighlight> that handles sequences of bytes. It applies to code written at various levels, 
+            including, 
+        </p>
+
+        <ul class="[ list-disc ] [ ml-4 ]">
+            <li>Clients</li>
+            <li>APIs</li>
+            <li>Intermediatery Stages</li>
+        </ul>
+
+        <p>
+            Importantly, these levels are distinct. <ContentHighlight>APIs don't necessarily require streams for clients to benefit, and vice versa</ContentHighlight>. 
+            The knowledge gained in this article is universally applicable, regardless of the API's coding approach.
+        </p>
+
+        <p>
+            Shifting to the context of data transfer, <ContentHighlight>Stream</ContentHighlight> also refers to the movement of data. This 
+            <ContentHighlight>data transfer concept</ContentHighlight> can lead to confusion. Since we're working with <ContentHighlight>HTTP</ContentHighlight>, 
+            it involves the transmission of bytes from or to the API. As HTTP operates over TCP, packets have a maximum size of <ContentHighlight>64 KB</ContentHighlight>, 
+            often smaller. Whether it's streaming movies, browsing a site, or interacting with an HTTP-based API, data arrives sequentially in packages.
+        </p>
+
+        <p>
+            However, the confusion doesn't end there. <ContentHighlight>The API can manage data streaming in different ways. It can push all the data at once or 
+            stream it asynchronously, allowing gradual transmission</ContentHighlight>. With asynchronous streaming support, the API can send response 
+            portions individually over the network as a continuous flow. For example, data could come directly from an underlying database. This distinction doesn't 
+            directly involve client-side stream support.
+        </p>
 
         <h3 id="using-stream-while-reading-data-from-api" class="[ font-semibold text-lg ]">Using Stream while reading data from API</h3>
 
         <p>
-            
+            Let's examine what occurs when we call our API. Our focus will be on the <ContentHighlight>response</ContentHighlight>, as we're beginning with data 
+            retrieval. So, when a request is made for instance, to obtain a any data the response is received. Because of HTTP's nature, the content arrives in a 
+            <ContentHighlight>continuous flow over the network</ContentHighlight>, regardless of whether the client or API is designed for streaming or supports it. 
+            Once all the content is received, we can extract it from <ContentHighlight>response.Content</ContentHighlight>.
         </p>
+
+        <figure>
+            <img src="./image/blogs/http-client/improving-performance-and-memory-use-while-accessing-apis-using-httpclient-in-dotnet/Read As String.png" alt="Read As String" class="[ w-full ]" />
+        </figure>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <GithubGistSnippet Title="Reading Data As String" UserId="fingers10" FileName="ed4d890c1ba0f71dc827d15a26eb209f"></GithubGistSnippet>
+
+        <p>
+            Mostly I notice developers achieving this using <ContentHighlight>ReadAsStringAsync</ContentHighlight>, which generates an 
+            <ContentHighlight>in-memory string equivalent to the entire data response body</ContentHighlight>. Following this, the string is transformed through 
+            <ContentHighlight>deserialization</ContentHighlight> into a data object using <ContentHighlight>System.Text.Json</ContentHighlight>. This is the 
+            current process. Several aspects could be enhanced here. Let's begin with the intermediary string creation. <ContentHighlight>Rather than 
+            deserializing the object from a string, we can utilize a stream</ContentHighlight>. This approach <ContentHighlight>eliminates the need for a 
+            potentially large intermediary string</ContentHighlight>. The string doesn't have to be generated in memory beforehand. Consequently, 
+            <ContentHighlight>this reduces memory usage and enhances performance</ContentHighlight>. Let's explore how we can implement this improvement.
+        </p>
+
+        <figure>
+            <img src="./image/blogs/http-client/improving-performance-and-memory-use-while-accessing-apis-using-httpclient-in-dotnet/Read As Stream.png" alt="Read As Stream" class="[ w-full ]" />
+        </figure>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <GithubGistSnippet Title="Reading Data As Stream" UserId="fingers10" FileName="a84d2871eddf4fdbbe7a225479eacec7"></GithubGistSnippet>
 
         <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
 
         <h3 id="using-stream-while-sending-data-to-api" class="[ font-semibold text-lg ]">Using Stream while sending data to API</h3>
 
         <p>
-            
+            When we transmit data to an API, let's say a any data, a similar process occurs in reverse as when we receive a response. <ContentHighlight>We create 
+            a data object, convert it into a JSON string through serialization resulting in an in-memory string and then transmit the entire content all at 
+            once</ContentHighlight>. However, it's conceivable to enhance this procedure.
         </p>
+
+        <figure>
+            <img src="./image/blogs/http-client/improving-performance-and-memory-use-while-accessing-apis-using-httpclient-in-dotnet/Send As String.png" alt="Send As String" class="[ w-full ]" />
+        </figure>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <GithubGistSnippet Title="Sending Data As String" UserId="fingers10" FileName="f5839dae552d332e57adb5e0de0a21c0"></GithubGistSnippet>
+
+        <p>
+            Instead of <ContentHighlight>serializing to a JSON string</ContentHighlight>, we can utilize a <ContentHighlight>stream to bypass this step</ContentHighlight>, 
+            thereby <ContentHighlight>avoiding the need for an in-memory string</ContentHighlight>. Additionally, we can apply a stream to send content over the network, 
+            doing away with the need to send it all at once. This can be achieved using <ContentHighlight>StreamContent</ContentHighlight> in place of 
+            <ContentHighlight>StringContent</ContentHighlight>. Let's explore this through a demonstration.
+        </p>
+
+        <figure>
+            <img src="./image/blogs/http-client/improving-performance-and-memory-use-while-accessing-apis-using-httpclient-in-dotnet/Send As Stream.png" alt="Send As Stream" class="[ w-full ]" />
+        </figure>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <GithubGistSnippet Title="Sending Data As Stream" UserId="fingers10" FileName="defede0107e0df282b7e3b419857783e"></GithubGistSnippet>
 
         <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
 
         <h3 id="summary" class="[ font-semibold text-lg ]">Summary</h3>
 
         <p>
-            
+            In this article, we learned about how to <ContentHighlight>improve performance and memory use</ContentHighlight> while accessing APIs with 
+            <ContentHighlight>Stream</ContentHighlight> using <ContentHighlight>HTTP Client</ContentHighlight> in .NET. We learned about the 
+            <ContentHighlight>advantages</ContentHighlight> of working with Streams and use that knowledge with <ContentHighlight>HTTP Client</ContentHighlight>. 
+            We read the data using Streams and send the data using Streams and get the performance improvement and low memory usage benefit.            
         </p>
     </ContentBody>
 </Content>
