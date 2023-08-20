@@ -18,7 +18,7 @@ public class HTTPClientLearningPath
                 ThumbnailUrl = "image/blogs/http-client/improving-performance-and-memory-use-while-accessing-apis-using-http-client-in-dotnet.png",
                 ContentUrl = "blogs/improving-performance-and-memory-use-while-accessing-apis-using-http-client-in-dotnet",
                 IconUrl = "image/icons/http-client.png",
-                Type = "Python",
+                Type = "HTTP-Client",
                 CreatedOn = new DateTime(2023, 8, 20, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 8, 20, 22, 30, 0)
             },
