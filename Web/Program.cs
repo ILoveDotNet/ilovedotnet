@@ -7,6 +7,7 @@ using SharedModels;
 using Toolbelt.Blazor.Extensions.DependencyInjection;
 using Web;
 using Web.Models;
+using Web.Services;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
@@ -23,6 +24,8 @@ await builder.Build().RunAsync();
 static void ConfigureServices(IServiceCollection services, string baseAddress)
 {
     services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(baseAddress) });
+
+    services.AddHttpClient<GitHubService>(client => client.BaseAddress = new Uri("https://api.github.com/"));
 
     services.AddScoped<AppState>();
 

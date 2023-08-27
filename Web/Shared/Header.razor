@@ -1,7 +1,6 @@
-﻿@using System.Text.Json;
-@implements IDisposable
+﻿@implements IDisposable
 @inject AppState AppState
-@inject HttpClient HttpClient
+@inject GitHubService GitHubService
 
 <header id="header" class="[ flex items-center justify-between ] [ bg-white ] [ px-5 ] [ dark:bg-gray-800 dark:bg-gray-800/80 ] [ h-14 ] [ sticky top-0 ] [ backdrop-blur-sm bg-white/80 ] [ z-10 ]">
     <button type="button" class="[ hidden md:block ] [ mr-4 ]" @onclick="ToggleMenu">
@@ -38,12 +37,14 @@
     private int stars = 0;
     private CancellationTokenSource cancellationTokenSource = new();
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        var response = await HttpClient.GetAsync("https://api.github.com/repos/ILoveDotNet/ilovedotnet", cancellationTokenSource.Token);
-        using var streamContent = await response.Content.ReadAsStreamAsync(cancellationTokenSource.Token);
-        var repository = await JsonSerializer.DeserializeAsync<Repository>(streamContent, new JsonSerializerOptions(JsonSerializerDefaults.Web), cancellationTokenSource.Token);
-        stars = repository?.StargazersCount ?? 0;
+        if (firstRender)
+        {
+            var repository = await GitHubService.GetRepositoryAsync("ILoveDotNet", "ilovedotnet", cancellationTokenSource.Token);
+            stars = repository.StargazersCount;
+            await InvokeAsync(StateHasChanged);
+        }
     }
 
     private void ToggleNonSearchItems(bool hideNonSearchItems)
