@@ -52,4 +52,6 @@ static void ConfigureServices(IServiceCollection services, string baseAddress)
     services.AddScoped<ScopedServiceDemo>();
 
     services.AddSingleton<SingletonServiceDemo>();
+
+    services.AddHotKeys2();
 }

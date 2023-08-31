@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
 using SharedModels;
+using Toolbelt.Blazor.HotKeys2;
 
 namespace Web.Shared;
 
@@ -10,6 +11,7 @@ public class SearchBase : ComponentBase, IAsyncDisposable
     private IJSObjectReference? module;
     private short _selectedListItemIndex = -1;
     private string _searchText = string.Empty;
+    private HotKeysContext HotKeysContext = default!;
 
     protected bool HideNonSearchItems;
     protected Guid _componentId = Guid.NewGuid();
@@ -34,6 +36,7 @@ public class SearchBase : ComponentBase, IAsyncDisposable
     [Inject] private TableOfContents TableOfContents { get; set; } = default!;
     [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
     [Inject] private NavigationManager NavigationManager { get; set; } = default!;
+    [Inject] private HotKeys HotKeys { get; set; } = default!;
 
     [Parameter, EditorRequired] public EventCallback<bool> ToggleNonSearchItems { get; set; }
     [CascadingParameter] public bool SmallDevice { get; set; }
@@ -42,6 +45,8 @@ public class SearchBase : ComponentBase, IAsyncDisposable
     {
         if (firstRender)
         {
+            HotKeysContext = HotKeys.CreateContext()
+                                    .Add(Key.Slash, async () => await SearchInput.FocusAsync());
             module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/search.js");
         }
     }
@@ -143,6 +148,8 @@ public class SearchBase : ComponentBase, IAsyncDisposable
 
     async ValueTask IAsyncDisposable.DisposeAsync()
     {
+        HotKeysContext.Dispose();
+
         if (module is not null)
         {
             await module.DisposeAsync();
