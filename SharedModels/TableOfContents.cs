@@ -3,7 +3,7 @@
 public class TableOfContents
 {
     public const int PageSize = 6;
-    private readonly List<ContentMetaData> FullContents = new(85);
+    private readonly List<ContentMetaData> FullContents = new(86);
     public IReadOnlyList<ContentMetaData> Contents 
             => FullContents
                 .Where(content => content.CreatedOn.Date <= DateTime.Today.Date)
