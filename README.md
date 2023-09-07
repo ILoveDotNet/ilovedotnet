@@ -2,7 +2,7 @@
 
 This is a .NET knowledge sharing platform with live demos crafted by developers for developers with love using .NET. The goal is to make sure this learning platform helps developers to up and run .NET easily in their projects. This platform will cover minimal knowledge, steps, content needed to start with .NET stack.
 
-![GitHub Banner](https://user-images.githubusercontent.com/43729469/179226228-be76d802-86a9-4871-86ed-d65758e9db6c.png)
+![GitHub Banner](https://github.com/ILoveDotNet/ilovedotnet/assets/43729469/6503d56d-7d69-4bd1-9b47-c27cd808bd2e)
 
 # Road Map
 1. [Blazor WASM](https://github.com/orgs/ILoveDotNet/projects/2)
@@ -34,7 +34,7 @@ This is a .NET knowledge sharing platform with live demos crafted by developers 
 Choosing a project idea could be difficult. We need to ensure stability and maintainability of our projects. Surveys show that GitHub stars count play an important factor when assessing quality.
 
 ⭐ Please give this repository a star. It takes seconds and help thousands of developers! ⭐
-![star-request](https://github.com/ILoveDotNet/ilovedotnet/assets/43729469/d81c2571-920c-424a-8fa5-6c09b351dceb)
+![star-request](https://github.com/ILoveDotNet/ilovedotnet/assets/43729469/6eaa0894-d0e3-4ad9-979b-02ceecee7d8e)
 
 # Please share with the community
 As an open-source project without funding, I cannot afford advertising I ❤️ .NET in a typical way. Instead, the project relies on community interactions. Please consider sharing a post about I ❤️ .NET and the value it provides. It really does help!
