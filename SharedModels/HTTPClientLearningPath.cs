@@ -2,12 +2,12 @@ namespace SharedModels;
 
 public class HTTPClientLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(3);
+    public readonly List<ContentMetaData> FullContents = new(4);
 
     public HTTPClientLearningPath()
     {
         FullContents =
-        new(3)
+        new(4)
         {
             new ContentMetaData
             {
@@ -47,6 +47,19 @@ public class HTTPClientLearningPath
                 Type = "HTTP-Client",
                 CreatedOn = new DateTime(2023, 9, 3, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 9, 3, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+                Order = 4,
+                Title = "Working with API that supports remote streaming using HTTPClient in dotnet",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/http-client/working-with-api-that-supports-remote-streaming-using-http-client-in-dotnet.png",
+                ThumbnailUrl = "image/blogs/http-client/working-with-api-that-supports-remote-streaming-using-http-client-in-dotnet.png",
+                ContentUrl = "blogs/working-with-api-that-supports-remote-streaming-using-http-client-in-dotnet",
+                IconUrl = "image/icons/http-client.png",
+                Type = "HTTP-Client",
+                CreatedOn = new DateTime(2023, 9, 10, 22, 30, 0),
+                ModifiedOn = new DateTime(2023, 9, 10, 22, 30, 0)
             },
         };
     }

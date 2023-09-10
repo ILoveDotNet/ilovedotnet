@@ -1,0 +1,138 @@
+@page "/blogs/working-with-api-that-supports-remote-streaming-using-http-client-in-dotnet"
+@inherits FragmentNavigationBase
+@inject TableOfContents tableOfContents
+
+<Content Title=@Title
+         Description=@Description
+         CreatedOn=@CreatedOn
+         ModifiedOn=@ModifiedOn
+         Slug=@Slug
+         PosterPath=@PosterPath
+         Keywords=@Keywords
+         Channel="@Channel"
+         ContentType="@ContentType"
+         TotalContents=@TotalContents
+         FileName=@nameof(WorkingWithAPIStreaming)>
+    <ContentBody>
+        <p>
+            In this article, let's learn about how to work with API's that support <ContentHighlight>Remote Streaming</ContentHighlight> 
+            using <ContentHighlight>HTTP Client</ContentHighlight> in .NET.
+        </p>
+
+        <p>
+            <strong>Note:</strong> If you have not done so already, I recommend you read the article on
+            <NavLink class="[ underline ]" href="blogs/save-bandwidth-with-compression-when-sending-and-reading-data-using-http-client-in-dotnet" Match="NavLinkMatch.All">Save bandwidth with Compression when sending and reading data using HTTPClient in dotnet</NavLink>.
+        </p>
+
+        <h3 class="[ font-semibold text-lg ]">Table of Contents</h3>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
+                    Introduction
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#integrating-with-streaming-api")" Match="NavLinkMatch.All">
+                    Integrating with Streaming API
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
+                    Summary
+                </NavLink>
+            </li>
+        </ol>
+
+        <h3 id="introduction" class="[ font-semibold text-lg ]">Introduction</h3>
+
+        <p>
+            <ContentHighlight>Streaming</ContentHighlight>, in essence, is a method of <ContentHighlight>transmitting or receiving data over a network as a 
+            continuous and steady flow, as opposed to receiving it all at once</ContentHighlight>. While commonly associated with video and audio content, 
+            streaming has also become valuable for web APIs that return JSON data, especially when dealing with large datasets.
+        </p>
+
+        <p>
+            In our case, we're focusing on a <ContentHighlight>streaming endpoint</ContentHighlight> from our API. When we send a request to this endpoint, 
+            the results start arriving one by one, effectively streaming to the consumer in this case, a web browser. This capability has been made possible 
+            thanks to the introduction of <ContentHighlight>IAsyncEnumerable</ContentHighlight> in ASP.NET Core 3 and changes in 
+            <ContentHighlight>System.Text.Json</ContentHighlight> to accommodate streaming in ASP.NET Core 6.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="integrating-with-streaming-api" class="[ font-semibold text-lg ]">Integrating with Streaming API</h3>
+
+        <p>
+            To better grasp this concept, let's briefly look at the API code.     
+        </p>
+
+        <GithubGistSnippet Title="API Supporting Streaming" UserId="fingers10" FileName="5b6d47198fa9e17525715b7046c54fd2"></GithubGistSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <p>
+            At its core, data access begins with the return of an <ContentHighlight>IAsyncEnumerable</ContentHighlight>. Within the related controller action, 
+            results are <ContentHighlight>yielded</ContentHighlight> individually to the API consumer, ensuring an <ContentHighlight>asynchronous streaming 
+            process</ContentHighlight>. For now, this illustrates that data flows asynchronously from the data store to the client via API.
+        </p>
+
+        <GithubGistSnippet Title="Consuming Data from API that supports Streaming" UserId="fingers10" FileName="91a039e5dd99c01475bc35154a0bde66"></GithubGistSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <p>
+            When it comes to working with the streaming API on the client side, a straightforward <ContentHighlight>HttpClient</ContentHighlight> approach won't 
+            suffice. <ContentHighlight>Deserializing</ContentHighlight> the entire <ContentHighlight>stream</ContentHighlight> into an 
+            <ContentHighlight>IEnumerable</ContentHighlight> of <ContentHighlight>integer</ContentHighlight> would cause the client to wait until all the data has 
+            been received before proceeding. In order to support streaming at the client level, we need a different approach. 
+        </p>
+
+        <p>
+            <ContentHighlight>HttpClient</ContentHighlight> provides this support through two components:
+        </p>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>
+                the <ContentHighlight>IAsyncEnumerable</ContentHighlight> <ContentHighlight>interface</ContentHighlight>, which has been available since .NET 
+                Core 3 and allows <ContentHighlight>asynchronous</ContentHighlight> iteration over a set of values, aligning perfectly with the streaming 
+                paradigm.
+            </li>
+            <li>
+                When we call <ContentHighlight>System.Text.Json</ContentHighlight>'s streaming capabilities like 
+                <ContentHighlight>DeserializeAsyncEnumerable</ContentHighlight>, the result is an <ContentHighlight>asynchronous enumerable</ContentHighlight> 
+                that lets us work on incoming data incrementally.
+            </li>
+        </ol>
+
+        <p>
+            When we combine these components, we can <ContentHighlight>asynchronously</ContentHighlight> iterate over the incoming objects from the integer 
+            stream, processing them one by one.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="summary" class="[ font-semibold text-lg ]">Summary</h3>
+
+        <p>
+            In this article, we've delved into the world of <ContentHighlight>streaming</ContentHighlight> a method of <ContentHighlight>transmitting or 
+            receiving data as a continuous flow over a network</ContentHighlight>. This approach allows us to begin processing parts of the data while the 
+            rest is still being received, offering improved efficiency and responsiveness. On the client side, HttpClient's support for streaming is made 
+            possible through two key components <ContentHighlight>IAsyncEnumerable</ContentHighlight> Interface and 
+            <ContentHighlight>System.Text.Json</ContentHighlight>.
+        </p>
+    </ContentBody>
+</Content>
+
+@code {
+    private string Title = "Working with API that supports remote streaming using HTTPClient in dotnet";
+    private string Description = "In this post I will teach how to work with API that supports remote streaming using HTTP Client. All with live working demo.";
+    private DateTime CreatedOn = new DateTime(2023, 9, 10, 22, 30, 0);
+    private DateTime ModifiedOn = new DateTime(2023, 9, 10, 22, 30, 0);
+    private string Slug = "working-with-api-that-supports-remote-streaming-using-http-client-in-dotnet";
+    private string PosterPath = "Blogs/HTTP-Client";
+    private string Channel = "http-client";
+    private string ContentType = "blogs";
+    private ushort TotalContents => (ushort)tableOfContents.Contents.Count(content => content.Type.Equals("HTTP-Client", StringComparison.CurrentCultureIgnoreCase));
+    private List<string> Keywords = new(2) { "Streaming", "Remote" };
+}
