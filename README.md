@@ -24,7 +24,7 @@ This is a .NET knowledge sharing platform with live demos crafted by developers 
 17. [Dependency Injection](https://github.com/orgs/ILoveDotNet/projects/18) ![CLOSED](https://img.shields.io/badge/CLOSED-FF0000)
 18. [Minimal API](https://github.com/orgs/ILoveDotNet/projects/20)
 19. [CLI](https://github.com/orgs/ILoveDotNet/projects/21)
-20. [HTTP Client](https://github.com/orgs/ILoveDotNet/projects/22)
+20. [HTTP Client](https://github.com/orgs/ILoveDotNet/projects/22) ![CLOSED](https://img.shields.io/badge/CLOSED-FF0000)
 21. [Report](https://github.com/orgs/ILoveDotNet/projects/23)
 22. [Concurrency](https://github.com/orgs/ILoveDotNet/projects/24)
 23. [SOLID](https://github.com/orgs/ILoveDotNet/projects/25) ![CLOSED](https://img.shields.io/badge/CLOSED-FF0000)
