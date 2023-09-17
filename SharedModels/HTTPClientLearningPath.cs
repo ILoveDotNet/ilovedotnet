@@ -2,12 +2,12 @@ namespace SharedModels;
 
 public class HTTPClientLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(5);
+    public readonly List<ContentMetaData> FullContents = new(6);
 
     public HTTPClientLearningPath()
     {
         FullContents =
-        new(5)
+        new(6)
         {
             new ContentMetaData
             {
@@ -73,6 +73,19 @@ public class HTTPClientLearningPath
                 Type = "HTTP-Client",
                 CreatedOn = new DateTime(2023, 9, 17, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 9, 17, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+                Order = 6,
+                Title = "Unit Testing HTTPClient in dotnet",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/http-client/unit-testing-http-client-in-dotnet.png",
+                ThumbnailUrl = "image/blogs/http-client/unit-testing-http-client-in-dotnet.png",
+                ContentUrl = "blogs/unit-testing-http-client-in-dotnet",
+                IconUrl = "image/icons/http-client.png",
+                Type = "HTTP-Client",
+                CreatedOn = new DateTime(2023, 9, 24, 22, 30, 0),
+                ModifiedOn = new DateTime(2023, 9, 24, 22, 30, 0)
             },
         };
     }
