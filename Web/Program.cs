@@ -23,7 +23,14 @@ await builder.Build().RunAsync();
 
 static void ConfigureServices(IServiceCollection services, string baseAddress)
 {
-    services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(baseAddress) });
+    services.AddTransient<CustomHeaderMessageHandlerDemo>(sp => new (new HttpClientHandler()));
+
+    services.AddScoped(sp => 
+    {
+        var httpClient = new HttpClient(sp.GetRequiredService<CustomHeaderMessageHandlerDemo>()) { BaseAddress = new Uri(baseAddress) };
+        
+        return httpClient;
+    });
 
     services.AddHttpClient<GitHubService>(client => client.BaseAddress = new Uri("https://api.github.com/"));
 

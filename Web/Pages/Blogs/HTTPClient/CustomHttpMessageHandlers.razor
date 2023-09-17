@@ -1,0 +1,182 @@
+@page "/blogs/extending-http-client-with-custom-http-message-handlers-in-dotnet"
+@inherits FragmentNavigationBase
+@inject TableOfContents tableOfContents
+
+<Content Title=@Title
+         Description=@Description
+         CreatedOn=@CreatedOn
+         ModifiedOn=@ModifiedOn
+         Slug=@Slug
+         PosterPath=@PosterPath
+         Keywords=@Keywords
+         Channel="@Channel"
+         ContentType="@ContentType"
+         TotalContents=@TotalContents
+         FileName=@nameof(CustomHttpMessageHandlers)>
+    <ContentBody>
+        <p>
+            In this article, let's learn about how to extend <ContentHighlight>HTTP Client</ContentHighlight> with 
+            <ContentHighlight>Custom Message Handlers</ContentHighlight> in .NET.
+        </p>
+
+        <p>
+            <strong>Note:</strong> If you have not done so already, I recommend you read the article on
+            <NavLink class="[ underline ]" href="blogs/working-with-api-that-supports-remote-streaming-using-http-client-in-dotnet" Match="NavLinkMatch.All">Working with API that supports remote streaming using HTTPClient in dotnet</NavLink>.
+        </p>
+
+        <h3 class="[ font-semibold text-lg ]">Table of Contents</h3>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
+                    Introduction
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#delegating-handler-pattern")" Match="NavLinkMatch.All">
+                    Delegating Handler Pattern
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#use-cases-for-custom-http-message-handler")" Match="NavLinkMatch.All">
+                    Use cases for Custom Http Message Handler
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#implementing-custom-http-message-handler")" Match="NavLinkMatch.All">
+                    Implementing Custom Http Message Handler
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
+                    Summary
+                </NavLink>
+            </li>
+        </ol>
+
+        <h3 id="introduction" class="[ font-semibold text-lg ]">Introduction</h3>
+
+        <p>
+            Have you ever wondered on how to add custom logic to your <ContentHighlight>HTTP</ContentHighlight> requests? For example, you want to add a 
+            custom header to all your HTTP requests. Or you want to add some custom logic to your HTTP requests. Then you are at the right place.
+        </p>
+
+        <p>
+            <ContentHighlight>Custom Message Handlers</ContentHighlight> are very powerful and useful when you want to 
+            <ContentHighlight>add some custom logic to your HTTP requests</ContentHighlight>. In this article we will learn how to extend HTTP Client with 
+            custom Http Message Handlers and how to chain them to form <ContentHighlight>delegating handler pattern</ContentHighlight>. Let's also look at 
+            some examples on where this would be helpful.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="delegating-handler-pattern" class="[ font-semibold text-lg ]">Delegating Handler Pattern</h3>
+
+        <p>
+            The <ContentHighlight>Delegating Handler Pattern</ContentHighlight> involves an orchestrated flow of HTTP requests through a series of message 
+            handlers that can be <ContentHighlight>seamlessly linked together</ContentHighlight>, forming what can be 
+            <ContentHighlight>likened to a pipeline</ContentHighlight>. It begins with the initial reception of the request by the first handler within this 
+            pipeline. This handler may carry out specific operations and then forwards the request to the next handler in line. As this process unfolds, 
+            a response is gradually crafted and journeys back up the pipeline in a structured manner.
+        </p>
+
+        <figure>
+            <img src="./image/blogs/http-client/extending-http-client-with-custom-http-message-handlers-in-dotnet/Delegating Handler Pattern.png" alt="Delegating Handler Pattern" class="[ w-full ]" />
+        </figure>
+
+        <p>
+            In essence, this architectural design embodies the essence of a <ContentHighlight>delegating handler</ContentHighlight>. What makes this pattern 
+            truly powerful is the ability to engineer our custom handlers and seamlessly inject them into this intricate pipeline. This approach proves 
+            invaluable in tackling an array of common challenges that developers often encounter in the realm of HTTP request handling.
+        </p>
+
+        <h3 id="use-cases-for-custom-http-message-handler" class="[ font-semibold text-lg ]">Use cases for Custom Http Message Handler</h3>
+
+        <p>
+            Let's look at some of the use cases for custom Http Message Handler.
+        </p>
+
+        <ul class="[ list-disc ] [ ml-4 ]">
+            <li><ContentHighlight>Attaching Bearer Token</ContentHighlight> in all requests</li>
+            <li><ContentHighlight>Renewing expired Bearer Token</ContentHighlight> from Identity Provider and use it</li>
+            <li>Sending headers in all requests like <ContentHighlight>API version</ContentHighlight> or <ContentHighlight>custom headers</ContentHighlight></li>
+            <li><ContentHighlight>Logging</ContentHighlight> API request and response</li>
+        </ul>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="implementing-custom-http-message-handler" class="[ font-semibold text-lg ]">Implementing Custom Http Message Handler</h3>
+
+        <p>
+            Before we implement custom <ContentHighlight>Http Message Handler</ContentHighlight>, I would like to highlight that 
+            <ContentHighlight>DelegatingHandler</ContentHighlight> is also an <ContentHighlight>HttpMessageHandler</ContentHighlight> except that as part of 
+            <ContentHighlight>SendAsync</ContentHighlight> implementation, it just calls the <ContentHighlight>SendAsync</ContentHighlight> of the 
+            <ContentHighlight>inner handler</ContentHighlight>. The inner handler will do the same and you get the Chinese boxes or the Russian dolls effect. 
+            <ContentHighlight>HttpServer</ContentHighlight>, where the pipeline starts is itself a <ContentHighlight>DelegatingHandler</ContentHighlight>.
+        </p>
+        
+        <p>
+            Another cool thing is that you <ContentHighlight>inject</ContentHighlight> any <ContentHighlight>Dependency</ContentHighlight> in the 
+            <ContentHighlight>constructor</ContentHighlight> of the <ContentHighlight>DelegatingHandler</ContentHighlight> and it will be resolved by the DI 
+            container.
+        </p>
+
+        <p>
+            Let's implement a custom Http Message Handler that will add a custom header to all the requests.
+        </p>
+
+        <p>
+            Let's create a class called <ContentHighlight>CustomHeaderHandler</ContentHighlight> that will add a custom header to all the requests. We will 
+            inherit from <ContentHighlight>DelegatingHandler</ContentHighlight> and override the <ContentHighlight>SendAsync</ContentHighlight> method. 
+            In the <ContentHighlight>SendAsync</ContentHighlight> method, we will add a custom header to the request and call the base SendAsync method. 
+            This will add the custom header to all the requests.
+        </p>
+
+        <GithubGistSnippet Title="Custom Header HTTP Message Handler" UserId="fingers10" FileName="4903f06f901c58909a71a7c7771293ad"></GithubGistSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <p>
+            The final step is to register it in the <ContentHighlight>Dependency Injection</ContentHighlight> container and add it to the 
+            <ContentHighlight>HttpClient</ContentHighlight> pipeline as shown below.
+        </p>
+
+        <GithubGistSnippet Title="Registering Custom Http Message Handler" UserId="fingers10" FileName="bf8a79739465773c61517df5c8c2ef1f"></GithubGistSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <p>
+            That's it. Now if you check the network tab in the browser, you will see the custom header added to all the requests sent to https://ilovedotnet.org. 
+        </p>
+
+        <figure>
+            <img src="./image/blogs/http-client/extending-http-client-with-custom-http-message-handlers-in-dotnet/Delegating Handler Pattern.png" alt="Delegating Handler Pattern" class="[ w-full ]" />
+        </figure>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="summary" class="[ font-semibold text-lg ]">Summary</h3>
+
+        <p>
+            In this article, we learned about how to extend <ContentHighlight>HTTP Client</ContentHighlight> with 
+            <ContentHighlight>Custom Message Handlers</ContentHighlight> in .NET. We also learned about the 
+            <ContentHighlight>Delegating Handler Pattern</ContentHighlight> and some of the use cases for custom Http Message Handler. We also learned how to 
+            implement custom Http Message Handler and register it in the <ContentHighlight>Dependency Injection</ContentHighlight> container and add it to the 
+            <ContentHighlight>HttpClient</ContentHighlight> pipeline. I hope you have enjoyed reading this article and found it useful. Please share it with 
+            your network and support me.
+        </p>
+    </ContentBody>
+</Content>
+
+@code {
+    private string Title = "Extending HTTPClient with Custom Http Message Handlers in dotnet";
+    private string Description = "In this post I will teach how to extend HTTP Client with custom Http Message Handlers. All with live working demo.";
+    private DateTime CreatedOn = new DateTime(2023, 9, 17, 22, 30, 0);
+    private DateTime ModifiedOn = new DateTime(2023, 9, 17, 22, 30, 0);
+    private string Slug = "extending-http-client-with-custom-http-message-handlers-in-dotnet";
+    private string PosterPath = "Blogs/HTTP-Client";
+    private string Channel = "http-client";
+    private string ContentType = "blogs";
+    private ushort TotalContents => (ushort)tableOfContents.Contents.Count(content => content.Type.Equals("HTTP-Client", StringComparison.CurrentCultureIgnoreCase));
+    private List<string> Keywords = new(2) { "Delegating Handler", "Http Message Handler" };
+}

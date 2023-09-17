@@ -2,12 +2,12 @@ namespace SharedModels;
 
 public class HTTPClientLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(4);
+    public readonly List<ContentMetaData> FullContents = new(5);
 
     public HTTPClientLearningPath()
     {
         FullContents =
-        new(4)
+        new(5)
         {
             new ContentMetaData
             {
@@ -60,6 +60,19 @@ public class HTTPClientLearningPath
                 Type = "HTTP-Client",
                 CreatedOn = new DateTime(2023, 9, 10, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 9, 10, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+                Order = 5,
+                Title = "Extending HTTPClient with Custom Http Message Handlers in dotnet",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/http-client/extending-http-client-with-custom-http-message-handlers-in-dotnet.png",
+                ThumbnailUrl = "image/blogs/http-client/extending-http-client-with-custom-http-message-handlers-in-dotnet.png",
+                ContentUrl = "blogs/extending-http-client-with-custom-http-message-handlers-in-dotnet",
+                IconUrl = "image/icons/http-client.png",
+                Type = "HTTP-Client",
+                CreatedOn = new DateTime(2023, 9, 17, 22, 30, 0),
+                ModifiedOn = new DateTime(2023, 9, 17, 22, 30, 0)
             },
         };
     }
