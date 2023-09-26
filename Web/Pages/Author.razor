@@ -1,0 +1,92 @@
+@page "/authors/{Name}"
+@using Toolbelt.Blazor.HeadElement
+@inherits AuthorBase
+@inject AdSpaceService adSpaceService
+@inject Sitemaps sitemap
+
+<Title>@Title</Title>
+<Meta Property="description" Content="@Description" />
+<Meta Property="keywords" Content=".NET, DotNet, I Love DotNet, I ❤️ DotNet, Blazor, Blazor (WebAssembly), Blazor Wasm, C#, Entity Framework, LINQ, ML.NET, Web API, TDD, OOPS, Middleware, JWT, Dependency Injection, Report, Design Pattern, SOLID, HTTPClient" />
+<Meta Property="url" Content="@Url" />
+<Meta Property="identifier-URL" Content="@Url" />
+<Meta Property="og:site_name" Content="@Title" />
+<Meta Property="og:type" Content="website" />
+<Meta Property="og:title" Content="@Title" />
+<Meta Property="og:image" Content="@($"{BaseUrl}image/brand/mini-logo.png")" />
+<Meta Property="og:image:alt" Content="DotNet bot with heart and DotNet brand" />
+<Meta Property="og:description" Content="@Description" />
+<Meta Property="og:url" Content="@Url" />
+<Meta Property="twitter:card" Content="summary" />
+<Meta Property="twitter:title" Content="@Title" />
+<Meta Property="twitter:image" Content="@($"{BaseUrl}image/brand/mini-logo.png")" />
+<Meta Property="twitter:image:alt" Content="DotNet bot with heart and DotNet brand" />
+<Meta Property="twitter:description" Content="@Description" />
+<Meta Property="twitter:url" Content="@Url" />
+@foreach(var sitemap in sitemap.Files)
+{
+    <Link Rel="sitemap" Href="@($"{BaseUrl}{sitemap}")" type="application/xml" title="Sitemap" />   
+}
+<Link Rel="alternate" Href="@($"{BaseUrl}atom.xml")" type="application/rss+xml" />
+<Link Rel="alternate" Href="@Url" hreflang="en" />
+<Link Rel="alternate" Href="@Url" hreflang="x-default" />
+<Link Rel="canonical" Href="@Url" />
+<Link Rel="index" Href="@Url" title="@Title" />
+<HeadContent>
+    @(new MarkupString(
+        $$""""
+        <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            "publisher": {
+                "@type": "Organization",
+                "name": "{{Title}}",
+                "url": "{{Url}}",
+                "logo": {
+                    "@type": "ImageObject",
+                    "url": "{{BaseUrl}}favicon.ico",
+                    "width": 16,
+                    "height": 16
+                }
+            },
+            "url": "{{Url}}",
+            "mainEntityOfPage": {
+                "@type": "WebPage",
+                "@id": "{{Url}}"
+            },
+            "description": "{{Description}}"
+        }
+        </script>
+        """"
+    ))
+</HeadContent>
+
+<section class="[ dark:bg-stone-900 ] [ flex flex-col ] [ space-y-5 ]">
+    <header class="[ flex items-center justify-around ] [ w-full ] [ h-52 ] [ bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 ]">
+        <h2 class="[ text-4xl md:text-9xl uppercase break-words ]">@ContentType</h2>
+    </header>
+    <main class="[ mx-auto md:mx-24 ] [ flex flex-col md:flex-row items-center ] [ space-y-1 md:space-y-0 ]">
+        <div>
+            <figure>
+                <img src="@($"./image/authors/{Name}.jpg")" alt="@Name" class="[ w-1/2 ]" />
+            </figure>
+            @if (Author.IsMVP)
+            {
+                <img src="./image/authors/mvp-badge-horizontal.png" alt="MVP Badge Horizontal" class="[ w-1/2 ]" />
+            }
+            <ul class="[ flex items-center ]">
+                @foreach(var socialUrl in Author.SocialUrls)
+                {
+                    <li>
+                        <SocialLinks Type="@socialUrl.Type" Url="@socialUrl.Url" />
+                    </li>
+                }
+            </ul>
+        </div>
+        <div>
+            <p>
+                @Author.Description
+            </p>
+        </div>
+    </main>
+</section>

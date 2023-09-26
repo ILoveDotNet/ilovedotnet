@@ -4,6 +4,10 @@ public class TableOfContents
 {
     public const int PageSize = 6;
     private readonly List<ContentMetaData> FullContents = new(89);
+    private readonly List<AuthorMetaData> FullAuthors = new(1);
+
+    public IReadOnlyList<AuthorMetaData> Authors => FullAuthors;
+
     public IReadOnlyList<ContentMetaData> Contents 
             => FullContents
                 .Where(content => content.CreatedOn.Date <= DateTime.Today.Date)
@@ -49,5 +53,6 @@ public class TableOfContents
         FullContents.AddRange(new TalkLearningPath().FullContents);
         FullContents.AddRange(new TDDLearningPath().FullContents);
         FullContents.AddRange(new WebAPILearningPath().FullContents);
+        FullAuthors.AddRange(new Authors().FullAuthors);
     }
 }
