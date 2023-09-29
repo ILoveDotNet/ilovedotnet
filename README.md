@@ -5,18 +5,18 @@ This is a .NET knowledge sharing platform with live demos crafted by developers 
 ![GitHub Banner](https://github.com/ILoveDotNet/ilovedotnet/assets/43729469/6503d56d-7d69-4bd1-9b47-c27cd808bd2e)
 
 # Road Map
-1. [Blazor WASM](https://github.com/orgs/ILoveDotNet/projects/2)
+1. [Blazor WASM](https://github.com/orgs/ILoveDotNet/projects/2) ![IN PROGRESS](https://img.shields.io/badge/IN%20PROGRESS-lightgreen)
 2. [LINQ](https://github.com/orgs/ILoveDotNet/projects/6) ![CLOSED](https://img.shields.io/badge/CLOSED-FF0000)
 3. [Entity Framework](https://github.com/orgs/ILoveDotNet/projects/4)
 4. [C#](https://github.com/orgs/ILoveDotNet/projects/5)
 5. [ML.NET](https://github.com/orgs/ILoveDotNet/projects/3)
-6. [WEB API](https://github.com/orgs/ILoveDotNet/projects/8)
+6. [WEB API](https://github.com/orgs/ILoveDotNet/projects/8) ![IN PROGRESS](https://img.shields.io/badge/IN%20PROGRESS-lightgreen)
 7. [DSA](https://github.com/orgs/ILoveDotNet/projects/7)
-8. [Design Patterns](https://github.com/orgs/ILoveDotNet/projects/9)
+8. [Design Patterns](https://github.com/orgs/ILoveDotNet/projects/9) ![IN PROGRESS](https://img.shields.io/badge/IN%20PROGRESS-lightgreen)
 9. [TDD](https://github.com/orgs/ILoveDotNet/projects/10) ![CLOSED](https://img.shields.io/badge/CLOSED-FF0000)
 10. [String Builder](https://github.com/orgs/ILoveDotNet/projects/11)
 11. [Regex](https://github.com/orgs/ILoveDotNet/projects/12)
-12. [OOPS](https://github.com/orgs/ILoveDotNet/projects/13)
+12. [OOPS](https://github.com/orgs/ILoveDotNet/projects/13) ![IN PROGRESS](https://img.shields.io/badge/IN%20PROGRESS-lightgreen)
 13. [Expression Trees](https://github.com/orgs/ILoveDotNet/projects/14)
 14. [Swagger](https://github.com/orgs/ILoveDotNet/projects/15)
 15. [Middlewares](https://github.com/orgs/ILoveDotNet/projects/16) ![CLOSED](https://img.shields.io/badge/CLOSED-FF0000)
@@ -25,10 +25,10 @@ This is a .NET knowledge sharing platform with live demos crafted by developers 
 18. [Minimal API](https://github.com/orgs/ILoveDotNet/projects/20)
 19. [CLI](https://github.com/orgs/ILoveDotNet/projects/21)
 20. [HTTP Client](https://github.com/orgs/ILoveDotNet/projects/22) ![CLOSED](https://img.shields.io/badge/CLOSED-FF0000)
-21. [Report](https://github.com/orgs/ILoveDotNet/projects/23)
+21. [Report](https://github.com/orgs/ILoveDotNet/projects/23) ![IN PROGRESS](https://img.shields.io/badge/IN%20PROGRESS-lightgreen)
 22. [Concurrency](https://github.com/orgs/ILoveDotNet/projects/24)
 23. [SOLID](https://github.com/orgs/ILoveDotNet/projects/25) ![CLOSED](https://img.shields.io/badge/CLOSED-FF0000)
-24. [Background Services](https://github.com/orgs/ILoveDotNet/projects/26)
+24. [Background Services](https://github.com/orgs/ILoveDotNet/projects/26) ![IN PROGRESS](https://img.shields.io/badge/IN%20PROGRESS-lightgreen)
 
 # Please help by giving a star
 Choosing a project idea could be difficult. We need to ensure stability and maintainability of our projects. Surveys show that GitHub stars count play an important factor when assessing quality.
