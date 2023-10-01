@@ -16,17 +16,36 @@
          FileName=@nameof(ErrorLogging)>
     <ContentBody>
         <p>
-            In our previous article <NavLink class="[ underline ]" href="blogs/blazor-wasm-exception-handling-and-error-boundary">Blazor WASM Exception Handling and Error Boundary</NavLink>,
-            we learnt how global exception works and how to handle exceptions using built in <ContentHighlight>ErrorBoundary</ContentHighlight> component. In this article, let's learn about 
-            Error Logging in Blazor WASM.
+            In this article, let's learn about how to <ContentHighlight>log errors</ContentHighlight> using <ContentHighlight>SeriLog</ContentHighlight> 
+            in <ContentHighlight>Blazor WASM</ContentHighlight> in .NET.
         </p>
-        
+
+        <p>
+            <strong>Note:</strong> If you have not done so already, I recommend you read the article on
+            <NavLink class="[ underline ]" href="blogs/blazor-wasm-exception-handling-and-error-boundary">Blazor WASM Exception Handling and Error Boundary</NavLink>.
+        </p>
+
         <h3 class="[ font-semibold text-lg ]">Table of Contents</h3>
 
         <ol class="[ list-decimal ] [ ml-4 ]">
             <li>
                 <NavLink class="[ underline ]" href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
                     Introduction
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#how-logging-works-in-blazor-wasm")" Match="NavLinkMatch.All">
+                    How logging works in Blazor WASM ?
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#configuring-serilog")" Match="NavLinkMatch.All">
+                    Configuring SeriLog
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#logging-to-server-from-blazor-wasm")" Match="NavLinkMatch.All">
+                    Logging to server from Blazor WASM
                 </NavLink>
             </li>
             <li>
@@ -44,18 +63,174 @@
         <h3 id="introduction" class="[ font-semibold text-lg ]">Introduction</h3>
 
         <p>
-            Logging is needed in all applications. This will help to find root cause or track user activity in any environment. This can be done easily in server side applications with logging 
-            frameworks but for <abbr title="Single Page Application">SPA</abbr> like <ContentHighlight>Blazor <abbr title="Web Assembly">WASM</abbr></ContentHighlight> running in browser 
-            sandbox, we will not be having direct access to file system or database and logging cannot be done like how we do in server side applications. We can use browser console to log 
-            <ContentHighlight>Information</ContentHighlight>, <ContentHighlight>Warning</ContentHighlight> or <ContentHighlight>Error</ContentHighlight>. But this will not help much in 
-            production. We can still make logging happen in production by processing <ContentHighlight>Exception</ContentHighlight> and posting the error details to backend API. Let's look on 
-            how to achieve this in <ContentHighlight>Blazor <abbr title="Web Assembly">WASM</abbr></ContentHighlight>.
+            Logging is needed in all applications. This will help to find root cause or track user activity in any environment. This can be done easily in 
+            server side applications with logging frameworks but for <abbr title="Single Page Application">SPA</abbr> like <ContentHighlight>Blazor 
+            <abbr title="Web Assembly">WASM</abbr></ContentHighlight> running in browser sandbox, we will not be having direct access to file system or database 
+            and logging cannot be done like how we do in server side applications. We can use browser console to log 
+            <ContentHighlight>Information</ContentHighlight>, <ContentHighlight>Warning</ContentHighlight> or <ContentHighlight>Error</ContentHighlight>. But 
+            this will not help much in production. We can still make logging happen in production by processing <ContentHighlight>Exception</ContentHighlight> 
+            and posting the error details to backend API. Let's look on how to achieve this in <ContentHighlight>Blazor <abbr title="Web Assembly">WASM</abbr></ContentHighlight>.
         </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="how-logging-works-in-blazor-wasm" class="[ font-semibold text-lg ]">How logging works in Blazor WASM ?</h3>
+
+        <p>
+            .NET supports logging with variety of logging providers. <ContentHighlight>Logging</ContentHighlight> can be set on the 
+            <ContentHighlight>minimum severity level</ContentHighlight>. The severity levels are, 
+        </p>
+
+        <table class="[ table-fixed border-collapse ] [ bg-white ] [ border-2 ] [ dark:bg-black dark:border-slate-500 ]">
+            <thead>
+                <tr class="[ bg-gray-100 ] [ dark:bg-slate-500 ]">
+                    <th class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Name</th>
+                    <th class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Severity Level</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr class="[ bg-yellow-100 ] [ dark:bg-blue-600 ]">
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">Trace</td>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">0</td>
+                </tr>
+                <tr class="[ bg-green-100 ] [ dark:bg-green-600 ]">
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">Debug</td>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">1</td>
+                </tr>
+                <tr class="[ bg-fuchsia-100 ] [ dark:bg-fuchsia-600 ]">
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">Information</td>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">2</td>
+                </tr>
+                <tr class="[ bg-yellow-100 ] [ dark:bg-yellow-600 ]">
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">Warning</td>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">3</td>
+                </tr>
+                <tr class="[ bg-red-100 ] [ dark:bg-red-600 ]">
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">Error</td>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">4</td>
+                </tr>
+                <tr class="[ bg-red-100 ] [ dark:bg-red-600 ]">
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">Critical</td>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">5</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <p>
+            <ContentHighlight>Logging</ContentHighlight> can be set in the <ContentHighlight>appsettings.json</ContentHighlight> file and can be specified 
+            inside the <ContentHighlight>Logging</ContentHighlight> section. Default logging is set in the <ContentHighlight>LogLevel</ContentHighlight> section. 
+            The <ContentHighlight>namespace</ContentHighlight> is set as <ContentHighlight>key</ContentHighlight> and 
+            <ContentHighlight>minimum severity level</ContentHighlight> is set as <ContentHighlight>value</ContentHighlight>. The 
+            <ContentHighlight>appsettings.json</ContentHighlight> file is inside the <ContentHighlight>wwwroot</ContentHighlight> folder of Blazor WASM app. 
+            Here is the example how logging is set in <ContentHighlight>appsettings.json</ContentHighlight> file.
+        </p>
+
+        <GithubGistSnippet Title="Logging settings in appsettings.json in Blazor WASM" UserId="fingers10" FileName="375b2fbc8821f1f20013604b4d82b131"></GithubGistSnippet>
+
+        <p>
+            For this to work in blazor wasm, we need to add <ContentHighlight CssClasses="[ break-all ]">Microsoft.Extensions.Logging.Configuration</ContentHighlight> 
+            Nuget package to the project. Now this needs to be configured in <ContentHighlight>Program.cs</ContentHighlight> file as shown below.
+        </p>
+
+        <GithubGistSnippet Title="Configuring Logging in Blazor WASM" UserId="fingers10" FileName="98fc4ca0c4ed60312c78681e7a13db21"></GithubGistSnippet>
+
+        <p>
+            That's all with configuring logging in blazor wasm. Now you can <ContentHighlight>inject</ContentHighlight> 
+            <ContentHighlight>ILogger&lt;T&gt;</ContentHighlight> in any component and log the messages. You can also inject 
+            <ContentHighlight>ILoggerFactory</ContentHighlight> and create logger for specific class using 
+            <ContentHighlight>loggerFactory.CreateLogger&lt;T&gt();</ContentHighlight> and log messages. Both approaches will log messages to 
+            <ContentHighlight>Output Window</ContentHighlight> in your editor and to <ContentHighlight>browser console</ContentHighlight>.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="configuring-serilog" class="[ font-semibold text-lg ]">Configuring SeriLog</h3>
+
+        <p>
+            So far so good. But Logging to browser console is not always helpful. The problem with blazor wasm is that not every features of ASP.NET Core 
+            logging is supported. As it is a client side web framework it doesn't have access to file system or network so it's unable to write directly to it. 
+            So we need to log the errors to some backend storage like <ContentHighlight>Azure AppInsights</ContentHighlight> or 
+            <ContentHighlight>AWS CloudWatch</ContentHighlight> or to a <ContentHighlight>file system</ContentHighlight>. This can be done by sending log 
+            information to server side applications which then can be used to log to backend storage configured on the server application. This can be done by 
+            using <ContentHighlight>SeriLog</ContentHighlight> which is a popular logging framework for .NET.
+        </p>
+
+        <p>
+            First let's setup backend API which we usually use to get data for our blazor wasm app. You need to do the following steps in your backend API 
+            project.
+        </p>
+
+        <ol class="[ list-disc ] [ ml-4 ]">
+            <li>Install <ContentHighlight>Serilog.AspNetCore</ContentHighlight> Nuget package in server app a.k.a your API.</li>
+            <li>Next install <ContentHighlight>Serilog.AspNetCore.Ingestion</ContentHighlight> Nuget package in server app.</li>
+            <li>
+                <p>Now configure <ContentHighlight>appsettings.json</ContentHighlight> in your server app and configure the destination or sinks to store logs.</p>
+                <GithubGistSnippet Title="Configuring Logging in Backend App" UserId="fingers10" FileName="3fbe6f47735bed66fbb94d833fbead64"></GithubGistSnippet>
+            </li>
+            <li>
+                <p>Register <ContentHighlight>Serilog Logging in Host Builder</ContentHighlight> of backend app.</p>
+                <GithubGistSnippet Title="Add Serilog to Host Builder" UserId="fingers10" FileName="f04bf41ecee9cdb0e9f54107585e0339"></GithubGistSnippet>
+            </li>
+            <li>
+                <p>
+                    Finally you need to add the following <ContentHighlight>middleware</ContentHighlight> to your back end API request pipeline. 
+                    This tells the application that serilog endpoints needs is setup so that logs can be sent to the server. This will be helpful for 
+                    Blazor WASM app to send logs to backend API.
+                </p>
+                <GithubGistSnippet Title="Add Serilog Injestion to Backend Request Pipeline" UserId="fingers10" FileName="399f407c5b2d89ee657e9e902f859704"></GithubGistSnippet>
+            </li>
+        </ol>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="logging-to-server-from-blazor-wasm" class="[ font-semibold text-lg ]">Logging to server from Blazor WASM</h3>
+
+        <p>
+            Now its time to setup and configure logging in blazor wasm app. You need to do the following steps in your blazor wasm project.
+        </p>
+
+        <ol class="[ list-disc ] [ ml-4 ]">
+            <li>First install <ContentHighlight>Microsoft.Extensions.Logging.Configuration</ContentHighlight> Nuget package.</li>
+            <li>Next install <ContentHighlight>Serilog.Extensions.Logging</ContentHighlight> Nuget package.</li>
+            <li>Next install <ContentHighlight>Serilog.Settings.Configuration</ContentHighlight> Nuget package.</li>
+            <li>Next install <ContentHighlight>Serilog.Sinks.BrowserConsole</ContentHighlight> Nuget package.</li>
+            <li>Next install <ContentHighlight>Serilog.Sinks.BrowserHttp</ContentHighlight> Nuget package.</li>
+            <li>
+                <p>Finally add the following configuration in <ContentHighlight>Program.cs</ContentHighlight></p>
+                <GithubGistSnippet Title="Configure Serilog in Blazor WASM" UserId="fingers10" FileName="7414e70311a81bcc42e52e9a0885af12"></GithubGistSnippet>                
+            </li>
+        </ol>
+
+        <p>
+            In the above code we are initialising <ContentHighlight>Logger</ContentHighlight> and wiring it with <ContentHighlight>Serilog</ContentHighlight>. 
+            And we can <ContentHighlight>Enrich()</ContentHighlight> the logs with any data. In our case we are adding a simple 
+            <ContentHighlight>Guid</ContentHighlight> as instance id to track the logs in backend system. Finally we are adding the 
+            <ContentHighlight>sinks</ContentHighlight> to log to <ContentHighlight>backend</ContentHighlight> using 
+            <ContentHighlight>BrowserHttp()</ContentHighlight> and to <ContentHighlight>browser console</ContentHighlight> using 
+            <ContentHighlight>BrowserConsole()</ContentHighlight>.
+        </p>
+
+        <p>
+            That's it now whenever you log any messages it will be logged in both browser console and in your backend API.
+        </p>
+
+        <figure>
+            <img src="./image/blogs/blazor/wasm/blazor-wasm-error-logging/Browser Http Logs.png" alt="Browser Http Logs" class="[ w-full ]" />
+        </figure>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <figure>
+            <img src="./image/blogs/blazor/wasm/blazor-wasm-error-logging/Browser Console Logs.png" alt="Browser Console Logs" class="[ w-full ]" />
+        </figure>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
 
         <h3 id="creating-error-component-to-log-error" class="[ font-semibold text-lg ]">Creating Error component to log error</h3>
 
         <p>
-            Let's start with simple <ContentHighlight>Subscription</ContentHighlight> component. This will throw error on <ContentHighlight>Subscribe Now</ContentHighlight> button click.
+            Let's start with simple <ContentHighlight>Subscription</ContentHighlight> component. This will throw error on 
+            <ContentHighlight>Subscribe Now</ContentHighlight> button click.
         </p>
 
         <GithubGistSnippet Title="Subscribe component to simulate exception" UserId="fingers10" FileName="63b860184af61f1d0274e1eb06e28151"></GithubGistSnippet>
@@ -63,9 +238,10 @@
         <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
 
         <p>
-            To process the error, let's create an <ContentHighlight>Error</ContentHighlight> component. This component takes Child Content <ContentHighlight>RenderFragment</ContentHighlight> 
-            as input. This component also has <ContentHighlight>ProcessError</ContentHighlight> method to process the exception and log it to 
-            <ContentHighlight>browser console</ContentHighlight> or <ContentHighlight>backend API</ContentHighlight>. For simplicity I'm logging into browser console.
+            To process the error, let's create an <ContentHighlight>Error</ContentHighlight> component. This component takes 
+            <ContentHighlight>Child Content</ContentHighlight> <ContentHighlight>RenderFragment</ContentHighlight> as input. This component also has 
+            <ContentHighlight>ProcessError</ContentHighlight> method to process the exception and log it to <ContentHighlight>browser console</ContentHighlight> 
+            or <ContentHighlight>backend API</ContentHighlight>. For simplicity I'm logging into browser console.
         </p>
 
         <GithubGistSnippet Title="Error component to log exception" UserId="fingers10" FileName="15e50550370685d5c14334e2c057f19e"></GithubGistSnippet>
@@ -74,11 +250,16 @@
             Now lets wrap our <ContentHighlight>Subscription</ContentHighlight> component with <ContentHighlight>Error</ContentHighlight> component.
         </p>
 
+        <p>Note that the above mentioned components are created in previous article.</p>
+
         <GithubGistSnippet Title="Blazor Error logging with Error Component" UserId="fingers10" FileName="87f6fd800d66d3162e69eabbea5f8aec"></GithubGistSnippet>
 
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
         <p>
-            That's it. Now if any exception occurs, <ContentHighlight>Subscription</ContentHighlight> component will make use of <ContentHighlight>CascadingParameter Error</ContentHighlight> 
-            component and process the exception which then can be used to log to browser console or posted to backend API.
+            That's it. Now if any exception occurs, <ContentHighlight>Subscription</ContentHighlight> component will make use of 
+            <ContentHighlight>CascadingParameter Error</ContentHighlight> component and process the exception which then can be used to log to browser console 
+            or posted to backend API.
         </p>
 
         <DemoSnippet Title="Error Logging">
@@ -98,8 +279,10 @@
         <h3 id="summary" class="[ font-semibold text-lg ]">Summary</h3>
 
         <p>
-            I'm happy that you have reached to the end of this article. Here we learnt how to log exceptions in blazor wasm applications by wrapping the components in a error component. Once 
-            we get the error we can notify users in a beautiful way and log to azure app insights or to any external system.
+            In this article, we have learnt about how to log errors in <ContentHighlight>Blazor <abbr title="Web Assembly">WASM</abbr></ContentHighlight> 
+            using <ContentHighlight>SeriLog</ContentHighlight>. We have also seen how to create an <ContentHighlight>Error</ContentHighlight> component to 
+            process the exception and log it to <ContentHighlight>browser console</ContentHighlight> or <ContentHighlight>backend API</ContentHighlight>. 
+            You can find the source code for this article in this <ContentHighlight>I Love .NET</ContentHighlight> repository.
         </p>
     </ContentBody>
 </Content>
@@ -107,12 +290,12 @@
 @code {
     private string Title = "Blazor WASM Error Logging";
     private string Description = "In this post I will teach you how to log error in your Blazor applications. All with live working demo.";
-    private DateTime CreatedOn = new DateTime(2022, 1, 23, 22, 30, 0);
-    private DateTime ModifiedOn = new DateTime(2022, 1, 23, 22, 30, 0);
+    private DateTime CreatedOn = new DateTime(2023, 10, 1, 22, 30, 0);
+    private DateTime ModifiedOn = new DateTime(2023, 10, 1, 22, 30, 0);
     private string Slug = "blazor-wasm-error-logging";
     private string PosterPath = "Blogs/Blazor/Wasm";
     private string Channel = "blazor";
     private string ContentType = "blogs";
     private ushort TotalContents => (ushort)tableOfContents.Contents.Count(content => content.Type.Equals("Blazor", StringComparison.CurrentCultureIgnoreCase));
-    private List<string> Keywords = new(2) { "Exception Logging", "Error Logging" };
+    private List<string> Keywords = new(3) { "Exception Logging", "Error Logging", "SeriLog" };
 }

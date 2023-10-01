@@ -162,8 +162,8 @@ public class BlazorLearningPath
                 ContentUrl = "blogs/blazor-wasm-error-logging",
                 IconUrl = "image/icons/blazor.png",
                 Type = "Blazor",
-                CreatedOn = new DateTime(2022, 1, 23, 22, 30, 0),
-                ModifiedOn = new DateTime(2022, 1, 23, 22, 30, 0)
+                CreatedOn = new DateTime(2023, 10, 1, 22, 30, 0),
+                ModifiedOn = new DateTime(2023, 10, 1, 22, 30, 0)
             },
             new ContentMetaData
             {

@@ -2,6 +2,10 @@ using Blazor.Analytics;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.AspNetCore.Components.WebAssembly.Services;
+using Serilog;
+using Serilog.Core;
+using Serilog.Events;
+using Serilog.Extensions.Logging;
 using SharedComponents;
 using SharedModels;
 using Toolbelt.Blazor.Extensions.DependencyInjection;
@@ -10,6 +14,18 @@ using Web.Models;
 using Web.Services;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
+
+// builder.Logging.AddConfiguration(builder.Configuration.GetSection("Logging"));
+
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(builder.Configuration)
+    .Enrich.FromLogContext()
+    .Enrich.WithProperty("InstanceId", Guid.NewGuid().ToString("n"))
+    //.WriteTo.BrowserHttp($"{builder.Configuration.GetValue<string>("ApiBaseAddress")}ingest", controlLevelSwitch: new LoggingLevelSwitch(LogEventLevel.Error))
+    .WriteTo.BrowserConsole(levelSwitch: new LoggingLevelSwitch(LogEventLevel.Warning))
+    .CreateLogger();
+
+builder.Logging.ClearProviders().AddProvider(new SerilogLoggerProvider());
 
 if (!builder.RootComponents.Any())
 {
