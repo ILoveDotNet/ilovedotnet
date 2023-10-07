@@ -46,6 +46,7 @@ As an open-source project without funding, I cannot afford advertising I ❤️ 
 | YouTube   | https://youtube.com/@ilovedotnet		    | [![Youtube Channel](https://img.shields.io/website?label=Youtube%20I%20%E2%9D%A4%EF%B8%8F%20.NET&color=red&style=for-the-badge&url=https%3A%2F%2Fyoutube.com%2F@ilovedotnet)](https://youtube.com/@ilovedotnet)                      |
 | LinkedIn  | https://linkedin.com/groups/9083706/      | [![LinkedIn Group](https://img.shields.io/website?label=LinkedIn%20I%20%E2%9D%A4%EF%B8%8F%20.NET&color=blue&style=for-the-badge&url=https%3A%2F%2Fwww.linkedin.com%2Fgroups%2F9083706%2F)](https://www.linkedin.com/groups/9083706/) |
 | Instagram | https://instagram.com/ilovedotnet/        | [![Instagram](https://img.shields.io/website?label=Instagram%20I%20%E2%9D%A4%EF%B8%8F%20.NET&color=orange&style=for-the-badge&url=https%3A%2F%2Finstagram.com%2Filovedotnet%2F)](https://instagram.com/ilovedotnet/)                 |
+| WhatsApp  | https://www.whatsapp.com/channel/0029VaAGMV2LtOj5S5MHd23h      | [![WhatsApp](https://img.shields.io/website?label=WhatsApp%20I%20%E2%9D%A4%EF%B8%8F%20.NET&color=green&style=for-the-badge&url=https%3A%2F%2Fwww.whatsapp.com%2Fchannel%2F0029VaAGMV2LtOj5S5MHd23h)](https://whatsapp.com/channel/0029VaAGMV2LtOj5S5MHd23h)
 
 # Contribution Guidelines
 1. You can contribute for any of the channels mentioned in road map. If the channel you wish to contribute is not available then you can add channel to road map and contribute. 
