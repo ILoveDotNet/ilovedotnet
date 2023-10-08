@@ -1,0 +1,183 @@
+﻿@page "/blogs/prevent-image-leech-by-dynamically-streaming-image-in-blazor-wasm"
+@using BlazorDemoComponents
+@inherits FragmentNavigationBase
+@inject TableOfContents tableOfContents
+
+<Content Title=@Title
+         Description=@Description
+         CreatedOn=@CreatedOn
+         ModifiedOn=@ModifiedOn
+         Slug=@Slug
+         PosterPath=@PosterPath
+         Keywords=@Keywords
+         Channel="@Channel"
+         ContentType="@ContentType"
+         TotalContents=@TotalContents
+         FileName=@nameof(DynamicallyStreamImage)>
+    <ContentBody>
+        <p>
+            In this article, let's learn about how to prevent <ContentHighlight>Image Leech</ContentHighlight> problem in Blazor WASM apps.
+        </p>
+
+        <p>
+            <strong>Note:</strong> If you have not done so already, I recommend you read the article on
+            <NavLink class="[ underline ]" href="blogs/blazor-wasm-javascript-interop-and-isolation" Match="NavLinkMatch.All">Blazor WASM Javascript Interop and Isolation</NavLink>.
+        </p>
+
+        <h3 class="[ font-semibold text-lg ]">Table of Contents</h3>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
+                    Introduction
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#use-case-for-dynamic-streaming")" Match="NavLinkMatch.All">
+                    Use Case for Dynamic Streaming
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#implementing-dynamic-streaming")" Match="NavLinkMatch.All">
+                    Implementing Dynamic Streaming
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#advantages-of-dynamic-streaming")" Match="NavLinkMatch.All">
+                    Advantages of Dynamic Streaming
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
+                    Summary
+                </NavLink>
+            </li>
+        </ol>
+
+        <h3 id="introduction" class="[ font-semibold text-lg ]">Introduction</h3>
+
+        <p>
+            Every now and then somebody builds a web site with the brilliant idea that they will uses images from other people's web sites as part of their 
+            content. <ContentHighlight>They enjoy the benefits of the traffic (for example, advertising revenue), while the image owner ends up paying for the 
+            bandwidth. This is called image leeching.</ContentHighlight> Image leeching or unauthorised use of images is a common problem on the web. It is a 
+            problem that has been around since the early days of the web.
+        </p>
+
+        <p>
+            In this article let's learn how to solve the above problem and prevent unauthorised use of images from crawlers in Blazor WASM apps.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="use-case-for-dynamic-streaming" class="[ font-semibold text-lg ]">Use Case for Dynamic Streaming</h3>
+        
+        <p>
+            We can also <ContentHighlight>stream</ContentHighlight> image into blazor wasm app using <ContentHighlight>Javascript Interop</ContentHighlight>. The 
+            image will be stored as <abbr title="Binary Large Object">BLOB</abbr> and we can create a <ContentHighlight>temporary URL</ContentHighlight> to display 
+            the image. The benefit of using temporary URL is that it will be difficult to crawl the image and it will make stealing / leeching difficult. Thus we 
+            can prevent unauthorised use of image.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="implementing-dynamic-streaming" class="[ font-semibold text-lg ]">Implementing Dynamic Streaming</h3>
+
+        <p>
+            First, we need to remove <ContentHighlight>static image src reference</ContentHighlight> from <ContentHighlight>&lt;img&gt;</ContentHighlight> tag 
+            and add a <ContentHighlight>ElementReference</ContentHighlight> to the <ContentHighlight>&lt;img&gt;</ContentHighlight> tag. Now we need to get the 
+            image <ContentHighlight>Stream</ContentHighlight> using <ContentHighlight>HttpClient</ContentHighlight> and convert it to 
+            <ContentHighlight>DotNetStreamReference</ContentHighlight> and pass the <ContentHighlight>ElementReference</ContentHighlight> and 
+            <ContentHighlight>DotNetStreamReference</ContentHighlight> to <ContentHighlight>Javascript Interop</ContentHighlight> method. 
+            The <ContentHighlight>Javascript Interop</ContentHighlight> method transforms the <ContentHighlight>DotNet Stream</ContentHighlight> to 
+            <ContentHighlight>array buffer</ContentHighlight> and creates <ContentHighlight>BLOB</ContentHighlight> and use that to create a 
+            <ContentHighlight>temporary URL</ContentHighlight> and set it as <ContentHighlight>src</ContentHighlight> of the 
+            <ContentHighlight>&lt;img&gt;</ContentHighlight> tag.
+        </p>
+
+        <GithubGistSnippet Title="Script to Create Temporary URL" UserId="fingers10" FileName="feda2b185ff0a0d7ee958026dba2ced6"></GithubGistSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <GithubGistSnippet Title="Dynamically stream image in Blazor WASM" UserId="fingers10" FileName="dd34e0f401720df997fecc441b02b9ec"></GithubGistSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <DemoSnippet Title="Dynamic Image Streaming">
+            <p class="[ text-black ] [ dark:text-white ]">
+                <b>
+                    The below image is streamed dynamically with temporary URL. This can be verified by checking the network tab in the 
+                    developer tools and the URL of the displayed image.
+                </b>
+            </p>
+            <Error>
+                <DynamicImageStreaming></DynamicImageStreaming>
+            </Error>
+        </DemoSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <p>
+            If we inspect the image element in the developer tools, we can see that the <ContentHighlight>src</ContentHighlight> of the image is a 
+            <ContentHighlight>temporary BLOB URL</ContentHighlight> as shown below. 
+        </p>
+
+        <figure>
+            <img src="./image/blogs/blazor/wasm/prevent-image-leech-by-dynamically-streaming-image-in-blazor-wasm/Temporary URL.png" alt="Temporary URL" class="[ w-full ]" />
+        </figure>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <p>
+            When you copy that URL and try to access it via browser you get an <ContentHighlight>Error 404 saying that file cannot be accessed</ContentHighlight> 
+            as shown below.
+        </p>
+
+        <figure>
+            <img src="./image/blogs/blazor/wasm/prevent-image-leech-by-dynamically-streaming-image-in-blazor-wasm/Image Access Error.png" alt="Image Access Error" class="[ w-full ]" />
+        </figure>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <p>
+            As a result, it makes it more <ContentHighlight>difficult to download the image outside the application</ContentHighlight> and 
+            <ContentHighlight>prevents unauthorised use</ContentHighlight> of the image.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="advantages-of-dynamic-streaming" class="[ font-semibold text-lg ]">Advantages of Dynamic Streaming</h3>
+
+        <p>
+            The advantages of dynamic streaming are as follows,
+        </p>
+
+        <ul class="[ list-disc ] [ ml-4 ]">
+            <li><ContentHighlight>Unauthorised Image Access</ContentHighlight>.</li>
+            <li><ContentHighlight>Bandwidth Savings</ContentHighlight>.</li>
+            <li><ContentHighlight>Cost Savings</ContentHighlight>.</li>
+        </ul>
+        
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="summary" class="[ font-semibold text-lg ]">Summary</h3>
+
+        <p>
+            In this article, we learnt about the <ContentHighlight>image leeching problem</ContentHighlight> and how to prevent it by 
+            <ContentHighlight>dynamically streaming image</ContentHighlight> in Blazor WASM apps. We also learnt about the advantages of dynamic streaming. 
+            Hope you enjoyed reading this article. Thank you for reading from us.
+        </p>
+    </ContentBody>
+</Content>
+
+@code {
+    private string Title = "Prevent image leech by dynamically streaming image in Blazor WASM";
+    private string Description = "In this post I will teach how to prevent image leech by dynamically streaming image in blazor wasm. All with live working demo.";
+    private DateTime CreatedOn = new DateTime(2023, 10, 15, 22, 30, 0);
+    private DateTime ModifiedOn = new DateTime(2023, 10, 15, 22, 30, 0);
+    private string Slug = "prevent-image-leech-by-dynamically-streaming-image-in-blazor-wasm";
+    private string PosterPath = "Blogs/Blazor/Wasm";
+    private string Channel = "blazor";
+    private string ContentType = "blogs";
+    private ushort TotalContents => (ushort)tableOfContents.Contents.Count(content => content.Type.Equals("Blazor", StringComparison.CurrentCultureIgnoreCase));
+    private List<string> Keywords = new(2) { "Image Leech", "Dynamic Image Stream" };
+}

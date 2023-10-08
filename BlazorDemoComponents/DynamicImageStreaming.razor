@@ -1,0 +1,30 @@
+﻿<img @ref="_imageReference" />
+
+@code {
+    private ElementReference _imageReference;
+    private IJSObjectReference? _jsModule;
+
+    [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
+    [Inject] private HttpClient HttpClient { get; set; } = default!;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _jsModule = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/BlazorDemoComponents/streamImage.js");  
+
+            var imageStream = await StreamImageAsync();
+
+            if (imageStream != null)
+            {
+                var dotNetImageStream = new DotNetStreamReference(imageStream);
+                await _jsModule.InvokeVoidAsync("LoadImageThroughStream", _imageReference, dotNetImageStream);
+            }
+        }
+    }
+
+    private async Task<Stream?> StreamImageAsync()
+    {
+        return await HttpClient.GetStreamAsync("/image/blogs/blazor/wasm/prevent-image-leech-by-dynamically-streaming-image-in-blazor-wasm.webp");        
+    }
+}

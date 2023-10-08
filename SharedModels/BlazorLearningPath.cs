@@ -2,12 +2,12 @@
 
 public class BlazorLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(25);
+    public readonly List<ContentMetaData> FullContents = new(26);
 
     public BlazorLearningPath()
     {
         FullContents =
-        new(25)
+        new(26)
         {
             new ContentMetaData
             {
@@ -333,6 +333,19 @@ public class BlazorLearningPath
                 Type = "Blazor",
                 CreatedOn = new DateTime(2023, 10, 8, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 10, 8, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+                Order = 26,
+                Title = "Prevent image leech by dynamically streaming image in Blazor WASM",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/blazor/wasm/prevent-image-leech-by-dynamically-streaming-image-in-blazor-wasm.webp",
+                ThumbnailUrl = "image/blogs/blazor/wasm/prevent-image-leech-by-dynamically-streaming-image-in-blazor-wasm.webp",
+                ContentUrl = "blogs/prevent-image-leech-by-dynamically-streaming-image-in-blazor-wasm",
+                IconUrl = "image/icons/blazor.png",
+                Type = "Blazor",
+                CreatedOn = new DateTime(2023, 10, 15, 22, 30, 0),
+                ModifiedOn = new DateTime(2023, 10, 15, 22, 30, 0)
             }
         };
     }
