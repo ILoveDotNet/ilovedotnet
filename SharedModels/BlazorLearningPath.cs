@@ -2,12 +2,12 @@
 
 public class BlazorLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(24);
+    public readonly List<ContentMetaData> FullContents = new(25);
 
     public BlazorLearningPath()
     {
         FullContents =
-        new(24)
+        new(25)
         {
             new ContentMetaData
             {
@@ -320,6 +320,19 @@ public class BlazorLearningPath
                 Type = "Blazor",
                 CreatedOn = new DateTime(2023, 7, 2, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 7, 2, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+                Order = 25,
+                Title = "Improve performance by dynamically loading image in Blazor WASM",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/blazor/wasm/improve-performance-by-dynamically-loading-image-in-blazor-wasm.webp",
+                ThumbnailUrl = "image/blogs/blazor/wasm/improve-performance-by-dynamically-loading-image-in-blazor-wasm.webp",
+                ContentUrl = "blogs/improve-performance-by-dynamically-loading-image-in-blazor-wasm",
+                IconUrl = "image/icons/blazor.png",
+                Type = "Blazor",
+                CreatedOn = new DateTime(2023, 10, 8, 22, 30, 0),
+                ModifiedOn = new DateTime(2023, 10, 8, 22, 30, 0)
             }
         };
     }
