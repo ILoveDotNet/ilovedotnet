@@ -17,7 +17,7 @@ public class MiddlewareLearningPath
                 PosterUrl = "image/blogs/middleware/introducing-middleware-in-aspnet.webp",
                 ThumbnailUrl = "image/blogs/middleware/introducing-middleware-in-aspnet.webp",
                 ContentUrl = "blogs/introducing-middleware-in-aspnet",
-                IconUrl = "image/icons/middleware.png",
+                IconUrl = "image/icons/middleware.webp",
                 Type = "Middleware",
                 CreatedOn = new DateTime(2022, 6, 19, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 6, 19, 22, 30, 0)
@@ -30,7 +30,7 @@ public class MiddlewareLearningPath
                 PosterUrl = "image/blogs/middleware/types-of-middleware-in-aspnet.webp",
                 ThumbnailUrl = "image/blogs/middleware/types-of-middleware-in-aspnet.webp",
                 ContentUrl = "blogs/types-of-middleware-in-aspnet",
-                IconUrl = "image/icons/middleware.png",
+                IconUrl = "image/icons/middleware.webp",
                 Type = "Middleware",
                 CreatedOn = new DateTime(2022, 6, 26, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 6, 26, 22, 30, 0)

@@ -17,7 +17,7 @@ public class ReportLearningPath
                 PosterUrl = "image/blogs/report/generate-excel-report-using-closed-xml-in-dotnet.webp",
                 ThumbnailUrl = "image/blogs/report/generate-excel-report-using-closed-xml-in-dotnet.webp",
                 ContentUrl = "blogs/generate-excel-report-using-closed-xml-in-dotnet",
-                IconUrl = "image/icons/report.png",
+                IconUrl = "image/icons/report.webp",
                 Type = "Report",
                 CreatedOn = new DateTime(2023, 1, 29, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 1, 29, 22, 30, 0)
@@ -30,7 +30,7 @@ public class ReportLearningPath
                 PosterUrl = "image/blogs/report/generate-pdf-report-using-quest-pdf-in-dotnet.webp",
                 ThumbnailUrl = "image/blogs/report/generate-pdf-report-using-quest-pdf-in-dotnet.webp",
                 ContentUrl = "blogs/generate-pdf-report-using-quest-pdf-in-dotnet",
-                IconUrl = "image/icons/report.png",
+                IconUrl = "image/icons/report.webp",
                 Type = "Report",
                 CreatedOn = new DateTime(2023, 2, 19, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 2, 19, 22, 30, 0)
@@ -43,7 +43,7 @@ public class ReportLearningPath
                 PosterUrl = "image/blogs/report/convert-html-to-pdf-report-in-dotnet.webp",
                 ThumbnailUrl = "image/blogs/report/convert-html-to-pdf-report-in-dotnet.webp",
                 ContentUrl = "blogs/convert-html-to-pdf-report-in-dotnet",
-                IconUrl = "image/icons/report.png",
+                IconUrl = "image/icons/report.webp",
                 Type = "Report",
                 CreatedOn = new DateTime(2023, 4, 9, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 4, 9, 22, 30, 0)

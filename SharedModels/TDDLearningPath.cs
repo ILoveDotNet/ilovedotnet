@@ -17,7 +17,7 @@ public class TDDLearningPath
                 PosterUrl = "image/blogs/tdd/introducing-tdd-in-csharp-dotnet.webp",
                 ThumbnailUrl = "image/blogs/tdd/introducing-tdd-in-csharp-dotnet.webp",
                 ContentUrl = "blogs/introducing-tdd-in-csharp-dotnet",
-                IconUrl = "image/icons/tdd.png",
+                IconUrl = "image/icons/tdd.webp",
                 Type = "TDD",
                 CreatedOn = new DateTime(2022, 3, 27, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 3, 27, 22, 30, 0)
@@ -30,7 +30,7 @@ public class TDDLearningPath
                 PosterUrl = "image/blogs/tdd/implementing-tdd-in-csharp-dotnet.webp",
                 ThumbnailUrl = "image/blogs/tdd/implementing-tdd-in-csharp-dotnet.webp",
                 ContentUrl = "blogs/implementing-tdd-in-csharp-dotnet",
-                IconUrl = "image/icons/tdd.png",
+                IconUrl = "image/icons/tdd.webp",
                 Type = "TDD",
                 CreatedOn = new DateTime(2022, 4, 3, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 4, 3, 22, 30, 0)

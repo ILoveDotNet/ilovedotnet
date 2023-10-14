@@ -17,7 +17,7 @@ public class LINQLearningPath
                 PosterUrl = "image/blogs/linq/linq-introduction.webp",
                 ThumbnailUrl = "image/blogs/linq/linq-introduction.webp",
                 ContentUrl = "blogs/linq-introduction",
-                IconUrl = "image/icons/linq.png",
+                IconUrl = "image/icons/linq.webp",
                 Type = "LINQ",
                 CreatedOn = new DateTime(2022, 8, 14, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 8, 14, 22, 30, 0)
@@ -30,7 +30,7 @@ public class LINQLearningPath
                 PosterUrl = "image/blogs/linq/using-linq-to-select-and-project-data.webp",
                 ThumbnailUrl = "image/blogs/linq/using-linq-to-select-and-project-data.webp",
                 ContentUrl = "blogs/using-linq-to-select-and-project-data",
-                IconUrl = "image/icons/linq.png",
+                IconUrl = "image/icons/linq.webp",
                 Type = "LINQ",
                 CreatedOn = new DateTime(2022, 8, 21, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 8, 21, 22, 30, 0)
@@ -43,7 +43,7 @@ public class LINQLearningPath
                 PosterUrl = "image/blogs/linq/using-linq-orderby-to-sort-data.webp",
                 ThumbnailUrl = "image/blogs/linq/using-linq-orderby-to-sort-data.webp",
                 ContentUrl = "blogs/using-linq-orderby-to-sort-data",
-                IconUrl = "image/icons/linq.png",
+                IconUrl = "image/icons/linq.webp",
                 Type = "LINQ",
                 CreatedOn = new DateTime(2022, 8, 28, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 8, 28, 22, 30, 0)
@@ -56,7 +56,7 @@ public class LINQLearningPath
                 PosterUrl = "image/blogs/linq/using-linq-where-to-filter-data.webp",
                 ThumbnailUrl = "image/blogs/linq/using-linq-where-to-filter-data.webp",
                 ContentUrl = "blogs/using-linq-where-to-filter-data",
-                IconUrl = "image/icons/linq.png",
+                IconUrl = "image/icons/linq.webp",
                 Type = "LINQ",
                 CreatedOn = new DateTime(2022, 9, 4, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 9, 4, 22, 30, 0)
@@ -69,7 +69,7 @@ public class LINQLearningPath
                 PosterUrl = "image/blogs/linq/using-linq-first-to-select-single-data.webp",
                 ThumbnailUrl = "image/blogs/linq/using-linq-first-to-select-single-data.webp",
                 ContentUrl = "blogs/using-linq-first-to-select-single-data",
-                IconUrl = "image/icons/linq.png",
+                IconUrl = "image/icons/linq.webp",
                 Type = "LINQ",
                 CreatedOn = new DateTime(2022, 9, 25, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 9, 25, 22, 30, 0)
@@ -82,7 +82,7 @@ public class LINQLearningPath
                 PosterUrl = "image/blogs/linq/using-linq-last-to-select-single-data.webp",
                 ThumbnailUrl = "image/blogs/linq/using-linq-last-to-select-single-data.webp",
                 ContentUrl = "blogs/using-linq-last-to-select-single-data",
-                IconUrl = "image/icons/linq.png",
+                IconUrl = "image/icons/linq.webp",
                 Type = "LINQ",
                 CreatedOn = new DateTime(2022, 10, 2, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 10, 2, 22, 30, 0)
@@ -95,7 +95,7 @@ public class LINQLearningPath
                 PosterUrl = "image/blogs/linq/using-linq-single-to-select-single-data.webp",
                 ThumbnailUrl = "image/blogs/linq/using-linq-single-to-select-single-data.webp",
                 ContentUrl = "blogs/using-linq-single-to-select-single-data",
-                IconUrl = "image/icons/linq.png",
+                IconUrl = "image/icons/linq.webp",
                 Type = "LINQ",
                 CreatedOn = new DateTime(2022, 10, 9, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 10, 9, 22, 30, 0)
@@ -108,7 +108,7 @@ public class LINQLearningPath
                 PosterUrl = "image/blogs/linq/using-linq-take-to-select-specific-data.webp",
                 ThumbnailUrl = "image/blogs/linq/using-linq-take-to-select-specific-data.webp",
                 ContentUrl = "blogs/using-linq-take-to-select-specific-data",
-                IconUrl = "image/icons/linq.png",
+                IconUrl = "image/icons/linq.webp",
                 Type = "LINQ",
                 CreatedOn = new DateTime(2022, 10, 16, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 10, 16, 22, 30, 0)
@@ -121,7 +121,7 @@ public class LINQLearningPath
                 PosterUrl = "image/blogs/linq/using-linq-skip-to-select-specific-data.webp",
                 ThumbnailUrl = "image/blogs/linq/using-linq-skip-to-select-specific-data.webp",
                 ContentUrl = "blogs/using-linq-skip-to-select-specific-data",
-                IconUrl = "image/icons/linq.png",
+                IconUrl = "image/icons/linq.webp",
                 Type = "LINQ",
                 CreatedOn = new DateTime(2022, 10, 23, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 10, 23, 22, 30, 0)
@@ -134,7 +134,7 @@ public class LINQLearningPath
                 PosterUrl = "image/blogs/linq/using-linq-distinct-to-select-unique-data.webp",
                 ThumbnailUrl = "image/blogs/linq/using-linq-distinct-to-select-unique-data.webp",
                 ContentUrl = "blogs/using-linq-distinct-to-select-unique-data",
-                IconUrl = "image/icons/linq.png",
+                IconUrl = "image/icons/linq.webp",
                 Type = "LINQ",
                 CreatedOn = new DateTime(2022, 10, 30, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 10, 30, 22, 30, 0)
@@ -147,7 +147,7 @@ public class LINQLearningPath
                 PosterUrl = "image/blogs/linq/using-linq-chunk-to-split-data.webp",
                 ThumbnailUrl = "image/blogs/linq/using-linq-chunk-to-split-data.webp",
                 ContentUrl = "blogs/using-linq-chunk-to-split-data",
-                IconUrl = "image/icons/linq.png",
+                IconUrl = "image/icons/linq.webp",
                 Type = "LINQ",
                 CreatedOn = new DateTime(2022, 11, 6, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 11, 6, 22, 30, 0)
@@ -160,7 +160,7 @@ public class LINQLearningPath
                 PosterUrl = "image/blogs/linq/using-linq-all-to-find-type-of-data.webp",
                 ThumbnailUrl = "image/blogs/linq/using-linq-all-to-find-type-of-data.webp",
                 ContentUrl = "blogs/using-linq-all-to-find-type-of-data",
-                IconUrl = "image/icons/linq.png",
+                IconUrl = "image/icons/linq.webp",
                 Type = "LINQ",
                 CreatedOn = new DateTime(2022, 11, 13, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 11, 13, 22, 30, 0)
@@ -173,7 +173,7 @@ public class LINQLearningPath
                 PosterUrl = "image/blogs/linq/using-linq-any-to-find-type-of-data.webp",
                 ThumbnailUrl = "image/blogs/linq/using-linq-any-to-find-type-of-data.webp",
                 ContentUrl = "blogs/using-linq-any-to-find-type-of-data",
-                IconUrl = "image/icons/linq.png",
+                IconUrl = "image/icons/linq.webp",
                 Type = "LINQ",
                 CreatedOn = new DateTime(2022, 11, 20, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 11, 20, 22, 30, 0)
@@ -186,7 +186,7 @@ public class LINQLearningPath
                 PosterUrl = "image/blogs/linq/using-linq-contains-to-check-data.webp",
                 ThumbnailUrl = "image/blogs/linq/using-linq-contains-to-check-data.webp",
                 ContentUrl = "blogs/using-linq-contains-to-check-data",
-                IconUrl = "image/icons/linq.png",
+                IconUrl = "image/icons/linq.webp",
                 Type = "LINQ",
                 CreatedOn = new DateTime(2022, 11, 27, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 11, 27, 22, 30, 0)
@@ -199,7 +199,7 @@ public class LINQLearningPath
                 PosterUrl = "image/blogs/linq/using-linq-sequence-equal-to-find-equality-of-data.webp",
                 ThumbnailUrl = "image/blogs/linq/using-linq-sequence-equal-to-find-equality-of-data.webp",
                 ContentUrl = "blogs/using-linq-sequence-equal-to-find-equality-of-data",
-                IconUrl = "image/icons/linq.png",
+                IconUrl = "image/icons/linq.webp",
                 Type = "LINQ",
                 CreatedOn = new DateTime(2022, 12, 4, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 12, 4, 22, 30, 0)
@@ -212,7 +212,7 @@ public class LINQLearningPath
                 PosterUrl = "image/blogs/linq/using-linq-except-to-find-difference-in-data.webp",
                 ThumbnailUrl = "image/blogs/linq/using-linq-except-to-find-difference-in-data.webp",
                 ContentUrl = "blogs/using-linq-except-to-find-difference-in-data",
-                IconUrl = "image/icons/linq.png",
+                IconUrl = "image/icons/linq.webp",
                 Type = "LINQ",
                 CreatedOn = new DateTime(2022, 12, 11, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 12, 11, 22, 30, 0)
@@ -225,7 +225,7 @@ public class LINQLearningPath
                PosterUrl = "image/blogs/linq/using-linq-intersect-to-find-common-data.webp",
                ThumbnailUrl = "image/blogs/linq/using-linq-intersect-to-find-common-data.webp",
                ContentUrl = "blogs/using-linq-intersect-to-find-common-data",
-               IconUrl = "image/icons/linq.png",
+               IconUrl = "image/icons/linq.webp",
                Type = "LINQ",
                CreatedOn = new DateTime(2022, 12, 18, 22, 30, 0),
                ModifiedOn = new DateTime(2022, 12, 18, 22, 30, 0)
@@ -238,7 +238,7 @@ public class LINQLearningPath
                PosterUrl = "image/blogs/linq/using-linq-union-to-combine-data.webp",
                ThumbnailUrl = "image/blogs/linq/using-linq-union-to-combine-data.webp",
                ContentUrl = "blogs/using-linq-union-to-combine-data",
-               IconUrl = "image/icons/linq.png",
+               IconUrl = "image/icons/linq.webp",
                Type = "LINQ",
                CreatedOn = new DateTime(2022, 12, 25, 22, 30, 0),
                ModifiedOn = new DateTime(2022, 12, 25, 22, 30, 0)
@@ -251,7 +251,7 @@ public class LINQLearningPath
                PosterUrl = "image/blogs/linq/using-linq-concat-to-combine-data.webp",
                ThumbnailUrl = "image/blogs/linq/using-linq-concat-to-combine-data.webp",
                ContentUrl = "blogs/using-linq-concat-to-combine-data",
-               IconUrl = "image/icons/linq.png",
+               IconUrl = "image/icons/linq.webp",
                Type = "LINQ",
                CreatedOn = new DateTime(2023, 1, 1, 22, 30, 0),
                ModifiedOn = new DateTime(2023, 1, 1, 22, 30, 0)
@@ -264,7 +264,7 @@ public class LINQLearningPath
                PosterUrl = "image/blogs/linq/using-linq-join-to-combine-data.webp",
                ThumbnailUrl = "image/blogs/linq/using-linq-join-to-combine-data.webp",
                ContentUrl = "blogs/using-linq-join-to-combine-data",
-               IconUrl = "image/icons/linq.png",
+               IconUrl = "image/icons/linq.webp",
                Type = "LINQ",
                CreatedOn = new DateTime(2023, 1, 8, 22, 30, 0),
                ModifiedOn = new DateTime(2023, 1, 8, 22, 30, 0)
@@ -277,7 +277,7 @@ public class LINQLearningPath
                PosterUrl = "image/blogs/linq/using-linq-group-join-to-combine-data.webp",
                ThumbnailUrl = "image/blogs/linq/using-linq-group-join-to-combine-data.webp",
                ContentUrl = "blogs/using-linq-group-join-to-combine-data",
-               IconUrl = "image/icons/linq.png",
+               IconUrl = "image/icons/linq.webp",
                Type = "LINQ",
                CreatedOn = new DateTime(2023, 1, 15, 22, 30, 0),
                ModifiedOn = new DateTime(2023, 1, 15, 22, 30, 0)
@@ -290,7 +290,7 @@ public class LINQLearningPath
                PosterUrl = "image/blogs/linq/simulating-left-outer-join-using-linq.webp",
                ThumbnailUrl = "image/blogs/linq/simulating-left-outer-join-using-linq.webp",
                ContentUrl = "blogs/simulating-left-outer-join-using-linq",
-               IconUrl = "image/icons/linq.png",
+               IconUrl = "image/icons/linq.webp",
                Type = "LINQ",
                CreatedOn = new DateTime(2023, 1, 22, 22, 30, 0),
                ModifiedOn = new DateTime(2023, 1, 22, 22, 30, 0)
@@ -303,7 +303,7 @@ public class LINQLearningPath
                PosterUrl = "image/blogs/linq/using-linq-group-by-to-group-data.webp",
                ThumbnailUrl = "image/blogs/linq/using-linq-group-by-to-group-data.webp",
                ContentUrl = "blogs/using-linq-group-by-to-group-data",
-               IconUrl = "image/icons/linq.png",
+               IconUrl = "image/icons/linq.webp",
                Type = "LINQ",
                CreatedOn = new DateTime(2023, 2, 5, 22, 30, 0),
                ModifiedOn = new DateTime(2023, 2, 5, 22, 30, 0)
@@ -316,7 +316,7 @@ public class LINQLearningPath
                PosterUrl = "image/blogs/linq/using-linq-count-min-max-average-sum-to-aggregate-data.webp",
                ThumbnailUrl = "image/blogs/linq/using-linq-count-min-max-average-sum-to-aggregate-data.webp",
                ContentUrl = "blogs/using-linq-count-min-max-average-sum-to-aggregate-data",
-               IconUrl = "image/icons/linq.png",
+               IconUrl = "image/icons/linq.webp",
                Type = "LINQ",
                CreatedOn = new DateTime(2023, 2, 12, 22, 30, 0),
                ModifiedOn = new DateTime(2023, 2, 12, 22, 30, 0)
@@ -329,7 +329,7 @@ public class LINQLearningPath
                PosterUrl = "image/blogs/linq/using-linq-for-each-to-iterate-collections.webp",
                ThumbnailUrl = "image/blogs/linq/using-linq-for-each-to-iterate-collections.webp",
                ContentUrl = "blogs/using-linq-for-each-to-iterate-collections",
-               IconUrl = "image/icons/linq.png",
+               IconUrl = "image/icons/linq.webp",
                Type = "LINQ",
                CreatedOn = new DateTime(2023, 2, 26, 22, 30, 0),
                ModifiedOn = new DateTime(2023, 2, 26, 22, 30, 0)
@@ -342,7 +342,7 @@ public class LINQLearningPath
                PosterUrl = "image/blogs/linq/understanding-linq-deferred-immediate-streaming-and-non-streaming-executions.webp",
                ThumbnailUrl = "image/blogs/linq/understanding-linq-deferred-immediate-streaming-and-non-streaming-executions.webp",
                ContentUrl = "blogs/understanding-linq-deferred-immediate-streaming-and-non-streaming-executions",
-               IconUrl = "image/icons/linq.png",
+               IconUrl = "image/icons/linq.webp",
                Type = "LINQ",
                CreatedOn = new DateTime(2023, 3, 5, 22, 30, 0),
                ModifiedOn = new DateTime(2023, 3, 5, 22, 30, 0)

@@ -17,7 +17,7 @@ public class DesignPatternLearningPath
                 PosterUrl = "image/blogs/design-pattern/design-pattern-introduction.webp",
                 ThumbnailUrl = "image/blogs/design-pattern/design-pattern-introduction.webp",
                 ContentUrl = "blogs/design-pattern-introduction",
-                IconUrl = "image/icons/design-pattern.png",
+                IconUrl = "image/icons/design-pattern.webp",
                 Type = "Design-Pattern",
                 CreatedOn = new DateTime(2023, 3, 12, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 3, 12, 22, 30, 0)
@@ -30,7 +30,7 @@ public class DesignPatternLearningPath
                 PosterUrl = "image/blogs/design-pattern/creational-design-pattern-singleton.webp",
                 ThumbnailUrl = "image/blogs/design-pattern/creational-design-pattern-singleton.webp",
                 ContentUrl = "blogs/creational-design-pattern-singleton",
-                IconUrl = "image/icons/design-pattern.png",
+                IconUrl = "image/icons/design-pattern.webp",
                 Type = "Design-Pattern",
                 CreatedOn = new DateTime(2023, 3, 19, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 3, 19, 22, 30, 0)

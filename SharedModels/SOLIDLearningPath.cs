@@ -17,7 +17,7 @@ public class SOLIDLearningPath
                 PosterUrl = "image/blogs/solid/solid-principles-introduction.webp",
                 ThumbnailUrl = "image/blogs/solid/solid-principles-introduction.webp",
                 ContentUrl = "blogs/solid-principles-introduction",
-                IconUrl = "image/icons/solid.png",
+                IconUrl = "image/icons/solid.webp",
                 Type = "SOLID",
                 CreatedOn = new DateTime(2023, 4, 2, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 4, 2, 22, 30, 0)
@@ -30,7 +30,7 @@ public class SOLIDLearningPath
                 PosterUrl = "image/blogs/solid/single-responsibility-principle-in-solid.webp",
                 ThumbnailUrl = "image/blogs/solid/single-responsibility-principle-in-solid.webp",
                 ContentUrl = "blogs/single-responsibility-principle-in-solid",
-                IconUrl = "image/icons/solid.png",
+                IconUrl = "image/icons/solid.webp",
                 Type = "SOLID",
                 CreatedOn = new DateTime(2023, 4, 16, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 4, 16, 22, 30, 0)
@@ -43,7 +43,7 @@ public class SOLIDLearningPath
                 PosterUrl = "image/blogs/solid/open-closed-principle-in-solid.webp",
                 ThumbnailUrl = "image/blogs/solid/open-closed-principle-in-solid.webp",
                 ContentUrl = "blogs/open-closed-principle-in-solid",
-                IconUrl = "image/icons/solid.png",
+                IconUrl = "image/icons/solid.webp",
                 Type = "SOLID",
                 CreatedOn = new DateTime(2023, 4, 23, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 4, 23, 22, 30, 0)
@@ -56,7 +56,7 @@ public class SOLIDLearningPath
                 PosterUrl = "image/blogs/solid/liskov-substitution-principle-in-solid.webp",
                 ThumbnailUrl = "image/blogs/solid/liskov-substitution-principle-in-solid.webp",
                 ContentUrl = "blogs/liskov-substitution-principle-in-solid",
-                IconUrl = "image/icons/solid.png",
+                IconUrl = "image/icons/solid.webp",
                 Type = "SOLID",
                 CreatedOn = new DateTime(2023, 4, 30, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 4, 30, 22, 30, 0)
@@ -69,7 +69,7 @@ public class SOLIDLearningPath
                 PosterUrl = "image/blogs/solid/interface-segregation-principle-in-solid.webp",
                 ThumbnailUrl = "image/blogs/solid/interface-segregation-principle-in-solid.webp",
                 ContentUrl = "blogs/interface-segregation-principle-in-solid",
-                IconUrl = "image/icons/solid.png",
+                IconUrl = "image/icons/solid.webp",
                 Type = "SOLID",
                 CreatedOn = new DateTime(2023, 5, 7, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 5, 7, 22, 30, 0)
@@ -82,7 +82,7 @@ public class SOLIDLearningPath
                 PosterUrl = "image/blogs/solid/dependency-inversion-principle-in-solid.webp",
                 ThumbnailUrl = "image/blogs/solid/dependency-inversion-principle-in-solid.webp",
                 ContentUrl = "blogs/dependency-inversion-principle-in-solid",
-                IconUrl = "image/icons/solid.png",
+                IconUrl = "image/icons/solid.webp",
                 Type = "SOLID",
                 CreatedOn = new DateTime(2023, 5, 14, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 5, 14, 22, 30, 0)
