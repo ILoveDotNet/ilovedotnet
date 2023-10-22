@@ -2,12 +2,12 @@
 
 public class BlazorLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(26);
+    public readonly List<ContentMetaData> FullContents = new(27);
 
     public BlazorLearningPath()
     {
         FullContents =
-        new(26)
+        new(27)
         {
             new ContentMetaData
             {
@@ -346,6 +346,19 @@ public class BlazorLearningPath
                 Type = "Blazor",
                 CreatedOn = new DateTime(2023, 10, 15, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 10, 15, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+                Order = 27,
+                Title = "Using Hot Keys in Blazor WASM",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/blazor/wasm/using-hot-keys-in-blazor-wasm.webp",
+                ThumbnailUrl = "image/blogs/blazor/wasm/using-hot-keys-in-blazor-wasm.webp",
+                ContentUrl = "blogs/using-hot-keys-in-blazor-wasm",
+                IconUrl = "image/icons/blazor.webp",
+                Type = "Blazor",
+                CreatedOn = new DateTime(2023, 10, 22, 22, 30, 0),
+                ModifiedOn = new DateTime(2023, 10, 22, 22, 30, 0)
             }
         };
     }
