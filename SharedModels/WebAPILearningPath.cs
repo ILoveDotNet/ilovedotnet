@@ -2,12 +2,12 @@
 
 public class WebAPILearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(12);
+    public readonly List<ContentMetaData> FullContents = new(13);
 
     public WebAPILearningPath()
     {
         FullContents =
-        new(12)
+        new(13)
         {
             new ContentMetaData
             {
@@ -164,6 +164,19 @@ public class WebAPILearningPath
                 Type = "WebAPI",
                 CreatedOn = new DateTime(2023, 8, 13, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 8, 13, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+                Order = 13,
+                Title = "Request Endpoint Response (REPR) pattern in ASP.NET WEB API",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/webapi/request-endpoint-response-repr-pattern-in-asp-net-webapi.webp",
+                ThumbnailUrl = "image/blogs/webapi/request-endpoint-response-repr-pattern-in-asp-net-webapi.webp",
+                ContentUrl = "blogs/request-endpoint-response-repr-pattern-in-asp-net-webapi",
+                IconUrl = "image/icons/webapi.webp",
+                Type = "WebAPI",
+                CreatedOn = new DateTime(2023, 10, 29, 22, 30, 0),
+                ModifiedOn = new DateTime(2023, 10, 29, 22, 30, 0)
             }
         };
     }

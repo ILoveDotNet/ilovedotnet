@@ -1,0 +1,265 @@
+﻿@page "/blogs/request-endpoint-response-repr-pattern-in-asp-net-webapi"
+@inherits FragmentNavigationBase
+@inject TableOfContents tableOfContents
+
+<Content Title=@Title
+         Description=@Description
+         CreatedOn=@CreatedOn
+         ModifiedOn=@ModifiedOn
+         Slug=@Slug
+         PosterPath=@PosterPath
+         Keywords=@Keywords
+         Channel="@Channel"
+         ContentType="@ContentType"
+         TotalContents=@TotalContents
+         FileName=@nameof(REPRInASPNET)>
+    <ContentBody>
+        <p>
+            In this article, let's learn about <ContentHighlight>Request Endpoint Response (REPR) Pattern</ContentHighlight>, a better way to organize API's and 
+            how to implement in <ContentHighlight>WebAPI</ContentHighlight> in ASP.NET Core.
+        </p>
+
+        <p>
+            <strong>Note:</strong> If you have not done so already, I recommend you read the article on
+            <NavLink class="[ underline ]" href="blogs/single-responsibility-principle-in-solid" Match="NavLinkMatch.All">Single Responsibility Principle in SOLID</NavLink>.
+        </p>
+
+        <h3 class="[ font-semibold text-lg ]">Table of Contents</h3>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
+                    Introduction
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#why-repr-pattern")" Match="NavLinkMatch.All">
+                    Why REPR Pattern ?
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#what-is-repr-pattern")" Match="NavLinkMatch.All">
+                    What is REPR Pattern ?
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#implementing-repr-pattern")" Match="NavLinkMatch.All">
+                    Implementing REPR Pattern
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#problems-with-repr-pattern")" Match="NavLinkMatch.All">
+                    Problems with REPR Pattern
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#advantages")" Match="NavLinkMatch.All">
+                    Advantages
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
+                    Summary
+                </NavLink>
+            </li>
+        </ol>
+
+        <h3 id="introduction" class="[ font-semibold text-lg ]">Introduction</h3>
+
+        <p>
+            I have been programming in API for a very long time and I also help companies to move out of their technical debt. I like to design and oragnize 
+            API's in a way that it is easy to maintain and scale. But I can tell you that the traditional way of organizing API's in 
+            <ContentHighlight>Controllers</ContentHighlight> are always a source of pain in ASP.NET projects.
+        </p>
+
+        <p>
+            ASP.NET WEB API Controllers are essentially an anti pattern. They are always fat and huge. They are collection of methods that never call one another 
+            and do not operate on same state. They are <ContentHighlight>not cohesive</ContentHighlight>. They tend to get bloated over the time of development. 
+            But since that is the approach which comes with the default tempate, most of the developers started to follow it. 
+        </p>
+
+        <p>
+            Ofcourse you can use tools like <ContentHighlight>MediatR</ContentHighlight> to solve this problem. But what if I tell you that you can do it 
+            without any third party library or extra plumbing ?. Let's learn how to overcome this using <abbr title="Request Endpoint Response">REPR</abbr> Pattern.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="why-repr-pattern" class="[ font-semibold text-lg ]">Why REPR Pattern ?</h3>
+
+        <p>
+            Well the answer is simple. API Endpoints are really just controllers with few constraints applied to them. They literally inherit from 
+            <ContentHighlight>ControllerBase</ContentHighlight> and so, its acceptable to do this way, and everything that works with Controllers, like routing, 
+            model binding, model validation, dependency injection, filters, etc. all works just fine with API Endpoints because, you might have guessed it, 
+            they're again controllers.
+        </p>
+
+        <p>
+            Yes its going to be controllers again but with <ContentHighlight>Single Responsibility Principle</ContentHighlight> applied to them. They are going 
+            to be <ContentHighlight>small</ContentHighlight> and <ContentHighlight>cohesive</ContentHighlight>. They are going to be easy to maintain and scale. 
+            They are going to be easy to test. They don't change often like how we add new ActionMethod to Controllers. Lesser the change in file, lesser the 
+            chances of breaking things and introducing bugs.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="what-is-repr-pattern" class="[ font-semibold text-lg ]">What is REPR Pattern ?</h3>
+
+        <p>
+            Usually API development follows <ContentHighlight>MVC</ContentHighlight> pattern. But for API's, we don't need Views. So we can remove the View 
+            part from MVC and we are left with <ContentHighlight>Model-Controller</ContentHighlight>. But the problem with this is that, the Controller is 
+            still fat and huge. So we need to break it down further.
+        </p>
+
+        <p>
+            Any API endpoint needs the following things to work.
+        </p>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li><ContentHighlight>Request</ContentHighlight>: The input data expected for the Enpoint</li>
+            <li><ContentHighlight>Endpoint</ContentHighlight>: The logic performed on the given Request</li>
+            <li><ContentHighlight>Response</ContentHighlight>: The output data returned from the Endpoint</li>
+        </ol>
+
+        <p>
+            Combining all these three, we get the <ContentHighlight>REPR</ContentHighlight> Pattern. REPR pronounced as reaper stands for 
+            <ContentHighlight>Request Endpoint Response</ContentHighlight> pattern. This greatly reduces the friction and makes working with individual endpoints 
+            easier.
+        </p>
+
+        <figure>
+            <img src="./image/blogs/webapi/request-endpoint-response-repr-pattern-in-asp-net-webapi/Folder Structure.png" alt="Folder Structure" class="[ w-1/2 ]" />
+        </figure>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <p>
+            Looking at the above folder structure, we can see that there is no traditional <ContentHighlight>Controllers</ContentHighlight> folder. Instead we 
+            stick to domain terms in folder naming like how we have <ContentHighlight>Article</ContentHighlight> folder in above image. Each Endpoint class inside 
+            the folder represents the domain function we are trying to achieve like <ContentHighlight>Publish</ContentHighlight>, 
+            <ContentHighlight>UnPublish</ContentHighlight> Article etc. This makes it more ubiquitous and easy to navigate inside codebase.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="implementing-repr-pattern" class="[ font-semibold text-lg ]">Implementing REPR Pattern</h3>
+
+        <p>
+            To start implementing this in new project, all you need is creating a new <ContentHighlight>Controller</ContentHighlight> file and inherit from 
+            <ContentHighlight>ControllerBase</ContentHighlight>. But if you are trying to implement this in existing project, you need to do break the 
+            <ContentHighlight>ActionMethod</ContentHighlight> in exisitng controller to separate controllers (i.e.) each 
+            <ContentHighlight>ActionMethod</ContentHighlight> will now become a <ContentHighlight>Controller</ContentHighlight> inheriting from 
+            <ContentHighlight>ControllerBase</ContentHighlight>.
+        </p>
+
+        <p>
+            The next step is to apply the necessary attributes and inject needed dependencies to the controller. The following code snippet show how it looks like.
+        </p>
+
+        <GithubGistSnippet Title="Request Endpoint Response (REPR) Pattern" UserId="fingers10" FileName="2e953f96c27c92c77d2b754e919d4b6e"></GithubGistSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="problems-with-repr-pattern" class="[ font-semibold text-lg ]">Problems with REPR Pattern</h3>
+
+        <p>
+            The common problem with REPR pattern are as follows. And fortunately we have ways to solve them.
+        </p>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>
+                <p>
+                    <strong>How can we prevent some developer from adding <ContentHighlight>additional ActionMethod</ContentHighlight> to Endpoint in 
+                    future ?</strong> Well, the answer to this is to write <ContentHighlight>fitness / architecture tests</ContentHighlight>. These tests will 
+                    fail if someone adds additional <ContentHighlight>ActionMethod</ContentHighlight> to Endpoint. This is a good way to prevent developers from 
+                    adding additional ActionMethod to Endpoint.
+                </p>
+
+                <p>
+                    All we need to do is to Install <ContentHighlight>NetArchTest.Rules</ContentHighlight> NuGet package and write the following test.
+                </p>
+
+                <GithubGistSnippet Title="Fitness Test for (REPR) Pattern" UserId="fingers10" FileName="faf88d3573e934270b69f7c9f4c7cdd2"></GithubGistSnippet>
+
+                <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+            </li>
+            <li>
+                <p>
+                    <strong>Each Endpoint, technically each Controller will now get listed separately in Swagger document?</strong> Yes, this is true. But 
+                    fortunately we have a way to solve this. We can use <ContentHighlight>Tags</ContentHighlight> inside 
+                    <ContentHighlight>SwaggerOperation</ContentHighlight> attribute to group them together. The following code snippet show how it looks like.
+                </p>
+
+                <figure>
+                    <img src="./image/blogs/webapi/request-endpoint-response-repr-pattern-in-asp-net-webapi/UnGrouped Endpoints.png" alt="UnGrouped Endpoints" class="[ w-full ]" />
+                </figure>
+
+                <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+                <p>
+                    The above image shows the ungrouped endpoints in Swagger document. The following code snippet show how to group them together. All you need 
+                    to do is to add <ContentHighlight>Swashbuckle.AspNetCore.Annotations</ContentHighlight> Nuget package and configure it in 
+                    <ContentHighlight>Program.cs</ContentHighlight> as 
+                    <ContentHighlight CssClasses="[ break-all ]">builder.Services.AddSwaggerGen(options => options.EnableAnnotations())</ContentHighlight>. Then 
+                    we need to add the below code snippet to endpoints.
+                </p>
+
+                <GithubGistSnippet Title="Using Tags in SwaggerOperation to Group Endpoints" UserId="fingers10" FileName="d1374769c6a33d65fd171b0796c2a090"></GithubGistSnippet>
+
+                <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+                <figure>
+                    <img src="./image/blogs/webapi/request-endpoint-response-repr-pattern-in-asp-net-webapi/Grouped Endpoints.png" alt="Grouped Endpoints" class="[ w-full ]" />
+                </figure>
+
+                <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+            </li>
+            <li>
+                <strong>Developers some time feel like they are duplicating attributes across all the Endpoints. Number of class files will increase in project.</strong> 
+                This is true. But I would say the tradeoff is worth it. We are getting a lot of benefits from this approach. And if you are using Visual Studio, 
+                you can use <ContentHighlight>Code Snippets</ContentHighlight> to generate the code for you.
+            </li>
+        </ol>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="advantages" class="[ font-semibold text-lg ]">Advantages</h3>
+
+        <p>
+            The advantages of REPR Pattern are as follows,
+        </p>
+
+        <ul class="[ list-disc ] [ ml-4 ]">
+            <li>Endpoints are more <ContentHighlight>Ubiquitous</ContentHighlight> and domain task/funtionality based.</li>
+            <li><ContentHighlight>Single Responsibility</ContentHighlight> and less prone to change.</li>
+            <li>Easy to <ContentHighlight>maintain and test and document</ContentHighlight>.</li>
+            <li>Easy for developers / new joiners to <ContentHighlight>navigate inside codebase</ContentHighlight> based on domain functionality.</li>
+            <li>The <ContentHighlight>domain intent with Endpoint</ContentHighlight> becomes clearer.</li>
+        </ul>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="summary" class="[ font-semibold text-lg ]">Summary</h3>
+
+        <p>
+            In this article we learnt about <ContentHighlight>REPR pattern</ContentHighlight>, a better way to organize API's and how to implement in WebAPI 
+            in ASP.NET Core. We also learnt about the problems with REPR pattern and how to solve them. We also learnt about the advantages of REPR pattern. 
+            I hope you have enjoyed reading this. Now you are ready to be awesome in API development.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+    </ContentBody>
+</Content>
+
+@code {
+    private string Title = "Task Based Endpoint in ASP.NET Web API";
+    private string Description = "In this post I will teach about REPR pattern, a better way to organize API's and how to implement in ASP.NET Web API. All with live working demo.";
+    private DateTime CreatedOn = new DateTime(2023, 10, 29, 22, 30, 0);
+    private DateTime ModifiedOn = new DateTime(2023, 10, 29, 22, 30, 0);
+    private string Slug = "request-endpoint-response-repr-pattern-in-asp-net-webapi";
+    private string PosterPath = "Blogs/WebAPI";
+    private string Channel = "webapi";
+    private string ContentType = "blogs";
+    private ushort TotalContents => (ushort)tableOfContents.Contents.Count(content => content.Type.Equals("WebAPI", StringComparison.CurrentCultureIgnoreCase));
+    private List<string> Keywords = new(4) { "Request", "Endpoint", "Response", "REPR" };
+}
