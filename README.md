@@ -4,6 +4,17 @@ This is a .NET knowledge sharing platform with live demos crafted by developers 
 
 ![GitHub Banner](https://github.com/ILoveDotNet/ilovedotnet/assets/43729469/6503d56d-7d69-4bd1-9b47-c27cd808bd2e)
 
+# Sponsors
+If you want to support my project and help me grow it, you can [become a sponsor on GitHub](https://github.com/sponsors/fingers10) or just [donate on PayPal](https://www.paypal.com/paypalme/arsmtb) and your logo will show up here with a link to your website :)
+
+# Please help by giving a ⭐
+We appreciate your ⭐. It Helps!! That will not only help strengthen our .NET community but also improve development skills for .NET developers in around the world. Thank you very much 👍. 
+
+Choosing a project idea could be difficult. We need to ensure stability and maintainability of our projects. Surveys show that GitHub stars count play an important factor when assessing quality.
+
+⭐ Please give this repository a star. It takes seconds and help thousands of developers! ⭐
+![star-request](https://github.com/ILoveDotNet/ilovedotnet/assets/43729469/6eaa0894-d0e3-4ad9-979b-02ceecee7d8e)
+
 # Road Map
 1. [Blazor WASM](https://github.com/orgs/ILoveDotNet/projects/2) ![IN PROGRESS](https://img.shields.io/badge/IN%20PROGRESS-lightgreen)
 2. [LINQ](https://github.com/orgs/ILoveDotNet/projects/6) ![CLOSED](https://img.shields.io/badge/CLOSED-FF0000)
@@ -29,12 +40,6 @@ This is a .NET knowledge sharing platform with live demos crafted by developers 
 22. [Concurrency](https://github.com/orgs/ILoveDotNet/projects/24)
 23. [SOLID](https://github.com/orgs/ILoveDotNet/projects/25) ![CLOSED](https://img.shields.io/badge/CLOSED-FF0000)
 24. [Background Services](https://github.com/orgs/ILoveDotNet/projects/26) ![IN PROGRESS](https://img.shields.io/badge/IN%20PROGRESS-lightgreen)
-
-# Please help by giving a star
-Choosing a project idea could be difficult. We need to ensure stability and maintainability of our projects. Surveys show that GitHub stars count play an important factor when assessing quality.
-
-⭐ Please give this repository a star. It takes seconds and help thousands of developers! ⭐
-![star-request](https://github.com/ILoveDotNet/ilovedotnet/assets/43729469/6eaa0894-d0e3-4ad9-979b-02ceecee7d8e)
 
 # Please share with the community
 As an open-source project without funding, I cannot afford advertising I ❤️ .NET in a typical way. Instead, the project relies on community interactions. Please consider sharing a post about I ❤️ .NET and the value it provides. It really does help!
