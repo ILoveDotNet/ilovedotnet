@@ -2,12 +2,12 @@
 
 public class WebAPILearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(13);
+    public readonly List<ContentMetaData> FullContents = new(14);
 
     public WebAPILearningPath()
     {
         FullContents =
-        new(13)
+        new(14)
         {
             new ContentMetaData
             {
@@ -177,6 +177,19 @@ public class WebAPILearningPath
                 Type = "WebAPI",
                 CreatedOn = new DateTime(2023, 10, 29, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 10, 29, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+                Order = 14,
+                Title = "Architecture Test using Net Arch Test in ASP.NET WEB API",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/webapi/architecture-test-using-net-arch-test-in-asp-net-webapi.webp",
+                ThumbnailUrl = "image/blogs/webapi/architecture-test-using-net-arch-test-in-asp-net-webapi.webp",
+                ContentUrl = "blogs/architecture-test-using-net-arch-test-in-asp-net-webapi",
+                IconUrl = "image/icons/webapi.webp",
+                Type = "WebAPI",
+                CreatedOn = new DateTime(2023, 11, 5, 22, 30, 0),
+                ModifiedOn = new DateTime(2023, 11, 5, 22, 30, 0)
             }
         };
     }
