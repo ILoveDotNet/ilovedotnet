@@ -2,12 +2,12 @@
 
 public class WebAPILearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(14);
+    public readonly List<ContentMetaData> FullContents = new(15);
 
     public WebAPILearningPath()
     {
         FullContents =
-        new(14)
+        new(15)
         {
             new ContentMetaData
             {
@@ -190,6 +190,19 @@ public class WebAPILearningPath
                 Type = "WebAPI",
                 CreatedOn = new DateTime(2023, 11, 5, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 11, 5, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+                Order = 15,
+                Title = "Global Exception Handling in ASP.NET WEB API",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/webapi/global-exception-handling-in-asp-net-webapi.webp",
+                ThumbnailUrl = "image/blogs/webapi/global-exception-handling-in-asp-net-webapi.webp",
+                ContentUrl = "blogs/global-exception-handling-in-asp-net-webapi",
+                IconUrl = "image/icons/webapi.webp",
+                Type = "WebAPI",
+                CreatedOn = new DateTime(2023, 11, 12, 22, 30, 0),
+                ModifiedOn = new DateTime(2023, 11, 12, 22, 30, 0)
             }
         };
     }

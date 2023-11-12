@@ -1,0 +1,196 @@
+﻿@page "/blogs/global-exception-handling-in-asp-net-webapi"
+@inherits FragmentNavigationBase
+@inject TableOfContents tableOfContents
+
+<Content Title=@Title
+         Description=@Description
+         CreatedOn=@CreatedOn
+         ModifiedOn=@ModifiedOn
+         Slug=@Slug
+         PosterPath=@PosterPath
+         Keywords=@Keywords
+         Channel="@Channel"
+         ContentType="@ContentType"
+         TotalContents=@TotalContents
+         FileName=@nameof(GlobalExceptionHandlingInASPNET)>
+    <ContentBody>
+        <p>
+            In this article, let's learn about <ContentHighlight>Global Exception Handling</ContentHighlight> in <ContentHighlight>Web API</ContentHighlight> 
+            in ASP.NET Core.
+        </p>
+
+        <p>
+            <strong>Note:</strong> If you have not done so already, I recommend you read the article on
+            <NavLink class="[ underline ]" href="blogs/webapi-importance-of-status-code" Match="NavLinkMatch.All">Importance of Status Code in Web API</NavLink>.
+        </p>
+
+        <h3 class="[ font-semibold text-lg ]">Table of Contents</h3>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
+                    Introduction
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#why-global-exception-handling")" Match="NavLinkMatch.All">
+                    Why Global Exception Handling ?
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#creating-a-custom-error-handling-middleware")" Match="NavLinkMatch.All">
+                    Creating a Custom Error Handling Middleware
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#advantages")" Match="NavLinkMatch.All">
+                    Advantages
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
+                    Summary
+                </NavLink>
+            </li>
+        </ol>
+
+        <h3 id="introduction" class="[ font-semibold text-lg ]">Introduction</h3>
+
+        <p>
+            <ContentHighlight>Exception</ContentHighlight> is a common thing we often come up with it in our applications. This happens when something goes wrong 
+            exceptionally. All the known paths in code can be handled to return expected response. And for <ContentHighlight>unhandled exceptions</ContentHighlight> 
+            or <ContentHighlight>server faults</ContentHighlight>, Global Exception Handling comes to rescue.
+        </p>
+
+        <p>
+            <ContentHighlight>Global Exception Handling</ContentHighlight> - This is where we handle exceptions globally in 
+            <ContentHighlight>one single place</ContentHighlight> inside the application rather than scattering the try catch blocks everywhere in the code base. 
+            This is a <ContentHighlight>good and clean practice and the absolutely simplest way</ContentHighlight>.
+        </p>
+
+        <p>
+            This is the first thing that I do when I create new Web API Projects or when I work on existing code base. Let's focus and learn on the simplest and 
+            cleanest way of handling exceptions globally in ASP.NET Web API.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="why-global-exception-handling" class="[ font-semibold text-lg ]">Why Global Exception Handling ?</h3>
+
+        <p>
+            Handling exceptions <ContentHighlight>locally</ContentHighlight> in the method where it is thrown is what I have seen in most of the code bases. 
+            This often <ContentHighlight>grows and pollutes the code base</ContentHighlight>. I have seen projects having 
+            <ContentHighlight>try catch</ContentHighlight> blocks everywhere in the code base starting from <ContentHighlight>controller</ContentHighlight> to 
+            <ContentHighlight>services</ContentHighlight> to <ContentHighlight>repositories</ContentHighlight>. This is not a good practice and it increases the 
+            complexity of the code base and makes it <ContentHighlight>difficult to read and maintain</ContentHighlight>. This is where Global Exception Handling 
+            comes to rescue.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="creating-a-custom-error-handling-middleware" class="[ font-semibold text-lg ]">Creating a Custom Error Handling Middleware</h3>
+
+        <p>
+            <strong>Note:</strong> If you have not done so already, I recommend you read the article on
+            <NavLink class="[ underline ]" href="blogs/introducing-middleware-in-aspnet" Match="NavLinkMatch.All">Introducing Middleware in ASP.NET</NavLink>.
+        </p>
+
+        <p>
+            Here are the steps to implement Custom Global Exception Middleware,
+        </p>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>
+                <p><ContentHighlight>Create</ContentHighlight> Global Exception Middleware as shown below</p>
+
+                <GithubGistSnippet Title="Global Exception Middleware in ASP.NET" UserId="fingers10" FileName="7863dee1804d856c539ffce67d69645f"></GithubGistSnippet>
+
+                <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+                <p>
+                    This middleware inheriting from <ContentHighlight>IMiddleware</ContentHighlight> will catch any exception thrown from the application and 
+                    write a <ContentHighlight>general error message back to the response on Prodcution environment</ContentHighlight> and the 
+                    <ContentHighlight>actual error message on Non Production environment</ContentHighlight>.
+                </p>
+
+                <p>
+                    <ContentHighlight>RequestDelegate next</ContentHighlight> is a function delegate representing the next middleware component in the request 
+                    pipeline. <ContentHighlight>InvokeAsync</ContentHighlight> is the heart of the middleware. It is called for every request that passes through 
+                    the middleware. It takes an <ContentHighlight>HttpContext object</ContentHighlight> as a parameter, which represents the HTTP request and 
+                    response.
+                </p>
+
+                <p>
+                    In the <ContentHighlight>try</ContentHighlight> block, we're calling next, which effectively passes control to the next middleware in the 
+                    pipeline. <ContentHighlight>If there's an exception anywhere after this line, control will return back to this middleware</ContentHighlight>.
+                </p>
+            </li>
+            <li>
+                <p><ContentHighlight>Register</ContentHighlight> it as the first Middleware as shown below</p>
+
+                <GithubGistSnippet Title="Registering Global Exception Middleware in ASP.NET" UserId="fingers10" FileName="ef81ba6921b3af4b8c5ad61bb781ef8d"></GithubGistSnippet>
+
+                <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+                <p>
+                    From the above code, we can see that we are registering the <ContentHighlight CssClasses="[ break-all ]">UseGlobalExceptionMiddleware()</ContentHighlight> as the first 
+                    Middleware in the pipeline. This is important because we want to catch all the exceptions that are thrown from the application. If we register 
+                    it at the end of the pipeline, then it will not catch all the exceptions.
+                </p>
+            </li>
+        </ol>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="advantages" class="[ font-semibold text-lg ]">Advantages</h3>
+
+        <p>
+            The advantages of Global Exception Handling are as follows,
+        </p>
+
+        <ul class="[ list-disc ] [ ml-4 ]">
+            <li><ContentHighlight>Single point</ContentHighlight> to <ContentHighlight>handle</ContentHighlight> and <ContentHighlight>log</ContentHighlight> exceptions.</li>
+            <li>Code becomes <ContentHighlight>easy to manage</ContentHighlight> because we don't need to look into n different <ContentHighlight>try-catch</ContentHighlight> blocks.</li>
+            <li><ContentHighlight>More readable</ContentHighlight> because a few lines of code managing the whole exceptions of application.</li>
+            <li><ContentHighlight>Removes repeated code</ContentHighlight> (try-catch everywhere).</li>
+            <li>It gives us <ContentHighlight>more control</ContentHighlight> so we can catch exceptions and return response of our own type, in most cases we return Internal Server Error.</li>
+        </ul>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="summary" class="[ font-semibold text-lg ]">Summary</h3>
+
+        <p>
+            In this article, we learnt about how the <ContentHighlight>simplest and easiest</ContentHighlight> way to handle exception globally in ASP.NET Web 
+            API using a <ContentHighlight>custom middleware</ContentHighlight>. We also learnt about the advantages of handling exceptions globally. I hope you 
+            enjoyed reading it.
+        </p>
+
+        <p class="[ font-bold ] [ p-5 ] [ flex items-center justify-center ]">
+            <a href="https://whatsapp.com/channel/0029VaAGMV2LtOj5S5MHd23h" target="_blank">
+            <span>To learn more interesting things about .NET in a simple way, 👉🏼 Click here to Join I ❤️ .NET </span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-brand-whatsapp ] [ fill-green-500 ] [ inline ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                <path d="M3 21l1.65 -3.8a9 9 0 1 1 3.4 2.9l-5.05 .9"></path>
+                <path d="M9 10a.5 .5 0 0 0 1 0v-1a.5 .5 0 0 0 -1 0v1a5 5 0 0 0 5 5h1a.5 .5 0 0 0 0 -1h-1a.5 .5 0 0 0 0 1"></path>
+            </svg>
+            <span>WhatsApp Channel for free to get 🔔 notified about new articles and other updates.</span>
+        </a>
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+    </ContentBody>
+</Content>
+
+@code {
+    private string Title = "Global Exception Handling in ASP.NET WEB API";
+    private string Description = "In this post I will teach how to handle exceptions globally in ASP.NET Web API. All with live working demo.";
+    private DateTime CreatedOn = new DateTime(2023, 11, 12, 22, 30, 0);
+    private DateTime ModifiedOn = new DateTime(2023, 11, 12, 22, 30, 0);
+    private string Slug = "global-exception-handling-in-asp-net-webapi";
+    private string PosterPath = "Blogs/WebAPI";
+    private string Channel = "webapi";
+    private string ContentType = "blogs";
+    private ushort TotalContents => (ushort)tableOfContents.Contents.Count(content => content.Type.Equals("WebAPI", StringComparison.CurrentCultureIgnoreCase));
+    private List<string> Keywords = new(3) { "Global", "Exception Handling", "Error Handling" };
+}
