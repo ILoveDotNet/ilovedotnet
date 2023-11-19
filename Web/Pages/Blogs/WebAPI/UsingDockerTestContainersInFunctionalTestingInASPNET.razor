@@ -1,0 +1,214 @@
+﻿@page "/blogs/using-docker-test-containers-in-functional-testing-in-asp-net-webapi"
+@inherits FragmentNavigationBase
+@inject TableOfContents tableOfContents
+
+<Content Title=@Title
+         Description=@Description
+         CreatedOn=@CreatedOn
+         ModifiedOn=@ModifiedOn
+         Slug=@Slug
+         PosterPath=@PosterPath
+         Keywords=@Keywords
+         Channel="@Channel"
+         ContentType="@ContentType"
+         TotalContents=@TotalContents
+         FileName=@nameof(UsingDockerTestContainersInFunctionalTestingInASPNET)>
+    <ContentBody>
+        <p>
+            In this article, let's learn about testing with <ContentHighlight>real database</ContentHighlight> using 
+            <ContentHighlight>Docker Test Containers</ContentHighlight> in <ContentHighlight>Web API</ContentHighlight> in ASP.NET Core.
+        </p>
+
+        <p>
+            <strong>Note:</strong> If you have not done so already, I recommend you read the article on
+            <NavLink class="[ underline ]" href="blogs/functional-testing-your-asp-net-webapi" Match="NavLinkMatch.All">Functional testing your ASP.NET WEB API</NavLink>.
+        </p>
+
+        <h3 class="[ font-semibold text-lg ]">Table of Contents</h3>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
+                    Introduction
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#why-docker-test-containers")" Match="NavLinkMatch.All">
+                    Why Docker Test Containers ?
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#steps-to-do-functional-test-using-test-containers")" Match="NavLinkMatch.All">
+                    Steps to do Functional Test using Test Containers
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#advantages")" Match="NavLinkMatch.All">
+                    Advantages
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
+                    Summary
+                </NavLink>
+            </li>
+        </ol>
+
+        <h3 id="introduction" class="[ font-semibold text-lg ]">Introduction</h3>
+
+        <p>
+            We are all aware that the softwares we build works rarely in isolation. Our apps will talk to many external systems like 
+            <ContentHighlight>database, message brokers, web browsers, cloud services or just any other external systems</ContentHighlight>. And validating the 
+            integration with these external systems is very important. 
+        </p>
+
+        <p>
+            <ContentHighlight>Testcontainers</ContentHighlight> is a library that provides easy and lightweight APIs for bootstrapping local development and 
+            test dependencies with <ContentHighlight>real services</ContentHighlight> wrapped in <ContentHighlight>Docker containers</ContentHighlight>. Using 
+            Testcontainers, you can write tests that depend on the <ContentHighlight>same services you use in production without mocks or in-memory services.</ContentHighlight>
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="why-docker-test-containers" class="[ font-semibold text-lg ]">Why Docker Test Containers ?</h3>
+
+        <p>
+            <ContentHighlight>Cloud-native infrastructure</ContentHighlight> and <ContentHighlight>microservices</ContentHighlight> have taken control away from 
+            developers and made it painful to work locally. While you own only your Service and its datastore, you have several downstream dependencies that you 
+            need for local development and integration testing. This brings the following challenges:
+        </p>
+
+        <ul class="[ list-disc ] [ ml-4 ]">
+            <li>
+                Before running tests, you must <ContentHighlight>ensure that the infrastructure is up and running</ContentHighlight> and is 
+                <ContentHighlight>pre-configured in a desired state</ContentHighlight>.
+            </li>
+            <li>
+                If the <ContentHighlight>resources (database, message broker, etc) are shared across multiple users or CI pipelines</ContentHighlight>, then the 
+                <ContentHighlight>test results are non-deterministic</ContentHighlight> because of the possibility of data corruption and configuration drift.
+            </li>
+        </ul>
+
+        <p>
+            A <ContentHighlight>possible workaround could be using in-memory variations of the required services</ContentHighlight>. But this is almost similar 
+            like using mocks. In-memory services might not have all the features of the production / real service amd they have their own problems.
+        </p>
+
+        <p>
+            <ContentHighlight>Testcontainers solves this by using Docker to spin up real services</ContentHighlight> for functional testing and helps executing 
+            <ContentHighlight>reliable and repeatable tests</ContentHighlight> by talking to those real services and providing a programmatic API for your test 
+            code.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="steps-to-do-functional-test-using-test-containers" class="[ font-semibold text-lg ]">Steps to do Functional Test using Test Containers</h3>
+
+        <p>
+            Let's learn how to do functional test using Test Containers in ASP.NET Web API. We will be using the same project we used in the previous article 
+            and <ContentHighlight>try using test containers for database instead of in-memory database</ContentHighlight>.
+        </p>
+
+        <p>
+            <strong>Note:</strong> Before we begin, I would like to highlight that we are going to use single database container for all tests in our project. 
+            And the reason for this is when we have 100 or 1000 tests then spinning 100 or 1000 containers will make your test agent to go down consuming all 
+            memory and CPU.
+        </p>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>Install <ContentHighlight>Testcontainers.PostgreSql</ContentHighlight> in your Functional Test Project</li>
+            <li>
+                <p>
+                    Setup <ContentHighlight>Database Fixture</ContentHighlight> as shown below
+                </p>
+
+                <GithubGistSnippet Title="Database Fixture for Test Containers in Function Test in ASP.NET" UserId="fingers10" FileName="5cfeb897d13e62889fe1614a71a1b840"></GithubGistSnippet>
+                
+                <p>
+                    <ContentHighlight>DatabaseFixture</ContentHighlight> inherits from <ContentHighlight>IAsyncLifetime</ContentHighlight> initialises the database container 
+                    using <ContentHighlight>InitializeAsync()</ContentHighlight> and cleans up the container after the end of test using 
+                    <ContentHighlight>DisposeAsync()</ContentHighlight>
+                </p>
+
+                <p>
+                    We are also creating a <ContentHighlight CssClasses="[ break-all ]">FunctionalTestCollection</ContentHighlight> to be used as 
+                    <ContentHighlight CssClasses="[ break-all ]">ICollectionFixture&lt;DatabaseFixture&gt;</ContentHighlight>.
+                </p>
+                
+                <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+            </li>
+            <li>
+                <p>
+                    Update <ContentHighlight>CustomWebApplicationFactory</ContentHighlight> to replace <ContentHighlight>WeatherForecastDbContext</ContentHighlight> connection 
+                    string with <ContentHighlight>Test Container Connection String</ContentHighlight> as shown below
+                </p>
+                
+                <GithubGistSnippet Title="Customer Web APplication Factory with Test Containers in Function Test in ASP.NET" UserId="fingers10" FileName="d0ec7a2254614e716fca16ac67d5058f"></GithubGistSnippet>
+                
+                <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+            </li>
+            <li>
+                <p>
+                    Finally mark the test class with <ContentHighlight CssClasses="[ break-all ]">[Collection("Database Collection")]</ContentHighlight> and 
+                    inject the <ContentHighlight>dbcontext</ContentHighlight> inside test method <ContentHighlight>add the data for test</ContentHighlight> and 
+                    <ContentHighlight>assert the same data</ContentHighlight> returned from endpoint in test as shown below.
+                </p>
+                
+                <GithubGistSnippet Title="Testing against real database in Function Test in ASP.NET" UserId="fingers10" FileName="21fd3c61a6c5de67c465ce19e8faafb9"></GithubGistSnippet>
+            </li>
+        </ol>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="advantages" class="[ font-semibold text-lg ]">Advantages</h3>
+
+        <p>
+            The advantages of Test Containers are as follows,
+        </p>
+
+        <ul class="[ list-disc ] [ ml-4 ]">
+            <li><ContentHighlight>On-demand isolated infrastructure</ContentHighlight> provisioning</li>
+            <li><ContentHighlight>Consistent experience</ContentHighlight> on both local and CI environments</li>
+            <li><ContentHighlight>Testing with real dependencies</ContentHighlight> helps to catch bugs earlier</li>
+            <li><ContentHighlight>Light</ContentHighlight> Weight</li>
+            <liContentHighlight>No Mocks or In-Memory setup</ContentHighlight> which behaves differently than real ones</li>
+            <li>Easy to setup and <ContentHighlight>automatic clean up</ContentHighlight></li>
+        </ul>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="summary" class="[ font-semibold text-lg ]">Summary</h3>
+
+        <p>
+            In this article, we learnt about testing with real dependencies using Docker Test Containers in functional testing in ASP.NET Web API. We learnt how 
+            to do that with ASP.NET functional test and understood its advantages. Hope you enjoyed reading it.
+        </p>
+
+        <p class="[ font-bold ] [ p-5 ] [ flex items-center justify-center ]">
+            <a href="https://whatsapp.com/channel/0029VaAGMV2LtOj5S5MHd23h" target="_blank">
+            <span>To learn more interesting things about .NET in a simple way, 👉🏼 Click here to Join I ❤️ .NET </span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-brand-whatsapp ] [ fill-green-500 ] [ inline ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                <path d="M3 21l1.65 -3.8a9 9 0 1 1 3.4 2.9l-5.05 .9"></path>
+                <path d="M9 10a.5 .5 0 0 0 1 0v-1a.5 .5 0 0 0 -1 0v1a5 5 0 0 0 5 5h1a.5 .5 0 0 0 0 -1h-1a.5 .5 0 0 0 0 1"></path>
+            </svg>
+            <span>WhatsApp Channel for free to get 🔔 notified about new articles and other updates.</span>
+        </a>
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+    </ContentBody>
+</Content>
+
+@code {
+    private string Title = "Using Docker Test Containers in Functional Testing in ASP.NET WEB API";
+    private string Description = "In this post I will teach how to test with real database using Docker Test Containers in functional testing in ASP.NET Web API. All with live working demo.";
+    private DateTime CreatedOn = new DateTime(2023, 11, 19, 22, 30, 0);
+    private DateTime ModifiedOn = new DateTime(2023, 11, 19, 22, 30, 0);
+    private string Slug = "using-docker-test-containers-in-functional-testing-in-asp-net-webapi";
+    private string PosterPath = "Blogs/WebAPI";
+    private string Channel = "webapi";
+    private string ContentType = "blogs";
+    private ushort TotalContents => (ushort)tableOfContents.Contents.Count(content => content.Type.Equals("WebAPI", StringComparison.CurrentCultureIgnoreCase));
+    private List<string> Keywords = new(3) { "Docker", "Test Containers", "Functional Testing" };
+}

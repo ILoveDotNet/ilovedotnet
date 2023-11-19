@@ -2,12 +2,12 @@
 
 public class WebAPILearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(15);
+    public readonly List<ContentMetaData> FullContents = new(16);
 
     public WebAPILearningPath()
     {
         FullContents =
-        new(15)
+        new(16)
         {
             new ContentMetaData
             {
@@ -203,6 +203,19 @@ public class WebAPILearningPath
                 Type = "WebAPI",
                 CreatedOn = new DateTime(2023, 11, 12, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 11, 12, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+                Order = 16,
+                Title = "Using Docker Test Containers in Functional Testing in ASP.NET WEB API",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/webapi/using-docker-test-containers-in-functional-testing-in-asp-net-webapi.webp",
+                ThumbnailUrl = "image/blogs/webapi/using-docker-test-containers-in-functional-testing-in-asp-net-webapi.webp",
+                ContentUrl = "blogs/using-docker-test-containers-in-functional-testing-in-asp-net-webapi",
+                IconUrl = "image/icons/webapi.webp",
+                Type = "WebAPI",
+                CreatedOn = new DateTime(2023, 11, 19, 22, 30, 0),
+                ModifiedOn = new DateTime(2023, 11, 19, 22, 30, 0)
             }
         };
     }
