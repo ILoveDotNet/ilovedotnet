@@ -2,12 +2,12 @@
 
 public class WebAPILearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(16);
+    public readonly List<ContentMetaData> FullContents = new(17);
 
     public WebAPILearningPath()
     {
         FullContents =
-        new(16)
+        new(17)
         {
             new ContentMetaData
             {
@@ -24,7 +24,7 @@ public class WebAPILearningPath
             },
             new ContentMetaData
             {
-                Order = 5,
+                Order = 6,
                 Title = "Profiling Web API with Mini Profiler",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/webapi/profiling-webapi-with-mini-profiler.webp",
@@ -37,7 +37,7 @@ public class WebAPILearningPath
             },
             new ContentMetaData
             {
-                Order = 6,
+                Order = 7,
                 Title = "Unit Testing Filters in ASP.NET Web API",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/webapi/unit-testing-filters-in-asp-net-webapi.webp",
@@ -50,7 +50,7 @@ public class WebAPILearningPath
             },
             new ContentMetaData
             {
-                Order = 7,
+                Order = 8,
                 Title = "Unit Testing Middlewares in ASP.NET Web API",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/webapi/unit-testing-middlewares-in-asp-net-webapi.webp",
@@ -63,7 +63,7 @@ public class WebAPILearningPath
             },
             new ContentMetaData
             {
-                Order = 8,
+                Order = 9,
                 Title = "Unit Testing Service Registrations in ASP.NET Web API",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/webapi/unit-testing-service-registrations-in-asp-net-webapi.webp",
@@ -76,7 +76,7 @@ public class WebAPILearningPath
             },
             new ContentMetaData
             {
-                Order = 9,
+                Order = 10,
                 Title = "Unit Testing Controllers in ASP.NET Web API",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/webapi/unit-testing-controllers-in-asp-net-webapi.webp",
@@ -89,7 +89,7 @@ public class WebAPILearningPath
             },
             new ContentMetaData
             {
-                Order = 4,
+                Order = 5,
                 Title = "Perform Background Workloads in Hosted Service using Channels in ASP.NET Web API",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/webapi/perform-background-workloads-in-hosted-service-using-channels-in-asp-net-webapi.webp",
@@ -102,7 +102,7 @@ public class WebAPILearningPath
             },
             new ContentMetaData
             {
-                Order = 10,
+                Order = 11,
                 Title = "Functional testing your ASP.NET WEB API",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/webapi/functional-testing-your-asp-net-webapi.webp",
@@ -115,7 +115,7 @@ public class WebAPILearningPath
             },
             new ContentMetaData
             {
-                Order = 11,
+                Order = 12,
                 Title = "Faking Dependencies in Functional testing in ASP.NET WEB API",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/webapi/faking-dependencies-in-functional-testing-in-asp-net-webapi.webp",
@@ -128,7 +128,7 @@ public class WebAPILearningPath
             },
             new ContentMetaData
             {
-                Order = 12,
+                Order = 13,
                 Title = "Using WireMock.NET in Functional testing in ASP.NET WEB API",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/webapi/using-wiremock-net-in-functional-testing-in-asp-net-webapi.webp",
@@ -141,7 +141,7 @@ public class WebAPILearningPath
             },
             new ContentMetaData
             {
-                Order = 13,
+                Order = 14,
                 Title = "Configuring Authentication in Functional testing in ASP.NET WEB API",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/webapi/configuring-authentication-in-functional-testing-in-asp-net-webapi.webp",
@@ -154,7 +154,7 @@ public class WebAPILearningPath
             },
             new ContentMetaData
             {
-                Order = 14,
+                Order = 15,
                 Title = "Unit Testing Hosted Services in ASP.NET WEB API",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/webapi/unit-testing-hosted-services-in-asp-net-webapi.webp",
@@ -167,7 +167,7 @@ public class WebAPILearningPath
             },
             new ContentMetaData
             {
-                Order = 3,
+                Order = 4,
                 Title = "Request Endpoint Response (REPR) pattern in ASP.NET WEB API",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/webapi/request-endpoint-response-repr-pattern-in-asp-net-webapi.webp",
@@ -180,7 +180,7 @@ public class WebAPILearningPath
             },
             new ContentMetaData
             {
-                Order = 15,
+                Order = 16,
                 Title = "Architecture Test using Net Arch Test in ASP.NET WEB API",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/webapi/architecture-test-using-net-arch-test-in-asp-net-webapi.webp",
@@ -206,7 +206,7 @@ public class WebAPILearningPath
             },
             new ContentMetaData
             {
-                Order = 16,
+                Order = 17,
                 Title = "Using Docker Test Containers in Functional Testing in ASP.NET WEB API",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/webapi/using-docker-test-containers-in-functional-testing-in-asp-net-webapi.webp",
@@ -216,6 +216,19 @@ public class WebAPILearningPath
                 Type = "WebAPI",
                 CreatedOn = new DateTime(2023, 11, 19, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 11, 19, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+                Order = 3,
+                Title = "Structured Logging with Serilog in ASP.NET WEB API",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/webapi/structured-logging-with-serilog-in-asp-net-webapi.webp",
+                ThumbnailUrl = "image/blogs/webapi/structured-logging-with-serilog-in-asp-net-webapi.webp",
+                ContentUrl = "blogs/structured-logging-with-serilog-in-asp-net-webapi",
+                IconUrl = "image/icons/webapi.webp",
+                Type = "WebAPI",
+                CreatedOn = new DateTime(2023, 11, 26, 22, 30, 0),
+                ModifiedOn = new DateTime(2023, 11, 26, 22, 30, 0)
             }
         };
     }
