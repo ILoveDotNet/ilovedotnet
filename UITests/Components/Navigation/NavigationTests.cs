@@ -17,7 +17,7 @@ public class NavigationTests
                             <nav class="[ fixed bottom-0 h-14 w-full md:top-14 md:left-0 md:h-full md:w-16 ] 
                                           [ bg-white ] [ dark:bg-gray-800 dark:bg-gray-800/80 ] [ backdrop-blur-sm bg-white/80 ] [ md:pt-2 ]
                                           [ flex justify-around items-center md:flex-col md:justify-start md:space-y-4 ]">
-                                <a class="[ flex flex-col items-center ] active" href="/" aria-current="page">
+                                <a class="[ flex flex-col items-center ] active" href="/">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-home ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                                         <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
                                         <polyline points="5 12 3 12 12 3 21 12 19 12"></polyline>
