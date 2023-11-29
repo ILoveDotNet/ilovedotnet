@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
-namespace Components;
+namespace BaseComponents;
 
 public class GithubGistSnippetBase : ComponentBase, IAsyncDisposable
 {
