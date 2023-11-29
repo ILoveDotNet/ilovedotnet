@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
-namespace Components;
+namespace BaseComponents;
 
 public class GithubGistSnippetBase : ComponentBase, IAsyncDisposable
 {
@@ -19,7 +19,7 @@ public class GithubGistSnippetBase : ComponentBase, IAsyncDisposable
     {
         if (firstRender)
         {
-            module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/Components/githubgist.js");
+            module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/BaseComponents/githubgist.js");
 
             await module.InvokeVoidAsync("printSnippetFrom", Id, UserId, FileName);
 

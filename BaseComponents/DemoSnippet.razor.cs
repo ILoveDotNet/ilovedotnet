@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components;
 
-namespace Components;
+namespace BaseComponents;
 
 public class DemoSnippetBase : ComponentBase
 {
