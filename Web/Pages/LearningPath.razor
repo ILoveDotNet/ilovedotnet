@@ -1,4 +1,5 @@
 ﻿@page "/learningpath"
+@using Humanizer
 @using Toolbelt.Blazor.HeadElement
 @inject IConfiguration configuration
 @inject TableOfContents tableOfContents
@@ -65,32 +66,27 @@
     
    @foreach (var channel in tableOfContents.Contents.GroupBy(content => content.Type).OrderBy(channel => channel.Key))
    {
-        <article class="[ flex flex-col ] [ space-y-2 ]">
-            <header class="[ flex items-center justify-center ] [ space-x-2 ]">
+        <article class="[ flex flex-col ] [ space-y-4 ]">
+            <header class="[ flex items-center ] [ space-x-2 ]">
                 <NavLink href="@($"channels/{channel.Key.ToLower()}")">
-                    <img src="@channel.First().IconUrl" alt="@channel.Key" loading="lazy" height="48" width="48" class="[ rounded-full ]" />
+                    <figure>
+                        <img src="@channel.First().IconUrl" alt="@channel.Key" loading="lazy" height="48" width="48" class="[ rounded-full ]" />
+                    </figure>
                 </NavLink>
-                <h2 class="[ text-3xl ] [ text-center ] [ text-gray-900 dark:text-white ] [ font-bold ]">@channel.Key</h2>
+                <h2 class="[ text-3xl ] [ text-center ] [ text-gray-900 dark:text-white ] [ font-bold ]">@channel.Key.Replace("-", " ")</h2>
             </header>
-            <table class="[ table-fixed border-collapse ] [ bg-white ] [ border-2 ] [ dark:bg-black dark:border-slate-500 ] [ w-full ]">
-                <thead>
-                    <tr class="[ bg-gray-100 ] [ dark:bg-slate-500 ]">
-                        <th class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Title</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var content in channel.OrderBy(content => content.Order))
-                    {
-                        <tr>
-                            <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">
-                                <NavLink href="@content.ContentUrl" class="[ underline ]" Match="NavLinkMatch.All">
-                                    @content.Title
-                                </NavLink>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+            <div class="[ grid gap-4 grid-flow-col auto-cols-[calc(75%_-_4rem)] md:auto-cols-[calc(25%_-_4rem)] ] [ overflow-x-auto ]">
+                @foreach (var content in channel.OrderBy(content => content.Order))
+                {
+                    <NavLink href="@content.ContentUrl" Match="NavLinkMatch.All">
+                        <figure>
+                            <img src="@content.ThumbnailUrl" alt="@content.Title" loading="lazy" class="[ rounded-md ]">
+                        </figure>
+                        <figcaption class="[ text-gray-900 dark:text-white ] [ font-bold ]">@content.Title</figcaption>
+                        <time datetime="@content.ModifiedOn.ToString("yyyy-MM-dd HH:mm:ss")">Last updated @content.ModifiedOn.Humanize()</time>
+                    </NavLink>
+                }
+            </div>
         </article>
         <section class="[ text-center ]">
             <GoogleAdSense Type="GoogleAdSenseAdType.Multiplex" Format="GoogleAdSenseAdFormat.AutoRelaxed" Slot="7445263294"></GoogleAdSense>
