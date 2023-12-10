@@ -132,14 +132,14 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var yearlyGroupedGoogleSearchImpact in GroupedAchievements.GroupBy(x => x.Key.Year))
+                    @foreach (var yearlyGroupedGoogleSearchImpact in GroupedImpacts.GroupBy(x => x.Key.Year))
                     {
                         <tr>
                             @foreach(var quarterlyGroupedGoogleSearchImpact in yearlyGroupedGoogleSearchImpact.GroupBy(x => (x.Key.Month - 1) / 3))
                             {
                                 var clicks = quarterlyGroupedGoogleSearchImpact.Max(x => x.Max(y => y.Clicks));
                                 <th scope="row" class="[ pt-16 md:pt-8 ]"> @($"{quarterlyGroupedGoogleSearchImpact.First().Key.Year}") </th>
-                                <td style="--size: calc( @clicks / @CurrentAchievement )" class="[ bg-gradient-to-b from-indigo-500 via-purple-500 to-pink-500 ]"> 
+                                <td style="--size: calc( @clicks / @CurrentImpact )" class="[ bg-gradient-to-b from-indigo-500 via-purple-500 to-pink-500 ]"> 
                                     <span class="data text-center" style="margin-top: -50px;"> @($"Q{quarterlyGroupedGoogleSearchImpact.Key + 1}") <br /> @clicks </span> 
                                 </td>
                             }
@@ -159,14 +159,14 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var groupedGoogleSearchImpact in GroupedAchievements)
+                    @foreach (var groupedGoogleSearchImpact in GroupedImpacts)
                     {
                         <tr>
                             <th scope="row" class="[ pt-16 md:pt-8 ]"> @($"{groupedGoogleSearchImpact.Key:MMM yy}") </th>
                             @foreach(var googleSearchImpact in groupedGoogleSearchImpact )
                             {
                                 var clicks = googleSearchImpact.Clicks;
-                                <td style="--size: calc( @clicks / @CurrentAchievement )" class="[ bg-gradient-to-b from-indigo-500 via-purple-500 to-pink-500 ]"> 
+                                <td style="--size: calc( @clicks / @CurrentImpact )" class="[ bg-gradient-to-b from-indigo-500 via-purple-500 to-pink-500 ]"> 
                                     <span class="data" style="margin-top: -20px;"> @clicks </span> 
                                 </td>
                             }
@@ -250,8 +250,8 @@
     private string Title = "Analytics - I ❤️ DotNet";
     private string Description = "This is a .NET knowledge sharing platform with live demos crafted by developers for developers with love.";
     private string BaseUrl => configuration.GetValue<string>("baseUrl")!;
-    private IEnumerable<IGrouping<DateOnly, GoogleSearchImpact>> GroupedAchievements => achievements.GoogleSearchImpacts.GroupBy(x => new DateOnly(x.Date.Year, x.Date.Month, 1));
-    private long CurrentAchievement => GroupedAchievements.Max(x => x.Max(y => y.Clicks));
+    private IEnumerable<IGrouping<DateOnly, GoogleSearchImpact>> GroupedImpacts => achievements.GoogleSearchImpacts.GroupBy(x => new DateOnly(x.Date.Year, x.Date.Month, 1));
+    private long CurrentImpact => GroupedImpacts.Max(x => x.Max(y => y.Clicks));
 
     private IEnumerable<IGrouping<DateOnly, GoogleSearchImpression>> GroupedImpressions => achievements.GoogleSearchImpressions.GroupBy(x => new DateOnly(x.Date.Year, x.Date.Month, 1));
     private long CurrentImpression => GroupedImpressions.Max(x => x.Max(y => y.Impressions));
