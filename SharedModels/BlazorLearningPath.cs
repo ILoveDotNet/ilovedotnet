@@ -149,8 +149,8 @@ public class BlazorLearningPath
                 ContentUrl = "blogs/blazor-wasm-exception-handling-and-error-boundary",
                 IconUrl = "image/icons/blazor.webp",
                 Type = "Blazor",
-                CreatedOn = new DateTime(2022, 1, 16, 22, 30, 0),
-                ModifiedOn = new DateTime(2022, 1, 23, 22, 30, 0)
+                CreatedOn = new DateTime(2023, 12, 10, 22, 30, 0),
+                ModifiedOn = new DateTime(2023, 12, 10, 22, 30, 0)
             },
             new ContentMetaData
             {

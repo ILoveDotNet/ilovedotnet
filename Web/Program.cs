@@ -25,7 +25,9 @@ Log.Logger = new LoggerConfiguration()
     .WriteTo.BrowserConsole(levelSwitch: new LoggingLevelSwitch(LogEventLevel.Warning))
     .CreateLogger();
 
-builder.Logging.ClearProviders().AddProvider(new SerilogLoggerProvider());
+builder.Logging
+       //.ClearProviders() // Commented this as it affects default global blazor-error-ui from getting rendered.
+       .AddProvider(new SerilogLoggerProvider());
 
 if (!builder.RootComponents.Any())
 {
