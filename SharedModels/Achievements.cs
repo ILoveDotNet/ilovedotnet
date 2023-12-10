@@ -3,6 +3,7 @@ namespace SharedModels;
 public class Achievements 
 {
     public List<GoogleSearchImpact> GoogleSearchImpacts { get; set; } = new();
+    public List<GoogleSearchImpression> GoogleSearchImpressions { get; set; } = new();
 
     public Achievements()
     {
@@ -27,6 +28,23 @@ public class Achievements
             new() { Date = new DateOnly(2023, 6, 16), Clicks = 2200 },
             new() { Date = new DateOnly(2023, 7, 7), Clicks = 2500 },
             new() { Date = new DateOnly(2023, 7, 25), Clicks = 3000 },
+        };
+
+        GoogleSearchImpressions = new List<GoogleSearchImpression>
+        {
+            new() { Date = new DateOnly(2022, 11, 30), Impressions = 17300 },
+            new() { Date = new DateOnly(2022, 12, 31), Impressions = 16900 },
+            new() { Date = new DateOnly(2023, 1, 31), Impressions = 23600 },
+            new() { Date = new DateOnly(2023, 2, 28), Impressions = 30300 },
+            new() { Date = new DateOnly(2023, 3, 31), Impressions = 52900 },
+            new() { Date = new DateOnly(2023, 4, 30), Impressions = 54600 },
+            new() { Date = new DateOnly(2023, 5, 31), Impressions = 80800 },
+            new() { Date = new DateOnly(2023, 6, 30), Impressions = 104000 },
+            new() { Date = new DateOnly(2023, 7, 31), Impressions = 123000 },
+            new() { Date = new DateOnly(2023, 8, 31), Impressions = 97400 },
+            new() { Date = new DateOnly(2023, 9, 30), Impressions = 68900 },
+            new() { Date = new DateOnly(2023, 10, 31), Impressions = 78900 },
+            new() { Date = new DateOnly(2023, 11, 30), Impressions = 90500 },
         };
     }    
 }

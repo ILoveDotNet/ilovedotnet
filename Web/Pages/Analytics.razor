@@ -82,6 +82,28 @@
             writing-mode: tb-rl;
             transform: rotateZ(180deg);
         }
+
+        #google-search-impression-chart {
+            display: grid;
+            align-items: center;
+            justify-items: center;
+            grid-template-columns: 20px 1fr;
+            grid-template-rows: 500px 60px;
+            grid-template-areas:
+                "data-axis chart"
+                ".         primary-axis";
+        }
+        #google-search-impression-chart > table {
+            grid-area: chart;
+        }
+        #google-search-impression-chart > .primary-axis {
+            grid-area: primary-axis;
+        }
+        #google-search-impression-chart > .data-axis {
+            grid-area: data-axis;
+            writing-mode: tb-rl;
+            transform: rotateZ(180deg);
+        }
     </style>
 </HeadContent>
 
@@ -159,6 +181,67 @@
         <div class="data-axis"> Clicks </div>
     </div>
 
+    <div id="google-search-impression-chart" class="[ w-full ]">
+        @if(SmallDevice)
+        {
+            <table class="[ charts-css column show-heading show-labels show-data-axes show-primary-axis data-spacing-5 datasets-spacing-4 multiple ]" style="height: 500px">
+                <caption> Google Search Impression </caption>
+                <thead>
+                    <tr>
+                        <th scope="col"> Achieved On </th>
+                        <th scope="col"> Impressions </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var yearlyGroupedGoogleSearchImpression in GroupedImpressions.GroupBy(x => x.Key.Year))
+                    {
+                        <tr>
+                            @foreach(var quarterlyGroupedGoogleSearchImpression in yearlyGroupedGoogleSearchImpression.GroupBy(x => (x.Key.Month - 1) / 3))
+                            {
+                                var impressions = quarterlyGroupedGoogleSearchImpression.Max(x => x.Max(y => y.Impressions));
+                                <th scope="row" class="[ pt-16 md:pt-8 ]"> @($"{quarterlyGroupedGoogleSearchImpression.First().Key.Year}") </th>
+                                <td style="--size: calc( @impressions / @CurrentImpression )" class="[ bg-gradient-to-b from-indigo-500 via-purple-500 to-pink-500 ]"> 
+                                    <span class="data text-center" style="margin-top: -50px;"> @($"Q{quarterlyGroupedGoogleSearchImpression.Key + 1}") <br /> @impressions </span> 
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <table class="[ charts-css column show-heading show-labels show-data-axes show-primary-axis data-spacing-5 datasets-spacing-4 multiple ]" style="height: 400px">
+                <caption> Google Search Impression </caption>
+                <thead>
+                    <tr>
+                        <th scope="col"> Achieved On </th>
+                        <th scope="col"> Impressions </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var groupedGoogleSearchImpression in GroupedImpressions)
+                    {
+                        <tr>
+                            <th scope="row" class="[ pt-16 md:pt-8 ]"> @($"{groupedGoogleSearchImpression.Key:MMM yy}") </th>
+                            @foreach(var googleSearchImpression in groupedGoogleSearchImpression )
+                            {
+                                var impressions = googleSearchImpression.Impressions;
+                                <td style="--size: calc( @impressions / @CurrentImpression )" class="[ bg-gradient-to-b from-indigo-500 via-purple-500 to-pink-500 ]"> 
+                                    <span class="data" style="margin-top: -20px;"> @impressions </span> 
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+        <div class="primary-axis"> Achieved On </div>
+
+        <div class="data-axis"> Impressions </div>
+    </div>
+
 </section>
 
 @code {
@@ -169,4 +252,7 @@
     private string BaseUrl => configuration.GetValue<string>("baseUrl")!;
     private IEnumerable<IGrouping<DateOnly, GoogleSearchImpact>> GroupedAchievements => achievements.GoogleSearchImpacts.GroupBy(x => new DateOnly(x.Date.Year, x.Date.Month, 1));
     private long CurrentAchievement => GroupedAchievements.Max(x => x.Max(y => y.Clicks));
+
+    private IEnumerable<IGrouping<DateOnly, GoogleSearchImpression>> GroupedImpressions => achievements.GoogleSearchImpressions.GroupBy(x => new DateOnly(x.Date.Year, x.Date.Month, 1));
+    private long CurrentImpression => GroupedImpressions.Max(x => x.Max(y => y.Impressions));
 }
