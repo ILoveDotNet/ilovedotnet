@@ -149,7 +149,7 @@ public class BlazorLearningPath
                 ContentUrl = "blogs/blazor-wasm-exception-handling-and-error-boundary",
                 IconUrl = "image/icons/blazor.webp",
                 Type = "Blazor",
-                CreatedOn = new DateTime(2023, 12, 10, 22, 30, 0),
+                CreatedOn = new DateTime(2022, 1, 16, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 12, 10, 22, 30, 0)
             },
             new ContentMetaData
@@ -162,7 +162,7 @@ public class BlazorLearningPath
                 ContentUrl = "blogs/blazor-wasm-error-logging",
                 IconUrl = "image/icons/blazor.webp",
                 Type = "Blazor",
-                CreatedOn = new DateTime(2023, 10, 1, 22, 30, 0),
+                CreatedOn = new DateTime(2022, 1, 23, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 10, 1, 22, 30, 0)
             },
             new ContentMetaData
@@ -175,7 +175,7 @@ public class BlazorLearningPath
                 ContentUrl = "blogs/blazor-wasm-lazy-loading",
                 IconUrl = "image/icons/blazor.webp",
                 Type = "Blazor",
-                CreatedOn = new DateTime(2023, 12, 3, 22, 30, 0),
+                CreatedOn = new DateTime(2022, 2, 20, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 12, 3, 22, 30, 0)
             },
             new ContentMetaData
