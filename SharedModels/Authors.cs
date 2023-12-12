@@ -24,7 +24,7 @@ public class Authors
                     new(SocialLink.StackOverflow, new Uri("https://stackoverflow.com/users/10851213/fingers10")),
                     new(SocialLink.Microsoft, new Uri("https://mvp.microsoft.com/en-US/MVP/profile/b177819f-95fb-ed11-8f6d-000d3a560942")),
                     new(SocialLink.Blog, new Uri("https://ilovedotnet.org")),
-                    new(SocialLink.YouTube, new Uri("https://www.youtube.com/channel/UC4xKdmAXFh4ACyhpiQ_3qBw")),
+                    new(SocialLink.YouTube, new Uri("https://www.youtube.com/@ilovedotnet")),
                     new(SocialLink.Instagram, new Uri("https://www.instagram.com/abdulrahman.smsi"))
                 }
             },
@@ -37,7 +37,7 @@ public class Authors
                 IsMVP = false,
                 SocialUrls = new List<SocialUrl>
                 {
-                    new(SocialLink.LinkedIn, new Uri("https://www.linkedin.com/in/thebhai"))
+                    new(SocialLink.LinkedIn, new Uri("https://www.linkedin.com/in/regina-sharon"))
                 }
             },
         };
