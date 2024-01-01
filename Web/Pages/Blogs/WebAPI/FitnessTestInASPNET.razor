@@ -1,0 +1,212 @@
+﻿@page "/blogs/fitness-test-using-net-arch-test-in-asp-net-webapi"
+@inherits FragmentNavigationBase
+@inject TableOfContents tableOfContents
+
+<Content Title=@Title
+         Description=@Description
+         CreatedOn=@CreatedOn
+         ModifiedOn=@ModifiedOn
+         Slug=@Slug
+         PosterPath=@PosterPath
+         Keywords=@Keywords
+         Channel="@Channel"
+         ContentType="@ContentType"
+         TotalContents=@TotalContents
+         FileName=@nameof(FitnessTestInASPNET)>
+    <ContentBody>
+        <p>
+            In this article, let's learn about <ContentHighlight>Fitness Test</ContentHighlight> using <ContentHighlight>NetArchTest</ContentHighlight> 
+            in <ContentHighlight>WebAPI</ContentHighlight> in ASP.NET Core.
+        </p>
+
+        <p>
+            <strong>Note:</strong> If you have not done so already, I recommend you read the article on
+            <NavLink class="[ underline ]" href="blogs/request-endpoint-response-repr-pattern-in-asp-net-webapi" Match="NavLinkMatch.All">Request Endpoint Response (REPR) pattern in ASP.NET WEB API</NavLink>.
+        </p>
+
+        <h3 class="[ font-semibold text-lg ]">Table of Contents</h3>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
+                    Introduction
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#why-fitness-test")" Match="NavLinkMatch.All">
+                    Why Fitness Test ?
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#what-is-fitness-test")" Match="NavLinkMatch.All">
+                    What is Fitness Test ?
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#implementing-fitness-test")" Match="NavLinkMatch.All">
+                    Implementing Fitness Test
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#advantages")" Match="NavLinkMatch.All">
+                    Advantages
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
+                    Summary
+                </NavLink>
+            </li>
+        </ol>
+
+        <h3 id="introduction" class="[ font-semibold text-lg ]">Introduction</h3>
+
+        <p>
+            In the realm of software development, maintaining a robust and consistent architecture is paramount. As projects expand, ensuring that the structural 
+            integrity of the codebase remains intact becomes increasingly challenging. Even as of writing this I joined a project which was started six months 
+            ago with Clean Architecture in mind, but now it's follows a name sake Clean Architecture and the architecture is already eroding. The codebase is 
+            riddled with inconsistencies, and the architecture is far from the initial vision. This is because of pressure and deadline and on the other hand new 
+            junior developers joining the team. This is a common problem in software development.
+        </p>
+
+        <p>
+            This is where <ContentHighlight>fitness test</ContentHighlight> or <ContentHighlight>fitness functions</ContentHighlight> come into play, serving as 
+            vigilant gatekeepers, preserving the essence of your software blueprint. In this blog post, we will delve deep into 
+            <ContentHighlight>NetArchTest</ContentHighlight>, a powerful tool designed to validate your software's architectural design, exploring its 
+            significance, implementation, advantages, and more.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="why-fitness-test" class="[ font-semibold text-lg ]">Why Fitness Test ?</h3>
+
+        <p>
+            Before we explore the intricacies of <ContentHighlight>NetArchTest</ContentHighlight>, it's crucial to understand the 'why' behind its adoption. 
+            <ContentHighlight>NetArchTest</ContentHighlight> project allows you create tests that <ContentHighlight>enforce conventions for class design, naming 
+            and dependency in .Net code bases</ContentHighlight>. These can be used with any unit test framework and incorporated into a build pipeline. It uses 
+            a fluid API that allows you to string together readable rules that can be used in test assertions.
+        </p>
+
+        <p>
+            There are plenty of static analysis tools that can evaluate application structure, but they are aimed more at enforcing generic best practice rather 
+            than <ContentHighlight>application-specific conventions</ContentHighlight>. The better tools in this space can be press-ganged into creating custom 
+            rules for a specific architecture, but the intention here is to incorporate rules into a test suite and <ContentHighlight>create a self-testing 
+            architecture</ContentHighlight>.
+        </p>
+
+        <p>
+            Software architecture, akin to a well-thought-out <ContentHighlight>blueprint</ContentHighlight>, is essential for a robust system. However, as 
+            <ContentHighlight>deadlines loom and pressure mounts, corners might be cut, leading to architectural erosion</ContentHighlight>. NetArchTest acts as a 
+            safeguard, ensuring that your architecture doesn't crumble under the weight of compromises. By automating the verification process, it guarantees that 
+            your software adheres to the predefined architectural patterns and rules, even amidst rapid development cycles.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="what-is-fitness-test" class="[ font-semibold text-lg ]">What is Fitness Test ?</h3>
+
+        <p>
+            <ContentHighlight>NetArchTest</ContentHighlight> is a sophisticated library that empowers developers to write fitness tests effortlessly. By 
+            leveraging NetArchTest, developers can <ContentHighlight>enforce architectural rules and validate design decisions</ContentHighlight>. The library 
+            <ContentHighlight>scans the imported namespaces of your types</ContentHighlight>, allowing you to <ContentHighlight>define both positive and negative 
+            conditions for your architecture</ContentHighlight>. Whether you're aiming to enforce dependencies between layers, validate design rules, or 
+            maintain design integrity, NetArchTest provides a simple and effective mechanism to achieve these goals.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="implementing-fitness-test" class="[ font-semibold text-lg ]">Implementing Fitness Test</h3>
+
+        <p>
+            Implementing NetArchTest in your project is seamless. Start by creating a <ContentHighlight>new test project</ContentHighlight> within your development 
+            environment. Then, install the <ContentHighlight>NetArchTest.Rules</ContentHighlight> NuGet package, which equips you with the necessary boilerplate 
+            code to initiate your tests. The library's core revolves around the <ContentHighlight>Types class</ContentHighlight>, enabling you to load and filter 
+            types based on various criteria. Once your types are selected, you can define rules using <ContentHighlight>Should</ContentHighlight> or 
+            <ContentHighlight>ShouldNot</ContentHighlight> conditions, ensuring that your architecture aligns with your predefined specifications.
+        </p>
+
+        <GithubGistSnippet Title="Fitness Test to Enforce REPR Pattern in Endpoints" UserId="fingers10" FileName="faf88d3573e934270b69f7c9f4c7cdd2"></GithubGistSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <GithubGistSnippet Title="Fitness Test to Enforce Clean Architecture" UserId="fingers10" FileName="a780a3e663c3e5d8580d36ec21971b5f"></GithubGistSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <GithubGistSnippet Title="Fitness Test to Enforce rules for Commands and Queries" UserId="fingers10" FileName="07ef2e828f0e79aedc857b9911cf2683"></GithubGistSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <GithubGistSnippet Title="Fitness Test to Enforce Encapsulation in Domain Entities" UserId="fingers10" FileName="6f28c80744eb81b27ff1a09c7d4a0b74"></GithubGistSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <p>
+            Here are some design rules that you can enforce:
+        </p>
+
+        <ul class="[ list-disc ] [ ml-4 ]">
+            <li>Domain entities must be encapsulated</li>
+            <li>Services must be internal</li>
+            <li>Entities and Value objects must be sealed</li>
+            <li>Controllers can't depend on repositories directly</li>
+            <li>Command (or query) handlers must follow a naming convention</li>
+        </ul>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="advantages" class="[ font-semibold text-lg ]">Advantages</h3>
+
+        <p>
+            The advantages of Architecture tests are as follows,
+        </p>
+
+        <ul class="[ list-disc ] [ ml-4 ]">
+            <li>
+                <ContentHighlight>Maintain Design Integrity</ContentHighlight>: NetArchTest acts as a guardian, preserving the consistent design and structure 
+                of your software as it evolves over time. It prevents architectural drift, ensuring that your initial vision remains intact.
+            </li>
+            <li>
+                <ContentHighlight>Early Issue Detection</ContentHighlight>: By catching architectural discrepancies early in the development process, NetArchTest 
+                prevents potential complications that might arise due to structural flaws. Early detection translates to easier debugging and resolution.
+            </li>
+            <li>
+                <ContentHighlight>Improved Collaboration</ContentHighlight>: Clear architectural rules and automated tests make it easier for developers to 
+                comprehend the system's design. This shared understanding fosters smoother collaboration, particularly in large teams or when onboarding new 
+                members.
+            </li>
+            <li>
+                <ContentHighlight>Quality Assurance</ContentHighlight>: A robust architecture is the cornerstone of high-quality software. NetArchTest contributes 
+                significantly to the overall quality and reliability of your software by validating structural decisions and enforcing design rules.
+            </li>
+        </ul>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="summary" class="[ font-semibold text-lg ]">Summary</h3>
+
+        <p>
+            In essence, <ContentHighlight>NetArchTest</ContentHighlight> emerges as a <ContentHighlight>proactive measure</ContentHighlight>, ensuring that the 
+            <ContentHighlight>backbone of your software remains resilient and consistent</ContentHighlight>. By automating the verification of architectural 
+            patterns and design rules, it not only saves time but also prevents potential headaches in the long run. As software projects grow in complexity, 
+            embracing tools like NetArchTest becomes essential, <ContentHighlight>safeguarding your architectural vision</ContentHighlight> and bolstering the 
+            reliability of your software systems. So, the next time you embark on a development journey, consider NetArchTest as your loyal sentinel, guarding 
+            your software's architectural integrity with unwavering vigilance.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+    </ContentBody>
+</Content>
+
+@code {
+    private string Title = "Fitness Test using Net Arch Test in ASP.NET WEB API";
+    private string Description = "In this post I will teach how to enforce architecture fitness using Fitness Test in ASP.NET Web API. All with live working demo.";
+    private DateTime CreatedOn = new DateTime(2023, 11, 5, 22, 30, 0);
+    private DateTime ModifiedOn = new DateTime(2023, 11, 5, 22, 30, 0);
+    private string Slug = "fitness-test-using-net-arch-test-in-asp-net-webapi";
+    private string PosterPath = "Blogs/WebAPI";
+    private string Channel = "webapi";
+    private string ContentType = "blogs";
+    private ushort TotalContents => (ushort)tableOfContents.Contents.Count(content => content.Type.Equals("WebAPI", StringComparison.CurrentCultureIgnoreCase));
+    private List<string> Keywords = new(4) { "Architecture Test", "Fitness Functions", "Fitness Test", "NetArchTest" };
+}

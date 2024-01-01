@@ -181,11 +181,11 @@ public class WebAPILearningPath
             new ContentMetaData
             {
                 Order = 16,
-                Title = "Architecture Test using Net Arch Test in ASP.NET WEB API",
+                Title = "Fitness Test using Net Arch Test in ASP.NET WEB API",
                 Author = "Abdul Rahman",
-                PosterUrl = "image/blogs/webapi/architecture-test-using-net-arch-test-in-asp-net-webapi.webp",
-                ThumbnailUrl = "image/blogs/webapi/architecture-test-using-net-arch-test-in-asp-net-webapi.webp",
-                ContentUrl = "blogs/architecture-test-using-net-arch-test-in-asp-net-webapi",
+                PosterUrl = "image/blogs/webapi/fitness-test-using-net-arch-test-in-asp-net-webapi.webp",
+                ThumbnailUrl = "image/blogs/webapi/fitness-test-using-net-arch-test-in-asp-net-webapi.webp",
+                ContentUrl = "blogs/fitness-test-using-net-arch-test-in-asp-net-webapi",
                 IconUrl = "image/icons/webapi.webp",
                 Type = "WebAPI",
                 CreatedOn = new DateTime(2023, 11, 5, 22, 30, 0),
