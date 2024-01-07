@@ -2,12 +2,12 @@ namespace SharedModels;
 
 public class DesignPatternLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(2);
+    public readonly List<ContentMetaData> FullContents = new(3);
 
     public DesignPatternLearningPath()
     {
         FullContents =
-        new(2)
+        new(3)
         {
             new ContentMetaData
             {
@@ -34,6 +34,19 @@ public class DesignPatternLearningPath
                 Type = "Design-Pattern",
                 CreatedOn = new DateTime(2023, 3, 19, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 3, 19, 22, 30, 0)
+            },
+            new ContentMetaData
+            {
+                Order = 3,
+                Title = "Structural Design Pattern - Decorator",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/design-pattern/structural-design-pattern-decorator.webp",
+                ThumbnailUrl = "image/blogs/design-pattern/structural-design-pattern-decorator.webp",
+                ContentUrl = "blogs/structural-design-pattern-decorator",
+                IconUrl = "image/icons/design-pattern.webp",
+                Type = "Design-Pattern",
+                CreatedOn = new DateTime(2024, 1, 7, 22, 30, 0),
+                ModifiedOn = new DateTime(2024, 1, 7, 22, 30, 0)
             },
         };
     }
