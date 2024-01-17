@@ -1,4 +1,4 @@
-namespace DesignPatternDemoComponents;
+namespace DesignPatternDemoComponents.Singleton;
 
 public class Logger
 {

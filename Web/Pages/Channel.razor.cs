@@ -6,7 +6,7 @@ namespace Web.Pages;
 
 public class ChannelBase : ComponentBase
 {
-    protected string ContentType => $"{CultureInfo.CurrentUICulture.TextInfo.ToTitleCase(Name)}";
+    protected string ContentType => $"{CultureInfo.CurrentUICulture.TextInfo.ToTitleCase(Name).Replace("-", " ")}";
     protected string Title => $"{ContentType} - I ❤️ DotNet";
     protected string Description => $"This is a .NET {ContentType} knowledge sharing channel with live demos crafted by developers for developers with love.";
     protected string BaseUrl => Configuration.GetValue<string>("baseUrl")!;

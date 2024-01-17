@@ -2,12 +2,12 @@
 
 public class WebAPILearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(17);
+    public readonly List<ContentMetaData> FullContents = new(18);
 
     public WebAPILearningPath()
     {
         FullContents =
-        new(17)
+        new(18)
         {
             new ContentMetaData
             {
@@ -229,7 +229,20 @@ public class WebAPILearningPath
                 Type = "WebAPI",
                 CreatedOn = new DateTime(2023, 11, 26, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 11, 26, 22, 30, 0)
-            }
+            },
+            new ContentMetaData
+            {
+                Order = 18,
+                Title = "Implementing Caching using Decorator Pattern in ASP.NET WEB API",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/webapi/implementing-caching-using-decorator-pattern-in-asp-net-webapi.webp",
+                ThumbnailUrl = "image/blogs/webapi/implementing-caching-using-decorator-pattern-in-asp-net-webapi.webp",
+                ContentUrl = "blogs/implementing-caching-using-decorator-pattern-in-asp-net-webapi",
+                IconUrl = "image/icons/webapi.webp",
+                Type = "WebAPI",
+                CreatedOn = new DateTime(2024, 1, 14, 22, 30, 0),
+                ModifiedOn = new DateTime(2024, 1, 14, 22, 30, 0)
+            },
         };
     }
 }

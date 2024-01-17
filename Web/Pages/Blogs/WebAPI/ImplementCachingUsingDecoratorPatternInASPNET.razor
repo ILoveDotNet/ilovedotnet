@@ -1,0 +1,235 @@
+﻿@page "/blogs/implementing-caching-using-decorator-pattern-in-asp-net-webapi"
+@inherits FragmentNavigationBase
+@inject TableOfContents tableOfContents
+
+<Content Title=@Title
+         Description=@Description
+         CreatedOn=@CreatedOn
+         ModifiedOn=@ModifiedOn
+         Slug=@Slug
+         PosterPath=@PosterPath
+         Keywords=@Keywords
+         Channel="@Channel"
+         ContentType="@ContentType"
+         TotalContents=@TotalContents
+         FileName=@nameof(ImplementCachingUsingDecoratorPatternInASPNET)>
+    <ContentBody>
+        <p>
+            In this article, let's learn about how to do implement <ContentHighlight>Caching</ContentHighlight> using 
+            <ContentHighlight>Decorator Pattern</ContentHighlight> in <ContentHighlight>Web API</ContentHighlight> in ASP.NET Core.
+        </p>
+
+        <p>
+            <strong>Note:</strong> If you have not done so already, I recommend you read the article on
+            <NavLink class="[ underline ]" href="blogs/structural-design-pattern-decorator" Match="NavLinkMatch.All">Structural Design Pattern - Decorator</NavLink>.
+        </p>
+
+        <h3 class="[ font-semibold text-lg ]">Table of Contents</h3>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
+                    Introduction
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#use-case")" Match="NavLinkMatch.All">
+                    Use Case
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#failing-scenario")" Match="NavLinkMatch.All">
+                    Failing Scenario
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#decorator-to-rescue")" Match="NavLinkMatch.All">
+                    Decorator to Rescue
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#advantages")" Match="NavLinkMatch.All">
+                    Advantages
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
+                    Summary
+                </NavLink>
+            </li>
+        </ol>
+
+        <h3 id="introduction" class="[ font-semibold text-lg ]">Introduction</h3>
+
+        <p>
+            I'm a big fan of using <ContentHighlight>design patterns</ContentHighlight>, especially when combining them to achieve significant benefits. 
+            One powerful example is the <ContentHighlight>Caching</ContentHighlight> where we can use <ContentHighlight>Proxy/Decorator</ContentHighlight> 
+            patterns in web applications.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="use-case" class="[ font-semibold text-lg ]">Use Case</h3>
+
+        <p>
+            Recently as of writing this, my team was working in a project where we need to do performance testing to make sure our application supports 3x peak 
+            load. In one of the priority use-case, we were not able to achieve this target. After doing some analysis, we found that we are getting 
+            <ContentHighlight>rate limit exceeded error</ContentHighlight> from one of the third party API. So we decided to implement 
+            <ContentHighlight>caching</ContentHighlight> to avoid this issue.
+        </p>
+
+        <p>
+            The same pattern can be applied to <ContentHighlight>repositories</ContentHighlight> to <ContentHighlight>cache</ContentHighlight> the data from the 
+            database. This will help to improve the <ContentHighlight>performance</ContentHighlight> of the application.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="failing-scenario" class="[ font-semibold text-lg ]">Failing Scenario</h3>
+
+        <p>
+            Let's say we have a <ContentHighlight>WeatherForecastController</ContentHighlight> which is calling a third party API to get the weather forecast 
+            details. The third party API has a rate limit of 10 requests per minute. If we exceed this limit, we will get a rate limit exceeded error.
+        </p>
+
+        <p>
+            Here is the code sample of the <ContentHighlight>WeatherForecastController</ContentHighlight>.
+        </p>
+
+        <GithubGistSnippet Title="Web API without Caching" UserId="fingers10" FileName="e1c5de0214eaa59c170734e71135ab79"></GithubGistSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+        
+        <p>
+            The above snippet is pretty straight forward. We are calling the third party API using service implemented using 
+            <ContentHighlight>IWeatherService interface</ContentHighlight> as shown below.
+        </p>
+
+        <GithubGistSnippet Title="Normal Weather Service" UserId="fingers10" FileName="c4a95da8feee8a50e6aeb8e9d6c55dfd"></GithubGistSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+        
+        <p>
+            In the above code we are going to make external API call to fetch weather details. I'm not going to get into how it was implemented as that is not 
+            the focus of this article.
+        </p>
+
+        <p>
+            Now the above service needs to be registered in the <ContentHighlight>Program.cs</ContentHighlight> file as shown below.
+        </p>
+
+        <GithubGistSnippet Title="Registering Weather Service" UserId="fingers10" FileName="0933793bda9860434cfa940b8d969320"></GithubGistSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <p>
+            Now when you run the application and hit the <ContentHighlight>WeatherForecast</ContentHighlight> endpoint, you will get the response. And this will 
+            work fine until you hit the rate limit of the third party API.
+        </p>
+
+        <h3 id="decorator-to-rescue" class="[ font-semibold text-lg ]">Decorator to Rescue</h3>
+
+        <p>
+            The <ContentHighlight>Decorator</ContentHighlight> pattern allows us to add <ContentHighlight>caching</ContentHighlight> without modifying existing 
+            code. We use the Decorator pattern to wrap the existing <ContentHighlight>WeatherService</ContentHighlight> instance with caching functionality.
+        </p>
+
+        <GithubGistSnippet Title="Decorating Weather Service" UserId="fingers10" FileName="822743c92225cf0d5bee9cdc35f2f495"></GithubGistSnippet>
+
+        <p>
+            In the above code, we are creating a <ContentHighlight>new class CachedWeatherService</ContentHighlight> which implements the 
+            <ContentHighlight>IWeatherService interface</ContentHighlight>. In the <ContentHighlight>constructor</ContentHighlight>, we are injecting the existing 
+            <ContentHighlight>WeatherService</ContentHighlight> instance and <ContentHighlight>IMemoryCache</ContentHighlight> instance.
+        </p>
+
+        <p>
+            Now the key part is the <ContentHighlight>registration</ContentHighlight> of these services. We now need to apply decorator in 
+            the <ContentHighlight>Program.cs</ContentHighlight> file while registering the services as shown below.
+        </p>
+
+        <GithubGistSnippet Title="Decorating and Registering Weather Service" UserId="fingers10" FileName="44d56976c6547a89ac3697fa91a3a379"></GithubGistSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <p>
+            Now when you run the application and hit the <ContentHighlight>WeatherForecast</ContentHighlight> endpoint, you will get the response. And this will 
+            work fine even if you hit the rate limit of the third party API. The reason is that we are <ContentHighlight>caching</ContentHighlight> the response 
+            for 30 minute and if the same request comes within 30 minute, we will return the cached response instead of making the external API call.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="advantages" class="[ font-semibold text-lg ]">Advantages</h3>
+
+        <p>
+            The advantages of using this approach are:
+        </p>
+
+        <ul class="[ list-disc ] [ ml-4 ]">
+            <li>
+                Add caching <ContentHighlight>without modifying existing code</ContentHighlight>. This is very useful when we are working in a
+                <ContentHighlight>legacy code</ContentHighlight> base where we don't want to modify the existing code. We can just add the caching 
+                functionality using this pattern.
+            </li>
+            <li>
+                We can add <ContentHighlight>multiple decorators</ContentHighlight> to add multiple functionalities. For example, we can add logging, caching, 
+                and other functionalities without modifying the existing code.
+            </li>
+            <li>
+                Actual service <ContentHighlight>will not have unnecessary dependencies</ContentHighlight>. For example, in the above code, 
+                the <ContentHighlight>WeatherService</ContentHighlight> is not dependent on <ContentHighlight>IMemoryCache</ContentHighlight>.
+            </li>
+            <li>
+                We can easily <ContentHighlight>unit test the service</ContentHighlight> without any unwanted dependencies.
+            </li>
+        </ul>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="cache-duration-considerations" class="[ font-semibold text-lg ]">Cache Duration Considerations</h3>
+
+        <p>
+            Adjusting <ContentHighlight>cache duration</ContentHighlight> is crucial. For high-throughput APIs, start with the shortest duration and 
+            increase only if necessary. Finding the right balance ensures optimal database load and API performance characteristics for your application.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="summary" class="[ font-semibold text-lg ]">Summary</h3>
+
+        <p>
+            In this article, we learnt about how to implement <ContentHighlight>caching</ContentHighlight> using <ContentHighlight>decorator</ContentHighlight> 
+            pattern in ASP.NET Web API. We understood the benefits of using this approach and how it can help us to improve the 
+            <ContentHighlight>maintainability</ContentHighlight>, <ContentHighlight>testability</ContentHighlight> and 
+            <ContentHighlight>performance</ContentHighlight> of the application. I love to practice and implement what I learn like this. Thank you 
+            for reading. Happy Coding!
+        </p>
+
+        <p class="[ font-bold ] [ p-5 ] [ flex items-center justify-center ]">
+            <a href="https://whatsapp.com/channel/0029VaAGMV2LtOj5S5MHd23h" target="_blank">
+                <span>To learn more interesting things about .NET in a simple way, 👉🏼 Click here to Join I ❤️ .NET </span>
+                <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-brand-whatsapp ] [ fill-green-500 ] [ inline ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                    <path d="M3 21l1.65 -3.8a9 9 0 1 1 3.4 2.9l-5.05 .9"></path>
+                    <path d="M9 10a.5 .5 0 0 0 1 0v-1a.5 .5 0 0 0 -1 0v1a5 5 0 0 0 5 5h1a.5 .5 0 0 0 0 -1h-1a.5 .5 0 0 0 0 1"></path>
+                </svg>
+                <span>WhatsApp Channel for free to get 🔔 notified about new articles and other updates.</span>
+            </a>
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+    </ContentBody>
+</Content>
+
+@code {
+    private string Title = "Implementing Caching using Decorator Pattern in ASP.NET WEB API";
+    private string Description = "In this post I will teach how to implement caching using decorator pattern in ASP.NET Web API. All with live working demo.";
+    private DateTime CreatedOn = new DateTime(2024, 1, 14, 22, 30, 0);
+    private DateTime ModifiedOn = new DateTime(2024, 1, 14, 22, 30, 0);
+    private string Slug = "implementing-caching-using-decorator-pattern-in-asp-net-webapi";
+    private string PosterPath = "Blogs/WebAPI";
+    private string Channel = "webapi";
+    private string ContentType = "blogs";
+    private ushort TotalContents => (ushort)tableOfContents.Contents.Count(content => content.Type.Equals("WebAPI", StringComparison.CurrentCultureIgnoreCase));
+    private List<string> Keywords = new(2) { "Caching", "Decorator" };
+}
