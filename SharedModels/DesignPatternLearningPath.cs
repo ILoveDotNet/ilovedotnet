@@ -71,8 +71,8 @@ public class DesignPatternLearningPath
                 ContentUrl = "blogs/creational-design-pattern-builder",
                 IconUrl = "image/icons/design-pattern.webp",
                 Type = "Design-Pattern",
-                CreatedOn = new DateTime(2024, 1, 27, 22, 30, 0),
-                ModifiedOn = new DateTime(2024, 1, 27, 22, 30, 0)
+                CreatedOn = new DateTime(2024, 1, 28, 22, 30, 0),
+                ModifiedOn = new DateTime(2024, 1, 28, 22, 30, 0)
             },
         };
     }
