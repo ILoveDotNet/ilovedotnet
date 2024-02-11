@@ -3,7 +3,7 @@ namespace DesignPatternDemoComponents.Builder;
 // Director
 public class Garage
 {
-    private ICarBuilder _builder;
+    private ICarBuilder? _builder;
 
     public void Construct(ICarBuilder builder)
     {
