@@ -60,3 +60,6 @@ As an open-source project without funding, I cannot afford advertising I ❤️ 
 4. A live working demo would be preferred in all content.
 5. Try to keep content simple and short.
 6. Any ideas to improve content are welcome.
+
+# Star History
+[![Star History Chart](https://api.star-history.com/svg?repos=ILoveDotNet/ilovedotnet&type=Date)](https://star-history.com/#ILoveDotNet/ilovedotnet&Date)
