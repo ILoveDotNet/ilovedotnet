@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Components.Routing;
 using Microsoft.JSInterop;
 
-namespace Web.Core;
+namespace SharedComponents;
 
 public class FragmentNavigationBase : ComponentBase, IAsyncDisposable
 {

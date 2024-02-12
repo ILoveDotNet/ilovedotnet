@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
+namespace SharedComponents;
+
 public static class Extensions
 {
     public static ValueTask NavigateToFragmentAsync(this NavigationManager navigationManager, IJSObjectReference? module)
