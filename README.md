@@ -4,6 +4,10 @@ This is a .NET knowledge sharing platform with live demos crafted by developers 
 
 ![GitHub Banner](https://github.com/ILoveDotNet/ilovedotnet/assets/43729469/6503d56d-7d69-4bd1-9b47-c27cd808bd2e)
 
+# Announcement
+
+This is knowledge sharing platform maintained by [Abdul Rahman](https://linkedin.com/in/thebhai). I document and write each and every piece of my knowledge in dotnet development which I gained over a decade working in multiple complex projects. Mastering the contents in this blog will transform anyone from zero to hero in dotnet. All you need to do is to invest your time.
+
 # Sponsors
 If you want to support my project and help me grow it, you can [become a sponsor on GitHub](https://github.com/sponsors/fingers10) or just [donate on PayPal](https://www.paypal.com/paypalme/arsmtb) and your logo will show up here with a link to your website :)
 
