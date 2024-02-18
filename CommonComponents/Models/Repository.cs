@@ -1,8 +1,8 @@
 using System.Text.Json.Serialization;
 
-namespace Web.Models;
+namespace CommonComponents.Models;
 
-internal class Repository
+public class Repository
 {
     [JsonPropertyName("stargazers_count")]
     public int StargazersCount { get; set; }

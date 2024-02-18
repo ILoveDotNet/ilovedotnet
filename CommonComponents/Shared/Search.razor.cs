@@ -4,7 +4,7 @@ using Microsoft.JSInterop;
 using SharedModels;
 using Toolbelt.Blazor.HotKeys2;
 
-namespace Web.Shared;
+namespace CommonComponents.Shared;
 
 public class SearchBase : ComponentBase, IAsyncDisposable
 {

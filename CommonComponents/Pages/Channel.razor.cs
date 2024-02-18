@@ -1,8 +1,9 @@
 ﻿using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Configuration;
 using SharedModels;
 using System.Globalization;
 
-namespace Web.Pages;
+namespace CommonComponents.Pages;
 
 public class ChannelBase : ComponentBase
 {

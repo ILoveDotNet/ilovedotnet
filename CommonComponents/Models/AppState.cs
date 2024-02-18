@@ -1,6 +1,6 @@
-﻿namespace Web.Models;
+﻿namespace CommonComponents.Models;
 
-internal class AppState
+public class AppState
 {
     public bool ShowNavigation { get; private set; } = true;
 

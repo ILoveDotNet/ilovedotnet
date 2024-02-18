@@ -1,16 +1,11 @@
 using System.Text.Json;
-using Web.Models;
+using CommonComponents.Models;
 
-namespace Web.Services;
+namespace CommonComponents.Services;
 
-internal class GitHubService
+public class GitHubService(HttpClient httpClient)
 {
-    private readonly HttpClient _httpClient;
-
-    public GitHubService(HttpClient httpClient)
-    {
-        _httpClient = httpClient;
-    }
+    private readonly HttpClient _httpClient = httpClient;
 
     public async Task<Repository> GetRepositoryAsync(string owner, string name, CancellationToken cancellationToken = default)
     {
