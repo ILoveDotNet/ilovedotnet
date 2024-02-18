@@ -2,7 +2,7 @@
 using Microsoft.JSInterop;
 using SharedModels;
 
-namespace Web.Shared;
+namespace CommonComponents.Shared;
 
 public class ThemeBase : ComponentBase, IAsyncDisposable
 {

@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components;
 
-namespace Web.Core;
+namespace CommonComponents.Core;
 
 public class ThumbnailBase : ComponentBase
 {
