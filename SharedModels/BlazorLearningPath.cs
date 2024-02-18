@@ -227,8 +227,8 @@ public class BlazorLearningPath
                 ContentUrl = "blogs/blazor-wasm-dynamic-component",
                 IconUrl = "image/icons/blazor.webp",
                 Type = "Blazor",
-                CreatedOn = new DateTime(2022, 7, 3, 22, 30, 0),
-                ModifiedOn = new DateTime(2022, 7, 3, 22, 30, 0)
+                CreatedOn = new DateTime(2024, 2, 18, 22, 30, 0),
+                ModifiedOn = new DateTime(2024, 2, 18, 22, 30, 0)
             },
             new ContentMetaData
             {
