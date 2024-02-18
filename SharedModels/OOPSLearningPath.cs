@@ -17,7 +17,7 @@ public class OOPSLearningPath
                 PosterUrl = "_content/OOPSDemoComponents/image/blogs/oops/oops-encapsulation.webp",
                 ThumbnailUrl = "_content/OOPSDemoComponents/image/blogs/oops/oops-encapsulation.webp",
                 ContentUrl = "blogs/oops-encapsulation",
-                IconUrl = "image/icons/oops.webp",
+                IconUrl = "_content/CommonComponents/image/icons/oops.webp",
                 Type = "OOPS",
                 CreatedOn = new DateTime(2022, 5, 1, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 5, 1, 22, 30, 0)
@@ -30,7 +30,7 @@ public class OOPSLearningPath
                 PosterUrl = "_content/OOPSDemoComponents/image/blogs/oops/oops-abstraction.webp",
                 ThumbnailUrl = "_content/OOPSDemoComponents/image/blogs/oops/oops-abstraction.webp",
                 ContentUrl = "blogs/oops-abstraction",
-                IconUrl = "image/icons/oops.webp",
+                IconUrl = "_content/CommonComponents/image/icons/oops.webp",
                 Type = "OOPS",
                 CreatedOn = new DateTime(2022, 5, 15, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 5, 15, 22, 30, 0)
