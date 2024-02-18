@@ -8,7 +8,7 @@ public class OthersTests
     {
         // Arrange
         using var ctx = new TestContext();
-        var cut = ctx.RenderComponent<Web.Shared.Others>();
+        var cut = ctx.RenderComponent<CommonComponents.Shared.Others>();
 
         // Act
         cut.Find("button").Click();
@@ -23,7 +23,7 @@ public class OthersTests
     {
         // Arrange
         using var ctx = new TestContext();
-        var cut = ctx.RenderComponent<Web.Shared.Others>();
+        var cut = ctx.RenderComponent<CommonComponents.Shared.Others>();
 
         // Act
         cut.Find("button").Click();

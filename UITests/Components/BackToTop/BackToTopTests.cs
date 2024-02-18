@@ -13,7 +13,7 @@ public class BackToTopTests
         using var ctx = new TestContext();
         ctx.JSInterop.SetupModule("./js/scrollto.js");
         var navigationManager = ctx.Services.GetRequiredService<FakeNavigationManager>();
-        var cut = ctx.RenderComponent<Web.Shared.BackToTop>();
+        var cut = ctx.RenderComponent<CommonComponents.Shared.BackToTop>();
 
         // Act
         cut.Find("button").Click();

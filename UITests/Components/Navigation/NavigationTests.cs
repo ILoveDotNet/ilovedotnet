@@ -10,7 +10,7 @@ public class NavigationTests
         using var ctx = new TestContext();
 
         // Act
-        var cut = ctx.RenderComponent<Web.Shared.Navigation>();
+        var cut = ctx.RenderComponent<CommonComponents.Shared.Navigation>();
 
         // Assert
         cut.MarkupMatches("""
