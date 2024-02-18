@@ -1,4 +1,6 @@
 using Blazor.Analytics;
+using CommonComponents.Models;
+using CommonComponents.Services;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.AspNetCore.Components.WebAssembly.Services;
@@ -10,8 +12,6 @@ using SharedComponents;
 using SharedModels;
 using Toolbelt.Blazor.Extensions.DependencyInjection;
 using Web;
-using Web.Models;
-using Web.Services;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
@@ -41,12 +41,12 @@ await builder.Build().RunAsync();
 
 static void ConfigureServices(IServiceCollection services, string baseAddress)
 {
-    services.AddTransient<CustomHeaderMessageHandlerDemo>(sp => new (new HttpClientHandler()));
+    services.AddTransient<CustomHeaderMessageHandlerDemo>(sp => new(new HttpClientHandler()));
 
-    services.AddScoped(sp => 
+    services.AddScoped(sp =>
     {
         var httpClient = new HttpClient(sp.GetRequiredService<CustomHeaderMessageHandlerDemo>()) { BaseAddress = new Uri(baseAddress) };
-        
+
         return httpClient;
     });
 
