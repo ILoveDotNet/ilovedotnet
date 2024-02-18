@@ -17,7 +17,7 @@ public class ThemeBase : ComponentBase, IAsyncDisposable
     {
         if (firstRender)
         {
-            module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/displaymode.js");
+            module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/CommonComponents/js/displaymode.js");
 
             DisplayMode = Enum.TryParse(typeof(DisplayMode), await module.InvokeAsync<string>("getDisplayMode"), true, out var displayMode)
                           ? (DisplayMode)displayMode!

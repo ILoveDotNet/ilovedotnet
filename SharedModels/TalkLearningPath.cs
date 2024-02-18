@@ -17,7 +17,7 @@ public class TalkLearningPath
                 PosterUrl = "image/talks/blazor-spa-from-aspnet-family.webp",
                 ThumbnailUrl = "image/talks/blazor-spa-from-aspnet-family.webp",
                 ContentUrl = "talks/blazor-spa-from-aspnet-family",
-                IconUrl = "image/icons/talk.webp",
+                IconUrl = "_content/CommonComponents/image/icons/talk.webp",
                 Type = "Talk",
                 CreatedOn = new DateTime(2022, 3, 13, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 3, 13, 22, 30, 0)

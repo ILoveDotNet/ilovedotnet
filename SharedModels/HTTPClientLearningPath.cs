@@ -17,7 +17,7 @@ public class HTTPClientLearningPath
                 PosterUrl = "_content/HTTPClientDemoComponents/image/blogs/http-client/improving-performance-and-memory-use-while-accessing-apis-using-http-client-in-dotnet.webp",
                 ThumbnailUrl = "_content/HTTPClientDemoComponents/image/blogs/http-client/improving-performance-and-memory-use-while-accessing-apis-using-http-client-in-dotnet.webp",
                 ContentUrl = "blogs/improving-performance-and-memory-use-while-accessing-apis-using-http-client-in-dotnet",
-                IconUrl = "image/icons/http-client.webp",
+                IconUrl = "_content/CommonComponents/image/icons/http-client.webp",
                 Type = "HTTP-Client",
                 CreatedOn = new DateTime(2023, 8, 20, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 8, 20, 22, 30, 0)
@@ -30,7 +30,7 @@ public class HTTPClientLearningPath
                 PosterUrl = "_content/HTTPClientDemoComponents/image/blogs/http-client/free-up-resources-with-cancellation-while-accessing-apis-using-http-client-in-dotnet.webp",
                 ThumbnailUrl = "_content/HTTPClientDemoComponents/image/blogs/http-client/free-up-resources-with-cancellation-while-accessing-apis-using-http-client-in-dotnet.webp",
                 ContentUrl = "blogs/free-up-resources-with-cancellation-while-accessing-apis-using-http-client-in-dotnet",
-                IconUrl = "image/icons/http-client.webp",
+                IconUrl = "_content/CommonComponents/image/icons/http-client.webp",
                 Type = "HTTP-Client",
                 CreatedOn = new DateTime(2023, 8, 27, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 8, 27, 22, 30, 0)
@@ -43,7 +43,7 @@ public class HTTPClientLearningPath
                 PosterUrl = "_content/HTTPClientDemoComponents/image/blogs/http-client/save-bandwidth-with-compression-when-sending-and-reading-data-using-http-client-in-dotnet.webp",
                 ThumbnailUrl = "_content/HTTPClientDemoComponents/image/blogs/http-client/save-bandwidth-with-compression-when-sending-and-reading-data-using-http-client-in-dotnet.webp",
                 ContentUrl = "blogs/save-bandwidth-with-compression-when-sending-and-reading-data-using-http-client-in-dotnet",
-                IconUrl = "image/icons/http-client.webp",
+                IconUrl = "_content/CommonComponents/image/icons/http-client.webp",
                 Type = "HTTP-Client",
                 CreatedOn = new DateTime(2023, 9, 3, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 9, 3, 22, 30, 0)
@@ -56,7 +56,7 @@ public class HTTPClientLearningPath
                 PosterUrl = "_content/HTTPClientDemoComponents/image/blogs/http-client/working-with-api-that-supports-remote-streaming-using-http-client-in-dotnet.webp",
                 ThumbnailUrl = "_content/HTTPClientDemoComponents/image/blogs/http-client/working-with-api-that-supports-remote-streaming-using-http-client-in-dotnet.webp",
                 ContentUrl = "blogs/working-with-api-that-supports-remote-streaming-using-http-client-in-dotnet",
-                IconUrl = "image/icons/http-client.webp",
+                IconUrl = "_content/CommonComponents/image/icons/http-client.webp",
                 Type = "HTTP-Client",
                 CreatedOn = new DateTime(2023, 9, 10, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 9, 10, 22, 30, 0)
@@ -69,7 +69,7 @@ public class HTTPClientLearningPath
                 PosterUrl = "_content/HTTPClientDemoComponents/image/blogs/http-client/extending-http-client-with-custom-http-message-handlers-in-dotnet.webp",
                 ThumbnailUrl = "_content/HTTPClientDemoComponents/image/blogs/http-client/extending-http-client-with-custom-http-message-handlers-in-dotnet.webp",
                 ContentUrl = "blogs/extending-http-client-with-custom-http-message-handlers-in-dotnet",
-                IconUrl = "image/icons/http-client.webp",
+                IconUrl = "_content/CommonComponents/image/icons/http-client.webp",
                 Type = "HTTP-Client",
                 CreatedOn = new DateTime(2023, 9, 17, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 9, 17, 22, 30, 0)
@@ -82,7 +82,7 @@ public class HTTPClientLearningPath
                 PosterUrl = "_content/HTTPClientDemoComponents/image/blogs/http-client/unit-testing-http-client-in-dotnet.webp",
                 ThumbnailUrl = "_content/HTTPClientDemoComponents/image/blogs/http-client/unit-testing-http-client-in-dotnet.webp",
                 ContentUrl = "blogs/unit-testing-http-client-in-dotnet",
-                IconUrl = "image/icons/http-client.webp",
+                IconUrl = "_content/CommonComponents/image/icons/http-client.webp",
                 Type = "HTTP-Client",
                 CreatedOn = new DateTime(2023, 9, 24, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 9, 24, 22, 30, 0)

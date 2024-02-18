@@ -17,7 +17,7 @@ public class PythonLearningPath
                 PosterUrl = "_content/PythonDemoComponents/image/blogs/python/python-dynamic-interop-with-dotnet.webp",
                 ThumbnailUrl = "_content/PythonDemoComponents/image/blogs/python/python-dynamic-interop-with-dotnet.webp",
                 ContentUrl = "blogs/python-dynamic-interop-with-dotnet",
-                IconUrl = "image/icons/python.webp",
+                IconUrl = "_content/CommonComponents/image/icons/python.webp",
                 Type = "Python",
                 CreatedOn = new DateTime(2022, 9, 11, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 9, 11, 22, 30, 0)

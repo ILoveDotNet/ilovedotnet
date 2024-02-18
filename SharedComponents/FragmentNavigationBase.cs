@@ -20,7 +20,7 @@ public class FragmentNavigationBase : ComponentBase, IAsyncDisposable
     {
         if (firstRender)
         {
-            module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/scrollto.js");
+            module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./_content/CommonComponents/js/scrollto.js");
 
             await NavigationManager.NavigateToFragmentAsync(module);
         }

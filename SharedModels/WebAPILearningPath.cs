@@ -17,7 +17,7 @@ public class WebAPILearningPath
                 PosterUrl = "_content/WebAPIDemoComponents/image/blogs/webapi/webapi-importance-of-status-code.webp",
                 ThumbnailUrl = "_content/WebAPIDemoComponents/image/blogs/webapi/webapi-importance-of-status-code.webp",
                 ContentUrl = "blogs/webapi-importance-of-status-code",
-                IconUrl = "image/icons/webapi.webp",
+                IconUrl = "_content/CommonComponents/image/icons/webapi.webp",
                 Type = "WebAPI",
                 CreatedOn = new DateTime(2022, 3, 6, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 3, 6, 22, 30, 0)
@@ -30,7 +30,7 @@ public class WebAPILearningPath
                 PosterUrl = "_content/WebAPIDemoComponents/image/blogs/webapi/profiling-webapi-with-mini-profiler.webp",
                 ThumbnailUrl = "_content/WebAPIDemoComponents/image/blogs/webapi/profiling-webapi-with-mini-profiler.webp",
                 ContentUrl = "blogs/profiling-webapi-with-mini-profiler",
-                IconUrl = "image/icons/webapi.webp",
+                IconUrl = "_content/CommonComponents/image/icons/webapi.webp",
                 Type = "WebAPI",
                 CreatedOn = new DateTime(2022, 9, 18, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 9, 18, 22, 30, 0)
@@ -43,7 +43,7 @@ public class WebAPILearningPath
                 PosterUrl = "_content/WebAPIDemoComponents/image/blogs/webapi/unit-testing-filters-in-asp-net-webapi.webp",
                 ThumbnailUrl = "_content/WebAPIDemoComponents/image/blogs/webapi/unit-testing-filters-in-asp-net-webapi.webp",
                 ContentUrl = "blogs/unit-testing-filters-in-asp-net-webapi",
-                IconUrl = "image/icons/webapi.webp",
+                IconUrl = "_content/CommonComponents/image/icons/webapi.webp",
                 Type = "WebAPI",
                 CreatedOn = new DateTime(2023, 5, 28, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 5, 28, 22, 30, 0)
@@ -56,7 +56,7 @@ public class WebAPILearningPath
                 PosterUrl = "_content/WebAPIDemoComponents/image/blogs/webapi/unit-testing-middlewares-in-asp-net-webapi.webp",
                 ThumbnailUrl = "_content/WebAPIDemoComponents/image/blogs/webapi/unit-testing-middlewares-in-asp-net-webapi.webp",
                 ContentUrl = "blogs/unit-testing-middlewares-in-asp-net-webapi",
-                IconUrl = "image/icons/webapi.webp",
+                IconUrl = "_content/CommonComponents/image/icons/webapi.webp",
                 Type = "WebAPI",
                 CreatedOn = new DateTime(2023, 6, 4, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 6, 4, 22, 30, 0)
@@ -69,7 +69,7 @@ public class WebAPILearningPath
                 PosterUrl = "_content/WebAPIDemoComponents/image/blogs/webapi/unit-testing-service-registrations-in-asp-net-webapi.webp",
                 ThumbnailUrl = "_content/WebAPIDemoComponents/image/blogs/webapi/unit-testing-service-registrations-in-asp-net-webapi.webp",
                 ContentUrl = "blogs/unit-testing-service-registrations-in-asp-net-webapi",
-                IconUrl = "image/icons/webapi.webp",
+                IconUrl = "_content/CommonComponents/image/icons/webapi.webp",
                 Type = "WebAPI",
                 CreatedOn = new DateTime(2023, 6, 11, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 6, 11, 22, 30, 0)
@@ -82,7 +82,7 @@ public class WebAPILearningPath
                 PosterUrl = "_content/WebAPIDemoComponents/image/blogs/webapi/unit-testing-controllers-in-asp-net-webapi.webp",
                 ThumbnailUrl = "_content/WebAPIDemoComponents/image/blogs/webapi/unit-testing-controllers-in-asp-net-webapi.webp",
                 ContentUrl = "blogs/unit-testing-controllers-in-asp-net-webapi",
-                IconUrl = "image/icons/webapi.webp",
+                IconUrl = "_content/CommonComponents/image/icons/webapi.webp",
                 Type = "WebAPI",
                 CreatedOn = new DateTime(2023, 6, 18, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 6, 18, 22, 30, 0)
@@ -95,7 +95,7 @@ public class WebAPILearningPath
                 PosterUrl = "_content/WebAPIDemoComponents/image/blogs/webapi/perform-background-workloads-in-hosted-service-using-channels-in-asp-net-webapi.webp",
                 ThumbnailUrl = "_content/WebAPIDemoComponents/image/blogs/webapi/perform-background-workloads-in-hosted-service-using-channels-in-asp-net-webapi.webp",
                 ContentUrl = "blogs/perform-background-workloads-in-hosted-service-using-channels-in-asp-net-webapi",
-                IconUrl = "image/icons/webapi.webp",
+                IconUrl = "_content/CommonComponents/image/icons/webapi.webp",
                 Type = "WebAPI",
                 CreatedOn = new DateTime(2023, 7, 9, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 7, 9, 22, 30, 0)
@@ -108,7 +108,7 @@ public class WebAPILearningPath
                 PosterUrl = "_content/WebAPIDemoComponents/image/blogs/webapi/functional-testing-your-asp-net-webapi.webp",
                 ThumbnailUrl = "_content/WebAPIDemoComponents/image/blogs/webapi/functional-testing-your-asp-net-webapi.webp",
                 ContentUrl = "blogs/functional-testing-your-asp-net-webapi",
-                IconUrl = "image/icons/webapi.webp",
+                IconUrl = "_content/CommonComponents/image/icons/webapi.webp",
                 Type = "WebAPI",
                 CreatedOn = new DateTime(2023, 7, 16, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 7, 16, 22, 30, 0)
@@ -121,7 +121,7 @@ public class WebAPILearningPath
                 PosterUrl = "_content/WebAPIDemoComponents/image/blogs/webapi/faking-dependencies-in-functional-testing-in-asp-net-webapi.webp",
                 ThumbnailUrl = "_content/WebAPIDemoComponents/image/blogs/webapi/faking-dependencies-in-functional-testing-in-asp-net-webapi.webp",
                 ContentUrl = "blogs/faking-dependencies-in-functional-testing-in-asp-net-webapi",
-                IconUrl = "image/icons/webapi.webp",
+                IconUrl = "_content/CommonComponents/image/icons/webapi.webp",
                 Type = "WebAPI",
                 CreatedOn = new DateTime(2023, 7, 23, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 7, 23, 22, 30, 0)
@@ -134,7 +134,7 @@ public class WebAPILearningPath
                 PosterUrl = "_content/WebAPIDemoComponents/image/blogs/webapi/using-wiremock-net-in-functional-testing-in-asp-net-webapi.webp",
                 ThumbnailUrl = "_content/WebAPIDemoComponents/image/blogs/webapi/using-wiremock-net-in-functional-testing-in-asp-net-webapi.webp",
                 ContentUrl = "blogs/using-wiremock-net-in-functional-testing-in-asp-net-webapi",
-                IconUrl = "image/icons/webapi.webp",
+                IconUrl = "_content/CommonComponents/image/icons/webapi.webp",
                 Type = "WebAPI",
                 CreatedOn = new DateTime(2023, 7, 30, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 7, 30, 22, 30, 0)
@@ -147,7 +147,7 @@ public class WebAPILearningPath
                 PosterUrl = "_content/WebAPIDemoComponents/image/blogs/webapi/configuring-authentication-in-functional-testing-in-asp-net-webapi.webp",
                 ThumbnailUrl = "_content/WebAPIDemoComponents/image/blogs/webapi/configuring-authentication-in-functional-testing-in-asp-net-webapi.webp",
                 ContentUrl = "blogs/configuring-authentication-in-functional-testing-in-asp-net-webapi",
-                IconUrl = "image/icons/webapi.webp",
+                IconUrl = "_content/CommonComponents/image/icons/webapi.webp",
                 Type = "WebAPI",
                 CreatedOn = new DateTime(2023, 8, 6, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 8, 6, 22, 30, 0)
@@ -160,7 +160,7 @@ public class WebAPILearningPath
                 PosterUrl = "_content/WebAPIDemoComponents/image/blogs/webapi/unit-testing-hosted-services-in-asp-net-webapi.webp",
                 ThumbnailUrl = "_content/WebAPIDemoComponents/image/blogs/webapi/unit-testing-hosted-services-in-asp-net-webapi.webp",
                 ContentUrl = "blogs/unit-testing-hosted-services-in-asp-net-webapi",
-                IconUrl = "image/icons/webapi.webp",
+                IconUrl = "_content/CommonComponents/image/icons/webapi.webp",
                 Type = "WebAPI",
                 CreatedOn = new DateTime(2023, 8, 13, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 8, 13, 22, 30, 0)
@@ -173,7 +173,7 @@ public class WebAPILearningPath
                 PosterUrl = "_content/WebAPIDemoComponents/image/blogs/webapi/request-endpoint-response-repr-pattern-in-asp-net-webapi.webp",
                 ThumbnailUrl = "_content/WebAPIDemoComponents/image/blogs/webapi/request-endpoint-response-repr-pattern-in-asp-net-webapi.webp",
                 ContentUrl = "blogs/request-endpoint-response-repr-pattern-in-asp-net-webapi",
-                IconUrl = "image/icons/webapi.webp",
+                IconUrl = "_content/CommonComponents/image/icons/webapi.webp",
                 Type = "WebAPI",
                 CreatedOn = new DateTime(2023, 10, 29, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 10, 29, 22, 30, 0)
@@ -186,7 +186,7 @@ public class WebAPILearningPath
                 PosterUrl = "_content/WebAPIDemoComponents/image/blogs/webapi/fitness-test-using-net-arch-test-in-asp-net-webapi.webp",
                 ThumbnailUrl = "_content/WebAPIDemoComponents/image/blogs/webapi/fitness-test-using-net-arch-test-in-asp-net-webapi.webp",
                 ContentUrl = "blogs/fitness-test-using-net-arch-test-in-asp-net-webapi",
-                IconUrl = "image/icons/webapi.webp",
+                IconUrl = "_content/CommonComponents/image/icons/webapi.webp",
                 Type = "WebAPI",
                 CreatedOn = new DateTime(2023, 11, 5, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 11, 5, 22, 30, 0)
@@ -199,7 +199,7 @@ public class WebAPILearningPath
                 PosterUrl = "_content/WebAPIDemoComponents/image/blogs/webapi/global-exception-handling-in-asp-net-webapi.webp",
                 ThumbnailUrl = "_content/WebAPIDemoComponents/image/blogs/webapi/global-exception-handling-in-asp-net-webapi.webp",
                 ContentUrl = "blogs/global-exception-handling-in-asp-net-webapi",
-                IconUrl = "image/icons/webapi.webp",
+                IconUrl = "_content/CommonComponents/image/icons/webapi.webp",
                 Type = "WebAPI",
                 CreatedOn = new DateTime(2023, 11, 12, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 11, 12, 22, 30, 0)
@@ -212,7 +212,7 @@ public class WebAPILearningPath
                 PosterUrl = "_content/WebAPIDemoComponents/image/blogs/webapi/using-docker-test-containers-in-functional-testing-in-asp-net-webapi.webp",
                 ThumbnailUrl = "_content/WebAPIDemoComponents/image/blogs/webapi/using-docker-test-containers-in-functional-testing-in-asp-net-webapi.webp",
                 ContentUrl = "blogs/using-docker-test-containers-in-functional-testing-in-asp-net-webapi",
-                IconUrl = "image/icons/webapi.webp",
+                IconUrl = "_content/CommonComponents/image/icons/webapi.webp",
                 Type = "WebAPI",
                 CreatedOn = new DateTime(2023, 11, 19, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 11, 19, 22, 30, 0)
@@ -225,7 +225,7 @@ public class WebAPILearningPath
                 PosterUrl = "_content/WebAPIDemoComponents/image/blogs/webapi/structured-logging-with-serilog-in-asp-net-webapi.webp",
                 ThumbnailUrl = "_content/WebAPIDemoComponents/image/blogs/webapi/structured-logging-with-serilog-in-asp-net-webapi.webp",
                 ContentUrl = "blogs/structured-logging-with-serilog-in-asp-net-webapi",
-                IconUrl = "image/icons/webapi.webp",
+                IconUrl = "_content/CommonComponents/image/icons/webapi.webp",
                 Type = "WebAPI",
                 CreatedOn = new DateTime(2023, 11, 26, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 11, 26, 22, 30, 0)
@@ -238,7 +238,7 @@ public class WebAPILearningPath
                 PosterUrl = "_content/WebAPIDemoComponents/image/blogs/webapi/implementing-caching-using-decorator-pattern-in-asp-net-webapi.webp",
                 ThumbnailUrl = "_content/WebAPIDemoComponents/image/blogs/webapi/implementing-caching-using-decorator-pattern-in-asp-net-webapi.webp",
                 ContentUrl = "blogs/implementing-caching-using-decorator-pattern-in-asp-net-webapi",
-                IconUrl = "image/icons/webapi.webp",
+                IconUrl = "_content/CommonComponents/image/icons/webapi.webp",
                 Type = "WebAPI",
                 CreatedOn = new DateTime(2024, 1, 14, 22, 30, 0),
                 ModifiedOn = new DateTime(2024, 1, 14, 22, 30, 0)

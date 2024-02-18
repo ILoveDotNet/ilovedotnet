@@ -11,7 +11,7 @@ public class BackToTopTests
     {
         // Arrange
         using var ctx = new TestContext();
-        ctx.JSInterop.SetupModule("./js/scrollto.js");
+        ctx.JSInterop.SetupModule("./_content/CommonComponents/js/scrollto.js");
         var navigationManager = ctx.Services.GetRequiredService<FakeNavigationManager>();
         var cut = ctx.RenderComponent<CommonComponents.Shared.BackToTop>();
 

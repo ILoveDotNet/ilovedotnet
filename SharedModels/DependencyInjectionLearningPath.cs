@@ -17,7 +17,7 @@ public class DependencyInjectionLearningPath
                 PosterUrl = "_content/DependencyInjectionDemoComponents/image/blogs/dependency-injection/introducing-dependency-injection-in-dotnet.webp",
                 ThumbnailUrl = "_content/DependencyInjectionDemoComponents/image/blogs/dependency-injection/introducing-dependency-injection-in-dotnet.webp",
                 ContentUrl = "blogs/introducing-dependency-injection-in-dotnet",
-                IconUrl = "image/icons/dependency-injection.webp",
+                IconUrl = "_content/CommonComponents/image/icons/dependency-injection.webp",
                 Type = "Dependency-Injection",
                 CreatedOn = new DateTime(2022, 7, 24, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 7, 24, 22, 30, 0)
@@ -30,7 +30,7 @@ public class DependencyInjectionLearningPath
                 PosterUrl = "_content/DependencyInjectionDemoComponents/image/blogs/dependency-injection/dependency-injection-lifetimes-in-dotnet.webp",
                 ThumbnailUrl = "_content/DependencyInjectionDemoComponents/image/blogs/dependency-injection/dependency-injection-lifetimes-in-dotnet.webp",
                 ContentUrl = "blogs/dependency-injection-lifetimes-in-dotnet",
-                IconUrl = "image/icons/dependency-injection.webp",
+                IconUrl = "_content/CommonComponents/image/icons/dependency-injection.webp",
                 Type = "Dependency-Injection",
                 CreatedOn = new DateTime(2022, 7, 31, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 1, 15, 22, 30, 0)
