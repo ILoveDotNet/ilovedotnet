@@ -30,7 +30,7 @@ public class ChannelBase : ComponentBase
                                   .ToList();
 
 
-        Contents = channelContents.OrderByDescending(content => content.CreatedOn)
+        Contents = channelContents.OrderByDescending(content => content.ModifiedOn)
                                   .ToList();
 
         LearningPathContents = channelContents.OrderBy(content => content.Order)
