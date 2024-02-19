@@ -31,7 +31,7 @@ export function printBarcode() {
                             }`;
     iframe.contentWindow.document.head.appendChild(barCodeScript);
     var bodyScript = document.createElement("script");
-    bodyScript.innerHTML = `fetch('${window.location.origin}/_content/BlazorDemoComponents/barcode-label.css')
+    bodyScript.innerHTML = `fetch('${window.location.origin}/barcode-label.css')
 							.then(response => response.text())
 							.then(cssdata => {
 								var head = document.head || document.getElementsByTagName('head')[0],
@@ -40,7 +40,7 @@ export function printBarcode() {
 								style.type = 'text/css';
 								style.appendChild(document.createTextNode(cssdata));
                                 
-                                fetch('${window.location.origin}/_content/BlazorDemoComponents/bwip.min.js')
+                                fetch('${window.location.origin}/bwip.min.js')
 							        .then(response => response.text())
 							        .then(scriptdata => {
 								        var body = document.body || document.getElementsByTagName('body')[0],

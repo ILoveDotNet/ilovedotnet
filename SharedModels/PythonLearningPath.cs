@@ -14,10 +14,10 @@ public class PythonLearningPath
                 Order = 1,
                 Title = "Python Dynamic Interop with Dotnet",
                 Author = "Abdul Rahman",
-                PosterUrl = "_content/PythonDemoComponents/image/blogs/python/python-dynamic-interop-with-dotnet.webp",
-                ThumbnailUrl = "_content/PythonDemoComponents/image/blogs/python/python-dynamic-interop-with-dotnet.webp",
+                PosterUrl = "image/blogs/python/python-dynamic-interop-with-dotnet.webp",
+                ThumbnailUrl = "image/blogs/python/python-dynamic-interop-with-dotnet.webp",
                 ContentUrl = "blogs/python-dynamic-interop-with-dotnet",
-                IconUrl = "_content/CommonComponents/image/icons/python.webp",
+                IconUrl = "image/icons/python.webp",
                 Type = "Python",
                 CreatedOn = new DateTime(2022, 9, 11, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 9, 11, 22, 30, 0)
