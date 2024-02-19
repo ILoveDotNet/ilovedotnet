@@ -19,7 +19,7 @@ public class ReportLearningPath
                 ContentUrl = "blogs/generate-excel-report-using-closed-xml-in-dotnet",
                 IconUrl = "_content/CommonComponents/image/icons/report.webp",
                 Type = "Report",
-                CreatedOn = new DateTime(2024, 2, 11, 22, 30, 0),
+                CreatedOn = new DateTime(2023, 1, 29, 22, 30, 0),
                 ModifiedOn = new DateTime(2024, 2, 11, 22, 30, 0)
             },
             new ContentMetaData
