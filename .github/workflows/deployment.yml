@@ -48,28 +48,31 @@ jobs:
       # Check Vulnerable Nuget Packages
       - name: Checking Vulnerable Nuget Packages
         run: |
-          dotnet list package --vulnerable --include-transitive --format json 2>&1 | tee build.log
+          dotnet list package --vulnerable --include-transitive --format json 2>&1 | tee vulnerable-nuget.log
           echo "Analyze dotnet vulnerable nuget package command log output..."
           # Check for vulnerabilities in topLevelPackages and transitivePackages arrays
           # Check if the "projects" node exists in the JSON
-          if jq -e 'has("projects")' build.log >/dev/null; then
+          if jq -e 'has("projects")' vulnerable-nuget.log >/dev/null; then
               # Check if frameworks exist and contain either topLevelPackages or transitivePackages
-              if jq -e '.projects[] | select(has("frameworks") and (.frameworks[] | has("topLevelPackages") or has("transitivePackages")))' build.log >/dev/null; then
+              if jq -e '.projects[] | select(has("frameworks") and (.frameworks[] | has("topLevelPackages") or has("transitivePackages")))' vulnerable-nuget.log >/dev/null; then
                   # Check for vulnerabilities with severity "Critical" in topLevelPackages and transitivePackages arrays
                   if jq -e '.projects[] |
                              .frameworks[].topLevelPackages[]?.vulnerabilities[]? | select(.severity == "Critical") or . / 
                              .frameworks[].transitivePackages[]?.vulnerabilities[]? | select(.severity == "Critical")' 
-                             build.log >/dev/null; then
+                             vulnerable-nuget.log >/dev/null; then
+                      echo "Vulnerable Nuget Packages with severity Critical is found in vulnerable-nuget.log"
                       exit 1
                   else
                       exit 0
                   fi
               else
-                  echo "No frameworks with packages found in build.log"
+                  echo "No frameworks node is found in vulnerable-nuget.log"
+                  echo "No Vulnerable Nuget Packages with severity Critical is found in vulnerable-nuget.log"
                   exit 0
               fi
           else
-              echo "No projects found in build.log"
+              echo "No projects node is found in vulnerable-nuget.log"
+              echo "No Vulnerable Nuget Packages with severity Critical is found in vulnerable-nuget.log"
               exit 0
           fi
         
