@@ -1,0 +1,150 @@
+﻿@page "/blogs/owasp-secure-your-dotnet-app-by-scanning-for-vulnerable-nuget-dependency-in-ci-pipelines"
+@inherits FragmentNavigationBase
+@inject TableOfContents tableOfContents
+
+<Content Title=@Title
+         Description=@Description
+         CreatedOn=@CreatedOn
+         ModifiedOn=@ModifiedOn
+         Slug=@Slug
+         PosterPath=@PosterPath
+         Keywords=@Keywords
+         Channel="@Channel"
+         ContentType="@ContentType"
+         TotalContents=@TotalContents
+         Type="OWASP"
+         FileName=@nameof(ScanVulnerableNugetDependency)>
+    <ContentBody>
+        <p>
+            In this article, let's learn about scanning for <ContentHighlight>Vulnerable Nuget Dependency</ContentHighlight> to avoid malicious code in dotnet.
+        </p>
+
+        <h3 class="[ font-semibold text-lg ]">Table of Contents</h3>
+        
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
+                    Introduction
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#scanning-in-ci-pipeline")" Match="NavLinkMatch.All">
+                    Scanning in CI Pipeline
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
+                    Summary
+                </NavLink>
+            </li>
+        </ol>
+
+        <h3 id="introduction" class="[ font-semibold text-lg ]">Introduction</h3>
+
+        <p>
+            Understanding and mitigating vulnerabilities in software dependencies is crucial in modern development. While leveraging open-source libraries 
+            enhances productivity, it also introduces potential risks that necessitate robust defenses. Nuget packages are the popular way to consume external 
+            libraries in .NET applications. However, these packages can contain vulnerabilities that can be exploited by attackers.
+        </p>
+
+        <p>
+            This can be manually checked by developers, but it is not a scalable solution. It is also not feasible to keep track of all the dependencies and 
+            their versions. Starting .NET 8, there is a support for 
+            <NavLink class="[ underline ]" href="https://learn.microsoft.com/en-in/nuget/concepts/auditing-packages" target="_blank">auditing packages</NavLink>. 
+            But as of writing this, NuGet Audit is available starting from NuGet 6.8, the .NET 8 SDK (8.0.100), and Visual Studio 2022 17.8. But that doesn't solve 
+            the problem. I was trying for a solution independent of IDE. This is where automated tools come into play. In this article, we will learn how to scan 
+            for vulnerable Nuget dependencies in CI pipelines.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="scanning-in-ci-pipeline" class="[ font-semibold text-lg ]">Scanning in CI Pipeline</h3>
+
+        <p>
+            You can now list any known vulnerabilities in your dependencies within your projects & solutions with the 
+            <ContentHighlight>dotnet list package --vulnerable</ContentHighlight> command. You will see any vulnerabilities within your top-level packages. 
+            You will be able to understand the version resolved, the severity of the advisory, and a link to the advisory for you to view.
+            If you are interested in seeing vulnerabilities within your transitive packages, you can use the <ContentHighlight>--include-transitive</ContentHighlight> 
+            parameter to see those.
+        </p>
+
+        <p>
+            We can add <ContentHighlight>--format json</ContentHighlight> parameter to get the output in json format. The 
+            <NavLink class="[ underline ]" href="https://github.com/NuGet/Home/wiki/%5BSpec%5D-Machine-readable-output-for-dotnet-list-package#-dotnet-list-package---vulnerable---format-json" target="_blank">specification</NavLink> 
+            of the json can be found here. This can be used to parse the output and take necessary actions. So all we need to do is to run this command in our CI 
+            pipeline and fail the build if there are any vulnerabilities.
+        </p>
+
+        <GithubGistSnippet Title="UNIX command to check for vulnerable nuget package and fail build" UserId="fingers10" FileName="957bfdef041e4fa9adf9caeda8b1c926"></GithubGistSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+        
+        <p>
+            The above code dumps the <ContentHighlight>JSON</ContentHighlight> output to <ContentHighlight>list.json</ContentHighlight> file and 
+            <ContentHighlight>recursively</ContentHighlight> checks for <ContentHighlight>severity</ContentHighlight> key under projects and returns 
+            <ContentHighlight>non-zero exit code</ContentHighlight> if there are any severity KV pairs. If there are no severity keys then just print the 
+            messgae and continue the build.
+        </p>
+
+        <figure>
+            <img src="./image/blogs/owasp/owasp-secure-your-dotnet-app-by-scanning-for-vulnerable-nuget-dependency-in-ci-pipelines/Continue build when no vulnerability is found.png" alt="Continue build when no vulnerability is found" class="[ w-full ]" />
+        </figure>
+
+        <p>
+            Thats it. This should work as expected. But this will fail even if a <ContentHighlight>Low</ContentHighlight> severity vulnerability is found. 
+            You can adjust this solution to fail your workflow for some specific severity level e.g. <ContentHighlight>Critical</ContentHighlight> or 
+            <ContentHighlight>High</ContentHighlight> by updating jq filter i.e. <ContentHighlight>select(test("Critical|High"))</ContentHighlight>. 
+            This is how it is done in the <NavLink class="[ underline ]" href="https://github.com/ILoveDotNet/ilovedotnet/blob/main/.github/workflows/deployment.yml" target="_blank">ilovedotnet</NavLink> 
+            CI pipeline.
+        </p>
+
+        <GithubGistSnippet Title="UNIX command to check for vulnerable nuget package and fail build for selected severity" UserId="fingers10" FileName="1c90ab49654251424b02d6bd5b27d035"></GithubGistSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <figure>
+            <img src="./image/blogs/owasp/owasp-secure-your-dotnet-app-by-scanning-for-vulnerable-nuget-dependency-in-ci-pipelines/Fail build for vulnerabilities with selected severity.png" alt="Fail build for vulnerabilities with selected severity" class="[ w-full ]" />
+        </figure>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="summary" class="[ font-semibold text-lg ]">Summary</h3>
+
+        <p>
+            In this article, we have learned about the <ContentHighlight>new tools</ContentHighlight> that <ContentHighlight>NuGet</ContentHighlight> provides to 
+            help you <ContentHighlight>scan</ContentHighlight> your NuGet packages for <ContentHighlight>security vulnerabilities</ContentHighlight>. 
+            These tools should help you <ContentHighlight>secure</ContentHighlight> your software supply chain and take action today. We also leveraged this tool 
+            and added functionality to <ContentHighlight>break the build</ContentHighlight> if any vulnerability is found. This is a great way to ensure that your 
+            software is secure and that you are not introducing any new vulnerabilities into your software. If you're interested in the best practices that you can 
+            check out the <NavLink class="[ underline ]" href="https://learn.microsoft.com/en-in/nuget/concepts/security-best-practices" target="_blank">Microsoft documentation</NavLink> 
+            on best practices for a secure software supply chain.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <p class="[ font-bold ] [ p-5 ] [ flex items-center justify-center ]">
+            <a href="https://whatsapp.com/channel/0029VaAGMV2LtOj5S5MHd23h" target="_blank">
+                <span>To learn more interesting things about .NET in a simple way, 👉🏼 Click here to Join I ❤️ .NET </span>
+                <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-brand-whatsapp ] [ fill-green-500 ] [ inline ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                    <path d="M3 21l1.65 -3.8a9 9 0 1 1 3.4 2.9l-5.05 .9"></path>
+                    <path d="M9 10a.5 .5 0 0 0 1 0v-1a.5 .5 0 0 0 -1 0v1a5 5 0 0 0 5 5h1a.5 .5 0 0 0 0 -1h-1a.5 .5 0 0 0 0 1"></path>
+                </svg>
+                <span>WhatsApp Channel for free to get 🔔 notified about new articles and other updates.</span>
+            </a>
+        </p>
+    </ContentBody>
+</Content>
+
+@code {
+    private string Title = "OWASP - Secure your dotnet app by scanning for vulnerable nuget dependencies in CI pipelines";
+    private string Description = "In this post I will teach you one of the owasp top 10 requirement to verify code to avoid malicious dependencies. All with live working demo.";
+    private DateTime CreatedOn = new DateTime(2024, 2, 25, 22, 30, 0);
+    private DateTime ModifiedOn = new DateTime(2024, 2, 25, 22, 30, 0);
+    private string Slug = "owasp-secure-your-dotnet-app-by-scanning-for-vulnerable-nuget-dependency-in-ci-pipelines";
+    private string PosterPath = "Blogs/OWASP";
+    private string Channel = "owasp";
+    private string ContentType = "blogs";
+    private ushort TotalContents => (ushort)tableOfContents.Contents.Count(content => content.Type.Equals("OWASP", StringComparison.CurrentCultureIgnoreCase));
+    private List<string> Keywords = new(4) { "Security", "Dependency Check", "Nuget Vulnerability", "Malicious Code" };
+}
