@@ -47,7 +47,13 @@ jobs:
         
       # Check Vulnerable Nuget Packages
       - name: Checking Vulnerable Nuget Packages
-        run: dotnet list package --vulnerable --include-transitive
+        run: |
+          dotnet list package --vulnerable --include-transitive 2>&1 | tee build.log
+          echo "Analyze dotnet vulnerable nuget package command log output..."
+          if grep -q -i "critical\|high\|moderate\|low" build.log; 
+            then echo "Vulnerabilities found" && exit 1; 
+            else echo "No vulnerabilities found"; 
+          fi
         
       # Check Outdated Nuget Packages
       - name: Checking Outdated Nuget Packages
