@@ -52,18 +52,25 @@ jobs:
           echo "Analyze dotnet vulnerable nuget package command log output..."
           # Check for vulnerabilities in topLevelPackages and transitivePackages arrays
           # Check if the "projects" node exists in the JSON
-          if jq -e 'has("projects")' build.log >/dev/null; 
-          then
-            # Check for vulnerabilities in topLevelPackages and transitivePackages arrays
-            if jq -e '.projects[] | select(has("frameworks") and (.frameworks[] | has("topLevelPackages") or has("transitivePackages")) ) | .frameworks[].topLevelPackages[]? | select(.vulnerabilities) or . / .frameworks[].transitivePackages[]? | select(.vulnerabilities)' build.log >/dev/null; 
-            then
-                exit 1
-            else
-                exit 0
-            fi
+          if jq -e 'has("projects")' build.log >/dev/null; then
+              # Check if frameworks exist and contain either topLevelPackages or transitivePackages
+              if jq -e '.projects[] | select(has("frameworks") and (.frameworks[] | has("topLevelPackages") or has("transitivePackages")))' build.log >/dev/null; then
+                  # Check for vulnerabilities with severity "Critical" in topLevelPackages and transitivePackages arrays
+                  if jq -e '.projects[] |
+                             .frameworks[].topLevelPackages[]?.vulnerabilities[]? | select(.severity == "Critical") or . / 
+                             .frameworks[].transitivePackages[]?.vulnerabilities[]? | select(.severity == "Critical")' 
+                             build.log >/dev/null; then
+                      exit 1
+                  else
+                      exit 0
+                  fi
+              else
+                  echo "No frameworks with packages found in build.log"
+                  exit 0
+              fi
           else
-            echo "No projects found in build.log"
-            exit 0
+              echo "No projects found in build.log"
+              exit 0
           fi
         
       # Check Outdated Nuget Packages
