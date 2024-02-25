@@ -17,7 +17,7 @@ permissions:
   contents: write
 
 jobs:
-  build-and-test:
+  build-and-test-and-deploy:
     runs-on: ubuntu-latest
     steps:
       # Checkout the code
@@ -91,46 +91,13 @@ jobs:
       
       # Use always() to always run this step to publish test results when there are test failures
         if: ${{ always() }}
-  
-  deploy:
-    needs: build-and-test
-    runs-on: ubuntu-latest
-    if: ${{ github.actor != 'dependabot[bot]' && github.event_name != 'pull_request' }}
-    steps:
-      # Checkout the code
-      - uses: actions/checkout@v3.4.0
 
-      # Install .NET Core SDK
-      - name: Setup .NET Core
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: 8.0.x
-
-      # Install dotnet wasm buildtools workload
-      - name: Install .NET WASM Build Tools
-        run: dotnet workload install wasm-tools
-        
-      # Install Node JS
-      - name: Setup Node.js environment
-        uses: actions/setup-node@v3
-        with:
-          node-version: '20.11.1'
-      - run: npm install
-        working-directory: ./CommonComponents
-
-      # Restore Dependencies
-      - name: Restore dependencies
-        run: dotnet restore
-
-      # Build Project
-      - name: Build
-        run: dotnet build ./ILoveDotNet.sln --configuration Release --no-restore
-        
       # Publishes Blazor project to the release-folder
       - name: Publish .NET Core Project
         run: dotnet publish Web/Web.csproj -c:Release -p:GHPages=true --no-restore -o dist/Web --nologo
         
       - name: Commit wwwroot to GitHub Pages
+        if: ${{ github.actor != 'dependabot[bot]' && github.event_name != 'pull_request' }}
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           BRANCH: gh-pages
