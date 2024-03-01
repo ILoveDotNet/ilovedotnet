@@ -75,7 +75,15 @@ jobs:
         
       # Run Tests
       - name: Run Test
-        run: dotnet test --configuration Release --no-build --verbosity normal --collect:"XPlat Code Coverage"
+        run: dotnet test --configuration Release --no-build --verbosity normal --logger trx --collect:"XPlat Code Coverage"
+
+      - name: Test Reporter
+        uses: dorny/test-reporter@v1.7.0
+        if: success() || failure()
+        with:
+          name: Unit Test Report
+          path: '**/*.trx'
+          reporter: dotnet-trx
       
       # Generate Test Report
       - name: Generate Test Report
