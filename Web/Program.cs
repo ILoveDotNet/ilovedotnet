@@ -4,6 +4,7 @@ using CommonComponents.Services;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.AspNetCore.Components.WebAssembly.Services;
+using QuestPDF.Infrastructure;
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;
@@ -12,6 +13,8 @@ using SharedComponents;
 using SharedModels;
 using Toolbelt.Blazor.Extensions.DependencyInjection;
 using Web;
+
+QuestPDF.Settings.License = LicenseType.Community;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
