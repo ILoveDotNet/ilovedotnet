@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   build-and-test-and-deploy:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     steps:
       # Checkout the code
       - uses: actions/checkout@v3.4.0
@@ -29,9 +29,9 @@ jobs:
         with:
           dotnet-version: 8.0.x
           
-      # Install dotnet wasm buildtools workload
-      - name: Install .NET WASM Build Tools
-        run: dotnet workload install wasm-tools
+      # Install dotnet wasm & maui buildtools workload
+      - name: Install .NET WASM & MAUI Build Tools
+        run: dotnet workload install wasm-tools maui
 
       # Install Node JS
       - name: Setup Node.js environment
@@ -43,10 +43,11 @@ jobs:
         
       # Restore Dependencies
       - name: Restore dependencies
-        run: dotnet restore ./Web/Web.csproj
+        run: dotnet restore
         
       # Check Vulnerable Nuget Packages
       - name: Checking Vulnerable Nuget Packages
+        shell: bash
         run: |
           dotnet list package --vulnerable --include-transitive --format=json > list.json
           if jq -cre '.projects | .. | .severity? // empty | select(test("Critical|High"))' list.json; then
@@ -65,9 +66,9 @@ jobs:
       - name: Checking Deprecated Nuget Packages
         run: dotnet list package --deprecated --include-transitive --format json
         
-      # Build Web Project
-      - name: Build Web Project
-        run: dotnet build ./Web/Web.csproj --configuration Release --no-restore
+      # Build ILoveDotNet Solution
+      - name: Build ILoveDotNet Solution
+        run: dotnet build ./ILoveDotNet.sln --configuration Release --no-restore
       
       # Install dotnet report generator
       - name: Install .NET Report Generator
