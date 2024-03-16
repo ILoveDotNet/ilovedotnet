@@ -17,14 +17,14 @@ permissions:
   contents: write
 
 jobs:
-  build-and-test-and-deploy:
+  build-and-test:
     runs-on: windows-latest
     steps:
       # Checkout the code
       - uses: actions/checkout@v3.4.0
 
-      # Install .NET Core SDK
-      - name: Setup .NET Core
+      # Install .NET SDK
+      - name: Setup .NET
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: 8.0.x
@@ -66,8 +66,8 @@ jobs:
       - name: Checking Deprecated Nuget Packages
         run: dotnet list package --deprecated --include-transitive --format json
         
-      # Build Web Project
-      - name: Build Web Project
+      # Build Blazor Project
+      - name: Build Blazor Project
         run: dotnet build ./Web/Web.csproj --configuration Release --no-restore
       
       # Install dotnet report generator
@@ -103,12 +103,30 @@ jobs:
         if: ${{ always() }}
 
       # Publishes Blazor project to the release-folder
-      - name: Publish .NET Core Project
+      - name: Publish Blazor Project
         run: dotnet publish Web/Web.csproj -c:Release -p:GHPages=true --no-restore -o dist/Web --nologo
-        
+
+      # Upload Blazor Web App Artifacts
+      - name: Upload Artifacts # The project is then uploaded as an artifact named 'site'.
+        uses: actions/upload-artifact@v1
+        with:
+          name: site
+          path: dist/Web
+
+  deploy:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    steps:
+
+      # Download uploaded Blazor Web App Artifacts
+      - name: Download Artifacts 🔻 # The built project is downloaded into the 'site' folder.
+        uses: actions/download-artifact@v1
+        with:
+          name: site
+
       - name: Commit wwwroot to GitHub Pages
         if: ${{ github.actor != 'dependabot[bot]' && github.event_name != 'pull_request' }}
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           BRANCH: gh-pages
-          FOLDER: dist/Web/wwwroot
+          FOLDER: site/wwwroot
