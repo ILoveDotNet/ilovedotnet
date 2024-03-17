@@ -1,6 +1,179 @@
-﻿<Router AppAssembly="@typeof(MauiProgram).Assembly">
-    <Found Context="routeData">
-        <RouteView RouteData="@routeData" DefaultLayout="@typeof(Layout.MainLayout)" />
-        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
-    </Found>
-</Router>
+﻿@using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+@using Microsoft.AspNetCore.Components.WebAssembly.Services;
+@using System.Reflection;
+@using Microsoft.Extensions.Logging
+@implements IAsyncDisposable;
+
+<CascadingValue Value="SmallDevice">
+    <Router AppAssembly="@typeof(MauiProgram).Assembly"
+            AdditionalAssemblies="@_lazyLoadedAssemblies"
+            OnNavigateAsync="@OnNavigateAsync">
+        <Found Context="routeData">
+            <RouteView RouteData="@routeData" DefaultLayout="@typeof(CommonComponents.Shared.MainLayout)" />
+            <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+        </Found>
+        <NotFound>
+            <PageTitle>Not found</PageTitle>
+            <LayoutView Layout="@typeof(CommonComponents.Shared.MainLayout)">
+                <div class="[ fixed ] [ top-12 ] [ w-full ] [ h-full ] [ flex flex-col items-center justify-center ] [ space-y-4 ]">
+                    <img src="/image/error/error-404.webp" />
+                    <section class="[ text-4xl md:text-9xl ]">
+                        <span class="[ dark:text-white ]">I</span>
+                        <span class="animate-pulse">💔</span>
+                        <span class="[ text-indigo-600 ] [ dark:text-white ]">.NET</span>
+                    </section>
+                    <p class="[ dark:text-white ] [ text-2xl ] [ text-center ]" role="alert">Sorry, there's nothing at this address.</p>
+                </div>
+            </LayoutView>
+        </NotFound>
+    </Router>
+</CascadingValue>
+
+@code {
+    const ushort SMALLDEVICEWIDTH = 640;
+
+    private List<Assembly> _lazyLoadedAssemblies = new List<Assembly> { typeof(AppState).Assembly };
+    private ushort viewPortWidth;
+    private IJSObjectReference? module;
+    private bool SmallDevice = true;
+
+    [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
+    [Inject] private LazyAssemblyLoader AssemblyLoader { get; set; } = default!;
+    [Inject] private ILogger<App> Logger { get; set; } = default!;
+    [Inject] private AppState AppState { get; set; } = default!;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/viewport.js");
+
+            viewPortWidth = await module.InvokeAsync<ushort>("getViewPortWidth");
+
+            SmallDevice = viewPortWidth < SMALLDEVICEWIDTH;
+
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task OnNavigateAsync(NavigationContext args)
+    {
+        try
+        {
+            if (args.Path.Contains("blogs", StringComparison.OrdinalIgnoreCase))
+            {
+                HideNavigationMenu();
+
+                await AssemblyLoader.LoadAssembliesAsync(new[] { "BaseComponents.wasm" });
+
+                if (args.Path.Contains("blazor", StringComparison.OrdinalIgnoreCase))
+                {
+                    var assemblies = await AssemblyLoader.LoadAssembliesAsync(new[] { "BlazorDemoComponents.wasm" });
+                    _lazyLoadedAssemblies.AddRange(assemblies);
+                }
+
+                if (args.Path.Contains("dependency-injection", StringComparison.OrdinalIgnoreCase))
+                {
+                    var assemblies = await AssemblyLoader.LoadAssembliesAsync(new[] { "DependencyInjectionDemoComponents.wasm" });
+                    _lazyLoadedAssemblies.AddRange(assemblies);
+                }
+
+                if (args.Path.Contains("design-pattern", StringComparison.OrdinalIgnoreCase))
+                {
+                    var assemblies = await AssemblyLoader.LoadAssembliesAsync(new[] { "DesignPatternDemoComponents.wasm" });
+                    _lazyLoadedAssemblies.AddRange(assemblies);
+                }
+
+                if (args.Path.Contains("http-client", StringComparison.OrdinalIgnoreCase))
+                {
+                    var assemblies = await AssemblyLoader.LoadAssembliesAsync(new[] { "HTTPClientDemoComponents.wasm" });
+                    _lazyLoadedAssemblies.AddRange(assemblies);
+                }
+
+                if (args.Path.Contains("linq", StringComparison.OrdinalIgnoreCase))
+                {
+                    var assemblies = await AssemblyLoader.LoadAssembliesAsync(new[] { "LINQDemoComponents.wasm" });
+                    _lazyLoadedAssemblies.AddRange(assemblies);
+                }
+
+                if (args.Path.Contains("middleware", StringComparison.OrdinalIgnoreCase))
+                {
+                    var assemblies = await AssemblyLoader.LoadAssembliesAsync(new[] { "MiddlewareDemoComponents.wasm" });
+                    _lazyLoadedAssemblies.AddRange(assemblies);
+                }
+
+                if (args.Path.Contains("oops", StringComparison.OrdinalIgnoreCase))
+                {
+                    var assemblies = await AssemblyLoader.LoadAssembliesAsync(new[] { "OOPSDemoComponents.wasm" });
+                    _lazyLoadedAssemblies.AddRange(assemblies);
+                }
+
+                if (args.Path.Contains("owasp", StringComparison.OrdinalIgnoreCase))
+                {
+                    var assemblies = await AssemblyLoader.LoadAssembliesAsync(new[] { "OWASPDemoComponents.wasm" });
+                    _lazyLoadedAssemblies.AddRange(assemblies);
+                }
+
+                if (args.Path.Contains("python", StringComparison.OrdinalIgnoreCase))
+                {
+                    var assemblies = await AssemblyLoader.LoadAssembliesAsync(new[] { "PythonDemoComponents.wasm" });
+                    _lazyLoadedAssemblies.AddRange(assemblies);
+                }
+
+                if (args.Path.Contains("report", StringComparison.OrdinalIgnoreCase))
+                {
+                    var assemblies = await AssemblyLoader.LoadAssembliesAsync(new[] { "ReportDemoComponents.wasm" });
+                    _lazyLoadedAssemblies.AddRange(assemblies);
+                }
+
+                if (args.Path.Contains("solid", StringComparison.OrdinalIgnoreCase))
+                {
+                    var assemblies = await AssemblyLoader.LoadAssembliesAsync(new[] { "SOLIDDemoComponents.wasm" });
+                    _lazyLoadedAssemblies.AddRange(assemblies);
+                }
+
+                if (args.Path.Contains("tdd", StringComparison.OrdinalIgnoreCase))
+                {
+                    var assemblies = await AssemblyLoader.LoadAssembliesAsync(new[] { "TDDDemoComponents.wasm" });
+                    _lazyLoadedAssemblies.AddRange(assemblies);
+                }
+
+                if (args.Path.Contains("webapi", StringComparison.OrdinalIgnoreCase))
+                {
+                    var assemblies = await AssemblyLoader.LoadAssembliesAsync(new[] { "WebAPIDemoComponents.wasm" });
+                    _lazyLoadedAssemblies.AddRange(assemblies);
+                }
+            }
+
+            if (args.Path.Contains("talks", StringComparison.OrdinalIgnoreCase))
+            {
+                HideNavigationMenu();
+
+                await AssemblyLoader.LoadAssembliesAsync(new[] { "BaseComponents.wasm" });
+
+                var assemblies = await AssemblyLoader.LoadAssembliesAsync(new[] { "TalkDemoComponents.wasm" });
+                _lazyLoadedAssemblies.AddRange(assemblies);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError("Error: {Message}", ex.Message);
+        }
+    }
+
+    private void HideNavigationMenu()
+    {
+        if (!SmallDevice)
+        {
+            AppState.HideNavigationMenu();
+        }
+    }
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        if (module is not null)
+        {
+            await module.DisposeAsync();
+        }
+    }
+}
