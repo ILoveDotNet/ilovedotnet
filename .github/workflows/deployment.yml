@@ -17,8 +17,8 @@ permissions:
   contents: write
 
 jobs:
-  build-and-test:
-    runs-on: windows-latest
+  build-test-deploy-blazor:
+    runs-on: ubuntu-latest
     steps:
       # Checkout the code
       - name: Checkout
@@ -29,23 +29,19 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
-          
-      # Install dotnet wasm & maui buildtools workload - Not needed in windows-latest agent as it is pre installed in it
-      #- name: Install .NET WASM & MAUI Build Tools
-      #  run: dotnet workload install wasm-tools maui
+
+      # Install dotnet wasm buildtools workload
+      - name: Install .NET WASM Build Tools
+        run: dotnet workload install wasm-tools
 
       # Install Node JS
       - name: Setup Node.js environment
-      #  uses: actions/setup-node@v4 -  Not needed in windows-latest agent as it is pre installed in it
-      #  with:
-      #    node-version: '20.11.1'
-        run: npm install
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.11.1'
+      - run: npm install
         working-directory: ./CommonComponents
-        
-      # Restore Dependencies
-      - name: Restore dependencies
-        run: dotnet restore
-        
+
       # Check Vulnerable Nuget Packages
       - name: Checking Vulnerable Nuget Packages
         shell: bash
@@ -63,21 +59,21 @@ jobs:
       - name: Checking Outdated Nuget Packages
         run: dotnet list package --outdated --include-transitive --format json
         
-       # Check Deprecated Nuget Packages
+      # Check Deprecated Nuget Packages
       - name: Checking Deprecated Nuget Packages
         run: dotnet list package --deprecated --include-transitive --format json
-        
+
       # Build Blazor Project
       - name: Build Blazor Project
-        run: dotnet build ./Web/Web.csproj --configuration Release --no-restore
-      
+        run: dotnet build ./Web/Web.csproj --configuration Release
+        
       # Install dotnet report generator
       - name: Install .NET Report Generator
         run: dotnet tool install -g dotnet-reportgenerator-globaltool
         
       # Run Tests
       - name: Run Test
-        run: dotnet test --configuration Release --verbosity normal --logger trx --collect:"XPlat Code Coverage"
+        run: dotnet test ./UITests/UITests.csproj --no-restore --configuration Release --verbosity normal --logger trx --collect:"XPlat Code Coverage"
 
       # Test Reporter
       #- name: Test Reporter
@@ -98,40 +94,35 @@ jobs:
         with:
           name: ilovedotnet-test-report
           path: ./Test/Report
-          retention-days: 3
+          retention-days: 1
       
       # Use always() to always run this step to publish test results when there are test failures
         if: ${{ always() }}
 
       # Publishes Blazor project to the release-folder
       - name: Publish Blazor Project
-        run: dotnet publish Web/Web.csproj -c:Release -p:GHPages=true --no-restore -o dist/Web --nologo
+        run: dotnet publish ./Web/Web.csproj -c:Release -p:GHPages=true --no-restore -o dist/Web --nologo
 
-      # Upload Blazor Web App Artifacts
-      - name: Upload Artifacts # The project is then uploaded as an artifact named 'site'.
-        uses: actions/upload-artifact@v4
-        with:
-          name: site
-          path: dist/Web
-          retention-days: 3
-
-  deploy:
-    needs: build-and-test
-    runs-on: ubuntu-latest
-    steps:
-      # Checkout the code
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      # Download uploaded Blazor Web App Artifacts
-      - name: Download Artifacts # The built project is downloaded into the 'site' folder.
-        uses: actions/download-artifact@v4
-        with:
-          name: site
-
+      # Commit Blazor Web App to GitHub Pages
       - name: Commit wwwroot to GitHub Pages
         if: ${{ github.actor != 'dependabot[bot]' && github.event_name != 'pull_request' }}
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           BRANCH: gh-pages
-          FOLDER: wwwroot
+          FOLDER: dist/Web/wwwroot
+
+  build-test-deploy-maui:
+    runs-on: windows-latest
+    steps:
+      # Checkout the code
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Install Node JS
+      - name: Setup Node.js environment
+        run: npm install
+        working-directory: ./CommonComponents
+        
+      # Restore Dependencies
+      - name: Restore dependencies
+        run: dotnet restore
