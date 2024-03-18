@@ -46,7 +46,7 @@ public class SearchBase : ComponentBase, IAsyncDisposable
         if (firstRender)
         {
             HotKeysContext = HotKeys.CreateContext()
-                                    .Add(Key.Slash, (Func<ValueTask>)(async () => await SearchInput.FocusAsync()));
+                                    .Add(Key.Slash, () => SearchInput.FocusAsync());
             module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/search.js");
         }
     }
