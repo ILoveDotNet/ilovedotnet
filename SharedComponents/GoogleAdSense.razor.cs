@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.Extensions.DependencyInjection;
+using SharedModels;
 
 namespace SharedComponents;
 
@@ -9,7 +9,7 @@ public class GoogleAdSenseBase : ComponentBase
     protected string Id = Guid.NewGuid().ToString();
     protected RenderFragment Ad { get; set; } = default!;
 
-    [Inject] public IWebAssemblyHostEnvironment HostEnvironment { get; set; } = default!;
+    [Inject] public IHostEnvironment HostEnvironment { get; set; } = default!;
     [Inject] public GoogleAdSenseService GoogleAdSense { get; set; } = default!;
 
     [Parameter, EditorRequired] public GoogleAdSenseAdType Type { get; set; }
@@ -35,33 +35,33 @@ public class GoogleAdSenseBase : ComponentBase
                 case GoogleAdSenseAdType.InFeed:
                     b.AddMultipleAttributes(1, new List<KeyValuePair<string, object>>
                     {
-                        new KeyValuePair<string, object>("class", "adsbygoogle"),
-                        new KeyValuePair<string, object>("style", $"display:block;{Style}"),
-                        new KeyValuePair<string, object>("data-ad-format", Format.ToString().ToLower()),
-                        new KeyValuePair<string, object>("data-ad-client", GoogleAdSense.ClientId),
-                        new KeyValuePair<string, object>("data-ad-layout-key", LayoutKey),
-                        new KeyValuePair<string, object>("data-ad-slot", Slot)
+                        new("class", "adsbygoogle"),
+                        new("style", $"display:block;{Style}"),
+                        new("data-ad-format", Format.ToString().ToLower()),
+                        new("data-ad-client", GoogleAdSense.ClientId),
+                        new("data-ad-layout-key", LayoutKey),
+                        new("data-ad-slot", Slot)
                     });
                     break;
                 case GoogleAdSenseAdType.Multiplex:
                     b.AddMultipleAttributes(1, new List<KeyValuePair<string, object>>
                     {
-                        new KeyValuePair<string, object>("class", "adsbygoogle"),
-                        new KeyValuePair<string, object>("style", $"display:block;{Style}"),
-                        new KeyValuePair<string, object>("data-ad-format", Format.ToString().ToLower()),
-                        new KeyValuePair<string, object>("data-ad-client", GoogleAdSense.ClientId),
-                        new KeyValuePair<string, object>("data-ad-slot", Slot)
+                        new("class", "adsbygoogle"),
+                        new("style", $"display:block;{Style}"),
+                        new("data-ad-format", Format.ToString().ToLower()),
+                        new("data-ad-client", GoogleAdSense.ClientId),
+                        new("data-ad-slot", Slot)
                     });
                     break;
                 case GoogleAdSenseAdType.InArticle:
                     b.AddMultipleAttributes(1, new List<KeyValuePair<string, object>>
                     {
-                        new KeyValuePair<string, object>("class", "adsbygoogle"),
-                        new KeyValuePair<string, object>("style", $"display:block;{Style}"),
-                        new KeyValuePair<string, object>("data-ad-layout", "in-article"),
-                        new KeyValuePair<string, object>("data-ad-format", Format.ToString().ToLower()),
-                        new KeyValuePair<string, object>("data-ad-client", GoogleAdSense.ClientId),
-                        new KeyValuePair<string, object>("data-ad-slot", Slot)
+                        new("class", "adsbygoogle"),
+                        new("style", $"display:block;{Style}"),
+                        new("data-ad-layout", "in-article"),
+                        new("data-ad-format", Format.ToString().ToLower()),
+                        new("data-ad-client", GoogleAdSense.ClientId),
+                        new("data-ad-slot", Slot)
                     });
                     break;
                 case GoogleAdSenseAdType.Display:
@@ -90,17 +90,12 @@ public enum GoogleAdSenseAdFormat
     AutoRelaxed
 }
 
-public class GoogleAdSenseService
+public class GoogleAdSenseService(string clientId)
 {
-    public GoogleAdSenseService(string clientId)
-    {
-        ClientId = clientId;
-    }
-
-    public string ClientId { get; }
+    public string ClientId { get; } = clientId;
 }
 
-public static class GoogleAdSenseServiceResgitration
+public static class GoogleAdSenseServiceRegistration
 {
     public static IServiceCollection AddGoogleAdSense(this IServiceCollection services, string clientId)
     {

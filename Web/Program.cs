@@ -13,6 +13,7 @@ using SharedComponents;
 using SharedModels;
 using Toolbelt.Blazor.Extensions.DependencyInjection;
 using Web;
+using Web.Services;
 
 // QuestPDF.Settings.License = LicenseType.Community;
 
@@ -82,4 +83,6 @@ static void ConfigureServices(IServiceCollection services, string baseAddress)
     services.AddSingleton<SingletonServiceDemo>();
 
     services.AddHotKeys2();
+
+    services.AddSingleton<IHostEnvironment, WebHostEnvironment>();
 }

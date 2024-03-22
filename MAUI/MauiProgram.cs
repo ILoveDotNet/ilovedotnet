@@ -1,6 +1,7 @@
 ﻿using Blazor.Analytics;
 using CommonComponents.Models;
 using CommonComponents.Services;
+using MAUI.Services;
 using Microsoft.AspNetCore.Components.WebAssembly.Services;
 using Microsoft.Extensions.Logging;
 using SharedComponents;
@@ -23,8 +24,8 @@ public static class MauiProgram
         builder.Services.AddMauiBlazorWebView();
 
 #if DEBUG
-		builder.Services.AddBlazorWebViewDeveloperTools();
-		builder.Logging.AddDebug();
+        builder.Services.AddBlazorWebViewDeveloperTools();
+        builder.Logging.AddDebug();
 #endif
 
         builder.Services.AddTransient<CustomHeaderMessageHandlerDemo>(sp => new(new HttpClientHandler()));
@@ -65,6 +66,17 @@ public static class MauiProgram
         builder.Services.AddSingleton<SingletonServiceDemo>();
 
         builder.Services.AddHotKeys2();
+
+        builder.Services.AddSingleton<IHostEnvironment>(options =>
+        {
+            var hostEnvironment = new MAUIHostEnvironment();
+#if DEBUG
+            hostEnvironment.Environment = "Development";
+#else
+            hostEnvironment.Environment = "Production";
+#endif
+            return hostEnvironment;
+        });
 
         return builder.Build();
     }
