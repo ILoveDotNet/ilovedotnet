@@ -11,7 +11,6 @@ public class BackToTopTests
     {
         // Arrange
         using var ctx = new TestContext();
-        ctx.JSInterop.SetupModule("./js/scrollto.js");
         var navigationManager = ctx.Services.GetRequiredService<FakeNavigationManager>();
         var cut = ctx.RenderComponent<CommonComponents.Shared.BackToTop>();
 
@@ -19,6 +18,6 @@ public class BackToTopTests
         cut.Find("button").Click();
 
         // Assert
-        navigationManager.Uri.Should().EndWith("#header");
+        navigationManager.Uri.Should().EndWith("#app");
     }
 }
