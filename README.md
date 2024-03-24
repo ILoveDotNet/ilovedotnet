@@ -9,7 +9,7 @@ This is a .NET knowledge sharing platform with live demos crafted by developers 
 This is knowledge sharing platform maintained by [Microsoft MVP](https://mvp.microsoft.com/en-US/MVP/profile/b177819f-95fb-ed11-8f6d-000d3a560942) - [Abdul Rahman](https://linkedin.com/in/thebhai). I document and write each and every piece of my knowledge in dotnet development which I gained over a decade working in multiple complex projects. Mastering the contents in this blog will transform anyone from zero to hero in dotnet. All you need to do is to invest your time.
 
 # Sponsors
-If you want to support my project and help me grow it, you can [become a sponsor on GitHub](https://github.com/sponsors/fingers10) or just [donate on PayPal](https://www.paypal.com/paypalme/arsmtb) and your logo will show up here with a link to your website :)
+If you want to support my project and help me grow it, you can <a href="https://www.buymeacoffee.com/thebhai" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a> or [become a sponsor on GitHub](https://github.com/sponsors/fingers10) or just [donate on PayPal](https://www.paypal.com/paypalme/arsmtb) and your logo will show up here with a link to your website :)
 
 # Please help by giving a ⭐
 We appreciate your ⭐. It Helps!! That will not only help strengthen our .NET community but also improve development skills for .NET developers in around the world. Thank you very much 👍. 
