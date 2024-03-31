@@ -42,7 +42,7 @@ public class TableOfContents
 
     public ContentMetaData GetContentBySlug(string slug) 
             => Contents
-                .Single(content => content.ContentUrl.Contains(slug, StringComparison.OrdinalIgnoreCase));
+                .Single(content => content.ContentUrl.EndsWith(slug, StringComparison.OrdinalIgnoreCase));
 
     public TableOfContents()
     {
