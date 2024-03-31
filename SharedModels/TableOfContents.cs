@@ -40,6 +40,10 @@ public class TableOfContents
                 .Take(skip..take)
                 .ToList();
 
+    public ContentMetaData GetContentBySlug(string slug) 
+            => Contents
+                .Single(content => content.ContentUrl.Contains(slug, StringComparison.OrdinalIgnoreCase));
+
     public TableOfContents()
     {
         FullContents.AddRange(new BlazorLearningPath().FullContents);

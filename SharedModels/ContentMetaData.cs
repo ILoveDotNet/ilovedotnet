@@ -13,4 +13,5 @@ public class ContentMetaData
     public required DateTime CreatedOn { get; set; }
     public required DateTime ModifiedOn { get; set; }
     public required List<string> Keywords { get; set; } = [];
+    public string? VideoUrl { get; set; }
 }

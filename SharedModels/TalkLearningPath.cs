@@ -20,7 +20,8 @@ public class TalkLearningPath
                 Type = "Talk",
                 CreatedOn = new DateTime(2022, 3, 13, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2022, 3, 13, 22, 30, 0, DateTimeKind.Utc),
-                Keywords = ["Blazor", "Web Assembly", "Blazor WASM", "SPA", "ASP.NET"]
+                Keywords = ["Blazor", "Web Assembly", "Blazor WASM", "SPA", "ASP.NET"],
+                VideoUrl = "https://www.youtube.com/embed/MUVyb9T5gU0"
             },
         ];
     }
