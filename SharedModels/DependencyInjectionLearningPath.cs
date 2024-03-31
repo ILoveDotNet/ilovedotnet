@@ -18,8 +18,9 @@ public class DependencyInjectionLearningPath
                 ContentUrl = "blogs/introducing-dependency-injection-in-dotnet",
                 IconUrl = "image/icons/dependency-injection.webp",
                 Type = "Dependency-Injection",
-                CreatedOn = new DateTime(2022, 7, 24, 22, 30, 0),
-                ModifiedOn = new DateTime(2022, 7, 24, 22, 30, 0)
+                CreatedOn = new DateTime(2022, 7, 24, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2022, 7, 24, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["DI", "Dependency Inversion", "IoC", "Inversion of Control"]
             },
             new ContentMetaData
             {
@@ -31,8 +32,9 @@ public class DependencyInjectionLearningPath
                 ContentUrl = "blogs/dependency-injection-lifetimes-in-dotnet",
                 IconUrl = "image/icons/dependency-injection.webp",
                 Type = "Dependency-Injection",
-                CreatedOn = new DateTime(2022, 7, 31, 22, 30, 0),
-                ModifiedOn = new DateTime(2023, 1, 15, 22, 30, 0)
+                CreatedOn = new DateTime(2022, 7, 31, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2023, 1, 15, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Lifetimes", "Transient", "Singleton", "Scoped", "Dependency Captivity", "Captive Dependencies"]
             },
         ];
     }

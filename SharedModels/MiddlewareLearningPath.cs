@@ -18,8 +18,9 @@ public class MiddlewareLearningPath
                 ContentUrl = "blogs/introducing-middleware-in-aspnet",
                 IconUrl = "image/icons/middleware.webp",
                 Type = "Middleware",
-                CreatedOn = new DateTime(2022, 6, 19, 22, 30, 0),
-                ModifiedOn = new DateTime(2022, 6, 19, 22, 30, 0)
+                CreatedOn = new DateTime(2022, 6, 19, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2022, 6, 19, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["ASP.NET", "HTTP Request Pipeline"]
             },
             new ContentMetaData
             {
@@ -31,8 +32,9 @@ public class MiddlewareLearningPath
                 ContentUrl = "blogs/types-of-middleware-in-aspnet",
                 IconUrl = "image/icons/middleware.webp",
                 Type = "Middleware",
-                CreatedOn = new DateTime(2022, 6, 26, 22, 30, 0),
-                ModifiedOn = new DateTime(2022, 6, 26, 22, 30, 0)
+                CreatedOn = new DateTime(2022, 6, 26, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2022, 6, 26, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["ASP.NET", "HTTP Request Pipeline"]
             },
         ];
     }

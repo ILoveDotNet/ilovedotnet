@@ -18,8 +18,9 @@ public class OWASPLearningPath
                 ContentUrl = "blogs/owasp-secure-your-dotnet-app-by-scanning-for-vulnerable-nuget-dependency-in-ci-pipelines",
                 IconUrl = "image/icons/owasp.webp",
                 Type = "OWASP",
-                CreatedOn = new DateTime(2024, 2, 25, 22, 30, 0),
-                ModifiedOn = new DateTime(2024, 2, 25, 22, 30, 0)
+                CreatedOn = new DateTime(2024, 2, 25, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2024, 2, 25, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Security", "Dependency Check", "Nuget Vulnerability", "Malicious Code"]
             }
         ];
     }

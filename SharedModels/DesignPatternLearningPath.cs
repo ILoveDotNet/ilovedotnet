@@ -18,8 +18,9 @@ public class DesignPatternLearningPath
                 ContentUrl = "blogs/design-pattern-introduction",
                 IconUrl = "image/icons/design-pattern.webp",
                 Type = "Design-Pattern",
-                CreatedOn = new DateTime(2023, 3, 12, 22, 30, 0),
-                ModifiedOn = new DateTime(2023, 3, 12, 22, 30, 0)
+                CreatedOn = new DateTime(2023, 3, 12, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2023, 3, 12, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Creational", "Structural", "Behavioral", "Gang of Four"]
             },
             new ContentMetaData
             {
@@ -31,8 +32,9 @@ public class DesignPatternLearningPath
                 ContentUrl = "blogs/creational-design-pattern-singleton",
                 IconUrl = "image/icons/design-pattern.webp",
                 Type = "Design-Pattern",
-                CreatedOn = new DateTime(2023, 3, 19, 22, 30, 0),
-                ModifiedOn = new DateTime(2023, 3, 19, 22, 30, 0)
+                CreatedOn = new DateTime(2023, 3, 19, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2023, 3, 19, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Creational", "Singleton"]
             },
             new ContentMetaData
             {
@@ -44,8 +46,9 @@ public class DesignPatternLearningPath
                 ContentUrl = "blogs/structural-design-pattern-decorator",
                 IconUrl = "image/icons/design-pattern.webp",
                 Type = "Design-Pattern",
-                CreatedOn = new DateTime(2024, 1, 7, 22, 30, 0),
-                ModifiedOn = new DateTime(2024, 1, 7, 22, 30, 0)
+                CreatedOn = new DateTime(2024, 1, 7, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2024, 1, 7, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Structural", "Decorator"]
             },
             new ContentMetaData
             {
@@ -57,8 +60,9 @@ public class DesignPatternLearningPath
                 ContentUrl = "blogs/structural-design-pattern-facade",
                 IconUrl = "image/icons/design-pattern.webp",
                 Type = "Design-Pattern",
-                CreatedOn = new DateTime(2024, 1, 21, 22, 30, 0),
-                ModifiedOn = new DateTime(2024, 1, 21, 22, 30, 0)
+                CreatedOn = new DateTime(2024, 1, 21, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2024, 1, 21, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Structural", "Facade"]
             },
             new ContentMetaData
             {
@@ -70,8 +74,9 @@ public class DesignPatternLearningPath
                 ContentUrl = "blogs/creational-design-pattern-builder",
                 IconUrl = "image/icons/design-pattern.webp",
                 Type = "Design-Pattern",
-                CreatedOn = new DateTime(2024, 1, 28, 22, 30, 0),
-                ModifiedOn = new DateTime(2024, 1, 28, 22, 30, 0)
+                CreatedOn = new DateTime(2024, 1, 28, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2024, 1, 28, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Creational", "Builder"]
             },
         ];
     }

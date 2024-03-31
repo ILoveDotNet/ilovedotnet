@@ -18,8 +18,9 @@ public class BlazorLearningPath
                 ContentUrl = "blogs/blazor-wasm-introduction",
                 IconUrl = "image/icons/blazor.webp",
                 Type = "Blazor",
-                CreatedOn = new DateTime(2022, 3, 20, 22, 30, 0),
-                ModifiedOn = new DateTime(2022, 3, 20, 22, 30, 0)
+                CreatedOn = new DateTime(2022, 3, 20, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2022, 3, 20, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Blazor WASM", "SPA"]
             },
             new ContentMetaData
             {
@@ -31,8 +32,9 @@ public class BlazorLearningPath
                 ContentUrl = "blogs/blazor-wasm-components",
                 IconUrl = "image/icons/blazor.webp",
                 Type = "Blazor",
-                CreatedOn = new DateTime(2022, 4, 10, 22, 30, 0),
-                ModifiedOn = new DateTime(2022, 4, 10, 22, 30, 0)
+                CreatedOn = new DateTime(2022, 4, 10, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2022, 4, 10, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Components"]
             },
             new ContentMetaData
             {
@@ -44,8 +46,9 @@ public class BlazorLearningPath
                 ContentUrl = "blogs/blazor-wasm-data-binding",
                 IconUrl = "image/icons/blazor.webp",
                 Type = "Blazor",
-                CreatedOn = new DateTime(2022, 4, 24, 22, 30, 0),
-                ModifiedOn = new DateTime(2022, 4, 24, 22, 30, 0)
+                CreatedOn = new DateTime(2022, 4, 24, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2022, 4, 24, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Data Binding", "One Way Binding", "Two Way Binding"]
             },
             new ContentMetaData
             {
@@ -57,8 +60,9 @@ public class BlazorLearningPath
                 ContentUrl = "blogs/blazor-wasm-event-handling-and-event-arguments",
                 IconUrl = "image/icons/blazor.webp",
                 Type = "Blazor",
-                CreatedOn = new DateTime(2022, 4, 17, 22, 30, 0),
-                ModifiedOn = new DateTime(2024, 3, 17, 22, 30, 0)
+                CreatedOn = new DateTime(2022, 4, 17, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2024, 3, 17, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Event Hadling", "Event Arguments"]
             },
             new ContentMetaData
             {
@@ -70,8 +74,9 @@ public class BlazorLearningPath
                 ContentUrl = "blogs/blazor-wasm-communication-between-components",
                 IconUrl = "image/icons/blazor.webp",
                 Type = "Blazor",
-                CreatedOn = new DateTime(2022, 5, 22, 22, 30, 0),
-                ModifiedOn = new DateTime(2024, 2, 4, 22, 30, 0)
+                CreatedOn = new DateTime(2022, 5, 22, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2024, 2, 4, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Communication", "Component Parameter", "Cascading Value", "Cascading Parameter", "Event Callback", "State Container"]
             },
             new ContentMetaData
             {
@@ -83,8 +88,9 @@ public class BlazorLearningPath
                 ContentUrl = "blogs/blazor-wasm-forms",
                 IconUrl = "image/icons/blazor.webp",
                 Type = "Blazor",
-                CreatedOn = new DateTime(2022, 5, 29, 22, 30, 0),
-                ModifiedOn = new DateTime(2022, 5, 29, 22, 30, 0)
+                CreatedOn = new DateTime(2022, 5, 29, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2022, 5, 29, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Forms", "Model", "EditContext", "EditForm"]
             },
             new ContentMetaData
             {
@@ -96,8 +102,9 @@ public class BlazorLearningPath
                 ContentUrl = "blogs/blazor-wasm-forms-validation",
                 IconUrl = "image/icons/blazor.webp",
                 Type = "Blazor",
-                CreatedOn = new DateTime(2022, 6, 5, 22, 30, 0),
-                ModifiedOn = new DateTime(2022, 6, 5, 22, 30, 0)
+                CreatedOn = new DateTime(2022, 6, 5, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2022, 6, 5, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Forms", "Validation", "Fluent Validation"]
             },
             new ContentMetaData
             {
@@ -109,8 +116,9 @@ public class BlazorLearningPath
                 ContentUrl = "blogs/blazor-wasm-controlling-head-content",
                 IconUrl = "image/icons/blazor.webp",
                 Type = "Blazor",
-                CreatedOn = new DateTime(2022, 5, 8, 22, 30, 0),
-                ModifiedOn = new DateTime(2022, 5, 8, 22, 30, 0)
+                CreatedOn = new DateTime(2022, 5, 8, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2022, 5, 8, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Head Outlet", "Page Title", "Head Content"]
             },
             new ContentMetaData
             {
@@ -122,8 +130,9 @@ public class BlazorLearningPath
                 ContentUrl = "blogs/blazor-wasm-styles-and-css-isolation",
                 IconUrl = "image/icons/blazor.webp",
                 Type = "Blazor",
-                CreatedOn = new DateTime(2022, 2, 13, 22, 30, 0),
-                ModifiedOn = new DateTime(2022, 10, 19, 22, 30, 0)
+                CreatedOn = new DateTime(2022, 2, 13, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2022, 10, 19, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["CSS", "Styles", "CSS Isolation"]
             },
             new ContentMetaData
             {
@@ -135,8 +144,9 @@ public class BlazorLearningPath
                 ContentUrl = "blogs/blazor-wasm-javascript-interop-and-isolation",
                 IconUrl = "image/icons/blazor.webp",
                 Type = "Blazor",
-                CreatedOn = new DateTime(2022, 2, 6, 22, 30, 0),
-                ModifiedOn = new DateTime(2023, 12, 17, 22, 30, 0)
+                CreatedOn = new DateTime(2022, 2, 6, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2023, 12, 17, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Javascript", "Javascript Interop", "Javascript Isolation"]
             },
             new ContentMetaData
             {
@@ -148,8 +158,9 @@ public class BlazorLearningPath
                 ContentUrl = "blogs/blazor-wasm-exception-handling-and-error-boundary",
                 IconUrl = "image/icons/blazor.webp",
                 Type = "Blazor",
-                CreatedOn = new DateTime(2022, 1, 16, 22, 30, 0),
-                ModifiedOn = new DateTime(2023, 12, 10, 22, 30, 0)
+                CreatedOn = new DateTime(2022, 1, 16, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2023, 12, 10, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Exception Handling", "Error Boundary"]
             },
             new ContentMetaData
             {
@@ -161,8 +172,9 @@ public class BlazorLearningPath
                 ContentUrl = "blogs/blazor-wasm-error-logging",
                 IconUrl = "image/icons/blazor.webp",
                 Type = "Blazor",
-                CreatedOn = new DateTime(2022, 1, 23, 22, 30, 0),
-                ModifiedOn = new DateTime(2023, 10, 1, 22, 30, 0)
+                CreatedOn = new DateTime(2022, 1, 23, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2023, 10, 1, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Exception Logging", "Error Logging", "SeriLog"]
             },
             new ContentMetaData
             {
@@ -174,8 +186,9 @@ public class BlazorLearningPath
                 ContentUrl = "blogs/blazor-wasm-lazy-loading",
                 IconUrl = "image/icons/blazor.webp",
                 Type = "Blazor",
-                CreatedOn = new DateTime(2022, 2, 20, 22, 30, 0),
-                ModifiedOn = new DateTime(2023, 12, 3, 22, 30, 0)
+                CreatedOn = new DateTime(2022, 2, 20, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2023, 12, 3, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Lazy Loading", "Micro Frontend"]
             },
             new ContentMetaData
             {
@@ -187,8 +200,9 @@ public class BlazorLearningPath
                 ContentUrl = "blogs/blazor-wasm-dark-theme-and-light-theme",
                 IconUrl = "image/icons/blazor.webp",
                 Type = "Blazor",
-                CreatedOn = new DateTime(2022, 1, 30, 22, 30, 0),
-                ModifiedOn = new DateTime(2022, 1, 30, 22, 30, 0)
+                CreatedOn = new DateTime(2022, 1, 30, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2022, 1, 30, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Dark Mode", "Light Mode", "Dark Theme", "Light Theme"]
             },
             new ContentMetaData
             {
@@ -200,8 +214,9 @@ public class BlazorLearningPath
                 ContentUrl = "blogs/blazor-wasm-app-settings",
                 IconUrl = "image/icons/blazor.webp",
                 Type = "Blazor",
-                CreatedOn = new DateTime(2022, 2, 27, 22, 30, 0),
-                ModifiedOn = new DateTime(2023, 12, 31, 22, 30, 0)
+                CreatedOn = new DateTime(2022, 2, 27, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2023, 12, 31, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["App Settings", "App Configuration"]
             },
             new ContentMetaData
             {
@@ -213,8 +228,9 @@ public class BlazorLearningPath
                 ContentUrl = "blogs/blazor-wasm-virtualization",
                 IconUrl = "image/icons/blazor.webp",
                 Type = "Blazor",
-                CreatedOn = new DateTime(2022, 6, 12, 22, 30, 0),
-                ModifiedOn = new DateTime(2023, 12, 24, 22, 30, 0)
+                CreatedOn = new DateTime(2022, 6, 12, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2023, 12, 24, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Virtualization", "Virtual DOM", "Performance"]
             },
             new ContentMetaData
             {
@@ -226,8 +242,9 @@ public class BlazorLearningPath
                 ContentUrl = "blogs/blazor-wasm-dynamic-component",
                 IconUrl = "image/icons/blazor.webp",
                 Type = "Blazor",
-                CreatedOn = new DateTime(2022, 7, 3, 22, 30, 0),
-                ModifiedOn = new DateTime(2024, 2, 18, 22, 30, 0)
+                CreatedOn = new DateTime(2022, 7, 3, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2024, 2, 18, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Dynamic", "Component", "Dynamically-rendered"]
             },
             new ContentMetaData
             {
@@ -239,8 +256,9 @@ public class BlazorLearningPath
                 ContentUrl = "blogs/blazor-wasm-publishing-to-iis",
                 IconUrl = "image/icons/blazor.webp",
                 Type = "Blazor",
-                CreatedOn = new DateTime(2022, 7, 10, 22, 30, 0),
-                ModifiedOn = new DateTime(2024, 3, 24, 22, 30, 0)
+                CreatedOn = new DateTime(2022, 7, 10, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2024, 3, 24, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Publishing", "IIS"]
             },
             new ContentMetaData
             {
@@ -252,8 +270,9 @@ public class BlazorLearningPath
                 ContentUrl = "blogs/blazor-wasm-publishing-to-github-pages",
                 IconUrl = "image/icons/blazor.webp",
                 Type = "Blazor",
-                CreatedOn = new DateTime(2022, 7, 17, 22, 30, 0),
-                ModifiedOn = new DateTime(2024, 3, 31, 22, 30, 0)
+                CreatedOn = new DateTime(2022, 7, 17, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2024, 3, 31, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Publishing", "GitHub Pages", "GitHub", "CI/CD", "Continuous Integration", "Continuous Deployment"]
             },
             new ContentMetaData
             {
@@ -265,8 +284,9 @@ public class BlazorLearningPath
                 ContentUrl = "blogs/blazor-wasm-pre-rendering",
                 IconUrl = "image/icons/blazor.webp",
                 Type = "Blazor",
-                CreatedOn = new DateTime(2022, 8, 7, 22, 30, 0),
-                ModifiedOn = new DateTime(2024, 3, 10, 22, 30, 0)
+                CreatedOn = new DateTime(2022, 8, 7, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2024, 3, 10, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Pre Rendering", "SPA Prerendering", "Blazor WASM Prerendering", "Search Engine Optimization", "SEO", "Social Media Optimization", "SMO"]
             },
             new ContentMetaData
             {
@@ -278,8 +298,9 @@ public class BlazorLearningPath
                 ContentUrl = "blogs/blazor-wasm-dockerizing",
                 IconUrl = "image/icons/blazor.webp",
                 Type = "Blazor",
-                CreatedOn = new DateTime(2023, 3, 26, 22, 30, 0),
-                ModifiedOn = new DateTime(2023, 3, 26, 22, 30, 0)
+                CreatedOn = new DateTime(2023, 3, 26, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2023, 3, 26, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Docker", "Dockerizing", "Container", "Containerizing"]
             },
             new ContentMetaData
             {
@@ -291,8 +312,9 @@ public class BlazorLearningPath
                 ContentUrl = "blogs/blazor-wasm-publishing-to-aws-amplify",
                 IconUrl = "image/icons/blazor.webp",
                 Type = "Blazor",
-                CreatedOn = new DateTime(2023, 5, 21, 22, 30, 0),
-                ModifiedOn = new DateTime(2023, 5, 21, 22, 30, 0)
+                CreatedOn = new DateTime(2023, 5, 21, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2023, 5, 21, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Publishing", "AWS Amplify", "AWS", "CI/CD", "Continuous Integration", "Continuous Deployment"]
             },
             new ContentMetaData
             {
@@ -304,8 +326,9 @@ public class BlazorLearningPath
                 ContentUrl = "blogs/how-to-generate-barcode-in-blazor-wasm",
                 IconUrl = "image/icons/blazor.webp",
                 Type = "Blazor",
-                CreatedOn = new DateTime(2023, 6, 25, 22, 30, 0),
-                ModifiedOn = new DateTime(2023, 6, 25, 22, 30, 0)
+                CreatedOn = new DateTime(2023, 6, 25, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2023, 6, 25, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Barcode", "bwip-js"]
             },
             new ContentMetaData
             {
@@ -317,8 +340,9 @@ public class BlazorLearningPath
                 ContentUrl = "blogs/printing-barcode-to-label-printer-from-blazor-wasm",
                 IconUrl = "image/icons/blazor.webp",
                 Type = "Blazor",
-                CreatedOn = new DateTime(2023, 7, 2, 22, 30, 0),
-                ModifiedOn = new DateTime(2023, 7, 2, 22, 30, 0)
+                CreatedOn = new DateTime(2023, 7, 2, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2023, 7, 2, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Barcode", "bwip-js"]
             },
             new ContentMetaData
             {
@@ -330,8 +354,9 @@ public class BlazorLearningPath
                 ContentUrl = "blogs/improve-performance-by-dynamically-loading-image-in-blazor-wasm",
                 IconUrl = "image/icons/blazor.webp",
                 Type = "Blazor",
-                CreatedOn = new DateTime(2023, 10, 8, 22, 30, 0),
-                ModifiedOn = new DateTime(2023, 10, 8, 22, 30, 0)
+                CreatedOn = new DateTime(2023, 10, 8, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2023, 10, 8, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Dynamic Image Load", "Performance"]
             },
             new ContentMetaData
             {
@@ -343,8 +368,9 @@ public class BlazorLearningPath
                 ContentUrl = "blogs/prevent-image-leech-by-dynamically-streaming-image-in-blazor-wasm",
                 IconUrl = "image/icons/blazor.webp",
                 Type = "Blazor",
-                CreatedOn = new DateTime(2023, 10, 15, 22, 30, 0),
-                ModifiedOn = new DateTime(2023, 10, 15, 22, 30, 0)
+                CreatedOn = new DateTime(2023, 10, 15, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2023, 10, 15, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Image Leech", "Dynamic Image Stream"]
             },
             new ContentMetaData
             {
@@ -356,8 +382,9 @@ public class BlazorLearningPath
                 ContentUrl = "blogs/using-hot-keys-in-blazor-wasm",
                 IconUrl = "image/icons/blazor.webp",
                 Type = "Blazor",
-                CreatedOn = new DateTime(2023, 10, 22, 22, 30, 0),
-                ModifiedOn = new DateTime(2023, 10, 22, 22, 30, 0)
+                CreatedOn = new DateTime(2023, 10, 22, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2023, 10, 22, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Keyboard", "Shortcut"]
             }
         ];
     }
