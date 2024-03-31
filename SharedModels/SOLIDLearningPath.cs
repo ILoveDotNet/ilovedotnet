@@ -7,8 +7,7 @@ public class SOLIDLearningPath
     public SOLIDLearningPath()
     {
         FullContents =
-        new(6)
-        {
+        [
             new ContentMetaData
             {
                 Order = 1,
@@ -87,6 +86,6 @@ public class SOLIDLearningPath
                 CreatedOn = new DateTime(2023, 5, 14, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 5, 14, 22, 30, 0)
             },
-        };
+        ];
     }
 }

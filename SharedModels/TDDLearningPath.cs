@@ -7,8 +7,7 @@ public class TDDLearningPath
     public TDDLearningPath()
     {
         FullContents =
-        new(2)
-        {
+        [
             new ContentMetaData
             {
                 Order = 1,
@@ -35,6 +34,6 @@ public class TDDLearningPath
                 CreatedOn = new DateTime(2022, 4, 3, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 4, 3, 22, 30, 0)
             },
-        };
+        ];
     }
 }

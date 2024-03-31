@@ -4,7 +4,7 @@ public class AdSpaceService
 {
     private readonly Random random = new();
 
-    private readonly List<int> AdSpace = new();
+    private readonly List<int> AdSpace = [];
 
     public AdSpaceService(TableOfContents tableOfContents)
     {

@@ -7,8 +7,7 @@ public class LINQLearningPath
     public LINQLearningPath()
     {
         FullContents =
-        new(26)
-        {
+        [
             new ContentMetaData
             {
                 Order = 1,
@@ -347,6 +346,6 @@ public class LINQLearningPath
                CreatedOn = new DateTime(2023, 3, 5, 22, 30, 0),
                ModifiedOn = new DateTime(2023, 3, 5, 22, 30, 0)
             }
-        };
+        ];
     }
 }

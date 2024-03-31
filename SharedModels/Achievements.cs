@@ -2,13 +2,13 @@ namespace SharedModels;
 
 public class Achievements 
 {
-    public List<GoogleSearchImpact> GoogleSearchImpacts { get; set; } = new();
-    public List<GoogleSearchImpression> GoogleSearchImpressions { get; set; } = new();
+    public List<GoogleSearchImpact> GoogleSearchImpacts { get; set; } = [];
+    public List<GoogleSearchImpression> GoogleSearchImpressions { get; set; } = [];
 
     public Achievements()
     {
-        GoogleSearchImpacts = new List<GoogleSearchImpact>
-        {
+        GoogleSearchImpacts =
+        [
             new() { Date = new DateOnly(2022, 9, 18), Clicks = 5 },
             new() { Date = new DateOnly(2022, 9, 26), Clicks = 50 },
             new() { Date = new DateOnly(2022, 10, 3), Clicks = 120 },
@@ -28,10 +28,10 @@ public class Achievements
             new() { Date = new DateOnly(2023, 6, 16), Clicks = 2200 },
             new() { Date = new DateOnly(2023, 7, 7), Clicks = 2500 },
             new() { Date = new DateOnly(2023, 7, 25), Clicks = 3000 },
-        };
+        ];
 
-        GoogleSearchImpressions = new List<GoogleSearchImpression>
-        {
+        GoogleSearchImpressions =
+        [
             new() { Date = new DateOnly(2022, 11, 30), Impressions = 17300 },
             new() { Date = new DateOnly(2022, 12, 31), Impressions = 16900 },
             new() { Date = new DateOnly(2023, 1, 31), Impressions = 23600 },
@@ -48,6 +48,6 @@ public class Achievements
             new() { Date = new DateOnly(2023, 12, 31), Impressions = 75900 },
             new() { Date = new DateOnly(2024, 1, 31), Impressions = 84600 },
             new() { Date = new DateOnly(2024, 2, 29), Impressions = 89600 },
-        };
+        ];
     }    
 }

@@ -16,8 +16,8 @@ public class Authors
                 Description = "I'm the founder and solo developer and author of I ❤️ .NET",
                 ImageUrl = "image/talks/blazor-spa-from-aspnet-family.png",
                 IsMVP = true,
-                SocialUrls = new List<SocialUrl>
-                {
+                SocialUrls =
+                [
                     new(SocialLink.LinkedIn, new Uri("https://www.linkedin.com/in/thebhai")),
                     new(SocialLink.WhatsApp, new Uri("https://whatsapp.com/channel/0029VaAGMV2LtOj5S5MHd23h")),
                     new(SocialLink.GitHub, new Uri("https://www.github.com/fingers10")),
@@ -27,7 +27,7 @@ public class Authors
                     new(SocialLink.YouTube, new Uri("https://www.youtube.com/@ilovedotnet")),
                     new(SocialLink.Instagram, new Uri("https://www.instagram.com/abdulrahman.smsi")),
                     new(SocialLink.BuyMeACoffee, new Uri("https://www.buymeacoffee.com/thebhai"))
-                }
+                ]
             },
             new AuthorMetaData
             {
@@ -36,10 +36,10 @@ public class Authors
                 Description = "Graphic Designer",
                 ImageUrl = "image/talks/blazor-spa-from-aspnet-family.png",
                 IsMVP = false,
-                SocialUrls = new List<SocialUrl>
-                {
+                SocialUrls =
+                [
                     new(SocialLink.LinkedIn, new Uri("https://www.linkedin.com/in/regina-sharon"))
-                }
+                ]
             },
         };
     }

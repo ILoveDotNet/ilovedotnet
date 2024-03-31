@@ -7,8 +7,7 @@ public class HTTPClientLearningPath
     public HTTPClientLearningPath()
     {
         FullContents =
-        new(6)
-        {
+        [
             new ContentMetaData
             {
                 Order = 1,
@@ -87,6 +86,6 @@ public class HTTPClientLearningPath
                 CreatedOn = new DateTime(2023, 9, 24, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 9, 24, 22, 30, 0)
             },
-        };
+        ];
     }
 }

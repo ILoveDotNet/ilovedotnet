@@ -7,8 +7,7 @@ public class PythonLearningPath
     public PythonLearningPath()
     {
         FullContents =
-        new(1)
-        {
+        [
             new ContentMetaData
             {
                 Order = 1,
@@ -22,6 +21,6 @@ public class PythonLearningPath
                 CreatedOn = new DateTime(2022, 9, 11, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 9, 11, 22, 30, 0)
             },
-        };
+        ];
     }
 }

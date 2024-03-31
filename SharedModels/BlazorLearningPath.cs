@@ -7,8 +7,7 @@ public class BlazorLearningPath
     public BlazorLearningPath()
     {
         FullContents =
-        new(27)
-        {
+        [
             new ContentMetaData
             {
                 Order = 1,
@@ -360,6 +359,6 @@ public class BlazorLearningPath
                 CreatedOn = new DateTime(2023, 10, 22, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 10, 22, 22, 30, 0)
             }
-        };
+        ];
     }
 }

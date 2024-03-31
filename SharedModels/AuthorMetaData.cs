@@ -9,7 +9,7 @@ public class AuthorMetaData
         Description = string.Empty,
         ImageUrl = string.Empty,
         IsMVP = false,
-        SocialUrls = new()
+        SocialUrls = []
     };
 
     public required sbyte Order { get; set; }
@@ -17,5 +17,5 @@ public class AuthorMetaData
     public required string Description { get; set; }
     public required string ImageUrl { get; set; }
     public bool IsMVP { get; set; }
-    public required List<SocialUrl> SocialUrls { get; set; } = new();
+    public required List<SocialUrl> SocialUrls { get; set; } = [];
 }

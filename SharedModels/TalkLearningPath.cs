@@ -7,8 +7,7 @@ public class TalkLearningPath
     public TalkLearningPath()
     {
         FullContents =
-        new(1)
-        {
+        [
             new ContentMetaData
             {
                 Order = 1,
@@ -22,6 +21,6 @@ public class TalkLearningPath
                 CreatedOn = new DateTime(2022, 3, 13, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 3, 13, 22, 30, 0)
             },
-        };
+        ];
     }
 }

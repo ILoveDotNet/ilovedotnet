@@ -7,8 +7,7 @@ public class DependencyInjectionLearningPath
     public DependencyInjectionLearningPath()
     {
         FullContents =
-        new(2)
-        {
+        [
             new ContentMetaData
             {
                 Order = 1,
@@ -35,6 +34,6 @@ public class DependencyInjectionLearningPath
                 CreatedOn = new DateTime(2022, 7, 31, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 1, 15, 22, 30, 0)
             },
-        };
+        ];
     }
 }

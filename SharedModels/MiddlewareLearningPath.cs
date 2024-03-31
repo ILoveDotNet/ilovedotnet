@@ -7,8 +7,7 @@ public class MiddlewareLearningPath
     public MiddlewareLearningPath()
     {
         FullContents =
-        new(2)
-        {
+        [
             new ContentMetaData
             {
                 Order = 1,
@@ -35,6 +34,6 @@ public class MiddlewareLearningPath
                 CreatedOn = new DateTime(2022, 6, 26, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 6, 26, 22, 30, 0)
             },
-        };
+        ];
     }
 }

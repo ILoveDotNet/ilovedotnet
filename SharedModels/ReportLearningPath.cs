@@ -7,8 +7,7 @@ public class ReportLearningPath
     public ReportLearningPath()
     {
         FullContents =
-        new(3)
-        {
+        [
             new ContentMetaData
             {
                 Order = 1,
@@ -48,6 +47,6 @@ public class ReportLearningPath
                 CreatedOn = new DateTime(2023, 4, 9, 22, 30, 0),
                 ModifiedOn = new DateTime(2023, 4, 9, 22, 30, 0)
             }
-        };
+        ];
     }
 }

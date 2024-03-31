@@ -7,8 +7,7 @@ public class DesignPatternLearningPath
     public DesignPatternLearningPath()
     {
         FullContents =
-        new(5)
-        {
+        [
             new ContentMetaData
             {
                 Order = 1,
@@ -74,6 +73,6 @@ public class DesignPatternLearningPath
                 CreatedOn = new DateTime(2024, 1, 28, 22, 30, 0),
                 ModifiedOn = new DateTime(2024, 1, 28, 22, 30, 0)
             },
-        };
+        ];
     }
 }

@@ -7,8 +7,7 @@ public class OWASPLearningPath
     public OWASPLearningPath()
     {
         FullContents =
-        new(1)
-        {
+        [
             new ContentMetaData
             {
                 Order = 1,
@@ -22,6 +21,6 @@ public class OWASPLearningPath
                 CreatedOn = new DateTime(2024, 2, 25, 22, 30, 0),
                 ModifiedOn = new DateTime(2024, 2, 25, 22, 30, 0)
             }
-        };
+        ];
     }
 }

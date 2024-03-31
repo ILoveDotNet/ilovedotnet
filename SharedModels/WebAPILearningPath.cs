@@ -7,8 +7,7 @@ public class WebAPILearningPath
     public WebAPILearningPath()
     {
         FullContents =
-        new(18)
-        {
+        [
             new ContentMetaData
             {
                 Order = 1,
@@ -243,6 +242,6 @@ public class WebAPILearningPath
                 CreatedOn = new DateTime(2024, 1, 14, 22, 30, 0),
                 ModifiedOn = new DateTime(2024, 1, 14, 22, 30, 0)
             },
-        };
+        ];
     }
 }

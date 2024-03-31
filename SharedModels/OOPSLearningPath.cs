@@ -7,8 +7,7 @@ public class OOPSLearningPath
     public OOPSLearningPath()
     {
         FullContents =
-        new(2)
-        {
+        [
             new ContentMetaData
             {
                 Order = 1,
@@ -35,6 +34,6 @@ public class OOPSLearningPath
                 CreatedOn = new DateTime(2022, 5, 15, 22, 30, 0),
                 ModifiedOn = new DateTime(2022, 5, 15, 22, 30, 0)
             },
-        };
+        ];
     }
 }

@@ -2,8 +2,8 @@
 public class AppStateDemo
 {
     public event Action OnChange = default!;
-    public readonly List<string> messages1 = new();
-    public readonly List<string> messages2 = new();
+    public readonly List<string> messages1 = [];
+    public readonly List<string> messages2 = [];
 
     public void SendMessageToChat1(string message)
     {
