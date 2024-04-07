@@ -3,7 +3,7 @@
 public class TableOfContents
 {
     public const int PageSize = 6;
-    private readonly List<ContentMetaData> FullContents = new(102);
+    private readonly List<ContentMetaData> FullContents = new(103);
     private readonly List<AuthorMetaData> FullAuthors = new(1);
 
     public IReadOnlyList<AuthorMetaData> Authors => FullAuthors;
@@ -56,6 +56,7 @@ public class TableOfContents
         FullContents.AddRange(new OWASPLearningPath().FullContents);
         FullContents.AddRange(new PythonLearningPath().FullContents);
         FullContents.AddRange(new ReportLearningPath().FullContents);
+        FullContents.AddRange(new SignalRLearningPath().FullContents);
         FullContents.AddRange(new SOLIDLearningPath().FullContents);
         FullContents.AddRange(new TalkLearningPath().FullContents);
         FullContents.AddRange(new TDDLearningPath().FullContents);

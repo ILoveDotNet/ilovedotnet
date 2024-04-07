@@ -1,0 +1,304 @@
+@page "/blogs/fundamentals-of-signalr-in-dotnet"
+@inherits FragmentNavigationBase
+@inject TableOfContents tableOfContents
+
+<Content Description=@Description
+         Slug=@Slug
+         PosterPath=@PosterPath
+         Channel="@Channel"
+         ContentType="@ContentType"
+         TotalContents=@TotalContents
+         Type="SignalR"
+         FileName=@nameof(Fundamentals)>
+    <ContentBody>
+        <p>
+            In this article, let's learn about fundamentals of <ContentHighlight>SignalR</ContentHighlight> in <ContentHighlight>dotnet</ContentHighlight>.
+        </p>
+
+        <h3 class="[ font-semibold text-lg ]">Table of Contents</h3>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
+                    Introduction
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#real-time-web-applications")" Match="NavLinkMatch.All">
+                    Real-time Web Applications
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#hubs-and-clients")" Match="NavLinkMatch.All">
+                    Hubs and Clients
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#create-hub")" Match="NavLinkMatch.All">
+                    Create Hub
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#remote-procedure-call-and-hub-protocol")" Match="NavLinkMatch.All">
+                    Remote Procedure Call and Hub Protocol
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#create-client")" Match="NavLinkMatch.All">
+                    Create Client
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#transports-and-negotiation")" Match="NavLinkMatch.All">
+                    Transports and Negotiation
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#client-support")" Match="NavLinkMatch.All">
+                    Client Support
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
+                    Summary
+                </NavLink>
+            </li>
+        </ol>
+
+        <h3 id="introduction" class="[ font-semibold text-lg ]">Introduction</h3>
+
+        <p>
+             ASP.NET Core has support built in to enable <ContentHighlight>real-time</ContentHighlight> functionality in your web application without the need 
+             for the user to reload using <ContentHighlight>SignalR</ContentHighlight>. SignalR is an open-source library that simplifies adding real-time web 
+             functionality to applications. Real-time web functionality is the ability to have <ContentHighlight>server code push content to connected 
+            clients</ContentHighlight> instantly as it becomes available, rather than having the server wait for a client to request new data. 
+        </p>
+
+        <p>
+            SignalR <ContentHighlight>hubs</ContentHighlight> can be written in C# code and added to your ASP.NET app, alongside your pages and APIs. The simple 
+            programming model integrates seamlessly with other ASP.NET features like <ContentHighlight>dependency injection</ContentHighlight>, 
+            <ContentHighlight>authentication</ContentHighlight>, <ContentHighlight>authorization</ContentHighlight>, and <ContentHighlight>scalability</ContentHighlight>. 
+            SignalR also enables completely new types of applications that require <ContentHighlight>high-frequency</ContentHighlight> updates from the server.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="real-time-web-applications" class="[ font-semibold text-lg ]">Real-time Web Applications</h3>
+
+        <p>
+            Today's modern apps are expected to <ContentHighlight>deliver up-to-date information without hitting a refresh button</ContentHighlight>. What is 
+            real-time functionality? It's the ability to have your server-side code push content to connected clients as it happens, in real-time. SignalR 
+            simplifies the process of adding real-time web functionality to applications. SignalR can be used in scenarios such as,
+        </p>
+
+        <ul class="[ list-disc ] [ ml-4 ]">
+            <li>Map Appications</li>
+            <li>Game Applications</li>
+            <li>Chat Applications</li>
+            <li>Auction Applications</li>
+            <li>Real-time Dashboards</li>
+            <li>Sending realtime notifications / alerts / progress from Server</li>
+        </ul>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="hubs-and-clients" class="[ font-semibold text-lg ]">Hubs and Clients</h3>
+
+        <p>
+            The magic of <ContentHighlight>real-time</ContentHighlight> communication provided by SignalR is enabled by concepts called 
+            <ContentHighlight>hubs</ContentHighlight> and <ContentHighlight>clients</ContentHighlight>. And while it's definitely awesome, it's 
+            also not magic. SignalR uses hubs to communicate between clients and servers. A hub is a <ContentHighlight>class</ContentHighlight> that derives from 
+            the <ContentHighlight>Hub</ContentHighlight> <ContentHighlight>base class</ContentHighlight> that is present within the 
+            <ContentHighlight>ASP.NET Core framework</ContentHighlight>. It is able to maintain connections with clients. 
+        </p>
+
+        <p> 
+            Once the connection between the browser and the hub on the server has been established, the hub can communicate to the browser and the browser to 
+            the hub at will because the connection is a two-way connection that is constantly available. The hub can now act as a 
+            <ContentHighlight>relay</ContentHighlight> for all connected clients. One client could send a message to the hub, and upon receiving the message, 
+            the hub could send a message to all connected clients.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <figure>
+            <img src="./image/blogs/signalr/introduction/hubs-and-clients.png" alt="Hubs and Clients" class="[ w-full ]" />
+        </figure>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="create-hub" class="[ font-semibold text-lg ]">Create Hub</h3>
+
+        <p>
+            To create a Hub, you need to.
+        </p>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>
+                Create a <ContentHighlight>class</ContentHighlight> that inherits from the <ContentHighlight>Hub class</ContentHighlight>. The 
+                <ContentHighlight>Hub class</ContentHighlight> is present in the 
+                <ContentHighlight CssClasses="[ break-all ]">Microsoft.AspNetCore.SignalR namespace</ContentHighlight>
+            </li>
+            <li>
+                Add <ContentHighlight CssClasses="[ break-all ]">builder.Services.SignalR();</ContentHighlight> to <ContentHighlight>ServiceCollection</ContentHighlight> in 
+                <ContentHighlight>Program.cs</ContentHighlight>
+            </li>
+            <li>Finally configure <ContentHighlight>Pipeline</ContentHighlight> by adding <ContentHighlight>app.MapHub&lt;YourHubName&gt;</ContentHighlight></li>
+        </ol>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <GithubGistSnippet Title="Creating and Configuring Hub" UserId="fingers10" FileName="4863a515168267bda32851cccaaae452"></GithubGistSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <p>
+            The <ContentHighlight>Clients</ContentHighlight> property present in the Hub base class can be used to 
+            <ContentHighlight>notify the connected clients</ContentHighlight>. From the Clients property, I can then select to which clients I want to send a 
+            message. I choose <ContentHighlight>All</ContentHighlight> here. We'll explore the other options later. Using the 
+            <ContentHighlight>SendAsync</ContentHighlight> method, I can then send the message to the clients. The message consists of a function name, and the 
+            second argument is the parameter to pass to the function.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="remote-procedure-call-and-hub-protocol" class="[ font-semibold text-lg ]">Remote Procedure Call and Hub Protocol</h3>
+
+        <p>
+            SignalR uses the <ContentHighlight><abbr title="Remote Procedure Call">RPC</abbr></ContentHighlight> principle to do its work. SignalR makes it 
+            possible to call methods or functions remotely. We can <ContentHighlight>create a method in a hub</ContentHighlight> or 
+            <ContentHighlight>override OnConnectedAsync()</ContentHighlight>. That method can be called remotely by clients. The hub method we just 
+            wrote then sends a message to all clients. That message is an instruction to call the <ContentHighlight>ReceiveNewArticle</ContentHighlight> function 
+            which will now be called on all connected clients.
+        </p>
+
+        <p>
+            You already know that there's a <ContentHighlight>two-way</ContentHighlight> connection in place between server and client. This is just a 
+            <ContentHighlight>low-level</ContentHighlight> connection. SignalR uses a <ContentHighlight>hub protocol</ContentHighlight> that defines the 
+            <ContentHighlight>format</ContentHighlight> of the messages that go back and forth just like 
+            <ContentHighlight><abbr title="Hyper Text Transfer Protocol">HTTP</abbr></ContentHighlight> is the protocol that can be used on a 
+            <ContentHighlight><abbr title="Transmission Control Protocol">TCP</abbr></ContentHighlight> connection. The 
+            <ContentHighlight>default</ContentHighlight> hub protocol is using 
+            <ContentHighlight><abbr title="Java Script Object Notation">JSON</abbr></ContentHighlight>.
+        </p>
+
+        <p>
+            Note that client can call function in the Hub and then Server can notify all connected clients or Server can also pull data from the client and 
+            notify all connected clients.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <figure>
+            <img src="./image/blogs/signalr/introduction/hub-protocol.png" alt="Hub Protocol" class="[ w-full ]" />
+        </figure>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="create-client" class="[ font-semibold text-lg ]">Create Client</h3>
+
+        <p>
+            To create a Client (Blazor <abbr title="WebAssembly">WASM</abbr>), you need to.
+        </p>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>Add <ContentHighlight CssClasses="[ break-all ]">Microsoft.AspNetCore.SignalR.Client</ContentHighlight> Nuget Package to Client</li>
+            <li>Create <ContentHighlight>HubConnection</ContentHighlight></li>
+            <li>Configure <ContentHighlight>Handler</ContentHighlight> to be invoked</li>
+            <li><ContentHighlight>Start</ContentHighlight> the HubConnection</li>
+            <li>Finally close it on Component <ContentHighlight>Dispose</ContentHighlight></li>
+        </ol>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <GithubGistSnippet Title="Creating and Configuring Client" UserId="fingers10" FileName="787fa9ec41e10559b8fe7f9079079a9b"></GithubGistSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="client-support" class="[ font-semibold text-lg ]">Client Support</h3>
+
+        <p>
+            With <ContentHighlight>client SDKs for JavaScript, .NET (C#, F#, and Visual Basic), and Java</ContentHighlight>, you can connect to your SignalR hub 
+            and start receiving real-time messages on almost any platform including,
+        </p>
+
+        <ul class="[ list-disc ] [ ml-4 ]">
+            <li>Browsers</li>
+            <li>Desktop Apps</li>
+            <li>Mobile Apps</li>
+            <li>IOT Devices</li>
+            <li>Gaming Consoles</li>
+        </ul>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="transports-and-negotiation" class="[ font-semibold text-lg ]">Transports and Negotiation</h3>
+
+        <p>
+            SignalR has support for <ContentHighlight>three</ContentHighlight> underlying connections and it calls them 
+            <ContentHighlight>transports</ContentHighlight>.
+        </p>
+
+        <dl>
+            <dt><ContentHighlight>Web Sockets</ContentHighlight></dt>
+            <dd>
+                The best transport is WebSockets. WebSockets is the only transport that offers a <ContentHighlight>true, long-lasting, two-way connection</ContentHighlight> 
+                that is <ContentHighlight>full duplex</ContentHighlight>. Full duplex means traffic can go both ways at the same time. WebSockets works by 
+                upgrading the TCP connection of an HTTP request to a WebSockets connection. Once it is upgraded, the connection stays until it is deliberately 
+                closed or if there's a network problem, after which the connection has to be re-established.
+            </dd>
+            <dt><ContentHighlight>Server Sent Events</ContentHighlight></dt>
+            <dd>
+                This simulate a two-way connection by using <ContentHighlight>normal HTTP requests</ContentHighlight>, which is way 
+                <ContentHighlight>less efficient</ContentHighlight> because <ContentHighlight>separate TCP connections have to be opened 
+                for each and every message</ContentHighlight>. On top of the traditional client/server communication using HTTP requests, Server-Sent Events adds 
+                a way to do HTTP requests from server to client, using a special <ContentHighlight>JavaScript object called EventSource</ContentHighlight>.
+            </dd>
+            <dt><ContentHighlight>Long Polling</ContentHighlight></dt>
+            <dd>
+                This one <ContentHighlight>doesn't provide a real possibility for server-to-client</ContentHighlight> communication. For server-to-client traffic 
+                it uses an HTTP request initiated by the client. The server will not produce a response to the request until there's a message to send, which is 
+                then sent as a response to that request. After the message is sent or when a <ContentHighlight>Request Timeout</ContentHighlight> occurs, because 
+                there's nothing to report, the request is simply done again. Needless to say, 
+                <ContentHighlight>this is even more resource intensive than Server-Sent Events</ContentHighlight>.
+            </dd>
+        </dl>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <p>
+            SignalR determine which transport to use by <ContentHighlight>negotiating</ContentHighlight> before the actual connection is established, the client 
+            will first negotiate with the server. They will let each other know which transports are supported on their end, and the best one will be selected. 
+            Now you could say there's a fallback mechanism in place. When the best possible option, <ContentHighlight>WebSockets, isn't available</ContentHighlight>, 
+            it will <ContentHighlight>fall back to Server-Sent Events</ContentHighlight>. And if that's not available, <ContentHighlight>long polling</ContentHighlight> is used.
+        </p>
+
+        <p>
+            This <ContentHighlight>negotiation can be disabled</ContentHighlight> in the client as nowadays <ContentHighlight>WebSockets is supported across the 
+            board most of the time</ContentHighlight>. But it's good to know that SignalR has a fallback mechanism in place. And we don't need to disable it and 
+            use the <ContentHighlight>default configuration</ContentHighlight>. 
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="summary" class="[ font-semibold text-lg ]">Summary</h3>
+
+        <p>
+            I this article we learn't about <ContentHighlight>SignalR</ContentHighlight> in dotnet. We learn't about <ContentHighlight>Real-time</ContentHighlight> 
+            Web Applications, <ContentHighlight>Hubs</ContentHighlight> and <ContentHighlight>Clients</ContentHighlight>, <ContentHighlight>Create Hub</ContentHighlight>, 
+            <ContentHighlight>Remote Procedure Call</ContentHighlight> and <ContentHighlight>Hub Protocol</ContentHighlight>, 
+            <ContentHighlight>Create Client</ContentHighlight>, <ContentHighlight>Client Support</ContentHighlight>, 
+            <ContentHighlight>Transports and Negotiation</ContentHighlight>. Thats the <ContentHighlight>true power of SignalR</ContentHighlight> in dotnet. 
+            I hope you enjoyed this article. In the next article, lets learn about <ContentHighlight>Server and Client Featues</ContentHighlight> in SignalR.
+        </p>
+    </ContentBody>
+</Content>
+
+@code {
+    private string Description = "In this post I will introduce you to SignalR in .NET. All with live working demo.";
+    private string Slug = "fundamentals-of-signalr-in-dotnet";
+    private string PosterPath = "Blogs/SignalR";
+    private string Channel = "signalr";
+    private string ContentType = "blogs";
+    private ushort TotalContents => (ushort)tableOfContents.Contents.Count(content => content.Type.Equals("SignalR", StringComparison.CurrentCultureIgnoreCase));
+}

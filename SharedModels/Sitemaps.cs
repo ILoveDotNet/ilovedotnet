@@ -2,7 +2,7 @@
 
 public class Sitemaps
 {
-    public IReadOnlyList<string> Files => new List<string>(17) {
+    public IReadOnlyList<string> Files => [
         "sitemap.xml",
         "sitemap-authors.xml",
         "sitemap-blog-blazor-wasm.xml",
@@ -15,10 +15,11 @@ public class Sitemaps
         "sitemap-blog-owasp.xml",
         "sitemap-blog-python.xml",
         "sitemap-blog-report.xml",
+        "sitemap-blog-signalr.xml",
         "sitemap-blog-solid.xml",
         "sitemap-blog-tdd.xml",
         "sitemap-blog-webapi.xml",
         "sitemap-channels.xml",
         "sitemap-talk.xml"
-    };
+    ];
 }
