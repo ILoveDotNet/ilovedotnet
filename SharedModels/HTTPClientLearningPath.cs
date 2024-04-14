@@ -19,7 +19,7 @@ public class HTTPClientLearningPath
                 IconUrl = "image/icons/http-client.webp",
                 Type = "HTTP-Client",
                 CreatedOn = new DateTime(2023, 8, 20, 22, 30, 0, DateTimeKind.Utc),
-                ModifiedOn = new DateTime(2023, 8, 20, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2024, 4, 14, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Memory Stream", "Performance"]
             },
             new ContentMetaData
