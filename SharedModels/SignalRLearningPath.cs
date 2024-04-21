@@ -2,7 +2,7 @@
 
 public class SignalRLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(1);
+    public readonly List<ContentMetaData> FullContents = new(2);
 
     public SignalRLearningPath()
     {
@@ -20,7 +20,21 @@ public class SignalRLearningPath
                 Type = "SignalR",
                 CreatedOn = new DateTime(2024, 4, 7, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2024, 4, 7, 22, 30, 0, DateTimeKind.Utc),
-                Keywords = ["Signal R", "Two Way", "Realtime", "Full Duplex", "WebSockets"]
+                Keywords = ["Two Way", "Realtime", "Full Duplex", "WebSockets"]
+            },
+            new ContentMetaData
+            {
+                Order = 2,
+                Title = "Types of Clients in SignalR",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/signalr/types-of-clients-in-signalr.webp",
+                ThumbnailUrl = "image/blogs/signalr/types-of-clients-in-signalr.webp",
+                ContentUrl = "blogs/types-of-clients-in-signalr",
+                IconUrl = "image/icons/signalr.webp",
+                Type = "SignalR",
+                CreatedOn = new DateTime(2024, 4, 21, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2024, 4, 21, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Clients", "Javascript", "Java", ".NET"]
             }
         ];
     }
