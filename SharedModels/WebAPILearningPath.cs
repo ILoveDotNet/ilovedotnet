@@ -33,7 +33,7 @@ public class WebAPILearningPath
                 IconUrl = "image/icons/webapi.webp",
                 Type = "WebAPI",
                 CreatedOn = new DateTime(2022, 9, 18, 22, 30, 0, DateTimeKind.Utc),
-                ModifiedOn = new DateTime(2022, 9, 18, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2024, 4, 28, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Profiling", "Mini Profiler"]
             },
             new ContentMetaData
