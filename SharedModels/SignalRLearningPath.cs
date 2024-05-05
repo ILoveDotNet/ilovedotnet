@@ -2,7 +2,7 @@
 
 public class SignalRLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(2);
+    public readonly List<ContentMetaData> FullContents = new(3);
 
     public SignalRLearningPath()
     {
@@ -35,6 +35,20 @@ public class SignalRLearningPath
                 CreatedOn = new DateTime(2024, 4, 21, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2024, 4, 21, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Clients", "Javascript", "Java", ".NET"]
+            },
+            new ContentMetaData
+            {
+                Order = 3,
+                Title = "Send Notifications using IHubContext and Caller in SignalR",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/signalr/send-notifications-using-ihubcontext-and-caller-in-signalr.webp",
+                ThumbnailUrl = "image/blogs/signalr/send-notifications-using-ihubcontext-and-caller-in-signalr.webp",
+                ContentUrl = "blogs/send-notifications-using-ihubcontext-and-caller-in-signalr",
+                IconUrl = "image/icons/signalr.webp",
+                Type = "SignalR",
+                CreatedOn = new DateTime(2024, 5, 5, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2024, 5, 5, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["IHubContext", "Caller", "Notifications"]
             }
         ];
     }
