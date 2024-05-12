@@ -1,0 +1,116 @@
+@page "/blogs/send-notifications-to-groups-and-connectionid-in-signalr"
+@inherits FragmentNavigationBase
+@inject TableOfContents tableOfContents
+
+<Content Description=@Description
+         Slug=@Slug
+         PosterPath=@PosterPath
+         Channel="@Channel"
+         ContentType="@ContentType"
+         TotalContents=@TotalContents
+         Type="SignalR"
+         FileName=@nameof(GroupsAndConnectionId)>
+    <ContentBody>
+        <p>
+            In this article, let's learn about <ContentHighlight>Groups</ContentHighlight> and <ContentHighlight>Connection Id</ContentHighlight> 
+            in <ContentHighlight>SignalR</ContentHighlight>.
+        </p>
+
+        <p>
+            <strong>Note:</strong> If you have not done so already, I recommend you read the article on
+            <NavLink class="[ underline ]" href="blogs/send-notifications-using-ihubcontext-and-caller-in-signalr" Match="NavLinkMatch.All">Send Notifications using IHubContext and Caller in SignalR</NavLink>.
+        </p>
+
+        <h3 class="[ font-semibold text-lg ]">Table of Contents</h3>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
+                    Introduction
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#groups-and-connection-id")" Match="NavLinkMatch.All">
+                    Groups and Connection Id
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
+                    Summary
+                </NavLink>
+            </li>
+        </ol>
+
+        <h3 id="introduction" class="[ font-semibold text-lg ]">Introduction</h3>
+
+        <p>
+            In our previous article we about what is <ContentHighlight>IHubContext</ContentHighlight> and <ContentHighlight>Caller</ContentHighlight> and how to 
+            send notifications using IHubContext and Caller. Today in this article, lets learn about another <ContentHighlight>server and client features</ContentHighlight> 
+            named <ContentHighlight>Groups</ContentHighlight> and <ContentHighlight>Connection Id</ContentHighlight> available in SignalR.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="groups-and-connection-id" class="[ font-semibold text-lg ]">Groups and Connection Id</h3>
+
+        <p>
+            Client <ContentHighlight>Groups</ContentHighlight> are like superchargers in SignalR. You can organize clients into groups using their 
+            <ContentHighlight>Connection ID</ContentHighlight>. When a client first connects to the hub or calls a hub method, it gets assigned a unique 
+            connection ID. This ID sticks around as long as the connection stays alive. Just a heads up though, if a new connection happens, like from a 
+            network hiccup or a page refresh (you know, hitting F5 in the browser), the connection ID changes.
+        </p>
+
+        <p>
+            But let's get back to the good stuff - groups. They're <ContentHighlight>dynamic and live right in the server's memory</ContentHighlight>. No need to 
+            set them up or save them anywhere. Once you add a connection ID to a group, boom, the group exists. And once you've got a group, you can use the 
+            <ContentHighlight>Clients</ContentHighlight> property in the hub to talk to all the clients in that group. How cool is that?
+        </p>
+
+        <GithubGistSnippet Title="Groups and ConnectionId" UserId="fingers10" FileName="0903bc8ebe466f34f791082cd9591aa0"></GithubGistSnippet>
+
+        <p>
+            When a call comes in, we first figure out a name for the group it belongs to. Then, we add the connection ID of the client making the call to that 
+            group. The <ContentHighlight>Hub</ContentHighlight> base <ContentHighlight>class</ContentHighlight> has this handy property called 
+            <ContentHighlight>Context</ContentHighlight> that gives us info about the connection, like the connection ID. But there's more to come on that.
+        </p>
+
+        <p>
+            If the <ContentHighlight>group doesn't exist</ContentHighlight> yet, no sweat. It'll be <ContentHighlight>created when we add that 
+            connection ID</ContentHighlight> to it. And if the connection ID was already in the group? No biggie. Adding it again doesn't change a thing. 
+            That's the beauty of groups being so dynamic.
+        </p>
+
+        <p>
+            Now, here's the fun part: We can <ContentHighlight>call a function on every client in the group, except the one making the call</ContentHighlight>. 
+            How? By using the <ContentHighlight>OthersInGroup</ContentHighlight> method on the <ContentHighlight>Clients</ContentHighlight> property, we specify 
+            the group name and then call <ContentHighlight>SendAsync</ContentHighlight>.
+        </p>
+
+        <p>
+            The <ContentHighlight>Clients</ContentHighlight> property has some extra tricks up its sleeve. For instance, we can <ContentHighlight>send messages 
+            to a whole group, including the caller, or leave out specific connection IDs</ContentHighlight>. And if we need to target a specific 
+            <ContentHighlight>connection ID</ContentHighlight> or a list of them, we can use the <ContentHighlight>Client</ContentHighlight> and 
+            <ContentHighlight>Clients methods</ContentHighlight>. So many options to play around with!
+        </p>        
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="summary" class="[ font-semibold text-lg ]">Summary</h3>
+
+        <p>
+            In this article, we learnt about <ContentHighlight>Groups</ContentHighlight> and <ContentHighlight>Connection Id</ContentHighlight> in SignalR. 
+            We also saw how to send notifications using <ContentHighlight>Groups</ContentHighlight> and <ContentHighlight>Connection Id</ContentHighlight>. 
+            In the next article, we will learn about <ContentHighlight>Message Pack Hub Protocol</ContentHighlight> and 
+            <ContentHighlight>Keep Alive</ContentHighlight> in SignalR.
+        </p>
+    </ContentBody>
+</Content>
+
+@code {
+    private string Description = "In this post I will teach you how to send notifications to Groups and Connection Id in SignalR .NET. All with live working demo.";
+    private string Slug = "send-notifications-to-groups-and-connectionid-in-signalr";
+    private string PosterPath = "Blogs/SignalR";
+    private string Channel = "signalr";
+    private string ContentType = "blogs";
+    private ushort TotalContents => (ushort)tableOfContents.Contents.Count(content => content.Type.Equals("SignalR", StringComparison.CurrentCultureIgnoreCase));
+}

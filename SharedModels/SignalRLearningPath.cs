@@ -2,7 +2,7 @@
 
 public class SignalRLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(3);
+    public readonly List<ContentMetaData> FullContents = new(4);
 
     public SignalRLearningPath()
     {
@@ -49,6 +49,20 @@ public class SignalRLearningPath
                 CreatedOn = new DateTime(2024, 5, 5, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2024, 5, 5, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["IHubContext", "Caller", "Notifications"]
+            },
+            new ContentMetaData
+            {
+                Order = 4,
+                Title = "Send Notifications to Groups and Connection Id in SignalR",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/signalr/send-notifications-to-groups-and-connectionid-in-signalr.webp",
+                ThumbnailUrl = "image/blogs/signalr/send-notifications-to-groups-and-connectionid-in-signalr.webp",
+                ContentUrl = "blogs/send-notifications-to-groups-and-connectionid-in-signalr",
+                IconUrl = "image/icons/signalr.webp",
+                Type = "SignalR",
+                CreatedOn = new DateTime(2024, 5, 12, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2024, 5, 12, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Groups", "Connection Id", "Notifications"]
             }
         ];
     }
