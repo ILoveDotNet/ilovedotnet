@@ -2,7 +2,7 @@
 
 public class SignalRLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(5);
+    public readonly List<ContentMetaData> FullContents = new(6);
 
     public SignalRLearningPath()
     {
@@ -76,7 +76,21 @@ public class SignalRLearningPath
                 Type = "SignalR",
                 CreatedOn = new DateTime(2024, 5, 19, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2024, 5, 19, 22, 30, 0, DateTimeKind.Utc),
-                Keywords = ["Message Pack", "Keep Alive"]
+                Keywords = ["Message Pack", "Hub Protocol", "Keep Alive"]
+            },
+            new ContentMetaData
+            {
+                Order = 6,
+                Title = "Exception Handling and Logging in SignalR",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/signalr/exception-handling-and-logging-in-signalr.webp",
+                ThumbnailUrl = "image/blogs/signalr/exception-handling-and-logging-in-signalr.webp",
+                ContentUrl = "blogs/exception-handling-and-logging-in-signalr",
+                IconUrl = "image/icons/signalr.webp",
+                Type = "SignalR",
+                CreatedOn = new DateTime(2024, 5, 26, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2024, 5, 26, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Exception", "Error", "Logging"]
             }
         ];
     }

@@ -1,0 +1,118 @@
+@page "/blogs/exception-handling-and-logging-in-signalr"
+@inherits FragmentNavigationBase
+@inject TableOfContents tableOfContents
+
+<Content Description=@Description
+         Slug=@Slug
+         PosterPath=@PosterPath
+         Channel="@Channel"
+         ContentType="@ContentType"
+         TotalContents=@TotalContents
+         Type="SignalR"
+         FileName=@nameof(ExceptionHandlingAndLogging)>
+    <ContentBody>
+        <p>
+            In this article, let's learn about <ContentHighlight>Exception Handling</ContentHighlight> and <ContentHighlight>Logging</ContentHighlight> 
+            in <ContentHighlight>SignalR</ContentHighlight>.
+        </p>
+
+        <p>
+            <strong>Note:</strong> If you have not done so already, I recommend you read the article on
+            <NavLink class="[ underline ]" href="blogs/message-pack-hub-protocol-and-keep-alive-in-signalr" Match="NavLinkMatch.All">Message Pack Hub Protocol and Keep Alive in SignalR</NavLink>.
+        </p>
+
+        <h3 class="[ font-semibold text-lg ]">Table of Contents</h3>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
+                    Introduction
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#exception-handling-and-logging")" Match="NavLinkMatch.All">
+                    Exception Handling and Logging
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
+                    Summary
+                </NavLink>
+            </li>
+        </ol>
+
+        <h3 id="introduction" class="[ font-semibold text-lg ]">Introduction</h3>
+
+        <p>
+            In our previous article we about what are <ContentHighlight>Message Pack Hub Protocol</ContentHighlight> and 
+            <ContentHighlight>Keep Alive</ContentHighlight> and how to configure them. Today in this article, lets learn about how to handle errors and log them 
+            in <ContentHighlight>SignalR</ContentHighlight>. We will also see how to <ContentHighlight>log messages</ContentHighlight> that are sent and received 
+            through the <ContentHighlight>SignalR connection</ContentHighlight>. This is useful for <ContentHighlight>debugging</ContentHighlight> and 
+            <ContentHighlight>monitoring</ContentHighlight> the <ContentHighlight>communication</ContentHighlight> between the <ContentHighlight>client</ContentHighlight>.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="exception-handling-and-logging" class="[ font-semibold text-lg ]">Exception Handling and Logging</h3>
+
+        <p>
+            What happens when a <ContentHighlight>hub method</ContentHighlight> is invoked and an <ContentHighlight>exception</ContentHighlight> occurs?  So when 
+            an <ContentHighlight>exception occurs on the server, the connection will not close</ContentHighlight>. The only thing the hub do is 
+            <ContentHighlight>send a message to the client that something went wrong</ContentHighlight>. 
+            <ContentHighlight>The client library will detect that and throw the error</ContentHighlight>.
+        </p>
+
+        <GithubGistSnippet Title="Standard Exception" UserId="fingers10" FileName="a1cbd2e4591cd688756bb13658e93cc2"></GithubGistSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <p>
+            And to see the exception message, there are two possible solutions. Instead of throwing a <ContentHighlight>standard exception</ContentHighlight>, 
+            you could <ContentHighlight>throw</ContentHighlight> a <ContentHighlight>HubException</ContentHighlight>. Now, the message is visible. This is usable 
+            when you <ContentHighlight>deliberately want to send an exception message</ContentHighlight> to the client, for example, a 
+            <ContentHighlight>data validation error</ContentHighlight>. SignalR will also throw HubExceptions itself when something goes wrong.
+        </p>
+
+        <GithubGistSnippet Title="Hub Exception" UserId="fingers10" FileName="048e09567ccde6d07a9eeba0531907cf"></GithubGistSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <p>
+            All exceptions that are not <ContentHighlight>HubExceptions</ContentHighlight> thrown on the server will not contain the exception message. But if 
+            you always want that message, no matter which exception is thrown, in <ContentHighlight>Program.cs</ContentHighlight> where 
+            <ContentHighlight>SignalR</ContentHighlight> is added to <ContentHighlight><abbr title="Dependency Injection">DI</abbr></ContentHighlight>.  Note 
+            that just the <ContentHighlight>Exception message</ContentHighlight> is sent to the client, not the <ContentHighlight>stack trace</ContentHighlight> 
+            or other exception information. You should be careful turning on <ContentHighlight>EnabledDetailedErrors</ContentHighlight> because this information 
+            could also reveal possible attack vectors to your application. Therefore, <ContentHighlight>I recommend not turning this on in production</ContentHighlight>.
+        </p>
+
+        <GithubGistSnippet Title="SignalR Exception Configuration" UserId="fingers10" FileName="3020358cc3c01c9312043e369ce176cc"></GithubGistSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <p>
+            To see more logs, <ContentHighlight CssClasses="[ break-all ]">Microsoft.AspNetCore.SignalR</ContentHighlight> category is about all activity of hubs 
+            like invoking methods. You can also set <ContentHighlight CssClasses="[ break-all ]">Microsoft.AspNetCore.Http.Connections</ContentHighlight> to get 
+            logging around <ContentHighlight>transports</ContentHighlight> such as which transport was selected and activity around the selected transport.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="summary" class="[ font-semibold text-lg ]">Summary</h3>
+
+        <p>
+            In this article, we learnt about <ContentHighlight>Exception Handling</ContentHighlight> and <ContentHighlight>Logging</ContentHighlight> 
+            in SignalR. We also saw how to handle exception as <ContentHighlight>Hub Exception</ContentHighlight>. In the next article, we will learn 
+            about <ContentHighlight>Streaming</ContentHighlight> and <ContentHighlight>Authentication & Authorization</ContentHighlight> in SignalR.
+        </p>
+    </ContentBody>
+</Content>
+
+@code {
+    private string Description = "In this post I will teach you how to handle exceptions and do logging in SignalR .NET. All with live working demo.";
+    private string Slug = "exception-handling-and-logging-in-signalr";
+    private string PosterPath = "Blogs/SignalR";
+    private string Channel = "signalr";
+    private string ContentType = "blogs";
+    private ushort TotalContents => (ushort)tableOfContents.Contents.Count(content => content.Type.Equals("SignalR", StringComparison.CurrentCultureIgnoreCase));
+}
