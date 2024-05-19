@@ -1,0 +1,110 @@
+@page "/blogs/message-pack-hub-protocol-and-keep-alive-in-signalr"
+@inherits FragmentNavigationBase
+@inject TableOfContents tableOfContents
+
+<Content Description=@Description
+         Slug=@Slug
+         PosterPath=@PosterPath
+         Channel="@Channel"
+         ContentType="@ContentType"
+         TotalContents=@TotalContents
+         Type="SignalR"
+         FileName=@nameof(MessagePackAndKeepAlive)>
+    <ContentBody>
+        <p>
+            In this article, let's learn about <ContentHighlight>Message Pack Hub Protocol</ContentHighlight> and <ContentHighlight>Keep Alive</ContentHighlight> 
+            in <ContentHighlight>SignalR</ContentHighlight>.
+        </p>
+
+        <p>
+            <strong>Note:</strong> If you have not done so already, I recommend you read the article on
+            <NavLink class="[ underline ]" href="blogs/send-notifications-to-groups-and-connectionid-in-signalr" Match="NavLinkMatch.All">Send Notifications to Groups and Connection Id in SignalR</NavLink>.
+        </p>
+
+        <h3 class="[ font-semibold text-lg ]">Table of Contents</h3>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
+                    Introduction
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#message-pack-hub-protocol-and-keep-alive")" Match="NavLinkMatch.All">
+                    Message Pack Hub Protocol and Keep Alive
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
+                    Summary
+                </NavLink>
+            </li>
+        </ol>
+
+        <h3 id="introduction" class="[ font-semibold text-lg ]">Introduction</h3>
+
+        <p>
+            In our previous article we about what are <ContentHighlight>Groups</ContentHighlight> and <ContentHighlight>Caller ID</ContentHighlight> and how to 
+            send notifications to Groups and Caller ID. Today in this article, lets learn about another <ContentHighlight>server and client features</ContentHighlight> 
+            which helps in configuring <ContentHighlight>Hub Protocol</ContentHighlight> and <ContentHighlight>Keep Alive</ContentHighlight> available in SignalR.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="message-pack-hub-protocol-and-keep-alive" class="[ font-semibold text-lg ]">Message Pack Hub Protocol and Keep Alive</h3>
+
+        <p>
+            We have learnt that by default a <ContentHighlight><abbr title="Java Script Object Notation">JSON</abbr> protocol</ContentHighlight> was used as 
+            <ContentHighlight>Hub protocol</ContentHighlight> in previous articles. Assuming the <ContentHighlight>WebSocket's transport</ContentHighlight> is 
+            used, you can actually see the JSON messages when going to the <ContentHighlight>Network tab</ContentHighlight> of the 
+            <ContentHighlight>F12 developer tools</ContentHighlight> of your <ContentHighlight>browser</ContentHighlight>. When you click on the 
+            <ContentHighlight>WebSocket connection</ContentHighlight> to the hub and select the <ContentHighlight>Messages tab</ContentHighlight>, you can see 
+            the message going through. When you click on it, <ContentHighlight>you can see the actual message</ContentHighlight>.
+        </p>
+
+        <p>
+            There are also a number of <ContentHighlight>other messages visible</ContentHighlight>, which are of <ContentHighlight>type:6</ContentHighlight>. 
+            These are <ContentHighlight>keepalive messages</ContentHighlight>. They are needed because <ContentHighlight>WebSocket connections tend to close 
+            automatically after a certain period of inactivity, and the keepalive messages are preventing that</ContentHighlight>. Since JSON is text, it is not 
+            <ContentHighlight>very efficient, especially when dealing with larger messages</ContentHighlight>. When you, for example, work with larger objects 
+            that are passed as parameters, <ContentHighlight>JSON protocol might be too slow or too inefficient</ContentHighlight>. In that case, there's the 
+            option to <ContentHighlight>switch to MessagePack hub protocol, which is binary</ContentHighlight>.
+        </p>
+
+        <p>
+            To <ContentHighlight>enable MessagePack Protocol</ContentHighlight> install the Nuget package 
+            <ContentHighlight CssClasses="[ break-all ]">Microsoft.AspNetCore.SignalR.Protocols.MessagePack</ContentHighlight> and call 
+            <ContentHighlight>AddMessagePackProtocol()</ContentHighlight> to the SignalR setup in server and 
+            <ContentHighlight>HubConnectionBuilder</ContentHighlight> in client.
+        </p>
+
+        <GithubGistSnippet Title="MessagePack Protocol" UserId="fingers10" FileName="d5939dd731bcc3cf9dc57170c5b736d5"></GithubGistSnippet>
+
+        <p>
+            <ContentHighlight>MessagePack serialization is strictly case-sensitive</ContentHighlight>. That means that the property names of the objects that are 
+            sent through the connection should match exactly. So to make this work, we have to use <ContentHighlight>Pascal casing</ContentHighlight> for property 
+            names.  It's a MessagePack quirk that is not easy to bypass. When we now run the application and look at the messages again, they are now binary. 
+            That's an <ContentHighlight>advantage in terms of performance</ContentHighlight>, but it also has a downside. They are 
+            <ContentHighlight>not as easy to read as the JSON messages</ContentHighlight>.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="summary" class="[ font-semibold text-lg ]">Summary</h3>
+
+        <p>
+            In this article, we learnt about <ContentHighlight>Message Pack Hub Protocol</ContentHighlight> and <ContentHighlight>Keep Alive</ContentHighlight> 
+            in SignalR. We also saw how to configure and check them in browser developer tools. In the next article, we will learn about 
+            <ContentHighlight>Exceptions</ContentHighlight> and <ContentHighlight>Logging</ContentHighlight> in SignalR.
+        </p>
+    </ContentBody>
+</Content>
+
+@code {
+    private string Description = "In this post I will teach you how to change message pack hub protocol and keep the connection alive in SignalR .NET. All with live working demo.";
+    private string Slug = "message-pack-hub-protocol-and-keep-alive-in-signalr";
+    private string PosterPath = "Blogs/SignalR";
+    private string Channel = "signalr";
+    private string ContentType = "blogs";
+    private ushort TotalContents => (ushort)tableOfContents.Contents.Count(content => content.Type.Equals("SignalR", StringComparison.CurrentCultureIgnoreCase));
+}

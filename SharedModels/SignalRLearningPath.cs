@@ -2,7 +2,7 @@
 
 public class SignalRLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(4);
+    public readonly List<ContentMetaData> FullContents = new(5);
 
     public SignalRLearningPath()
     {
@@ -63,6 +63,20 @@ public class SignalRLearningPath
                 CreatedOn = new DateTime(2024, 5, 12, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2024, 5, 12, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Groups", "Connection Id", "Notifications"]
+            },
+            new ContentMetaData
+            {
+                Order = 5,
+                Title = "Message Pack Hub Protocol and Keep Alive in SignalR",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/signalr/message-pack-hub-protocol-and-keep-alive-in-signalr.webp",
+                ThumbnailUrl = "image/blogs/signalr/message-pack-hub-protocol-and-keep-alive-in-signalr.webp",
+                ContentUrl = "blogs/message-pack-hub-protocol-and-keep-alive-in-signalr",
+                IconUrl = "image/icons/signalr.webp",
+                Type = "SignalR",
+                CreatedOn = new DateTime(2024, 5, 19, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2024, 5, 19, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Message Pack", "Keep Alive"]
             }
         ];
     }
