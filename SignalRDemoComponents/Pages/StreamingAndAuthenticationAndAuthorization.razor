@@ -1,0 +1,114 @@
+@page "/blogs/streaming-and-authentication-and-authorization-in-signalr"
+@inherits FragmentNavigationBase
+@inject TableOfContents tableOfContents
+
+<Content Description=@Description
+         Slug=@Slug
+         PosterPath=@PosterPath
+         Channel="@Channel"
+         ContentType="@ContentType"
+         TotalContents=@TotalContents
+         Type="SignalR"
+         FileName=@nameof(StreamingAndAuthenticationAndAuthorization)>
+    <ContentBody>
+        <p>
+            In this article, let's learn about <ContentHighlight>Streaming</ContentHighlight> and <ContentHighlight>Authentication</ContentHighlight> 
+            and <ContentHighlight>Authentication</ContentHighlight> in <ContentHighlight>SignalR</ContentHighlight>.
+        </p>
+
+        <p>
+            <strong>Note:</strong> If you have not done so already, I recommend you read the article on
+            <NavLink class="[ underline ]" href="blogs/exception-handling-and-logging-in-signalr" Match="NavLinkMatch.All">Exception Handling and Logging in SignalR</NavLink>.
+        </p>
+
+        <h3 class="[ font-semibold text-lg ]">Table of Contents</h3>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
+                    Introduction
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#streaming")" Match="NavLinkMatch.All">
+                    Streaming
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#authentication-and-authorization")" Match="NavLinkMatch.All">
+                    Authentication & Authorization
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
+                    Summary
+                </NavLink>
+            </li>
+        </ol>
+
+        <h3 id="introduction" class="[ font-semibold text-lg ]">Introduction</h3>
+
+        <p>
+            In our previous article we about <ContentHighlight>Exception Handling</ContentHighlight> and 
+            <ContentHighlight>Logging</ContentHighlight> and how to configure them. Today in this article, lets learn about how to do streaming and touch base on 
+            authentication and authorization in SignalR.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="streaming" class="[ font-semibold text-lg ]">Streaming</h3>
+
+        <p>
+            <ContentHighlight>Streaming</ContentHighlight> with SignalR is pretty specialized. If we're talking about using 
+            <ContentHighlight>WebSockets</ContentHighlight> for connections, the messages flying back and forth don't weigh 
+            much in terms of overhead. Since the connection's already set up, the biggest chunk of overhead is likely in serializing and deserializing, which 
+            happens pretty quickly. So if you're passing things like real time data, the <ContentHighlight>regular SignalR transport</ContentHighlight> should do 
+            the trick just fine.
+        </p>
+
+        <p>
+            But <ContentHighlight>streaming isn't the best fit for everything, especially not for binary data like audio and video</ContentHighlight>. SignalR 
+            uses a <ContentHighlight>JSON-based</ContentHighlight> transport, even if it's using <ContentHighlight>MessagePack</ContentHighlight>, which means 
+            JSON gets turned into binary. So, not the smoothest ride for audio and video.
+        </p>
+
+        <GithubGistSnippet Title="SignalR Streaming" UserId="fingers10" FileName="e1f3ba4262e6fc779816c9a98c5ea75b"></GithubGistSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="authentication-and-authorization" class="[ font-semibold text-lg ]">Authentication & Authorization</h3>
+
+        <p>
+            The cool thing is that the SignalR hub can <ContentHighlight>make use of everything that's in ASP.NET Core already</ContentHighlight>. We can just 
+            put the <ContentHighlight>Authorize</ContentHighlight> attribute above <ContentHighlight>ILoveDotNetHub</ContentHighlight> and now users that don't 
+            have a valid credentials can't access it. SignalR supports both <ContentHighlight>JWT</ContentHighlight> and <ContentHighlight>Cookie</ContentHighlight> 
+            authentication. Here is the example for JWT authentication.
+        </p>
+
+        <GithubGistSnippet Title="SignalR Authentication and Authorization" UserId="fingers10" FileName="94e766fdabbe112709b2ce6198c1f798"></GithubGistSnippet>
+
+        <p>
+            <ContentHighlight>Authorization</ContentHighlight> doesn't work any differently with SignalR than it does with any other ASP.NET Core application. You 
+            can use <ContentHighlight>Context.User.Claims</ContentHighlight> and get the <ContentHighlight>claims</ContentHighlight> and work on them.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="summary" class="[ font-semibold text-lg ]">Summary</h3>
+
+        <p>
+            In this article, we learnt about <ContentHighlight>Streaming</ContentHighlight> and <ContentHighlight>Authentication</ContentHighlight> 
+            and <ContentHighlight>Authorization</ContentHighlight> in SignalR. In the next article, we will learn 
+            about <ContentHighlight>Design Considerations</ContentHighlight> and <ContentHighlight>Deployment & Scaling</ContentHighlight> in SignalR.
+        </p>
+    </ContentBody>
+</Content>
+
+@code {
+    private string Description = "In this post I will teach you about streaming and authentication and authorization in SignalR .NET. All with live working demo.";
+    private string Slug = "streaming-and-authentication-and-authorization-in-signalr";
+    private string PosterPath = "Blogs/SignalR";
+    private string Channel = "signalr";
+    private string ContentType = "blogs";
+    private ushort TotalContents => (ushort)tableOfContents.Contents.Count(content => content.Type.Equals("SignalR", StringComparison.CurrentCultureIgnoreCase));
+}

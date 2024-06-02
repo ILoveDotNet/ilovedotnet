@@ -2,7 +2,7 @@
 
 public class SignalRLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(6);
+    public readonly List<ContentMetaData> FullContents = new(7);
 
     public SignalRLearningPath()
     {
@@ -91,6 +91,20 @@ public class SignalRLearningPath
                 CreatedOn = new DateTime(2024, 5, 26, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2024, 5, 26, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Exception", "Error", "Logging"]
+            },
+            new ContentMetaData
+            {
+                Order = 7,
+                Title = "Streaming and Authentication and Authorization in SignalR",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/signalr/streaming-and-authentication-and-authorization-in-signalr.webp",
+                ThumbnailUrl = "image/blogs/signalr/streaming-and-authentication-and-authorization-in-signalr.webp",
+                ContentUrl = "blogs/streaming-and-authentication-and-authorization-in-signalr",
+                IconUrl = "image/icons/signalr.webp",
+                Type = "SignalR",
+                CreatedOn = new DateTime(2024, 6, 2, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2024, 6, 2, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Streaming", "Authentication", "Authorization"]
             }
         ];
     }
