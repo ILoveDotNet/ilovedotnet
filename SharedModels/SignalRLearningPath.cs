@@ -2,7 +2,7 @@
 
 public class SignalRLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(7);
+    public readonly List<ContentMetaData> FullContents = new(8);
 
     public SignalRLearningPath()
     {
@@ -105,6 +105,20 @@ public class SignalRLearningPath
                 CreatedOn = new DateTime(2024, 6, 2, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2024, 6, 2, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Streaming", "Authentication", "Authorization"]
+            },
+            new ContentMetaData
+            {
+                Order = 8,
+                Title = "Design and Deployment and Scaling Consideration in SignalR",
+                Author = "Abdul Rahman",
+                PosterUrl = "image/blogs/signalr/design-and-deployment-and-scaling-in-signalr.webp",
+                ThumbnailUrl = "image/blogs/signalr/design-and-deployment-and-scaling-in-signalr.webp",
+                ContentUrl = "blogs/design-and-deployment-and-scaling-in-signalr",
+                IconUrl = "image/icons/signalr.webp",
+                Type = "SignalR",
+                CreatedOn = new DateTime(2024, 6, 9, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2024, 6, 9, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Design", "Deployment", "Scaling"]
             }
         ];
     }
