@@ -4,6 +4,7 @@ public class ContentMetaData
 {
     public required sbyte Order { get; set; }
     public required string Title { get; set; }
+    public string? Description { get; set; }
     public required string Author { get; set; }
     public required string PosterUrl { get; set; }
     public required string ThumbnailUrl { get; set; }
