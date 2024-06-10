@@ -12,6 +12,7 @@ public class TDDLearningPath
             {
                 Order = 1,
                 Title = "Introducing TDD in C# .Net",
+                Description = "In this post I will introduce you to TDD in C# .NET. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/tdd/introducing-tdd-in-csharp-dotnet.webp",
                 ThumbnailUrl = "image/blogs/tdd/introducing-tdd-in-csharp-dotnet.webp",
@@ -26,6 +27,7 @@ public class TDDLearningPath
             {
                 Order = 2,
                 Title = "Implementing TDD in C# .Net",
+                Description = "In this post I will teach you how to practice and implement TDD in C# .NET. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/tdd/implementing-tdd-in-csharp-dotnet.webp",
                 ThumbnailUrl = "image/blogs/tdd/implementing-tdd-in-csharp-dotnet.webp",

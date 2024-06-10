@@ -12,6 +12,7 @@ public class WebAPILearningPath
             {
                 Order = 1,
                 Title = "Importance of Status Code in Web API",
+                Description = "In this post I will teach you the importance of status code in Web API. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/webapi/webapi-importance-of-status-code.webp",
                 ThumbnailUrl = "image/blogs/webapi/webapi-importance-of-status-code.webp",
@@ -26,6 +27,7 @@ public class WebAPILearningPath
             {
                 Order = 6,
                 Title = "Profiling Web API with Mini Profiler",
+                Description = "In this post I will teach you how to profile Web API with Mini Profiler. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/webapi/profiling-webapi-with-mini-profiler.webp",
                 ThumbnailUrl = "image/blogs/webapi/profiling-webapi-with-mini-profiler.webp",
@@ -40,6 +42,7 @@ public class WebAPILearningPath
             {
                 Order = 7,
                 Title = "Unit Testing Filters in ASP.NET Web API",
+                Description = "In this post I will teach how to unit test filters in ASP.NET web api. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/webapi/unit-testing-filters-in-asp-net-webapi.webp",
                 ThumbnailUrl = "image/blogs/webapi/unit-testing-filters-in-asp-net-webapi.webp",
@@ -54,6 +57,7 @@ public class WebAPILearningPath
             {
                 Order = 8,
                 Title = "Unit Testing Middlewares in ASP.NET Web API",
+                Description = "In this post I will teach how to unit test middlewares in ASP.NET web api. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/webapi/unit-testing-middlewares-in-asp-net-webapi.webp",
                 ThumbnailUrl = "image/blogs/webapi/unit-testing-middlewares-in-asp-net-webapi.webp",
@@ -68,6 +72,7 @@ public class WebAPILearningPath
             {
                 Order = 9,
                 Title = "Unit Testing Service Registrations in ASP.NET Web API",
+                Description = "In this post I will teach how to unit test service registrations in ASP.NET web api. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/webapi/unit-testing-service-registrations-in-asp-net-webapi.webp",
                 ThumbnailUrl = "image/blogs/webapi/unit-testing-service-registrations-in-asp-net-webapi.webp",
@@ -82,6 +87,7 @@ public class WebAPILearningPath
             {
                 Order = 10,
                 Title = "Unit Testing Controllers in ASP.NET Web API",
+                Description = "In this post I will teach how to unit test controllers in ASP.NET web api. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/webapi/unit-testing-controllers-in-asp-net-webapi.webp",
                 ThumbnailUrl = "image/blogs/webapi/unit-testing-controllers-in-asp-net-webapi.webp",
@@ -96,6 +102,7 @@ public class WebAPILearningPath
             {
                 Order = 5,
                 Title = "Perform Background Workloads in Hosted Service using Channels in ASP.NET Web API",
+                Description = "In this post I will teach how to perform background workloads outside request life cycle using channels in hosted services in ASP.NET web api. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/webapi/perform-background-workloads-in-hosted-service-using-channels-in-asp-net-webapi.webp",
                 ThumbnailUrl = "image/blogs/webapi/perform-background-workloads-in-hosted-service-using-channels-in-asp-net-webapi.webp",
@@ -110,6 +117,7 @@ public class WebAPILearningPath
             {
                 Order = 11,
                 Title = "Functional testing your ASP.NET WEB API",
+                Description = "In this post I will teach how to do functional testing in ASP.NET web api. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/webapi/functional-testing-your-asp-net-webapi.webp",
                 ThumbnailUrl = "image/blogs/webapi/functional-testing-your-asp-net-webapi.webp",
@@ -124,6 +132,7 @@ public class WebAPILearningPath
             {
                 Order = 12,
                 Title = "Faking Dependencies in Functional testing in ASP.NET WEB API",
+                Description = "In this post I will teach how to fake dependencies in functional testing in ASP.NET web api. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/webapi/faking-dependencies-in-functional-testing-in-asp-net-webapi.webp",
                 ThumbnailUrl = "image/blogs/webapi/faking-dependencies-in-functional-testing-in-asp-net-webapi.webp",
@@ -138,6 +147,7 @@ public class WebAPILearningPath
             {
                 Order = 13,
                 Title = "Using WireMock.NET in Functional testing in ASP.NET WEB API",
+                Description = "In this post I will teach how to use wiremock.net in functional testing in ASP.NET web api. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/webapi/using-wiremock-net-in-functional-testing-in-asp-net-webapi.webp",
                 ThumbnailUrl = "image/blogs/webapi/using-wiremock-net-in-functional-testing-in-asp-net-webapi.webp",
@@ -152,6 +162,7 @@ public class WebAPILearningPath
             {
                 Order = 14,
                 Title = "Configuring Authentication in Functional testing in ASP.NET WEB API",
+                Description = "In this post I will teach how to configure authentication in functional testing in ASP.NET web api. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/webapi/configuring-authentication-in-functional-testing-in-asp-net-webapi.webp",
                 ThumbnailUrl = "image/blogs/webapi/configuring-authentication-in-functional-testing-in-asp-net-webapi.webp",
@@ -166,6 +177,7 @@ public class WebAPILearningPath
             {
                 Order = 15,
                 Title = "Unit Testing Hosted Services in ASP.NET WEB API",
+                Description = "In this post I will teach how to unit test hosted services in ASP.NET web api. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/webapi/unit-testing-hosted-services-in-asp-net-webapi.webp",
                 ThumbnailUrl = "image/blogs/webapi/unit-testing-hosted-services-in-asp-net-webapi.webp",
@@ -180,6 +192,7 @@ public class WebAPILearningPath
             {
                 Order = 4,
                 Title = "Request Endpoint Response (REPR) pattern in ASP.NET WEB API",
+                Description = "In this post I will teach about REPR pattern, a better way to organize API's and how to implement in ASP.NET Web API. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/webapi/request-endpoint-response-repr-pattern-in-asp-net-webapi.webp",
                 ThumbnailUrl = "image/blogs/webapi/request-endpoint-response-repr-pattern-in-asp-net-webapi.webp",
@@ -194,6 +207,7 @@ public class WebAPILearningPath
             {
                 Order = 16,
                 Title = "Fitness Test using Net Arch Test in ASP.NET WEB API",
+                Description = "In this post I will teach how to enforce architecture fitness using Fitness Test in ASP.NET Web API. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/webapi/fitness-test-using-net-arch-test-in-asp-net-webapi.webp",
                 ThumbnailUrl = "image/blogs/webapi/fitness-test-using-net-arch-test-in-asp-net-webapi.webp",
@@ -208,6 +222,7 @@ public class WebAPILearningPath
             {
                 Order = 2,
                 Title = "Global Exception Handling in ASP.NET WEB API",
+                Description = "In this post I will teach how to handle exceptions globally in ASP.NET Web API. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/webapi/global-exception-handling-in-asp-net-webapi.webp",
                 ThumbnailUrl = "image/blogs/webapi/global-exception-handling-in-asp-net-webapi.webp",
@@ -222,6 +237,7 @@ public class WebAPILearningPath
             {
                 Order = 17,
                 Title = "Using Docker Test Containers in Functional Testing in ASP.NET WEB API",
+                Description = "In this post I will teach how to test with real database using Docker Test Containers in functional testing in ASP.NET Web API. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/webapi/using-docker-test-containers-in-functional-testing-in-asp-net-webapi.webp",
                 ThumbnailUrl = "image/blogs/webapi/using-docker-test-containers-in-functional-testing-in-asp-net-webapi.webp",
@@ -236,6 +252,7 @@ public class WebAPILearningPath
             {
                 Order = 3,
                 Title = "Structured Logging with Serilog in ASP.NET WEB API",
+                Description = "In this post I will teach how to use serilog to do structured logging in ASP.NET Web API. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/webapi/structured-logging-with-serilog-in-asp-net-webapi.webp",
                 ThumbnailUrl = "image/blogs/webapi/structured-logging-with-serilog-in-asp-net-webapi.webp",
@@ -250,6 +267,7 @@ public class WebAPILearningPath
             {
                 Order = 18,
                 Title = "Implementing Caching using Decorator Pattern in ASP.NET WEB API",
+                Description = "In this post I will teach how to implement caching using decorator pattern in ASP.NET Web API. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/webapi/implementing-caching-using-decorator-pattern-in-asp-net-webapi.webp",
                 ThumbnailUrl = "image/blogs/webapi/implementing-caching-using-decorator-pattern-in-asp-net-webapi.webp",

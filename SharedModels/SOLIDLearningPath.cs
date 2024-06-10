@@ -12,6 +12,7 @@ public class SOLIDLearningPath
             {
                 Order = 1,
                 Title = "SOLID Principles Introduction",
+                Description = "In this post I will introduce you to SOLID Principles in .NET. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/solid/solid-principles-introduction.webp",
                 ThumbnailUrl = "image/blogs/solid/solid-principles-introduction.webp",
@@ -26,6 +27,7 @@ public class SOLIDLearningPath
             {
                 Order = 2,
                 Title = "Single Responsibility Principle in SOLID",
+                Description = "In this post I will teach you Single Responsibility Principle in SOLID Principles in .NET. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/solid/single-responsibility-principle-in-solid.webp",
                 ThumbnailUrl = "image/blogs/solid/single-responsibility-principle-in-solid.webp",
@@ -40,6 +42,7 @@ public class SOLIDLearningPath
             {
                 Order = 3,
                 Title = "Open Closed Principle in SOLID",
+                Description = "In this post I will teach you Open Closed Principle in SOLID Principles in .NET. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/solid/open-closed-principle-in-solid.webp",
                 ThumbnailUrl = "image/blogs/solid/open-closed-principle-in-solid.webp",
@@ -54,6 +57,7 @@ public class SOLIDLearningPath
             {
                 Order = 4,
                 Title = "Liskov Substitution Principle in SOLID",
+                Description = "In this post I will teach you Liskov Substitution Principle in SOLID Principles in .NET. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/solid/liskov-substitution-principle-in-solid.webp",
                 ThumbnailUrl = "image/blogs/solid/liskov-substitution-principle-in-solid.webp",
@@ -68,6 +72,7 @@ public class SOLIDLearningPath
             {
                 Order = 5,
                 Title = "Interface Segregation Principle in SOLID",
+                Description = "In this post I will teach you Interface Segregation Principle in SOLID Principles in .NET. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/solid/interface-segregation-principle-in-solid.webp",
                 ThumbnailUrl = "image/blogs/solid/interface-segregation-principle-in-solid.webp",
@@ -82,6 +87,7 @@ public class SOLIDLearningPath
             {
                 Order = 6,
                 Title = "Dependency Inversion Principle in SOLID",
+                Description = "In this post I will teach you Dependency Inversion Principle in SOLID Principles in .NET. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/solid/dependency-inversion-principle-in-solid.webp",
                 ThumbnailUrl = "image/blogs/solid/dependency-inversion-principle-in-solid.webp",
