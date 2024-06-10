@@ -12,6 +12,7 @@ public class BlazorLearningPath
             {
                 Order = 1,
                 Title = "Blazor WASM Introduction",
+                Description = "In this post I will introduce you to Blazor WASM - Single Page Application (SPA) from ASP.NET family. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-introduction.webp",
                 ThumbnailUrl = "image/blogs/blazor/wasm/blazor-wasm-introduction.webp",
@@ -26,6 +27,7 @@ public class BlazorLearningPath
             {
                 Order = 2,
                 Title = "Blazor WASM Components",
+                Description = "In this post I will teach what is components and how to use components in your Blazor applications. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-components.webp",
                 ThumbnailUrl = "image/blogs/blazor/wasm/blazor-wasm-components.webp",
@@ -40,6 +42,7 @@ public class BlazorLearningPath
             {
                 Order = 3,
                 Title = "Blazor WASM Data Binding",
+                Description = "In this post I will teach what is data binding and how to pass data to components in your Blazor applications. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-data-binding.webp",
                 ThumbnailUrl = "image/blogs/blazor/wasm/blazor-wasm-data-binding.webp",
@@ -54,6 +57,7 @@ public class BlazorLearningPath
             {
                 Order = 4,
                 Title = "Blazor WASM Event Handling And Event Arguments",
+                Description = "In this post I will teach how to handle events inside components in your Blazor applications. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-event-handling-and-event-arguments.webp",
                 ThumbnailUrl = "image/blogs/blazor/wasm/blazor-wasm-event-handling-and-event-arguments.webp",
@@ -68,6 +72,7 @@ public class BlazorLearningPath
             {
                 Order = 5,
                 Title = "Blazor WASM Communication Between Components",
+                Description = "In this post I will teach how to communicate between components in your Blazor applications. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-communication-between-components.webp",
                 ThumbnailUrl = "image/blogs/blazor/wasm/blazor-wasm-communication-between-components.webp",
@@ -82,6 +87,7 @@ public class BlazorLearningPath
             {
                 Order = 6,
                 Title = "Blazor WASM Forms",
+                Description = "In this post I will teach how to use forms in your Blazor applications. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-forms.webp",
                 ThumbnailUrl = "image/blogs/blazor/wasm/blazor-wasm-forms.webp",
@@ -96,6 +102,7 @@ public class BlazorLearningPath
             {
                 Order = 7,
                 Title = "Blazor WASM Forms Validation",
+                Description = "In this post I will teach how to validate data collected in forms in your Blazor applications. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-forms-validation.webp",
                 ThumbnailUrl = "image/blogs/blazor/wasm/blazor-wasm-forms-validation.webp",
@@ -110,6 +117,7 @@ public class BlazorLearningPath
             {
                 Order = 8,
                 Title = "Blazor WASM Controlling Head Content",
+                Description = "In this post I will teach how to control head content in your Blazor applications. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-controlling-head-content.webp",
                 ThumbnailUrl = "image/blogs/blazor/wasm/blazor-wasm-controlling-head-content.webp",
@@ -124,6 +132,7 @@ public class BlazorLearningPath
             {
                 Order = 9,
                 Title = "Blazor WASM Styles and CSS Isolation",
+                Description = "In this post I will teach you what is CSS isolation and what factors to consider when styling your Blazor applications. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-styles-and-css-isolation.webp",
                 ThumbnailUrl = "image/blogs/blazor/wasm/blazor-wasm-styles-and-css-isolation.webp",
@@ -138,6 +147,7 @@ public class BlazorLearningPath
             {
                 Order = 10,
                 Title = "Blazor WASM Javascript Interop and Isolation",
+                Description = "In this post I will teach you how to interact with javascript and isolate javascript in your Blazor applications. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-javascript-interop-and-isolation.webp",
                 ThumbnailUrl = "image/blogs/blazor/wasm/blazor-wasm-javascript-interop-and-isolation.webp",
@@ -152,6 +162,7 @@ public class BlazorLearningPath
             {
                 Order = 11,
                 Title = "Blazor WASM Exception Handling and Error Boundary",
+                Description = "In this post I will teach you how exception handling works and how to use error boundary in your Blazor applications. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-exception-handling-and-error-boundary.webp",
                 ThumbnailUrl = "image/blogs/blazor/wasm/blazor-wasm-exception-handling-and-error-boundary.webp",
@@ -166,6 +177,7 @@ public class BlazorLearningPath
             {
                 Order = 12,
                 Title = "Blazor WASM Error Logging",
+                Description = "In this post I will teach you how to log error in your Blazor applications. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-error-logging.webp",
                 ThumbnailUrl = "image/blogs/blazor/wasm/blazor-wasm-error-logging.webp",
@@ -180,6 +192,7 @@ public class BlazorLearningPath
             {
                 Order = 13,
                 Title = "Blazor WASM Lazy Loading",
+                Description = "In this post I will teach you how to lazy load assemblies in your Blazor applications. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-lazy-loading.webp",
                 ThumbnailUrl = "image/blogs/blazor/wasm/blazor-wasm-lazy-loading.webp",
@@ -194,6 +207,7 @@ public class BlazorLearningPath
             {
                 Order = 14,
                 Title = "Blazor WASM Dark Theme and Light Theme",
+                Description = "In this post I will teach you how to toggle dark mode and light mode in your Blazor applications. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-dark-theme-and-light-theme.webp",
                 ThumbnailUrl = "image/blogs/blazor/wasm/blazor-wasm-dark-theme-and-light-theme.webp",
@@ -208,6 +222,7 @@ public class BlazorLearningPath
             {
                 Order = 15,
                 Title = "Blazor WASM App Settings",
+                Description = "In this post I will teach you how to read configuration from app settings in your Blazor applications. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-app-settings.webp",
                 ThumbnailUrl = "image/blogs/blazor/wasm/blazor-wasm-app-settings.webp",
@@ -222,6 +237,7 @@ public class BlazorLearningPath
             {
                 Order = 16,
                 Title = "Blazor WASM Virtualization",
+                Description = "In this post I will teach how to use virtualization in your Blazor applications. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-virtualization.webp",
                 ThumbnailUrl = "image/blogs/blazor/wasm/blazor-wasm-virtualization.webp",
@@ -236,6 +252,7 @@ public class BlazorLearningPath
             {
                 Order = 17,
                 Title = "Blazor WASM Dynamic Component",
+                Description = "In this post I will teach what is dynamic component and how to use dynamic component in your Blazor applications. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-dynamic-component.webp",
                 ThumbnailUrl = "image/blogs/blazor/wasm/blazor-wasm-dynamic-component.webp",
@@ -250,6 +267,7 @@ public class BlazorLearningPath
             {
                 Order = 18,
                 Title = "Blazor WASM Publishing to IIS",
+                Description = "In this post I will teach how to publish your Blazor applications to IIS. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-publishing-to-iis.webp",
                 ThumbnailUrl = "image/blogs/blazor/wasm/blazor-wasm-publishing-to-iis.webp",
@@ -264,6 +282,7 @@ public class BlazorLearningPath
             {
                 Order = 19,
                 Title = "Blazor WASM Publishing to GitHub Pages",
+                Description = "In this post I will teach how to publish your Blazor applications to GitHub Pages. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-publishing-to-github-pages.webp",
                 ThumbnailUrl = "image/blogs/blazor/wasm/blazor-wasm-publishing-to-github-pages.webp",
@@ -278,6 +297,7 @@ public class BlazorLearningPath
             {
                 Order = 20,
                 Title = "Blazor WASM Pre Rendering",
+                Description = "In this post I will teach how to prerender Blazor applications during publish time to improve SEO. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-pre-rendering.webp",
                 ThumbnailUrl = "image/blogs/blazor/wasm/blazor-wasm-pre-rendering.webp",
@@ -292,6 +312,7 @@ public class BlazorLearningPath
             {
                 Order = 21,
                 Title = "Blazor WASM Dockerizing",
+                Description = "In this post I will teach you how to dockerize stand alone blazor wasm app in .NET. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-dockerizing.webp",
                 ThumbnailUrl = "image/blogs/blazor/wasm/blazor-wasm-dockerizing.webp",
@@ -306,6 +327,7 @@ public class BlazorLearningPath
             {
                 Order = 22,
                 Title = "Blazor WASM Publishing to AWS Amplify",
+                Description = "In this post I will teach how to publish your Blazor applications to AWS Amplify. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-publishing-to-aws-amplify.webp",
                 ThumbnailUrl = "image/blogs/blazor/wasm/blazor-wasm-publishing-to-aws-amplify.webp",
@@ -320,6 +342,7 @@ public class BlazorLearningPath
             {
                 Order = 23,
                 Title = "How to generate barcode in Blazor WASM",
+                Description = "In this post I will teach how to generate barcode in blazor wasm application. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/blazor/wasm/how-to-generate-barcode-in-blazor-wasm.webp",
                 ThumbnailUrl = "image/blogs/blazor/wasm/how-to-generate-barcode-in-blazor-wasm.webp",
@@ -334,6 +357,7 @@ public class BlazorLearningPath
             {
                 Order = 24,
                 Title = "Printing barcode to label printer from Blazor WASM",
+                Description = "In this post I will teach how to print barcode to label printer from blazor wasm application. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/blazor/wasm/printing-barcode-to-label-printer-from-blazor-wasm.webp",
                 ThumbnailUrl = "image/blogs/blazor/wasm/printing-barcode-to-label-printer-from-blazor-wasm.webp",
@@ -348,6 +372,7 @@ public class BlazorLearningPath
             {
                 Order = 25,
                 Title = "Improve performance by dynamically loading image in Blazor WASM",
+                Description = "In this post I will teach how to improve performance by dynamically loading image in blazor wasm. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/blazor/wasm/improve-performance-by-dynamically-loading-image-in-blazor-wasm.webp",
                 ThumbnailUrl = "image/blogs/blazor/wasm/improve-performance-by-dynamically-loading-image-in-blazor-wasm.webp",
@@ -362,6 +387,7 @@ public class BlazorLearningPath
             {
                 Order = 26,
                 Title = "Prevent image leech by dynamically streaming image in Blazor WASM",
+                Description = "In this post I will teach how to prevent image leech by dynamically streaming image in blazor wasm. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/blazor/wasm/prevent-image-leech-by-dynamically-streaming-image-in-blazor-wasm.webp",
                 ThumbnailUrl = "image/blogs/blazor/wasm/prevent-image-leech-by-dynamically-streaming-image-in-blazor-wasm.webp",
@@ -376,6 +402,7 @@ public class BlazorLearningPath
             {
                 Order = 27,
                 Title = "Using Hot Keys in Blazor WASM",
+                Description = "In this post I will teach how to setup and use hot keys in blazor wasm. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/blazor/wasm/using-hot-keys-in-blazor-wasm.webp",
                 ThumbnailUrl = "image/blogs/blazor/wasm/using-hot-keys-in-blazor-wasm.webp",
