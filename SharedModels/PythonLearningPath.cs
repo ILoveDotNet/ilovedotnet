@@ -12,6 +12,7 @@ public class PythonLearningPath
             {
                 Order = 1,
                 Title = "Python Dynamic Interop with Dotnet",
+                Description = "In this post I will teach you how to interoperate and run python in .NET. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/python/python-dynamic-interop-with-dotnet.webp",
                 ThumbnailUrl = "image/blogs/python/python-dynamic-interop-with-dotnet.webp",

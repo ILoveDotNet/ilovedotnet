@@ -12,6 +12,7 @@ public class OOPSLearningPath
             {
                 Order = 1,
                 Title = "OOPS Encapsulation",
+                Description = "In this post I will teach what is encapsulation in object oriented programming. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/oops/oops-encapsulation.webp",
                 ThumbnailUrl = "image/blogs/oops/oops-encapsulation.webp",
@@ -26,6 +27,7 @@ public class OOPSLearningPath
             {
                 Order = 2,
                 Title = "OOPS Abstraction",
+                Description = "In this post I will teach what is abstraction in object oriented programming. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/oops/oops-abstraction.webp",
                 ThumbnailUrl = "image/blogs/oops/oops-abstraction.webp",

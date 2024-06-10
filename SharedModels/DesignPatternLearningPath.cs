@@ -12,6 +12,7 @@ public class DesignPatternLearningPath
             {
                 Order = 1,
                 Title = "Design Pattern Introduction",
+                Description = "In this post I will introduce you to Design Pattern in .NET. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/design-pattern/design-pattern-introduction.webp",
                 ThumbnailUrl = "image/blogs/design-pattern/design-pattern-introduction.webp",
@@ -26,6 +27,7 @@ public class DesignPatternLearningPath
             {
                 Order = 2,
                 Title = "Creational Design Pattern - Singleton",
+                Description = "In this post I will teach you Creational Singleton Design Pattern in .NET. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/design-pattern/creational-design-pattern-singleton.webp",
                 ThumbnailUrl = "image/blogs/design-pattern/creational-design-pattern-singleton.webp",
@@ -40,6 +42,7 @@ public class DesignPatternLearningPath
             {
                 Order = 3,
                 Title = "Structural Design Pattern - Decorator",
+                Description = "In this post I will teach you Structural Decorator Design Pattern in .NET. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/design-pattern/structural-design-pattern-decorator.webp",
                 ThumbnailUrl = "image/blogs/design-pattern/structural-design-pattern-decorator.webp",
@@ -54,6 +57,7 @@ public class DesignPatternLearningPath
             {
                 Order = 4,
                 Title = "Structural Design Pattern - Facade",
+                Description = "In this post I will teach you Structural Facade Design Pattern in .NET. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/design-pattern/structural-design-pattern-facade.webp",
                 ThumbnailUrl = "image/blogs/design-pattern/structural-design-pattern-facade.webp",
@@ -68,6 +72,7 @@ public class DesignPatternLearningPath
             {
                 Order = 5,
                 Title = "Creational Design Pattern - Builder",
+                Description = "In this post I will teach you Creational Builder Design Pattern in .NET. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/design-pattern/creational-design-pattern-builder.webp",
                 ThumbnailUrl = "image/blogs/design-pattern/creational-design-pattern-builder.webp",

@@ -12,6 +12,7 @@ public class HTTPClientLearningPath
             {
                 Order = 1,
                 Title = "Improving performance and memory use while accessing APIs using HTTPClient in dotnet",
+                Description = "In this post I will teach how to improve performance and memory use while accessing APIs with Streams using HTTP Client. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/http-client/improving-performance-and-memory-use-while-accessing-apis-using-http-client-in-dotnet.webp",
                 ThumbnailUrl = "image/blogs/http-client/improving-performance-and-memory-use-while-accessing-apis-using-http-client-in-dotnet.webp",
@@ -26,6 +27,7 @@ public class HTTPClientLearningPath
             {
                 Order = 2,
                 Title = "Free up resources with Cancellation while accessing APIs using HTTPClient in dotnet",
+                Description = "In this post I will teach how to free up resources with cancellation while accessing APIs using HTTP Client. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/http-client/free-up-resources-with-cancellation-while-accessing-apis-using-http-client-in-dotnet.webp",
                 ThumbnailUrl = "image/blogs/http-client/free-up-resources-with-cancellation-while-accessing-apis-using-http-client-in-dotnet.webp",
@@ -40,6 +42,7 @@ public class HTTPClientLearningPath
             {
                 Order = 3,
                 Title = "Save bandwidth with Compression when sending and reading data using HTTPClient in dotnet",
+                Description = "In this post I will teach how to save bandwidth with compression while sending and reading data using HTTP Client. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/http-client/save-bandwidth-with-compression-when-sending-and-reading-data-using-http-client-in-dotnet.webp",
                 ThumbnailUrl = "image/blogs/http-client/save-bandwidth-with-compression-when-sending-and-reading-data-using-http-client-in-dotnet.webp",
@@ -54,6 +57,7 @@ public class HTTPClientLearningPath
             {
                 Order = 4,
                 Title = "Working with API that supports remote streaming using HTTPClient in dotnet",
+                Description = "In this post I will teach how to work with API that supports remote streaming using HTTP Client. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/http-client/working-with-api-that-supports-remote-streaming-using-http-client-in-dotnet.webp",
                 ThumbnailUrl = "image/blogs/http-client/working-with-api-that-supports-remote-streaming-using-http-client-in-dotnet.webp",
@@ -68,6 +72,7 @@ public class HTTPClientLearningPath
             {
                 Order = 5,
                 Title = "Extending HTTPClient with Custom Http Message Handlers in dotnet",
+                Description = "In this post I will teach how to extend HTTP Client with custom Http Message Handlers. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/http-client/extending-http-client-with-custom-http-message-handlers-in-dotnet.webp",
                 ThumbnailUrl = "image/blogs/http-client/extending-http-client-with-custom-http-message-handlers-in-dotnet.webp",
@@ -82,6 +87,7 @@ public class HTTPClientLearningPath
             {
                 Order = 6,
                 Title = "Unit Testing HTTPClient in dotnet",
+                Description = "In this post I will teach how to unit test http client in dotnet. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/http-client/unit-testing-http-client-in-dotnet.webp",
                 ThumbnailUrl = "image/blogs/http-client/unit-testing-http-client-in-dotnet.webp",

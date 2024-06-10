@@ -12,6 +12,7 @@ public class OWASPLearningPath
             {
                 Order = 1,
                 Title = "OWASP - Secure your dotnet app by scanning for vulnerable nuget dependencies in CI pipelines",
+                Description = "In this post I will teach you one of the owasp top 10 requirement to verify code to avoid malicious dependencies. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/owasp/owasp-secure-your-dotnet-app-by-scanning-for-vulnerable-nuget-dependency-in-ci-pipelines.webp",
                 ThumbnailUrl = "image/blogs/owasp/owasp-secure-your-dotnet-app-by-scanning-for-vulnerable-nuget-dependency-in-ci-pipelines.webp",

@@ -12,6 +12,7 @@ public class DependencyInjectionLearningPath
             {
                 Order = 1,
                 Title = "Introducing Dependency Injection in .NET",
+                Description = "In this post I will introduce you to Dependency Injection in .NET. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/dependency-injection/introducing-dependency-injection-in-dotnet.webp",
                 ThumbnailUrl = "image/blogs/dependency-injection/introducing-dependency-injection-in-dotnet.webp",
@@ -26,6 +27,7 @@ public class DependencyInjectionLearningPath
             {
                 Order = 2,
                 Title = "Dependency Injection Lifetimes in .NET",
+                Description = "In this post I will teach you Dependency Injection Lifetimes in .NET. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/dependency-injection/dependency-injection-lifetimes-in-dotnet.webp",
                 ThumbnailUrl = "image/blogs/dependency-injection/dependency-injection-lifetimes-in-dotnet.webp",

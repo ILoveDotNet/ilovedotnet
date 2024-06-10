@@ -12,6 +12,7 @@ public class MiddlewareLearningPath
             {
                 Order = 1,
                 Title = "Introducing Middleware in ASP.NET",
+                Description = "In this post I will introduce you to Middleware in ASP.NET. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/middleware/introducing-middleware-in-aspnet.webp",
                 ThumbnailUrl = "image/blogs/middleware/introducing-middleware-in-aspnet.webp",
@@ -26,6 +27,7 @@ public class MiddlewareLearningPath
             {
                 Order = 2,
                 Title = "Types of Middleware in ASP.NET",
+                Description = "In this post I will teach you different types of Middleware in ASP.NET. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/middleware/types-of-middleware-in-aspnet.webp",
                 ThumbnailUrl = "image/blogs/middleware/types-of-middleware-in-aspnet.webp",
