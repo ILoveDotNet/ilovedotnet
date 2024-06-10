@@ -12,6 +12,7 @@ public class LINQLearningPath
             {
                 Order = 1,
                 Title = "LINQ Introduction",
+                Description = "In this post I will introduce you to LINQ in .NET. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/linq/linq-introduction.webp",
                 ThumbnailUrl = "image/blogs/linq/linq-introduction.webp",
@@ -26,6 +27,7 @@ public class LINQLearningPath
             {
                 Order = 2,
                 Title = "Using LINQ to Select and Project Data",
+                Description = "In this post I will teach you how to select data within collections using LINQ in .NET. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/linq/using-linq-to-select-and-project-data.webp",
                 ThumbnailUrl = "image/blogs/linq/using-linq-to-select-and-project-data.webp",
@@ -40,6 +42,7 @@ public class LINQLearningPath
             {
                 Order = 3,
                 Title = "Using LINQ OrderBy to Sort Data",
+                Description = "In this post I will teach you how to sort data within collections using LINQ in .NET. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/linq/using-linq-orderby-to-sort-data.webp",
                 ThumbnailUrl = "image/blogs/linq/using-linq-orderby-to-sort-data.webp",
@@ -54,6 +57,7 @@ public class LINQLearningPath
             {
                 Order = 4,
                 Title = "Using LINQ Where to Filter Data",
+                Description = "In this post I will teach you how to filter data within collections using LINQ in .NET. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/linq/using-linq-where-to-filter-data.webp",
                 ThumbnailUrl = "image/blogs/linq/using-linq-where-to-filter-data.webp",
@@ -68,6 +72,7 @@ public class LINQLearningPath
             {
                 Order = 5,
                 Title = "Using LINQ First to Select Single Data",
+                Description = "In this post I will teach you how to select single data within collections using LINQ in .NET. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/linq/using-linq-first-to-select-single-data.webp",
                 ThumbnailUrl = "image/blogs/linq/using-linq-first-to-select-single-data.webp",
@@ -82,6 +87,7 @@ public class LINQLearningPath
             {
                 Order = 6,
                 Title = "Using LINQ Last to Select Single Data",
+                Description = "In this post I will teach you how to select single data within collections using LINQ in .NET. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/linq/using-linq-last-to-select-single-data.webp",
                 ThumbnailUrl = "image/blogs/linq/using-linq-last-to-select-single-data.webp",
@@ -96,6 +102,7 @@ public class LINQLearningPath
             {
                 Order = 7,
                 Title = "Using LINQ Single to Select Single Data",
+                Description = "In this post I will teach you how to select single data within collections using LINQ in .NET. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/linq/using-linq-single-to-select-single-data.webp",
                 ThumbnailUrl = "image/blogs/linq/using-linq-single-to-select-single-data.webp",
@@ -110,6 +117,7 @@ public class LINQLearningPath
             {
                 Order = 8,
                 Title = "Using LINQ Take to Select Specific Data",
+                Description = "In this post I will teach you how to select specific data within collections using LINQ in .NET. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/linq/using-linq-take-to-select-specific-data.webp",
                 ThumbnailUrl = "image/blogs/linq/using-linq-take-to-select-specific-data.webp",
@@ -124,6 +132,7 @@ public class LINQLearningPath
             {
                 Order = 9,
                 Title = "Using LINQ Skip to Select Specific Data",
+                Description = "In this post I will teach you how to select specific data within collections using LINQ in .NET. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/linq/using-linq-skip-to-select-specific-data.webp",
                 ThumbnailUrl = "image/blogs/linq/using-linq-skip-to-select-specific-data.webp",
@@ -138,6 +147,7 @@ public class LINQLearningPath
             {
                 Order = 10,
                 Title = "Using LINQ Distinct to Select Unique Data",
+                Description = "In this post I will teach you how to select unique data within collections using LINQ in .NET. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/linq/using-linq-distinct-to-select-unique-data.webp",
                 ThumbnailUrl = "image/blogs/linq/using-linq-distinct-to-select-unique-data.webp",
@@ -152,6 +162,7 @@ public class LINQLearningPath
             {
                 Order = 11,
                 Title = "Using LINQ Chunk to Split Data",
+                Description = "In this post I will teach you how to split data within collections using LINQ in .NET. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/linq/using-linq-chunk-to-split-data.webp",
                 ThumbnailUrl = "image/blogs/linq/using-linq-chunk-to-split-data.webp",
@@ -166,6 +177,7 @@ public class LINQLearningPath
             {
                 Order = 12,
                 Title = "Using LINQ All to Find Type of Data",
+                Description = "In this post I will teach you how to find type of data contained in collections using LINQ in .NET. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/linq/using-linq-all-to-find-type-of-data.webp",
                 ThumbnailUrl = "image/blogs/linq/using-linq-all-to-find-type-of-data.webp",
@@ -180,6 +192,7 @@ public class LINQLearningPath
             {
                 Order = 13,
                 Title = "Using LINQ Any to Find Type of Data",
+                Description = "In this post I will teach you how to find type of data contained in collections using LINQ in .NET. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/linq/using-linq-any-to-find-type-of-data.webp",
                 ThumbnailUrl = "image/blogs/linq/using-linq-any-to-find-type-of-data.webp",
@@ -194,6 +207,7 @@ public class LINQLearningPath
             {
                 Order = 14,
                 Title = "Using LINQ Contains to Check Data",
+                Description = "In this post I will teach you how to check data is contained in collections using LINQ in .NET. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/linq/using-linq-contains-to-check-data.webp",
                 ThumbnailUrl = "image/blogs/linq/using-linq-contains-to-check-data.webp",
@@ -208,6 +222,7 @@ public class LINQLearningPath
             {
                 Order = 15,
                 Title = "Using LINQ Sequence Equal to Find Equality of data",
+                Description = "In this post I will teach you how to find equality between collections using LINQ in .NET. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/linq/using-linq-sequence-equal-to-find-equality-of-data.webp",
                 ThumbnailUrl = "image/blogs/linq/using-linq-sequence-equal-to-find-equality-of-data.webp",
@@ -222,6 +237,7 @@ public class LINQLearningPath
             {
                 Order = 16,
                 Title = "Using LINQ Except to Find Difference in data",
+                Description = "In this post I will teach you how to find difference between collections using LINQ in .NET. All with live working demo.",
                 Author = "Abdul Rahman",
                 PosterUrl = "image/blogs/linq/using-linq-except-to-find-difference-in-data.webp",
                 ThumbnailUrl = "image/blogs/linq/using-linq-except-to-find-difference-in-data.webp",
@@ -236,6 +252,7 @@ public class LINQLearningPath
             {
                Order = 17,
                Title = "Using LINQ Intersect to Find Common data",
+               Description = "In this post I will teach you how to find common data between collections using LINQ in .NET. All with live working demo.",
                Author = "Abdul Rahman",
                PosterUrl = "image/blogs/linq/using-linq-intersect-to-find-common-data.webp",
                ThumbnailUrl = "image/blogs/linq/using-linq-intersect-to-find-common-data.webp",
@@ -250,6 +267,7 @@ public class LINQLearningPath
             {
                Order = 18,
                Title = "Using LINQ Union to combine data",
+               Description = "In this post I will teach you how to combine data between collections using LINQ in .NET. All with live working demo.",
                Author = "Abdul Rahman",
                PosterUrl = "image/blogs/linq/using-linq-union-to-combine-data.webp",
                ThumbnailUrl = "image/blogs/linq/using-linq-union-to-combine-data.webp",
@@ -264,6 +282,7 @@ public class LINQLearningPath
             {
                Order = 19,
                Title = "Using LINQ Concat to combine data",
+               Description = "In this post I will teach you how to combine data between collections using LINQ in .NET. All with live working demo.",
                Author = "Abdul Rahman",
                PosterUrl = "image/blogs/linq/using-linq-concat-to-combine-data.webp",
                ThumbnailUrl = "image/blogs/linq/using-linq-concat-to-combine-data.webp",
@@ -278,6 +297,7 @@ public class LINQLearningPath
             {
                Order = 20,
                Title = "Using LINQ Join to combine data",
+               Description = "In this post I will teach you how to combine data between collections using LINQ in .NET. All with live working demo.",
                Author = "Abdul Rahman",
                PosterUrl = "image/blogs/linq/using-linq-join-to-combine-data.webp",
                ThumbnailUrl = "image/blogs/linq/using-linq-join-to-combine-data.webp",
@@ -292,6 +312,7 @@ public class LINQLearningPath
             {
                Order = 21,
                Title = "Using LINQ Group Join to combine data",
+               Description = "In this post I will teach you how to combine data between collections using LINQ in .NET. All with live working demo.",
                Author = "Abdul Rahman",
                PosterUrl = "image/blogs/linq/using-linq-group-join-to-combine-data.webp",
                ThumbnailUrl = "image/blogs/linq/using-linq-group-join-to-combine-data.webp",
@@ -306,6 +327,7 @@ public class LINQLearningPath
             {
                Order = 22,
                Title = "Simulating Left Outer Join using LINQ",
+               Description = "In this post I will teach you how to do left outer join between collections using LINQ in .NET. All with live working demo.",
                Author = "Abdul Rahman",
                PosterUrl = "image/blogs/linq/simulating-left-outer-join-using-linq.webp",
                ThumbnailUrl = "image/blogs/linq/simulating-left-outer-join-using-linq.webp",
@@ -320,6 +342,7 @@ public class LINQLearningPath
             {
                Order = 23,
                Title = "Using LINQ Group By to group data",
+               Description = "In this post I will teach you how to group data in collections using LINQ in .NET. All with live working demo.",
                Author = "Abdul Rahman",
                PosterUrl = "image/blogs/linq/using-linq-group-by-to-group-data.webp",
                ThumbnailUrl = "image/blogs/linq/using-linq-group-by-to-group-data.webp",
@@ -334,6 +357,7 @@ public class LINQLearningPath
             {
                Order = 24,
                Title = "Using LINQ Count Min Max Average and Sum to Aggregate data",
+               Description = "In this post I will teach you how to aggregate data in collections using LINQ in .NET. All with live working demo.",
                Author = "Abdul Rahman",
                PosterUrl = "image/blogs/linq/using-linq-count-min-max-average-sum-to-aggregate-data.webp",
                ThumbnailUrl = "image/blogs/linq/using-linq-count-min-max-average-sum-to-aggregate-data.webp",
@@ -348,6 +372,7 @@ public class LINQLearningPath
             {
                Order = 25,
                Title = "Using LINQ For Each to Iterate Collections",
+               Description = "In this post I will teach you how to iterate collections using LINQ in .NET. All with live working demo.",
                Author = "Abdul Rahman",
                PosterUrl = "image/blogs/linq/using-linq-for-each-to-iterate-collections.webp",
                ThumbnailUrl = "image/blogs/linq/using-linq-for-each-to-iterate-collections.webp",
@@ -362,6 +387,7 @@ public class LINQLearningPath
             {
                Order = 26,
                Title = "Understanding LINQ Deferred, Immediate, Streaming and Non-Streaming Executions",
+               Description = "In this post I will teach you deferred and immediate execution with streaming and non-streaming operations in LINQ in .NET. All with live working demo.",
                Author = "Abdul Rahman",
                PosterUrl = "image/blogs/linq/understanding-linq-deferred-immediate-streaming-and-non-streaming-executions.webp",
                ThumbnailUrl = "image/blogs/linq/understanding-linq-deferred-immediate-streaming-and-non-streaming-executions.webp",
