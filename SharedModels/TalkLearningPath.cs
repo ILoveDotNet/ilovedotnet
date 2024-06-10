@@ -14,6 +14,7 @@ public class TalkLearningPath
                 Title = "Blazor - SPA from ASP.NET Family",
                 Description = "In this talk I will teach you what is blazor and why do we need to go for blazor. All with live working demo.",
                 Author = "Abdul Rahman",
+                Slug = "blazor-spa-from-aspnet-family",
                 PosterUrl = "image/talks/blazor-spa-from-aspnet-family.webp",
                 ThumbnailUrl = "image/talks/blazor-spa-from-aspnet-family.webp",
                 ContentUrl = "talks/blazor-spa-from-aspnet-family",
