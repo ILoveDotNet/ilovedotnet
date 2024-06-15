@@ -24,6 +24,16 @@
                 </NavLink>
             </li>
             <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#nuget-audit")" Match="NavLinkMatch.All">
+                    Nuget Audit
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#excluding-vulnerabilities")" Match="NavLinkMatch.All">
+                    Excluding Vulnerabilities
+                </NavLink>
+            </li>
+            <li>
                 <NavLink class="[ underline ]" href="@($"blogs/{Slug}#scanning-in-ci-pipeline")" Match="NavLinkMatch.All">
                     Scanning in CI Pipeline
                 </NavLink>
@@ -47,21 +57,129 @@
 
         <p>
             This can be manually checked by developers, but it is <ContentHighlight>not a scalable solution</ContentHighlight>. It is also not feasible to 
-            keep track of all the dependencies and their versions. Starting .NET 8, there is a support for 
-            <ContentHighlight><NavLink class="[ underline ]" href="https://learn.microsoft.com/en-in/nuget/concepts/auditing-packages" target="_blank">auditing packages</NavLink></ContentHighlight>. 
-            But as of writing this, <ContentHighlight>NuGet Audit</ContentHighlight> is available starting from <ContentHighlight>NuGet 6.8, the .NET 8 SDK (8.0.100), and Visual Studio 2022 17.8</ContentHighlight>. 
-            But that doesn't solve the problem. I was trying for a solution independent of IDE. This is where automated tools come into play. In 
-            this article, we will learn how to scan for vulnerable Nuget dependencies and break the build in CI pipelines.
+            keep track of all the dependencies and their versions. Starting .NET 8, there is a support for <ContentHighlight>auditing packages</ContentHighlight>. 
+            But as of writing this, <ContentHighlight>NuGet Audit</ContentHighlight> is available starting from <ContentHighlight>NuGet 6.8, the .NET 8 SDK (8.0.100)</ContentHighlight>. 
+            I'll also teach you alternate approach if you are not in .NET 8. In this article, we will learn how to scan for vulnerable Nuget dependencies and break the 
+            build in CI pipelines.
         </p>
 
         <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
 
+        <h3 id="nuget-audit" class="[ font-semibold text-lg ]">Nuget Audit</h3>
+
+        <p>
+            The <ContentHighlight>restore</ContentHighlight> command automatically runs when you do a common package operation such as 
+            <ContentHighlight>loading a project for the first time</ContentHighlight>, <ContentHighlight>adding a new package</ContentHighlight>, 
+            <ContentHighlight>updating a package version</ContentHighlight>, or <ContentHighlight>removing a package</ContentHighlight> from your project. 
+            A description of your dependencies is checked against a report of <ContentHighlight>known vulnerabilities</ContentHighlight> on the 
+            <NavLink class="[ underline ]" href="https://github.com/advisories?query=type%3Areviewed+ecosystem%3Anuget" target="_blank">GitHub Advisory Database</NavLink>.
+        </p>
+
+        <p>
+            To enable the audit during restore, you need to add the following <ContentHighlight>MSBuild</ContentHighlight> properties in your 
+            <ContentHighlight>.csproj</ContentHighlight> file.
+        </p>
+
+        <ul class="[ list-disc ] [ ml-4 ]">
+            <li><ContentHighlight>&lt;NugetAudit&gt;</ContentHighlight></li>
+            <li><ContentHighlight>&lt;NugetAuditLevel&gt;</ContentHighlight></li>
+            <li><ContentHighlight>&lt;NugetAuditMode&gt;</ContentHighlight></li>
+        </ul>
+
+        <p>
+            There are different values available for above properties as shown below.
+        </p>
+
+        <table class="[ table-fixed border-collapse ] [ bg-white ] [ border-2 ] [ dark:bg-black dark:border-slate-500 ]">
+            <thead>
+                <tr class="[ bg-gray-100 ] [ dark:bg-slate-500 ]">
+                    <th class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">MSBuild Property</th>
+                    <th class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Default</th>
+                    <th class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Available Values</th>
+                    <th class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]"><ContentHighlight>NugetAudit</ContentHighlight></td>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]"><ContentHighlight>true</ContentHighlight></td>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]"><ContentHighlight>true</ContentHighlight> and <ContentHighlight>false</ContentHighlight></td>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">If you wish to not receive security audit reports, you can opt-out of the experience entirely by setting the value to <ContentHighlight>false</ContentHighlight></td>
+                </tr>
+                <tr>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]"><ContentHighlight>NuGetAuditLevel</ContentHighlight></td>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]"><ContentHighlight>low</ContentHighlight></td>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]"><ContentHighlight>low</ContentHighlight>, <ContentHighlight>moderate</ContentHighlight>, <ContentHighlight>high</ContentHighlight> and <ContentHighlight>critical</ContentHighlight></td>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">If you'd like to see <ContentHighlight>moderate</ContentHighlight>, <ContentHighlight>high</ContentHighlight>, and <ContentHighlight>critical</ContentHighlight> advisories, set the value to <ContentHighlight>moderate</ContentHighlight></td>
+                </tr>
+                <tr>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]"><ContentHighlight>NuGetAuditMode</ContentHighlight></td>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]"><ContentHighlight>direct</ContentHighlight></td>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]"><ContentHighlight>direct</ContentHighlight> and <ContentHighlight>all</ContentHighlight></td>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">If you'd like to audit both <ContentHighlight>top-level</ContentHighlight> and <ContentHighlight>transitive</ContentHighlight> dependencies, you can set the value to <ContentHighlight>all</ContentHighlight>. NuGetAuditMode is not applicable for packages.config projects</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <p>
+            Here is what all <ContentHighlight>.csproj</ContentHighlight> file looks like with the above properties in I Love DotNet.
+        </p>
+
+        <GithubGistSnippet Title="Nuget Audit to check for vulnerable nuget package and fail build for critical vulnerability" UserId="fingers10" FileName="1d075c8566df0905f7ffede08b78d5db"></GithubGistSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="excluding-vulnerabilities" class="[ font-semibold text-lg ]">Excluding Vulnerabilities</h3>
+
+        <p>
+            First of all, I will not recommend excluding vulnerabilities. But if you have a valid reason to exclude vulnerabilities, you can do so by 
+            adding <ContentHighlight>&lt;NoWarn&gt;</ContentHighlight> to suppress <ContentHighlight>NU1901-NU1904</ContentHighlight> warnings or use the 
+            <ContentHighlight>&lt;NuGetAuditLevel&gt;</ContentHighlight> functionality in your <ContentHighlight>.csproj</ContentHighlight> to ensure your audit 
+            reports are useful to your workflow.
+        </p>
+
+        <table class="[ table-fixed border-collapse ] [ bg-white ] [ border-2 ] [ dark:bg-black dark:border-slate-500 ]">
+            <thead>
+                <tr class="[ bg-gray-100 ] [ dark:bg-slate-500 ]">
+                    <th class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Warning Code</th>
+                    <th class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Reason</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]"><ContentHighlight>NU1900</ContentHighlight></td>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]"><ContentHighlight>Error</ContentHighlight> communicating with package source, while getting vulnerability information.</td>                    
+                </tr>
+                <tr>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]"><ContentHighlight>NU1901</ContentHighlight></td>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">Package with <ContentHighlight>low</ContentHighlight> severity detected</td>                    
+                </tr>
+                <tr>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]"><ContentHighlight>NU1902</ContentHighlight></td>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">Package with <ContentHighlight>moderate</ContentHighlight> severity detected</td>                    
+                </tr>
+                <tr>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]"><ContentHighlight>NU1903</ContentHighlight></td>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">Package with <ContentHighlight>high</ContentHighlight> severity detected</td>                    
+                </tr>
+                <tr>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]"><ContentHighlight>NU1904</ContentHighlight></td>
+                    <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">Package with <ContentHighlight>critical</ContentHighlight> severity detected</td>                    
+                </tr>
+            </tbody>
+        </table>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+        
         <h3 id="scanning-in-ci-pipeline" class="[ font-semibold text-lg ]">Scanning in CI Pipeline</h3>
 
         <p>
-            You can now list any known vulnerabilities in your dependencies within your projects & solutions with the 
-            <ContentHighlight>dotnet list package --vulnerable</ContentHighlight> command. You will see any vulnerabilities within your top-level packages. 
-            You will be able to understand the version resolved, the severity of the advisory, and a link to the advisory for you to view.
+            <strong>If your projects are targeting .NET version less than 8, then you can read this else you can skip this section.</strong>
+        </p>
+
+        <p>
+            You can now list any known vulnerabilities in your dependencies within your projects & solutions with the <ContentHighlight>dotnet list package --vulnerable</ContentHighlight> command. You will see any vulnerabilities within your top-level 
+            packages. You will be able to understand the version resolved, the severity of the advisory, and a link to the advisory for you to view.
             If you are interested in seeing vulnerabilities within your transitive packages, you can use the <ContentHighlight>--include-transitive</ContentHighlight> 
             parameter to see those.
         </p>
