@@ -154,7 +154,7 @@ public class WebAPILearningPath
             },
             new ContentMetaData
             {
-                Order = 13,
+                Order = 14,
                 Title = "Using WireMock.NET in Functional testing in ASP.NET WEB API",
                 Description = "In this post I will teach how to use wiremock.net in functional testing in ASP.NET web api. All with live working demo.",
                 Author = "Abdul Rahman",
@@ -170,7 +170,7 @@ public class WebAPILearningPath
             },
             new ContentMetaData
             {
-                Order = 14,
+                Order = 15,
                 Title = "Configuring Authentication in Functional testing in ASP.NET WEB API",
                 Description = "In this post I will teach how to configure authentication in functional testing in ASP.NET web api. All with live working demo.",
                 Author = "Abdul Rahman",
@@ -186,7 +186,7 @@ public class WebAPILearningPath
             },
             new ContentMetaData
             {
-                Order = 15,
+                Order = 16,
                 Title = "Unit Testing Hosted Services in ASP.NET WEB API",
                 Description = "In this post I will teach how to unit test hosted services in ASP.NET web api. All with live working demo.",
                 Author = "Abdul Rahman",
@@ -218,7 +218,7 @@ public class WebAPILearningPath
             },
             new ContentMetaData
             {
-                Order = 16,
+                Order = 17,
                 Title = "Fitness Test using Net Arch Test in ASP.NET WEB API",
                 Description = "In this post I will teach how to enforce architecture fitness using Fitness Test in ASP.NET Web API. All with live working demo.",
                 Author = "Abdul Rahman",
@@ -250,7 +250,7 @@ public class WebAPILearningPath
             },
             new ContentMetaData
             {
-                Order = 17,
+                Order = 13,
                 Title = "Using Docker Test Containers in Functional Testing in ASP.NET WEB API",
                 Description = "In this post I will teach how to test with real database using Docker Test Containers in functional testing in ASP.NET Web API. All with live working demo.",
                 Author = "Abdul Rahman",
