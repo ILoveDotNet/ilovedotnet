@@ -134,15 +134,15 @@
         <ol class="[ list-decimal ] [ ml-4 ]">
             <li>
                 <p>
-                    Add reference to <ContentHighlight CssClasses="[ break-all ]">Microsoft.EntityFrameworkCore.Sqlite</ContentHighlight> Nuget Package in 
+                    Add reference to <ContentHighlight CssClasses="[ break-all ]">Microsoft.EntityFrameworkCore.Sqlite</ContentHighlight> and 
+                    <ContentHighlight CssClasses="[ break-all ]">Microsoft.Data.Sqlite</ContentHighlight> Nuget Package in 
                     <ContentHighlight CssClasses="[ break-all ]">FunctionalTest.csproj</ContentHighlight>.
                 </p>
             </li>
             <li>
                 <p>
-                    Add static <ContentHighlight>DatabaseHelper.cs</ContentHighlight> helper class to <ContentHighlight>Initialize</ContentHighlight> and 
-                    <ContentHighlight>Reset</ContentHighlight> Data for used in tests. Note that these will be used to 
-                    <ContentHighlight>reset</ContentHighlight> and <ContentHighlight>initialized</ContentHighlight> for each test.
+                    Add <ContentHighlight>static DatabaseHelper.cs</ContentHighlight> helper class to <ContentHighlight>Initialize</ContentHighlight> and 
+                    <ContentHighlight>Reset</ContentHighlight> Data for used in tests.
                 </p>
 
                 <GithubGistSnippet Title="Database Helper" UserId="fingers10" FileName="198f10d8fd559b377b28b42a4690a3b6"></GithubGistSnippet>
@@ -150,19 +150,34 @@
                 <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
             </li>
             <li>
+                Now we need to setup <ContentHighlight>IAsyncLifetime</ContentHighlight> using <ContentHighlight>SharedFixture</ContentHighlight> to 
+                <ContentHighlight>Initialize</ContentHighlight> <strong>database only once for all tests</strong>. This is shown in the below code.
+
+                <GithubGistSnippet Title="Initialize Database only once using IAsyncLifeTime" UserId="fingers10" FileName="03d5f70d8c7c4f156619b7d2892804c1"></GithubGistSnippet>
+
+                <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+            </li>
+            <li>
+                Next we need to setup <ContentHighlight>CollectionDefinition</ContentHighlight> using 
+                <ContentHighlight>ICollectionFixture&lt;TFixture&gt;</ContentHighlight> to make sure our fixture is initialized only once just before 
+                running first test in collection. This is shown in the below code.
+
+                <GithubGistSnippet Title="Initialize Fixture only once using ICollectionFixture<TFixture>" UserId="fingers10" FileName="cfce8ebc660fe516df14d16bcf79dc0f"></GithubGistSnippet>
+
+                <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+            </li>
+            <li>
                 <p>
-                    Finally we need to configure in memory sqlite db in <ContentHighlight>ConfigureTestServices</ContentHighlight> inside 
-                    <ContentHighlight>WithWebHostBuilder</ContentHighlight> to <ContentHighlight>override</ContentHighlight> the <ContentHighlight>Service 
-                    Registration</ContentHighlight> in <ContentHighlight>WebApplicationFactory</ContentHighlight> from <ContentHighlight>Program.cs</ContentHighlight>. 
+                    Finally we need to configure in memory sqlite db in <ContentHighlight>ConfigureServices</ContentHighlight> inside 
+                    <ContentHighlight>ConfigureWebHost</ContentHighlight> to <ContentHighlight>override</ContentHighlight> the <ContentHighlight>Service 
+                    Registration</ContentHighlight> in <ContentHighlight>CustomWebApiFactory</ContentHighlight> from <ContentHighlight>Program.cs</ContentHighlight>. 
                 </p>
 
                 <p>
                     We need to find <ContentHighlight>WeatherForecastDbContext</ContentHighlight> and <ContentHighlight>remove</ContentHighlight> and then 
                     <ContentHighlight>create a sqlite in-memory connection and re-register WeatherForecastDbContext</ContentHighlight> with the sqlite in-memory 
-                    connection. And we are creating a <ContentHighlight>ServiceProvider Scope</ContentHighlight> and get 
-                    <ContentHighlight>WeatherForecastDbContext</ContentHighlight> from <ContentHighlight>Scope</ContentHighlight> and use that instance to 
-                    <ContentHighlight>ResetDatabase</ContentHighlight> and <ContentHighlight>InitializeDatabase</ContentHighlight> from 
-                    <ContentHighlight>DatabaseHelper.cs</ContentHighlight>. This is shown in the below code.
+                    connection. We can inject <ContentHighlight>SharedFixture</ContentHighlight> to get Sqlite in memory database connection string. This is 
+                    shown in the below code.
                 </p>
 
                 <GithubGistSnippet Title="Custom Web Application Factory" UserId="fingers10" FileName="c7f9db023e04afa7dd2be9327b9d42a5"></GithubGistSnippet>
@@ -177,20 +192,34 @@
 
         <ol class="[ list-decimal ] [ ml-4 ]">
             <li>Start Test Method.</li>
-            <li>Create HTTP Client.</li>
             <li>Create WebApplicationFactory.</li>
             <li>Run Program.cs.</li>
             <li>Service Registration.</li>
-            <li>Overriding Service Registration with ConfigureTestServices.</li>
+            <li>Overriding Service Registration with ConfigureServices.</li>
             <li>Build Web Application.</li>
+            <li>Create HTTP Client.</li>
             <li>Test Code Execution.</li>
         </ol>
 
         <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
 
         <p>
-            Now lets run the test and see the result.
+            Before we run the test, we need to modify <ContentHighlight>BastTest</ContentHighlight> to expose <ContentHighlight>DatabaseContext</ContentHighlight> 
+            to test methods to assert values from Database with API result. This is shown in the below code.
         </p>
+
+        <GithubGistSnippet Title="Expose DbContext in BaseTest" UserId="fingers10" FileName="48d946b8c1b3dc2963a5af29ddc898f5"></GithubGistSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <p>
+            Now we need to decorate the test class with <ContentHighlight CssClasses="[ break-all ]">[Collection(nameof(FunctionalTestCollection))]</ContentHighlight> 
+            and modify the test as shown below to get values from database and assert it with API result as shown below. Lets run the test and see the result.
+        </p>
+
+        <GithubGistSnippet Title="Decorate Test class with Collection attribure" UserId="fingers10" FileName="07263ddcfb405c7ad989db4a24046689"></GithubGistSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
 
         <figure>
             <img src="./image/blogs/webapi/faking-dependencies-in-functional-testing-in-asp-net-webapi/Passing Test.png" alt="Passing Test" class="[ w-full ]" />
@@ -214,41 +243,8 @@
             This is shown in the below code.
         </p>
 
-        <GithubGistSnippet Title="Replacing Services" UserId="fingers10" FileName="ebb22e6e0c8c3af21ce48742faa4b1c1"></GithubGistSnippet>
-
-        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
-
         <p>
-            The <ContentHighlight>main drawback</ContentHighlight> of above mentioned approach is it will <ContentHighlight>replace the service implementation for 
-            all tests</ContentHighlight>. What if we need to test positive scenario in one test and negative scenario in another test. To do that we can replace 
-            service at test level. This can be achieved by adding additional optional <ContentHighlight>IConfiguration?</ContentHighlight> and 
-            <ContentHighlight>Action&lt;IServiceCollection&gt;?</ContentHighlight> parameters to <ContentHighlight>RunTest</ContentHighlight> Helper method. We can 
-            use the <ContentHighlight>IConfiguration?</ContentHighlight> parameter to get the <ContentHighlight>test Configuration</ContentHighlight> if needed.
-        </p>
-
-        <GithubGistSnippet Title="Run Test Helper Method with Configuration and ServiceCollection" UserId="fingers10" FileName="7cd02691899f8bb8be1c8ac2c20d1baf"></GithubGistSnippet>
-
-        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
-
-        <p>
-            Now we need to update the Application in <ContentHighlight>CustomWebApplicationFactory</ContentHighlight> to get these two parameters and apply them 
-            <ContentHighlight>if they are not null</ContentHighlight>. This is shown in below code.
-        </p>
-
-        <GithubGistSnippet Title="Custom Web Application Factory with Configuration and ServiceCollection" UserId="fingers10" FileName="63b62c18e79b189ba8ed3757bb3a676f"></GithubGistSnippet>
-
-        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
-
-        <p>
-            Now we need to update the test as shown below.
-        </p>
-
-        <GithubGistSnippet Title="Test to validate data from database with Service Replacement" UserId="fingers10" FileName="0a83d6fc6341c447df13b3e3a52b5997"></GithubGistSnippet>
-
-        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
-
-        <p>
-            But this way of replacing services will be difficult to maintain as we need to write a lot of code as replacement service for each scenario and test 
+            But this way of replacing database or services will be difficult to maintain as we need to write a lot of code as replacement service for each scenario and test 
             all scenarios. So I'll teach you another better way in next article.
         </p>
 
@@ -260,8 +256,8 @@
             In this article, we learnt about how to fake dependencies in <ContentHighlight>Functional Test</ContentHighlight> in 
             <ContentHighlight>WebAPI</ContentHighlight> in ASP.NET Core. We learnt about where to place the <ContentHighlight>boundary</ContentHighlight> for 
             integration tests and how this relates to the <ContentHighlight>external dependencies, such as a database, queues, etc</ContentHighlight>. This idea 
-            can be extended and applied to any cloud based dependencies. In our next article, we'll learn about how to <ContentHighlight>Replace</ContentHighlight> 
-            services in <ContentHighlight>Functional Test</ContentHighlight> in <ContentHighlight>WebAPI</ContentHighlight> in ASP.NET Core.
+            can be extended and applied to any cloud based dependencies. In our next article, we'll learn about how to use <ContentHighlight>TestContainers</ContentHighlight> 
+            in <ContentHighlight>Functional Test</ContentHighlight> in <ContentHighlight>WebAPI</ContentHighlight> in ASP.NET Core.
         </p>
     </ContentBody>
 </Content>
