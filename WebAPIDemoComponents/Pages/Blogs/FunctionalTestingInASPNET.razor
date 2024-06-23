@@ -96,7 +96,7 @@
         <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
 
         <p>
-            We are going to learn this with <ContentHighlight>.NET 7</ContentHighlight> Web API project. 
+            We are going to learn this with <ContentHighlight>.NET 8</ContentHighlight> Web API project. 
         </p>
 
         <figure>
@@ -129,6 +129,8 @@
                 <figure>
                     <img src="./image/blogs/webapi/functional-testing-your-asp-net-webapi/Create XUnit Project.png" alt="Create XUnit Project" class="[ w-1/2 ]" />
                 </figure>
+
+                <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
             </li>
             <li>Add Package Reference to <ContentHighlight>Nuget</ContentHighlight> Package <ContentHighlight CssClasses="[ break-all ]">Microsoft.AspNetCore.Mvc.Testing</ContentHighlight>.</li>
             <li>Optionally make sure you have <ContentHighlight>all Nuget Packages updated</ContentHighlight> to latest version in all your projects.</li>
@@ -138,6 +140,8 @@
                 <figure>
                     <img src="./image/blogs/webapi/functional-testing-your-asp-net-webapi/Test project with Nuget and Project Reference.png" alt="Test project with Nuget and Project Reference" class="[ w-full ]" />
                 </figure>
+
+                <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
             </li>
             <li>
                 <p>
@@ -149,6 +153,8 @@
                 <figure>
                     <img src="./image/blogs/webapi/functional-testing-your-asp-net-webapi/Add partial modifier to Program.png" alt="Add partial modifier to Program" class="[ w-full ]" />
                 </figure>
+
+                <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
             </li>
             <li>
                 <ContentHighlight CssClasses="[ break-all ]">WebApplicationFactory&lt;TEntryPoint&gt;</ContentHighlight> is used to create a 
@@ -157,16 +163,13 @@
             </li>
             <li>
                 <p>
-                    We can add <ContentHighlight CssClasses="[ break-all ]">CustomeWebApplicationFactory.cs</ContentHighlight> in our test project to create a custom 
-                    <ContentHighlight CssClasses="[ break-all ]">WebApplicationFactory&lt;TEntryPoint&gt;</ContentHighlight>. We can then add a 
-                    <ContentHighlight>static RunTest</ContentHighlight> helper method with <ContentHighlight CssClasses="[ break-all ]">Func&lt;HttpClient, Task&gt; delegate</ContentHighlight> 
-                    to run the test. This method will create a <ContentHighlight>TestServer</ContentHighlight> and <ContentHighlight>HttpClient</ContentHighlight> 
-                    instance and then call the <ContentHighlight>delegate</ContentHighlight> with the <ContentHighlight>HttpClient</ContentHighlight> instance. The 
-                    <ContentHighlight>TestServer</ContentHighlight> and <ContentHighlight>HttpClient</ContentHighlight> instances are 
-                    <ContentHighlight>disposed</ContentHighlight> after the <ContentHighlight>delegate</ContentHighlight> completes. This is shown in the below code.
+                    We can add <ContentHighlight CssClasses="[ break-all ]">CustomWebApiFactory.cs</ContentHighlight> in our test project to create a custom 
+                    <ContentHighlight CssClasses="[ break-all ]">WebApplicationFactory&lt;TEntryPoint&gt;</ContentHighlight>. We can then 
+                    <ContentHighlight>override ConfigureWebHost</ContentHighlight> method to set the environment to <ContentHighlight>Test</ContentHighlight>. 
+                    This is shown in the below code.
                 </p>
 
-                <GithubGistSnippet Title="Custom Web Application Factory" UserId="fingers10" FileName="038aa1b474470229842bc772af07bcd2"></GithubGistSnippet>
+                <GithubGistSnippet Title="Custom Web API Factory" UserId="fingers10" FileName="038aa1b474470229842bc772af07bcd2"></GithubGistSnippet>
             </li>
         </ol>
 
@@ -177,7 +180,7 @@
         </p>
 
         <p>
-            We can add a new class WeatherForecastControllerTests.cs in our test project and add the following code.
+            We can add a <ContentHighlight>new class WeatherForecastControllerTests.cs</ContentHighlight> in our test project and add the following code.
         </p>
 
         <GithubGistSnippet Title="First Functional Test" UserId="fingers10" FileName="c38b05c8e47b89690d2cc3fd366648cb"></GithubGistSnippet>
@@ -185,22 +188,27 @@
         <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
 
         <p>
-            In the above code, we are inheriting from <ContentHighlight CssClasses="[ break-all ]">CustomeWebApplicationFactory</ContentHighlight> and the call 
-            <ContentHighlight>RunTest</ContentHighlight> helper method from within our test passing http client instance. This will make a HTTP GET call to
-            <ContentHighlight>weatherforecast</ContentHighlight> endpoint and deserialize the response to <ContentHighlight CssClasses="[ break-all ]">List&lt;WeatherForecast&gt;</ContentHighlight>. 
-            We are then <ContentHighlight>asserting</ContentHighlight> the status code and count of our response. We can also assert the values of the response 
-            in the same way.
+            In the above code, we are inheriting from <ContentHighlight CssClasses="[ break-all ]">XUnit IClassFixture&lt;CustomWebApiFactory&gt;</ContentHighlight> and then create 
+            <ContentHighlight>HttpClient</ContentHighlight> from <ContentHighlight>factory</ContentHighlight> within our test and make a 
+            <ContentHighlight>HTTP GET</ContentHighlight> call to <ContentHighlight>weatherforecast</ContentHighlight> endpoint and deserialize the response 
+            to <ContentHighlight CssClasses="[ break-all ]">List&lt;WeatherForecast&gt;</ContentHighlight>. We are then 
+            <ContentHighlight>asserting</ContentHighlight> the count of our response. We can also assert the values of the response in the same way.
+        </p>
+
+        <p>
+            Note, I'm using <ContentHighlight CssClasses="[ break-all ]">XUnit IClassFixture&lt;CustomWebApiFactory&gt;</ContentHighlight> to create a single instance of the factory for all tests in the class. To learn more 
+            about XUnit's IClassFixture, you can refer to the official <NavLink class="[ underline ]" href="https://xunit.net/docs/shared-context#class-fixture" target="_blank">documentation</NavLink> 
         </p>
 
         <p>The tests will run in the following flow.</p>
 
         <ol class="[ list-decimal ] [ ml-4 ]">
             <li>Start Test Method.</li>
-            <li>Create HTTP Client.</li>
             <li>Create WebApplicationFactory.</li>
             <li>Run Program.cs.</li>
             <li>Service Registration.</li>
             <li>Build Web Application.</li>
+            <li>Create HTTP Client.</li>
             <li>Test Code Execution.</li>
         </ol>
 
@@ -212,10 +220,57 @@
             <img src="./image/blogs/webapi/functional-testing-your-asp-net-webapi/Passing Functional Test.png" alt="Passing Functional Test" class="[ w-full ]" />
         </figure>
 
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
         <p>
             The tests are <ContentHighlight>passing</ContentHighlight>. We can also write tests to check if the API returns the expected response for different 
             HTTP methods like POST, PUT, DELETE, etc. in the same way.
         </p>
+
+        <p>
+            Before we wrap up, we can do some additional changes to test code to make it more reusable. The first step is to make a <ContentHighlight>abstract BaseTest class</ContentHighlight> and inherit 
+            our tests from that.
+        </p>
+
+        <GithubGistSnippet Title="Abstract Base Test" UserId="fingers10" FileName="7590295436bb5375cf34cb9aa1d3d659"></GithubGistSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <p>
+            Now let's adjust our <ContentHighlight CssClasses="[ break-all ]">WeatherForecastControllerTests</ContentHighlight> to inherit from <ContentHighlight CssClasses="[ break-all ]">BaseTest</ContentHighlight> 
+            and use the <ContentHighlight>HttpClient</ContentHighlight> from <ContentHighlight>BaseTest class</ContentHighlight> as shown below.
+        </p>
+
+        <GithubGistSnippet Title="Functional Test Inherited from Base Test" UserId="fingers10" FileName="9e73474c92a2391600ace0be52a2b3d9"></GithubGistSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <p>
+            Good. Now we can do final improvement which is to <ContentHighlight>assert</ContentHighlight> the <ContentHighlight>Http Status Code</ContentHighlight> 
+            of the response and move <ContentHighlight>deserialization and error logging</ContentHighlight> using <ContentHighlight>ITestOutputHelper</ContentHighlight> 
+            into a separate <ContentHighlight>HttpClientExtensions class</ContentHighlight>. This small investment will help us to write more tests easily in the 
+            future.
+        </p>
+
+        <GithubGistSnippet Title="Functional Test HttpClientExtensions" UserId="fingers10" FileName="d3a54bcc1aaf24124f7fde8e218fc5c2"></GithubGistSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <p>
+            Now we can use the <ContentHighlight>HttpClientExtensions</ContentHighlight> in our tests as shown below.
+        </p>
+
+        <GithubGistSnippet Title="Functional Test with BaseTest and HttpClientExtensions" UserId="fingers10" FileName="8ef7dce53ca17d14e3d54b73881dd225"></GithubGistSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <p>
+            Now lets run the test and see the result.
+        </p>
+
+        <figure>
+            <img src="./image/blogs/webapi/functional-testing-your-asp-net-webapi/Passing Refactored Functional Test.png" alt="Passing Refactored Functional Test" class="[ w-full ]" />
+        </figure>
 
         <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
 
