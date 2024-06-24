@@ -10,7 +10,7 @@ public class TableOfContents
 
     public IReadOnlyList<ContentMetaData> Contents 
             => FullContents
-                .Where(content => content.ModifiedOn.Date <= DateTime.UtcNow.Date)
+                .Where(content => content.ModifiedOn.Date <= DateTimeOffset.UtcNow.Date)
                 .ToList();
 
     public IReadOnlyList<ContentMetaData> FilteredAndPagedContents(string? selectedContentType = null, int skip = 0, int take = PageSize) 
