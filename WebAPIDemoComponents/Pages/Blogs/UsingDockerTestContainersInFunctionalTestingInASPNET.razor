@@ -105,54 +105,50 @@
             and <ContentHighlight>try using test containers for database instead of in-memory database</ContentHighlight>.
         </p>
 
-        <p>
-            <strong>Note:</strong> Before we begin, I would like to highlight that we are going to use single database container for all tests in our project. 
-            And the reason for this is when we have 100 or 1000 tests then spinning 100 or 1000 containers will make your test agent to go down consuming all 
-            memory and CPU.
-        </p>
-
         <ol class="[ list-decimal ] [ ml-4 ]">
             <li>Install <ContentHighlight>Testcontainers.PostgreSql</ContentHighlight> in your Functional Test Project</li>
             <li>
                 <p>
-                    Setup <ContentHighlight>Database Fixture</ContentHighlight> as shown below
+                    Setup <ContentHighlight>SharedFixture</ContentHighlight> as shown below
                 </p>
 
-                <GithubGistSnippet Title="Database Fixture for Test Containers in Function Test in ASP.NET" UserId="fingers10" FileName="5cfeb897d13e62889fe1614a71a1b840"></GithubGistSnippet>
+                <GithubGistSnippet Title="Shared Fixture for Test Containers in Function Test in ASP.NET" UserId="fingers10" FileName="5cfeb897d13e62889fe1614a71a1b840"></GithubGistSnippet>
+
+                <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+                <p>
+                    In the above code, we are <ContentHighlight>initializing</ContentHighlight> the database container and getting the 
+                    <ContentHighlight>connection string</ContentHighlight> from the container and exposing it to be used in 
+                    <ContentHighlight>ConfigureServices</ContentHighlight> in <ContentHighlight>CustomWebApiFactory</ContentHighlight>. We are then applying 
+                    migrations to make sure schema is applied and created. We can also initialize database with <ContentHighlight>initial seed data</ContentHighlight> 
+                    here. We are also <ContentHighlight>disposing</ContentHighlight> the container after all tests are run.
+                </p>
+            </li>
+            <li>
+                <p>
+                    Update <ContentHighlight>CustomWebApiFactory</ContentHighlight> to replace <ContentHighlight>WeatherForecastDbContext</ContentHighlight> 
+                    connection string with <ContentHighlight>Test Container Connection String</ContentHighlight> as shown below
+                </p>
                 
-                <p>
-                    <ContentHighlight>DatabaseFixture</ContentHighlight> inherits from <ContentHighlight>IAsyncLifetime</ContentHighlight> initialises the database container 
-                    using <ContentHighlight>InitializeAsync()</ContentHighlight> and cleans up the container after the end of test using 
-                    <ContentHighlight>DisposeAsync()</ContentHighlight>
-                </p>
-
-                <p>
-                    We are also creating a <ContentHighlight CssClasses="[ break-all ]">FunctionalTestCollection</ContentHighlight> to be used as 
-                    <ContentHighlight CssClasses="[ break-all ]">ICollectionFixture&lt;DatabaseFixture&gt;</ContentHighlight>.
-                </p>
+                <GithubGistSnippet Title="Customer Web Application Factory with Test Containers in Function Test in ASP.NET" UserId="fingers10" FileName="d0ec7a2254614e716fca16ac67d5058f"></GithubGistSnippet>
                 
                 <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
             </li>
             <li>
                 <p>
-                    Update <ContentHighlight>CustomWebApplicationFactory</ContentHighlight> to replace <ContentHighlight>WeatherForecastDbContext</ContentHighlight> connection 
-                    string with <ContentHighlight>Test Container Connection String</ContentHighlight> as shown below
+                    Finally we just need to run the tests and see the magic happening. We can see the <ContentHighlight>database container spinning up</ContentHighlight> 
+                    and running and our tests are running against the real database within test container.
                 </p>
                 
-                <GithubGistSnippet Title="Customer Web APplication Factory with Test Containers in Function Test in ASP.NET" UserId="fingers10" FileName="d0ec7a2254614e716fca16ac67d5058f"></GithubGistSnippet>
-                
+                <GithubGistSnippet Title="Testing against real database in Function Test in ASP.NET" UserId="fingers10" FileName="07263ddcfb405c7ad989db4a24046689"></GithubGistSnippet>
+
                 <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
-            </li>
-            <li>
-                <p>
-                    Finally mark the test class with <ContentHighlight CssClasses="[ break-all ]">[Collection("Database Collection")]</ContentHighlight> and 
-                    inject the <ContentHighlight>dbcontext</ContentHighlight> inside test method <ContentHighlight>add the data for test</ContentHighlight> and 
-                    <ContentHighlight>assert the same data</ContentHighlight> returned from endpoint in test as shown below.
-                </p>
-                
-                <GithubGistSnippet Title="Testing against real database in Function Test in ASP.NET" UserId="fingers10" FileName="21fd3c61a6c5de67c465ce19e8faafb9"></GithubGistSnippet>
             </li>
         </ol>
+
+        <figure>
+            <img src="./image/blogs/webapi/using-docker-test-containers-in-functional-testing-in-asp-net-webapi/Passing Test.png" alt="Passing Test" class="[ w-full ]" />
+        </figure>
 
         <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
 
@@ -176,8 +172,8 @@
         <h3 id="summary" class="[ font-semibold text-lg ]">Summary</h3>
 
         <p>
-            In this article, we learnt about testing with real dependencies using Docker Test Containers in functional testing in ASP.NET Web API. We learnt how 
-            to do that with ASP.NET functional test and understood its advantages. Hope you enjoyed reading it.
+            In this article, we learnt about <ContentHighlight>testing with real dependencies using Docker Test Containers</ContentHighlight> in functional testing in 
+            ASP.NET Web API. We learnt how to do that with ASP.NET functional test and understood its advantages. Hope you enjoyed reading it.
         </p>
 
         <p class="[ font-bold ] [ p-5 ] [ flex items-center justify-center ]">
