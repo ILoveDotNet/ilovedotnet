@@ -56,20 +56,27 @@
         <p>
             The straight forward way to enable <ContentHighlight>Authentication</ContentHighlight> and <ContentHighlight>Authorization</ContentHighlight> in 
             Web API is to add <ContentHighlight CssClasses="[ break-all ]">UseAuthentication()</ContentHighlight> middleware and decorate necessary endpoints 
-            with <ContentHighlight>[Authorize]</ContentHighlight> attribute. But instead of addiing to each <ContentHighlight>Endpoint</ContentHighlight> or 
-            to each <ContentHighlight>Controller</ContentHighlight>, we can do a small configuration in <ContentHighlight>Program.cs</ContentHighlight> by 
-            adding <ContentHighlight>AuthorizeFilter</ContentHighlight> and enable for all <ContentHighlight>Endpoints</ContentHighlight> globally.
+            with <ContentHighlight>[Authorize]</ContentHighlight> attribute.
         </p>
-
-        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
 
         <GithubGistSnippet Title="Configure Authentication in Web API" UserId="fingers10" FileName="c2990ce7edadccdcd05b4c239a07710b"></GithubGistSnippet>
 
         <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
 
+
         <p>
-            Now after adding the above code in <ContentHighlight>Program.cs</ContentHighlight>, if we run our tests, all our tests will fail with 
-            <ContentHighlight>401 UnAuthorized</ContentHighlight> as shown below.
+            Now we need to decorate the endpoints with <ContentHighlight>[Authorize]</ContentHighlight> attribute as shown below.
+        </p>
+
+        <figure>
+            <caption>Decorating Endpoints with Authorize Attribute</caption>
+            <img src="./image/blogs/webapi/configuring-authentication-in-functional-testing-in-asp-net-webapi/Decorating With Authorize.png" alt="Decorating With Authorize" class="[ w-full ]" />
+        </figure>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <p>
+            Now if we run our tests, all our tests will fail with <ContentHighlight>401 UnAuthorized</ContentHighlight> as shown below.
         </p>
 
         <figure>
@@ -95,13 +102,22 @@
 
         <p>
             Setting up <ContentHighlight>Authentication</ContentHighlight> in <ContentHighlight>Functional Test</ContentHighlight> is a bit tricky as it cannot be 
-            mocked like unit tests. But here is plan as per <NavLink href="https://learn.microsoft.com/en-us/aspnet/core/test/integration-tests?view=aspnetcore-7.0#mock-authentication" class="[ underline ]" target="_blank">official documentation</NavLink>. 
+            mocked like unit tests. But here is plan as per <NavLink href="https://learn.microsoft.com/en-us/aspnet/core/test/integration-tests?view=aspnetcore-8.0#mock-authentication" class="[ underline ]" target="_blank">official documentation</NavLink>. 
         </p>
 
         <ol class="[ list-decimal ] [ ml-4 ]">
             <li>
                 <p>
-                    Let's start with <ContentHighlight>AuthenticationHandler</ContentHighlight>.
+                    Let's start with Empty <ContentHighlight>AuthClaimsProvider</ContentHighlight>.
+                </p>
+
+                <GithubGistSnippet Title="Empty Auth Claims Provider to be used in Functional Test Authentication" UserId="fingers10" FileName="df72e5ae9e3dd1b1c6bb70e3286d27d4"></GithubGistSnippet>
+
+                <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+            </li>
+            <li>
+                <p>
+                    Next, we need to add <ContentHighlight>AuthenticationHandler</ContentHighlight>.
                 </p>
 
                 <GithubGistSnippet Title="Configure Test Auth Handler for ASP.NET WEB API Functional Test" UserId="fingers10" FileName="d85385b1a82bf0337ce8fc04661114c2"></GithubGistSnippet>
@@ -124,15 +140,6 @@
                     called. We don't need any additional hacks to make ASP.NET Core application use this fake identity. Our integration test needs also some 
                     changes because of authentication handler.
                 </p>
-            </li>
-            <li>
-                <p>
-                    Extend test client to use authentication header with scheme <ContentHighlight>Test</ContentHighlight>.
-                </p>
-
-                <GithubGistSnippet Title="Setting Auth Header in Test HTTP Client" UserId="fingers10" FileName="65bfda2357027941469410a5f2edb4a6"></GithubGistSnippet>                
-
-                <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
             </li>
         </ol>
 
@@ -159,9 +166,10 @@
         <ol class="[ list-decimal ] [ ml-4 ]">
             <li>
                 <p>
-                    To make test authentication handler support different user accounts I added claims provider. This is the <ContentHighlight>class</ContentHighlight> 
+                    To make test authentication handler support different user accounts I extended claims provider. This is the <ContentHighlight>class</ContentHighlight> 
                     that carries given set of <ContentHighlight>claims</ContentHighlight> to test authentication provider. I added also some static methods to 
-                    return already initialized provider with set of claims specific for role.
+                    return already initialized provider with set of claims specific for role like <ContentHighlight>Guest</ContentHighlight> and 
+                    <ContentHighlight>Admin</ContentHighlight>.
                 </p>
 
                 <GithubGistSnippet Title="Configuring Claims in ASP.NET WEB API Functional Test" UserId="fingers10" FileName="56e8df43e30282657e6ba7dde2c7a44e"></GithubGistSnippet>
@@ -170,10 +178,11 @@
             </li>
             <li>
                 <p>
-                    Inject above instance of claims provider to test authentication handler using framework-level dependency injection.
+                    Now we need to add extension method to create <ContentHighlight>HttpClient</ContentHighlight> with required <ContentHighlight>Claims</ContentHighlight>. 
+                    This method will be used in tests to create <ContentHighlight>HttpClient</ContentHighlight> with required claims. The code for that is shown below.
                 </p>
 
-                <GithubGistSnippet Title="Injecting claims and roles in APS.NET Web API Functional Test" UserId="fingers10" FileName="5b4ef6e98de5544f807f93f808610f21"></GithubGistSnippet>
+                <GithubGistSnippet Title="Extension Method to create HttpClient with Claims" UserId="fingers10" FileName="65bfda2357027941469410a5f2edb4a6"></GithubGistSnippet>
 
                 <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
             </li>
@@ -181,25 +190,12 @@
 
         <p>
             That's it. Now we can use the above code to configure <ContentHighlight>claims</ContentHighlight> and <ContentHighlight>roles</ContentHighlight> for 
-            each test. Let's try to test both <ContentHighlight>Guest</ContentHighlight> and <ContentHighlight>Admin</ContentHighlight> role. Since we added 
-            <ContentHighlight CssClasses="[ break-all ]">AuthClaimsProvider.WithGuestClaims()</ContentHighlight> as default in 
-            <ContentHighlight>CustomWebApplicationFactory</ContentHighlight> we can directly add that to 
-            <ContentHighlight CssClasses="[ break-all ]">GetWeatherForecastFromDatabase</ContentHighlight> endpoint and run test.
+            each test. Let's try to test both <ContentHighlight>Guest</ContentHighlight> and <ContentHighlight>Admin</ContentHighlight> role.
         </p>
 
-        <figure>
-            <caption>Authorize Passing Test</caption>
-            <img src="./image/blogs/webapi/configuring-authentication-in-functional-testing-in-asp-net-webapi/Guest Passing Test.png" alt="Guest Passing Test" class="[ w-full ]" />
-        </figure>
-
-        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
-
         <p>
-            Now lets try to test the <ContentHighlight>Admin</ContentHighlight> role on <ContentHighlight CssClasses="[ break-all ]">GetWeatherForecastFromAPI</ContentHighlight> 
-            endpoint. For this we need to replace <ContentHighlight>Guest</ContentHighlight> claims with <ContentHighlight>Admin</ContentHighlight> claims. We are 
-            going to use the same Replace Service Method that we learned in 
-            <NavLink href="blogs/faking-dependencies-in-functional-testing-in-asp-net-webapi#replacing-services" class="[ underline ]">Faking Dependencies in Functional testing in ASP.NET WEB API</NavLink>. 
-            The updated test code is shown below.
+            Now lets try to test the <ContentHighlight>Admin</ContentHighlight> role on <ContentHighlight CssClasses="[ break-all ]">GetWeatherForecastFromDatabase</ContentHighlight> 
+            endpoint. For this we need to use the extension method to create <ContentHighlight>HttpClient</ContentHighlight> with <ContentHighlight>Admin</ContentHighlight> claims.
         </p>
 
         <GithubGistSnippet Title="Running WEB API Functional Test with Admin Role" UserId="fingers10" FileName="83bc66386f47212e2a0b13f805055e0c"></GithubGistSnippet>
@@ -212,14 +208,12 @@
 
         <ol class="[ list-decimal ] [ ml-4 ]">
             <li>Start Test Method.</li>
-            <li>Create HTTP Client.</li>
             <li>Create WebApplicationFactory.</li>
             <li>Run Program.cs.</li>
-            <li>Add Default Authentication / Override with Different Claims.</li>
+            <li>Add Default Authentication.</li>
             <li>Service Registration.</li>
-            <li>Overriding Service Registration and Configuration with ConfigureTestServices.</li>
             <li>Build Web Application.</li>
-            <li>WireMock.NET Setup.</li>
+            <li>Create HTTP Client with required Claims.</li>
             <li>Test Code Execution.</li>
         </ol>
 
@@ -235,15 +229,19 @@
 
         <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
 
+        <p>We can do the same for <ContentHighlight>Guest Claims</ContentHighlight> for another test.</p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
         <h3 id="summary" class="[ font-semibold text-lg ]">Summary</h3>
 
         <p>
             In this article, we learnt about how to setup <ContentHighlight>Authentication</ContentHighlight> and <ContentHighlight>Authorization</ContentHighlight> 
-            in <ContentHighlight>Functional Test</ContentHighlight> in <ContentHighlight>WebAPI</ContentHighlight> in ASP.NET Core. We learnt how to setup Test 
-            Authentication Handler and Test Scheme and also learnt how to inject different users and claims in runtime. The complete source code for this article 
-            can be found <NavLink href="https://github.com/fingers10/ILoveDotNetFunctionalTest" class="[ underline ]" target="_blank">here</NavLink>. With this we 
-            are completing the series on <ContentHighlight>Functional Testing in ASP.NET WebAPI</ContentHighlight>. I'm happy to share my knowledge on functional 
-            testing. Hope you enjoyed reading it.
+            in <ContentHighlight>Functional Test</ContentHighlight> in <ContentHighlight>WebAPI</ContentHighlight> in ASP.NET Core. We learnt how to setup 
+            <ContentHighlight>Test Authentication Handler</ContentHighlight> and <ContentHighlight>Test Scheme</ContentHighlight> and also learnt how to inject 
+            different users and claims in runtime. The complete source code for this article can be found <NavLink href="https://github.com/fingers10/ILoveDotNetFunctionalTest" class="[ underline ]" target="_blank">here</NavLink>. 
+            With this we are completing the series on <ContentHighlight>Functional Testing in ASP.NET WebAPI</ContentHighlight>. I'm happy to share my knowledge 
+            on functional testing. Hope you enjoyed reading it.
         </p>
     </ContentBody>
 </Content>
