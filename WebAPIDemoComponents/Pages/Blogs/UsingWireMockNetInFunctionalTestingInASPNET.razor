@@ -49,9 +49,9 @@
 
         <p>
             In our previous article we saw how to replace services in functional test and that approach has a drawback of writing lot of code to test all the 
-            possible scenarios. We can overcome this drawback by using <ContentHighlight>WireMock.NET</ContentHighlight>. It helps us to simplify the test code 
-            and also helps us to test all the possible scenarios. In this article, we'll learn about how to use <ContentHighlight>WireMock.NET</ContentHighlight> 
-            in functional test.
+            possible scenarios especially if you are writing fake services for sake of tests. We can overcome this drawback by using 
+            <ContentHighlight>WireMock.NET</ContentHighlight>. It helps us to simplify the test code and also helps us to test all the possible scenarios. 
+            In this article, we'll learn about how to use <ContentHighlight>WireMock.NET</ContentHighlight> in functional test.
         </p>
 
         <p>
@@ -67,10 +67,11 @@
         <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
 
         <p>
-            Now in the <ContentHighlight>Program.cs</ContentHighlight>, lets add the <ContentHighlight>HttpClient</ContentHighlight> configuration as shown below.
+            Now in the <ContentHighlight>Program.cs</ContentHighlight>, lets register <ContentHighlight>IExternalService</ContentHighlight> with 
+            <ContentHighlight>ExternalService</ContentHighlight> add the <ContentHighlight>HttpClient</ContentHighlight> configuration as shown below.
         </p>
 
-        <GithubGistSnippet Title="HTTP Client Configuration" UserId="fingers10" FileName="e73e8e29bf118a7c6c3eb780432d544c"></GithubGistSnippet>
+        <GithubGistSnippet Title="ExtrenalService Registration and HTTP Client Configuration" UserId="fingers10" FileName="e73e8e29bf118a7c6c3eb780432d544c"></GithubGistSnippet>
 
         <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
 
@@ -89,7 +90,7 @@
         </p>
 
         <figure>
-            <caption>Endpoint to return values from Database</caption>
+            <caption>Endpoint to return values from External API</caption>
             <img src="./image/blogs/webapi/using-wiremock-net-in-functional-testing-in-asp-net-webapi/From API Endpoint.png" alt="From API Endpoint" class="[ w-full ]" />
         </figure>
 
@@ -134,7 +135,8 @@
         <h3 id="implementing-wiremock-net" class="[ font-semibold text-lg ]">Implementing WireMock.NET</h3>
 
         <p>
-            The steps to implement WireMock.NET in functional test are as follows:
+            We will be using the same project we used in the previous article and <ContentHighlight>try adding WireMock.NET setup</ContentHighlight>. The steps 
+            to implement WireMock.NET in functional test are as follows:
         </p>
 
         <ol class="[ list-decimal ] [ ml-4 ]">
@@ -146,35 +148,51 @@
             </li>
             <li>
                 <p>
-                    Now Create <ContentHighlight>appsettings.Test.json</ContentHighlight> in <ContentHighlight>FunctionalTest</ContentHighlight> project and right 
-                    click on the file and select <ContentHighlight>Properties</ContentHighlight> and set <ContentHighlight>Copy to Output Directory</ContentHighlight>.
+                    Setup <ContentHighlight>SharedFixture</ContentHighlight> as shown below
+                </p>
+
+                <GithubGistSnippet Title="Shared Fixture for WireMock.NET setup in Function Test in ASP.NET" UserId="fingers10" FileName="13ba40fcd4d792635691a9c2c0d5f471"></GithubGistSnippet>
+
+                <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+                <p>
+                    In the above code, we are <ContentHighlight>initializing</ContentHighlight> the <ContentHighlight>WireMockServer</ContentHighlight> and 
+                    getting the <ContentHighlight>Server Base URL</ContentHighlight> from the WireMockServer and exposing it to be used in 
+                    <ContentHighlight>ConfigureAppConfiguration</ContentHighlight> in <ContentHighlight>CustomWebApiFactory</ContentHighlight> to 
+                    <ContentHighlight>override</ContentHighlight> with this URL. We can also configure <ContentHighlight>SSL</ContentHighlight>, 
+                    <ContentHighlight>port</ContentHighlight>, etc during initialization here. We are also <ContentHighlight>disposing</ContentHighlight> the 
+                    WireMockServer after all tests are run.
                 </p>
             </li>
             <li>
                 <p>
-                    Now configure the <ContentHighlight>appsettings.Test.json</ContentHighlight> in <ContentHighlight>WebHostBuilder</ContentHighlight> inside 
-                    <ContentHighlight>CustomWebApplicationFactory</ContentHighlight> in <ContentHighlight>FunctionalTest.cs</ContentHighlight> as shown below.
+                    Now override the <ContentHighlight>Configuration</ContentHighlight> in <ContentHighlight>WebHostBuilder</ContentHighlight> inside 
+                    <ContentHighlight>CustomWebApiFactory</ContentHighlight> in <ContentHighlight>FunctionalTest.cs</ContentHighlight> as shown below.
                 </p>
 
-                <GithubGistSnippet Title="appsettings.Test.json configuration in Functional Test" UserId="fingers10" FileName="4e42f73ea077f6e650ac90f4050e6bbf"></GithubGistSnippet>
+                <GithubGistSnippet Title="Override Configuration in Functional Test" UserId="fingers10" FileName="4e42f73ea077f6e650ac90f4050e6bbf"></GithubGistSnippet>
 
                 <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
             </li>
             <li>
-                The above configuration will replace the Weather API URL in the test. Now we need to setup the WireMock.NET server. For that we need to create 
-                <ContentHighlight>Fixture</ContentHighlight> to be used in all the tests. So lets create a <ContentHighlight>ExternalAPIFixture class</ContentHighlight> 
-                as shown below
+                Before we run the test, we need to modify <ContentHighlight>BastTest</ContentHighlight> to expose <ContentHighlight>WireMockServer</ContentHighlight> 
+                to setup HTTP response for ExtrenalAPI result. This is shown in the below code.
+
+                <GithubGistSnippet Title="Expose Weather Service in BaseTest" UserId="fingers10" FileName="37f678c3b4f60b33a13b0566fc450f18"></GithubGistSnippet>
+            </li>
+            <li>
+                Now we need to <ContentHighlight>setup response</ContentHighlight> from the WireMock.NET server to be used in test. For that we need to add the 
+                following setup code as shown below
 
                 <GithubGistSnippet Title="WireMock ExternalAPI Fixture to respond to API Calls" UserId="fingers10" FileName="f3cb927d3e1c1059c68dc7fb56255ddd"></GithubGistSnippet>
 
                 <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
 
                 <p>
-                    The above <ContentHighlight>class</ContentHighlight> is responsible for starting the <ContentHighlight>WireMock.NET server</ContentHighlight> 
-                    in <ContentHighlight>port 50000</ContentHighlight> in <ContentHighlight>https mode</ContentHighlight> and also for stopping it. The key thing 
-                    is the <ContentHighlight>SetupGetWeather</ContentHighlight> where we setup request matching particular Path in WireMock.NET server and also the 
-                    response to be returned. With thi setup when we call External API in Functional Test WireMock kicks in and when the path matches, it will give 
-                    the expected response to be <ContentHighlight>asserted</ContentHighlight> in test.
+                    The above <ContentHighlight>setup</ContentHighlight> is responsible to do request matching particular <ContentHighlight>Path</ContentHighlight> 
+                    in WireMock.NET server and also the response to be returned using <ContentHighlight>BodyAsJson</ContentHighlight>. With this setup when we 
+                    call External API in Functional Test WireMock kicks in and when the path matches, it will give the expected response to be 
+                    <ContentHighlight>asserted</ContentHighlight> in test.
                 </p>
 
                 <p>
@@ -191,9 +209,7 @@
                 <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
 
                 <p>
-                    In the above code if you notice, we are injecting <ContentHighlight>ExternalAPIFixture</ContentHighlight> and using it to setup the WireMock.NET before running 
-                    the test and also to stop the WireMock.NET server after the test. The <ContentHighlight>SetupGetWeather</ContentHighlight> method is responsible for setting up 
-                    the WireMock.NET server to respond to the request.
+                    In the above code if you notice, we are returning Temperature value as 18 from WireMockServer response and using it to assert in the test.
                 </p>
             </li>
         </ol>
@@ -206,13 +222,13 @@
 
         <ol class="[ list-decimal ] [ ml-4 ]">
             <li>Start Test Method.</li>
-            <li>Create HTTP Client.</li>
+            <li>WireMockServer Setup.</li>
             <li>Create WebApplicationFactory.</li>
             <li>Run Program.cs.</li>
             <li>Service Registration.</li>
-            <li>Overriding Service Registration and Configuration with ConfigureTestServices.</li>
+            <li>Overriding Configuration.</li>
             <li>Build Web Application.</li>
-            <li>WireMock.NET Setup.</li>
+            <li>Create HTTP Client.</li>
             <li>Test Code Execution.</li>
         </ol>
 

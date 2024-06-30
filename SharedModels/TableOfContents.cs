@@ -6,6 +6,7 @@ public class TableOfContents
     private readonly List<ContentMetaData> FullContents = new(110);
     private readonly List<AuthorMetaData> FullAuthors = new(1);
 
+    public IReadOnlyList<ContentMetaData> AllContents => FullContents;
     public IReadOnlyList<AuthorMetaData> Authors => FullAuthors;
 
     public IReadOnlyList<ContentMetaData> Contents 
