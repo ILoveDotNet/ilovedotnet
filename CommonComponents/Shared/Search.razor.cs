@@ -148,7 +148,7 @@ public class SearchBase : ComponentBase, IAsyncDisposable
 
     async ValueTask IAsyncDisposable.DisposeAsync()
     {
-        HotKeysContext.Dispose();
+        await HotKeysContext.DisposeAsync();
 
         if (module is not null)
         {
