@@ -55,8 +55,34 @@ jobs:
         
     # Autobuild attempts to build any compiled languages  (C/C++, C#, or Java).
     # If this step fails, then you should remove it and run the build manually (see below)
-    - name: Autobuild
-      uses: github/codeql-action/autobuild@v3
+    # - name: Autobuild
+    #  uses: github/codeql-action/autobuild@v3
+
+    # Install .NET SDK
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
+
+    # Install dotnet wasm buildtools workload
+    - name: Install .NET WASM Build Tools
+      run: dotnet workload install wasm-tools
+
+    # Install Node JS
+    - name: Setup Node.js environment
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.11.1'
+    - run: npm install
+      working-directory: ./CommonComponents
+
+    # Restore Dependencies
+    - name: Restore dependencies
+      run: dotnet restore ./Web/Web.csproj
+
+    # Build Blazor Project
+    - name: Build Blazor Project
+      run: dotnet build ./Web/Web.csproj --configuration Release --no-restore
 
     # ℹ️ Command-line programs to run using the OS shell.
     # 📚 See https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsrun
