@@ -37,7 +37,11 @@ public static class MauiProgram
         //    return httpClient;
         //});
 
-        builder.Services.AddHttpClient<GitHubService>(client => client.BaseAddress = new Uri("https://api.github.com/"));
+        builder.Services.AddHttpClient<GitHubService>(client => 
+        {
+            client.BaseAddress = new Uri("https://api.github.com/");
+            client.DefaultRequestHeaders.Add("User-Agent", "ILoveDotNet");
+        });
 
         builder.Services.AddScoped<AppState>();
 
