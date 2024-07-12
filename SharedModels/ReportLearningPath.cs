@@ -19,7 +19,7 @@ public class ReportLearningPath
                 ThumbnailUrl = "image/blogs/report/generate-excel-report-using-closed-xml-in-dotnet.webp",
                 ContentUrl = "blogs/generate-excel-report-using-closed-xml-in-dotnet",
                 IconUrl = "image/icons/report.webp",
-                Type = "Report",
+                Channel = "Report",
                 CreatedOn = new DateTime(2023, 1, 29, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2024, 2, 11, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Microsoft Excel", "Excel Report", "Closed XML", "Report Template", "Complex Report", "Simple Report", "xlsx", "xls"]
@@ -35,7 +35,7 @@ public class ReportLearningPath
                 ThumbnailUrl = "image/blogs/report/generate-pdf-report-using-quest-pdf-in-dotnet.webp",
                 ContentUrl = "blogs/generate-pdf-report-using-quest-pdf-in-dotnet",
                 IconUrl = "image/icons/report.webp",
-                Type = "Report",
+                Channel = "Report",
                 CreatedOn = new DateTime(2023, 2, 19, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2024, 3, 3, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Quest PDF", "PDF Report", "PDF"]
@@ -51,7 +51,7 @@ public class ReportLearningPath
                 ThumbnailUrl = "image/blogs/report/convert-html-to-pdf-report-in-dotnet.webp",
                 ContentUrl = "blogs/convert-html-to-pdf-report-in-dotnet",
                 IconUrl = "image/icons/report.webp",
-                Type = "Report",
+                Channel = "Report",
                 CreatedOn = new DateTime(2023, 4, 9, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2023, 4, 9, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["HTML", "PDF"]

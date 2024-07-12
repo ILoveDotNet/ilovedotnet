@@ -19,7 +19,7 @@ public class SOLIDLearningPath
                 ThumbnailUrl = "image/blogs/solid/solid-principles-introduction.webp",
                 ContentUrl = "blogs/solid-principles-introduction",
                 IconUrl = "image/icons/solid.webp",
-                Type = "SOLID",
+                Channel = "SOLID",
                 CreatedOn = new DateTime(2023, 4, 2, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2023, 4, 2, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["SRP", "OCP", "LSP", "ISP", "DIP"]
@@ -35,7 +35,7 @@ public class SOLIDLearningPath
                 ThumbnailUrl = "image/blogs/solid/single-responsibility-principle-in-solid.webp",
                 ContentUrl = "blogs/single-responsibility-principle-in-solid",
                 IconUrl = "image/icons/solid.webp",
-                Type = "SOLID",
+                Channel = "SOLID",
                 CreatedOn = new DateTime(2023, 4, 16, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2023, 4, 16, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["SRP", "Single Responsibility"]
@@ -51,7 +51,7 @@ public class SOLIDLearningPath
                 ThumbnailUrl = "image/blogs/solid/open-closed-principle-in-solid.webp",
                 ContentUrl = "blogs/open-closed-principle-in-solid",
                 IconUrl = "image/icons/solid.webp",
-                Type = "SOLID",
+                Channel = "SOLID",
                 CreatedOn = new DateTime(2023, 4, 23, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2023, 4, 23, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["OCP", "Open Closed"]
@@ -67,7 +67,7 @@ public class SOLIDLearningPath
                 ThumbnailUrl = "image/blogs/solid/liskov-substitution-principle-in-solid.webp",
                 ContentUrl = "blogs/liskov-substitution-principle-in-solid",
                 IconUrl = "image/icons/solid.webp",
-                Type = "SOLID",
+                Channel = "SOLID",
                 CreatedOn = new DateTime(2023, 4, 30, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2023, 4, 30, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["LSP", "Liskov Substitution"]
@@ -83,7 +83,7 @@ public class SOLIDLearningPath
                 ThumbnailUrl = "image/blogs/solid/interface-segregation-principle-in-solid.webp",
                 ContentUrl = "blogs/interface-segregation-principle-in-solid",
                 IconUrl = "image/icons/solid.webp",
-                Type = "SOLID",
+                Channel = "SOLID",
                 CreatedOn = new DateTime(2023, 5, 7, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2023, 5, 7, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["ISP", "Interface Segregation"]
@@ -99,7 +99,7 @@ public class SOLIDLearningPath
                 ThumbnailUrl = "image/blogs/solid/dependency-inversion-principle-in-solid.webp",
                 ContentUrl = "blogs/dependency-inversion-principle-in-solid",
                 IconUrl = "image/icons/solid.webp",
-                Type = "SOLID",
+                Channel = "SOLID",
                 CreatedOn = new DateTime(2023, 5, 14, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2023, 5, 14, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["DIP", "Dependency Inversion"]

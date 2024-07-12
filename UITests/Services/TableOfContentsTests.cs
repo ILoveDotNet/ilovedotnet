@@ -32,7 +32,7 @@ public class TableOfContentsTests
         // Assert
         Assert.NotNull(contents);
         Assert.NotEmpty(contents);
-        Assert.All(contents, content => Assert.Equal("Blazor", content.Type, ignoreCase: true));
+        Assert.All(contents, content => Assert.Equal("Blazor", content.Channel, ignoreCase: true));
         Assert.True(contents.Count <= 10);
     }
 

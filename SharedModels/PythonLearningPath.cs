@@ -19,7 +19,7 @@ public class PythonLearningPath
                 ThumbnailUrl = "image/blogs/python/python-dynamic-interop-with-dotnet.webp",
                 ContentUrl = "blogs/python-dynamic-interop-with-dotnet",
                 IconUrl = "image/icons/python.webp",
-                Type = "Python",
+                Channel = "Python",
                 CreatedOn = new DateTime(2022, 9, 11, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2022, 9, 11, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Interoperating", "Iron Python", "Python", "Dynamic Interop"]

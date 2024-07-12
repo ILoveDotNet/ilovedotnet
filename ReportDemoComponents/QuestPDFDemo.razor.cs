@@ -99,7 +99,7 @@ public class QuestPDFDemoBase : ComponentBase
                         table.Cell().PaddingVertical(5).LineHorizontal(1).LineColor(Colors.Grey.Medium);
                         table.Cell().PaddingVertical(5).LineHorizontal(1).LineColor(Colors.Grey.Medium);
 
-                        foreach (var channel in TableOfContents.Contents.GroupBy(content => content.Type))
+                        foreach (var channel in TableOfContents.Contents.GroupBy(content => content.Channel))
                         {
                             table.Cell().Text(channel.Key);
                             table.Cell().AlignRight().Text($"{channel.Count()}");

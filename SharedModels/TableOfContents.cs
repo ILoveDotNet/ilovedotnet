@@ -16,7 +16,7 @@ public class TableOfContents
 
     public IReadOnlyList<ContentMetaData> FilteredAndPagedContents(string? selectedContentType = null, int skip = 0, int take = PageSize) 
             => Contents
-                .Where(content => string.IsNullOrWhiteSpace(selectedContentType) || content.Type.Equals(selectedContentType, StringComparison.OrdinalIgnoreCase))
+                .Where(content => string.IsNullOrWhiteSpace(selectedContentType) || content.Channel.Equals(selectedContentType, StringComparison.OrdinalIgnoreCase))
                 .OrderByDescending(content => content.ModifiedOn)
                 .ThenByDescending(content => content.CreatedOn)
                 .Take(skip..take)
@@ -24,13 +24,13 @@ public class TableOfContents
 
     public IReadOnlyList<string> AvailableContentTypes 
             => FullContents
-                .Select(content => content.Type)
+                .Select(content => content.Channel)
                 .Distinct()
                 .ToList();
 
     public int SelectedContentTypeTotalCount(string? selectedContentType = null) 
             => Contents
-                .Where(content => string.IsNullOrWhiteSpace(selectedContentType) || content.Type.Equals(selectedContentType, StringComparison.OrdinalIgnoreCase))
+                .Where(content => string.IsNullOrWhiteSpace(selectedContentType) || content.Channel.Equals(selectedContentType, StringComparison.OrdinalIgnoreCase))
                 .Count();
 
     public IReadOnlyList<ContentMetaData> ExceptAndPagedContents(string title, int skip = 0, int take = PageSize) 
