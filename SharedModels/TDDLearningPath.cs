@@ -20,6 +20,7 @@ public class TDDLearningPath
                 ContentUrl = "blogs/introducing-tdd-in-csharp-dotnet",
                 IconUrl = "image/icons/tdd.webp",
                 Channel = "TDD",
+                Type = "blogs",
                 CreatedOn = new DateTime(2022, 3, 27, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2022, 3, 27, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Test Driven Development"]
@@ -36,6 +37,7 @@ public class TDDLearningPath
                 ContentUrl = "blogs/implementing-tdd-in-csharp-dotnet",
                 IconUrl = "image/icons/tdd.webp",
                 Channel = "TDD",
+                Type = "blogs",
                 CreatedOn = new DateTime(2022, 4, 3, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2022, 4, 3, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Test Driven Development"]

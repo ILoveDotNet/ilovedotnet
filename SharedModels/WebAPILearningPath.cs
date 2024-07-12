@@ -20,6 +20,7 @@ public class WebAPILearningPath
                 ContentUrl = "blogs/webapi-importance-of-status-code",
                 IconUrl = "image/icons/webapi.webp",
                 Channel = "WebAPI",
+                Type = "blogs",
                 CreatedOn = new DateTime(2022, 3, 6, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2022, 3, 6, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Status Code"]
@@ -36,6 +37,7 @@ public class WebAPILearningPath
                 ContentUrl = "blogs/profiling-webapi-with-mini-profiler",
                 IconUrl = "image/icons/webapi.webp",
                 Channel = "WebAPI",
+                Type = "blogs",
                 CreatedOn = new DateTime(2022, 9, 18, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2024, 4, 28, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Profiling", "Mini Profiler"]
@@ -52,6 +54,7 @@ public class WebAPILearningPath
                 ContentUrl = "blogs/unit-testing-filters-in-asp-net-webapi",
                 IconUrl = "image/icons/webapi.webp",
                 Channel = "WebAPI",
+                Type = "blogs",
                 CreatedOn = new DateTime(2023, 5, 28, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2023, 5, 28, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Unit Test", "Filters"]
@@ -68,6 +71,7 @@ public class WebAPILearningPath
                 ContentUrl = "blogs/unit-testing-middlewares-in-asp-net-webapi",
                 IconUrl = "image/icons/webapi.webp",
                 Channel = "WebAPI",
+                Type = "blogs",
                 CreatedOn = new DateTime(2023, 6, 4, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2023, 6, 4, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Unit Test", "Middlewares"]
@@ -84,6 +88,7 @@ public class WebAPILearningPath
                 ContentUrl = "blogs/unit-testing-service-registrations-in-asp-net-webapi",
                 IconUrl = "image/icons/webapi.webp",
                 Channel = "WebAPI",
+                Type = "blogs",
                 CreatedOn = new DateTime(2023, 6, 11, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2023, 6, 11, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Unit Test", "Service Registration"]
@@ -100,6 +105,7 @@ public class WebAPILearningPath
                 ContentUrl = "blogs/unit-testing-controllers-in-asp-net-webapi",
                 IconUrl = "image/icons/webapi.webp",
                 Channel = "WebAPI",
+                Type = "blogs",
                 CreatedOn = new DateTime(2023, 6, 18, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2023, 6, 18, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Unit Test", "Controllers"]
@@ -116,6 +122,7 @@ public class WebAPILearningPath
                 ContentUrl = "blogs/perform-background-workloads-in-hosted-service-using-channels-in-asp-net-webapi",
                 IconUrl = "image/icons/webapi.webp",
                 Channel = "WebAPI",
+                Type = "blogs",
                 CreatedOn = new DateTime(2023, 7, 9, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2023, 7, 9, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Hosted Service", "Background Workload", "Channels"]
@@ -132,6 +139,7 @@ public class WebAPILearningPath
                 ContentUrl = "blogs/functional-testing-your-asp-net-webapi",
                 IconUrl = "image/icons/webapi.webp",
                 Channel = "WebAPI",
+                Type = "blogs",
                 CreatedOn = new DateTime(2023, 7, 16, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2024, 6, 23, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Functional Test", "Integration Test"]
@@ -148,6 +156,7 @@ public class WebAPILearningPath
                 ContentUrl = "blogs/faking-dependencies-in-functional-testing-in-asp-net-webapi",
                 IconUrl = "image/icons/webapi.webp",
                 Channel = "WebAPI",
+                Type = "blogs",
                 CreatedOn = new DateTime(2023, 7, 23, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2024, 6, 30, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Faking Dependencies", "Replace Services", "Functional Test", "Integration Test"]
@@ -164,6 +173,7 @@ public class WebAPILearningPath
                 ContentUrl = "blogs/using-wiremock-net-in-functional-testing-in-asp-net-webapi",
                 IconUrl = "image/icons/webapi.webp",
                 Channel = "WebAPI",
+                Type = "blogs",
                 CreatedOn = new DateTime(2023, 7, 30, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2024, 7, 14, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["WireMock.Net", "Functional Test", "Integration Test"]
@@ -180,6 +190,7 @@ public class WebAPILearningPath
                 ContentUrl = "blogs/configuring-authentication-in-functional-testing-in-asp-net-webapi",
                 IconUrl = "image/icons/webapi.webp",
                 Channel = "WebAPI",
+                Type = "blogs",
                 CreatedOn = new DateTime(2023, 8, 6, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2024, 7, 21, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Authentication", "Authorization", "Functional Test", "Integration Test"]
@@ -196,6 +207,7 @@ public class WebAPILearningPath
                 ContentUrl = "blogs/unit-testing-hosted-services-in-asp-net-webapi",
                 IconUrl = "image/icons/webapi.webp",
                 Channel = "WebAPI",
+                Type = "blogs",
                 CreatedOn = new DateTime(2023, 8, 13, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2023, 8, 13, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Unit Test", "Hosted Service", "Background Service"]
@@ -212,6 +224,7 @@ public class WebAPILearningPath
                 ContentUrl = "blogs/request-endpoint-response-repr-pattern-in-asp-net-webapi",
                 IconUrl = "image/icons/webapi.webp",
                 Channel = "WebAPI",
+                Type = "blogs",
                 CreatedOn = new DateTime(2023, 10, 29, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2023, 10, 29, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Request", "Endpoint", "Response", "REPR"]
@@ -228,6 +241,7 @@ public class WebAPILearningPath
                 ContentUrl = "blogs/fitness-test-using-net-arch-test-in-asp-net-webapi",
                 IconUrl = "image/icons/webapi.webp",
                 Channel = "WebAPI",
+                Type = "blogs",
                 CreatedOn = new DateTime(2023, 11, 5, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2023, 11, 5, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Architecture Test", "Fitness Functions", "Fitness Test", "NetArchTest"]
@@ -244,6 +258,7 @@ public class WebAPILearningPath
                 ContentUrl = "blogs/global-exception-handling-in-asp-net-webapi",
                 IconUrl = "image/icons/webapi.webp",
                 Channel = "WebAPI",
+                Type = "blogs",
                 CreatedOn = new DateTime(2023, 11, 12, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2023, 11, 12, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Global", "Exception Handling", "Error Handling"]
@@ -260,6 +275,7 @@ public class WebAPILearningPath
                 ContentUrl = "blogs/using-docker-test-containers-in-functional-testing-in-asp-net-webapi",
                 IconUrl = "image/icons/webapi.webp",
                 Channel = "WebAPI",
+                Type = "blogs",
                 CreatedOn = new DateTime(2023, 11, 19, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2024, 7, 7, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Docker", "Test Containers", "Functional Testing"]
@@ -276,6 +292,7 @@ public class WebAPILearningPath
                 ContentUrl = "blogs/structured-logging-with-serilog-in-asp-net-webapi",
                 IconUrl = "image/icons/webapi.webp",
                 Channel = "WebAPI",
+                Type = "blogs",
                 CreatedOn = new DateTime(2023, 11, 26, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2023, 11, 26, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Logging", "Serilog", "Structured Logging"]
@@ -292,6 +309,7 @@ public class WebAPILearningPath
                 ContentUrl = "blogs/implementing-caching-using-decorator-pattern-in-asp-net-webapi",
                 IconUrl = "image/icons/webapi.webp",
                 Channel = "WebAPI",
+                Type = "blogs",
                 CreatedOn = new DateTime(2024, 1, 14, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2024, 1, 14, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Caching", "Decorator"]

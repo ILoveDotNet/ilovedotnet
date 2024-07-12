@@ -20,6 +20,7 @@ public class HTTPClientLearningPath
                 ContentUrl = "blogs/improving-performance-and-memory-use-while-accessing-apis-using-http-client-in-dotnet",
                 IconUrl = "image/icons/http-client.webp",
                 Channel = "HTTP-Client",
+                Type = "blogs",
                 CreatedOn = new DateTime(2023, 8, 20, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2024, 4, 14, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Memory Stream", "Performance"]
@@ -36,6 +37,7 @@ public class HTTPClientLearningPath
                 ContentUrl = "blogs/free-up-resources-with-cancellation-while-accessing-apis-using-http-client-in-dotnet",
                 IconUrl = "image/icons/http-client.webp",
                 Channel = "HTTP-Client",
+                Type = "blogs",
                 CreatedOn = new DateTime(2023, 8, 27, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2023, 8, 27, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["CancellationTokenSource", "CancellationToken", "Cancellation"]
@@ -52,6 +54,7 @@ public class HTTPClientLearningPath
                 ContentUrl = "blogs/save-bandwidth-with-compression-when-sending-and-reading-data-using-http-client-in-dotnet",
                 IconUrl = "image/icons/http-client.webp",
                 Channel = "HTTP-Client",
+                Type = "blogs",
                 CreatedOn = new DateTime(2023, 9, 3, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2023, 9, 3, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Compression", "Save Bandwidth"]
@@ -68,6 +71,7 @@ public class HTTPClientLearningPath
                 ContentUrl = "blogs/working-with-api-that-supports-remote-streaming-using-http-client-in-dotnet",
                 IconUrl = "image/icons/http-client.webp",
                 Channel = "HTTP-Client",
+                Type = "blogs",
                 CreatedOn = new DateTime(2023, 9, 10, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2023, 9, 10, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Streaming", "Remote"]
@@ -84,6 +88,7 @@ public class HTTPClientLearningPath
                 ContentUrl = "blogs/extending-http-client-with-custom-http-message-handlers-in-dotnet",
                 IconUrl = "image/icons/http-client.webp",
                 Channel = "HTTP-Client",
+                Type = "blogs",
                 CreatedOn = new DateTime(2023, 9, 17, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2023, 9, 17, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Delegating Handler", "Http Message Handler"]
@@ -100,6 +105,7 @@ public class HTTPClientLearningPath
                 ContentUrl = "blogs/unit-testing-http-client-in-dotnet",
                 IconUrl = "image/icons/http-client.webp",
                 Channel = "HTTP-Client",
+                Type = "blogs",
                 CreatedOn = new DateTime(2023, 9, 24, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2023, 9, 24, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Unit Testing"]

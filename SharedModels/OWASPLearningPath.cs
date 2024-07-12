@@ -20,6 +20,7 @@ public class OWASPLearningPath
                 ContentUrl = "blogs/owasp-secure-your-dotnet-app-by-scanning-for-vulnerable-nuget-dependency-in-ci-pipelines",
                 IconUrl = "image/icons/owasp.webp",
                 Channel = "OWASP",
+                Type = "blogs",
                 CreatedOn = new DateTime(2024, 2, 25, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2024, 6, 16, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Security", "Dependency Check", "Nuget Vulnerability", "Malicious Code", "Audit Nuget"]
