@@ -14,7 +14,7 @@ public class WebAPILearningPath
                 Title = "Importance of Status Code in Web API",
                 Description = "In this post I will teach you the importance of status code in Web API. All with live working demo.",
                 Author = "Abdul Rahman",
-                Slug = "importance-of-status-code-in-webapi",
+                Slug = "webapi-importance-of-status-code",
                 PosterUrl = "image/blogs/webapi/webapi-importance-of-status-code.webp",
                 ThumbnailUrl = "image/blogs/webapi/webapi-importance-of-status-code.webp",
                 ContentUrl = "blogs/webapi-importance-of-status-code",
