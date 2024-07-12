@@ -14,7 +14,7 @@ public class TDDLearningPath
                 Title = "Introducing TDD in C# .Net",
                 Description = "In this post I will introduce you to TDD in C# .NET. All with live working demo.",
                 Author = "Abdul Rahman",
-                Slug = "introducting-tdd-in-csharp-dotnet",
+                Slug = "introducing-tdd-in-csharp-dotnet",
                 PosterUrl = "image/blogs/tdd/introducing-tdd-in-csharp-dotnet.webp",
                 ThumbnailUrl = "image/blogs/tdd/introducing-tdd-in-csharp-dotnet.webp",
                 ContentUrl = "blogs/introducing-tdd-in-csharp-dotnet",
