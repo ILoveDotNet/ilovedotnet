@@ -1,4 +1,5 @@
 ﻿@inject IConfiguration configuration
+@inject NavigationManager navigationManager
 @inject Sitemaps sitemap
 @inject TableOfContents tableOfContents
 
@@ -6,8 +7,8 @@
 
 <Meta Property="description" Content="@contentMetaData!.Description" />
 <Meta Property="keywords" Content="@($".NET, DotNet, I Love DotNet, I ❤️ DotNet, Blazor, Blazor (WebAssembly), Blazor Wasm, C#, Entity Framework, LINQ, ML.NET, Web API, TDD, OOPS, Middleware, JWT, Dependency Injection, Report, Design Pattern, SOLID, HTTP Client, OWASP, SignalR, {string.Join(", ", contentMetaData.Keywords)}")" />
-<Meta Property="url" Content="@($"{BaseUrl}{contentMetaData.Type}/{Slug}/")" />
-<Meta Property="identifier-URL" Content="@($"{BaseUrl}{contentMetaData.Type}/{Slug}/")" />
+<Meta Property="url" Content="@($"{BaseUrl}{contentMetaData.Type}/{slug}/")" />
+<Meta Property="identifier-URL" Content="@($"{BaseUrl}{contentMetaData.Type}/{slug}/")" />
 <Meta Property="og:site_name" Content="I Love DotNet" />
 <Meta Property="og:type" Content="article" />
 <Meta Property="og:title" Content="@contentMetaData.Title" />
@@ -15,14 +16,14 @@
 <Meta Property="og:image" Content="@($"{BaseUrl}{normalizedPosterPath.Replace("webp", "png")}")" />
 <Meta Property="og:image:alt" Content="DotNet bot with heart and DotNet brand" />
 <Meta Property="og:description" Content="@contentMetaData.Description" />
-<Meta Property="og:url" Content="@($"{BaseUrl}{contentMetaData.Type}/{Slug}/")" />
+<Meta Property="og:url" Content="@($"{BaseUrl}{contentMetaData.Type}/{slug}/")" />
 <Meta Property="twitter:card" Content="summary_large_image" />
 <Meta Property="twitter:title" Content="@contentMetaData.Title" />
 <Meta Property="twitter:image" Content="@($"{BaseUrl}image/brand/mini-logo.png")" />
 <Meta Property="twitter:image" Content="@($"{BaseUrl}{normalizedPosterPath.Replace("webp", "png")}")" />
 <Meta Property="twitter:image:alt" Content="DotNet bot with heart and DotNet brand" />
 <Meta Property="twitter:description" Content="@contentMetaData.Description" />
-<Meta Property="twitter:url" Content="@($"{BaseUrl}{contentMetaData.Type}/{Slug}/")" />
+<Meta Property="twitter:url" Content="@($"{BaseUrl}{contentMetaData.Type}/{slug}/")" />
 <Meta Property="article:published_time" Content="@contentMetaData.CreatedOn.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")" />
 <Meta Property="article:modified_time" Content="@contentMetaData.ModifiedOn.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")" />
 <Meta Property="article:tag" Content=".NET" />
@@ -45,10 +46,10 @@
     <Link Rel="sitemap" Href="@($"{BaseUrl}{sitemap}")" type="application/xml" title="Sitemap" />   
 }
 <Link Rel="alternate" Href="@($"{BaseUrl}atom.xml")" type="application/rss+xml" />
-<Link Rel="alternate" Href="@($"{BaseUrl}{contentMetaData.Type}/{Slug}/")" hreflang="en" />
-<Link Rel="alternate" Href="@($"{BaseUrl}{contentMetaData.Type}/{Slug}/")" hreflang="x-default" />
-<Link Rel="canonical" Href="@($"{BaseUrl}{contentMetaData.Type}/{Slug}/")" />
-<Link Rel="index" Href="@($"{BaseUrl}{contentMetaData.Type}/{Slug}/")" title="@($"{contentMetaData.Title} - I ❤️ DotNet")" />
+<Link Rel="alternate" Href="@($"{BaseUrl}{contentMetaData.Type}/{slug}/")" hreflang="en" />
+<Link Rel="alternate" Href="@($"{BaseUrl}{contentMetaData.Type}/{slug}/")" hreflang="x-default" />
+<Link Rel="canonical" Href="@($"{BaseUrl}{contentMetaData.Type}/{slug}/")" />
+<Link Rel="index" Href="@($"{BaseUrl}{contentMetaData.Type}/{slug}/")" title="@($"{contentMetaData.Title} - I ❤️ DotNet")" />
 <HeadContent>
     @(new MarkupString(
         $$""""
@@ -85,7 +86,7 @@
                 ]
             },
             "headline": "{{contentMetaData.Title}}",
-            "url": "{{BaseUrl}}{{contentMetaData.Type}}/{{Slug}}/",
+            "url": "{{BaseUrl}}{{contentMetaData.Type}}/{{slug}}/",
             "datePublished": "{{contentMetaData.CreatedOn:yyyy-MM-ddTHH:mm:ss.fffZ}}",
             "dateModified": "{{contentMetaData.ModifiedOn:yyyy-MM-ddTHH:mm:ss.fffZ}}",
             "image": {
@@ -107,14 +108,15 @@
 </HeadContent>
 
 @code {
+    private string? slug;
     private ContentMetaData? contentMetaData = default!;
     private string BaseUrl => configuration.GetValue<string>("baseUrl")!;
     private string normalizedPosterPath => contentMetaData!.PosterUrl.ToLower();
 
-    [Parameter, EditorRequired] public string Slug { get; set; } = default!;
-
     override protected void OnInitialized()
     {
-        contentMetaData = tableOfContents.GetContentBySlug(Slug);
+        slug = navigationManager.Uri.ToString().Split('/').Last();
+        ArgumentException.ThrowIfNullOrWhiteSpace(slug, nameof(slug));
+        contentMetaData = tableOfContents.GetContentBySlug(slug);
     }
 }

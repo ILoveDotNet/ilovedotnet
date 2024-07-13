@@ -1,5 +1,6 @@
 ﻿@using Humanizer
 @inject IConfiguration configuration
+@inject NavigationManager navigationManager
 @inject TableOfContents tableOfContents
 
 <header class="[ space-y-2 ]">
@@ -26,7 +27,7 @@
             <time datetime="@contentMetaData.ModifiedOn.ToString("yyyy-MM-dd HH:mm:ss")">Last updated @contentMetaData.ModifiedOn.Humanize()</time>
         </div>
         <div>
-            <SocialShare Title="@contentMetaData.Title" Url="@($"{BaseUrl}blogs/{Slug}/")"></SocialShare>
+            <SocialShare Title="@contentMetaData.Title" Url="@($"{BaseUrl}blogs/{slug}/")"></SocialShare>
         </div>
     </section>
     <section class="[ flex items-center justify-between ]">
@@ -39,7 +40,7 @@
             <article class="[ flex flex-col justify-between ] [ dark:text-white ] [ mt-2 ]">
                 <h2 class="[ font-medium break-words ] [ uppercase ]">@contentMetaData.Channel.Replace("-", " ")</h2>
                 <section class="[ flex justify-between ]">
-                    <p>@tableOfContents.GetTotalContentsCountBySlug(Slug) Articles</p>
+                    <p>@tableOfContents.GetTotalContentsCountBySlug(slug!) Articles</p>
                 </section>
             </article>
         </NavLink>
@@ -50,14 +51,16 @@
 
 
 @code {
+    private string? slug;
     private ContentMetaData? contentMetaData = default!;
     private string BaseUrl => configuration.GetValue<string>("baseUrl")!;
 
-    [Parameter, EditorRequired] public string Slug { get; set; } = default!;
     [Parameter, EditorRequired] public string FileName { get; set; } = default!;
 
     override protected void OnInitialized()
     {
-        contentMetaData = tableOfContents.GetContentBySlug(Slug);
+        slug = navigationManager.Uri.ToString().Split('/').Last();
+        ArgumentException.ThrowIfNullOrWhiteSpace(slug, nameof(slug));
+        contentMetaData = tableOfContents.GetContentBySlug(slug);
     }
 }
