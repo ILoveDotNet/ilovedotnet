@@ -82,6 +82,8 @@ public static class MauiProgram
             return hostEnvironment;
         });
 
+        builder.Services.AddSingleton<SlugService>();
+
         return builder.Build();
     }
 }

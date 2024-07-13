@@ -85,4 +85,6 @@ static void ConfigureServices(IServiceCollection services, string baseAddress)
     services.AddHotKeys2();
 
     services.AddSingleton<IHostEnvironment, WebHostEnvironment>();
+
+    services.AddSingleton<SlugService>();
 }

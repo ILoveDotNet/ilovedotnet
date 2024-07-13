@@ -1,5 +1,5 @@
 ﻿@using System.Globalization;
-@inject NavigationManager navigationManager
+@inject SlugService slugService
 @inject TableOfContents tableOfContents
 
 <ContentHead />
@@ -28,15 +28,13 @@
 </section>
 
 @code {
-    private string? slug;
     private ContentMetaData? contentMetaData = default!;
     [Parameter, EditorRequired] public RenderFragment ContentBody { get; set; } = default!;
     [Parameter, EditorRequired] public string FileName { get; set; } = default!;
 
     override protected void OnInitialized()
     {
-        slug = navigationManager.Uri.ToString().Split('/').Last();
-        ArgumentNullException.ThrowIfNull(slug, nameof(slug));
+        var slug = slugService.GetSlug();
         contentMetaData = tableOfContents.GetContentBySlug(slug);
     }
 }
