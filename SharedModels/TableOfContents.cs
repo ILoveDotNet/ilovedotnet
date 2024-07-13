@@ -43,7 +43,7 @@ public class TableOfContents
 
     public ContentMetaData GetContentBySlug(string slug) 
             => FullContents
-                .Single(content => content.ContentUrl.EndsWith(slug, StringComparison.OrdinalIgnoreCase));
+                .First(content => content.ContentUrl.EndsWith(slug, StringComparison.OrdinalIgnoreCase));
 
     public ushort GetTotalContentsCountBySlug(string slug) 
             => (ushort)FullContents
