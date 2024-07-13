@@ -1,6 +1,6 @@
 ﻿@inject IConfiguration configuration
+@inject NavigationManager navigationManager
 @inject Sitemaps sitemap
-@inject SlugService slugService
 @inject TableOfContents tableOfContents
 
 <Title>@contentMetaData!.Title - I ❤️ DotNet</Title>
@@ -115,7 +115,8 @@
 
     override protected void OnInitialized()
     {
-        slug = slugService.GetSlug();
+        slug = navigationManager.Uri.ToString().Split('/').Last();
+        ArgumentNullException.ThrowIfNull(slug, nameof(slug));
         contentMetaData = tableOfContents.GetContentBySlug(slug);
     }
 }
