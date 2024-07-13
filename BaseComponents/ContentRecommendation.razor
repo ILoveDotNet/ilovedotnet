@@ -1,5 +1,6 @@
 @using Humanizer
 @inject AdSpaceService adSpaceService
+@inject NavigationManager navigationManager
 @inject TableOfContents tableOfContents
 
 <aside class="[ flex flex-col lg:basis-1/4 ] [ space-y-2 ]">
@@ -81,20 +82,22 @@
 </aside>
 
 @code {
-    [Parameter, EditorRequired] public string Title { get; set; } = default!;
-    [CascadingParameter] public bool SmallDevice { get; set; }
+    private string? slug;
     private IEnumerable<ContentMetaData> Contents = Enumerable.Empty<ContentMetaData>();
     private int Count = 1;
     private int Take => TableOfContents.PageSize * Count;
+    [CascadingParameter] public bool SmallDevice { get; set; }
 
     protected override void OnInitialized()
     {
-        Contents = tableOfContents.ExceptAndPagedContents(Title);
+        slug = navigationManager.Uri.ToString().Split('/').Last();
+        ArgumentNullException.ThrowIfNull(slug, nameof(slug));
+        Contents = tableOfContents.ExceptAndPagedContents(slug);
     }
 
     private void ShowMoreContents()
     {
         Count++;
-        Contents = tableOfContents.ExceptAndPagedContents(Title, 0, Take);
+        Contents = tableOfContents.ExceptAndPagedContents(slug!, 0, Take);
     }
 }

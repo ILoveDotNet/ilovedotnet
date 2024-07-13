@@ -33,9 +33,9 @@ public class TableOfContents
                 .Where(content => string.IsNullOrWhiteSpace(selectedContentType) || content.Channel.Equals(selectedContentType, StringComparison.OrdinalIgnoreCase))
                 .Count();
 
-    public IReadOnlyList<ContentMetaData> ExceptAndPagedContents(string title, int skip = 0, int take = PageSize) 
+    public IReadOnlyList<ContentMetaData> ExceptAndPagedContents(string slug, int skip = 0, int take = PageSize) 
             => Contents
-                .Where(content => !content.Title.Equals(title, StringComparison.OrdinalIgnoreCase))
+                .Where(content => !content.Slug.Equals(slug, StringComparison.OrdinalIgnoreCase))
                 .OrderByDescending(content => content.ModifiedOn)
                 .ThenByDescending(content => content.CreatedOn)
                 .Take(skip..take)
