@@ -35,7 +35,12 @@
 
     override protected void OnInitialized()
     {
-        slug = navigationManager.Uri.ToString().Split('/').Last();
+        var parts = navigationManager.Uri.ToString().Split('/');
+        slug = parts.Last();
+        if (string.IsNullOrWhiteSpace(slug))
+        {
+            slug = parts[parts.Length - 2];
+        }
         ArgumentNullException.ThrowIfNull(slug, nameof(slug));
         contentMetaData = tableOfContents.GetContentBySlug(slug);
     }
