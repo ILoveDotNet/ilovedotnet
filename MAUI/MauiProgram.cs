@@ -2,6 +2,7 @@
 using CommonComponents.Models;
 using CommonComponents.Services;
 using MAUI.Services;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.WebAssembly.Services;
 using Microsoft.Extensions.Logging;
 using SharedComponents;
@@ -81,6 +82,8 @@ public static class MauiProgram
 #endif
             return hostEnvironment;
         });
+
+        builder.Services.AddScoped(serviceProvider => new SlugService(serviceProvider.GetRequiredService<NavigationManager>()));
 
         return builder.Build();
     }

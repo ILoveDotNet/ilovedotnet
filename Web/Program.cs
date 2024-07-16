@@ -1,6 +1,7 @@
 using Blazor.Analytics;
 using CommonComponents.Models;
 using CommonComponents.Services;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.AspNetCore.Components.WebAssembly.Services;
@@ -85,4 +86,6 @@ static void ConfigureServices(IServiceCollection services, string baseAddress)
     services.AddHotKeys2();
 
     services.AddSingleton<IHostEnvironment, WebHostEnvironment>();
+
+    services.AddScoped(serviceProvider => new SlugService(serviceProvider.GetRequiredService<NavigationManager>()));
 }

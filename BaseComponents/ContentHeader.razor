@@ -1,6 +1,7 @@
 ﻿@using Humanizer
 @inject IConfiguration configuration
 @inject NavigationManager navigationManager
+@inject SlugService slugService
 @inject TableOfContents tableOfContents
 
 <header class="[ space-y-2 ]">
@@ -59,13 +60,7 @@
 
     override protected void OnInitialized()
     {
-        var parts = navigationManager.Uri.ToString().Split('/');
-        slug = parts.Last();
-        if (string.IsNullOrWhiteSpace(slug))
-        {
-            slug = parts[parts.Length - 2];
-        }
-        ArgumentNullException.ThrowIfNull(slug, nameof(slug));
+        slug = slugService.GetSlug();
         contentMetaData = tableOfContents.GetContentBySlug(slug);
     }
 }
