@@ -24,11 +24,9 @@ jobs:
   build-test-deploy-blazor:
     runs-on: ubuntu-latest
     steps:
-      # Checkout the code
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Install .NET SDK
       - name: Setup .NET
         env:
           DOTNET_NOLOGO: true #Disable welcome message
@@ -37,11 +35,9 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
-      # Install dotnet wasm buildtools workload
       - name: Install .NET WASM Build Tools
         run: dotnet workload install wasm-tools
 
-      # Install Node JS
       - name: Setup Node.js environment
         uses: actions/setup-node@v4
         with:
@@ -49,12 +45,10 @@ jobs:
       - run: npm install
         working-directory: ./CommonComponents
 
-      # Restore Dependencies
       - name: Restore dependencies
         run: dotnet restore ./Web/Web.csproj
 
       # Commented out the below steps as it is handled by NugitAudit properties in the csproj file starting .NET 8.0
-      # # Check Vulnerable Nuget Packages
       # - name: Checking Vulnerable Nuget Packages
       #   run: |
       #     dotnet list ./Web/Web.csproj package --vulnerable --include-transitive --format=json > list.json
@@ -67,27 +61,21 @@ jobs:
       #       echo 'No vulnerabilities found!'
       #     fi
         
-      # # Check Outdated Nuget Packages
       # - name: Checking Outdated Nuget Packages
       #   run: dotnet list ./Web/Web.csproj package --outdated --include-transitive --format json
         
-      # # Check Deprecated Nuget Packages
       # - name: Checking Deprecated Nuget Packages
       #   run: dotnet list ./Web/Web.csproj package --deprecated --include-transitive --format json
 
-      # Build Blazor Project
       - name: Build Blazor Project
         run: dotnet build ./Web/Web.csproj --configuration Release --no-restore
         
-      # Install dotnet report generator
       - name: Install .NET Report Generator
         run: dotnet tool install -g dotnet-reportgenerator-globaltool
         
-      # Run Tests
       - name: Run Test
         run: dotnet test ./UITests/UITests.csproj --configuration Release --verbosity normal --logger trx --collect:"XPlat Code Coverage"
 
-      # Test Reporter
       #- name: Test Reporter
       #  uses: dorny/test-reporter@v1.7.0
       #  if: success() || failure()
@@ -96,33 +84,27 @@ jobs:
       #    path: '**/*.trx'
       #    reporter: dotnet-trx
       
-      # Generate Test Report
       - name: Generate Test Report
         run: reportgenerator -reports:./**/Coverage.cobertura.xml -targetdir:"./Test/Report" -reporttypes:Html
       
-      # Upload Test Report
       - name: Upload Test Result
         uses: actions/upload-artifact@v4
         with:
           name: ilovedotnet-test-report
           path: ./Test/Report
           retention-days: 1
-      
-      # Use always() to always run this step to publish test results when there are test failures
+        # Use always() to always run this step to publish test results when there are test failures
         if: ${{ always() }}
 
-      # Publishes Blazor project to the release-folder
       - name: Publish Blazor Project
         run: dotnet publish ./Web/Web.csproj -c:Release -p:GHPages=true --no-restore -o dist/Web --nologo
 
-      # Upload Build Artifacts
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: blazor-build-artifacts
           path: dist/Web
 
-      # Commit Blazor Web App to GitHub Pages
       - name: Commit wwwroot to GitHub Pages
         if: ${{ github.actor != 'dependabot[bot]' && github.event_name != 'pull_request' }}
         uses: JamesIves/github-pages-deploy-action@v4
@@ -133,15 +115,15 @@ jobs:
   build-test-deploy-maui:
     runs-on: windows-latest
     steps:
-      # Checkout the code
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Install Node JS
       - name: Setup Node.js environment
         run: npm install
         working-directory: ./CommonComponents
         
-      # Restore Dependencies
       - name: Restore dependencies
         run: dotnet restore
+
+      - name: Build MAUI Project
+        run: dotnet build ./MAUI/MAUI.csproj --configuration Release --no-restore
