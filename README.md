@@ -1,3 +1,5 @@
+[![build and test and deploy](https://github.com/ILoveDotNet/ilovedotnet/actions/workflows/deployment.yml/badge.svg)](https://github.com/ILoveDotNet/ilovedotnet/actions/workflows/deployment.yml)
+
 # I ❤️ .NET
 
 This is a .NET knowledge sharing platform with live demos crafted by developers for developers with love using .NET. The goal is to make sure this learning platform helps developers to up and run .NET easily in their projects. This platform will cover minimal knowledge, steps, content needed to start with .NET stack.
