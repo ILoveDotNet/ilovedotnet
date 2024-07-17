@@ -51,14 +51,13 @@ jobs:
 
       # Restore Dependencies
       - name: Restore dependencies
-        run: dotnet restore
-        working-directory: ./Web
+        run: dotnet restore ./Web/Web.csproj
 
       # Commented out the below steps as it is handled by NugitAudit properties in the csproj file starting .NET 8.0
       # # Check Vulnerable Nuget Packages
       # - name: Checking Vulnerable Nuget Packages
       #   run: |
-      #     dotnet list package --vulnerable --include-transitive --format=json > list.json
+      #     dotnet list ./Web/Web.csproj package --vulnerable --include-transitive --format=json > list.json
       #     # if jq -cre '.projects | .. | .severity? // empty | select(test("Critical|High"))' list.json; then
       #     if jq -cre '.projects | .. | .severity? // empty | select(test("Critical"))' list.json; then
       #       echo 'Vulnerabilities found! Exiting...'
@@ -67,22 +66,18 @@ jobs:
       #     else
       #       echo 'No vulnerabilities found!'
       #     fi
-      #   working-directory: ./Web
         
       # # Check Outdated Nuget Packages
       # - name: Checking Outdated Nuget Packages
-      #   run: dotnet list package --outdated --include-transitive --format json
-      #   working-directory: ./Web
+      #   run: dotnet list ./Web/Web.csproj package --outdated --include-transitive --format json
         
       # # Check Deprecated Nuget Packages
       # - name: Checking Deprecated Nuget Packages
-      #   run: dotnet list package --deprecated --include-transitive --format json
-      #   working-directory: ./Web
+      #   run: dotnet list ./Web/Web.csproj package --deprecated --include-transitive --format json
 
       # Build Blazor Project
       - name: Build Blazor Project
-        run: dotnet build --configuration Release --no-restore
-        working-directory: ./Web
+        run: dotnet build ./Web/Web.csproj --configuration Release --no-restore
         
       # Install dotnet report generator
       - name: Install .NET Report Generator
@@ -90,8 +85,7 @@ jobs:
         
       # Run Tests
       - name: Run Test
-        run: dotnet test --configuration Release --verbosity normal --logger trx --collect:"XPlat Code Coverage"
-        working-directory: ./UITests
+        run: dotnet test ./UITests/UITests.csproj --configuration Release --verbosity normal --logger trx --collect:"XPlat Code Coverage"
 
       # Test Reporter
       #- name: Test Reporter
@@ -119,8 +113,7 @@ jobs:
 
       # Publishes Blazor project to the release-folder
       - name: Publish Blazor Project
-        run: dotnet publish -c:Release -p:GHPages=true --no-restore -o dist/Web --nologo
-        working-directory: ./Web
+        run: dotnet publish ./Web/Web.csproj -c:Release -p:GHPages=true --no-restore -o dist/Web --nologo
 
       # Commit Blazor Web App to GitHub Pages
       - name: Commit wwwroot to GitHub Pages
