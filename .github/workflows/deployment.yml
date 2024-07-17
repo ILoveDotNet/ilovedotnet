@@ -99,11 +99,18 @@ jobs:
       - name: Publish Blazor Project
         run: dotnet publish ./Web/Web.csproj -c:Release -p:GHPages=true --no-restore -o dist/Web --nologo
 
-      - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v4
+      # - name: Upload Build Artifacts
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: blazor-build-artifacts
+      #     path: dist/Web
+
+      - name: Generate Release
+        uses: softprops/action-gh-release@v2
         with:
-          name: blazor-build-artifacts
-          path: dist/Web
+          files: dist/Web
+          body: "Binaries for Blazor Web App"
+          tag_name: ${{ github.ref_name }}
 
       - name: Commit wwwroot to GitHub Pages
         if: ${{ github.actor != 'dependabot[bot]' && github.event_name != 'pull_request' }}
