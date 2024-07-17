@@ -1,4 +1,4 @@
-[![build and test and deploy](https://github.com/ILoveDotNet/ilovedotnet/actions/workflows/deployment.yml/badge.svg)](https://github.com/ILoveDotNet/ilovedotnet/actions/workflows/deployment.yml)
+[![build-blazor-app](https://github.com/ILoveDotNet/ilovedotnet/actions/workflows/build-blazor-app.yml/badge.svg)](https://github.com/ILoveDotNet/ilovedotnet/actions/workflows/build-blazor-app.yml)
 
 # I ❤️ .NET
 
