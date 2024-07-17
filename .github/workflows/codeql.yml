@@ -1,11 +1,6 @@
 name: "CodeQL"
 
 on:
-  #push:
-  #  branches: [ "main" ]
-  #pull_request:
-  #  # The branches below must be a subset of the branches above
-  #  branches: [ "main" ]
   schedule:
     - cron: '28 4 * * 3'
   workflow_dispatch: #manually trigger the workflow
@@ -22,8 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-        - language: ['csharp', 'javascript']
+        language: [ 'csharp', 'javascript' ]
 
     steps:
     - name: Checkout repository
@@ -34,12 +28,11 @@ jobs:
       with:
         languages: ${{ matrix.language }}
         queries: "+security-and-quality"
-
+    
     - name: Restore npm dependencies
       run: npm install
       working-directory: ./CommonComponents
 
-    # Build Blazor Project
     - name: Build Blazor Project
       run: dotnet build ./Web/Web.csproj
 
