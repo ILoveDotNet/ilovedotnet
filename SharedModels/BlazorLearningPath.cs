@@ -2,7 +2,7 @@
 
 public class BlazorLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(27);
+    public readonly List<ContentMetaData> FullContents = new(28);
 
     public BlazorLearningPath()
     {
@@ -466,7 +466,24 @@ public class BlazorLearningPath
                 CreatedOn = new DateTime(2023, 10, 22, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2023, 10, 22, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Keyboard", "Shortcut"]
-            }
+            },
+            new ContentMetaData
+            {
+                Order = 28,
+                Title = "Blazor WASM Publishing to Azure Static Web Apps",
+                Description = "In this post I will teach how to publish your Blazor applications to Azure Static Web Apps. All with live working demo.",
+                Author = "Abdul Rahman",
+                Slug = "blazor-wasm-publishing-to-azure-static-web-apps",
+                PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-publishing-to-azure-static-web-apps.webp",
+                ThumbnailUrl = "image/blogs/blazor/wasm/blazor-wasm-publishing-to-azure-static-web-apps.webp",
+                ContentUrl = "blogs/blazor-wasm-publishing-to-azure-static-web-apps",
+                IconUrl = "image/icons/blazor.webp",
+                Channel = "Blazor",
+                Type = "blogs",
+                CreatedOn = new DateTime(2024, 7, 28, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2024, 7, 28, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Publishing", "Azure Static Web Apps", "Azure", "CI/CD", "Continuous Integration", "Continuous Deployment"]
+            },
         ];
     }
 }
