@@ -2,7 +2,7 @@
 
 public class BlazorLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(28);
+    public readonly List<ContentMetaData> FullContents = new(29);
 
     public BlazorLearningPath()
     {
@@ -483,6 +483,23 @@ public class BlazorLearningPath
                 CreatedOn = new DateTime(2024, 7, 28, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2024, 7, 28, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Publishing", "Azure Static Web Apps", "Azure", "CI/CD", "Continuous Integration", "Continuous Deployment"]
+            },
+            new ContentMetaData
+            {
+                Order = 29,
+                Title = "Developing Hybrid App with Blazor WASM and .NET MAUI",
+                Description = "In this post I will teach how to convert your existing Blazor WASM app into a Hybrid .NET MAUI App. All with live working demo.",
+                Author = "Abdul Rahman",
+                Slug = "developing-hybrid-app-with-blazor-wasm-and-dotnet-maui",
+                PosterUrl = "image/blogs/blazor/wasm/developing-hybrid-app-with-blazor-wasm-and-dotnet-maui.webp",
+                ThumbnailUrl = "image/blogs/blazor/wasm/developing-hybrid-app-with-blazor-wasm-and-dotnet-maui.webp",
+                ContentUrl = "blogs/developing-hybrid-app-with-blazor-wasm-and-dotnet-maui",
+                IconUrl = "image/icons/blazor.webp",
+                Channel = "Blazor",
+                Type = "blogs",
+                CreatedOn = new DateTime(2024, 8, 4, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2024, 8, 4, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["MAUI", "Hybrid", "Mobile", "Desktop", "TvOS", "WatchOS", "iOS", "Android", "Windows"]
             },
         ];
     }
