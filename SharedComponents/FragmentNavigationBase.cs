@@ -5,6 +5,14 @@ namespace SharedComponents;
 public class FragmentNavigationBase : ComponentBase
 {
     [Inject] private NavigationManager NavigationManager { get; set; } = default!;
+    [Inject] private SlugService SlugService { get; set; } = default!;
+
+    protected string Slug { get; set; } = string.Empty;
+
+    override protected void OnInitialized()
+    {
+        Slug = SlugService.GetSlug();
+    }
 
     protected override void OnAfterRender(bool firstRender)
     {
