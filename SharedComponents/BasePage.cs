@@ -2,7 +2,7 @@
 
 namespace SharedComponents;
 
-public class FragmentNavigationBase : ComponentBase
+public class BasePage : ComponentBase
 {
     [Inject] private NavigationManager NavigationManager { get; set; } = default!;
     [Inject] private SlugService SlugService { get; set; } = default!;
