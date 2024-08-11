@@ -362,7 +362,7 @@ public class BlazorLearningPath
                 Channel = "Blazor",
                 Type = "blogs",
                 CreatedOn = new DateTime(2023, 3, 26, 22, 30, 0, DateTimeKind.Utc),
-                ModifiedOn = new DateTime(2023, 3, 26, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2024, 8, 11, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Docker", "Dockerizing", "Container", "Containerizing"]
             },
             new ContentMetaData
