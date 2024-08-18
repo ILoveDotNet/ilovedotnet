@@ -2,7 +2,7 @@ namespace SharedModels;
 
 public class DesignPatternLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(5);
+    public readonly List<ContentMetaData> FullContents = new(6);
 
     public DesignPatternLearningPath()
     {
@@ -92,6 +92,23 @@ public class DesignPatternLearningPath
                 CreatedOn = new DateTime(2024, 1, 28, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2024, 1, 28, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Creational", "Builder"]
+            },
+            new ContentMetaData
+            {
+                Order = 6,
+                Title = "Enterprise Design Pattern - Repository",
+                Description = "In this post I will teach you Enterprise Repository Design Pattern in .NET. All with live working demo.",
+                Author = "Abdul Rahman",
+                Slug = "enterprise-design-pattern-repository",
+                PosterUrl = "image/blogs/design-pattern/enterprise-design-pattern-repository.webp",
+                ThumbnailUrl = "image/blogs/design-pattern/enterprise-design-pattern-repository.webp",
+                ContentUrl = "blogs/enterprise-design-pattern-repository",
+                IconUrl = "image/icons/design-pattern.webp",
+                Channel = "Design-Pattern",
+                Type = "blogs",
+                CreatedOn = new DateTime(2024, 8, 18, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2024, 8, 18, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Enterprise", "Repository"]
             },
         ];
     }
