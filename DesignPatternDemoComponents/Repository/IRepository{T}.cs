@@ -7,6 +7,5 @@ namespace DesignPatternDemoComponents.Repository
         T Add(T entity);
         void Update(T entity);
         void Delete(Guid id);
-        Task SaveChangesAsync();
     }
 }

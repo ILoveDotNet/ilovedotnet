@@ -26,10 +26,5 @@ namespace DesignPatternDemoComponents.Repository
         {
             throw new NotImplementedException();
         }
-
-        public Task SaveChangesAsync()
-        {
-            throw new NotImplementedException();
-        }
     }
 }

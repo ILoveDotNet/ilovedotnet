@@ -1,0 +1,146 @@
+@page "/blogs/enterprise-design-pattern-unit-of-work"
+@using DesignPatternDemoComponents.UnitOfWork
+@inherits BasePage
+
+<Content FileName=@nameof(UnitOfWork)>
+    <ContentBody>
+        <p>
+            In this article, let's learn about <ContentHighlight>Unit of Work Design Pattern</ContentHighlight> in .NET.
+        </p>
+
+        <p>
+            <strong>Note:</strong> If you have not done so already, I recommend you read the article on
+            <NavLink class="[ underline ]" href="blogs/enterprise-design-pattern-repository" Match="NavLinkMatch.All">Enterprise Design Pattern - Repository</NavLink>.
+        </p>
+
+        <h3 class="[ font-semibold text-lg ]">Table of Contents</h3>
+        
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
+                    Introduction
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#what-problem-does-it-solve")" Match="NavLinkMatch.All">
+                    What problem does it solve?
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#implementing-a-unit-of-work-pattern")" Match="NavLinkMatch.All">
+                    Implementing a Unit of Work Pattern
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#working-with-ef-core")" Match="NavLinkMatch.All">
+                    Working with EF Core
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#real-world-use-cases")" Match="NavLinkMatch.All">
+                    Real World Use Cases
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
+                    Summary
+                </NavLink>
+            </li>
+        </ol>
+
+        <h3 id="introduction" class="[ font-semibold text-lg ]">Introduction</h3>
+        
+        <p>
+            The <ContentHighlight>Unit of Work</ContentHighlight> pattern is crucial for <ContentHighlight>managing transactions</ContentHighlight> and 
+            <ContentHighlight>coordinating multiple data operations</ContentHighlight> across repositories in enterprise software. It ensures 
+            <ContentHighlight>consistency</ContentHighlight> by grouping operations into a <ContentHighlight>single unit</ContentHighlight>, where either 
+            <ContentHighlight>all operations succeed or none do</ContentHighlight>.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="what-problem-does-it-solve" class="[ font-semibold text-lg ]">What problem does it solve?</h3>
+        
+        <p>
+            Imagine you have an order processing system. You need to save an order and its associated order lines. Without the Unit of Work, if 
+            <ContentHighlight>saving the order succeeds but saving the order lines fails</ContentHighlight>, you could end up with 
+            <ContentHighlight>inconsistent data</ContentHighlight>. The Unit of Work pattern solves this by <ContentHighlight>ensuring that both 
+            operations are wrapped in a single transaction</ContentHighlight>. If one fails, everything is <ContentHighlight>rolled back</ContentHighlight>, 
+            preserving <ContentHighlight>data integrity</ContentHighlight>.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="implementing-a-unit-of-work-pattern" class="[ font-semibold text-lg ]">Implementing Unit of Work Pattern</h3>
+
+        <p>
+            To implement the Unit of Work pattern, start by creating an <ContentHighlight>IUnitOfWork interface</ContentHighlight> that includes methods for 
+            <ContentHighlight>committing</ContentHighlight> and <ContentHighlight>rolling back transactions</ContentHighlight>:
+        </p>
+
+        <GithubGistSnippet Title="Unit of Work Interface" UserId="fingers10" FileName="46aa98b15ec0a9ed22b4e8169de2673b"></GithubGistSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <p>
+            Next, create an <ContentHighlight>abstract UnitOfWork class</ContentHighlight> that implements this <ContentHighlight>interface</ContentHighlight>. 
+            It should handle transactions through an injected <ContentHighlight>DbContext</ContentHighlight>. Note we are leaving the 
+            <ContentHighlight>lifetime of DbContext</ContentHighlight> to <ContentHighlight>IOC container</ContentHighlight> to manage. This is important as 
+            <ContentHighlight>DbContext</ContentHighlight> should be scoped to the lifetime of the request.
+        </p>
+
+        <GithubGistSnippet Title="Unit of Work Abstraction" UserId="fingers10" FileName="2456e1f89c0ca3ebc9a7d06ec594674b"></GithubGistSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <p>
+            You can now create a <ContentHighlight>concrete class</ContentHighlight> for <ContentHighlight>specific units of work</ContentHighlight>, such as 
+            handling orders and order lines:
+        </p>
+
+        <GithubGistSnippet Title="Unit of Work Implementation" UserId="fingers10" FileName="4ea9332bb770ba3b8e76fcc9585b8204"></GithubGistSnippet>
+
+        <p>
+            Now all we need to do is to use the <ContentHighlight>repositories</ContentHighlight> to do operations and use <ContentHighlight>SaveChanges</ContentHighlight> 
+            in <ContentHighlight>Unit of Work</ContentHighlight> to <ContentHighlight>commit</ContentHighlight> the <ContentHighlight>transaction</ContentHighlight>. If 
+            any operation fails, the <ContentHighlight>transaction</ContentHighlight> will be <ContentHighlight>rolled back</ContentHighlight>.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="working-with-ef-core" class="[ font-semibold text-lg ]">Working with EF Core</h3>
+
+        <p>
+            <ContentHighlight>Entity Framework Core</ContentHighlight> naturally implements the <ContentHighlight>Unit of Work</ContentHighlight> pattern via the 
+            <ContentHighlight>DbContext</ContentHighlight>. When you call <ContentHighlight>SaveChanges</ContentHighlight>, all <ContentHighlight>tracked changes</ContentHighlight> 
+            are wrapped in a <ContentHighlight>transaction</ContentHighlight>, ensuring either all changes are committed or none are.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="real-world-use-cases" class="[ font-semibold text-lg ]">Real World Use Cases</h3>
+
+        <ul>
+            <li>
+                <ContentHighlight>Banking Applications</ContentHighlight>: In financial transactions, like transferring funds between accounts, the 
+                Unit of Work ensures that both deduction and addition occur within a single transaction. If any part fails, the entire operation is rolled back.
+            </li>
+            <li>
+                <ContentHighlight>E-commerce Checkout</ContentHighlight>: During the checkout process, actions like updating the cart, reserving inventory, and 
+                placing an order are coordinated by the Unit of Work. If inventory reservation fails, the whole transaction is rolled back, preventing incomplete 
+                orders.
+            </li>
+        </ul>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="summary" class="[ font-semibold text-lg ]">Summary</h3>
+
+        <p>
+            The <ContentHighlight>Unit of Work</ContentHighlight> pattern is essential for <ContentHighlight>managing transactions</ContentHighlight> in 
+            data-intensive applications. It ensures <ContentHighlight>data integrity</ContentHighlight> by coordinating 
+            <ContentHighlight>multiple operations</ContentHighlight> in a <ContentHighlight>single transaction</ContentHighlight>. With Entity Framework Core, 
+            much of this functionality is already built-in, allowing you to leverage this pattern with minimal setup.
+        </p>
+    </ContentBody>
+</Content>

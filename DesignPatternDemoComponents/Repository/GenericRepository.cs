@@ -27,11 +27,6 @@ namespace DesignPatternDemoComponents.Repository
             throw new NotImplementedException();
         }
 
-        public Task SaveChangesAsync()
-        {
-            throw new NotImplementedException();
-        }
-
         public void Update(T entity)
         {
             throw new NotImplementedException();
