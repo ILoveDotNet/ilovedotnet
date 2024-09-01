@@ -1,0 +1,224 @@
+@page "/blogs/behavioral-design-pattern-observer"
+@using DesignPatternDemoComponents.Observer
+@inherits BasePage
+
+<Content FileName=@nameof(Observer)>
+    <ContentBody>
+        <p>
+            In this article, let's learn about <ContentHighlight>Observer Design Pattern</ContentHighlight> in .NET.
+        </p>
+
+        <h3 class="[ font-semibold text-lg ]">Table of Contents</h3>
+        
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
+                    Introduction
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#structure")" Match="NavLinkMatch.All">
+                    Structure
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#use-cases")" Match="NavLinkMatch.All">
+                    Use Cases
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#advantages")" Match="NavLinkMatch.All">
+                    Advantages
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#disadvantages")" Match="NavLinkMatch.All">
+                    Disadvantages
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#related-patterns")" Match="NavLinkMatch.All">
+                    Related Patterns
+                </NavLink>
+            </li>
+            <li>
+                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
+                    Summary
+                </NavLink>
+            </li>
+        </ol>
+
+        <h3 id="introduction" class="[ font-semibold text-lg ]">Introduction</h3>
+        
+        <p>
+            In this article, we'll explore the <ContentHighlight>Observer</ContentHighlight> pattern, a <ContentHighlight>behavioral design pattern</ContentHighlight> 
+            used to create a <ContentHighlight>one-to-many dependency</ContentHighlight> between objects so that when one object <ContentHighlight>changes state</ContentHighlight>, 
+            all its dependents are notified and updated automatically. This pattern is also known as the <ContentHighlight>Publish-Subscribe</ContentHighlight> or 
+            <ContentHighlight>Pub/Sub pattern</ContentHighlight>. We'll start by explaining the pattern using a practical example. We'll implement a simplified 
+            order management system where different parts of an order need to stay in sync. Then, we'll delve into the pattern's structure, use cases, 
+            consequences, and related patterns. Let's get started!
+        </p>
+
+        <p>
+            The Observer pattern, as described in the <ContentHighlight>Gang of Four</ContentHighlight> design patterns book, aims to define a dependency between 
+            objects such that when one object changes, all its dependents are notified and updated automatically. This pattern is commonly used in applications 
+            where data changes need to propagate throughout the system <ContentHighlight>without tightly coupling</ContentHighlight> components.
+        </p>
+
+        <p>
+            Example Scenario: <ContentHighlight>Order</ContentHighlight> and <ContentHighlight>OrderItem</ContentHighlight> in an Order Management System
+        </p>
+
+        <p>
+            Let's consider a scenario where we manage orders and their associated items in an order management system. When an OrderItem (like the quantity or 
+            price of an item) is updated, the Order needs to recalculate its total to reflect these changes. This setup mirrors the Observer pattern:
+        </p>
+
+        <ul class="[ list-disc ] [ ml-4 ]">
+            <li>
+                <ContentHighlight>OrderItem:</ContentHighlight> Represents the individual items in an order, with properties such as quantity and unit price.
+            </li>
+            <li>
+                <ContentHighlight>Order:</ContentHighlight> Represents the overall order, which needs to keep track of total cost and other details based on its items.
+            </li>
+        </ul>
+
+        <p>
+            Rather than the Order directly querying each OrderItem for changes, we can use the Observer pattern to notify the Order whenever an OrderItem is 
+            updated. This way, the system remains flexible and easy to extend.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="structure" class="[ font-semibold text-lg ]">Structure</h3>
+        
+        <p>
+            The Observer pattern involves several key components:
+        </p>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>
+                <ContentHighlight>Subject:</ContentHighlight> The object that holds the state and notifies observers of any state changes. In our example, the OrderItem acts as 
+                the subject.
+            </li>
+            <li>
+                <ContentHighlight>Observer:</ContentHighlight> An interface or abstract class defining the method to be called when the subject's state changes. Here, Order is our observer 
+                interface.
+            </li>
+            <li>
+                <ContentHighlight>Concrete Subject:</ContentHighlight> The specific object holding the state of interest. For this example, it's the OrderItem class.
+            </li>
+            <li>
+                <ContentHighlight>Concrete Observer:</ContentHighlight> The specific implementation of the observer interface. In our case, each Order implements an observer to track its 
+                changes.
+            </li>
+        </ol>
+
+        <p>
+            Here's how we can implement the Observer pattern in our order management system:
+        </p>
+
+        <GithubGistSnippet Title="Publisher Code Sample - Observer Pattern" UserId="fingers10" FileName="5c2b0969f3fdba6f4ae08d2256241354"></GithubGistSnippet>
+
+        <p>
+            In the above code we are adding Observer (Order) using <ContentHighlight>AddObserver</ContentHighlight> and removing Observer (Order) using 
+            <ContentHighlight>RemoveObserver</ContentHighlight>. <ContentHighlight>NotifyOrderItemProcessed</ContentHighlight> notifies all subscribed observers 
+            (order) by calling their <ContentHighlight>ReceiveOrderItemProcessedNotification</ContentHighlight> method. OrderItem implements the above 
+            <ContentHighlight>abstract class</ContentHighlight> and calls NotifyOrderItemProcessed method whenever there is a change in OrderItem.
+        </p>
+
+        <GithubGistSnippet Title="Listener Code Sample - Observer Pattern" UserId="fingers10" FileName="75847c1374771f5289b46d27fbd39e6d"></GithubGistSnippet>
+
+        <p>
+            In the above code <ContentHighlight>OrderViewModel</ContentHighlight> <ContentHighlight>listens</ContentHighlight> for changes in 
+            <ContentHighlight>OrderItemViewModel</ContentHighlight> instances and recalculates the total amount using <ContentHighlight>CalculateTotalAmount</ContentHighlight> 
+            whenever any item is updated, ensuring the total is always accurate.
+        </p>
+
+        <DemoSnippet Title="Observer Pattern Demo">
+            <p>
+                Let's try <ContentHighlight>Observer</ContentHighlight> Demo, Click on the <ContentHighlight>Add Order Item</ContentHighlight> and 
+                <ContentHighlight>Remove Order Item</ContentHighlight> and <ContentHighlight>change Quantity and Price</ContentHighlight> 
+                to see the observer pattern in action. 
+                The results will be displayed at the bottom of table.
+            </p>
+            <GithubGistSnippet Title="Observer Pattern Demo" UserId="fingers10" FileName="f0888606f84143204529efa30270f52e"></GithubGistSnippet>
+            <ObserverDemo></ObserverDemo>
+        </DemoSnippet>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="use-cases" class="[ font-semibold text-lg ]">Use Cases</h3>
+
+        <p>
+            The Observer pattern is beneficial in several scenarios:
+        </p>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li>
+                <ContentHighlight>Dynamic Relationships:</ContentHighlight> When the number of dependents (observers) that need to be updated can change at runtime, like dynamically adding or 
+                removing items from an order.
+            </li>
+            <li>
+                <ContentHighlight>Decoupling Components:</ContentHighlight> To avoid tight coupling between components, like separating order calculation logic from item management.
+            </li>
+            <li>
+                <ContentHighlight>Event Handling Systems:</ContentHighlight> In scenarios like GUI frameworks, where user interactions need to notify various components without tightly binding 
+                them together.
+            </li>
+        </ol>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="advantages" class="[ font-semibold text-lg ]">Advantages</h3>
+
+        <p>
+            <ContentHighlight>Loose Coupling:</ContentHighlight> Subjects and observers remain loosely coupled, which allows for greater flexibility and easier maintenance.
+        </p>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="disadvantages" class="[ font-semibold text-lg ]">Disadvantages</h3>
+
+        <ul class="[ list-disc ] [ ml-4 ]">
+            <li>
+                <ContentHighlight>Potential Performance Impact:</ContentHighlight> If not managed carefully, especially with a large number of observers, the notification process might lead to 
+                performance issues.
+            </li>
+            <li>
+                <ContentHighlight>Change Cascades:</ContentHighlight> Unintended cascades of changes can occur if observers can change the state of subjects in response to notifications.
+            </li>
+        </ul>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="related-patterns" class="[ font-semibold text-lg ]">Related Patterns</h3>
+
+        <p>
+            The Observer pattern is closely related to several other design patterns:
+        </p>
+
+        <ul class="[ list-disc ] [ ml-4 ]">
+            <li>
+                <ContentHighlight>Mediator:</ContentHighlight> Centralizes complex communication and control logic between objects, effectively reducing dependencies.
+            </li>
+            <li>
+                <ContentHighlight>Command:</ContentHighlight> Encapsulates a request as an object, thereby allowing for parameterization and queuing of requests.
+            </li>
+            <li>
+                <ContentHighlight>Chain of Responsibility:</ContentHighlight> Allows a request to pass along a chain of potential handlers until it is processed.
+            </li>
+        </ul>
+
+        <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+
+        <h3 id="summary" class="[ font-semibold text-lg ]">Summary</h3>
+
+        <p>
+            In this module, we explored the <ContentHighlight>Observer</ContentHighlight> pattern through the lens of an order management system. We saw how 
+            this pattern allows for <ContentHighlight>automatic updates</ContentHighlight> and <ContentHighlight>notifications</ContentHighlight> across related 
+            components, promoting <ContentHighlight>loose coupling</ContentHighlight> and <ContentHighlight>flexibility</ContentHighlight>. We also covered use 
+            cases, consequences, and related patterns to provide a comprehensive understanding of its applications.
+        </p>
+    </ContentBody>
+</Content>
