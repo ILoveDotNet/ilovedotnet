@@ -53,6 +53,7 @@ public class Achievements
             new() { Date = new DateOnly(2024, 5, 31), Impressions = 86300 },
             new() { Date = new DateOnly(2024, 6, 30), Impressions = 82400 },
             new() { Date = new DateOnly(2024, 7, 31), Impressions = 83000 },
+            new() { Date = new DateOnly(2024, 8, 31), Impressions = 79800 },
         ];
     }    
 }
