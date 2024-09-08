@@ -2,7 +2,7 @@ namespace SharedModels;
 
 public class DesignPatternLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(8);
+    public readonly List<ContentMetaData> FullContents = new(9);
 
     public DesignPatternLearningPath()
     {
@@ -143,6 +143,23 @@ public class DesignPatternLearningPath
                 CreatedOn = new DateTime(2024, 9, 1, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2024, 9, 1, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Behavioral", "Observer"]
+            },
+            new ContentMetaData
+            {
+                Order = 9,
+                Title = "Creational Design Pattern - Factory",
+                Description = "In this post I will teach you Creational Factory Design Pattern in .NET. All with live working demo.",
+                Author = "Abdul Rahman",
+                Slug = "creational-design-pattern-factory",
+                PosterUrl = "image/blogs/design-pattern/creational-design-pattern-factory.webp",
+                ThumbnailUrl = "image/blogs/design-pattern/creational-design-pattern-factory.webp",
+                ContentUrl = "blogs/creational-design-pattern-factory",
+                IconUrl = "image/icons/design-pattern.webp",
+                Channel = "Design-Pattern",
+                Type = "blogs",
+                CreatedOn = new DateTime(2024, 9, 8, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2024, 9, 8, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Creational", "Factory"]
             },
         ];
     }
