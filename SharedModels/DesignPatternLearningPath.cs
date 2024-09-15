@@ -2,7 +2,7 @@ namespace SharedModels;
 
 public class DesignPatternLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(9);
+    public readonly List<ContentMetaData> FullContents = new(10);
 
     public DesignPatternLearningPath()
     {
@@ -160,6 +160,23 @@ public class DesignPatternLearningPath
                 CreatedOn = new DateTime(2024, 9, 8, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2024, 9, 8, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Creational", "Factory"]
+            },
+            new ContentMetaData
+            {
+                Order = 10,
+                Title = "Behavioral Design Pattern - State",
+                Description = "In this post I will teach you Behavioral State Design Pattern in .NET. All with live working demo.",
+                Author = "Abdul Rahman",
+                Slug = "behavioral-design-pattern-state",
+                PosterUrl = "image/blogs/design-pattern/behavioral-design-pattern-state.webp",
+                ThumbnailUrl = "image/blogs/design-pattern/behavioral-design-pattern-state.webp",
+                ContentUrl = "blogs/behavioral-design-pattern-state",
+                IconUrl = "image/icons/design-pattern.webp",
+                Channel = "Design-Pattern",
+                Type = "blogs",
+                CreatedOn = new DateTime(2024, 9, 15, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2024, 9, 15, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Behavioral", "State"]
             },
         ];
     }

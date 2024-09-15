@@ -1,0 +1,47 @@
+<button type="button"
+    class="[ bg-cyan-500 ] [ text-white ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ]"
+    @onclick="HandleDeposit">
+    Deposit
+</button>
+
+<button type="button"
+    class="[ bg-fuchsia-500 ] [ text-white ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ]"
+    @onclick="HandleWithdraw">
+    Withdraw
+</button>
+
+<table class="[ table-fixed border-collapse ] [ bg-white ] [ border-2 ] [ dark:bg-black dark:border-slate-500 ]">
+    <thead>
+        <tr class="[ bg-gray-100 ] [ dark:bg-slate-500 ]">
+            <th class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">State</th>
+            <th class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Balance</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var accountState in _accountStates)
+        {
+            <tr class="@(accountState.Item2 >= 0 ? "[ bg-green-100 ] [ dark:bg-green-600 ]" : "[ bg-red-100 ] [ dark:bg-red-600 ]")">
+                <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">@accountState.Item1</td>
+                <td class="[ border-2 ] [ dark:border-slate-700 ] [ p-2 ]">@accountState.Item2</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code
+{
+    private List<(string,decimal)> _accountStates = new();
+    private BankAccount _account = new();
+
+    private void HandleDeposit()
+    {
+        _account.Deposit(100);
+        _accountStates.Add((_account.State.ToString()!, _account.Balance));
+    }
+
+    private void HandleWithdraw()
+    {
+        _account.Withdraw(100);
+        _accountStates.Add((_account.State.ToString()!, _account.Balance));
+    }
+}
