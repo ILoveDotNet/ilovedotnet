@@ -1,4 +1,4 @@
-namespace SharedModels;
+﻿namespace SharedModels;
 
 public class TDDLearningPath
 {
@@ -38,10 +38,10 @@ public class TDDLearningPath
                 IconUrl = "image/icons/tdd.webp",
                 Channel = "TDD",
                 Type = "blogs",
-                CreatedOn = new DateTime(2022, 4, 3, 22, 30, 0, DateTimeKind.Utc),
-                ModifiedOn = new DateTime(2022, 4, 3, 22, 30, 0, DateTimeKind.Utc),
+                CreatedOn = new DateTime(2024, 9, 29, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2024, 9, 29, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Test Driven Development"]
-            },
+            }
         ];
     }
 }
