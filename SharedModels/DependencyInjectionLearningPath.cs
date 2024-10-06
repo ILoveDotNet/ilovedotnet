@@ -22,7 +22,7 @@ public class DependencyInjectionLearningPath
                 Channel = "Dependency-Injection",
                 Type = "blogs",
                 CreatedOn = new DateTime(2022, 7, 24, 22, 30, 0, DateTimeKind.Utc),
-                ModifiedOn = new DateTime(2022, 7, 24, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2024, 10, 6, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["DI", "Dependency Inversion", "IoC", "Inversion of Control"]
             },
             new ContentMetaData
@@ -39,7 +39,7 @@ public class DependencyInjectionLearningPath
                 Channel = "Dependency-Injection",
                 Type = "blogs",
                 CreatedOn = new DateTime(2022, 7, 31, 22, 30, 0, DateTimeKind.Utc),
-                ModifiedOn = new DateTime(2023, 1, 15, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2024, 10, 13, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Lifetimes", "Transient", "Singleton", "Scoped", "Dependency Captivity", "Captive Dependencies"]
             },
         ];
