@@ -22,7 +22,7 @@ public class MiddlewareLearningPath
                 Channel = "Middleware",
                 Type = "blogs",
                 CreatedOn = new DateTime(2022, 6, 19, 22, 30, 0, DateTimeKind.Utc),
-                ModifiedOn = new DateTime(2022, 6, 19, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2024, 10, 20, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["ASP.NET", "HTTP Request Pipeline"]
             },
             new ContentMetaData
