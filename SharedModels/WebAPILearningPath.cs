@@ -2,7 +2,7 @@
 
 public class WebAPILearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(18);
+    public readonly List<ContentMetaData> FullContents = new(19);
 
     public WebAPILearningPath()
     {
@@ -313,6 +313,23 @@ public class WebAPILearningPath
                 CreatedOn = new DateTime(2024, 1, 14, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2024, 1, 14, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Caching", "Decorator"]
+            },
+            new ContentMetaData
+            {
+                Order = 19,
+                Title = "Implementing Health Checks in ASP.NET WEB API",
+                Description = "In this post I will teach how to implement health checks in ASP.NET Web API. All with live working demo.",
+                Author = "Abdul Rahman",
+                Slug = "implementing-health-checks-in-asp-net-webapi",
+                PosterUrl = "image/blogs/webapi/implementing-health-checks-in-asp-net-webapi.webp",
+                ThumbnailUrl = "image/blogs/webapi/implementing-health-checks-in-asp-net-webapi.webp",
+                ContentUrl = "blogs/implementing-health-checks-in-asp-net-webapi",
+                IconUrl = "image/icons/webapi.webp",
+                Channel = "WebAPI",
+                Type = "blogs",
+                CreatedOn = new DateTime(2024, 11, 3, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2024, 11, 3, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Health Check", "Alive"]
             },
         ];
     }
