@@ -107,7 +107,7 @@ public class HTTPClientLearningPath
                 Channel = "HTTP-Client",
                 Type = "blogs",
                 CreatedOn = new DateTime(2023, 9, 24, 22, 30, 0, DateTimeKind.Utc),
-                ModifiedOn = new DateTime(2023, 9, 24, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2024, 11, 10, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Unit Testing"]
             },
         ];
