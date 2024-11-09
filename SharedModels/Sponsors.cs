@@ -12,7 +12,9 @@ public class Sponsors
             {
                 Name = "Dometrain",
                 LogoUrl = "image/sponsors/dometrain.jpg",
-                RedirectUrl = "https://dometrain.com?ref=ilovedotnet&promotion=website"
+                RedirectUrl = "https://dometrain.com?ref=ilovedotnet&promotion=website",
+                Start = new DateTime(2024, 11, 10, 0, 0, 0, DateTimeKind.Utc),
+                End = new DateTime(2025, 11, 10, 0, 0, 0, DateTimeKind.Utc)
             }
         ];
     }
