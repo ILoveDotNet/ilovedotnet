@@ -5,9 +5,11 @@ public class TableOfContents
     public const int PageSize = 6;
     private readonly List<ContentMetaData> FullContents = new(118);
     private readonly List<AuthorMetaData> FullAuthors = new(1);
+    private readonly List<SponsorMetaData> FullSponsors = new(1);
 
     public IReadOnlyList<ContentMetaData> AllContents => FullContents;
     public IReadOnlyList<AuthorMetaData> Authors => FullAuthors;
+    public IReadOnlyList<SponsorMetaData> Sponsors => FullSponsors;
 
     public IReadOnlyList<ContentMetaData> Contents 
             => FullContents
@@ -67,5 +69,6 @@ public class TableOfContents
         FullContents.AddRange(new TDDLearningPath().FullContents);
         FullContents.AddRange(new WebAPILearningPath().FullContents);
         FullAuthors.AddRange(new Authors().FullAuthors);
+        FullSponsors.AddRange(new Sponsors().FullSponsors);
     }
 }
