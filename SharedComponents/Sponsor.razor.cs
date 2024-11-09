@@ -5,5 +5,5 @@ namespace SharedComponents;
 
 public class SponsorBase : ComponentBase
 {
-    [Parameter, EditorRequired] public SponsorMetaData Data { get; set; } = default!;
+    [Parameter, EditorRequired] public SponsorMetaData Sponsor { get; set; } = default!;
 }
