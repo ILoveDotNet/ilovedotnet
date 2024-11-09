@@ -3,7 +3,7 @@ using SharedModels;
 
 namespace SharedComponents;
 
-public class SponsorBase : ComponentBase
+public class SponsorshipBase : ComponentBase
 {
     [Parameter, EditorRequired] public SponsorMetaData Sponsor { get; set; } = default!;
 }
