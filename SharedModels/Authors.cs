@@ -26,7 +26,8 @@ public class Authors
                     new(SocialLink.Blog, new Uri("https://ilovedotnet.org")),
                     new(SocialLink.YouTube, new Uri("https://www.youtube.com/@ilovedotnet")),
                     new(SocialLink.Instagram, new Uri("https://www.instagram.com/abdulrahman.smsi")),
-                    new(SocialLink.BuyMeACoffee, new Uri("https://www.buymeacoffee.com/thebhai"))
+                    new(SocialLink.Mastodon, new Uri("https://mastodon.social/@thebhai")),
+                    new(SocialLink.BuyMeACoffee, new Uri("https://www.buymeacoffee.com/thebhai")),
                 ]
             },
             new AuthorMetaData

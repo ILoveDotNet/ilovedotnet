@@ -11,5 +11,6 @@ public enum SocialLink
     YouTube,
     Instagram,
     WebSite,
-    BuyMeACoffee
+    BuyMeACoffee,
+    Mastodon
 }
