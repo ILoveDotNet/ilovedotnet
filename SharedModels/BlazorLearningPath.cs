@@ -1,4 +1,4 @@
-﻿namespace SharedModels;
+namespace SharedModels;
 
 public class BlazorLearningPath
 {
@@ -430,7 +430,7 @@ public class BlazorLearningPath
                 Channel = "Blazor",
                 Type = "blogs",
                 CreatedOn = new DateTime(2023, 10, 8, 22, 30, 0, DateTimeKind.Utc),
-                ModifiedOn = new DateTime(2023, 10, 8, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2024, 11, 17, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Dynamic Image Load", "Performance"]
             },
             new ContentMetaData
