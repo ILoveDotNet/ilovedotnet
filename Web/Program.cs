@@ -40,11 +40,11 @@ if (!builder.RootComponents.Any())
     builder.RootComponents.Add<HeadOutlet>("head::after");
 }
 
-ConfigureServices(builder.Services, builder.HostEnvironment.BaseAddress, builder.Configuration, builder.HostEnvironment.Environment);
+ConfigureServices(builder.Services, builder.HostEnvironment.BaseAddress, builder.Configuration);
 
 await builder.Build().RunAsync();
 
-static void ConfigureServices(IServiceCollection services, string baseAddress, IConfiguration configuration, string environment)
+static void ConfigureServices(IServiceCollection services, string baseAddress, IConfiguration configuration)
 {
     services.AddTransient<CustomHeaderMessageHandlerDemo>(sp => new(new HttpClientHandler()));
 
@@ -89,27 +89,24 @@ static void ConfigureServices(IServiceCollection services, string baseAddress, I
 
     services.AddScoped(serviceProvider => new SlugService(serviceProvider.GetRequiredService<NavigationManager>()));
 
-    if (!environment.Equals("Prerendering", StringComparison.OrdinalIgnoreCase))
+    services.AddOidcAuthentication(options =>
     {
-        services.AddOidcAuthentication(options =>
-        {
-            options.ProviderOptions.Authority = "https://demo.duendesoftware.com";
-            options.ProviderOptions.ClientId = "interactive.public.short";
-            options.ProviderOptions.ResponseType = "code";
-            options.ProviderOptions.DefaultScopes.Add("openid");
-            options.ProviderOptions.DefaultScopes.Add("profile");
-            options.ProviderOptions.DefaultScopes.Add("email");
-            options.ProviderOptions.DefaultScopes.Add("offline_access");
-            options.ProviderOptions.DefaultScopes.Add("api");
-            options.ProviderOptions.RedirectUri = $"{baseAddress}authentication/login-callback";
-            options.ProviderOptions.PostLogoutRedirectUri = $"{baseAddress}authentication/logout-callback";
+        options.ProviderOptions.Authority = "https://demo.duendesoftware.com";
+        options.ProviderOptions.ClientId = "interactive.public.short";
+        options.ProviderOptions.ResponseType = "code";
+        options.ProviderOptions.DefaultScopes.Add("openid");
+        options.ProviderOptions.DefaultScopes.Add("profile");
+        options.ProviderOptions.DefaultScopes.Add("email");
+        options.ProviderOptions.DefaultScopes.Add("offline_access");
+        options.ProviderOptions.DefaultScopes.Add("api");
+        options.ProviderOptions.RedirectUri = $"{baseAddress}authentication/login-callback";
+        options.ProviderOptions.PostLogoutRedirectUri = $"{baseAddress}authentication/logout-callback";
 
-            options.UserOptions.RoleClaim = "role";
-            options.UserOptions.NameClaim = "name";
-        });
+        options.UserOptions.RoleClaim = "role";
+        options.UserOptions.NameClaim = "name";
+    });
 
-        services.AddAuthorizationCore();
+    services.AddAuthorizationCore();
 
-        services.AddCascadingAuthenticationState();
-    }
+    services.AddCascadingAuthenticationState();
 }
