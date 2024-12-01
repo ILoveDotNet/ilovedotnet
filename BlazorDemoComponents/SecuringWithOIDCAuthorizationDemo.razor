@@ -1,0 +1,31 @@
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication;
+@using System.Security.Claims
+
+<AuthorizeView>
+    <NotAuthorized>
+        <p>Please Login</p>
+    </NotAuthorized>
+    <Authorized>
+        @if (name?.Equals("Bob Smith", StringComparison.OrdinalIgnoreCase) ?? false)
+        {
+            <p>This will be visible only for Bob Smith</p>
+        }
+        else if (name?.Equals("Alice Smith", StringComparison.OrdinalIgnoreCase) ?? false)
+        {
+            <p>This will be visible only for Alice Smith</p>
+        }
+    </Authorized>
+</AuthorizeView>
+
+@code {
+    private string? name;
+    [CascadingParameter] Task<AuthenticationState> AuthenticationStateTask { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateTask;
+        var user = authState.User;
+        name = user.Identity?.Name;
+    }
+}    

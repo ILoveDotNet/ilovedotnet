@@ -2,7 +2,7 @@
 
 public class BlazorLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(29);
+    public readonly List<ContentMetaData> FullContents = new(30);
 
     public BlazorLearningPath()
     {
@@ -500,6 +500,23 @@ public class BlazorLearningPath
                 CreatedOn = new DateTime(2024, 8, 4, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2024, 8, 4, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["MAUI", "Hybrid", "Mobile", "Desktop", "TvOS", "WatchOS", "iOS", "Android", "Windows"]
+            },
+            new ContentMetaData
+            {
+                Order = 30,
+                Title = "Securing Blazor WASM with OAuth and OIDC using Identity Server",
+                Description = "In this article let's learn how to secure Blazor WASM app with OAuth and OpenID Connect using Identity Server. All with live working demo.",
+                Author = "Abdul Rahman",
+                Slug = "securing-blazor-wasm-with-oauth-and-oidc-using-identity-server",
+                PosterUrl = "image/blogs/blazor/wasm/securing-blazor-wasm-with-oauth-and-oidc-using-identity-server.webp",
+                ThumbnailUrl = "image/blogs/blazor/wasm/securing-blazor-wasm-with-oauth-and-oidc-using-identity-server.webp",
+                ContentUrl = "blogs/securing-blazor-wasm-with-oauth-and-oidc-using-identity-server",
+                IconUrl = "image/icons/blazor.webp",
+                Channel = "Blazor",
+                Type = "blogs",
+                CreatedOn = new DateTime(2024, 12, 1, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2024, 12, 1, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["OAuth", "OIDC", "OpenID Connect", "IdentityServer"]
             },
         ];
     }
