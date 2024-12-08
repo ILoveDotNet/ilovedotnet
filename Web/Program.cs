@@ -46,13 +46,11 @@ await builder.Build().RunAsync();
 
 static void ConfigureServices(IServiceCollection services, IWebAssemblyHostEnvironment webHostEnv, IConfiguration configuration)
 {
-    var baseAddress = webHostEnv.BaseAddress;
-
     services.AddTransient<CustomHeaderMessageHandlerDemo>(sp => new(new HttpClientHandler()));
 
     services.AddScoped(sp =>
     {
-        var httpClient = new HttpClient(sp.GetRequiredService<CustomHeaderMessageHandlerDemo>()) { BaseAddress = new Uri(baseAddress) };
+        var httpClient = new HttpClient(sp.GetRequiredService<CustomHeaderMessageHandlerDemo>()) { BaseAddress = new Uri(webHostEnv.BaseAddress) };
 
         return httpClient;
     });
@@ -103,8 +101,8 @@ static void ConfigureServices(IServiceCollection services, IWebAssemblyHostEnvir
             options.ProviderOptions.DefaultScopes.Add("email");
             options.ProviderOptions.DefaultScopes.Add("offline_access");
             options.ProviderOptions.DefaultScopes.Add("api");
-            options.ProviderOptions.RedirectUri = $"{baseAddress}authentication/login-callback";
-            options.ProviderOptions.PostLogoutRedirectUri = $"{baseAddress}authentication/logout-callback";
+            options.ProviderOptions.RedirectUri = $"{webHostEnv.BaseAddress}authentication/login-callback";
+            options.ProviderOptions.PostLogoutRedirectUri = $"{webHostEnv.BaseAddress}authentication/logout-callback";
 
             options.UserOptions.RoleClaim = "role";
             options.UserOptions.NameClaim = "name";
