@@ -39,7 +39,7 @@ public class HTTPClientLearningPath
                 Channel = "HTTP-Client",
                 Type = "blogs",
                 CreatedOn = new DateTime(2023, 8, 27, 22, 30, 0, DateTimeKind.Utc),
-                ModifiedOn = new DateTime(2023, 8, 27, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2024, 12, 8, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["CancellationTokenSource", "CancellationToken", "Cancellation"]
             },
             new ContentMetaData
