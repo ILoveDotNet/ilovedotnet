@@ -10,6 +10,11 @@ internal class MAUIHostEnvironment : IHostEnvironment
         return string.Equals(Environment, "Development", StringComparison.OrdinalIgnoreCase);
     }
 
+    public bool IsPrerendering()
+    {
+        return string.Equals(Environment, "Prerendering", StringComparison.OrdinalIgnoreCase);
+    }
+
     public bool IsProduction()
     {
         return string.Equals(Environment, "Production", StringComparison.OrdinalIgnoreCase);

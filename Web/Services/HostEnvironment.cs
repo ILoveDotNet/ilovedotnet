@@ -10,6 +10,11 @@ internal class WebHostEnvironment(IWebAssemblyHostEnvironment webAssemblyHostEnv
         return webAssemblyHostEnvironment.IsDevelopment();
     }
 
+    public bool IsPrerendering()
+    {
+        return webAssemblyHostEnvironment.IsEnvironment("Prerendering");
+    }
+
     public bool IsProduction()
     {
         return webAssemblyHostEnvironment.IsProduction();
