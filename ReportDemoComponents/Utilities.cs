@@ -7,7 +7,7 @@ public static class Utilities
 {
     public static DataTable ToDataTable<T>(this IEnumerable<T> data, string name)
     {
-        PropertyDescriptorCollection properties = TypeDescriptor.GetProperties(typeof(T)!);
+        PropertyDescriptorCollection properties = TypeDescriptor.GetProperties(typeof(T));
         DataTable table = new(name);
 
         foreach (PropertyDescriptor prop in properties)
