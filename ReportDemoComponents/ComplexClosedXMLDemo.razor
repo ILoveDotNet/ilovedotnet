@@ -1,0 +1,100 @@
+@using ClosedXML.Excel
+@using ClosedXML.Report
+@using Microsoft.JSInterop
+
+@implements IAsyncDisposable
+
+<button class="[ bg-fuchsia-500 ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ]" @onclick="SimpleExcel">
+    <svg  xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icons-tabler-outline icon-tabler-file-type-xls ] [ text-white ]"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round">
+        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+        <path d="M14 3v4a1 1 0 0 0 1 1h4" />
+        <path d="M5 12v-7a2 2 0 0 1 2 -2h7l5 5v4" />
+        <path d="M4 15l4 6" />
+        <path d="M4 21l4 -6" />
+        <path d="M17 20.25c0 .414 .336 .75 .75 .75h1.25a1 1 0 0 0 1 -1v-1a1 1 0 0 0 -1 -1h-1a1 1 0 0 1 -1 -1v-1a1 1 0 0 1 1 -1h1.25a.75 .75 0 0 1 .75 .75" />
+        <path d="M11 15v6h3" />
+    </svg>
+    <span class="[ text-white ]">Download Complex Excel</span>
+</button>
+
+@* <embed src="@($"data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,{base64String}")" alt="I Love DotNet Summary Receipt"  /> *@
+
+@code 
+{
+    private IJSObjectReference? module;
+    private string? base64String;
+
+    [Inject] private TableOfContents tableOfContents { get; set; } = default!;
+    [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
+
+    protected override void OnInitialized()
+    {
+        var data = tableOfContents.AllContents;
+
+        var complexData = new
+        {
+            PlatformName = "I Love .NET",
+            ReportName = "Content Report",
+            CreatedBy = "Abdul Rahman",
+            GeneratedOn = DateTime.Now,
+            Data = data.GroupBy(content => content.Author)
+                       .Select(x => new
+                       {
+                           AuthorName = x.Key,
+                           TotalArticles = x.Count(),
+                           AuthorChannels = x.GroupBy(y => y.Type)
+                                              .Select(z => new
+                                              {
+                                                  ChannelName = z.Key,
+                                                  TotalArticles = z.Count(),
+                                                  ArticleDetails = z.Select(c => new
+                                                  {
+                                                      ArticleName = c.Title,
+                                                      CreatedOn = c.CreatedOn,
+                                                      Url = c.ContentUrl
+                                                  }).ToList()
+                                              })
+                                              .ToList()
+                       }).ToList()
+        };
+
+        // var template = new XLTemplate(@"ILoveDotNetContentTemplate.xlsx");
+
+        // template.AddVariable(complexData);
+        // template.Generate();
+        // template.Workbook.Worksheets
+        //     .Worksheet(template.Workbook.Worksheets.First().Name)
+        //     .ColumnsUsed()
+        //     .AdjustToContents();
+
+        // using var stream = new MemoryStream();
+        // template.SaveAs(stream);
+
+        // var bytes = stream.ToArray();
+        // base64String = Convert.ToBase64String(bytes);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./excel-download.js");
+        }
+    }
+
+    private async Task SimpleExcel()
+    {
+        if (module is not null)
+        {
+            await module.InvokeVoidAsync("saveAsFile", "TableOfContents.xlsx", base64String);
+        }
+    }
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        if (module is not null)
+        {
+            await module.DisposeAsync();
+        }
+    }
+}
