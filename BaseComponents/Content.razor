@@ -10,6 +10,33 @@
         <ContentHeader FileName=@FileName>
         </ContentHeader>
         <section class="[ dark:text-white ] [ space-y-2 ] [ prose dark:prose-invert ] [ max-w-none ]">
+            @if (UseNewTableOfContentsMenu)
+            {
+                <h3>Table of Contents</h3>
+
+                <ol>
+                    <li>
+                        <NavLink href="@($"blogs/{slug}#what")" Match="NavLinkMatch.All">
+                            What we gonna do?
+                        </NavLink>
+                    </li>
+                    <li>
+                        <NavLink href="@($"blogs/{slug}#why")" Match="NavLinkMatch.All">
+                            Why we gonna do?
+                        </NavLink>
+                    </li>
+                    <li>
+                        <NavLink href="@($"blogs/{slug}#how")" Match="NavLinkMatch.All">
+                            How we gonna do?
+                        </NavLink>
+                    </li>
+                    <li>
+                        <NavLink href="@($"blogs/{slug}#summary")" Match="NavLinkMatch.All">
+                            Summary
+                        </NavLink>
+                    </li>
+                </ol>
+            }
             @ContentBody
             <WhatsAppChannelAlert />
             <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
@@ -30,12 +57,14 @@
 
 @code {
     private ContentMetaData? contentMetaData = default!;
+    private string? slug = default!;
     [Parameter, EditorRequired] public RenderFragment ContentBody { get; set; } = default!;
     [Parameter, EditorRequired] public string FileName { get; set; } = default!;
+    [Parameter] public bool UseNewTableOfContentsMenu { get; set; }
 
     override protected void OnInitialized()
     {
-        var slug = slugService.GetSlug();
+        slug = slugService.GetSlug();
         contentMetaData = tableOfContents.GetContentBySlug(slug);
     }
 }
