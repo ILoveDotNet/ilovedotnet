@@ -3,115 +3,101 @@
 
 <Content FileName=@nameof(UnitTestingHttpClient) UseNewTableOfContentsMenu=true>
     <ContentBody>
-        <h3 id="what">What we gonna do?</h3>
+        <What>
+            <p>
+                In this article, let's learn about how to <ContentHighlight>Unit Test HTTPClient</ContentHighlight> in .NET.
+            </p>
 
-        <p>
-            In this article, let's learn about how to <ContentHighlight>Unit Test HTTPClient</ContentHighlight> in .NET.
-        </p>
+            <p>
+                <strong>Note:</strong> If you have not done so already, I recommend you read the article on
+                <NavLink href="blogs/extending-http-client-with-custom-http-message-handlers-in-dotnet" Match="NavLinkMatch.All">Extending HTTPClient with Custom Http Message Handlers in dotnet</NavLink>.
+            </p>
 
-        <p>
-            <strong>Note:</strong> If you have not done so already, I recommend you read the article on
-            <NavLink href="blogs/extending-http-client-with-custom-http-message-handlers-in-dotnet" Match="NavLinkMatch.All">Extending HTTPClient with Custom Http Message Handlers in dotnet</NavLink>.
-        </p>
+            <p>
+                There are multiple ways to Unit Test HTTP Client in dotnet. Most of the examples you will find on the internet will be using 
+                <ContentHighlight>Moq</ContentHighlight> or <ContentHighlight>NSubstitute</ContentHighlight>. But I prefer to write 
+                <ContentHighlight>Custom Http Message Handlers</ContentHighlight> to Unit Test HTTP Client in dotnet.
+            </p>
+        </What>
 
-        <p>
-            There are multiple ways to Unit Test HTTP Client in dotnet. Most of the examples you will find on the internet will be using 
-            <ContentHighlight>Moq</ContentHighlight> or <ContentHighlight>NSubstitute</ContentHighlight>. But I prefer to write 
-            <ContentHighlight>Custom Http Message Handlers</ContentHighlight> to Unit Test HTTP Client in dotnet.
-        </p>
+        <Why>
+            <p>
+                Integrating with a web API is a common task required by many applications. <ContentHighlight>Http Client</ContentHighlight> is a class that 
+                simplifies the consumption of web APIs. It provides a <ContentHighlight>base class</ContentHighlight> for <ContentHighlight>sending HTTP requests 
+                and receiving HTTP responses</ContentHighlight> from a resource identified by a <ContentHighlight>URI</ContentHighlight>. The 
+                <ContentHighlight>HttpClient class</ContentHighlight> is typically used to send and receive requests from a web service by using the 
+                <ContentHighlight>HTTP protocol</ContentHighlight>. 
+            </p>
 
-        
+            <p>
+                Most of the time I see developers including me say we can test HTTP Client or calls in Integration Test but 
+                <ContentHighlight>Unit testing</ContentHighlight> allows developers to <ContentHighlight>verify the behavior and logic of individual units of code 
+                in isolation</ContentHighlight> quickly. By writing tests, you can ensure that your code functions correctly and remains reliable even after making 
+                changes or adding new features. Unit tests are faster and help catch bugs early in the development process and provide confidence in the correctness 
+                of the code.
+            </p>
 
-        <h3 id="why">Why we gonna do?</h3>
+            <p>
+                <strong>Note:</strong> If you have not done so already, I recommend you read the article on
+                <NavLink href="blogs/implementing-tdd-in-csharp-dotnet" Match="NavLinkMatch.All">Implementing TDD in C# .Net</NavLink>.
+            </p>
+        </Why>
 
-        <p>
-            Integrating with a web API is a common task required by many applications. <ContentHighlight>Http Client</ContentHighlight> is a class that 
-            simplifies the consumption of web APIs. It provides a <ContentHighlight>base class</ContentHighlight> for <ContentHighlight>sending HTTP requests 
-            and receiving HTTP responses</ContentHighlight> from a resource identified by a <ContentHighlight>URI</ContentHighlight>. The 
-            <ContentHighlight>HttpClient class</ContentHighlight> is typically used to send and receive requests from a web service by using the 
-            <ContentHighlight>HTTP protocol</ContentHighlight>. 
-        </p>
+        <How>
+            <p>
+                You're working on a part of your application that relies on <ContentHighlight>HttpClient</ContentHighlight> to make API calls. Testing this can 
+                become cumbersome, as you don't want to actually call the API. Because <ContentHighlight>it's not an integration test</ContentHighlight>. Moreover, 
+                constantly calling a service that's cloud hosted can cost you quite a bit of money. You just want to test one specific piece of functionality that 
+                happens to rely on data being returned from an HTTP call.
+            </p>
 
-        <p>
-            Most of the time I see developers including me say we can test HTTP Client or calls in Integration Test but 
-            <ContentHighlight>Unit testing</ContentHighlight> allows developers to <ContentHighlight>verify the behavior and logic of individual units of code 
-            in isolation</ContentHighlight> quickly. By writing tests, you can ensure that your code functions correctly and remains reliable even after making 
-            changes or adding new features. Unit tests are faster and help catch bugs early in the development process and provide confidence in the correctness 
-            of the code.
-        </p>
+            <p>
+                <ContentHighlight>Take error handling</ContentHighlight>, for example. You want to ensure that when the API responds with a dreaded 
+                <ContentHighlight>401 Unauthorized status code</ContentHighlight> that your application handles it gracefully. You don't want to actually call the 
+                API, though. You just want to ensure that your application handles the response correctly. This is where <ContentHighlight>Custom Http Message 
+                Handlers</ContentHighlight> come in handy. Well, we can write a custom handler to stop communication with the API and return the response required 
+                for our test. For our use case, we don't want to communicate with the API, but we do want to get back a 401 Unauthorized response.
+            </p>
 
-        <p>
-            <strong>Note:</strong> If you have not done so already, I recommend you read the article on
-            <NavLink href="blogs/implementing-tdd-in-csharp-dotnet" Match="NavLinkMatch.All">Implementing TDD in C# .Net</NavLink>.
-        </p>
+            <p>
+                The following code shown a simple implementation of a custom message handler that returns a 401 Unauthorized response. Notice that we are using 
+                <ContentHighlight>HttpMessageHandler</ContentHighlight> instead of <ContentHighlight>DelegatingHandler</ContentHighlight>. This is because we don't 
+                want to pass the request to the next handler in the pipeline. We want to return the response we want. So, we are using HttpMessageHandler to 
+                <ContentHighlight>short circuit</ContentHighlight> it.
+            </p>
 
-        
+            <GithubGistSnippet Title="Custom Message Handler to return 200 response" UserId="fingers10" FileName="d50d46b64af0dd0f5b31ea1292534296"></GithubGistSnippet>
 
-        <h3 id="how">How we gonna do?</h3>
-        
-        <p>
-            You're working on a part of your application that relies on <ContentHighlight>HttpClient</ContentHighlight> to make API calls. Testing this can 
-            become cumbersome, as you don't want to actually call the API. Because <ContentHighlight>it's not an integration test</ContentHighlight>. Moreover, 
-            constantly calling a service that's cloud hosted can cost you quite a bit of money. You just want to test one specific piece of functionality that 
-            happens to rely on data being returned from an HTTP call.
-        </p>
+            <p>
+                Now, we can use this custom message handler to unit test our http client. The following code shows a simple implementation of a unit test for 
+                http client. All we need to do is to <ContentHighlight>pass our custom message handler to the http client and make the http call</ContentHighlight>. 
+                The <ContentHighlight>http call</ContentHighlight> will be <ContentHighlight>intercepted</ContentHighlight> by our custom message handler and will 
+                return the response we want which is <ContentHighlight>200 Success Status Code</ContentHighlight> in our case. This will help you to assert your 
+                code against the response you want.
+            </p>
 
-        <p>
-            <ContentHighlight>Take error handling</ContentHighlight>, for example. You want to ensure that when the API responds with a dreaded 
-            <ContentHighlight>401 Unauthorized status code</ContentHighlight> that your application handles it gracefully. You don't want to actually call the 
-            API, though. You just want to ensure that your application handles the response correctly. This is where <ContentHighlight>Custom Http Message 
-            Handlers</ContentHighlight> come in handy. Well, we can write a custom handler to stop communication with the API and return the response required 
-            for our test. For our use case, we don't want to communicate with the API, but we do want to get back a 401 Unauthorized response.
-        </p>
+            <GithubGistSnippet Title="Unit Testing Http Client with Custom Message Handler" UserId="fingers10" FileName="1d1662f02bdbbfa7eab6e79d0817b1f1"></GithubGistSnippet>
 
-        <p>
-            The following code shown a simple implementation of a custom message handler that returns a 401 Unauthorized response. Notice that we are using 
-            <ContentHighlight>HttpMessageHandler</ContentHighlight> instead of <ContentHighlight>DelegatingHandler</ContentHighlight>. This is because we don't 
-            want to pass the request to the next handler in the pipeline. We want to return the response we want. So, we are using HttpMessageHandler to 
-            <ContentHighlight>short circuit</ContentHighlight> it.
-        </p>
+            <p>
+                Here is another similar example for <ContentHighlight>401 UnAuthorised Status Code</ContentHighlight>.
+            </p>
+            
+            <GithubGistSnippet Title="Custom Message Handler to return 401 response" UserId="fingers10" FileName="74bca8aa85b2ca15e1e7e82d8e1da041"></GithubGistSnippet>
 
-        <GithubGistSnippet Title="Custom Message Handler to return 200 response" UserId="fingers10" FileName="d50d46b64af0dd0f5b31ea1292534296"></GithubGistSnippet>
+            <GithubGistSnippet Title="Unit Testing Http Client with Custom Message Handler" UserId="fingers10" FileName="2eea4724f7617989f97e3f50123ac789"></GithubGistSnippet>
 
-        
+            <p>
+                The only drawback of this approach is that you need to write a custom message handler for each status code you want to test. I feel like we will also 
+                need to maintain these custom message handlers. But this is the best approach I found to unit test http client in dotnet when there is no option available 
+                to mock the http client.
+            </p>
+        </How>
 
-        <p>
-            Now, we can use this custom message handler to unit test our http client. The following code shows a simple implementation of a unit test for 
-            http client. All we need to do is to <ContentHighlight>pass our custom message handler to the http client and make the http call</ContentHighlight>. 
-            The <ContentHighlight>http call</ContentHighlight> will be <ContentHighlight>intercepted</ContentHighlight> by our custom message handler and will 
-            return the response we want which is <ContentHighlight>200 Success Status Code</ContentHighlight> in our case. This will help you to assert your 
-            code against the response you want.
-        </p>
-
-        <GithubGistSnippet Title="Unit Testing Http Client with Custom Message Handler" UserId="fingers10" FileName="1d1662f02bdbbfa7eab6e79d0817b1f1"></GithubGistSnippet>
-
-        
-
-        <p>
-            Here is another similar example for <ContentHighlight>401 UnAuthorised Status Code</ContentHighlight>.
-        </p>
-        
-        <GithubGistSnippet Title="Custom Message Handler to return 401 response" UserId="fingers10" FileName="74bca8aa85b2ca15e1e7e82d8e1da041"></GithubGistSnippet>
-
-        
-
-        <GithubGistSnippet Title="Unit Testing Http Client with Custom Message Handler" UserId="fingers10" FileName="2eea4724f7617989f97e3f50123ac789"></GithubGistSnippet>
-
-        
-
-        <p>
-            The only drawback of this approach is that you need to write a custom message handler for each status code you want to test. I feel like we will also 
-            need to maintain these custom message handlers. But this is the best approach I found to unit test http client in dotnet when there is no option available 
-            to mock the http client.
-        </p>
-
-        <h3 id="summary">Summary</h3>
-
-        <p>
+        <Summary>
             In this article, we learned about how to <ContentHighlight>Unit Test HTTP Client</ContentHighlight> in dotnet. We also learned about why we should 
             write unit tests and what is a http client. We also learned about how to write custom http message handlers to unit test http client in dotnet. 
             I hope you enjoyed reading this article. With this I'm concluding this HTTP Client series. Please share this with your network and help other dotnet 
             devs.
-        </p>
+        </Summary>
     </ContentBody>
 </Content>

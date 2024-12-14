@@ -3,165 +3,165 @@
 
 <Content FileName=@nameof(UnitTestingHostedServicesInASPNET) UseNewTableOfContentsMenu=true>
     <ContentBody>
-        <h3 id="what">What we gonna do?</h3>
+        <What>
+            <p>
+                In this article, let's learn about how to unit test <ContentHighlight>Hosted Services</ContentHighlight> in <ContentHighlight>WebAPI</ContentHighlight> in ASP.NET Core.
+            </p>
 
-        <p>
-            In this article, let's learn about how to unit test <ContentHighlight>Hosted Services</ContentHighlight> in <ContentHighlight>WebAPI</ContentHighlight> in ASP.NET Core.
-        </p>
+            <p>
+                In ASP.NET Core, <ContentHighlight>hosted services</ContentHighlight> plays a vital role in simplifying background jobs which needs to run periodically 
+                to perform operations. Most common use cases include:
+            </p>
 
-        <p>
-            In ASP.NET Core, <ContentHighlight>hosted services</ContentHighlight> plays a vital role in simplifying background jobs which needs to run periodically 
-            to perform operations. Most common use cases include:
-        </p>
+            <ul>
+                <li><ContentHighlight>Processing uploaded excel in background</ContentHighlight></li>
+                <li><ContentHighlight>Sending emails in background</ContentHighlight></li>
+                <li><ContentHighlight>Performing data migration</ContentHighlight></li>
+                <li><ContentHighlight>Syncing data between two data sources</ContentHighlight></li>
+                <li><ContentHighlight>Other long running operations</ContentHighlight>, etc</li>
+            </ul>
 
-        <ul>
-            <li><ContentHighlight>Processing uploaded excel in background</ContentHighlight></li>
-            <li><ContentHighlight>Sending emails in background</ContentHighlight></li>
-            <li><ContentHighlight>Performing data migration</ContentHighlight></li>
-            <li><ContentHighlight>Syncing data between two data sources</ContentHighlight></li>
-            <li><ContentHighlight>Other long running operations</ContentHighlight>, etc</li>
-        </ul>
+            <p>
+                To know more about <ContentHighlight>Hosted Service</ContentHighlight> or <ContentHighlight>Background Service</ContentHighlight> is outside the scope 
+                of this article. I'll write a separate article on Background Services in ASP.NET Core. For now lets understand walkthrough how to use Hosted Service.
+            </p>
+        </What>
 
-        <p>
-            To know more about <ContentHighlight>Hosted Service</ContentHighlight> or <ContentHighlight>Background Service</ContentHighlight> is outside the scope 
-            of this article. I'll write a separate article on Background Services in ASP.NET Core. For now lets understand walkthrough how to use Hosted Service.
-        </p>
+        <Why>
+            <p>
+                When writing software, we want to ensure that the code is covered by tests, which verify the required behavior and catch any regressions. 
+                <ContentHighlight>Unit testing</ContentHighlight> is a crucial practice in software development as it helps identify issues early in the development 
+                process. When it comes to service registration, unit testing offers the following benefits:
+            </p>
 
-        <h3 id="why">Why we gonna do?</h3>
+            <ul>
+                <li><ContentHighlight>Validation</ContentHighlight>: Unit tests verify that the necessary services are registered correctly, avoiding runtime errors caused by missing or misconfigured dependencies.</li>
+                <li><ContentHighlight>Refactoring</ContentHighlight>: Unit tests provide a safety net when refactoring code by ensuring that service registration remains intact during code changes.</li>
+                <li><ContentHighlight>Documentation</ContentHighlight>: Well-written unit tests serve as living documentation, illustrating how services should be registered and ensuring consistency across the application.</li>
+            </ul>
 
-        <p>
-            When writing software, we want to ensure that the code is covered by tests, which verify the required behavior and catch any regressions. 
-            <ContentHighlight>Unit testing</ContentHighlight> is a crucial practice in software development as it helps identify issues early in the development 
-            process. When it comes to service registration, unit testing offers the following benefits:
-        </p>
+            <p>
+                <strong>Note:</strong> If you have not done so already, I recommend you read the article on
+                <NavLink href="blogs/implementing-tdd-in-csharp-dotnet" Match="NavLinkMatch.All">Implementing TDD in C# .Net</NavLink>.
+            </p>
+        </Why>
 
-        <ul>
-            <li><ContentHighlight>Validation</ContentHighlight>: Unit tests verify that the necessary services are registered correctly, avoiding runtime errors caused by missing or misconfigured dependencies.</li>
-            <li><ContentHighlight>Refactoring</ContentHighlight>: Unit tests provide a safety net when refactoring code by ensuring that service registration remains intact during code changes.</li>
-            <li><ContentHighlight>Documentation</ContentHighlight>: Well-written unit tests serve as living documentation, illustrating how services should be registered and ensuring consistency across the application.</li>
-        </ul>
+        <How>
+            <p>
+                We are going to write unit tests for the <ContentHighlight>Data Migration Hosted Service</ContentHighlight> which we used in our previous article on 
+                <ContentHighlight><NavLink href="blogs/perform-background-workloads-in-hosted-service-using-channels-in-asp-net-webapi" Match="NavLinkMatch.All">Perform Background Workloads in Hosted Service using Channels in ASP.NET Web API</NavLink></ContentHighlight>. 
+                Here is the quick reference of the hosted service used in that article.
+            </p>
 
-        <p>
-            <strong>Note:</strong> If you have not done so already, I recommend you read the article on
-            <NavLink href="blogs/implementing-tdd-in-csharp-dotnet" Match="NavLinkMatch.All">Implementing TDD in C# .Net</NavLink>.
-        </p>
+            <GithubGistSnippet Title="Data Migration Hosted Service" UserId="fingers10" FileName="f066589f4d0439c6d02eade7ed08f537"></GithubGistSnippet>
 
-        <h3 id="how">How we gonna do?</h3>
+            <p>
+                To unit test the <ContentHighlight>DataMigrationService Hosted Service</ContentHighlight>, follow these steps:
+            </p>
 
-        <p>
-            We are going to write unit tests for the <ContentHighlight>Data Migration Hosted Service</ContentHighlight> which we used in our previous article on 
-            <ContentHighlight><NavLink href="blogs/perform-background-workloads-in-hosted-service-using-channels-in-asp-net-webapi" Match="NavLinkMatch.All">Perform Background Workloads in Hosted Service using Channels in ASP.NET Web API</NavLink></ContentHighlight>. 
-            Here is the quick reference of the hosted service used in that article.
-        </p>
+            <ol>
+                <li>
+                    Create a new test <ContentHighlight>class</ContentHighlight>, let's call it <ContentHighlight>HostedServiceTests</ContentHighlight>, and add a test method 
+                    using the <ContentHighlight>[Fact]</ContentHighlight> attribute.
+                </li>
+                <li>
+                    In the test method, instantiate a <ContentHighlight>DataMigrationChannel</ContentHighlight> which we used in previous article and 
+                    <ContentHighlight>ServiceCollection</ContentHighlight> from the 
+                    <ContentHighlight CssClasses="[ break-all ]">Microsoft.Extensions.DependencyInjection</ContentHighlight> 
+                    <ContentHighlight>namespace</ContentHighlight>. This collection will act as the container for our services.
+                </li>
+                <li>
+                    Use <ContentHighlight>Moq</ContentHighlight> to Mock the <ContentHighlight>IUnitOfWork</ContentHighlight> and add it to the 
+                    <ContentHighlight>ServiceCollection</ContentHighlight> and call <ContentHighlight>BuildServiceProvider()</ContentHighlight> to build the 
+                    <ContentHighlight>ServiceProvider</ContentHighlight> instance.
+                </li>
+                <li>
+                    Finally let's use <ContentHighlight CssClasses="[ break-all ]">NullLogger&lt;DataMigrationService&gt;.Instance</ContentHighlight> from 
+                    <ContentHighlight CssClasses="[ break-all ]">Microsoft.Extensions.Logging.Abstractions</ContentHighlight> 
+                    <ContentHighlight>namespace</ContentHighlight> instead of Mocking it as we are not going to test the logger. Moreover mocking Logger is a 
+                    complex step.
+                </li>
+                <li>
+                    Next Call the <ContentHighlight>MigrateData</ContentHighlight> method in the <ContentHighlight>DataMigrationChannel</ContentHighlight> object 
+                    to add message to the channel.
+                </li>
+                <li>
+                    Then, instantiate the <ContentHighlight>DataMigrationService class</ContentHighlight> with the above instantiated parameters and call the 
+                    <ContentHighlight>StartAsync</ContentHighlight> method with <ContentHighlight>default CancellationToken</ContentHighlight> to start the service.
+                </li>
+                <li>
+                    Now call <ContentHighlight>ExecuteTask</ContentHighlight> from the <ContentHighlight>DataMigrationService</ContentHighlight> class to 
+                    execute the task. This will make the <ContentHighlight>ExecuteAsync</ContentHighlight> of actual background service to run.
+                </li>
+                <li>
+                    Perform <ContentHighlight>assertions</ContentHighlight> using the <ContentHighlight>IsCompletedSuccessfully</ContentHighlight> result on the 
+                    <ContentHighlight>ExecuteTask</ContentHighlight> of <ContentHighlight>DataMigrationService</ContentHighlight>. Check for its success.
+                </li>
+                <li>Additionally, verify <ContentHighlight>IUnitOfWork</ContentHighlight> using <ContentHighlight>Moq Verify</ContentHighlight> methods.</li>
+            </ol>
 
-        <GithubGistSnippet Title="Data Migration Hosted Service" UserId="fingers10" FileName="f066589f4d0439c6d02eade7ed08f537"></GithubGistSnippet>
+            <GithubGistSnippet Title="Unit Testing Hosted Service in ASP.NET Web API" UserId="fingers10" FileName="78f22f4ba74f2655dc61e0440baca55b"></GithubGistSnippet>
 
-        <p>
-            To unit test the <ContentHighlight>DataMigrationService Hosted Service</ContentHighlight>, follow these steps:
-        </p>
+            <p>
+                Here is an another examples of background service using <ContentHighlight>TimeProvider</ContentHighlight> which uses timer to Sync data attribute regular interval. 
+                Let's see how to unit test this service. 
+            </p>
 
-        <ol>
-            <li>
-                Create a new test <ContentHighlight>class</ContentHighlight>, let's call it <ContentHighlight>HostedServiceTests</ContentHighlight>, and add a test method 
-                using the <ContentHighlight>[Fact]</ContentHighlight> attribute.
-            </li>
-            <li>
-                In the test method, instantiate a <ContentHighlight>DataMigrationChannel</ContentHighlight> which we used in previous article and 
-                <ContentHighlight>ServiceCollection</ContentHighlight> from the 
-                <ContentHighlight CssClasses="[ break-all ]">Microsoft.Extensions.DependencyInjection</ContentHighlight> 
-                <ContentHighlight>namespace</ContentHighlight>. This collection will act as the container for our services.
-            </li>
-            <li>
-                Use <ContentHighlight>Moq</ContentHighlight> to Mock the <ContentHighlight>IUnitOfWork</ContentHighlight> and add it to the 
-                <ContentHighlight>ServiceCollection</ContentHighlight> and call <ContentHighlight>BuildServiceProvider()</ContentHighlight> to build the 
-                <ContentHighlight>ServiceProvider</ContentHighlight> instance.
-            </li>
-            <li>
-                Finally let's use <ContentHighlight CssClasses="[ break-all ]">NullLogger&lt;DataMigrationService&gt;.Instance</ContentHighlight> from 
-                <ContentHighlight CssClasses="[ break-all ]">Microsoft.Extensions.Logging.Abstractions</ContentHighlight> 
-                <ContentHighlight>namespace</ContentHighlight> instead of Mocking it as we are not going to test the logger. Moreover mocking Logger is a 
-                complex step.
-            </li>
-            <li>
-                Next Call the <ContentHighlight>MigrateData</ContentHighlight> method in the <ContentHighlight>DataMigrationChannel</ContentHighlight> object 
-                to add message to the channel.
-            </li>
-            <li>
-                Then, instantiate the <ContentHighlight>DataMigrationService class</ContentHighlight> with the above instantiated parameters and call the 
-                <ContentHighlight>StartAsync</ContentHighlight> method with <ContentHighlight>default CancellationToken</ContentHighlight> to start the service.
-            </li>
-            <li>
-                Now call <ContentHighlight>ExecuteTask</ContentHighlight> from the <ContentHighlight>DataMigrationService</ContentHighlight> class to 
-                execute the task. This will make the <ContentHighlight>ExecuteAsync</ContentHighlight> of actual background service to run.
-            </li>
-            <li>
-                Perform <ContentHighlight>assertions</ContentHighlight> using the <ContentHighlight>IsCompletedSuccessfully</ContentHighlight> result on the 
-                <ContentHighlight>ExecuteTask</ContentHighlight> of <ContentHighlight>DataMigrationService</ContentHighlight>. Check for its success.
-            </li>
-            <li>Additionally, verify <ContentHighlight>IUnitOfWork</ContentHighlight> using <ContentHighlight>Moq Verify</ContentHighlight> methods.</li>
-        </ol>
+            <GithubGistSnippet Title="Data Syncing Hosted Service" UserId="fingers10" FileName="a1bb0b8c3996bdc6a3f0baa8bb695163"></GithubGistSnippet>
 
-        <GithubGistSnippet Title="Unit Testing Hosted Service in ASP.NET Web API" UserId="fingers10" FileName="78f22f4ba74f2655dc61e0440baca55b"></GithubGistSnippet>
+            <p>
+                To unit test the <ContentHighlight>DataSyncService Hosted Service</ContentHighlight>, follow these steps:
+            </p>
 
-        <p>
-            Here is an another examples of background service using <ContentHighlight>TimeProvider</ContentHighlight> which uses timer to Sync data attribute regular interval. 
-            Let's see how to unit test this service. 
-        </p>
+            <ol>
+                <li>
+                    Create a new test <ContentHighlight>class</ContentHighlight>, let's call it <ContentHighlight>HostedServiceTests</ContentHighlight>, and add a test method 
+                    using the <ContentHighlight>[Fact]</ContentHighlight> attribute.
+                </li>
+                <li>
+                    In the test method, instantiate a <ContentHighlight>FakeTimeProvider</ContentHighlight> To adjust time and test. This is available from
+                    <ContentHighlight CssClasses="[ break-all ]">Microsoft.Extensions.TimeProvider.Testing</ContentHighlight> namespace.
+                </li>
+                <li>
+                    Finally let's use <ContentHighlight CssClasses="[ break-all ]">FakeLogger&lt;DataSyncService&gt;</ContentHighlight> from 
+                    <ContentHighlight CssClasses="[ break-all ]">Microsoft.Extensions.Diagnostics.Testing</ContentHighlight> 
+                    <ContentHighlight>namespace</ContentHighlight> instead of Mocking it as we are going to test the logger. Moreover mocking Logger is a 
+                    complex step.
+                </li>
+                <li>
+                    Then, instantiate the <ContentHighlight>DataSyncService class</ContentHighlight> with the above instantiated parameters and call the 
+                    <ContentHighlight>StartAsync</ContentHighlight> method with <ContentHighlight>default CancellationToken</ContentHighlight> to start the service.
+                </li>
+                <li>
+                    Now call <ContentHighlight>ExecuteTask</ContentHighlight> from the <ContentHighlight>DataSyncService</ContentHighlight> class to 
+                    execute the task. This will make the <ContentHighlight>ExecuteAsync</ContentHighlight> of actual background service to run.
+                </li>
+                <li>
+                    Now adjust the time using by calling <ContentHighlight>Advance</ContentHighlight> from <ContentHighlight>FakeTimeProvider</ContentHighlight>. 
+                    This will execute the <ContentHighlight>SyncData callback</ContentHighlight> passed to the periodic timer in the 
+                    <ContentHighlight>DataSyncService</ContentHighlight> Background Service.
+                </li>
+                <li>
+                    Perform <ContentHighlight>assertions</ContentHighlight> using the <ContentHighlight>IsCompletedSuccessfully</ContentHighlight> result on the 
+                    <ContentHighlight>ExecuteTask</ContentHighlight> of <ContentHighlight>DataSyncService</ContentHighlight>. Check for its success.
+                </li>
+                <li>Additionally, make assertions as per your needs.</li>
+            </ol>
 
-        <GithubGistSnippet Title="Data Syncing Hosted Service" UserId="fingers10" FileName="a1bb0b8c3996bdc6a3f0baa8bb695163"></GithubGistSnippet>
+            <GithubGistSnippet Title="Unit Testing Hosted Service in ASP.NET Web API" UserId="fingers10" FileName="61c0b91ec1a5cd02a822d53330b58f03"></GithubGistSnippet>
 
-        <p>
-            To unit test the <ContentHighlight>DataSyncService Hosted Service</ContentHighlight>, follow these steps:
-        </p>
+            <p>
+                By executing above test we can validate background services in ASP.NET Core apps. The same can be used to validate worker services in dotnet.
+            </p>
+        </How>
 
-        <ol>
-            <li>
-                Create a new test <ContentHighlight>class</ContentHighlight>, let's call it <ContentHighlight>HostedServiceTests</ContentHighlight>, and add a test method 
-                using the <ContentHighlight>[Fact]</ContentHighlight> attribute.
-            </li>
-            <li>
-                In the test method, instantiate a <ContentHighlight>FakeTimeProvider</ContentHighlight> To adjust time and test. This is available from
-                <ContentHighlight CssClasses="[ break-all ]">Microsoft.Extensions.TimeProvider.Testing</ContentHighlight> namespace.
-            </li>
-            <li>
-                Finally let's use <ContentHighlight CssClasses="[ break-all ]">FakeLogger&lt;DataSyncService&gt;</ContentHighlight> from 
-                <ContentHighlight CssClasses="[ break-all ]">Microsoft.Extensions.Diagnostics.Testing</ContentHighlight> 
-                <ContentHighlight>namespace</ContentHighlight> instead of Mocking it as we are going to test the logger. Moreover mocking Logger is a 
-                complex step.
-            </li>
-            <li>
-                Then, instantiate the <ContentHighlight>DataSyncService class</ContentHighlight> with the above instantiated parameters and call the 
-                <ContentHighlight>StartAsync</ContentHighlight> method with <ContentHighlight>default CancellationToken</ContentHighlight> to start the service.
-            </li>
-            <li>
-                Now call <ContentHighlight>ExecuteTask</ContentHighlight> from the <ContentHighlight>DataSyncService</ContentHighlight> class to 
-                execute the task. This will make the <ContentHighlight>ExecuteAsync</ContentHighlight> of actual background service to run.
-            </li>
-            <li>
-                Now adjust the time using by calling <ContentHighlight>Advance</ContentHighlight> from <ContentHighlight>FakeTimeProvider</ContentHighlight>. 
-                This will execute the <ContentHighlight>SyncData callback</ContentHighlight> passed to the periodic timer in the 
-                <ContentHighlight>DataSyncService</ContentHighlight> Background Service.
-            </li>
-            <li>
-                Perform <ContentHighlight>assertions</ContentHighlight> using the <ContentHighlight>IsCompletedSuccessfully</ContentHighlight> result on the 
-                <ContentHighlight>ExecuteTask</ContentHighlight> of <ContentHighlight>DataSyncService</ContentHighlight>. Check for its success.
-            </li>
-            <li>Additionally, make assertions as per your needs.</li>
-        </ol>
-
-        <GithubGistSnippet Title="Unit Testing Hosted Service in ASP.NET Web API" UserId="fingers10" FileName="61c0b91ec1a5cd02a822d53330b58f03"></GithubGistSnippet>
-
-        <p>
-            By executing above test we can validate background services in ASP.NET Core apps. The same can be used to validate worker services in dotnet.
-        </p>
-
-        <h3 id="summary">Summary</h3>
-
-        <p>
-            Unit testing hosted services in ASP.NET Core is a crucial step to ensure that they are working as expected. By writing unit tests, you can 
-            <ContentHighlight>validate behavior, identify issues early on</ContentHighlight>, and maintain a reliable and robust application. The examples and 
-            techniques covered in this article provide a solid foundation for performing unit tests on hosted services, promoting software quality and 
-            maintainability in ASP.NET Core applications.
-        </p>
+        <Summary>
+            <p>
+                Unit testing hosted services in ASP.NET Core is a crucial step to ensure that they are working as expected. By writing unit tests, you can 
+                <ContentHighlight>validate behavior, identify issues early on</ContentHighlight>, and maintain a reliable and robust application. The examples and 
+                techniques covered in this article provide a solid foundation for performing unit tests on hosted services, promoting software quality and 
+                maintainability in ASP.NET Core applications.
+            </p>
+        </Summary>
     </ContentBody>
 </Content>

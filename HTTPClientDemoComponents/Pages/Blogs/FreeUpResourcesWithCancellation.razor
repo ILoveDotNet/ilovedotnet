@@ -4,98 +4,98 @@
 
 <Content FileName=@nameof(FreeUpResourcesWithCancellation) UseNewTableOfContentsMenu=true>
     <ContentBody>
-        <h3 id="what">What we gonna do?</h3>
-
-        <p>
-            <ContentHighlight>Cancelling</ContentHighlight> requests can be beneficial to <ContentHighlight>performance</ContentHighlight>, both at level of 
-            <ContentHighlight>bandwidth consumption</ContentHighlight> and <ContentHighlight>scalability</ContentHighlight>.  Let's learn how and I'll guide 
-            you through this. We will start by learning why we should cancel requests when we no longer need them. 
-        </p>        
-
-        <h3 id="why">Why we gonna do?</h3>
-
-        <p>
-            Imagine we're using HttpClient to get a data. Chances are that the <ContentHighlight>user of your application will navigate away</ContentHighlight> 
-            or <ContentHighlight>press a cancel button</ContentHighlight>. In such a case, you want to be able to handle that instead of just letting the 
-            request continue. The reasoning behind this is that behind the scenes, <ContentHighlight>HttpClient</ContentHighlight> works with 
-            <ContentHighlight>async tasks</ContentHighlight>. There's another reason, though. It's not unheard of a <ContentHighlight>timeout</ContentHighlight> 
-            to happen. If that happens, we want to be notified of that so we can gracefully handle such a timeout. In such a case, it is due to the timeout 
-            that the task gets canceled.
-        </p>
-
-        <p>
-            It's important to know that cancelling a task that's no longer needed will <ContentHighlight>free up the thread</ContentHighlight> that is used to 
-            run the task. That means that <ContentHighlight>thread is potentially returned to the thread pool where it can be used for other work</ContentHighlight>.
-            Cancellation in short helps to,
-        </p>
-
-        <ul>
-            <li><ContentHighlight>Save threads</ContentHighlight> which can be used to handle other tasks / requests.</li>
-            <li><ContentHighlight>Save db calls</ContentHighlight> which can save compute cost.</li>
-            <li><ContentHighlight>Save data</ContentHighlight> transferred over network.</li>
-        </ul>        
-
-        <h3 id="how">How we gonna do?</h3>
-
-        <p>
-            <strong>Note:</strong> If you have not done so already, I recommend you read the article on
-            <NavLink href="blogs/improving-performance-and-memory-use-while-accessing-apis-using-http-client-in-dotnet" Match="NavLinkMatch.All">Improving performance and memory use while accessing APIs using HTTPClient in dotnet</NavLink>.
-        </p>
-
-        <h4 id="cancellation-token-source-and-cancellation">Cancellation Token Source and Cancellation</h4>
-
-        <p>
-            To support <ContentHighlight>cancelation</ContentHighlight> of <ContentHighlight>async tasks</ContentHighlight>, a 
-            <ContentHighlight>CancellationTokenSource</ContentHighlight> and a <ContentHighlight>CancellationToken</ContentHighlight> are used. A 
-            <ContentHighlight>CancellationTokenSource</ContentHighlight> is an <ContentHighlight>object</ContentHighlight>, which manages and sends cancellation 
-            notifications to the individual cancellation tokens. It exposes such a <ContentHighlight>CancellationToken</ContentHighlight> via its token property. 
-            That <ContentHighlight>CancellationToken</ContentHighlight> is a lightweight value passed to one or more listeners, typically as a method parameter. 
-        </p>
-
-        <p>
-            Listeners should then monitor the value of the <ContentHighlight>IsCancellationRequested</ContentHighlight> property of that token and react accordingly. 
-            From that, it follows that a <ContentHighlight>CancellationToken</ContentHighlight> is what we need to pass to each task returning method we want to 
-            listen to cancellation. So, the idea is that we provide these cancellation tokens to whichever part of our application we want to listen to cancellation 
-            and cancel itself. And we use the <ContentHighlight>CancellationToken</ContentHighlight> source to effectively request them to cancel themselves, which it 
-            does by sending notifications to those tokens.
-        </p>
-
-        <h4 id="supporting-cancellation-while-reading-data-from-api">Supporting Cancellation while reading data from API</h4>
-
-        <p>
-            All we need to do now is to initialize a <ContentHighlight>CancellationTokenSource</ContentHighlight> and set <ContentHighlight>CancelAfter()</ContentHighlight> 
-            a timeout. Then, we pass the token to the <ContentHighlight>HTTPClient</ContentHighlight> <ContentHighlight>SendAsync</ContentHighlight> method. 
-            We can then use the token to cancel the request if it takes too long. We can also use the token to cancel the request if the user navigates away. 
-        </p>
-
-        <p>
-            <strong>Note:</strong> that for demo purpose we are cancelling after 10 seconds and we are awaiting for 5 seconds to simulate the API call failure. In real world 
-            scenario, you can set the timeout to 30 seconds or 1 minute or you can cancel when user presses cancel button.
-        </p>
-
-        <GithubGistSnippet Title="Support Cancellation while Reading Data" UserId="fingers10" FileName="88f09bb2b546363ede9d901183d8d533"></GithubGistSnippet>
-
-        <DemoSnippet Title="Support Cancellation while Reading Data">
+        <What>
             <p>
-                Let's try Cancellation while reading data in this Demo, Click on the Read with Cancellation Button to see the demo on the screen. Note that 
-                data might not be rendered on the screen as the API is cancelled before the data is read. You can verify this from the browser network log.
+                <ContentHighlight>Cancelling</ContentHighlight> requests can be beneficial to <ContentHighlight>performance</ContentHighlight>, both at level of 
+                <ContentHighlight>bandwidth consumption</ContentHighlight> and <ContentHighlight>scalability</ContentHighlight>.  Let's learn how and I'll guide 
+                you through this. We will start by learning why we should cancel requests when we no longer need them. 
             </p>
-            <ReadWithCancellationDemo></ReadWithCancellationDemo>
-        </DemoSnippet>
+        </What>
 
-        <figure>
-            <caption>Supporting Cancellation in API Calls</caption>
-            <img src="./image/blogs/http-client/free-up-resources-with-cancellation-while-accessing-apis-using-http-client-in-dotnet/Cancelled Requests.png" alt="Cancelled Requests" class="[ w-full ]" />
-        </figure>
+        <Why>
+            <p>
+                Imagine we're using HttpClient to get a data. Chances are that the <ContentHighlight>user of your application will navigate away</ContentHighlight> 
+                or <ContentHighlight>press a cancel button</ContentHighlight>. In such a case, you want to be able to handle that instead of just letting the 
+                request continue. The reasoning behind this is that behind the scenes, <ContentHighlight>HttpClient</ContentHighlight> works with 
+                <ContentHighlight>async tasks</ContentHighlight>. There's another reason, though. It's not unheard of a <ContentHighlight>timeout</ContentHighlight> 
+                to happen. If that happens, we want to be notified of that so we can gracefully handle such a timeout. In such a case, it is due to the timeout 
+                that the task gets canceled.
+            </p>
 
-        <h3 id="summary">Summary</h3>
+            <p>
+                It's important to know that cancelling a task that's no longer needed will <ContentHighlight>free up the thread</ContentHighlight> that is used to 
+                run the task. That means that <ContentHighlight>thread is potentially returned to the thread pool where it can be used for other work</ContentHighlight>.
+                Cancellation in short helps to,
+            </p>
 
-        <p>
-            In this article, we learned about how to <ContentHighlight>free up resources with cancellation</ContentHighlight> while accessing APIs using 
-            <ContentHighlight>HTTP Client</ContentHighlight> in .NET. We learned about what is <ContentHighlight>CancellationTokenSource</ContentHighlight> 
-            and <ContentHighlight>why we should cancel requests</ContentHighlight> when we no longer need them and <ContentHighlight>advantages of 
-            cancellation</ContentHighlight>. We also learned about <ContentHighlight>how to support cancellation while reading data from API</ContentHighlight>. 
-            I hope you enjoyed reading this article.
-        </p>
+            <ul>
+                <li><ContentHighlight>Save threads</ContentHighlight> which can be used to handle other tasks / requests.</li>
+                <li><ContentHighlight>Save db calls</ContentHighlight> which can save compute cost.</li>
+                <li><ContentHighlight>Save data</ContentHighlight> transferred over network.</li>
+            </ul> 
+        </Why>
+
+        <How>
+            <p>
+                <strong>Note:</strong> If you have not done so already, I recommend you read the article on
+                <NavLink href="blogs/improving-performance-and-memory-use-while-accessing-apis-using-http-client-in-dotnet" Match="NavLinkMatch.All">Improving performance and memory use while accessing APIs using HTTPClient in dotnet</NavLink>.
+            </p>
+
+            <h4 id="cancellation-token-source-and-cancellation">Cancellation Token Source and Cancellation</h4>
+
+            <p>
+                To support <ContentHighlight>cancelation</ContentHighlight> of <ContentHighlight>async tasks</ContentHighlight>, a 
+                <ContentHighlight>CancellationTokenSource</ContentHighlight> and a <ContentHighlight>CancellationToken</ContentHighlight> are used. A 
+                <ContentHighlight>CancellationTokenSource</ContentHighlight> is an <ContentHighlight>object</ContentHighlight>, which manages and sends cancellation 
+                notifications to the individual cancellation tokens. It exposes such a <ContentHighlight>CancellationToken</ContentHighlight> via its token property. 
+                That <ContentHighlight>CancellationToken</ContentHighlight> is a lightweight value passed to one or more listeners, typically as a method parameter. 
+            </p>
+
+            <p>
+                Listeners should then monitor the value of the <ContentHighlight>IsCancellationRequested</ContentHighlight> property of that token and react accordingly. 
+                From that, it follows that a <ContentHighlight>CancellationToken</ContentHighlight> is what we need to pass to each task returning method we want to 
+                listen to cancellation. So, the idea is that we provide these cancellation tokens to whichever part of our application we want to listen to cancellation 
+                and cancel itself. And we use the <ContentHighlight>CancellationToken</ContentHighlight> source to effectively request them to cancel themselves, which it 
+                does by sending notifications to those tokens.
+            </p>
+
+            <h4 id="supporting-cancellation-while-reading-data-from-api">Supporting Cancellation while reading data from API</h4>
+
+            <p>
+                All we need to do now is to initialize a <ContentHighlight>CancellationTokenSource</ContentHighlight> and set <ContentHighlight>CancelAfter()</ContentHighlight> 
+                a timeout. Then, we pass the token to the <ContentHighlight>HTTPClient</ContentHighlight> <ContentHighlight>SendAsync</ContentHighlight> method. 
+                We can then use the token to cancel the request if it takes too long. We can also use the token to cancel the request if the user navigates away. 
+            </p>
+
+            <p>
+                <strong>Note:</strong> that for demo purpose we are cancelling after 10 seconds and we are awaiting for 5 seconds to simulate the API call failure. In real world 
+                scenario, you can set the timeout to 30 seconds or 1 minute or you can cancel when user presses cancel button.
+            </p>
+
+            <GithubGistSnippet Title="Support Cancellation while Reading Data" UserId="fingers10" FileName="88f09bb2b546363ede9d901183d8d533"></GithubGistSnippet>
+
+            <DemoSnippet Title="Support Cancellation while Reading Data">
+                <p>
+                    Let's try Cancellation while reading data in this Demo, Click on the Read with Cancellation Button to see the demo on the screen. Note that 
+                    data might not be rendered on the screen as the API is cancelled before the data is read. You can verify this from the browser network log.
+                </p>
+                <ReadWithCancellationDemo></ReadWithCancellationDemo>
+            </DemoSnippet>
+
+            <figure>
+                <caption>Supporting Cancellation in API Calls</caption>
+                <img src="./image/blogs/http-client/free-up-resources-with-cancellation-while-accessing-apis-using-http-client-in-dotnet/Cancelled Requests.png" alt="Cancelled Requests" class="[ w-full ]" />
+            </figure>
+        </How>  
+
+        <Summary>
+            <p>
+                In this article, we learned about how to <ContentHighlight>free up resources with cancellation</ContentHighlight> while accessing APIs using 
+                <ContentHighlight>HTTP Client</ContentHighlight> in .NET. We learned about what is <ContentHighlight>CancellationTokenSource</ContentHighlight> 
+                and <ContentHighlight>why we should cancel requests</ContentHighlight> when we no longer need them and <ContentHighlight>advantages of 
+                cancellation</ContentHighlight>. We also learned about <ContentHighlight>how to support cancellation while reading data from API</ContentHighlight>. 
+                I hope you enjoyed reading this article.
+            </p>
+        </Summary>
     </ContentBody>
 </Content>
