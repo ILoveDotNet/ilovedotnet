@@ -42,10 +42,15 @@ if (!builder.RootComponents.Any())
 
 ConfigureServices(builder.Services, builder.HostEnvironment, builder.Configuration);
 
-await builder.Build().RunAsync();
+var host = builder.Build();
+var lazyLoader = host.Services.GetRequiredService<LazyLoaderService>();
+await lazyLoader.PreloadAsync();
+await host.RunAsync();
 
 static void ConfigureServices(IServiceCollection services, IWebAssemblyHostEnvironment webHostEnv, IConfiguration configuration)
 {
+    services.AddScoped<LazyLoaderService>();
+
     services.AddTransient<CustomHeaderMessageHandlerDemo>(sp => new(new HttpClientHandler()));
 
     services.AddScoped(sp =>
