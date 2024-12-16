@@ -3,10 +3,11 @@
 @using System.Reflection;
 @implements IAsyncDisposable;
 @inject IWebAssemblyHostEnvironment Environment;
+@inject LazyLoaderService LazyLoader;
 
 <CascadingValue Value="SmallDevice">
     <Router AppAssembly="@typeof(Program).Assembly" 
-            AdditionalAssemblies="@_lazyLoadedAssemblies" 
+            AdditionalAssemblies="@LazyLoader.AdditionalAssemblies" 
             OnNavigateAsync="@OnNavigateAsync">
         <Found Context="routeData">
             <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
@@ -36,14 +37,11 @@
 @code {
     const ushort SMALLDEVICEWIDTH = 640;
 
-    private List<Assembly> _lazyLoadedAssemblies = new List<Assembly> { typeof(AppState).Assembly };
     private ushort viewPortWidth;
     private IJSObjectReference? module;
     private bool SmallDevice = true;
 
     [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
-    [Inject] private LazyAssemblyLoader AssemblyLoader { get; set; } = default!;
-    [Inject] private ILogger<App> Logger { get; set; } = default!;
     [Inject] private AppState AppState { get; set; } = default!;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -62,113 +60,12 @@
 
     private async Task OnNavigateAsync(NavigationContext args)
     {
-        try
+        if (args.Path.Contains("blogs", StringComparison.OrdinalIgnoreCase) || args.Path.Contains("talks", StringComparison.OrdinalIgnoreCase))
         {
-            if (args.Path.Contains("blogs", StringComparison.OrdinalIgnoreCase))
-            {
-                HideNavigationMenu();
-
-                await AssemblyLoader.LoadAssembliesAsync(new[] { "BaseComponents.wasm" });
-
-                if (args.Path.Contains("blazor", StringComparison.OrdinalIgnoreCase))
-                {
-                    var assemblies = await AssemblyLoader.LoadAssembliesAsync(new[] { "BlazorDemoComponents.wasm" });
-                    _lazyLoadedAssemblies.AddRange(assemblies);
-                }
-
-                if (args.Path.Contains("dependency-injection", StringComparison.OrdinalIgnoreCase))
-                {
-                    var assemblies = await AssemblyLoader.LoadAssembliesAsync(new[] { "DependencyInjectionDemoComponents.wasm" });
-                    _lazyLoadedAssemblies.AddRange(assemblies);
-                }
-
-                if (args.Path.Contains("design-pattern", StringComparison.OrdinalIgnoreCase))
-                {
-                    var assemblies = await AssemblyLoader.LoadAssembliesAsync(new[] { "DesignPatternDemoComponents.wasm" });
-                    _lazyLoadedAssemblies.AddRange(assemblies);
-                }
-
-                if (args.Path.Contains("http-client", StringComparison.OrdinalIgnoreCase))
-                {
-                    var assemblies = await AssemblyLoader.LoadAssembliesAsync(new[] { "HTTPClientDemoComponents.wasm" });
-                    _lazyLoadedAssemblies.AddRange(assemblies);
-                }
-
-                if (args.Path.Contains("linq", StringComparison.OrdinalIgnoreCase))
-                {
-                    var assemblies = await AssemblyLoader.LoadAssembliesAsync(new[] { "LINQDemoComponents.wasm" });
-                    _lazyLoadedAssemblies.AddRange(assemblies);
-                }
-
-                if (args.Path.Contains("middleware", StringComparison.OrdinalIgnoreCase))
-                {
-                    var assemblies = await AssemblyLoader.LoadAssembliesAsync(new[] { "MiddlewareDemoComponents.wasm" });
-                    _lazyLoadedAssemblies.AddRange(assemblies);
-                }
-
-                if (args.Path.Contains("oops", StringComparison.OrdinalIgnoreCase))
-                {
-                    var assemblies = await AssemblyLoader.LoadAssembliesAsync(new[] { "OOPSDemoComponents.wasm" });
-                    _lazyLoadedAssemblies.AddRange(assemblies);
-                }
-
-                if (args.Path.Contains("owasp", StringComparison.OrdinalIgnoreCase))
-                {
-                    var assemblies = await AssemblyLoader.LoadAssembliesAsync(new[] { "OWASPDemoComponents.wasm" });
-                    _lazyLoadedAssemblies.AddRange(assemblies);
-                }
-
-                if (args.Path.Contains("python", StringComparison.OrdinalIgnoreCase))
-                {
-                    var assemblies = await AssemblyLoader.LoadAssembliesAsync(new[] { "PythonDemoComponents.wasm" });
-                    _lazyLoadedAssemblies.AddRange(assemblies);
-                }
-
-                if (args.Path.Contains("report", StringComparison.OrdinalIgnoreCase))
-                {
-                    var assemblies = await AssemblyLoader.LoadAssembliesAsync(new[] { "ReportDemoComponents.wasm" });
-                    _lazyLoadedAssemblies.AddRange(assemblies);
-                }
-
-                if (args.Path.Contains("signalr", StringComparison.OrdinalIgnoreCase))
-                {
-                    var assemblies = await AssemblyLoader.LoadAssembliesAsync(new[] { "SignalRDemoComponents.wasm" });
-                    _lazyLoadedAssemblies.AddRange(assemblies);
-                }
-
-                if (args.Path.Contains("solid", StringComparison.OrdinalIgnoreCase))
-                {
-                    var assemblies = await AssemblyLoader.LoadAssembliesAsync(new[] { "SOLIDDemoComponents.wasm" });
-                    _lazyLoadedAssemblies.AddRange(assemblies);
-                }
-
-                if (args.Path.Contains("tdd", StringComparison.OrdinalIgnoreCase))
-                {
-                    var assemblies = await AssemblyLoader.LoadAssembliesAsync(new[] { "TDDDemoComponents.wasm" });
-                    _lazyLoadedAssemblies.AddRange(assemblies);
-                }
-
-                if (args.Path.Contains("webapi", StringComparison.OrdinalIgnoreCase))
-                {
-                    var assemblies = await AssemblyLoader.LoadAssembliesAsync(new[] { "WebAPIDemoComponents.wasm" });
-                    _lazyLoadedAssemblies.AddRange(assemblies);
-                }
-            }
-
-            if (args.Path.Contains("talks", StringComparison.OrdinalIgnoreCase))
-            {
-                HideNavigationMenu();
-
-                await AssemblyLoader.LoadAssembliesAsync(new[] { "BaseComponents.wasm" });
-
-                var assemblies = await AssemblyLoader.LoadAssembliesAsync(new[] { "TalkDemoComponents.wasm" });
-                _lazyLoadedAssemblies.AddRange(assemblies);
-            }
+            HideNavigationMenu();
         }
-        catch (Exception ex)
-        {
-            Logger.LogError("Error: {Message}", ex.Message);
-        }
+
+        await LazyLoader.OnNavigateAsync(args);
     }
 
     private void HideNavigationMenu()
