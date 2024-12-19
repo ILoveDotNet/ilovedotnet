@@ -1,0 +1,76 @@
+@page "/blogs/using-c-c++-native-dependencies-in-blazor-wasm"
+@using BlazorDemoComponents
+@inherits BasePage
+
+<Content FileName=@nameof(AddingNativeDependencies) UseNewTableOfContentsMenu=true>
+    <ContentBody>
+        <What>
+            <p>
+                In this article let's learn how to use libraries written in other languages like <ContentHighlight>C/C++</ContentHighlight> in Blazor WebAssembly 
+                directly in browser. Thanks to the fact that we have blazor running on WebAssembly. we also get access to other things. All these are made 
+                possible with WebAssembly.
+            </p>
+        </What>
+
+        <Why>
+            <p>
+                The main reason to use libraries written in other languages is that it gives us access to <ContentHighlight>powerful and highly optimized code 
+                that is already battle tested and refined without reinventing the wheel</ContentHighlight>. These libraries performs the task at 
+                <ContentHighlight>near Native speeds</ContentHighlight> and WebAssembly gives us the ability to run these code directly in browser with similar 
+                performance like how we run in desktop machine <ContentHighlight>without need of javascript</ContentHighlight>.
+            </p>
+
+            <p>
+                For example, we can take graphic libraries already written in other languages and reuse them without reinventing the wheel in dotnet. 
+                <ContentHighlight>Skia</ContentHighlight> library written in C++ is a good example. It is a powerful 2D graphics library that is already used 
+                in <ContentHighlight>android, chrome, flutter</ContentHighlight> to render highly quality graphics.
+            </p>
+        </Why>
+
+        <How>
+            <strong>
+                Please note that as of writing this, Native Dependencies are not supported with Lazy Loaded Assemblies. As a workaround, you need 
+                refer the Native Dependencies from startup project instead of Lazy Loaded RCL.
+            </strong>
+
+            <p>
+                All you need to do is,
+            </p>
+
+            <ol>
+                <li>Create a new standalone Blazor WebAssembly project.</li>
+                <li>
+                    <p>Add a <ContentHighlight>Test.c</ContentHighlight> file to the project.</p>
+                    <GithubGistSnippet Title="Simple C Test file" UserId="fingers10" FileName="e985fd30a4e3fc5b8257f4adc46229c2"></GithubGistSnippet>
+                </li>
+                <li>
+                    <p>Add a <ContentHighlight>NativeFileReference</ContentHighlight> for <ContentHighlight>Test.c</ContentHighlight> in the app's project file.</p>
+                    <GithubGistSnippet Title="NativeFileReference for Test.c" UserId="fingers10" FileName="81ed7c3569c182dbf97741750ebc0352"></GithubGistSnippet>
+                </li>
+                <li>
+                    <p>
+                        In a Razor component, add a <ContentHighlight>DllImportAttribute</ContentHighlight> for the <ContentHighlight>fact</ContentHighlight> 
+                        function in the generated Test library and call the fact method from .NET code in the component.
+                    </p>
+                    <GithubGistSnippet Title="Calling C function from C#" UserId="fingers10" FileName="7a59adc3627d81a328c85112f08d212c"></GithubGistSnippet>
+                </li>
+                <li>
+                    When you build the app with the .NET WebAssembly build tools installed, the <ContentHighlight>native C code is compiled and linked into 
+                    the .NET WebAssembly runtime (dotnet.wasm)</ContentHighlight>. After the app is built, run the app to see the rendered factorial number.
+                </li>
+            </ol>
+
+            <DemoSnippet Title="Running Native C Code in Blazor WASM">
+                <Error>
+                    <NativeCDemo />
+                </Error>
+            </DemoSnippet>
+        </How>
+
+        <Summary>
+            In this article, we learnt about why to <ContentHighlight>reuse</ContentHighlight> other libraries in blazor and how to implement it with a 
+            simple example as a native dependency. This helps us to unlock huge possibilities to resue well tested libraries written in other languages in 
+            Blazor WebAssembly without need of javascript.
+        </Summary>
+    </ContentBody>
+</Content>

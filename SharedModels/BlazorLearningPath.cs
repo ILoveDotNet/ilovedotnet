@@ -2,7 +2,7 @@
 
 public class BlazorLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(30);
+    public readonly List<ContentMetaData> FullContents = new(31);
 
     public BlazorLearningPath()
     {
@@ -517,6 +517,23 @@ public class BlazorLearningPath
                 CreatedOn = new DateTime(2024, 12, 1, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2024, 12, 1, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["OAuth", "OIDC", "OpenID Connect", "IdentityServer"]
+            },
+            new ContentMetaData
+            {
+                Order = 31,
+                Title = "Using C/C++ Native Dependencies in Blazor WASM",
+                Description = "In this article let's learn how to use C/C++ native dependencies in Blazor WASM app. All with live working demo.",
+                Author = "Abdul Rahman",
+                Slug = "using-c-c++-native-dependencies-in-blazor-wasm",
+                PosterUrl = "image/blogs/blazor/wasm/using-c-c++-native-dependencies-in-blazor-wasm.webp",
+                ThumbnailUrl = "image/blogs/blazor/wasm/using-c-c++-native-dependencies-in-blazor-wasm.webp",
+                ContentUrl = "blogs/using-c-c++-native-dependencies-in-blazor-wasm",
+                IconUrl = "image/icons/blazor.webp",
+                Channel = "Blazor",
+                Type = "blogs",
+                CreatedOn = new DateTime(2024, 12, 22, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2024, 12, 22, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["C", "C++", "Native Dependecies"]
             },
         ];
     }
