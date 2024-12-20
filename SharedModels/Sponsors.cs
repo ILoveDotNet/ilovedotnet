@@ -14,7 +14,7 @@ public class Sponsors
                 LogoUrl = "image/sponsors/dometrain.jpg",
                 RedirectUrl = "https://dometrain.com?ref=ilovedotnet&promotion=website",
                 Start = new DateTime(2024, 11, 10, 0, 0, 0, DateTimeKind.Utc),
-                End = new DateTime(2025, 11, 10, 0, 0, 0, DateTimeKind.Utc)
+                End = new DateTime(2024, 12, 20, 0, 0, 0, DateTimeKind.Utc)
             }
         ];
     }
