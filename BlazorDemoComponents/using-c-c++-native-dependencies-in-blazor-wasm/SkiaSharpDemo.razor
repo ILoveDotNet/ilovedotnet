@@ -1,0 +1,50 @@
+@using SkiaSharp
+@using SkiaSharp.Views.Blazor
+
+<SKCanvasView OnPaintSurface="OnPaintSurface" Width="100" Height="100" />
+
+@code {
+    private void OnPaintSurface(SKPaintSurfaceEventArgs e)
+    {
+        var canvas = e.Surface.Canvas;
+        var info = e.Info;
+
+        // Clear the canvas with a transparent color
+        canvas.Clear(SKColors.Transparent);
+
+        // Draw the background (square with #512bd4 color)
+        using (var backgroundPaint = new SKPaint
+        {
+            Color = SKColor.Parse("#512bd4"),
+            Style = SKPaintStyle.Fill
+        })
+        {
+            canvas.DrawRect(new SKRect(0, 0, info.Width, info.Height), backgroundPaint);
+        }
+
+        // Draw the .NET text using SKFont and SKPaint
+        using (var font = new SKFont(SKTypeface.Default, info.Width * 0.2f)) // Font size relative to canvas size
+        using (var textPaint = new SKPaint
+        {
+            Color = SKColors.White,
+            IsAntialias = true
+        })
+        {
+            var text = ".NET";
+            var bounds = new SKRect();
+
+            // Measure text bounds using Span<char>
+            font.MeasureText(
+                text.AsSpan(),
+                out bounds,
+                textPaint);
+
+            // Calculate text position (centered)
+            var x = info.Width / 2 - bounds.MidX;
+            var y = info.Height / 2 - bounds.MidY;
+
+            // Draw the text (with correct parameter order)
+            canvas.DrawText(text, x, y, font, textPaint);
+        }
+    }
+}
