@@ -1,186 +1,138 @@
 ﻿@page "/blogs/fitness-test-using-net-arch-test-in-asp-net-webapi"
 @inherits BasePage
 
-<Content FileName=@nameof(FitnessTestInASPNET)>
+<Content FileName=@nameof(FitnessTestInASPNET) UseNewTableOfContentsMenu=true>
     <ContentBody>
-        <p>
-            In this article, let's learn about <ContentHighlight>Fitness Test</ContentHighlight> using <ContentHighlight>NetArchTest</ContentHighlight> 
-            in <ContentHighlight>WebAPI</ContentHighlight> in ASP.NET Core.
-        </p>
+        <What>
+            <p>
+                In the realm of software development, maintaining a robust and consistent architecture is paramount. As projects expand, ensuring that the structural 
+                integrity of the codebase remains intact becomes increasingly challenging. Even as of writing this I joined a project which was started six months 
+                ago with Clean Architecture in mind, but now it's follows a name sake Clean Architecture and the architecture is already eroding. The codebase is 
+                riddled with inconsistencies, and the architecture is far from the initial vision. This is because of pressure and deadline and on the other hand new 
+                developers joining the team without knowledge of clean architecture. This is a common problem in software development.
+            </p>
 
-        <p>
-            <strong>Note:</strong> If you have not done so already, I recommend you read the article on
-            <NavLink href="blogs/request-endpoint-response-repr-pattern-in-asp-net-webapi" Match="NavLinkMatch.All">Request Endpoint Response (REPR) pattern in ASP.NET WEB API</NavLink>.
-        </p>
+            <p>
+                This is where <ContentHighlight>fitness test</ContentHighlight> or <ContentHighlight>fitness functions</ContentHighlight> come into play, serving as 
+                vigilant gatekeepers, preserving the essence of your software blueprint. In this blog post, we will delve deep into 
+                <ContentHighlight>NetArchTest</ContentHighlight>, a powerful tool designed to validate your software's architectural design, exploring its 
+                significance, implementation, advantages, and more.
+            </p>
 
-        <h3>Table of Contents</h3>
+            <p>
+                <ContentHighlight>NetArchTest</ContentHighlight> is a sophisticated library that empowers developers to write fitness tests effortlessly. By 
+                leveraging NetArchTest, developers can <ContentHighlight>enforce architectural rules and validate design decisions</ContentHighlight>. The library 
+                <ContentHighlight>scans the imported namespaces of your types</ContentHighlight>, allowing you to <ContentHighlight>define both positive and negative 
+                conditions for your architecture</ContentHighlight>. Whether you're aiming to enforce dependencies between layers, validate design rules, or 
+                maintain design integrity, NetArchTest provides a simple and effective mechanism to achieve these goals.
+            </p>
+        </What>
 
-        <ol>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
-                    Introduction
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#why-fitness-test")" Match="NavLinkMatch.All">
-                    Why Fitness Test ?
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#what-is-fitness-test")" Match="NavLinkMatch.All">
-                    What is Fitness Test ?
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#implementing-fitness-test")" Match="NavLinkMatch.All">
-                    Implementing Fitness Test
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#advantages")" Match="NavLinkMatch.All">
-                    Advantages
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
-                    Summary
-                </NavLink>
-            </li>
-        </ol>
+        <Why>
+             <p>
+                Before we explore the intricacies of <ContentHighlight>NetArchTest</ContentHighlight>, it's crucial to understand the 'why' behind its adoption. 
+                <ContentHighlight>NetArchTest</ContentHighlight> project allows you create tests that <ContentHighlight>enforce conventions for class design, naming 
+                and dependency in .Net code bases</ContentHighlight>. These can be used with any unit test framework and incorporated into a build pipeline. It uses 
+                a fluid API that allows you to string together readable rules that can be used in test assertions.
+            </p>
 
-        <h3 id="introduction">Introduction</h3>
+            <p>
+                There are plenty of static analysis tools that can evaluate application structure, but they are aimed more at enforcing generic best practice rather 
+                than <ContentHighlight>application-specific conventions</ContentHighlight>. The better tools in this space can be press-ganged into creating custom 
+                rules for a specific architecture, but the intention here is to incorporate rules into a test suite and <ContentHighlight>create a self-testing 
+                architecture</ContentHighlight>.
+            </p>
 
-        <p>
-            In the realm of software development, maintaining a robust and consistent architecture is paramount. As projects expand, ensuring that the structural 
-            integrity of the codebase remains intact becomes increasingly challenging. Even as of writing this I joined a project which was started six months 
-            ago with Clean Architecture in mind, but now it's follows a name sake Clean Architecture and the architecture is already eroding. The codebase is 
-            riddled with inconsistencies, and the architecture is far from the initial vision. This is because of pressure and deadline and on the other hand new 
-            junior developers joining the team. This is a common problem in software development.
-        </p>
+            <p>
+                Software architecture, akin to a well-thought-out <ContentHighlight>blueprint</ContentHighlight>, is essential for a robust system. However, as 
+                <ContentHighlight>deadlines loom and pressure mounts, corners might be cut, leading to architectural erosion</ContentHighlight>. NetArchTest acts as a 
+                safeguard, ensuring that your architecture doesn't crumble under the weight of compromises. By automating the verification process, it guarantees that 
+                your software adheres to the predefined architectural patterns and rules, even amidst rapid development cycles.
+            </p>
 
-        <p>
-            This is where <ContentHighlight>fitness test</ContentHighlight> or <ContentHighlight>fitness functions</ContentHighlight> come into play, serving as 
-            vigilant gatekeepers, preserving the essence of your software blueprint. In this blog post, we will delve deep into 
-            <ContentHighlight>NetArchTest</ContentHighlight>, a powerful tool designed to validate your software's architectural design, exploring its 
-            significance, implementation, advantages, and more.
-        </p>
+            <p>
+                The advantages of Architecture tests are as follows,
+            </p>
 
-        
+            <ul>
+                <li>
+                    <ContentHighlight>Maintain Design Integrity</ContentHighlight>: NetArchTest acts as a guardian, preserving the consistent design and structure 
+                    of your software as it evolves over time. It prevents architectural drift, ensuring that your initial vision remains intact.
+                </li>
+                <li>
+                    <ContentHighlight>Early Issue Detection</ContentHighlight>: By catching architectural discrepancies early in the development process, NetArchTest 
+                    prevents potential complications that might arise due to structural flaws. Early detection translates to easier debugging and resolution.
+                </li>
+                <li>
+                    <ContentHighlight>Improved Collaboration</ContentHighlight>: Clear architectural rules and automated tests make it easier for developers to 
+                    comprehend the system's design. This shared understanding fosters smoother collaboration, particularly in large teams or when onboarding new 
+                    members.
+                </li>
+                <li>
+                    <ContentHighlight>Quality Assurance</ContentHighlight>: A robust architecture is the cornerstone of high-quality software. NetArchTest contributes 
+                    significantly to the overall quality and reliability of your software by validating structural decisions and enforcing design rules.
+                </li>
+            </ul>
+        </Why>
 
-        <h3 id="why-fitness-test">Why Fitness Test ?</h3>
+        <How>
+            <p>
+                Implementing NetArchTest in your project is seamless. Start by creating a <ContentHighlight>new test project</ContentHighlight> within your development 
+                environment. Then, install the <ContentHighlight>NetArchTest.Rules</ContentHighlight> NuGet package, which equips you with the necessary boilerplate 
+                code to initiate your tests. The library's core revolves around the <ContentHighlight>Types class</ContentHighlight>, enabling you to load and filter 
+                types based on various criteria. Once your types are selected, you can define rules using <ContentHighlight>Should</ContentHighlight> or 
+                <ContentHighlight>ShouldNot</ContentHighlight> conditions, ensuring that your architecture aligns with your predefined specifications. Here are some 
+                of the conventions I prefer to implement in my projects.
+            </p>
 
-        <p>
-            Before we explore the intricacies of <ContentHighlight>NetArchTest</ContentHighlight>, it's crucial to understand the 'why' behind its adoption. 
-            <ContentHighlight>NetArchTest</ContentHighlight> project allows you create tests that <ContentHighlight>enforce conventions for class design, naming 
-            and dependency in .Net code bases</ContentHighlight>. These can be used with any unit test framework and incorporated into a build pipeline. It uses 
-            a fluid API that allows you to string together readable rules that can be used in test assertions.
-        </p>
+            <p>
+                <strong>Note:</strong> If you have not done so already, I recommend you read the article on
+                <NavLink href="blogs/request-endpoint-response-repr-pattern-in-asp-net-webapi" Match="NavLinkMatch.All">Request Endpoint Response (REPR) pattern in ASP.NET WEB API</NavLink>.
+            </p>
 
-        <p>
-            There are plenty of static analysis tools that can evaluate application structure, but they are aimed more at enforcing generic best practice rather 
-            than <ContentHighlight>application-specific conventions</ContentHighlight>. The better tools in this space can be press-ganged into creating custom 
-            rules for a specific architecture, but the intention here is to incorporate rules into a test suite and <ContentHighlight>create a self-testing 
-            architecture</ContentHighlight>.
-        </p>
+            <GithubGistSnippet Title="Fitness Test to Enforce REPR Pattern in Endpoints" UserId="fingers10" FileName="faf88d3573e934270b69f7c9f4c7cdd2"></GithubGistSnippet>
 
-        <p>
-            Software architecture, akin to a well-thought-out <ContentHighlight>blueprint</ContentHighlight>, is essential for a robust system. However, as 
-            <ContentHighlight>deadlines loom and pressure mounts, corners might be cut, leading to architectural erosion</ContentHighlight>. NetArchTest acts as a 
-            safeguard, ensuring that your architecture doesn't crumble under the weight of compromises. By automating the verification process, it guarantees that 
-            your software adheres to the predefined architectural patterns and rules, even amidst rapid development cycles.
-        </p>
+            <GithubGistSnippet Title="Fitness Test to Enforce Clean Architecture" UserId="fingers10" FileName="a780a3e663c3e5d8580d36ec21971b5f"></GithubGistSnippet>
 
-        
+            <GithubGistSnippet Title="Fitness Test to Enforce rules for Commands and Queries" UserId="fingers10" FileName="07ef2e828f0e79aedc857b9911cf2683"></GithubGistSnippet>
 
-        <h3 id="what-is-fitness-test">What is Fitness Test ?</h3>
+            <GithubGistSnippet Title="Fitness Test to Enforce Encapsulation in Domain Entities" UserId="fingers10" FileName="6f28c80744eb81b27ff1a09c7d4a0b74"></GithubGistSnippet>
 
-        <p>
-            <ContentHighlight>NetArchTest</ContentHighlight> is a sophisticated library that empowers developers to write fitness tests effortlessly. By 
-            leveraging NetArchTest, developers can <ContentHighlight>enforce architectural rules and validate design decisions</ContentHighlight>. The library 
-            <ContentHighlight>scans the imported namespaces of your types</ContentHighlight>, allowing you to <ContentHighlight>define both positive and negative 
-            conditions for your architecture</ContentHighlight>. Whether you're aiming to enforce dependencies between layers, validate design rules, or 
-            maintain design integrity, NetArchTest provides a simple and effective mechanism to achieve these goals.
-        </p>
+            <p>
+                The above code snippets demonstrate how you can enforce architectural rules using NetArchTest. By defining rules that align with your architectural 
+                vision, you can ensure that your software remains consistent and resilient. Whether you're enforcing the REPR pattern in your endpoints, validating 
+                Clean Architecture principles, or enforcing encapsulation in domain entities, NetArchTest provides a robust mechanism to safeguard your architectural 
+                integrity.
+            </p>
 
-        
+            <p>
+                But sometimes it will be difficult to debug these test to understand which class is making the violations. To identify them easily you can use the 
+                below policy extension to report and write failures to Test Output Logs.
+            </p>
 
-        <h3 id="implementing-fitness-test">Implementing Fitness Test</h3>
+            <GithubGistSnippet Title="Policy Extension to report and write failures to Test Output Logs" UserId="fingers10" FileName="157c9bfbf8594745e8de9d2fb6debc38"></GithubGistSnippet>
 
-        <p>
-            Implementing NetArchTest in your project is seamless. Start by creating a <ContentHighlight>new test project</ContentHighlight> within your development 
-            environment. Then, install the <ContentHighlight>NetArchTest.Rules</ContentHighlight> NuGet package, which equips you with the necessary boilerplate 
-            code to initiate your tests. The library's core revolves around the <ContentHighlight>Types class</ContentHighlight>, enabling you to load and filter 
-            types based on various criteria. Once your types are selected, you can define rules using <ContentHighlight>Should</ContentHighlight> or 
-            <ContentHighlight>ShouldNot</ContentHighlight> conditions, ensuring that your architecture aligns with your predefined specifications.
-        </p>
+            <p>
+                Here are some design rules that you can enforce:
+            </p>
 
-        <GithubGistSnippet Title="Fitness Test to Enforce REPR Pattern in Endpoints" UserId="fingers10" FileName="faf88d3573e934270b69f7c9f4c7cdd2"></GithubGistSnippet>
+            <ul>
+                <li>Domain entities must be encapsulated</li>
+                <li>Services must be internal</li>
+                <li>Entities and Value objects must be sealed</li>
+                <li>Controllers can't depend on repositories directly</li>
+                <li>Command (or query) handlers must follow a naming convention</li>
+                <li>Following naming conventions for classes</li>
+            </ul>            
+        </How>
 
-        
-
-        <GithubGistSnippet Title="Fitness Test to Enforce Clean Architecture" UserId="fingers10" FileName="a780a3e663c3e5d8580d36ec21971b5f"></GithubGistSnippet>
-
-        
-
-        <GithubGistSnippet Title="Fitness Test to Enforce rules for Commands and Queries" UserId="fingers10" FileName="07ef2e828f0e79aedc857b9911cf2683"></GithubGistSnippet>
-
-        
-
-        <GithubGistSnippet Title="Fitness Test to Enforce Encapsulation in Domain Entities" UserId="fingers10" FileName="6f28c80744eb81b27ff1a09c7d4a0b74"></GithubGistSnippet>
-
-        
-
-        <p>
-            Here are some design rules that you can enforce:
-        </p>
-
-        <ul>
-            <li>Domain entities must be encapsulated</li>
-            <li>Services must be internal</li>
-            <li>Entities and Value objects must be sealed</li>
-            <li>Controllers can't depend on repositories directly</li>
-            <li>Command (or query) handlers must follow a naming convention</li>
-        </ul>
-
-        
-
-        <h3 id="advantages">Advantages</h3>
-
-        <p>
-            The advantages of Architecture tests are as follows,
-        </p>
-
-        <ul>
-            <li>
-                <ContentHighlight>Maintain Design Integrity</ContentHighlight>: NetArchTest acts as a guardian, preserving the consistent design and structure 
-                of your software as it evolves over time. It prevents architectural drift, ensuring that your initial vision remains intact.
-            </li>
-            <li>
-                <ContentHighlight>Early Issue Detection</ContentHighlight>: By catching architectural discrepancies early in the development process, NetArchTest 
-                prevents potential complications that might arise due to structural flaws. Early detection translates to easier debugging and resolution.
-            </li>
-            <li>
-                <ContentHighlight>Improved Collaboration</ContentHighlight>: Clear architectural rules and automated tests make it easier for developers to 
-                comprehend the system's design. This shared understanding fosters smoother collaboration, particularly in large teams or when onboarding new 
-                members.
-            </li>
-            <li>
-                <ContentHighlight>Quality Assurance</ContentHighlight>: A robust architecture is the cornerstone of high-quality software. NetArchTest contributes 
-                significantly to the overall quality and reliability of your software by validating structural decisions and enforcing design rules.
-            </li>
-        </ul>
-
-        
-
-        <h3 id="summary">Summary</h3>
-
-        <p>
+        <Summary>
             In essence, <ContentHighlight>NetArchTest</ContentHighlight> emerges as a <ContentHighlight>proactive measure</ContentHighlight>, ensuring that the 
             <ContentHighlight>backbone of your software remains resilient and consistent</ContentHighlight>. By automating the verification of architectural 
             patterns and design rules, it not only saves time but also prevents potential headaches in the long run. As software projects grow in complexity, 
             embracing tools like NetArchTest becomes essential, <ContentHighlight>safeguarding your architectural vision</ContentHighlight> and bolstering the 
             reliability of your software systems. So, the next time you embark on a development journey, consider NetArchTest as your loyal sentinel, guarding 
             your software's architectural integrity with unwavering vigilance.
-        </p>
+        </Summary>>
     </ContentBody>
 </Content>

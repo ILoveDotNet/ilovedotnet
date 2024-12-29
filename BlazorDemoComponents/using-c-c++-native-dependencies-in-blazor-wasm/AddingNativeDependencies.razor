@@ -1,0 +1,141 @@
+@page "/blogs/using-c-c++-native-dependencies-in-blazor-wasm"
+@using BlazorDemoComponents
+@inherits BasePage
+
+<Content FileName=@nameof(AddingNativeDependencies) UseNewTableOfContentsMenu=true>
+    <ContentBody>
+        <What>
+            <p>
+                In this article let's learn how to use libraries written in other languages like <ContentHighlight>C/C++</ContentHighlight> in Blazor WebAssembly 
+                directly in browser. Thanks to the fact that we have blazor running on WebAssembly. we also get access to other things. All these are made 
+                possible with WebAssembly.
+            </p>
+        </What>
+
+        <Why>
+            <p>
+                The main reason to use libraries written in other languages is that it gives us access to <ContentHighlight>powerful and highly optimized code 
+                that is already battle tested and refined without reinventing the wheel</ContentHighlight>. These libraries performs the task at 
+                <ContentHighlight>near Native speeds</ContentHighlight> and WebAssembly gives us the ability to run these code directly in browser with similar 
+                performance like how we run in desktop machine <ContentHighlight>without need of javascript</ContentHighlight>.
+            </p>
+
+            <p>
+                For example, we can take graphic libraries already written in other languages and reuse them without reinventing the wheel in dotnet. 
+                <ContentHighlight>Skia</ContentHighlight> library written in C++ is a good example. It is a powerful 2D graphics library that is already used 
+                in <ContentHighlight>android, chrome, flutter</ContentHighlight> to render highly quality graphics.
+            </p>
+        </Why>
+
+        <How>
+            <strong>
+                Please note that as of writing this, Native Dependencies are not supported with Lazy Loaded Assemblies. As a workaround, you need 
+                refer the Native Dependencies from startup project instead of Lazy Loaded RCL.
+            </strong>
+
+            <p>
+                All you need to do is,
+            </p>
+
+            <ol>
+                <li>Create a new standalone Blazor WebAssembly project.</li>
+                <li>
+                    <p>Add a <ContentHighlight>Test.c</ContentHighlight> file to the project.</p>
+                    <GithubGistSnippet Title="Simple C Test file" UserId="fingers10" FileName="e985fd30a4e3fc5b8257f4adc46229c2"></GithubGistSnippet>
+                </li>
+                <li>
+                    <p>Add a <ContentHighlight>NativeFileReference</ContentHighlight> for <ContentHighlight>Test.c</ContentHighlight> in the app's project file.</p>
+                    <GithubGistSnippet Title="NativeFileReference for Test.c" UserId="fingers10" FileName="81ed7c3569c182dbf97741750ebc0352"></GithubGistSnippet>
+                </li>
+                <li>
+                    <p>
+                        In a Razor component, add a <ContentHighlight>DllImportAttribute</ContentHighlight> for the <ContentHighlight>fact</ContentHighlight> 
+                        function in the generated Test library and call the fact method from .NET code in the component.
+                    </p>
+                    <GithubGistSnippet Title="Calling C function from C#" UserId="fingers10" FileName="7a59adc3627d81a328c85112f08d212c"></GithubGistSnippet>
+                </li>
+                <li>
+                    When you build the app with the .NET WebAssembly build tools installed, the <ContentHighlight>native C code is compiled and linked into 
+                    the .NET WebAssembly runtime (dotnet.wasm)</ContentHighlight>. After the app is built, run the app to see the rendered factorial number.
+                </li>
+            </ol>
+
+            <DemoSnippet Title="Running Native C Code in Blazor WASM">
+                <Error>
+                    <NativeCDemo />
+                </Error>
+            </DemoSnippet>
+
+            <p>
+                That's a very simple and basic example. Let's try some complex example like generating a <ContentHighlight>.NET logo</ContentHighlight> using 
+                <ContentHighlight>Skia Sharp</ContentHighlight> library in Blazor WebAssembly.
+            </p>
+
+            <GithubGistSnippet Title="Drawing a .NET logo using Skia Sharp in Blazor WASM" UserId="fingers10" FileName="a012df0c0406749b02e666734d7f9257"></GithubGistSnippet>
+
+            <ol>
+                <li>Install the <ContentHighlight>SkiaSharp.Views.Blazor</ContentHighlight> NuGet package in your Blazor application.</li>
+                <li>
+                    The <ContentHighlight>SKCanvasView</ContentHighlight> component is used to render <ContentHighlight>SkiaSharp graphics</ContentHighlight>. 
+                    It triggers the <ContentHighlight>OnPaintSurface event</ContentHighlight> whenever the canvas needs to be redrawn.
+                </li>
+                <li>
+                    <ContentHighlight>canvas.Clear(SKColors.Transparent);</ContentHighlight> clears the canvas with a transparent color to ensure a clean 
+                    rendering surface.
+                </li>
+                <li>
+                    A square background is drawn using <ContentHighlight>SKPaint</ContentHighlight> with the fill style and a purple color 
+                    <ContentHighlight>#512bd4</ContentHighlight>.
+                </li>
+                <li>
+                    The <ContentHighlight>canvas.DrawRect</ContentHighlight> method is used to draw a rectangle spanning the entire canvas dimensions 
+                    (<ContentHighlight>info.Width</ContentHighlight> and <ContentHighlight>info.Height</ContentHighlight>).
+                </li>
+                <li>
+                    The <ContentHighlight>.NET</ContentHighlight> text is drawn using <ContentHighlight>SKFont</ContentHighlight> and 
+                    <ContentHighlight>SKPaint</ContentHighlight>.
+                </li>
+                <li>
+                    <ContentHighlight>SKFont</ContentHighlight> defines the font style and size. The font size is calculated as 20% of the canvas width 
+                    (<ContentHighlight>info.Width * 0.2f</ContentHighlight>).
+                </li>
+                <li><ContentHighlight>SKPaint</ContentHighlight> specifies the text color (white) and enables anti-aliasing for smoother edges.</li>
+                <li>
+                    The text's bounds are measured using the <ContentHighlight>font.MeasureText</ContentHighlight> method with 
+                    <ContentHighlight>text.AsSpan()</ContentHighlight>, which calculates the size of the text in pixels and stores it in the 
+                    <ContentHighlight>bounds</ContentHighlight> variable.
+                </li>
+                <li>
+                    The text is centered by aligning its midpoint (<ContentHighlight>bounds.MidX</ContentHighlight> and 
+                    <ContentHighlight>bounds.MidY</ContentHighlight>) with the center of the canvas 
+                    (<ContentHighlight>info.Width / 2</ContentHighlight> and <ContentHighlight>info.Height / 2</ContentHighlight>).
+                </li>
+                <li>
+                    The <ContentHighlight>canvas.DrawText</ContentHighlight> method draws the <ContentHighlight>.NET</ContentHighlight> text at the calculated 
+                    <ContentHighlight>x</ContentHighlight> and <ContentHighlight>y</ContentHighlight> positions.
+                </li>
+            </ol>
+
+            <DemoSnippet Title="Skia Sharp in Blazor WASM">
+                <Error>
+                    <SkiaSharpDemo />
+                </Error>
+            </DemoSnippet>
+
+            <h3>Why Use SkiaSharp in Blazor?</h3>
+
+            <ul>
+                <li><ContentHighlight>Cross-Platform</ContentHighlight>: SkiaSharp works seamlessly across multiple platforms.</li>
+                <li><ContentHighlight>High Performance</ContentHighlight>: It leverages native graphics rendering for smooth and fast visuals.</li>
+                <li><ContentHighlight>Flexibility</ContentHighlight>: Easily create complex graphics, animations, and custom designs.</li>
+            </ul>
+        </How>
+
+        <Summary>
+            In this article, we learnt about why to <ContentHighlight>reuse</ContentHighlight> other libraries in blazor and how to implement it with a 
+            simple example as a native dependency. We also learnt about how to use <ContentHighlight>SkiaSharp</ContentHighlight> library to draw .NET logo 
+            graphics in blazor WebAssembly. This helps us to unlock huge possibilities to resue well tested libraries written in other languages in 
+            <ContentHighlight>Blazor WebAssembly without need of javascript</ContentHighlight>.
+        </Summary>
+    </ContentBody>
+</Content>

@@ -243,7 +243,7 @@ public class WebAPILearningPath
                 Channel = "WebAPI",
                 Type = "blogs",
                 CreatedOn = new DateTime(2023, 11, 5, 22, 30, 0, DateTimeKind.Utc),
-                ModifiedOn = new DateTime(2023, 11, 5, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2024, 12, 29, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Architecture Test", "Fitness Functions", "Fitness Test", "NetArchTest"]
             },
             new ContentMetaData
