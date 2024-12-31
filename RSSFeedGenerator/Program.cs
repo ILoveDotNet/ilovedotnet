@@ -20,6 +20,7 @@ var feed = new SyndicationFeed(
     Language = "en",
     Items = tableOfContents
             .AllContents
+            .OrderByDescending(content => content.ModifiedOn)
             .Select(content => new SyndicationItem(
                 content.Title, 
                 content.Description, 
@@ -29,7 +30,6 @@ var feed = new SyndicationFeed(
                 {
                     PublishDate = new DateTime(content.CreatedOn.Year, content.CreatedOn.Month, content.CreatedOn.Day, content.CreatedOn.Hour, content.CreatedOn.Minute, content.CreatedOn.Second),
                     Summary = new TextSyndicationContent(content.Description),
-                    Content = new TextSyndicationContent(content.Description),
                     Categories = { new SyndicationCategory(content.Channel.Replace("-", " ")) },
                     Authors = { author }
                 }),
