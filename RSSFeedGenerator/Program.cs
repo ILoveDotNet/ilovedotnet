@@ -1,6 +1,5 @@
-﻿using System.ServiceModel.Syndication;
+using System.ServiceModel.Syndication;
 using System.Xml;
-using System.Xml.Linq;
 using CommandLineSwitchParser;
 using SharedModels;
 
@@ -9,11 +8,6 @@ var option = CommandLineSwitch.Parse<CommandLineOptions>(ref args);
 var tableOfContents = new TableOfContents();
 
 var author = new SyndicationPerson("abdulrahman.smsi+ilovedotnet@gmail.com", "Abdul Rahman", "https://linkedin.com/in/thebhai");
-                foreach (var social in tableOfContents.Authors.First().SocialUrls)
-                {
-                    author.ElementExtensions.Add(new XElement(social.Type.ToString(), social.Url.ToString()));
-                    author.AttributeExtensions.Add(new XmlQualifiedName(social.Type.ToString()), social.Url.ToString());
-                }
 
 var feed = new SyndicationFeed(
                 "I ❤️ DotNet",
