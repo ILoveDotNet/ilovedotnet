@@ -7,7 +7,7 @@ namespace CommonComponents.Pages;
 
 public class ChannelBase : ComponentBase
 {
-    protected string ContentType => $"{CultureInfo.CurrentUICulture.TextInfo.ToTitleCase(Name).Replace("-", " ")}";
+    protected string ContentType => $"{CultureInfo.CurrentUICulture.TextInfo.ToTitleCase(Name)}";
     protected string Title => $"{ContentType} - I ❤️ DotNet";
     protected string Description => $"This is a .NET {ContentType} knowledge sharing channel with live demos crafted by developers for developers with love.";
     protected string BaseUrl => Configuration.GetValue<string>("baseUrl")!;
@@ -21,7 +21,7 @@ public class ChannelBase : ComponentBase
     [Inject] private NavigationManager NavigationManager { get; set; } = default!;
     [Inject] private TableOfContents TableOfContents { get; set; } = default!;
 
-    [Parameter, EditorRequired] public string Name { get; set; } = default!;
+    [Parameter, EditorRequired, SupplyParameterFromQuery] public string Name { get; set; } = default!;
 
     protected override void OnInitialized()
     {
