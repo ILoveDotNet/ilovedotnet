@@ -16,6 +16,7 @@ var feed = new SyndicationFeed(
                 "http://ilovedotnet.org",
                 DateTime.Now)
 {
+    TimeToLive = TimeSpan.FromHours(24),
     Copyright = new TextSyndicationContent($"Copyright {DateTime.Now.Year}"),
     Language = "en",
     Items = tableOfContents
