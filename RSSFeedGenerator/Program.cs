@@ -37,6 +37,6 @@ var feed = new SyndicationFeed(
     Authors = { author }
 };
 
-using var rssWriter = XmlWriter.Create(option.OutputPath ?? "rss.xml", new XmlWriterSettings { Indent = true });
+using var rssWriter = XmlWriter.Create(option.OutputPath ?? "atom.xml", new XmlWriterSettings { Indent = true });
 var rssFormatter = new Rss20FeedFormatter(feed);
 rssFormatter.WriteTo(rssWriter);
