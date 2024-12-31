@@ -25,9 +25,9 @@ var feed = new SyndicationFeed(
                 content.Description, 
                 new Uri($"http://ilovedotnet.org/{content.Type}/{content.Slug}"),
                 $"http://ilovedotnet.org/{content.Type}/{content.Slug}",
-                content.ModifiedOn)
+                new DateTime(content.ModifiedOn.Year, content.ModifiedOn.Month, content.ModifiedOn.Day, content.ModifiedOn.Hour, content.ModifiedOn.Minute, content.ModifiedOn.Second))
                 {
-                    PublishDate = content.CreatedOn,
+                    PublishDate = new DateTime(content.CreatedOn.Year, content.CreatedOn.Month, content.CreatedOn.Day, content.CreatedOn.Hour, content.CreatedOn.Minute, content.CreatedOn.Second),
                     Summary = new TextSyndicationContent(content.Description),
                     Content = new TextSyndicationContent(content.Description),
                     Categories = { new SyndicationCategory(content.Channel.Replace("-", " ")) },
