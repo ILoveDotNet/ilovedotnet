@@ -51,6 +51,12 @@ public class TableOfContents
             => (ushort)FullContents
                         .Count(content => content.Channel.Equals(GetContentBySlug(slug).Channel, StringComparison.OrdinalIgnoreCase));
 
+    public IReadOnlyList<ContentMetaData> GetContentsByChannel(string channel) 
+            => [.. FullContents
+                .Where(content => content.Channel.Equals(channel, StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(content => content.ModifiedOn)
+                .ThenByDescending(content => content.CreatedOn)];
+
     public TableOfContents()
     {
         FullContents.AddRange(new BlazorLearningPath().FullContents);
