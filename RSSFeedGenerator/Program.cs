@@ -10,7 +10,7 @@ var tableOfContents = new TableOfContents();
 var author = new SyndicationPerson("abdulrahman.smsi+ilovedotnet@gmail.com", "Abdul Rahman", "https://linkedin.com/in/thebhai");
 
 var feed = new SyndicationFeed(
-                "I ❤️ DotNet",
+                "I Love .NET",
                 "This is a .NET knowledge sharing platform with live demos crafted by developers for developers with love.",
                 new Uri("http://ilovedotnet.org"),
                 "http://ilovedotnet.org",
