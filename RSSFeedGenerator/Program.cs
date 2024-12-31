@@ -14,9 +14,9 @@ var feed = new SyndicationFeed(
                 "This is a .NET knowledge sharing platform with live demos crafted by developers for developers with love.",
                 new Uri("http://ilovedotnet.org"),
                 "http://ilovedotnet.org",
-                DateTimeOffset.UtcNow)
+                DateTime.Now)
 {
-    Copyright = new TextSyndicationContent($"Copyright {DateTime.UtcNow.Year}"),
+    Copyright = new TextSyndicationContent($"Copyright {DateTime.Now.Year}"),
     Language = "en",
     Items = tableOfContents
             .AllContents
