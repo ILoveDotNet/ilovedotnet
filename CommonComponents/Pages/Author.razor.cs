@@ -22,6 +22,8 @@ public class AuthorBase : ComponentBase
 
     protected override void OnInitialized()
     {
+        Name = Name.Replace("-", " ");
+
         Author = TableOfContents.Authors
                                 .FirstOrDefault(author => author.Name.Equals(Name, StringComparison.OrdinalIgnoreCase), AuthorMetaData.NullAuthor);
 
