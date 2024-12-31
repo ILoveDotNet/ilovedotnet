@@ -13,7 +13,7 @@ var feed = new SyndicationFeed(
                 "I ❤️ DotNet",
                 "This is a .NET knowledge sharing platform with live demos crafted by developers for developers with love.",
                 new Uri("http://ilovedotnet.org"),
-                "ilovedotnet",
+                "http://ilovedotnet.org",
                 DateTimeOffset.UtcNow)
 {
     Copyright = new TextSyndicationContent($"Copyright {DateTime.UtcNow.Year}"),
