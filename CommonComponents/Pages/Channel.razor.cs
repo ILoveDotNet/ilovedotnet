@@ -25,6 +25,8 @@ public class ChannelBase : ComponentBase
 
     protected override void OnInitialized()
     {
+        Name = Name.RemoveHyphen();
+
         var channelContents = TableOfContents.AllContents
                                   .Where(content => content.Channel.Equals(Name, StringComparison.OrdinalIgnoreCase))
                                   .ToList();
