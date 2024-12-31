@@ -1,4 +1,4 @@
-﻿using System.ServiceModel.Syndication;
+using System.ServiceModel.Syndication;
 using System.Xml;
 using CommandLineSwitchParser;
 using SharedModels;
@@ -20,8 +20,15 @@ var feed = new SyndicationFeed(
                 content.Title, 
                 content.Description, 
                 new Uri($"http://ilovedotnet.org/{content.Type}/{content.Slug}"),
-                content.Slug,
-                content.ModifiedOn)),
+                $"http://ilovedotnet.org/{content.Type}/{content.Slug}",
+                content.ModifiedOn)
+                {
+                    PublishDate = content.CreatedOn,
+                    Summary = new TextSyndicationContent(content.Description),
+                    Content = new TextSyndicationContent(content.Description),
+                    Categories = { new SyndicationCategory(content.Channel.Replace("-", " ")) },
+                    Authors = { new SyndicationPerson("abdulrahman.smsi+ilovedotnet@gmail.com", "Abdul Rahman", "https://linkedin.com/in/thebhai") },
+                }),
     ImageUrl = new Uri("https://ilovedotnet.org/image/brand/mini-logo.png"),
 };
 
