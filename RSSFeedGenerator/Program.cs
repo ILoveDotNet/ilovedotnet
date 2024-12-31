@@ -1,4 +1,4 @@
-using System.ServiceModel.Syndication;
+﻿using System.ServiceModel.Syndication;
 using System.Xml;
 using CommandLineSwitchParser;
 using SharedModels;
@@ -17,7 +17,7 @@ var feed = new SyndicationFeed(
                 DateTimeOffset.UtcNow)
 {
     Copyright = new TextSyndicationContent($"Copyright {DateTime.UtcNow.Year}"),
-    Language = "en-IN",
+    Language = "en",
     Items = tableOfContents
             .AllContents
             .Select(content => new SyndicationItem(
