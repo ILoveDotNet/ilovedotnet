@@ -1,9 +1,19 @@
 using System.ServiceModel.Syndication;
 using System.Xml;
+using System.Xml.Linq;
 using CommandLineSwitchParser;
 using SharedModels;
 
 var option = CommandLineSwitch.Parse<CommandLineOptions>(ref args);
+
+var tableOfContents = new TableOfContents();
+
+var author = new SyndicationPerson("abdulrahman.smsi+ilovedotnet@gmail.com", "Abdul Rahman", "https://linkedin.com/in/thebhai");
+                foreach (var social in tableOfContents.Authors.First().SocialUrls)
+                {
+                    author.ElementExtensions.Add(new XElement(social.Type.ToString(), social.Url.ToString()));
+                    author.AttributeExtensions.Add(new XmlQualifiedName(social.Type.ToString()), social.Url.ToString());
+                }
 
 var feed = new SyndicationFeed(
                 "I ❤️ DotNet",
@@ -14,7 +24,7 @@ var feed = new SyndicationFeed(
 {
     Copyright = new TextSyndicationContent($"Copyright {DateTime.UtcNow.Year}"),
     Language = "en-IN",
-    Items = new TableOfContents()
+    Items = tableOfContents
             .AllContents
             .Select(content => new SyndicationItem(
                 content.Title, 
@@ -27,14 +37,12 @@ var feed = new SyndicationFeed(
                     Summary = new TextSyndicationContent(content.Description),
                     Content = new TextSyndicationContent(content.Description),
                     Categories = { new SyndicationCategory(content.Channel.Replace("-", " ")) },
-                    Authors = { new SyndicationPerson("abdulrahman.smsi+ilovedotnet@gmail.com", "Abdul Rahman", "https://linkedin.com/in/thebhai") },
+                    Authors = { author }
                 }),
     ImageUrl = new Uri("https://ilovedotnet.org/image/brand/mini-logo.png"),
+    Authors = { author }
 };
 
-var person = new SyndicationPerson("abdulrahman.smsi+ilovedotnet@gmail.com", "Abdul Rahman", "https://linkedin.com/in/thebhai");
-feed.Authors.Add(person);
-
-using var writer = XmlWriter.Create(option.OutputPath ?? "feed.xml", new XmlWriterSettings { Indent = true });
+using var rssWriter = XmlWriter.Create(option.OutputPath ?? "feed.xml", new XmlWriterSettings { Indent = true });
 var rssFormatter = new Rss20FeedFormatter(feed);
 rssFormatter.WriteTo(writer);
