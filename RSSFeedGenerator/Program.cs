@@ -31,7 +31,7 @@ var feed = new SyndicationFeed(
                 {
                     PublishDate = new DateTime(content.CreatedOn.Year, content.CreatedOn.Month, content.CreatedOn.Day, content.CreatedOn.Hour, content.CreatedOn.Minute, content.CreatedOn.Second),
                     Summary = new TextSyndicationContent(content.Description),
-                    Categories = { new SyndicationCategory(content.Channel.Replace("-", " ")) },
+                    Categories = { new SyndicationCategory(content.Channel) },
                     Authors = { author }
                 }),
     ImageUrl = new Uri("https://ilovedotnet.org/image/brand/mini-logo.png"),
