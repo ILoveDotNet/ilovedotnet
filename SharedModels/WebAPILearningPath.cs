@@ -331,6 +331,23 @@ public class WebAPILearningPath
                 ModifiedOn = new DateTime(2024, 11, 3, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Health Check", "Alive"]
             },
+            new ContentMetaData
+            {
+                Order = 20,
+                Title = "Using NBomber for Performance, Load and Stress testing in ASP.NET WEB API",
+                Description = "In this post I will teach how to use nbomber for running performance test in ASP.NET Web API. All with live working demo.",
+                Author = "Abdul Rahman",
+                Slug = "using-nbomber-for-performance-load-and-stress-testing-in-asp-net-webapi",
+                PosterUrl = "image/blogs/webapi/using-nbomber-for-performance-load-and-stress-testing-in-asp-net-webapi.webp",
+                ThumbnailUrl = "image/blogs/webapi/using-nbomber-for-performance-load-and-stress-testing-in-asp-net-webapi.webp",
+                ContentUrl = "blogs/using-nbomber-for-performance-load-and-stress-testing-in-asp-net-webapi",
+                IconUrl = "image/icons/web api.webp",
+                Channel = "Web API",
+                Type = "blogs",
+                CreatedOn = new DateTime(2025, 1, 5, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2025, 1, 5, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Performance Test", "Load Test", "Stress Test", "NBomber"]
+            },
         ];
     }
 }

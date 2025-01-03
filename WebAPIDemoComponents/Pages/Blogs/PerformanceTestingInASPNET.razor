@@ -1,0 +1,239 @@
+﻿@page "/blogs/using-nbomber-for-performance-load-and-stress-testing-in-asp-net-webapi"
+@inherits BasePage
+
+<Content FileName=@nameof(PerformanceTestingInASPNET) UseNewTableOfContentsMenu=true>
+    <ContentBody>
+        <What>
+            <p>
+                Performance testing helps you understand how your application behaves under heavy load, such as when
+                <ContentHighlight>10, 100, or 10,000 users</ContentHighlight> access it simultaneously. This involves
+                using <ContentHighlight>performance, load, and stress tests</ContentHighlight> to identify bottlenecks
+                and ensure your application performs reliably. Focus on <ContentHighlight>high-usage features (hot
+                    paths)</ContentHighlight>, as they are most likely to slow down under load. Begin with simple tests,
+                particularly those targeting <ContentHighlight>shared resources like databases</ContentHighlight>, to
+                establish a foundation for optimization.
+            </p>
+            <p>
+                When conducting these tests, avoid running them in <ContentHighlight>production environments
+                </ContentHighlight> unless it's carefully planned, as they can strain resources and disrupt users.
+                Leverage <ContentHighlight>metrics and telemetry</ContentHighlight> to identify performance issues and
+                prioritize fixes. Keep in mind that addressing one bottleneck can shift the issue elsewhere, which is a
+                natural part of performance testing. To perform these tests, use tools like <ContentHighlight>NBomber
+                    for .NET</ContentHighlight>, which allows you to write tests in C#. For more advanced needs,
+                consider <ContentHighlight>JMeter</ContentHighlight>, a standard load-testing framework.
+            </p>
+            <p>
+                It's best to test <ContentHighlight>APIs</ContentHighlight> rather than UIs, as the backend typically
+                contains <ContentHighlight>shared resources</ContentHighlight> that need optimization. Run your tests in
+                <ContentHighlight>release mode</ContentHighlight> to obtain the most accurate results. Always compare
+                the <ContentHighlight>performance of new code versions</ContentHighlight> against previous ones to
+                identify potential regressions or improvements. These comparisons will help you refine your
+                application's performance iteratively.
+            </p>
+        </What>
+
+        <Why>
+            <p>
+                Performance testing revolves around answering key questions about your application's behavior. Monitor
+                metrics like <ContentHighlight>throughput and response times</ContentHighlight> to ensure consistent
+                performance after an initial <ContentHighlight>warm-up period</ContentHighlight>. Pay close attention to
+                <ContentHighlight>memory usage</ContentHighlight>, as uncontrolled growth could indicate
+                <ContentHighlight>leaks</ContentHighlight> that eventually lead to crashes. Stabilizing memory under
+                load is critical to maintaining application reliability.
+            </p>
+            <p>
+                Another key focus is identifying the <ContentHighlight>breaking point</ContentHighlight> of your
+                application. Use varying <ContentHighlight>load levels and durations</ContentHighlight> to pinpoint when
+                performance starts to degrade. This analysis helps determine whether <ContentHighlight>scaling
+                </ContentHighlight>, such as adding API instances or increasing persistence layer resources, is
+                necessary. If you've released a <ContentHighlight>new version</ContentHighlight> of your application,
+                compare its performance to <ContentHighlight>previous versions</ContentHighlight>. Look for differences
+                in <ContentHighlight>response times</ContentHighlight> or <ContentHighlight>throughput
+                </ContentHighlight> and evaluate whether the changes are acceptable.
+            </p>
+            <p>
+                Performance testing is an <ContentHighlight>iterative process</ContentHighlight>. Refine your
+                <ContentHighlight>test code and parameters</ContentHighlight> based on the results to continuously
+                improve. Analyzing <ContentHighlight>metrics</ContentHighlight> and acting on the data will help you
+                ensure your application performs reliably under different load conditions.
+            </p>
+        </Why>
+
+        <How>
+            <p>
+                To perform performance testing in ASP.NET Web API,
+            </p>
+
+            <ol>
+                <li>
+                    <p>
+                        <ContentHighlight>Create a Console App:</ContentHighlight> Create a new console app using the
+                        built-in template. Place the project in a separate <ContentHighlight>subfolder
+                        </ContentHighlight>, such as `perf`, within your main code repository to keep it independent of
+                        your main application code.
+                    </p>
+
+                    <figure>
+                        <img src="./image/blogs/webapi/using-nbomber-for-performance-load-and-stress-testing-in-asp-net-webapi/Solution Structure.png"
+                            alt="Solution Structure" class="[ w-full ]" />
+                    </figure>
+                </li>
+                <li>
+                    <p>
+                        <ContentHighlight>Install NBomber:</ContentHighlight> Check the NBomber documentation for
+                        guidance. Add the <ContentHighlight>NBomber NuGet package</ContentHighlight> to your console
+                        app. NBomber is free for personal use and offers simple setup instructions, including a Hello
+                        World tutorial.
+                    </p>
+                </li>
+                <li>
+                    <p>
+                        <ContentHighlight>Define a Scenario:</ContentHighlight> Create a <ContentHighlight>scenario
+                        </ContentHighlight> using NBomber. Write logic to perform a specific task (e.g., hitting an API
+                        endpoint). Return a status (`Ok` or `Fail`) based on the response. Use a <ContentHighlight>
+                            shared HttpClient</ContentHighlight> to avoid excessive resource consumption.
+                    </p>
+
+                    <GithubGistSnippet Title="Define Scenario" UserId="fingers10"
+                        FileName="e840796b838e18a07b88a6fe888c908d"></GithubGistSnippet>
+                </li>
+                <li>
+                    <p>
+                        <ContentHighlight>Configure Load Generation:</ContentHighlight> Set up <ContentHighlight>load
+                            generation logic</ContentHighlight>. For example, inject 100 requests per second for 30
+                        seconds. Register the scenario with the NBomber runner and configure it to run.
+                    </p>
+
+                    <GithubGistSnippet Title="Configure Load Generation" UserId="fingers10"
+                        FileName="dde357664daece22e970b0d5b262698b"></GithubGistSnippet>
+                </li>
+                <li>
+                    <p>
+                        <ContentHighlight>Build and Run the App:</ContentHighlight> Build the app to ensure everything
+                        is set up correctly. Run your API in <ContentHighlight>release mode</ContentHighlight> using
+                        `dotnet run --configuration Release` to ensure optimized performance during testing.
+                    </p>
+
+                    <figure>
+                        <img src="./image/blogs/webapi/using-nbomber-for-performance-load-and-stress-testing-in-asp-net-webapi/API Project Running in Release Mode.png"
+                            alt="API Project Running in Release Mode" class="[ w-full ]" />
+                    </figure>
+
+                    <figure>
+                        <img src="./image/blogs/webapi/using-nbomber-for-performance-load-and-stress-testing-in-asp-net-webapi/Weather Forecast Response.png"
+                            alt="Weather Forecast Response" class="[ w-full ]" />
+                    </figure>
+                </li>
+                <li>
+                    <p>
+                        <ContentHighlight>Execute the Test:</ContentHighlight> Run the test from the terminal using
+                        `dotnet run`. Monitor the displayed information, including <ContentHighlight>injection rates
+                        </ContentHighlight> and response times. Adjust parameters as needed for further runs.
+                    </p>
+
+                    <figure>
+                        <img src="./image/blogs/webapi/using-nbomber-for-performance-load-and-stress-testing-in-asp-net-webapi/Performance Test Run Logs.png"
+                            alt="Performance Test Run Logs" class="[ w-full ]" />
+                    </figure>
+                </li>
+                <li>
+                    <p>
+                        <ContentHighlight>Review the Reports:</ContentHighlight> After the test, review the
+                        <ContentHighlight>HTML reports</ContentHighlight> generated by NBomber. Analyze key metrics like
+                        throughput, latency, response times, and CPU/memory usage. Watch for patterns such as
+                        continually climbing CPU/memory, which might indicate issues.
+                    </p>
+
+                    <figure>
+                        <img src="./image/blogs/webapi/using-nbomber-for-performance-load-and-stress-testing-in-asp-net-webapi/Performance Report Generated.png"
+                            alt="Performance Reports Generated" class="[ w-full ]" />
+                    </figure>
+
+                    <figure>
+                        <img src="./image/blogs/webapi/using-nbomber-for-performance-load-and-stress-testing-in-asp-net-webapi/Performance Report Dashboard.png"
+                            alt="Performance Report Dashboard" class="[ w-full ]" />
+                    </figure>
+
+                    <figure>
+                        <img src="./image/blogs/webapi/using-nbomber-for-performance-load-and-stress-testing-in-asp-net-webapi/DotNet Process Metrics.png"
+                            alt="DotNet Process Metrics" class="[ w-full ]" />
+                    </figure>
+                </li>
+            </ol>
+
+            <p>
+                The <ContentHighlight>NBomber.Http library</ContentHighlight> enhances load testing for
+                <ContentHighlight>HTTP-based APIs</ContentHighlight>, offering simplified code and additional metrics.
+                By using the <ContentHighlight>HTTP object</ContentHighlight> and enabling the <ContentHighlight>
+                    HttpMetricsPlugin</ContentHighlight>, developers gain insights into their API's performance, such as
+                connection and queue duration trends. This process, coupled with iterative refinement, ensures
+                comprehensive performance testing and improved application resilience.
+            </p>
+
+            <GithubGistSnippet Title="Measuring Http Metrics" UserId="fingers10"
+                FileName="39047b61d02bd4cc94d938147d18a962"></GithubGistSnippet>
+
+            <figure>
+                <img src="./image/blogs/webapi/using-nbomber-for-performance-load-and-stress-testing-in-asp-net-webapi/Performance Report Dashboard with Http Metrics.png"
+                    alt="Performance Report Dashboard with Http Metrics" class="[ w-full ]" />
+            </figure>
+
+            <ol>
+                <li>
+                    <p>
+                        <ContentHighlight>Experiment with Load Values:</ContentHighlight> Gradually increase the
+                        injection rate to observe system behavior under higher loads. For example, ramp up from 100 to
+                        800 new requests per second and analyze the latency, queue duration, and connection metrics.
+                    </p>
+                </li>
+                <li>
+                    <p>
+                        <ContentHighlight>Handle Test Completion:</ContentHighlight> Note that when the test ends,
+                        NBomber waits for any pending requests to complete before finalizing reports. This ensures all
+                        data is captured accurately.
+                    </p>
+                </li>
+                <li>
+                    <p>
+                        <ContentHighlight>Explore Load Simulations:</ContentHighlight> Review the <ContentHighlight>
+                            NBomber documentation</ContentHighlight> on load simulation. Understand different methods
+                        like <ContentHighlight>RampingInject</ContentHighlight>, which gradually transitions from a
+                        starting point to a target load over a specified duration.
+                    </p>
+
+                    <GithubGistSnippet Title="Changing Load to Ramping Inject" UserId="fingers10"
+                        FileName="90fbce8672000afb78694177c2494aea"></GithubGistSnippet>
+                </li>
+                <li>
+                    <p>
+                        <ContentHighlight>Analyze Results:</ContentHighlight> Run the test and evaluate the metrics.
+                        Check for trends such as increasing latency or operation timeouts as the load changes. Examine
+                        the <ContentHighlight>HTML report</ContentHighlight> for a detailed breakdown of the scenario
+                        chart and request performance.
+                    </p>
+
+                    <figure>
+                        <img src="./image/blogs/webapi/using-nbomber-for-performance-load-and-stress-testing-in-asp-net-webapi/Latency Increase.png"
+                            alt="Latency Increase" class="[ w-full ]" />
+                    </figure>
+
+                    <figure>
+                        <img src="./image/blogs/webapi/using-nbomber-for-performance-load-and-stress-testing-in-asp-net-webapi/Increase in Connection and Queuing.png"
+                            alt="Increase in Connection and Queuing" class="[ w-full ]" />
+                    </figure>
+                </li>
+            </ol>
+        </How>
+
+        <Summary>
+            <p>
+                Load testing involves setting up <ContentHighlight>independent console apps</ContentHighlight> with
+                tools like NBomber. By focusing on specific <ContentHighlight>scenarios</ContentHighlight>, like API
+                endpoints, you can evaluate performance under controlled conditions. Use <ContentHighlight>metrics
+                </ContentHighlight> and <ContentHighlight>reports</ContentHighlight> to identify areas of improvement,
+                starting simple and iterating based on results. This structured approach ensures reliable and repeatable
+                performance testing.
+            </p>
+        </Summary>
+    </ContentBody>
+</Content>
