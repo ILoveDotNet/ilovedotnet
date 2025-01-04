@@ -1,15 +1,23 @@
 using System.Xml.Linq;
+using SharedModels;
 
-internal class Sitemap
+public class Sitemap(TableOfContents tableOfContents, string channel)
 {
-    public List<Url> Urls { get; set; } = [];
+    private XDocument? _sitemap;
+    private readonly List<Url> _urls = tableOfContents.GetContentsByChannel(channel).Select(content => new Url
+    {
+        Loc = $"https://ilovedotnet.org/blogs/{content.Slug}",
+        LastMod = new DateTime(content.ModifiedOn.Year, content.ModifiedOn.Month, content.ModifiedOn.Day, content.ModifiedOn.Hour, content.ModifiedOn.Minute, content.ModifiedOn.Second),
+        ChangeFreq = "weekly",
+        Priority = 0.5
+    }).ToList(); 
 
     public void GenerateSitemap(string filePath)
     {
         XNamespace ns = "http://www.sitemaps.org/schemas/sitemap/0.9";
         XElement urlset = new(ns + "urlset");
 
-        foreach (var url in Urls)
+        foreach (var url in _urls)
         {
             XElement urlElement = new(ns + "url",
                 new XElement(ns + "loc", url.Loc),
@@ -22,5 +30,30 @@ internal class Sitemap
 
         XDocument sitemap = new(new XDeclaration("1.0", "UTF-8", "yes"), urlset);
         sitemap.Save(filePath);
+    }
+
+    public void LoadSitemap(string filePath)
+    {
+        if (File.Exists(filePath))
+        {
+            _sitemap = XDocument.Load(filePath);
+        }
+    }
+
+    public bool IsAnyContentUpdatedAndRepublished()
+    {
+        if (_sitemap is null)
+        {
+            return false;
+        }
+
+        XNamespace ns = "http://www.sitemaps.org/schemas/sitemap/0.9";
+
+        var isAnyContentUpdatedAndRepublished =  _urls.Any(url =>
+            _sitemap.Descendants(ns + "url").Any(existingUrl =>
+                existingUrl.Element(ns + "loc")?.Value == url.Loc &&
+                existingUrl.Element(ns + "lastmod")?.Value != url.LastMod.ToString("yyyy-MM-ddTHH:mm:sszzz")));
+
+        return isAnyContentUpdatedAndRepublished;
     }
 }

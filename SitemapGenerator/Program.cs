@@ -5,14 +5,13 @@ var option = CommandLineSwitch.Parse<CommandLineOptions>(ref args);
 
 var tableOfContents = new TableOfContents();
 
-var sitemap = new Sitemap() 
+var sitemap = new Sitemap(tableOfContents, option.Channel!);
+
+sitemap.LoadSitemap(option.OutputPath!);
+
+if (!sitemap.IsAnyContentUpdatedAndRepublished())
 {
-    Urls = tableOfContents.GetContentsByChannel(option.Channel!).Select(content => new Url
-    {
-        Loc = $"https://ilovedotnet.org/blogs/{content.Slug}",
-        LastMod = new DateTime(content.ModifiedOn.Year, content.ModifiedOn.Month, content.ModifiedOn.Day, content.ModifiedOn.Hour, content.ModifiedOn.Minute, content.ModifiedOn.Second),
-        ChangeFreq = "weekly",
-        Priority = 0.5
-    }).ToList() 
-};
+    return;
+}
+
 sitemap.GenerateSitemap(option.OutputPath!);
