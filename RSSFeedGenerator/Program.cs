@@ -23,7 +23,7 @@ if (File.Exists(option.OutputPath!))
 
         if(existingItemsCount == tableOfContents.AllContents.Count && !isAnyContentUpdatedAndRepublished)
         {
-            lastPublishedDateTime = existingFeed.LastUpdatedTime.DateTime;
+            return;
         }
     }
 }
