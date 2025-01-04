@@ -6,6 +6,27 @@ using SharedModels;
 var option = CommandLineSwitch.Parse<CommandLineOptions>(ref args);
 
 var tableOfContents = new TableOfContents();
+var lastPublishedDateTime = DateTime.Now;
+
+if (File.Exists(option.OutputPath!))
+{
+    using var reader = XmlReader.Create(option.OutputPath!);
+    var existingFeed = SyndicationFeed.Load(reader);
+    if (existingFeed != null)
+    {
+        var existingItemsCount = existingFeed.Items.Count();
+        var isAnyContentUpdatedAndRepublished = existingFeed
+            .Items.Any(existingItem => tableOfContents
+                                        .AllContents
+                                        .Any(content => content.Slug == existingItem.Id 
+                                                && content.ModifiedOn != existingItem.LastUpdatedTime.DateTime));
+
+        if(existingItemsCount == tableOfContents.AllContents.Count && !isAnyContentUpdatedAndRepublished)
+        {
+            lastPublishedDateTime = existingFeed.LastUpdatedTime.DateTime;
+        }
+    }
+}
 
 var author = new SyndicationPerson("abdulrahman.smsi+ilovedotnet@gmail.com", "Abdul Rahman", "https://linkedin.com/in/thebhai");
 
@@ -14,10 +35,10 @@ var feed = new SyndicationFeed(
                 "This is a .NET knowledge sharing platform with live demos crafted by developers for developers with love.",
                 new Uri("http://ilovedotnet.org"),
                 "http://ilovedotnet.org",
-                DateTime.Now)
+                lastPublishedDateTime)
 {
     TimeToLive = TimeSpan.FromHours(24),
-    Copyright = new TextSyndicationContent($"Copyright {DateTime.Now.Year}"),
+    Copyright = new TextSyndicationContent($"Copyright {lastPublishedDateTime.Year}"),
     Language = "en",
     Items = tableOfContents
             .AllContents
