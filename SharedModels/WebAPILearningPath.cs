@@ -2,7 +2,7 @@
 
 public class WebAPILearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(19);
+    public readonly List<ContentMetaData> FullContents = new(20);
 
     public WebAPILearningPath()
     {
