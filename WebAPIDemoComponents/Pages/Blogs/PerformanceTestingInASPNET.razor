@@ -9,7 +9,7 @@
                 <ContentHighlight>10, 100, or 10,000 users</ContentHighlight> access it simultaneously. This involves
                 using <ContentHighlight>performance, load, and stress tests</ContentHighlight> to identify bottlenecks
                 and ensure your application performs reliably. Focus on <ContentHighlight>high-usage features (hot
-                    paths)</ContentHighlight>, as they are most likely to slow down under load. Begin with simple tests,
+                paths)</ContentHighlight>, as they are most likely to slow down under load. Begin with simple tests,
                 particularly those targeting <ContentHighlight>shared resources like databases</ContentHighlight>, to
                 establish a foundation for optimization.
             </p>
@@ -19,7 +19,7 @@
                 Leverage <ContentHighlight>metrics and telemetry</ContentHighlight> to identify performance issues and
                 prioritize fixes. Keep in mind that addressing one bottleneck can shift the issue elsewhere, which is a
                 natural part of performance testing. To perform these tests, use tools like <ContentHighlight>NBomber
-                    for .NET</ContentHighlight>, which allows you to write tests in C#. For more advanced needs,
+                for .NET</ContentHighlight>, which allows you to write tests in C#. For more advanced needs,
                 consider <ContentHighlight>JMeter</ContentHighlight>, a standard load-testing framework.
             </p>
             <p>
@@ -127,8 +127,8 @@
                 <li>
                     <p>
                         <ContentHighlight>Execute the Test:</ContentHighlight> Run the test from the terminal using
-                        `dotnet run`. Monitor the displayed information, including <ContentHighlight>injection rates
-                        </ContentHighlight> and response times. Adjust parameters as needed for further runs.
+                        <ContentHighlight>dotnet run</ContentHighlight>. Monitor the displayed information, including 
+                        <ContentHighlight>injection rates</ContentHighlight> and response times. Adjust parameters as needed for further runs.
                     </p>
 
                     <figure>
@@ -161,11 +161,13 @@
                 </li>
             </ol>
 
+            <h4>Measuring Http Metrics</h4>
+
             <p>
                 The <ContentHighlight>NBomber.Http library</ContentHighlight> enhances load testing for
                 <ContentHighlight>HTTP-based APIs</ContentHighlight>, offering simplified code and additional metrics.
                 By using the <ContentHighlight>HTTP object</ContentHighlight> and enabling the <ContentHighlight>
-                    HttpMetricsPlugin</ContentHighlight>, developers gain insights into their API's performance, such as
+                HttpMetricsPlugin</ContentHighlight>, developers gain insights into their API's performance, such as
                 connection and queue duration trends. This process, coupled with iterative refinement, ensures
                 comprehensive performance testing and improved application resilience.
             </p>
@@ -177,6 +179,8 @@
                 <img src="./image/blogs/webapi/using-nbomber-for-performance-load-and-stress-testing-in-asp-net-webapi/Performance Report Dashboard with Http Metrics.png"
                     alt="Performance Report Dashboard with Http Metrics" class="[ w-full ]" />
             </figure>
+
+            <h4>Flat and Ramping Inject</h4>
 
             <ol>
                 <li>
@@ -196,7 +200,7 @@
                 <li>
                     <p>
                         <ContentHighlight>Explore Load Simulations:</ContentHighlight> Review the <ContentHighlight>
-                            NBomber documentation</ContentHighlight> on load simulation. Understand different methods
+                        NBomber documentation</ContentHighlight> on load simulation. Understand different methods
                         like <ContentHighlight>RampingInject</ContentHighlight>, which gradually transitions from a
                         starting point to a target load over a specified duration.
                     </p>
@@ -223,16 +227,183 @@
                     </figure>
                 </li>
             </ol>
+
+            <h4>Running Multiple Scenarios and Authentication</h4>
+
+            <ol>
+                <li>
+                    <p>
+                        We can also run multiple scenario's in parallel. In this example, we have two scenarios: one for
+                        reading the Weather forecast with different query parameters. Note that I have used
+                        <ContentHighlight>NBomber.Data</ContentHighlight> nuget package to use <ContentHighlight>IDataFeed</ContentHighlight>
+                        to pass query parameters from pre defined set. In the another scenario, I have used
+                        <ContentHighlight>WithInit()</ContentHighlight> to obtain bearer token and store it in a variable and use it
+                        in request header with the help of <ContentHighlight>IdentityModel</ContentHighlight> nuget
+                        package. Finally we need to resgiter the scenarios in the test run as shown below.
+                    </p>
+
+                    <GithubGistSnippet Title="Multiple Scenarios with Authentication" UserId="fingers10"
+                        FileName="76cda9f142dab56056bed630f265e9b4"></GithubGistSnippet>
+                </li>
+            </ol>
+
+            <h4>Grafana Dashboard and InfluxDB Integration</h4>
+
+            <ol>
+                <li>
+                    <p>
+                        <ContentHighlight>Why Use InfluxDB and Grafana:</ContentHighlight> For longer-running load tests
+                        or advanced analysis, leverage <ContentHighlight>InfluxDB</ContentHighlight>, a time-series
+                        database, and <ContentHighlight>Grafana</ContentHighlight>, a visualization tool. These tools
+                        enable detailed reporting and real-time exploration of test data.
+                    </p>
+                </li>
+                <li>
+                    <p>
+                        <ContentHighlight>Add the InfluxDBSink NuGet Package:</ContentHighlight> Integrate
+                        <ContentHighlight>NBomber.InfluxDBSink</ContentHighlight> by adding its NuGet package to your
+                        project. Configure the connection details using a JSON file to link to your InfluxDB instance.
+                    </p>
+
+                    <GithubGistSnippet Title="Infra Configuration JSON" UserId="fingers10"
+                        FileName="5d5e1651a55b9a563fd92df6c2882f6b"></GithubGistSnippet>
+
+                    <GithubGistSnippet Title="Link Infra Configuration with NBomber Performance Test" UserId="fingers10"
+                        FileName="f4140cad8cf838653673013ed4ddc843"></GithubGistSnippet>
+                </li>
+                <li>
+                    <p>
+                        <ContentHighlight>Set Up InfluxDB and Grafana Locally:</ContentHighlight> Use <ContentHighlight>
+                        Docker Compose</ContentHighlight> for a quick setup. Obtain the sample <ContentHighlight>
+                        docker-compose.yaml</ContentHighlight> file, which includes configurations for running
+                        <ContentHighlight>InfluxDB (v1.8.1)</ContentHighlight> and <ContentHighlight>Grafana (v8.5.2)</ContentHighlight> containers. 
+                        Update ports if needed to avoid conflicts with other services.
+                    </p>
+
+                    <GithubGistSnippet Title="Docker Compose YML" UserId="fingers10"
+                        FileName="d67234b5ab4d9817c8730ca465a63f6f"></GithubGistSnippet>
+                </li>
+                <li>
+                    <p>
+                        <ContentHighlight>Run Containers:</ContentHighlight> Pull the required Docker images and run the
+                        containers using <ContentHighlight>docker compose up --detach</ContentHighlight>. This will run
+                        InfluxDB and Grafana in the background while keeping your terminal available. Stop the
+                        containers later with <ContentHighlight>docker compose down</ContentHighlight>.
+                    </p>
+                </li>
+                <li>
+                    <p>
+                        <ContentHighlight>Configure InfluxDB as a Data Source in Grafana:</ContentHighlight> Access
+                        Grafana (e.g., on <ContentHighlight>http://localhost:3010</ContentHighlight>) and log in with
+                        the default credentials (<ContentHighlight>admin/admin</ContentHighlight>). Add a new data
+                        source for InfluxDB and use the Docker Compose service name (<ContentHighlight>InfluxDB
+                        </ContentHighlight>) and port <ContentHighlight>8086</ContentHighlight>. Specify the database
+                        name as <ContentHighlight>NBomber</ContentHighlight>.
+                    </p>
+
+                    <figure>
+                        <img src="./image/blogs/webapi/using-nbomber-for-performance-load-and-stress-testing-in-asp-net-webapi/Grafana Login.png"
+                            alt="Grafana Login" class="[ w-full ]" />
+                    </figure>
+
+                    <figure>
+                        <img src="./image/blogs/webapi/using-nbomber-for-performance-load-and-stress-testing-in-asp-net-webapi/Add Data Source.png"
+                            alt="Add Data Source" class="[ w-full ]" />
+                    </figure>
+
+                    <figure>
+                        <img src="./image/blogs/webapi/using-nbomber-for-performance-load-and-stress-testing-in-asp-net-webapi/Select Influx DB.png"
+                            alt="Select Influx DB" class="[ w-full ]" />
+                    </figure>
+
+                    <figure>
+                        <img src="./image/blogs/webapi/using-nbomber-for-performance-load-and-stress-testing-in-asp-net-webapi/Setup URL.png"
+                            alt="Setup URL" class="[ w-full ]" />
+                    </figure>
+
+                    <figure>
+                        <img src="./image/blogs/webapi/using-nbomber-for-performance-load-and-stress-testing-in-asp-net-webapi/Setup Database.png"
+                            alt="Setup Database" class="[ w-full ]" />
+                    </figure>
+
+                    <figure>
+                        <img src="./image/blogs/webapi/using-nbomber-for-performance-load-and-stress-testing-in-asp-net-webapi/Save Setup.png"
+                            alt="Save Setup" class="[ w-full ]" />
+                    </figure>
+                </li>
+                <li>
+                    <p>
+                        <ContentHighlight>Import Dashboards:</ContentHighlight> Import preconfigured dashboards from
+                        JSON files provided in the NBomber repository. Use the <ContentHighlight>nbomber_sessions
+                        </ContentHighlight> JSON for session data and the <ContentHighlight>NBomber</ContentHighlight>
+                        JSON for detailed test metrics. Link the imported dashboards to your InfluxDB data source.
+                    </p>
+
+                    <p>
+                        <strong>Note:</strong> Find the JSON files to import dashboards inside the 
+                        <ContentHighlight><a href="https://github.com/fingers10/PerformanceLoadStressTesting" target="_blank">PerformanceLoadStressTesting repo</a></ContentHighlight>
+                    </p>
+
+                    <figure>
+                        <img src="./image/blogs/webapi/using-nbomber-for-performance-load-and-stress-testing-in-asp-net-webapi/Import Dashboards.png"
+                            alt="Import Dashboards" class="[ w-full ]" />
+                    </figure>
+
+                    <figure>
+                        <img src="./image/blogs/webapi/using-nbomber-for-performance-load-and-stress-testing-in-asp-net-webapi/NBomber Dashboard in Grafana with Influx DB.png"
+                            alt="NBomber Dashboard in Grafana with Influx DB" class="[ w-full ]" />
+                    </figure>
+
+                    <figure>
+                        <img src="./image/blogs/webapi/using-nbomber-for-performance-load-and-stress-testing-in-asp-net-webapi/NBomber Dashboards inside Grafana.png"
+                            alt="NBomber Dashboards inside Grafana" class="[ w-full ]" />
+                    </figure>
+                </li>
+                <li>
+                    <p>
+                        <ContentHighlight>Run and Monitor Tests:</ContentHighlight> Start your NBomber load tests.
+                        During test execution, the <ContentHighlight>NBomber Sessions</ContentHighlight> dashboard
+                        displays real-time metrics such as CPU usage, throughput, latency, and data movement. Switch to
+                        the <ContentHighlight>NBomber</ContentHighlight> dashboard for scenario-specific details.
+                    </p>
+
+                    <figure>
+                        <img src="./image/blogs/webapi/using-nbomber-for-performance-load-and-stress-testing-in-asp-net-webapi/Performance Test Run Sessions.png"
+                            alt="Performance Test Run Sessions" class="[ w-full ]" />
+                    </figure>
+
+                    <figure>
+                        <img src="./image/blogs/webapi/using-nbomber-for-performance-load-and-stress-testing-in-asp-net-webapi/NBomber Performance Run Visualisation Dashboard.png"
+                            alt="NBomber Performance Run Visualisation Dashboard" class="[ w-full ]" />
+                    </figure>
+                </li>
+                <li>
+                    <p>
+                        <ContentHighlight>Benefits of Aggregated Reporting:</ContentHighlight> While overkill for
+                        single-instance tests, this setup is highly beneficial for aggregating results across multiple
+                        machines in a cluster, enabling more comprehensive performance analysis.
+                    </p>
+                </li>
+            </ol>
         </How>
 
         <Summary>
             <p>
-                Load testing involves setting up <ContentHighlight>independent console apps</ContentHighlight> with
-                tools like NBomber. By focusing on specific <ContentHighlight>scenarios</ContentHighlight>, like API
-                endpoints, you can evaluate performance under controlled conditions. Use <ContentHighlight>metrics
-                </ContentHighlight> and <ContentHighlight>reports</ContentHighlight> to identify areas of improvement,
-                starting simple and iterating based on results. This structured approach ensures reliable and repeatable
-                performance testing.
+                In this article, we learned about <ContentHighlight>NBomber</ContentHighlight>, a performance testing
+                framework for .NET applications, We learned how to run a simple performance test and then with
+                <ContentHighlight>HttpMetricsPlugin</ContentHighlight> for capturing HTTP-specific metrics, and then
+                using <ContentHighlight>NBomber.Data</ContentHighlight> for customizing query string parameters using
+                <ContentHighlight>IDataFeed</ContentHighlight>, and advanced load simulations like <ContentHighlight>
+                RampingInject</ContentHighlight> along with how to use bearer token in <ContentHighlight>WithInit
+                </ContentHighlight> setup.
+            </p>
+
+            <p>
+                Additionally, we explored integrating <ContentHighlight>InfluxDB</ContentHighlight> and
+                <ContentHighlight>Grafana</ContentHighlight> to enhance test reporting and visualization
+                by leveraging <ContentHighlight>Docker Compose</ContentHighlight> for setup, configuring
+                <ContentHighlight>InfluxDBSink</ContentHighlight>, and <ContentHighlight>importing prebuilt dashboards
+                </ContentHighlight> for monitoring test metrics.
             </p>
         </Summary>
     </ContentBody>
