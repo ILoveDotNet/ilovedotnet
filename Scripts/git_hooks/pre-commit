@@ -7,6 +7,55 @@
 #
 # To enable this hook, rename this file to "pre-commit".
 
+# Run dotnet format
+LC_ALL=C
+# Set locale to "C" to ensure consistent behavior for text processing, sorting, etc.
+
+# Select files to format
+FILES=$(git diff --cached --name-only --diff-filter=ACM "*.cs" | sed 's| |\\ |g')
+# - `git diff --cached --name-only`: Lists the staged files.
+# - `--diff-filter=ACM`: Filters only Added (A), Copied (C), or Modified (M) files.
+# - `"*.cs"`: Restricts the list to C# files.
+# - `sed 's| |\\ |g'`: Escapes spaces in file paths for proper handling.
+
+[ -z "$FILES" ] && exit 0
+# If no staged `.cs` files are found (`FILES` is empty), exit the script.
+
+# Initialize flag to check if any file was formatted
+formatted_files=0
+
+# Format all selected files
+# Loop through each file and run dotnet format
+# Build the --include arguments for dotnet format
+echo "Files to be formatted:"
+INCLUDE_ARGS=""
+for FILE in $FILES; do
+  INCLUDE_ARGS="$INCLUDE_ARGS --include $FILE"
+done
+
+# Run dotnet format on all files at once
+dotnet format --no-restore --verbosity normal $INCLUDE_ARGS || {
+  echo "dotnet format failed. Aborting commit." >&2
+  exit 1
+}
+
+# Check if any files were modified by dotnet format
+# Stage the formatted files only if they are modified
+for FILE in $FILES; do
+  git diff --exit-code "$FILE" > /dev/null || {
+    git add "$FILE"  # Stage the formatted file
+    formatted_files=1  # Set the flag to indicate that a file was formatted
+  }
+done
+
+# Exit commit if any file was formatted
+if [ $formatted_files -eq 1 ]; then
+  echo "One or more files were formatted. Please review the changes and commit again."
+  exit 1
+else
+  echo "No files were formatted."
+fi
+
 if git rev-parse --verify HEAD >/dev/null 2>&1
 then
 	against=HEAD
@@ -47,31 +96,3 @@ fi
 
 # If there are whitespace errors, print the offending file names and fail.
 exec git diff-index --check --cached $against --
-
-# Run dotnet format
-#!/bin/sh
-LC_ALL=C
-# Set locale to "C" to ensure consistent behavior for text processing, sorting, etc.
-
-# Select files to format
-FILES=$(git diff --cached --name-only --diff-filter=ACM "*.cs" | sed 's| |\\ |g')
-# - `git diff --cached --name-only`: Lists the staged files.
-# - `--diff-filter=ACM`: Filters only Added (A), Copied (C), or Modified (M) files.
-# - `"*.cs"`: Restricts the list to C# files.
-# - `sed 's| |\\ |g'`: Escapes spaces in file paths for proper handling.
-
-[ -z "$FILES" ] && exit 0
-# If no staged `.cs` files are found (`FILES` is empty), exit the script.
-
-# Format all selected files
-echo "$FILES" | cat | xargs | sed -e 's/ /,/g' | xargs dotnet-format --files
-# - `echo "$FILES" | cat | xargs`: Converts the list of files into a space-separated string.
-# - `sed -e 's/ /,/g'`: Replaces spaces with commas to prepare the file list for `dotnet format`.
-# - `xargs dotnet-format --files`: Runs `dotnet format` to format the files.
-
-# Add back the modified files to staging
-echo "$FILES" | xargs git add
-# Re-adds the formatted files to the Git staging area to include the changes in the commit.
-
-exit 0
-# Exit successfully.
