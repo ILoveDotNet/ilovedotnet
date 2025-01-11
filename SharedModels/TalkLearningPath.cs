@@ -2,13 +2,13 @@
 
 public class TalkLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(1);
+  public readonly List<ContentMetaData> FullContents = new(1);
 
-    public TalkLearningPath()
-    {
-        FullContents =
-        [
-            new ContentMetaData
+  public TalkLearningPath()
+  {
+    FullContents =
+    [
+        new ContentMetaData
             {
                 Order = 1,
                 Title = "Blazor - SPA from ASP.NET Family",
@@ -27,5 +27,5 @@ public class TalkLearningPath
                 VideoUrl = "https://www.youtube.com/embed/MUVyb9T5gU0"
             },
         ];
-    }
+  }
 }

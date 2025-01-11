@@ -2,13 +2,13 @@
 
 public class ReportLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(3);
+  public readonly List<ContentMetaData> FullContents = new(3);
 
-    public ReportLearningPath()
-    {
-        FullContents =
-        [
-            new ContentMetaData
+  public ReportLearningPath()
+  {
+    FullContents =
+    [
+        new ContentMetaData
             {
                 Order = 1,
                 Title = "Generate Excel Report using Closed XML in .NET",
@@ -59,6 +59,6 @@ public class ReportLearningPath
                 ModifiedOn = new DateTime(2023, 4, 9, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["HTML", "PDF"]
             }
-        ];
-    }
+    ];
+  }
 }

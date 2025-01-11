@@ -1,14 +1,14 @@
-namespace SharedModels;
+﻿namespace SharedModels;
 
 public class Authors
 {
-    public readonly List<AuthorMetaData> FullAuthors = new(1);
+  public readonly List<AuthorMetaData> FullAuthors = new(1);
 
-    public Authors()
+  public Authors()
+  {
+    FullAuthors =
+    new(1)
     {
-        FullAuthors =
-        new(1)
-        {
             new AuthorMetaData
             {
                 Order = 1,
@@ -42,6 +42,6 @@ public class Authors
                     new(SocialLink.LinkedIn, new Uri("https://www.linkedin.com/in/regina-sharon"))
                 ]
             },
-        };
-    }
+    };
+  }
 }

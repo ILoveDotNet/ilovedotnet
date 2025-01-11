@@ -1,37 +1,37 @@
-namespace DesignPatternDemoComponents.Singleton;
+﻿namespace DesignPatternDemoComponents.Singleton;
 
 public class Logger
 {
-    //private static Logger? _instance;
+  //private static Logger? _instance;
 
-    private static readonly Lazy<Logger> _lazyLogger
-        = new Lazy<Logger>(() => new Logger());
+  private static readonly Lazy<Logger> _lazyLogger
+      = new Lazy<Logger>(() => new Logger());
 
-    /// <summary>
-    /// Instance
-    /// </summary>
-    public static Logger Instance
-    {
-        get { return _lazyLogger.Value; }
-        //get
-        //{
-        //    if (_instance == null)
-        //    {
-        //        _instance = new Logger();
-        //    }
-        //    return _instance;
-        //}
-    }
+  /// <summary>
+  /// Instance
+  /// </summary>
+  public static Logger Instance
+  {
+    get { return _lazyLogger.Value; }
+    //get
+    //{
+    //    if (_instance == null)
+    //    {
+    //        _instance = new Logger();
+    //    }
+    //    return _instance;
+    //}
+  }
 
-    protected Logger()
-    {
-    }
+  protected Logger()
+  {
+  }
 
-    /// <summary>
-    /// SingletonOperation
-    /// </summary> 
-    public void Log(string message)
-    {
-        Console.WriteLine($"Message to log: {message}");
-    }
+  /// <summary>
+  /// SingletonOperation
+  /// </summary> 
+  public void Log(string message)
+  {
+    Console.WriteLine($"Message to log: {message}");
+  }
 }

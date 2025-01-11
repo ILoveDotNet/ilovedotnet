@@ -3,17 +3,17 @@
 [ExcludeFromCodeCoverage]
 public class NavigationTests
 {
-    [Fact]
-    public void NavigationComponent_Renders_Correctly()
-    {
-        // Arrange
-        using var ctx = new TestContext();
+  [Fact]
+  public void NavigationComponent_Renders_Correctly()
+  {
+    // Arrange
+    using var ctx = new TestContext();
 
-        // Act
-        var cut = ctx.RenderComponent<CommonComponents.Shared.Navigation>();
+    // Act
+    var cut = ctx.RenderComponent<CommonComponents.Shared.Navigation>();
 
-        // Assert
-        cut.MarkupMatches("""
+    // Assert
+    cut.MarkupMatches("""
                             <nav class="[ fixed bottom-0 h-14 w-full md:top-14 md:left-0 md:h-full md:w-16 ] 
                                           [ bg-white ] [ dark:bg-gray-800 dark:bg-gray-800/80 ] [ backdrop-blur-sm bg-white/80 ] [ md:pt-2 ]
                                           [ flex justify-around items-center md:flex-col md:justify-start md:space-y-4 ]">
@@ -57,5 +57,5 @@ public class NavigationTests
                                 </a>
                             </nav>
                            """);
-    }
+  }
 }

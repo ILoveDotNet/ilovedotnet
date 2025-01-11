@@ -1,4 +1,4 @@
-using Blazor.Analytics;
+﻿using Blazor.Analytics;
 using CommonComponents.Models;
 using CommonComponents.Services;
 using Microsoft.AspNetCore.Components;
@@ -36,8 +36,8 @@ builder.Logging
 
 if (!builder.RootComponents.Any())
 {
-    builder.RootComponents.Add<App>("#app");
-    builder.RootComponents.Add<HeadOutlet>("head::after");
+  builder.RootComponents.Add<App>("#app");
+  builder.RootComponents.Add<HeadOutlet>("head::after");
 }
 
 ConfigureServices(builder.Services, builder.HostEnvironment, builder.Configuration);
@@ -49,72 +49,72 @@ await host.RunAsync();
 
 static void ConfigureServices(IServiceCollection services, IWebAssemblyHostEnvironment webHostEnv, IConfiguration configuration)
 {
-    services.AddScoped<LazyLoaderService>();
+  services.AddScoped<LazyLoaderService>();
 
-    services.AddTransient<CustomHeaderMessageHandlerDemo>(sp => new(new HttpClientHandler()));
+  services.AddTransient<CustomHeaderMessageHandlerDemo>(sp => new(new HttpClientHandler()));
 
-    services.AddScoped(sp =>
+  services.AddScoped(sp =>
+  {
+    var httpClient = new HttpClient(sp.GetRequiredService<CustomHeaderMessageHandlerDemo>()) { BaseAddress = new Uri(webHostEnv.BaseAddress) };
+
+    return httpClient;
+  });
+
+  services.AddHttpClient<GitHubService>(client => client.BaseAddress = new Uri("https://api.github.com/"));
+
+  services.AddScoped<AppState>();
+
+  services.AddScoped<AppStateDemo>();
+
+  services.AddScoped<TableOfContents>();
+
+  services.AddScoped<Achievements>();
+
+  services.AddScoped<Sitemaps>();
+
+  services.AddTransient<AdSpaceService>();
+
+  services.AddScoped<LazyAssemblyLoader>();
+
+  services.AddHeadElementHelper();
+
+  services.AddGoogleAnalytics("G-PY5ZL88NSM");
+
+  services.AddGoogleAdSense("ca-pub-1536083653226834");
+
+  services.AddTransient<TransientServiceDemo>();
+
+  services.AddScoped<ScopedServiceDemo>();
+
+  services.AddSingleton<SingletonServiceDemo>();
+
+  services.AddHotKeys2();
+
+  services.AddSingleton<IHostEnvironment, WebHostEnvironment>();
+
+  services.AddScoped(serviceProvider => new SlugService(serviceProvider.GetRequiredService<NavigationManager>()));
+
+  if (!webHostEnv.Environment.Equals("Prerendering", StringComparison.OrdinalIgnoreCase))
+  {
+    services.AddOidcAuthentication(options =>
     {
-        var httpClient = new HttpClient(sp.GetRequiredService<CustomHeaderMessageHandlerDemo>()) { BaseAddress = new Uri(webHostEnv.BaseAddress) };
+      options.ProviderOptions.Authority = "https://demo.duendesoftware.com";
+      options.ProviderOptions.ClientId = "interactive.public.short";
+      options.ProviderOptions.ResponseType = "code";
+      options.ProviderOptions.DefaultScopes.Add("openid");
+      options.ProviderOptions.DefaultScopes.Add("profile");
+      options.ProviderOptions.DefaultScopes.Add("email");
+      options.ProviderOptions.DefaultScopes.Add("offline_access");
+      options.ProviderOptions.DefaultScopes.Add("api");
+      options.ProviderOptions.RedirectUri = $"{webHostEnv.BaseAddress}authentication/login-callback";
+      options.ProviderOptions.PostLogoutRedirectUri = $"{webHostEnv.BaseAddress}authentication/logout-callback";
 
-        return httpClient;
+      options.UserOptions.RoleClaim = "role";
+      options.UserOptions.NameClaim = "name";
     });
 
-    services.AddHttpClient<GitHubService>(client => client.BaseAddress = new Uri("https://api.github.com/"));
+    services.AddAuthorizationCore();
 
-    services.AddScoped<AppState>();
-
-    services.AddScoped<AppStateDemo>();
-
-    services.AddScoped<TableOfContents>();
-
-    services.AddScoped<Achievements>();
-
-    services.AddScoped<Sitemaps>();
-
-    services.AddTransient<AdSpaceService>();
-
-    services.AddScoped<LazyAssemblyLoader>();
-
-    services.AddHeadElementHelper();
-
-    services.AddGoogleAnalytics("G-PY5ZL88NSM");
-
-    services.AddGoogleAdSense("ca-pub-1536083653226834");
-
-    services.AddTransient<TransientServiceDemo>();
-
-    services.AddScoped<ScopedServiceDemo>();
-
-    services.AddSingleton<SingletonServiceDemo>();
-
-    services.AddHotKeys2();
-
-    services.AddSingleton<IHostEnvironment, WebHostEnvironment>();
-
-    services.AddScoped(serviceProvider => new SlugService(serviceProvider.GetRequiredService<NavigationManager>()));
-
-    if (!webHostEnv.Environment.Equals("Prerendering", StringComparison.OrdinalIgnoreCase))
-    {
-        services.AddOidcAuthentication(options =>
-        {
-            options.ProviderOptions.Authority = "https://demo.duendesoftware.com";
-            options.ProviderOptions.ClientId = "interactive.public.short";
-            options.ProviderOptions.ResponseType = "code";
-            options.ProviderOptions.DefaultScopes.Add("openid");
-            options.ProviderOptions.DefaultScopes.Add("profile");
-            options.ProviderOptions.DefaultScopes.Add("email");
-            options.ProviderOptions.DefaultScopes.Add("offline_access");
-            options.ProviderOptions.DefaultScopes.Add("api");
-            options.ProviderOptions.RedirectUri = $"{webHostEnv.BaseAddress}authentication/login-callback";
-            options.ProviderOptions.PostLogoutRedirectUri = $"{webHostEnv.BaseAddress}authentication/logout-callback";
-
-            options.UserOptions.RoleClaim = "role";
-            options.UserOptions.NameClaim = "name";
-        });
-
-        services.AddAuthorizationCore();
-
-        services.AddCascadingAuthenticationState();
-    }
+    services.AddCascadingAuthenticationState();
+  }
 }

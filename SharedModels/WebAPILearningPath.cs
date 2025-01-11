@@ -2,13 +2,13 @@
 
 public class WebAPILearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(20);
+  public readonly List<ContentMetaData> FullContents = new(20);
 
-    public WebAPILearningPath()
-    {
-        FullContents =
-        [
-            new ContentMetaData
+  public WebAPILearningPath()
+  {
+    FullContents =
+    [
+        new ContentMetaData
             {
                 Order = 1,
                 Title = "Importance of Status Code in Web API",
@@ -349,5 +349,5 @@ public class WebAPILearningPath
                 Keywords = ["Performance Test", "Load Test", "Stress Test", "NBomber"]
             },
         ];
-    }
+  }
 }

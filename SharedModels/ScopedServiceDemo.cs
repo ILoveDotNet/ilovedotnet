@@ -2,5 +2,5 @@
 
 public class ScopedServiceDemo
 {
-    public Guid Id { get; set; } = Guid.NewGuid();
+  public Guid Id { get; set; } = Guid.NewGuid();
 }

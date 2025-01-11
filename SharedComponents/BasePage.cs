@@ -4,21 +4,21 @@ namespace SharedComponents;
 
 public class BasePage : ComponentBase
 {
-    [Inject] private NavigationManager NavigationManager { get; set; } = default!;
-    [Inject] private SlugService SlugService { get; set; } = default!;
+  [Inject] private NavigationManager NavigationManager { get; set; } = default!;
+  [Inject] private SlugService SlugService { get; set; } = default!;
 
-    protected string Slug { get; set; } = string.Empty;
+  protected string Slug { get; set; } = string.Empty;
 
-    override protected void OnInitialized()
+  protected override void OnInitialized()
+  {
+    Slug = SlugService.GetSlug();
+  }
+
+  protected override void OnAfterRender(bool firstRender)
+  {
+    if (firstRender)
     {
-        Slug = SlugService.GetSlug();
+      NavigationManager.NavigateTo(NavigationManager.Uri);
     }
-
-    protected override void OnAfterRender(bool firstRender)
-    {
-        if (firstRender)
-        {
-            NavigationManager.NavigateTo(NavigationManager.Uri);
-        }
-    }
+  }
 }

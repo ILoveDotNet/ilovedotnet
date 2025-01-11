@@ -6,57 +6,57 @@ namespace CommonComponents.Shared;
 
 public class ThemeBase : ComponentBase, IAsyncDisposable
 {
-    private IJSObjectReference? module;
+  private IJSObjectReference? module;
 
-    internal DisplayMode DisplayMode { get; private set; }
-    internal bool MenuCollapsed { get; private set; } = true;
+  internal DisplayMode DisplayMode { get; private set; }
+  internal bool MenuCollapsed { get; private set; } = true;
 
-    [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
+  [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    if (firstRender)
     {
-        if (firstRender)
-        {
-            module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/displaymode.js");
+      module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/displaymode.js");
 
-            DisplayMode = Enum.TryParse(typeof(DisplayMode), await module.InvokeAsync<string>("getDisplayMode"), true, out var displayMode)
-                          ? (DisplayMode)displayMode!
-                          : DisplayMode.System;
+      DisplayMode = Enum.TryParse(typeof(DisplayMode), await module.InvokeAsync<string>("getDisplayMode"), true, out var displayMode)
+                    ? (DisplayMode)displayMode!
+                    : DisplayMode.System;
 
-            StateHasChanged();
-        }
+      StateHasChanged();
     }
+  }
 
-    internal void ToggleMenu()
+  internal void ToggleMenu()
+  {
+    MenuCollapsed = !MenuCollapsed;
+  }
+
+  internal void FocusOutHandler()
+  {
+    MenuCollapsed = true;
+  }
+
+  internal async Task SetThemeAsync(DisplayMode mode)
+  {
+    DisplayMode = mode;
+
+    await OnDisplayModeChangedAsync();
+  }
+
+  private async ValueTask OnDisplayModeChangedAsync()
+  {
+    if (module is not null)
     {
-        MenuCollapsed = !MenuCollapsed;
+      await module.InvokeVoidAsync("onDisplayModeChanged", $"{DisplayMode.ToString().ToLower()}");
     }
+  }
 
-    internal void FocusOutHandler()
+  async ValueTask IAsyncDisposable.DisposeAsync()
+  {
+    if (module is not null)
     {
-        MenuCollapsed = true;
+      await module.DisposeAsync();
     }
-
-    internal async Task SetTheme(DisplayMode mode)
-    {
-        DisplayMode = mode;
-
-        await OnDisplayModeChanged();
-    }
-
-    private async ValueTask OnDisplayModeChanged()
-    {
-        if (module is not null)
-        {
-            await module.InvokeVoidAsync("onDisplayModeChanged", $"{DisplayMode.ToString().ToLower()}");
-        }
-    }
-
-    async ValueTask IAsyncDisposable.DisposeAsync()
-    {
-        if (module is not null)
-        {
-            await module.DisposeAsync();
-        }
-    }
+  }
 }

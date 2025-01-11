@@ -2,13 +2,13 @@
 
 public class TDDLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(2);
+  public readonly List<ContentMetaData> FullContents = new(2);
 
-    public TDDLearningPath()
-    {
-        FullContents =
-        [
-            new ContentMetaData
+  public TDDLearningPath()
+  {
+    FullContents =
+    [
+        new ContentMetaData
             {
                 Order = 1,
                 Title = "Introducing TDD in C# .Net",
@@ -42,6 +42,6 @@ public class TDDLearningPath
                 ModifiedOn = new DateTime(2024, 9, 29, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Test Driven Development"]
             }
-        ];
-    }
+    ];
+  }
 }

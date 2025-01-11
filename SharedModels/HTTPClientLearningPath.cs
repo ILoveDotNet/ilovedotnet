@@ -1,14 +1,14 @@
-namespace SharedModels;
+﻿namespace SharedModels;
 
 public class HTTPClientLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(6);
+  public readonly List<ContentMetaData> FullContents = new(6);
 
-    public HTTPClientLearningPath()
-    {
-        FullContents =
-        [
-            new ContentMetaData
+  public HTTPClientLearningPath()
+  {
+    FullContents =
+    [
+        new ContentMetaData
             {
                 Order = 1,
                 Title = "Improving performance and memory use while accessing APIs using HTTPClient in dotnet",
@@ -111,5 +111,5 @@ public class HTTPClientLearningPath
                 Keywords = ["Unit Testing"]
             },
         ];
-    }
+  }
 }

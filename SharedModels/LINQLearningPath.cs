@@ -2,13 +2,13 @@
 
 public class LINQLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(26);
+  public readonly List<ContentMetaData> FullContents = new(26);
 
-    public LINQLearningPath()
-    {
-        FullContents =
-        [
-            new ContentMetaData
+  public LINQLearningPath()
+  {
+    FullContents =
+    [
+        new ContentMetaData
             {
                 Order = 1,
                 Title = "LINQ Introduction",
@@ -450,6 +450,6 @@ public class LINQLearningPath
                ModifiedOn = new DateTime(2023, 3, 5, 22, 30, 0, DateTimeKind.Utc),
                Keywords = ["Deferred", "Immediate", "Streaming", "Non-Streaming", "Execution", "Operators"]
             }
-        ];
-    }
+    ];
+  }
 }

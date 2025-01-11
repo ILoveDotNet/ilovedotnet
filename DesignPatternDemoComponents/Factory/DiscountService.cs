@@ -1,8 +1,7 @@
-namespace DesignPatternDemoComponents.Factory
+﻿namespace DesignPatternDemoComponents.Factory;
+
+// Product
+public abstract class DiscountService
 {
-    // Product
-    public abstract class DiscountService
-    {
-        public abstract decimal DiscountPercentage { get; }
-    }
+  public abstract decimal DiscountPercentage { get; }
 }

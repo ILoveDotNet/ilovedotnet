@@ -2,13 +2,13 @@
 
 public class DependencyInjectionLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(2);
+  public readonly List<ContentMetaData> FullContents = new(2);
 
-    public DependencyInjectionLearningPath()
-    {
-        FullContents =
-        [
-            new ContentMetaData
+  public DependencyInjectionLearningPath()
+  {
+    FullContents =
+    [
+        new ContentMetaData
             {
                 Order = 1,
                 Title = "Introducing Dependency Injection in .NET",
@@ -43,5 +43,5 @@ public class DependencyInjectionLearningPath
                 Keywords = ["Lifetimes", "Transient", "Singleton", "Scoped", "Dependency Captivity", "Captive Dependencies"]
             },
         ];
-    }
+  }
 }

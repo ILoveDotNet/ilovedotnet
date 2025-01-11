@@ -2,14 +2,13 @@
 
 public class SaleSource
 {
-    private readonly List<Sale> FullSales = new(3);
-    public IReadOnlyList<Sale> Sales => FullSales.ToList();
+  private readonly List<Sale> FullSales = new(3);
+  public IReadOnlyList<Sale> Sales => [.. FullSales];
 
-    public SaleSource()
-    {
-        FullSales =
-            new(3)
-            {
+  public SaleSource()
+  {
+    FullSales =
+        [
                 new Sale
                 {
                     Id = 123,
@@ -34,6 +33,6 @@ public class SaleSource
                     ProductColor = "White",
                     Quantity = 3
                 }
-            };
-    }
+        ];
+  }
 }

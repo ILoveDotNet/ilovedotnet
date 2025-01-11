@@ -1,14 +1,14 @@
-namespace SharedModels;
+﻿namespace SharedModels;
 
 public class OWASPLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(1);
+  public readonly List<ContentMetaData> FullContents = new(1);
 
-    public OWASPLearningPath()
-    {
-        FullContents =
-        [
-            new ContentMetaData
+  public OWASPLearningPath()
+  {
+    FullContents =
+    [
+        new ContentMetaData
             {
                 Order = 1,
                 Title = "OWASP - Secure your dotnet app by scanning for vulnerable nuget dependencies in CI pipelines",
@@ -25,6 +25,6 @@ public class OWASPLearningPath
                 ModifiedOn = new DateTime(2024, 6, 16, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Security", "Dependency Check", "Nuget Vulnerability", "Malicious Code", "Audit Nuget"]
             }
-        ];
-    }
+    ];
+  }
 }

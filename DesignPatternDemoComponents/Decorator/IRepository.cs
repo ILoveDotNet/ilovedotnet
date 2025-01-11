@@ -1,7 +1,7 @@
-namespace DesignPatternDemoComponents.Decorator;
+﻿namespace DesignPatternDemoComponents.Decorator;
 
 // Component
 public interface IRepository
 {
-    string ReadData();
+  string ReadData();
 }

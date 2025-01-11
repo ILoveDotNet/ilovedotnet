@@ -1,25 +1,25 @@
-namespace DesignPatternDemoComponents.Observer;
+﻿namespace DesignPatternDemoComponents.Observer;
 
 //Step - 1: Define Publisher
 public abstract class OrderItemChangeNotifier()
 {
-    private readonly List<IOrderItemChangeListener> _observers = [];
+  private readonly List<IOrderItemChangeListener> _observers = [];
 
-    public void AddObserver(IOrderItemChangeListener observer)
-    {
-        _observers.Add(observer);
-    }
+  public void AddObserver(IOrderItemChangeListener observer)
+  {
+    _observers.Add(observer);
+  }
 
-    public void RemoveObserver(IOrderItemChangeListener observer)
-    {
-        _observers.Remove(observer);
-    }
+  public void RemoveObserver(IOrderItemChangeListener observer)
+  {
+    _observers.Remove(observer);
+  }
 
-    public void NotifyOrderItemProcessed()
+  public void NotifyOrderItemProcessed()
+  {
+    foreach (var observer in _observers)
     {
-        foreach (var observer in _observers)
-        {
-            observer.ReceiveOrderItemProcessedNotification();
-        }
+      observer.ReceiveOrderItemProcessedNotification();
     }
+  }
 }

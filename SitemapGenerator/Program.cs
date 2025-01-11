@@ -1,5 +1,6 @@
 ﻿using CommandLineSwitchParser;
 using SharedModels;
+using SitemapGenerator;
 
 var option = CommandLineSwitch.Parse<CommandLineOptions>(ref args);
 
@@ -11,7 +12,7 @@ sitemap.LoadSitemap(option.OutputPath!);
 
 if (!sitemap.IsAnyContentUpdatedAndRepublished())
 {
-    return;
+  return;
 }
 
 sitemap.GenerateSitemap(option.OutputPath!);
