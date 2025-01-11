@@ -7,6 +7,52 @@
 #
 # To enable this hook, rename this file to "pre-commit".
 
+# Run tests with coverage
+echo "Running tests and collecting code coverage..."
+# Select modified files
+FILES=$(git diff --cached --name-only --diff-filter=ACM "*.cs" | sed 's| |\\ |g')
+# - `git diff --cached --name-only`: Lists the staged files.
+# - `--diff-filter=ACM`: Filters only Added (A), Copied (C), or Modified (M) files.
+# - `"*.cs"`: Restricts the list to C# files.
+# - `sed 's| |\\ |g'`: Escapes spaces in file paths for proper handling.
+
+if [ -n "$FILES" ]; then
+  # If no staged `.cs` files are found (`FILES` is empty), exit the script.
+  dotnet test . --no-build --collect:"XPlat Code Coverage"
+
+  # Find the latest TestResults directory
+  RESULTS_DIR=$(find . -type d -name "TestResults" -exec find {} -type d -name "*" \; | sort | tail -1)
+  COVERAGE_FILE="$RESULTS_DIR/coverage.cobertura.xml"
+
+  # Debugging output for troubleshooting
+  echo "Looking for coverage file in: $RESULTS_DIR"
+  echo "Expected coverage file: $COVERAGE_FILE"
+
+  # Check if the coverage file exists
+  if [ ! -f "$COVERAGE_FILE" ]; then
+      echo "Error: Coverage file not found. Commit aborted."
+      exit 1
+  fi
+
+  # Parse the coverage percentage from coverage.cobertura.xml
+  COVERAGE=$(xmllint --xpath "string(//coverage/@line-rate)" "$COVERAGE_FILE")
+
+  # Set the required coverage threshold
+  THRESHOLD=0.7  # 70% threshold
+
+  # Check if the coverage meets the threshold
+  if (( $(echo "$COVERAGE < $THRESHOLD" | bc -l) )); then
+      COVERAGE_PERCENTAGE=$(echo "scale=2; $COVERAGE * 100" | bc -l)
+      echo "Code coverage (${COVERAGE_PERCENTAGE}%) is below the required threshold (80%). Commit aborted."
+      exit 1
+  fi
+
+  COVERAGE_PERCENTAGE=$(echo "scale=2; $COVERAGE * 100" | bc -l)
+  echo "Code coverage ${COVERAGE_PERCENTAGE}% is sufficient. Proceeding with commit."
+else
+  echo "No staged .cs files found. Skipping tests and code coverage."
+fi
+
 # Run dotnet format
 LC_ALL=C
 # Set locale to "C" to ensure consistent behavior for text processing, sorting, etc.
@@ -58,33 +104,6 @@ if [ $formatted_files -eq 1 ]; then
 else
   echo "No files were formatted."
 fi
-
-# Run tests with coverage
-echo "Running tests and collecting code coverage..."
-dotnet test --collect:"XPlat Code Coverage"
-
-# Get the most recent test results folder
-RESULTS_DIR=$(find TestResults -type d -name '*' | sort | tail -1)
-COVERAGE_FILE="$RESULTS_DIR/coverage.json"
-
-if [ ! -f "$COVERAGE_FILE" ]; then
-    echo "Error: Coverage file not found. Commit aborted."
-    exit 1
-fi
-
-# Run the C# program to calculate coverage
-dotnet run --project ./CoverageParser
-
-# Capture the output and enforce a threshold
-COVERAGE=$(dotnet run --project ./CoverageParser | grep -o '[0-9.]*')
-
-THRESHOLD=80.0
-if (( $(echo "$COVERAGE < $THRESHOLD" | bc -l) )); then
-    echo "Code coverage ($COVERAGE%) is below the required threshold ($THRESHOLD%). Commit aborted."
-    exit 1
-fi
-
-echo "Code coverage ($COVERAGE%) is sufficient. Proceeding with commit."
 
 if git rev-parse --verify HEAD >/dev/null 2>&1
 then
