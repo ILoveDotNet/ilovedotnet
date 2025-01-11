@@ -56,6 +56,33 @@ else
   echo "No files were formatted."
 fi
 
+# Run tests with coverage
+echo "Running tests and collecting code coverage..."
+dotnet test --collect:"XPlat Code Coverage"
+
+# Get the most recent test results folder
+RESULTS_DIR=$(find TestResults -type d -name '*' | sort | tail -1)
+COVERAGE_FILE="$RESULTS_DIR/coverage.json"
+
+if [ ! -f "$COVERAGE_FILE" ]; then
+    echo "Error: Coverage file not found. Commit aborted."
+    exit 1
+fi
+
+# Run the C# program to calculate coverage
+dotnet run --project ./CoverageParser
+
+# Capture the output and enforce a threshold
+COVERAGE=$(dotnet run --project ./CoverageParser | grep -o '[0-9.]*')
+
+THRESHOLD=80.0
+if (( $(echo "$COVERAGE < $THRESHOLD" | bc -l) )); then
+    echo "Code coverage ($COVERAGE%) is below the required threshold ($THRESHOLD%). Commit aborted."
+    exit 1
+fi
+
+echo "Code coverage ($COVERAGE%) is sufficient. Proceeding with commit."
+
 if git rev-parse --verify HEAD >/dev/null 2>&1
 then
 	against=HEAD
