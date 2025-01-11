@@ -2,13 +2,13 @@
 
 public class BlazorLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(31);
+  public readonly List<ContentMetaData> FullContents = new(31);
 
-    public BlazorLearningPath()
-    {
-        FullContents =
-        [
-            new ContentMetaData
+  public BlazorLearningPath()
+  {
+    FullContents =
+    [
+        new ContentMetaData
             {
                 Order = 1,
                 Title = "Blazor WASM Introduction",
@@ -536,5 +536,5 @@ public class BlazorLearningPath
                 Keywords = ["C", "C++", "Native Dependecies"]
             },
         ];
-    }
+  }
 }

@@ -1,14 +1,14 @@
-namespace SharedModels;
+﻿namespace SharedModels;
 
 public class Sponsors
 {
-    public readonly List<SponsorMetaData> FullSponsors = new(1);
+  public readonly List<SponsorMetaData> FullSponsors = new(1);
 
-    public Sponsors()
-    {
-        FullSponsors =
-        [
-            new SponsorMetaData
+  public Sponsors()
+  {
+    FullSponsors =
+    [
+        new SponsorMetaData
             {
                 Name = "Dometrain",
                 LogoUrl = "image/sponsors/dometrain.jpg",
@@ -16,6 +16,6 @@ public class Sponsors
                 Start = new DateTime(2024, 11, 10, 0, 0, 0, DateTimeKind.Utc),
                 End = new DateTime(2024, 12, 20, 0, 0, 0, DateTimeKind.Utc)
             }
-        ];
-    }
+    ];
+  }
 }

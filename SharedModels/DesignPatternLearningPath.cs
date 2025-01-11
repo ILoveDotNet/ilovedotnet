@@ -1,14 +1,14 @@
-namespace SharedModels;
+﻿namespace SharedModels;
 
 public class DesignPatternLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(10);
+  public readonly List<ContentMetaData> FullContents = new(10);
 
-    public DesignPatternLearningPath()
-    {
-        FullContents =
-        [
-            new ContentMetaData
+  public DesignPatternLearningPath()
+  {
+    FullContents =
+    [
+        new ContentMetaData
             {
                 Order = 1,
                 Title = "Design Pattern Introduction",
@@ -179,5 +179,5 @@ public class DesignPatternLearningPath
                 Keywords = ["Behavioral", "State"]
             },
         ];
-    }
+  }
 }

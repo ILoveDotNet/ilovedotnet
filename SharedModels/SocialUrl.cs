@@ -1,13 +1,7 @@
-namespace SharedModels;
+﻿namespace SharedModels;
 
-public class SocialUrl
+public class SocialUrl(SocialLink type, Uri url)
 {
-    public SocialUrl(SocialLink type, Uri url)
-    {
-        Type = type;
-        Url = url;
-    }
-
-    public SocialLink Type { get; set; }
-    public Uri Url { get; set; }
+  public SocialLink Type { get; set; } = type;
+  public Uri Url { get; set; } = url;
 }

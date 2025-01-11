@@ -1,11 +1,6 @@
 ﻿namespace OOPSDemoComponents;
 
-public class Square
+public class Square(IEnumerable<Edge> edges)
 {
-    public Square(IEnumerable<Edge> edges)
-    {
-        Edges = edges;
-    }
-
-    public IEnumerable<Edge> Edges { get; }
+  public IEnumerable<Edge> Edges { get; } = edges;
 }

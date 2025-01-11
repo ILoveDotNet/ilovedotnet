@@ -2,20 +2,23 @@
 
 namespace OOPSDemoComponents;
 
-public class EmailAddress
+public partial class EmailAddress
 {
-    public string Value { get; }
+  public string Value { get; }
 
-    private EmailAddress(string value)
-    {
-        Value = value;
-    }
+  private EmailAddress(string value)
+  {
+    Value = value;
+  }
 
-    public static EmailAddress Create(string address)
-    {
-        if (!Regex.IsMatch(address, @"^(.+)@(.+$)"))
-            throw new Exception();
+  public static EmailAddress Create(string address)
+  {
+    if (!EmailAddressRegex().IsMatch(address))
+      throw new Exception();
 
-        return new EmailAddress(address);
-    }
+    return new EmailAddress(address);
+  }
+
+  [GeneratedRegex(@"^(.+)@(.+$)")]
+  private static partial Regex EmailAddressRegex();
 }

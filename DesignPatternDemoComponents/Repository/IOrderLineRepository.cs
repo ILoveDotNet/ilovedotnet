@@ -1,7 +1,6 @@
-namespace DesignPatternDemoComponents.Repository
+﻿namespace DesignPatternDemoComponents.Repository;
+
+public interface IOrderLineRepository : IRepository<OrderLine>
 {
-    public interface IOrderLineRepository : IRepository<OrderLine>
-    {
-        Task<IEnumerable<OrderLine>> GetAllByOrderId(int orderId);
-    }
+  Task<IEnumerable<OrderLine>> GetAllByOrderId(int orderId);
 }

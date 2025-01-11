@@ -2,13 +2,13 @@
 
 public class PythonLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(1);
+  public readonly List<ContentMetaData> FullContents = new(1);
 
-    public PythonLearningPath()
-    {
-        FullContents =
-        [
-            new ContentMetaData
+  public PythonLearningPath()
+  {
+    FullContents =
+    [
+        new ContentMetaData
             {
                 Order = 1,
                 Title = "Python Dynamic Interop with Dotnet",
@@ -26,5 +26,5 @@ public class PythonLearningPath
                 Keywords = ["Interoperating", "Iron Python", "Python", "Dynamic Interop"]
             },
         ];
-    }
+  }
 }

@@ -2,13 +2,13 @@
 
 public class MiddlewareLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(2);
+  public readonly List<ContentMetaData> FullContents = new(2);
 
-    public MiddlewareLearningPath()
-    {
-        FullContents =
-        [
-            new ContentMetaData
+  public MiddlewareLearningPath()
+  {
+    FullContents =
+    [
+        new ContentMetaData
             {
                 Order = 1,
                 Title = "Introducing Middleware in ASP.NET",
@@ -43,5 +43,5 @@ public class MiddlewareLearningPath
                 Keywords = ["ASP.NET", "HTTP Request Pipeline"]
             },
         ];
-    }
+  }
 }

@@ -1,8 +1,7 @@
-namespace DesignPatternDemoComponents.Factory
+﻿namespace DesignPatternDemoComponents.Factory;
+
+// Creator
+public abstract class DiscountFactory
 {
-    // Creator
-    public abstract class DiscountFactory
-    {
-        public abstract DiscountService CreateDiscountService();
-    }
+  public abstract DiscountService CreateDiscountService();
 }

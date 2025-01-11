@@ -1,7 +1,6 @@
-namespace DesignPatternDemoComponents.Repository
-{
-    public class OrderLine
-    {
+﻿namespace DesignPatternDemoComponents.Repository;
 
-    }
+public class OrderLine
+{
+
 }

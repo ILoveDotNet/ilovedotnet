@@ -2,14 +2,13 @@
 
 public class ProductSource
 {
-    private readonly List<Product> FullProducts = new(6);
-    public IReadOnlyList<Product> Products => FullProducts.AsReadOnly();
+  private readonly List<Product> FullProducts = new(6);
+  public IReadOnlyList<Product> Products => FullProducts.AsReadOnly();
 
-    public ProductSource()
-    {
-        FullProducts =
-            new(6)
-            {
+  public ProductSource()
+  {
+    FullProducts =
+        [
                 new Product
                 {
                     Id = 1,
@@ -64,6 +63,6 @@ public class ProductSource
                     Quantity = 6,
                     Size = "68"
                 }
-            };
-    }
+        ];
+  }
 }

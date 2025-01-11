@@ -2,7 +2,7 @@
 
 public enum DisplayMode
 {
-    System,
-    Dark,
-    Light
+  System,
+  Dark,
+  Light
 }

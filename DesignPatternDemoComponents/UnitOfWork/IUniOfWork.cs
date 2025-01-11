@@ -1,8 +1,7 @@
-namespace DesignPatternDemoComponents.UnitOfWork
+﻿namespace DesignPatternDemoComponents.UnitOfWork;
+
+public interface IUnitOfWork
 {
-    public interface IUnitOfWork
-    {
-        Task CommitAsync();
-        Task RollbackAsync();
-    }
+  Task CommitAsync();
+  Task RollbackAsync();
 }

@@ -1,23 +1,18 @@
-namespace DesignPatternDemoComponents.Builder;
+﻿namespace DesignPatternDemoComponents.Builder;
 
 // Product
-public class Car
+public class Car(string type)
 {
-    private string _type;
-    private List<string> _parts = new List<string>();
+  private readonly string _type = type;
+  private readonly List<string> _parts = [];
 
-    public Car(string type)
-    {
-        _type = type;
-    }
+  public void AddPart(string part)
+  {
+    _parts.Add(part);
+  }
 
-    public void AddPart(string part)
-    {
-        _parts.Add(part);
-    }
-
-    public override string ToString()
-    {
-        return $"{_type} - Parts: {string.Join(", ", _parts)}";
-    }
+  public override string ToString()
+  {
+    return $"{_type} - Parts: {string.Join(", ", _parts)}";
+  }
 }

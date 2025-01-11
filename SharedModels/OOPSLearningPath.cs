@@ -2,13 +2,13 @@
 
 public class OOPSLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(2);
+  public readonly List<ContentMetaData> FullContents = new(2);
 
-    public OOPSLearningPath()
-    {
-        FullContents =
-        [
-            new ContentMetaData
+  public OOPSLearningPath()
+  {
+    FullContents =
+    [
+        new ContentMetaData
             {
                 Order = 1,
                 Title = "OOPS Encapsulation",
@@ -43,5 +43,5 @@ public class OOPSLearningPath
                 Keywords = ["Abstraction"]
             },
         ];
-    }
+  }
 }

@@ -2,13 +2,13 @@
 
 public class SOLIDLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(6);
+  public readonly List<ContentMetaData> FullContents = new(6);
 
-    public SOLIDLearningPath()
-    {
-        FullContents =
-        [
-            new ContentMetaData
+  public SOLIDLearningPath()
+  {
+    FullContents =
+    [
+        new ContentMetaData
             {
                 Order = 1,
                 Title = "SOLID Principles Introduction",
@@ -111,5 +111,5 @@ public class SOLIDLearningPath
                 Keywords = ["DIP", "Dependency Inversion"]
             },
         ];
-    }
+  }
 }

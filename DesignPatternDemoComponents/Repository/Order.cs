@@ -1,7 +1,6 @@
-namespace DesignPatternDemoComponents.Repository
-{
-    public class Order
-    {
+﻿namespace DesignPatternDemoComponents.Repository;
 
-    }
+public class Order
+{
+
 }

@@ -2,8 +2,8 @@
 
 public class Sitemaps
 {
-    public IReadOnlyList<string> Files => [
-        "sitemap.xml",
+  public IReadOnlyList<string> Files => [
+      "sitemap.xml",
         "sitemap-authors.xml",
         "sitemap-blog-blazor-wasm.xml",
         "sitemap-blog-dependency-injection.xml",
@@ -21,5 +21,5 @@ public class Sitemaps
         "sitemap-blog-webapi.xml",
         "sitemap-channels.xml",
         "sitemap-talk.xml"
-    ];
+  ];
 }

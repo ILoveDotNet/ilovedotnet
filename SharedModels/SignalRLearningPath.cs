@@ -2,13 +2,13 @@
 
 public class SignalRLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(8);
+  public readonly List<ContentMetaData> FullContents = new(8);
 
-    public SignalRLearningPath()
-    {
-        FullContents =
-        [
-            new ContentMetaData
+  public SignalRLearningPath()
+  {
+    FullContents =
+    [
+        new ContentMetaData
             {
                 Order = 1,
                 Title = "Fundamentals of SignalR in .Net",
@@ -144,6 +144,6 @@ public class SignalRLearningPath
                 ModifiedOn = new DateTime(2024, 6, 9, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Design", "Deployment", "Scaling"]
             }
-        ];
-    }
+    ];
+  }
 }
