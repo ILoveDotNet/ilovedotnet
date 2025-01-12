@@ -73,8 +73,8 @@ jobs:
       - name: Build Blazor Project
         run: dotnet build ./Web/Web.csproj --configuration Release --no-restore
         
-      - name: Install .NET Report Generator
-        run: dotnet tool install -g dotnet-reportgenerator-globaltool
+      # - name: Install .NET Report Generator
+      #   run: dotnet tool install -g dotnet-reportgenerator-globaltool
         
       - name: Run Test
         run: dotnet test ./UITests/UITests.csproj --configuration Release --settings ./UITests/ilovedotnet.runsettings --verbosity normal --logger trx --collect:"XPlat Code Coverage"
@@ -87,8 +87,34 @@ jobs:
       #    path: '**/*.trx'
       #    reporter: dotnet-trx
       
-      - name: Generate Test Report
-        run: reportgenerator -reports:./**/Coverage.cobertura.xml -targetdir:"./Test/Report" -reporttypes:Html
+      # - name: Generate Test Report
+      #   run: reportgenerator -reports:./**/Coverage.cobertura.xml -targetdir:"./Test/Report" -reporttypes:Html
+
+      - name: ReportGenerator
+        # You may pin to the exact commit or the version.
+        # uses: danielpalme/ReportGenerator-GitHub-Action@2a2d60ea1c7e811f54684179af6ac1ae8c1ce69a
+        uses: danielpalme/ReportGenerator-GitHub-Action@5.2.5
+        with:
+          reports: "**/*.cobertura.xml" # REQUIRED # The coverage reports that should be parsed (separated by semicolon). Globbing is supported.
+          targetdir: "${{ github.workspace }}" # REQUIRED # The directory where the generated report should be saved.
+          reporttypes: 'HtmlInline;Cobertura'
+
+      - name: Publish Code Coverage Report
+        uses: irongut/CodeCoverageSummary@v1.3.0
+        with:
+          filename: "Cobertura.xml"
+          badge: true
+          fail_below_min: false # just informative for now
+          format: markdown
+          hide_branch_rate: false
+          hide_complexity: false
+          indicators: true
+          output: both
+          thresholds: "10 30"
+          
+      - name: Generate list using Markdown
+        run: |
+          cat code-coverage-results.md >> $GITHUB_STEP_SUMMARY  
       
       - name: Upload Test Result
         uses: actions/upload-artifact@v4
