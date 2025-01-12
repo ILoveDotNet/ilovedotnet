@@ -73,8 +73,8 @@ jobs:
       - name: Build Blazor Project
         run: dotnet build ./Web/Web.csproj --configuration Release --no-restore
         
-      - name: Install .NET Report Generator
-        run: dotnet tool install -g dotnet-reportgenerator-globaltool
+      # - name: Install .NET Report Generator
+      #   run: dotnet tool install -g dotnet-reportgenerator-globaltool
         
       - name: Run Test
         run: dotnet test ./UITests/UITests.csproj --configuration Release --settings ./UITests/ilovedotnet.runsettings --verbosity normal --logger trx --collect:"XPlat Code Coverage"
@@ -87,8 +87,8 @@ jobs:
       #    path: '**/*.trx'
       #    reporter: dotnet-trx
       
-      - name: Generate Test Report
-        run: reportgenerator -reports:./**/Coverage.cobertura.xml -targetdir:"./Test/Report" -reporttypes:Html
+      # - name: Generate Test Report
+      #   run: reportgenerator -reports:./**/Coverage.cobertura.xml -targetdir:"./Test/Report" -reporttypes:Html
 
       # - name: ReportGenerator
       #   # You may pin to the exact commit or the version.
@@ -116,14 +116,14 @@ jobs:
       #   run: |
       #     cat code-coverage-results.md >> $GITHUB_STEP_SUMMARY  
       
-      # - name: Upload Test Result
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: ilovedotnet-test-report
-      #     path: ./Test/Report
-      #     retention-days: 1
-      #   # Use always() to always run this step to publish test results when there are test failures
-      # if: ${{ always() }}
+      - name: Upload Test Result
+        uses: actions/upload-artifact@v4
+        with:
+          name: ilovedotnet-test-report
+          path: ./Test/Report
+          retention-days: 1
+        # Use always() to always run this step to publish test results when there are test failures
+        if: ${{ always() }}
 
       - name: Publish Blazor Project
         run: dotnet publish ./Web/Web.csproj -c:Release -p:GHPages=true --no-restore -o dist/Web --nologo
