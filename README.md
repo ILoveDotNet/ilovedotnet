@@ -19,7 +19,7 @@ We appreciate your ⭐. It Helps!! That will not only help strengthen our .NET c
 Choosing a project idea could be difficult. We need to ensure stability and maintainability of our projects. Surveys show that GitHub stars count play an important factor when assessing quality.
 
 ⭐ Please give this repository a star. It takes seconds and help thousands of developers! ⭐
-![star-request](https://github.com/ILoveDotNet/ilovedotnet/assets/43729469/ec236d12-27aa-4ca6-8fdf-925b5d73de50)
+![star-request](./CommonComponents/wwwroot/image/brand/star-request.png)
 
 # Road Map
 1. [Blazor WASM](https://github.com/orgs/ILoveDotNet/projects/2) ![IN PROGRESS](https://img.shields.io/badge/IN%20PROGRESS-lightgreen)
