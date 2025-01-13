@@ -43,14 +43,16 @@ if [ -n "$FILES" ]; then
   # Set the required coverage threshold
   THRESHOLD=0.7  # 70% threshold
 
+  # Round off coverage to two decimal places
+  COVERAGE_PERCENTAGE=$(echo "$COVERAGE * 100" | bc -l)
+  COVERAGE_PERCENTAGE=$(printf "%.2f" "$COVERAGE_PERCENTAGE")
+
   # Check if the coverage meets the threshold
   if (( $(echo "$COVERAGE < $THRESHOLD" | bc -l) )); then
-      COVERAGE_PERCENTAGE=$(echo "scale=2; $COVERAGE * 100" | bc -l)
       echo "Code coverage (${COVERAGE_PERCENTAGE}%) is below the required threshold (80%). Commit aborted."
       exit 1
   fi
 
-  COVERAGE_PERCENTAGE=$(echo "scale=2; $COVERAGE * 100" | bc -l)
   echo "Code coverage ${COVERAGE_PERCENTAGE}% is sufficient. Proceeding with commit."
 else
   echo "No staged .cs files found. Skipping tests and code coverage."
