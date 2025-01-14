@@ -4,7 +4,7 @@ namespace EndToEndTests;
 
 [Parallelizable(ParallelScope.Self)]
 [TestFixture]
-public class Tests : BaseTest
+public class HomePageTests : BaseTest
 {
   [Test]
   public async Task HomepageHasCorrectContentAsync()
