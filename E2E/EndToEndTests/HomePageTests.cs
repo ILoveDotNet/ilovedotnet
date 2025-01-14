@@ -1,4 +1,6 @@
-﻿namespace EndToEndTests;
+﻿using EndToEndTests.Utilities;
+
+namespace EndToEndTests;
 
 [Parallelizable(ParallelScope.Self)]
 [TestFixture]
@@ -18,6 +20,10 @@ public class Tests : BaseTest
   {
     await Page.GotoAsync(BaseUrl);
     await Expect(Page.Locator("#brand")).ToContainTextAsync("I ❤️ .NET");
+    await Page.ScreenshotAsync(new()
+    {
+        Path = "ILoveDotNetBrandAsserted.png"
+    });
     await Expect(Page.Locator("#main")).ToContainTextAsync("👉🏼 Click here to Join I ❤️ .NET WhatsApp Channel to get 🔔 notified about new articles and other updates.");
   }
 }
