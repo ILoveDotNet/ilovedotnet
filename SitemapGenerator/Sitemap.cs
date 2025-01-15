@@ -6,16 +6,23 @@ namespace SitemapGenerator;
 public class Sitemap(TableOfContents tableOfContents, string channel)
 {
   private XDocument? _sitemap;
-  private readonly List<Url> _urls = tableOfContents.GetContentsByChannel(channel).Select(content => new Url
+  private readonly List<Url> _urls = [.. tableOfContents.GetContentsByChannel(channel).Select(content => new Url
   {
     Loc = $"https://ilovedotnet.org/blogs/{content.Slug}",
     LastMod = new DateTime(content.ModifiedOn.Year, content.ModifiedOn.Month, content.ModifiedOn.Day, content.ModifiedOn.Hour, content.ModifiedOn.Minute, content.ModifiedOn.Second),
     ChangeFreq = "weekly",
     Priority = 0.5
-  }).ToList();
+  })];
 
   public void GenerateSitemap(string filePath)
   {
+    LoadSitemap(filePath);
+
+    if (!IsAnyContentUpdatedAndRepublished() && !isAnyNewContentAddedOrScheduled)
+    {
+      return;
+    }
+
     XNamespace ns = "http://www.sitemaps.org/schemas/sitemap/0.9";
     XElement urlset = new(ns + "urlset");
 
@@ -34,7 +41,7 @@ public class Sitemap(TableOfContents tableOfContents, string channel)
     sitemap.Save(filePath);
   }
 
-  public void LoadSitemap(string filePath)
+  private void LoadSitemap(string filePath)
   {
     if (File.Exists(filePath))
     {
@@ -42,7 +49,7 @@ public class Sitemap(TableOfContents tableOfContents, string channel)
     }
   }
 
-  public bool IsAnyContentUpdatedAndRepublished()
+  private bool IsAnyContentUpdatedAndRepublished()
   {
     if (_sitemap is null)
     {
@@ -58,4 +65,6 @@ public class Sitemap(TableOfContents tableOfContents, string channel)
 
     return isAnyContentUpdatedAndRepublished;
   }
+
+  private bool isAnyNewContentAddedOrScheduled => _urls.Count != _sitemap?.Descendants("url").Count();
 }
