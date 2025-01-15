@@ -23,33 +23,41 @@ if [ -n "$FILES" ]; then
   # If no staged `.cs` files are found (`FILES` is empty), exit the script.
   dotnet test . --no-build --settings ./UITests/ilovedotnet.runsettings --collect:"XPlat Code Coverage"
 
-  # Find the latest TestResults directory
-  RESULTS_DIR=$(find . -type d -name "TestResults" -exec find {} -type d -name "*" \; | sort | tail -1)
-  COVERAGE_FILE="$RESULTS_DIR/coverage.cobertura.xml"
+  # Generate aggregated report using reportgenerator
+  echo "Generating aggregated code coverage report..."
+  reportgenerator -reports:"./**/TestResults/**/coverage.cobertura.xml" -targetdir:"test_coverage_report" -reporttypes:XmlSummary || {
+      echo "Error: Failed to generate code coverage report. Commit aborted."
+      exit 1
+  }
 
-  # Debugging output for troubleshooting
-  echo "Looking for coverage file in: $RESULTS_DIR"
-  echo "Expected coverage file: $COVERAGE_FILE"
+  # Define the summary file path
+  SUMMARY_FILE="test_coverage_report/Summary.xml"
 
-  # Check if the coverage file exists
-  if [ ! -f "$COVERAGE_FILE" ]; then
-      echo "Error: Coverage file not found. Commit aborted."
+  # Check if the summary file exists
+  if [ ! -f "$SUMMARY_FILE" ]; then
+      echo "Error: Coverage summary file not found. Commit aborted."
       exit 1
   fi
 
-  # Parse the coverage percentage from coverage.cobertura.xml
-  COVERAGE=$(xmllint --xpath "string(//coverage/@line-rate)" "$COVERAGE_FILE")
+  # Extract the Linecoverage percentage
+  COVERAGE=$(xmllint --xpath "string(//Summary/Linecoverage)" "$SUMMARY_FILE")
+
+  if [ -z "$COVERAGE" ]; then
+      echo "Error: Failed to retrieve code coverage from summary. Commit aborted."
+      exit 1
+  fi
 
   # Set the required coverage threshold
-  THRESHOLD=0.7  # 70% threshold
+  THRESHOLD=70.0
 
-  # Round off coverage to two decimal places
-  COVERAGE_PERCENTAGE=$(echo "$COVERAGE * 100" | bc -l)
-  COVERAGE_PERCENTAGE=$(printf "%.2f" "$COVERAGE_PERCENTAGE")
+  # Round off coverage to one decimal place
+  COVERAGE_PERCENTAGE=$(printf "%.1f" "$COVERAGE")
 
-  # Check if the coverage meets the threshold
-  if (( $(echo "$COVERAGE < $THRESHOLD" | bc -l) )); then
-      echo "Code coverage (${COVERAGE_PERCENTAGE}%) is below the required threshold (80%). Commit aborted."
+  echo "Aggregated Code Coverage: ${COVERAGE_PERCENTAGE}%"
+
+  # Check if the aggregated coverage meets the threshold
+  if (( $(echo "$COVERAGE_PERCENTAGE < $THRESHOLD" | bc -l) )); then
+      echo "Code coverage (${COVERAGE_PERCENTAGE}%) is below the required threshold (${THRESHOLD}%). Commit aborted."
       exit 1
   fi
 
