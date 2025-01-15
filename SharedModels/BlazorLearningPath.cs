@@ -2,7 +2,7 @@
 
 public class BlazorLearningPath
 {
-  public readonly List<ContentMetaData> FullContents = new(31);
+  public readonly List<ContentMetaData> FullContents = new(32);
 
   public BlazorLearningPath()
   {
@@ -534,6 +534,23 @@ public class BlazorLearningPath
                 CreatedOn = new DateTime(2024, 12, 22, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2024, 12, 22, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["C", "C++", "Native Dependecies"]
+            },
+            new ContentMetaData
+            {
+                Order = 32,
+                Title = "End to End Testing using Playwright in Blazor WASM",
+                Description = "In this article let's learn how to perform end to end testing using playwright in Blazor WASM app. All with live working demo.",
+                Author = "Abdul Rahman",
+                Slug = "e2e-testing-blazor-wasm-using-playwright",
+                PosterUrl = "image/blogs/blazor/wasm/e2e-testing-blazor-wasm-using-playwright.webp",
+                ThumbnailUrl = "image/blogs/blazor/wasm/e2e-testing-blazor-wasm-using-playwright.webp",
+                ContentUrl = "blogs/e2e-testing-blazor-wasm-using-playwright",
+                IconUrl = "image/icons/blazor.webp",
+                Channel = "Blazor",
+                Type = "blogs",
+                CreatedOn = new DateTime(2025, 1, 19, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2025, 1, 19, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Playwright", "E2E", "End to End Testing"]
             },
         ];
   }

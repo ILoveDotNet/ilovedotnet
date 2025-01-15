@@ -3,7 +3,7 @@
 public class TableOfContents
 {
   public const int PageSize = 6;
-  private readonly List<ContentMetaData> FullContents = new(121);
+  private readonly List<ContentMetaData> FullContents = new(122);
   private readonly List<AuthorMetaData> FullAuthors = new(1);
   private readonly List<SponsorMetaData> FullSponsors = new(1);
 
@@ -12,23 +12,19 @@ public class TableOfContents
   public IReadOnlyList<SponsorMetaData> Sponsors => FullSponsors;
 
   public IReadOnlyList<ContentMetaData> Contents
-          => FullContents
-              .Where(content => content.ModifiedOn.Date <= DateTime.Today.Date)
-              .ToList();
+          => [.. FullContents.Where(content => content.ModifiedOn.Date <= DateTime.Today.Date)];
 
   public IReadOnlyList<ContentMetaData> FilteredAndPagedContents(string? selectedContentType = null, int skip = 0, int take = PageSize)
-          => Contents
+          => [.. Contents
               .Where(content => string.IsNullOrWhiteSpace(selectedContentType) || content.Channel.Equals(selectedContentType, StringComparison.OrdinalIgnoreCase))
               .OrderByDescending(content => content.ModifiedOn)
               .ThenByDescending(content => content.CreatedOn)
-              .Take(skip..take)
-              .ToList();
+              .Take(skip..take)];
 
   public IReadOnlyList<string> AvailableContentTypes
-          => FullContents
+          => [.. FullContents
               .Select(content => content.Channel)
-              .Distinct()
-              .ToList();
+              .Distinct()];
 
   public int SelectedContentTypeTotalCount(string? selectedContentType = null)
           => Contents
@@ -36,12 +32,11 @@ public class TableOfContents
               .Count();
 
   public IReadOnlyList<ContentMetaData> ExceptAndPagedContents(string slug, int skip = 0, int take = PageSize)
-          => Contents
+          => [.. Contents
               .Where(content => !content.Slug.Equals(slug, StringComparison.OrdinalIgnoreCase))
               .OrderByDescending(content => content.ModifiedOn)
               .ThenByDescending(content => content.CreatedOn)
-              .Take(skip..take)
-              .ToList();
+              .Take(skip..take)];
 
   public ContentMetaData GetContentBySlug(string slug)
           => FullContents
