@@ -7,12 +7,7 @@
 #
 # To enable this hook, rename this file to "pre-commit".
 
-# Run tests with coverage
-echo "Running tests and collecting code coverage..."
-# Remove TestResults inside any folder that ends with Tests
-echo "Cleaning up previous test results inside *Tests directories..."
-find . -type d -name "*Tests" -exec rm -rf {}/TestResults \;
-# Select modified files
+echo "Selecting modified .cs files"
 FILES=$(git diff --cached --name-only --diff-filter=ACM "*.cs" | sed 's| |\\ |g')
 # - `git diff --cached --name-only`: Lists the staged files.
 # - `--diff-filter=ACM`: Filters only Added (A), Copied (C), or Modified (M) files.
@@ -20,10 +15,55 @@ FILES=$(git diff --cached --name-only --diff-filter=ACM "*.cs" | sed 's| |\\ |g'
 # - `sed 's| |\\ |g'`: Escapes spaces in file paths for proper handling.
 
 if [ -n "$FILES" ]; then
-  # If no staged `.cs` files are found (`FILES` is empty), exit the script.
+
+  # Run dotnet format
+  LC_ALL=C
+  # Set locale to "C" to ensure consistent behavior for text processing, sorting, etc.
+
+  # Initialize flag to check if any file was formatted
+  formatted_files=0
+
+  # Format all selected files
+  # Loop through each file and run dotnet format
+  # Build the --include arguments for dotnet format
+  echo "Files to be formatted:"
+  INCLUDE_ARGS=""
+  for FILE in $FILES; do
+    INCLUDE_ARGS="$INCLUDE_ARGS --include $FILE"
+  done
+
+  # Run dotnet format on all files at once
+  dotnet format --no-restore --verbosity normal $INCLUDE_ARGS || {
+    echo "dotnet format failed. Aborting commit." >&2
+    exit 1
+  }
+
+  # Check if any files were modified by dotnet format
+  # Stage the formatted files only if they are modified
+  for FILE in $FILES; do
+    git diff --exit-code "$FILE" > /dev/null || {
+      git add "$FILE"  # Stage the formatted file
+      formatted_files=1  # Set the flag to indicate that a file was formatted
+    }
+  done
+
+  # Exit commit if any file was formatted
+  if [ $formatted_files -eq 1 ]; then
+    echo "One or more files were formatted. Please review the changes and commit again."
+    exit 1
+  else
+    echo "No files were formatted."
+  fi
+
+  echo "Checking and installing dotnet report generator"
+  dotnet tool install --global dotnet-reportgenerator-globaltool
+
+  echo "Cleaning up previous test results inside *Tests directories..."
+  find . -type d -name "*Tests" -exec rm -rf {}/TestResults \;
+
+  echo "Running tests and collecting code coverage..."
   dotnet test . --no-build --settings ./UITests/ilovedotnet.runsettings --collect:"XPlat Code Coverage"
 
-  # Generate aggregated report using reportgenerator
   echo "Generating aggregated code coverage report..."
   reportgenerator -reports:"./**/TestResults/**/coverage.cobertura.xml" -targetdir:"test_coverage_report" -reporttypes:XmlSummary || {
       echo "Error: Failed to generate code coverage report. Commit aborted."
@@ -64,58 +104,6 @@ if [ -n "$FILES" ]; then
   echo "Code coverage ${COVERAGE_PERCENTAGE}% is sufficient. Proceeding with commit."
 else
   echo "No staged .cs files found. Skipping tests and code coverage."
-fi
-
-# Run dotnet format
-LC_ALL=C
-# Set locale to "C" to ensure consistent behavior for text processing, sorting, etc.
-
-# Select files to format
-FILES=$(git diff --cached --name-only --diff-filter=ACM "*.cs" | sed 's| |\\ |g')
-# - `git diff --cached --name-only`: Lists the staged files.
-# - `--diff-filter=ACM`: Filters only Added (A), Copied (C), or Modified (M) files.
-# - `"*.cs"`: Restricts the list to C# files.
-# - `sed 's| |\\ |g'`: Escapes spaces in file paths for proper handling.
-
-if [ -z "$FILES" ]; then
-  echo "No staged .cs files found. Skipping formatting."
-  exit 0
-fi
-# If no staged `.cs` files are found (`FILES` is empty), exit the script.
-
-# Initialize flag to check if any file was formatted
-formatted_files=0
-
-# Format all selected files
-# Loop through each file and run dotnet format
-# Build the --include arguments for dotnet format
-echo "Files to be formatted:"
-INCLUDE_ARGS=""
-for FILE in $FILES; do
-  INCLUDE_ARGS="$INCLUDE_ARGS --include $FILE"
-done
-
-# Run dotnet format on all files at once
-dotnet format --no-restore --verbosity normal $INCLUDE_ARGS || {
-  echo "dotnet format failed. Aborting commit." >&2
-  exit 1
-}
-
-# Check if any files were modified by dotnet format
-# Stage the formatted files only if they are modified
-for FILE in $FILES; do
-  git diff --exit-code "$FILE" > /dev/null || {
-    git add "$FILE"  # Stage the formatted file
-    formatted_files=1  # Set the flag to indicate that a file was formatted
-  }
-done
-
-# Exit commit if any file was formatted
-if [ $formatted_files -eq 1 ]; then
-  echo "One or more files were formatted. Please review the changes and commit again."
-  exit 1
-else
-  echo "No files were formatted."
 fi
 
 if git rev-parse --verify HEAD >/dev/null 2>&1
