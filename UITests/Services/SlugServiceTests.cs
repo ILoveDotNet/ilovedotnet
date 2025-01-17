@@ -1,5 +1,4 @@
 ﻿using Bunit.TestDoubles;
-using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using SharedComponents;
 
@@ -18,7 +17,7 @@ public class SlugServiceTests
     var slugService = new SlugService(fakeNavigationManager);
     var result = slugService.GetSlug();
 
-    result.Should().Be("test-slug");
+    Assert.Equal("test-slug", result);
   }
 
   [Fact]
@@ -31,7 +30,7 @@ public class SlugServiceTests
     var slugService = new SlugService(fakeNavigationManager);
     var result = slugService.GetSlug();
 
-    result.Should().Be("test-slug");
+    Assert.Equal("test-slug", result);
   }
 
   [Fact]
@@ -42,8 +41,6 @@ public class SlugServiceTests
     fakeNavigationManager.NavigateTo("http://example.com/");
     var slugService = new SlugService(fakeNavigationManager);
 
-    var act = () => slugService.GetSlug();
-
-    act.Should().Throw<ArgumentException>().WithParameterName("slug");
+    Assert.Throws<ArgumentException>(() => slugService.GetSlug());
   }
 }

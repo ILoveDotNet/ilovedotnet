@@ -1,5 +1,4 @@
 ﻿using Bunit.TestDoubles;
-using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace UITests.Components.Navigation;
@@ -18,6 +17,6 @@ public class BackToTopTests
     cut.Find("button").Click();
 
     // Assert
-    navigationManager.Uri.Should().EndWith("#app");
+    Assert.Equal("http://localhost/#app", navigationManager.Uri);
   }
 }
