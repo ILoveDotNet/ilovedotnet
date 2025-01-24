@@ -22,7 +22,7 @@ public class ReportLearningPath
         Channel = "Report",
         Type = "blogs",
         CreatedOn = new DateTime(2023, 1, 29, 22, 30, 0, DateTimeKind.Utc),
-        ModifiedOn = new DateTime(2025, 1, 27, 22, 30, 0, DateTimeKind.Utc),
+        ModifiedOn = new DateTime(2025, 1, 26, 22, 30, 0, DateTimeKind.Utc),
         Keywords = ["Microsoft Excel", "Excel Report", "Closed XML", "Report Template", "Complex Report", "Simple Report", "xlsx", "xls"]
       },
       new ContentMetaData
