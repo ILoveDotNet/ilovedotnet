@@ -69,6 +69,12 @@ public class LazyLoaderService(
           AdditionalAssemblies.AddRange(assemblies);
         }
 
+        if (path.Contains("msbuild", StringComparison.OrdinalIgnoreCase))
+        {
+          var assemblies = await lazyAssemblyLoader.LoadAssembliesAsync(["MSBuildDemoComponents.wasm"]);
+          AdditionalAssemblies.AddRange(assemblies);
+        }
+
         if (path.Contains("oops", StringComparison.OrdinalIgnoreCase))
         {
           var assemblies = await lazyAssemblyLoader.LoadAssembliesAsync(["OOPSDemoComponents.wasm"]);
