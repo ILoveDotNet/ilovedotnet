@@ -23,7 +23,7 @@ public class MSBuildLearningPath
                 Type = "blogs",
                 CreatedOn = new DateTime(2025, 2, 2, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2025, 2, 2, 22, 30, 0, DateTimeKind.Utc),
-                Keywords = ["Git Hook"]
+                Keywords = ["Git Hook", "Pre-Commit"]
             }
     ];
   }

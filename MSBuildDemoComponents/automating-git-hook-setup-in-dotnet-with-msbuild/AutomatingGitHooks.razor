@@ -1,0 +1,89 @@
+@page "/blogs/automating-git-hook-setup-in-dotnet-with-msbuild"
+@inherits BasePage
+
+<Content FileName=@nameof(AutomatingGitHooks) UseNewTableOfContentsMenu=true>
+    <ContentBody>
+      <What>
+        <p>
+          <ContentHighlight>Git hooks</ContentHighlight> are custom scripts that run at specific points in the Git workflow. 
+          <ContentHighlight>Pre-commit hooks</ContentHighlight>, for example, execute before a commit is made and can enforce coding standards or 
+          run tests. Automating the setup of these hooks ensures consistency across a team, removing the need for manual configuration.
+        </p>
+
+        <p>
+          In this article, we'll explore how to automate the setup of a pre-commit hook in a .NET project using 
+          <ContentHighlight>MSBuild</ContentHighlight>.
+        </p>
+      </What>
+
+      <Why>
+        <p>
+          <ContentHighlight>Setting up Git hooks manually can lead to errors and inconsistencies</ContentHighlight>, especially in large team 
+          environments where its not possible to follow up with every developer or new joiner to setup git hooks because we cannot add default 
+          git hooks to source control. Automating this process within a .NET project ensures that the required pre-commit hook is tracked in 
+          source control and is consistently installed and made executable for all developers. This enhances productivity and ensures that coding 
+          standards and checks are always applied.
+        </p>
+      </Why>
+
+      <How>
+        <p>
+          The first step is to add a pre-commit hook script to the project. This script can include any logic you want to run before a commit is made.
+        </p>
+
+        <figure>
+            <img src="./image/blogs/msbuild/automating-git-hook-setup-in-dotnet-with-msbuild/Pre-Commit in Source Control.png"
+                alt="Pre-Commit in Source Control" class="[ w-full ]" />
+        </figure>
+
+        <p>
+          By adding a custom target to the <ContentHighlight>.csproj</ContentHighlight> file, you can automate the setup of a pre-commit hook. Below is 
+          an example of a custom target named <ContentHighlight>CopyGitHook</ContentHighlight> and a detailed explanation of its components.
+        </p>
+
+        <GithubGistSnippet Title="Copying Git Pre Commit Hook before Project Build" UserId="fingers10" FileName="79f21e3c5fa1f872f5082dfb7be0109c"></GithubGistSnippet>
+
+        <ul>
+            <li>
+                <strong>Create the <ContentHighlight>.git/hooks</ContentHighlight> directory:</strong> 
+                The <ContentHighlight>MakeDir</ContentHighlight> task ensures the <ContentHighlight>.git/hooks</ContentHighlight> directory exists. 
+                It runs only if the directory is missing, as determined by the condition <ContentHighlight>!Exists('$(ProjectDir)/../.git/hooks')</ContentHighlight>.
+            </li>
+            <li>
+                <strong>Copy the pre-commit hook:</strong> 
+                The <ContentHighlight>Copy</ContentHighlight> task copies the <ContentHighlight>pre-commit</ContentHighlight> script from 
+                the <ContentHighlight>../Scripts/git_hooks</ContentHighlight> folder to the <ContentHighlight>.git/hooks</ContentHighlight> directory. 
+                The <ContentHighlight>SkipUnchangedFiles="true"</ContentHighlight> attribute ensures the file is copied only if it has changed, avoiding 
+                redundant operations.
+            </li>
+            <li>
+                <strong>Make the hook executable:</strong> 
+                The <ContentHighlight>Exec</ContentHighlight> task runs a shell command (<ContentHighlight>chmod +x</ContentHighlight>) to make the 
+                copied <ContentHighlight>pre-commit</ContentHighlight> script executable. This task runs only if the file exists, as defined by the 
+                condition <ContentHighlight>Exists('$(ProjectDir)/../.git/hooks/pre-commit')</ContentHighlight>.
+            </li>
+        </ul>
+
+        <p>
+          Now you can add pre commit logics like <ContentHighlight>dotnet format, run test, measure code coverage, secret scanning</ContentHighlight>, 
+          etc to the <ContentHighlight>../Scripts/git_hooks/pre-commit file</ContentHighlight> and add it to source control. This will ensure that all 
+          developers have the same pre commit hooks setup. This also helps to add new logics or changes to pre commit in single place and track the 
+          changes.
+        </p>
+
+        <p>
+          Here is an example of ilovedotnet pre-commit hook file.
+        </p>
+
+        <GithubGistSnippet Title="I Love .NET Git Pre Commit Hook" UserId="fingers10" FileName="f948d350b4292320caa23b9c79d8a5d8"></GithubGistSnippet>
+      </How>
+
+      <Summary>
+        <p>
+          Automating Git hook setup with <ContentHighlight>MSBuild</ContentHighlight> simplifies project configuration and ensures consistency across 
+          development environments. By leveraging a custom target in the `.csproj` file, you can efficiently set up pre-commit hooks without requiring 
+          manual intervention, improving both productivity and team collaboration.
+        </p>
+      </Summary>
+    </ContentBody>
+</Content>
