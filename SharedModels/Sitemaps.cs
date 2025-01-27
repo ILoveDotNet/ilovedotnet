@@ -14,6 +14,7 @@ public class Sitemaps
         "sitemap-blog-oops.xml",
         "sitemap-blog-owasp.xml",
         "sitemap-blog-python.xml",
+        "sitemap-blog-msbuild.xml",
         "sitemap-blog-report.xml",
         "sitemap-blog-signalr.xml",
         "sitemap-blog-solid.xml",
