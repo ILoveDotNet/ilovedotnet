@@ -1,0 +1,24 @@
+sequenceDiagram
+    participant Developer
+    participant MSBuild
+    participant GitHooks
+    participant Git
+
+    Git->>Developer: Pull repository changes
+    Developer->>MSBuild: Start build process (Before Build)
+    MSBuild->>MSBuild: Check configuration (Release or Debug)
+    MSBuild-->>Developer: Skip setup if configuration is "Release"
+    MSBuild->>GitHooks: Copy Pre-commit script to .git/hooks
+    MSBuild-->>Developer: Git hook setup completed
+
+    Developer->>GitHooks: Attempt to commit changes
+    loop Pre-commit Checks
+        GitHooks->>GitHooks: dotnet format -> Run tests -> Validate code coverage -> Secret scans
+    end
+    GitHooks->>GitHooks: All checks pass? (Yes/No)
+    alt Yes
+        GitHooks->>Git: Push repository changes
+        Git-->>Developer: Commit successfully pushed
+    else No
+        GitHooks-->>Developer: Abort commit (Pre-commit checks failed)
+    end
