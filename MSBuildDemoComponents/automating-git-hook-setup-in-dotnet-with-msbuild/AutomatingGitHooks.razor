@@ -49,26 +49,40 @@
 
         <GithubGistSnippet Title="Copying Git Pre Commit Hook before Project Build" UserId="fingers10" FileName="79f21e3c5fa1f872f5082dfb7be0109c"></GithubGistSnippet>
 
-        <ul>
-            <li>
-                <strong>Create the <ContentHighlight>.git/hooks</ContentHighlight> directory:</strong> 
-                The <ContentHighlight>MakeDir</ContentHighlight> task ensures the <ContentHighlight>.git/hooks</ContentHighlight> directory exists. 
-                It runs only if the directory is missing, as determined by the condition <ContentHighlight>!Exists('$(ProjectDir)/../.git/hooks')</ContentHighlight>.
-            </li>
-            <li>
-                <strong>Copy the pre-commit hook:</strong> 
-                The <ContentHighlight>Copy</ContentHighlight> task copies the <ContentHighlight>pre-commit</ContentHighlight> script from 
-                the <ContentHighlight>../Scripts/git_hooks</ContentHighlight> folder to the <ContentHighlight>.git/hooks</ContentHighlight> directory. 
-                The <ContentHighlight>SkipUnchangedFiles="true"</ContentHighlight> attribute ensures the file is copied only if it has changed, avoiding 
-                redundant operations.
-            </li>
-            <li>
-                <strong>Make the hook executable:</strong> 
-                The <ContentHighlight>Exec</ContentHighlight> task runs a shell command (<ContentHighlight>chmod +x</ContentHighlight>) to make the 
-                copied <ContentHighlight>pre-commit</ContentHighlight> script executable. This task runs only if the file exists, as defined by the 
-                condition <ContentHighlight>Exists('$(ProjectDir)/../.git/hooks/pre-commit')</ContentHighlight>.
-            </li>
-        </ul>
+        <ol>
+          <li>
+              <strong>Define the pre-commit hook setup:</strong> 
+              The <ContentHighlight>CopyGitHook</ContentHighlight> target runs <ContentHighlight>BeforeBuild</ContentHighlight>, 
+              ensuring the pre-commit hook is set up before the build process starts. It executes only in non-release builds, as specified by the condition 
+              <ContentHighlight>'$(Configuration)'!='Release'</ContentHighlight>.
+          </li>
+          <li>
+              <strong>Create the <ContentHighlight>.git/hooks</ContentHighlight> directory:</strong> 
+              The <ContentHighlight>MakeDir</ContentHighlight> task ensures the <ContentHighlight>.git/hooks</ContentHighlight> directory exists. 
+              It runs only if the directory is missing, as determined by the condition <ContentHighlight>!Exists('$(ProjectDir)/../.git/hooks')</ContentHighlight>.
+          </li>
+          <li>
+              <strong>Copy the pre-commit hook:</strong> 
+              The <ContentHighlight>Copy</ContentHighlight> task copies the <ContentHighlight>pre-commit</ContentHighlight> script from 
+              the <ContentHighlight>../Scripts/git_hooks</ContentHighlight> folder to the <ContentHighlight>.git/hooks</ContentHighlight> directory. 
+              The <ContentHighlight>SkipUnchangedFiles="true"</ContentHighlight> attribute ensures the file is copied only if it has changed, avoiding redundant operations.
+          </li>
+          <li>
+              <strong>Make the hook executable (Linux/macOS):</strong> 
+              The <ContentHighlight>Exec</ContentHighlight> task runs a shell command <ContentHighlight>chmod +x</ContentHighlight> 
+              to make the copied <ContentHighlight>pre-commit</ContentHighlight> script executable. This task runs only if the file exists 
+              and the system is not Windows, as determined by the condition 
+              <ContentHighlight>Exists('$(ProjectDir)/../.git/hooks/pre-commit') AND '$(OS)' != 'Windows_NT'</ContentHighlight>.
+          </li>
+          <li>
+              <strong>Create a Windows-compatible batch script:</strong> 
+              Since Windows does not execute shell scripts natively, the <ContentHighlight>WriteLinesToFile</ContentHighlight> task generates 
+              a <ContentHighlight>pre-commit.bat</ContentHighlight> file. This file contains:
+              <ContentHighlight>@@echo off bash .git/hooks/pre-commit</ContentHighlight>
+              This batch script ensures that the pre-commit hook runs correctly on Windows machines by executing it through Bash. 
+              It is created only on Windows, as specified by the condition <ContentHighlight>'$(OS)' == 'Windows_NT'</ContentHighlight>.
+          </li>
+        </ol>
 
         <p>
           Now you can add pre commit logics like <ContentHighlight>dotnet format, run test, measure code coverage, secret scanning</ContentHighlight>, 
@@ -82,6 +96,12 @@
         </p>
 
         <GithubGistSnippet Title="I Love .NET Git Pre Commit Hook" UserId="fingers10" FileName="f948d350b4292320caa23b9c79d8a5d8"></GithubGistSnippet>
+
+        <figure>
+            <caption>Windows Pre-Commit Output</caption>
+            <img src="./image/blogs/msbuild/automating-git-hook-setup-in-dotnet-with-msbuild/Windows Pre-Commit Output.png"
+                alt="Windows Pre-Commit Output" class="[ w-full ]" />
+        </figure>
       </How>
 
       <Summary>
