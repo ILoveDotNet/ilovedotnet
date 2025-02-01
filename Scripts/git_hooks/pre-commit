@@ -63,8 +63,24 @@ if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" || "$OS" == "Windows_NT" ]]; 
 
     # Check if Chocolatey is installed
     if ! command -v choco &> /dev/null; then
-        echo "Chocolatey not found. Please install it manually from https://chocolatey.org/install"
-        exit 1
+        echo "Chocolatey not found. Installing Chocolatey..."
+
+        # Download and install Chocolatey
+        powershell -NoProfile -ExecutionPolicy Bypass -Command \
+            "Set-ExecutionPolicy Bypass -Scope Process -Force; \
+            [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; \
+            iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))"
+
+        # Ensure Chocolatey is added to PATH (applies only for the current session)
+        export PATH="$PATH:/c/ProgramData/chocolatey/bin"
+
+        # Verify Chocolatey installation
+        if ! command -v choco &> /dev/null; then
+            echo "Chocolatey installation failed. Please install manually from https://chocolatey.org/install"
+            exit 1
+        fi
+    else
+        echo "Chocolatey is already installed."
     fi
 
     # Check if xmllint is installed
