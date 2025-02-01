@@ -9,7 +9,7 @@ module.exports = {
             extensions: ['css', 'html', 'razor'],
         },
     ],
-    css: ['wwwroot/css/app.min.css'],
+    css: ['wwwroot/css/app.css'],
     safelist: ['blazor-error-boundary'],
     output: 'wwwroot/css/app.min.css'
 };

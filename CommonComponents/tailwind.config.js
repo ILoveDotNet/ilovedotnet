@@ -9,7 +9,6 @@
         extend: {},
     },
     plugins: [
-        require('autoprefixer'),
         require('@tailwindcss/typography')
     ],
 };
