@@ -53,6 +53,29 @@ if [ -n "$FILES" ]; then
   else
     echo "No files were formatted."
   fi
+else
+  echo "No .cs files to format."
+fi
+
+# Detect if running on Windows
+if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" || "$OS" == "Windows_NT" ]]; then
+    echo "Detected Windows OS"
+
+    # Check if Chocolatey is installed
+    if ! command -v choco &> /dev/null; then
+        echo "Chocolatey not found. Please install it manually from https://chocolatey.org/install"
+        exit 1
+    fi
+
+    # Check if xmllint is installed
+    if ! command -v xmllint &> /dev/null; then
+        echo "Installing libxml2 using Chocolatey..."
+        choco install libxml2 -y
+    else
+        echo "libxml2 (xmllint) is already installed."
+    fi
+else
+    echo "Non-Windows OS detected, skipping Chocolatey installation."
 fi
 
 echo "Checking and installing dotnet report generator"
