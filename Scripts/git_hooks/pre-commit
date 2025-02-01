@@ -57,43 +57,6 @@ else
   echo "No .cs files to format."
 fi
 
-# Detect if running on Windows
-if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" || "$OS" == "Windows_NT" ]]; then
-    echo "Detected Windows OS"
-
-    # Check if Chocolatey is installed
-    if ! command -v choco &> /dev/null; then
-        echo "Chocolatey not found. Installing Chocolatey..."
-
-        # Download and install Chocolatey
-        powershell -NoProfile -ExecutionPolicy Bypass -Command \
-            "Set-ExecutionPolicy Bypass -Scope Process -Force; \
-            [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; \
-            iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))"
-
-        # Ensure Chocolatey is added to PATH (applies only for the current session)
-        export PATH="$PATH:/c/ProgramData/chocolatey/bin"
-
-        # Verify Chocolatey installation
-        if ! command -v choco &> /dev/null; then
-            echo "Chocolatey installation failed. Please install manually from https://chocolatey.org/install"
-            exit 1
-        fi
-    else
-        echo "Chocolatey is already installed."
-    fi
-
-    # Check if xmllint is installed
-    if ! command -v xmllint &> /dev/null; then
-        echo "Installing libxml2 using Chocolatey..."
-        choco install libxml2 -y
-    else
-        echo "libxml2 (xmllint) is already installed."
-    fi
-else
-    echo "Non-Windows OS detected, skipping Chocolatey installation."
-fi
-
 echo "Checking and installing dotnet report generator"
 dotnet tool install --global dotnet-reportgenerator-globaltool
 
