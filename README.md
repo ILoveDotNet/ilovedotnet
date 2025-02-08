@@ -23,7 +23,7 @@ Choosing a project idea could be difficult. We need to ensure stability and main
 
 # Road Map
 1. [Blazor WASM](https://github.com/orgs/ILoveDotNet/projects/2) ![IN PROGRESS](https://img.shields.io/badge/IN%20PROGRESS-lightgreen)
-2. [LINQ](https://github.com/orgs/ILoveDotNet/projects/6) ![CLOSED](https://img.shields.io/badge/CLOSED-FF0000)
+2. [LINQ](https://github.com/orgs/ILoveDotNet/projects/6) ![IN PROGRESS](https://img.shields.io/badge/IN%20PROGRESS-lightgreen)
 3. [Entity Framework](https://github.com/orgs/ILoveDotNet/projects/4)
 4. [C#](https://github.com/orgs/ILoveDotNet/projects/5)
 5. [ML.NET](https://github.com/orgs/ILoveDotNet/projects/3)
