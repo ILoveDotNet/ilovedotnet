@@ -1,0 +1,98 @@
+@page "/blogs/using-regex-to-migrate-from-fluent-assertions-to-xunit-assertions"
+@inherits BasePage
+
+<Content FileName=@nameof(FluentAssertionsToXUnitAssertions) UseNewTableOfContentsMenu=true>
+    <ContentBody>
+      <What>
+        <p>
+          January 2025 started with a big surprise from <ContentHighlight>FluentAsserions</ContentHighlight>, a popular free assertion library for .NET. 
+          The library maintainers decided to make the library paid one and started charging for it from v8.0. This decision made me realise that it 
+          have introduced a <ContentHighlight>technical debt</ContentHighlight> in all the projects in have worked so far over a decade by using this 
+          library.
+        </p>
+
+        <p>
+          I took This opportunity to pay off the debt I introduced and decided to use <ContentHighlight>AI</ContentHighlight> / 
+          <ContentHighlight>LLM</ContentHighlight> to give a prompt and convert to <ContentHighlight>XUnit Assertions</ContentHighlight>. 
+          I tried with <ContentHighlight>ollama</ContentHighlight> and it worked when I tried with prompt for single assertion statement in terminal but 
+          became <ContentHighlight>very lazy and slow when I was running against multiple test files</ContentHighlight> inside the repo.
+        </p>
+
+        <p>
+          So I thought I'm using wrong tool to solve the problem. It's then decided to use simple <ContentHighlight>Regex</ContentHighlight> to make 
+          this migration. when I tried and viola the entire repository with <ContentHighlight>1000+</ContentHighlight> test methods and all 
+          <ContentHighlight>FluentAsserions statements got converted to XUnit Assertions within seconds</ContentHighlight>. I was able to achieve 
+          <ContentHighlight>90% plus conversion</ContentHighlight> in repository and left with small manual cleanup which took and hour to fix.
+        </p>
+      </What>
+
+      <Why>
+        <p>
+          Our client technical directors decided to move away from FluentAssertions and use XUnit assertions as we are a 
+          <ContentHighlight>large enterprise with 1000+ developers</ContentHighlight> and not ready to spend 130$ for each. Even though FluentAsserions 
+          team is ready to provide security patches for v7, we decided not to go forward and 
+          <ContentHighlight>blocked FluentAsserions from our private Nuget Feed</ContentHighlight>.
+        </p>
+
+        <p>
+          The trade off to pay and use FluentAsserions vs cost to migrate all repository to XUnit assertion kicked off this idea and now we are 
+          successful in that. This was possible because we have followed strict coding standards and kept our assertion statements simple to one line.
+        </p>
+      </Why>
+
+      <How>
+        <p>
+          Here are the steps that I have followed.
+        </p>
+
+        <ol>
+          <li>
+            <p>
+              Find all test files and group them by folder.
+            </p>
+
+            <GithubGistSnippet Title="Find all test Files" UserId="fingers10" FileName="1c199e2a1e154510ed5d637ed572d8d8"></GithubGistSnippet>
+          </li>
+          <li>
+            <p>
+              Parallely Process each file.
+            </p>
+
+            <GithubGistSnippet Title="Parallely run conversion task" UserId="fingers10" FileName="93413c872c9a0950409da70dddfaab37"></GithubGistSnippet>
+          </li>
+          <li>
+            <p>
+              Read lines in each file. If the lines contains <ContentHighlight>.Should().</ContentHighlight> then Process it and convert to XUnit 
+              Assertions and replace the line. Finally save the test file.
+            </p>
+
+            <GithubGistSnippet Title="Processing Test File" UserId="fingers10" FileName="edc1108390ef4363d204977c88fc8b82"></GithubGistSnippet>
+          </li>
+          <li>
+            <p>
+              The <ContentHighlight>secret sauce Regex</ContentHighlight> that I used for commonly used FluentAsserions statements.
+            </p>
+
+            <GithubGistSnippet Title="Regex to convert common and simple FluentAsserions statements" UserId="fingers10" FileName="6bfa2c0b41fb53df7d2b54ab82718548"></GithubGistSnippet>
+          </li>
+        </ol>
+
+        <p>
+          Here is the sample input and output.
+        </p>
+
+        <GithubGistSnippet Title="FluentAsserions input statements" UserId="fingers10" FileName="b86e263372c4f71f96f23f3ac7554bf5"></GithubGistSnippet>
+
+        <GithubGistSnippet Title="Migrated XUnit output statements" UserId="fingers10" FileName="2d49db3deae1add138d7fa72a9370fb9"></GithubGistSnippet>
+      </How>
+
+      <Summary>
+        <p>
+          In this article we learnt about how to use regular expression to migrate from FluentAsserions to XUnit Assertions. Regex are very powerful 
+          and I realised when I was able make this conversion happen within seconds. We save huge money and time and achieved 90% results using this 
+          approach. The idea is open now and you can extend and use it in your repos. I have never imagined that I'll use Regex for any task other than 
+          Email Validation.
+        </p>
+      </Summary>
+    </ContentBody>
+</Content>
