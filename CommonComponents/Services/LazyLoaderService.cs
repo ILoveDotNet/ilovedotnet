@@ -93,6 +93,12 @@ public class LazyLoaderService(
           AdditionalAssemblies.AddRange(assemblies);
         }
 
+        if (path.Contains("regex", StringComparison.OrdinalIgnoreCase))
+        {
+          var assemblies = await lazyAssemblyLoader.LoadAssembliesAsync(["RegexDemoComponents.wasm"]);
+          AdditionalAssemblies.AddRange(assemblies);
+        }
+
         if (path.Contains("report", StringComparison.OrdinalIgnoreCase))
         {
           var assemblies = await lazyAssemblyLoader.LoadAssembliesAsync(["ReportDemoComponents.wasm"]);

@@ -32,7 +32,7 @@ Choosing a project idea could be difficult. We need to ensure stability and main
 8. [Design Patterns](https://github.com/orgs/ILoveDotNet/projects/9) ![IN PROGRESS](https://img.shields.io/badge/IN%20PROGRESS-lightgreen)
 9. [TDD](https://github.com/orgs/ILoveDotNet/projects/10) ![CLOSED](https://img.shields.io/badge/CLOSED-FF0000)
 10. [String Builder](https://github.com/orgs/ILoveDotNet/projects/11)
-11. [Regex](https://github.com/orgs/ILoveDotNet/projects/12)
+11. [Regex](https://github.com/orgs/ILoveDotNet/projects/12) ![IN PROGRESS](https://img.shields.io/badge/IN%20PROGRESS-lightgreen)
 12. [OOPS](https://github.com/orgs/ILoveDotNet/projects/13) ![IN PROGRESS](https://img.shields.io/badge/IN%20PROGRESS-lightgreen)
 13. [Expression Trees](https://github.com/orgs/ILoveDotNet/projects/14)
 14. [Swagger](https://github.com/orgs/ILoveDotNet/projects/15)
@@ -47,8 +47,8 @@ Choosing a project idea could be difficult. We need to ensure stability and main
 23. [SOLID](https://github.com/orgs/ILoveDotNet/projects/25) ![CLOSED](https://img.shields.io/badge/CLOSED-FF0000)
 24. [Background Services](https://github.com/orgs/ILoveDotNet/projects/26) ![IN PROGRESS](https://img.shields.io/badge/IN%20PROGRESS-lightgreen)
 25. [OWASP Secure Coding](https://github.com/orgs/ILoveDotNet/projects/27) ![IN PROGRESS](https://img.shields.io/badge/IN%20PROGRESS-lightgreen)
-25. [SignalR](https://github.com/orgs/ILoveDotNet/projects/28) ![CLOSED](https://img.shields.io/badge/CLOSED-FF0000)
-26. [MSBuild](https://github.com/orgs/ILoveDotNet/projects/30) ![IN PROGRESS](https://img.shields.io/badge/IN%20PROGRESS-lightgreen)
+26. [SignalR](https://github.com/orgs/ILoveDotNet/projects/28) ![CLOSED](https://img.shields.io/badge/CLOSED-FF0000)
+27. [MSBuild](https://github.com/orgs/ILoveDotNet/projects/30) ![IN PROGRESS](https://img.shields.io/badge/IN%20PROGRESS-lightgreen)
 
 # Please share with the community
 As an open-source project without funding, I cannot afford advertising I ❤️ .NET in a typical way. Instead, the project relies on community interactions. Please consider sharing a post about I ❤️ .NET and the value it provides. It really does help!
