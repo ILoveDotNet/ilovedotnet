@@ -13,7 +13,7 @@ public class Authors
             {
                 Order = 1,
                 Name = "Abdul Rahman",
-                Description = "I'm the founder and solo developer and author of I ❤️ .NET",
+                Description = "I'm Abdul Rahman, creator, solo developer and author of https://ilovedotnet.org. I coach and help developers on improving their practical dotnet expertise. Along with this I used to work as a developer and leader for a decade and that's where I got all these experiences in problem solving, performance tuning, solution architecting, platform engineering, legacy migration, developing end to end apps in dotnet, maintaining and contributing to open source projects, consulting, mentoring team, leading a team, business value articulation, stake holder management, delivering outcomes, etc. And for the future my goal is to solve different and complex problems in enterprise to broaden my skills and help million developers to gain practical dotnet expertise from my experiences in my blog. I got recognised by Microsoft as MVP for community contributions and I bring full stack dotnet skills required to develop and deploy dotnet apps.",
                 ImageUrl = "image/talks/blazor-spa-from-aspnet-family.png",
                 IsMVP = true,
                 SocialUrls =
