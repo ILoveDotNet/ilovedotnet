@@ -24,6 +24,7 @@ public class TableOfContents
   public IReadOnlyList<string> AvailableContentTypes
           => [.. FullContents
               .Select(content => content.Channel)
+              .OrderBy(channel => channel)
               .Distinct()];
 
   public int SelectedContentTypeTotalCount(string? selectedContentType = null)
