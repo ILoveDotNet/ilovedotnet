@@ -23,7 +23,7 @@ public class RegexLearningPath
           Type = "blogs",
           CreatedOn = new DateTime(2025, 2, 9, 22, 30, 0, DateTimeKind.Utc),
           ModifiedOn = new DateTime(2025, 2, 9, 22, 30, 0, DateTimeKind.Utc),
-          Keywords = ["Regex"]
+          Keywords = ["FluentAssertion", "XUnit", "Assertion"]
         }
     ];
   }
