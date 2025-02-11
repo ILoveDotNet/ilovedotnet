@@ -60,7 +60,11 @@ static void ConfigureServices(IServiceCollection services, IWebAssemblyHostEnvir
     return httpClient;
   });
 
-  services.AddHttpClient<GitHubService>(client => client.BaseAddress = new Uri("https://api.github.com/"));
+  services.AddHttpClient<GitHubService>(client => 
+  {
+    client.BaseAddress = new Uri("https://api.github.com/");
+    client.DefaultRequestHeaders.Add("User-Agent", "ILoveDotNet");
+  });
 
   services.AddScoped<AppState>();
 
