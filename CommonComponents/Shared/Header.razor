@@ -1,6 +1,7 @@
 ﻿@implements IDisposable
 @inject AppState AppState
 @inject GitHubService GitHubService
+@inject PersistentComponentState PersistentState
 
 <header id="header" class="[ flex items-center justify-between ] [ bg-white ] [ px-5 ] [ dark:bg-gray-800 dark:bg-gray-800/80 ] [ h-14 ] [ sticky top-0 ] [ backdrop-blur-xs bg-white/80 ] [ z-10 ]">
     <button type="button" class="[ hidden md:block ] [ mr-4 ]" @onclick="ToggleMenu" aria-label="Toggle Menu">
@@ -36,11 +37,25 @@
     private bool HideNonSearchItems;
     private int stars = 0;
     private CancellationTokenSource cancellationTokenSource = new();
+    private PersistingComponentStateSubscription persistingSubscription;
 
     protected override async Task OnInitializedAsync()
     {
-        var repository = await GitHubService.GetRepositoryAsync("ILoveDotNet", "ilovedotnet", cancellationTokenSource.Token);
-        stars = repository.StargazersCount;
+        persistingSubscription = this.PersistentState.RegisterOnPersisting(() => 
+                { 
+                    this.PersistentState.PersistAsJson(nameof(stars), stars); 
+                    return Task.CompletedTask; 
+                });
+        
+        if (!this.PersistentState.TryTakeFromJson<int>(nameof(stars), out var restored))
+        {
+            var repository = await GitHubService.GetRepositoryAsync("ILoveDotNet", "ilovedotnet", cancellationTokenSource.Token);
+            stars = repository.StargazersCount;
+        }
+        else
+        {
+            stars = restored!;
+        }
     }
 
     private void ToggleNonSearchItems(bool hideNonSearchItems)
@@ -57,5 +72,6 @@
     {
         cancellationTokenSource.Cancel();
         cancellationTokenSource.Dispose();
+        persistingSubscription.Dispose();
     }
 }
