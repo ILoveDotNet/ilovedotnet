@@ -2,7 +2,7 @@
 
 public class DesignPatternLearningPath
 {
-  public readonly List<ContentMetaData> FullContents = new(10);
+  public readonly List<ContentMetaData> FullContents = new(11);
 
   public DesignPatternLearningPath()
   {
@@ -177,6 +177,23 @@ public class DesignPatternLearningPath
                 CreatedOn = new DateTime(2024, 9, 15, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2024, 9, 15, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Behavioral", "State"]
+            },
+            new ContentMetaData
+            {
+                Order = 11,
+                Title = "Behavioral Design Pattern - Visitor",
+                Description = "In this post I will teach you Behavioral Visitor Design Pattern in .NET. All with live working demo.",
+                Author = "Abdul Rahman",
+                Slug = "behavioral-design-pattern-visitor",
+                PosterUrl = "image/blogs/design-pattern/behavioral-design-pattern-visitor.webp",
+                ThumbnailUrl = "image/blogs/design-pattern/behavioral-design-pattern-visitor.webp",
+                ContentUrl = "blogs/behavioral-design-pattern-visitor",
+                IconUrl = "image/icons/design pattern.webp",
+                Channel = "Design Pattern",
+                Type = "blogs",
+                CreatedOn = new DateTime(2025, 2, 16, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2025, 2, 16, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Behavioral", "Visitor"]
             },
         ];
   }
