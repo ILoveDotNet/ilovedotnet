@@ -1,0 +1,137 @@
+@page "/blogs/using-a-distributed-lock-in-hosted-service-in-asp-net-webapi"
+@inherits BasePage
+
+<Content FileName=@nameof(UsingADistributedLockInHostedService) UseNewTableOfContentsMenu=true>
+    <ContentBody>
+      <What>
+        <p>
+          One of our recent requirement in a client project has the need to query <ContentHighlight>AWS Athena</ContentHighlight> to get analytics 
+          data every hour and display the same data in a dashboard. We could have used <ContentHighlight>HangFire</ContentHighlight> or 
+          <ContentHighlight>AWS Lambda</ContentHighlight> to run this as jobs but we decided to use <ContentHighlight>Hosted Service</ContentHighlight> 
+          in our Web API to query this data <ContentHighlight>periodically for every one hour</ContentHighlight> as we thought, HangFire is a overkill 
+          for this work and also to spin up new lambda we need to go through lots of approvals and explanation process which is tedious in enterprises.
+        </p>
+
+        <p>
+          We have <ContentHighlight>minimum of six instances of our API running in production</ContentHighlight> and it can 
+          <ContentHighlight>scale up to maximum of nine instances</ContentHighlight> during peak traffic. We assumed even if the Hosted Service runs 
+          inside all six instances at the same time, all background Service will query the data from AWS 
+          Athena and <ContentHighlight>update / overwrite</ContentHighlight> the latest data inside our database and we can pull that data using 
+          endpoint and show it in dashabord.
+        </p>
+
+        <figure>
+          <img src="./image/blogs/webapi/using-a-distributed-lock-in-hosted-service-in-asp-net-webapi/problem-statement.png"
+              alt="Problem Statement" class="[ w-full ]" />
+        </figure>
+
+        <p>
+          But since this has lots of moving parts, things didn'table go as expected in Production and in this article, lets learn how we have added 
+          a <ContentHighlight>distributed lock</ContentHighlight> to solve this problem.
+        </p>
+      </What>
+
+      <Why>
+        <p>
+          Everything worked by adding our logics inside simple Hosted Service in ASP.NET Web API app but the problem is that after some time we 
+          started getting <ContentHighlight>Rate Limit Exceptions</ContentHighlight> from AWS Athena after deploying to production. The Exceptions 
+          count was alarming and kept increasing. We were not getting these issues in lower environments and so we decided to introduce 
+          <ContentHighlight>retry mechanism</ContentHighlight> by catching this error and log as warnings and deploying a retry for 5 times with 
+          some delay and then log as error if it fails. Now we have sort of reduced the errors but warnings count was alarming. We felt like 
+          we didn't actually solve the problem after taking this changes to production.
+        </p>
+
+        <figure>
+          <img src="./image/blogs/webapi/using-a-distributed-lock-in-hosted-service-in-asp-net-webapi/with-retry.png"
+              alt="Adding a retry mechanism" class="[ w-full ]" />
+        </figure>
+
+        <p>
+          Adding up fuel to fire, the new requirement is to <ContentHighlight>reduce the frequency to every 30 minutes</ContentHighlight> from one hour. 
+        </p>
+
+        <p>
+          We decided to solve this permanentely by adding a distributed lock using a table in our database without relying on any libraries or tools. 
+          This way we <ContentHighlight>don't introduce any tech debt and dependency</ContentHighlight> and also making sure that 
+          <ContentHighlight>only one instances will query AWS Athena and process the data and store in our database at given point 
+          in time</ContentHighlight>. So that we don't over poll AWS Athena thus reducing the Rate Limit Exceptions from 
+          AWS and also making it <ContentHighlight>more cost efficient</ContentHighlight> as every query,a storage and memory used will add up cost 
+          to us.
+        </p>
+
+        <figure>
+          <img src="./image/blogs/webapi/using-a-distributed-lock-in-hosted-service-in-asp-net-webapi/adding-a-distributed-lock.png"
+              alt="Adding a distributed lock" class="[ w-full ]" />
+        </figure>
+
+        <p>
+          So Now when every instances starts, Hosted Service will also started and will register the instance id inside in our settings table against 
+          this job name. This way the <ContentHighlight>last / latest instance incase if scale up happens will win and register its instance id</ContentHighlight>. 
+          So only one will run the job and process the result.
+        </p>
+
+        <p>
+          But wait What happens if the current instance running the job becomes <ContentHighlight>faulty and down for whatever reason or what if scale 
+          down happens and current instance gets terminated?</ContentHighlight> In either of the case some other available instance should register 
+          itself and take over the background job. And how we did that is by adding a simple 
+          <ContentHighlight>Last Run TimeStamp</ContentHighlight> against the job entry in settings table.
+        </p>
+
+        <p>
+          So Now each instance while register its instance id, it will add the Last Run TimeStamp and then every instance will check settings table and 
+          see if Last Run TimeStamp is more than a hour from now and if so then any other healthy instance will self register itself and start running 
+          the job.
+        </p>
+
+        <figure>
+          <img src="./image/blogs/webapi/using-a-distributed-lock-in-hosted-service-in-asp-net-webapi/failure-scenarios.png"
+              alt="Failure Scenarios" class="[ w-full ]" />
+        </figure>
+      </Why>
+
+      <How>
+        <p>
+          Here is the code that we have used to solve this by adding a distributed lock in multiple instance scenario.
+        </p>
+
+        <GithubGistSnippet Title="Using a distributed lock in Hosted Service in ASP.NET Web API" UserId="fingers10" FileName="d0b30e2d89eb8466f5bb1be0c89c9a7d"></GithubGistSnippet>
+
+        <p>
+          Here is the explanation of the above code.
+        </p>
+
+        <ul>
+          <li><strong>Registers the instance:</strong> Stores the instance ID in the database using <ContentHighlight>RegisterInstance</ContentHighlight> method.</li>
+          <li><strong>Runs every 30 minutes:</strong> Uses a timer to trigger data collection using <ContentHighlight>TimeProvider</ContentHighlight>.</li>
+          <li><strong>Checks eligibility:</strong> Ensures only one instance runs the job.</li>
+          <li><strong>Processes data:</strong> Queries Athena and updates the database using <ContentHighlight>ReadDataFromAthena</ContentHighlight>.</li>
+          <li><strong>Failsafe Mechanism:</strong> If the current instance stops, another takes over using <ContentHighlight>CanExecute</ContentHighlight> method.</li>
+        </ul>
+      </How>
+
+      <Summary>
+        <p>
+          In a recent client project, we needed to query AWS Athena every hour to fetch analytics data for a dashboard. Instead of using HangFire or 
+          lambda, we opted for a Hosted Service in our Web API, assuming multiple API instances querying Athena simultaneously would not cause issues. 
+          However, in production, we encountered frequent AWS Athena Rate Limit Exceptions. Implementing a retry mechanism reduced errors but 
+          significantly increased warnings, prompting us to rethink our approach—especially when the query frequency was reduced to 30 minutes.
+        </p>
+
+        <p>
+          To solve this permanently, we introduced a distributed lock using a database table, ensuring only one instance queries Athena at a time, 
+          reducing API calls and costs. Each instance registers itself with a timestamp, and if the current instance fails or scales down, another 
+          instance takes over by checking if the last run timestamp is over an hour old. This approach eliminated redundant queries, reduced rate 
+          limit issues, and improved system efficiency.
+        </p>
+
+        <p>
+          <ContentHighlight>Now this idea can be used to add distributed lock to hosted services in any multiple instance scenarios</ContentHighlight>.
+        </p>
+
+        <figure>
+          <img src="./image/blogs/webapi/using-a-distributed-lock-in-hosted-service-in-asp-net-webapi/complete.png"
+              alt="Complete Idea" class="[ w-full ]" />
+        </figure>
+      </Summary>
+    </ContentBody>
+</Content>

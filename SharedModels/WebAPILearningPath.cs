@@ -2,7 +2,7 @@
 
 public class WebAPILearningPath
 {
-  public readonly List<ContentMetaData> FullContents = new(20);
+  public readonly List<ContentMetaData> FullContents = new(21);
 
   public WebAPILearningPath()
   {
@@ -347,6 +347,23 @@ public class WebAPILearningPath
                 CreatedOn = new DateTime(2025, 1, 5, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2025, 1, 5, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Performance Test", "Load Test", "Stress Test", "NBomber"]
+            },
+            new ContentMetaData
+            {
+                Order = 21,
+                Title = "Using a Distributed Lock in Hosted Service in ASP.NET WEB API",
+                Description = "In this post I will teach how to add a distributed lock to hosted background service in a multiple instance scenario in ASP.NET Web API. All with live working demo.",
+                Author = "Abdul Rahman",
+                Slug = "using-a-distributed-lock-in-hosted-service-in-asp-net-webapi",
+                PosterUrl = "image/blogs/webapi/using-a-distributed-lock-in-hosted-service-in-asp-net-webapi.webp",
+                ThumbnailUrl = "image/blogs/webapi/using-a-distributed-lock-in-hosted-service-in-asp-net-webapi.webp",
+                ContentUrl = "blogs/using-a-distributed-lock-in-hosted-service-in-asp-net-webapi",
+                IconUrl = "image/icons/web api.webp",
+                Channel = "Web API",
+                Type = "blogs",
+                CreatedOn = new DateTime(2025, 2, 23, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2025, 2, 23, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Hosted Service", "Distributed Lock", "System Design"]
             },
         ];
   }

@@ -1,0 +1,43 @@
+sequenceDiagram
+    participant API1 as API Instance 1
+    participant API2 as API Instance 2
+    participant Athena as AWS Athena
+    participant DBLT as Database (Lock Table)
+    participant DBAT as Database (Analytics Table)
+
+    alt Register machine ID & Last Run Timestamp (Last one Overwrites and wins)
+        API1->>DBLT:  
+        API2->>DBLT: 
+    end
+
+    loop Every 30 minutes
+        alt Check Lock Availability
+            API1->>DBLT:  
+            API2->>DBLT: 
+        end
+        
+        DBLT-->>API1: ❌ Lock Unavailable
+        DBLT-->>API2: ✅ Lock Acquired
+
+        API2->>Athena: Hosted Service Query analytics data
+        Athena-->>API2: ❌ Rate Limit Exception!
+
+        loop Retry up to 5 times with delay
+            API2->>Athena: 🔄 Retry query
+            Athena-->>API2: ⚠️ Still failing? Log Warning
+        end
+
+        alt Transaction
+            API2->>DBAT: ✅ Store analytics data on success 
+            API2->>DBLT: Update Last Run Timestamp 
+        end
+
+        Note over API2: ❌ API Instance 2 Fails / Scale Down Happens!
+
+        API1->>DBLT: Check Last Run Timestamp
+        DBLT-->>API1: ⏳ More than 1 hour old!
+
+        API1->>DBLT: 🔄 Register itself & Update Last Run Timestamp
+        API1->>Athena: Hosted Service Query analytics data
+        API1->>DBAT: ✅ Store analytics data on success     
+    end

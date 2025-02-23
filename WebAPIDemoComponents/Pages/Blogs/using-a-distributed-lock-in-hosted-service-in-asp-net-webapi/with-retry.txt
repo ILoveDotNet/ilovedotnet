@@ -1,0 +1,21 @@
+sequenceDiagram
+    participant API1 as API Instance 1
+    participant API2 as API Instance 2
+    participant Athena as AWS Athena
+    participant DB as Database
+
+    loop Every 60 minutes
+        loop Retry up to 5 times with some delay
+            alt 🔄 Retry query
+                API1->>Athena: 
+            end
+
+            alt ⚠️ Still failing? Log Warning
+                Athena-->>API1: 
+            end
+
+            alt ✅ Store analytics data on success (Overwrites)
+                API1->>DB: 
+            end
+        end
+    end

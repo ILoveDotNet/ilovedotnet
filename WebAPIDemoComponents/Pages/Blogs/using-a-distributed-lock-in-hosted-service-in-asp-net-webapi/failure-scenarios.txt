@@ -1,0 +1,18 @@
+sequenceDiagram
+    participant API1 as API Instance 1
+    participant API2 as API Instance 2
+    participant Athena as AWS Athena
+    participant DBLT as Database (Lock Table)
+    participant DBAT as Database (Analytics Table)
+
+    loop Every 30 minutes
+        Note over API2: ❌ API Instance 2 Fails / Scale Down Happens!
+
+        API1->>DBLT: Check Last Run Timestamp and Register itself if Last Run Timestamp is more than 1 hour old!
+        API1->>Athena: Hosted Service Query analytics data
+        
+        alt Transaction
+            API1->>DBAT: ✅ Store analytics data on success 
+            API1->>DBLT: Update Last Run Timestamp 
+        end
+    end

@@ -1,0 +1,16 @@
+sequenceDiagram
+    participant API1 as API Instance 1
+    participant API2 as API Instance 2
+    participant Athena as AWS Athena
+    participant DB as Database
+
+    loop Every 60 minutes
+        API1->>Athena: Hosted Service Query analytics data
+        API2->>Athena: Hosted Service Query analytics data
+
+        Athena-->>API1: ❌ Rate Limit Exception!
+        Athena-->>API2: ❌ Rate Limit Exception!
+
+        API1->>DB: ✅ Store analytics data on success
+        API2->>DB: ✅ Store analytics data on success (Overwrites)
+    end
