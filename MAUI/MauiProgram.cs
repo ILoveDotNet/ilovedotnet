@@ -3,6 +3,7 @@ using CommonComponents.Models;
 using CommonComponents.Services;
 using MAUI.Services;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Infrastructure;
 using Microsoft.AspNetCore.Components.WebAssembly.Services;
 using Microsoft.Extensions.Logging;
 using SharedComponents;
@@ -84,6 +85,11 @@ public static class MauiProgram
     });
 
     builder.Services.AddScoped(serviceProvider => new SlugService(serviceProvider.GetRequiredService<NavigationManager>()));
+
+    // workaround for using persistent state in MAUI
+    //https://github.com/dotnet/aspnetcore/issues/43833
+    builder.Services.AddSingleton<ComponentStatePersistenceManager>();
+    builder.Services.AddSingleton<PersistentComponentState>(sp => sp.GetRequiredService<ComponentStatePersistenceManager>().State);
 
     return builder.Build();
   }
