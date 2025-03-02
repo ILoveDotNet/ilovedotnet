@@ -49,6 +49,7 @@ Choosing a project idea could be difficult. We need to ensure stability and main
 25. [OWASP Secure Coding](https://github.com/orgs/ILoveDotNet/projects/27) ![IN PROGRESS](https://img.shields.io/badge/IN%20PROGRESS-lightgreen)
 26. [SignalR](https://github.com/orgs/ILoveDotNet/projects/28) ![CLOSED](https://img.shields.io/badge/CLOSED-FF0000)
 27. [MSBuild](https://github.com/orgs/ILoveDotNet/projects/30) ![IN PROGRESS](https://img.shields.io/badge/IN%20PROGRESS-lightgreen)
+28. [MAUI](https://github.com/orgs/ILoveDotNet/projects/32) ![IN PROGRESS](https://img.shields.io/badge/IN%20PROGRESS-lightgreen)
 
 # Please share with the community
 As an open-source project without funding, I cannot afford advertising I ❤️ .NET in a typical way. Instead, the project relies on community interactions. Please consider sharing a post about I ❤️ .NET and the value it provides. It really does help!
