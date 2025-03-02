@@ -12,6 +12,7 @@ public class Sitemaps
         "sitemap-blog-linq.xml",
         "sitemap-blog-maui.xml",
         "sitemap-blog-middleware.xml",
+        "sitemap-blog-mlnet.xml",
         "sitemap-blog-msbuild.xml",
         "sitemap-blog-oops.xml",
         "sitemap-blog-owasp.xml",

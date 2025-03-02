@@ -62,17 +62,18 @@ public class TableOfContents
     FullContents.AddRange(new LINQLearningPath().FullContents);
     FullContents.AddRange(new MAUILearningPath().FullContents);
     FullContents.AddRange(new MiddlewareLearningPath().FullContents);
+    FullContents.AddRange(new MLNETLearningPath().FullContents);
     FullContents.AddRange(new MSBuildLearningPath().FullContents);
     FullContents.AddRange(new OOPSLearningPath().FullContents);
     FullContents.AddRange(new OWASPLearningPath().FullContents);
     FullContents.AddRange(new PythonLearningPath().FullContents);
+    FullContents.AddRange(new RegexLearningPath().FullContents);
     FullContents.AddRange(new ReportLearningPath().FullContents);
     FullContents.AddRange(new SignalRLearningPath().FullContents);
     FullContents.AddRange(new SOLIDLearningPath().FullContents);
     FullContents.AddRange(new TalkLearningPath().FullContents);
     FullContents.AddRange(new TDDLearningPath().FullContents);
     FullContents.AddRange(new WebAPILearningPath().FullContents);
-    FullContents.AddRange(new RegexLearningPath().FullContents);
     FullAuthors.AddRange(new Authors().FullAuthors);
     FullSponsors.AddRange(new Sponsors().FullSponsors);
   }
