@@ -1,4 +1,4 @@
-﻿using Blazor.Analytics;
+using Blazor.Analytics;
 using CommonComponents.Models;
 using CommonComponents.Services;
 using MAUI.Services;
@@ -29,6 +29,8 @@ public static class MauiProgram
     builder.Services.AddBlazorWebViewDeveloperTools();
     builder.Logging.AddDebug();
 #endif
+
+    builder.Services.AddScoped<LazyLoaderService>();
 
     builder.Services.AddTransient<CustomHeaderMessageHandlerDemo>(sp => new(new HttpClientHandler()));
 
