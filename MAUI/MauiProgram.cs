@@ -1,6 +1,7 @@
-using Blazor.Analytics;
+﻿using Blazor.Analytics;
 using CommonComponents.Models;
 using CommonComponents.Services;
+using Duende.IdentityModel.OidcClient;
 using MAUI.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Infrastructure;
@@ -81,12 +82,39 @@ public static class MauiProgram
 #if DEBUG
       hostEnvironment.Environment = "Development";
 #else
-            hostEnvironment.Environment = "Production";
+      hostEnvironment.Environment = "Production";
 #endif
       return hostEnvironment;
     });
 
     builder.Services.AddScoped(serviceProvider => new SlugService(serviceProvider.GetRequiredService<NavigationManager>()));
+
+    Func<OidcClientOptions, HttpClient> httpClientFactory = null;
+
+#if DEBUG
+    httpClientFactory = (options) =>
+    {
+        var handler = new HttpsClientHandlerService();
+        return new HttpClient(handler.GetPlatformMessageHandler());
+    };
+#endif
+
+    builder.Services.AddSingleton(new OidcClient(new()
+    {
+        Authority = "https://demo.duendesoftware.com",
+
+        ClientId = "interactive.public",
+        Scope = "openid profile email api",
+        RedirectUri = "myapp://callback",
+
+        Browser = new MauiAuthenticationBrowser(),
+
+        HttpClientFactory = httpClientFactory,
+    }));
+
+    builder.Services.AddOptions();
+	  builder.Services.AddAuthorizationCore();
+    builder.Services.AddCascadingAuthenticationState();
 
     // workaround for using persistent state in MAUI
     //https://github.com/dotnet/aspnetcore/issues/43833
