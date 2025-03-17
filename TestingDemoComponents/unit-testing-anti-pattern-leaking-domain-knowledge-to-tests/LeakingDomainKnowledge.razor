@@ -1,0 +1,86 @@
+@page "/blogs/unit-testing-anti-pattern-leaking-domain-knowledge-to-tests"
+@inherits BasePage
+
+<Content FileName="@nameof(LeakingDomainKnowledge)" UseNewTableOfContentsMenu=true>
+    <ContentBody>
+        <What>
+            <p>
+                <ContentHighlight>Leaking domain knowledge to tests</ContentHighlight> is a common anti-pattern,
+                particularly when testing complex algorithms. It occurs when tests replicate the logic of the production
+                code instead of validating expected behavior.
+            </p>
+        </What>
+
+        <Why>
+            <p>
+                <ContentHighlight>When tests mirror the algorithm being tested</ContentHighlight>, they become tightly
+                coupled to implementation details. This results in fragile tests that break with refactoring, even when
+                functionality remains correct. Such tests also fail to differentiate legitimate failures from false
+                positives, reducing their effectiveness.
+            </p>
+        </Why>
+
+        <How>
+            <p>Consider the following implementation of a basic calculation:</p>
+            <pre>
+public static class MathOperations
+{
+    public static int Sum(int a, int b)
+    {
+        return a + b;
+    }
+}
+            </pre>
+
+            <p>Here's an incorrect way to test this method:</p>
+            <pre>
+public class MathOperationsTests
+{
+    [Fact]
+    public void Should_Add_Two_Numbers_Correctly()
+    {
+        int first = 2;
+        int second = 5;
+        int expected = first + second; // Duplicating the logic
+        int result = MathOperations.Sum(first, second);
+        Assert.Equal(expected, result);
+    }
+}
+            </pre>
+
+            <p>
+                This test simply replicates the logic of the production code, making it ineffective. A better approach
+                is to hardcode the expected results:
+            </p>
+
+            <pre>
+public class MathOperationsTests
+{
+    [Theory]
+    [InlineData(2, 5, 7)]
+    [InlineData(10, 20, 30)]
+    [InlineData(100, 250, 350)]
+    public void Should_Add_Two_Numbers_Correctly(int first, int second, int expected)
+    {
+        int result = MathOperations.Sum(first, second);
+        Assert.Equal(expected, result);
+    }
+}
+            </pre>
+
+            <p>
+                By using predefined expected values, this approach ensures that the test remains independent of the
+                implementation and verifies correctness based on known outcomes.
+            </p>
+        </How>
+
+        <Summary>
+            <p>
+                <ContentHighlight>Leaking domain knowledge to tests</ContentHighlight> creates fragile, redundant tests
+                that don't offer meaningful validation. Instead of duplicating implementation logic, tests should use
+                predefined expected values to verify correct behavior. This results in more maintainable, reliable test
+                suites.
+            </p>
+        </Summary>
+    </ContentBody>
+</Content>
