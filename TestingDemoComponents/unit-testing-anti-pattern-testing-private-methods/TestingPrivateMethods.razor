@@ -1,0 +1,96 @@
+@page "/blogs/unit-testing-anti-pattern-testing-private-methods"
+@inherits BasePage
+
+<Content FileName="@nameof(TestingPrivateMethods)" UseNewTableOfContentsMenu=true>
+    <ContentBody>
+        <What>
+            <p>
+                <ContentHighlight>Unit testing private methods</ContentHighlight> is a common dilemma. The general rule
+                is that private methods should not be tested directly. Instead, tests should validate the
+                <ContentHighlight>observable behavior</ContentHighlight> of the system.
+            </p>
+        </What>
+
+        <Why>
+            <p>
+                Exposing private methods for testing leads to tight coupling between tests and implementation details,
+                reducing their <ContentHighlight>resistance to refactoring</ContentHighlight>. This results in fragile
+                tests that break frequently, even when functionality remains intact. A better approach is to test private 
+                methods indirectly through the class's public API.
+            </p>
+        </Why>
+
+        <How>
+            <p>
+                Instead of testing private methods, consider whether there is a <ContentHighlight>missing abstraction
+                </ContentHighlight>. If a private method is too complex, it should likely be extracted into a separate
+                class. Consider the following example:
+            </p>
+            <pre>
+public class Order
+{
+    private Customer _customer;
+    private List&lt;Product&gt; _products;
+
+    public string GenerateDescription()
+    {
+        return $"Customer: {_customer.Name}, Products: {_products.Count}, " +
+               $"Total Price: {GetPrice()}";
+    }
+
+    private decimal GetPrice()
+    {
+        decimal basePrice = /* Calculate based on _products */;
+        decimal discounts = /* Calculate based on _customer */;
+        decimal taxes = /* Calculate based on _products */;
+        return basePrice - discounts + taxes;
+    }
+}
+            </pre>
+
+            <p>
+                Here, <ContentHighlight>GetPrice()</ContentHighlight> contains important business logic but is private.
+                Instead of exposing it, we extract it into a separate class:
+            </p>
+            <pre>
+public class Order
+{
+    private Customer _customer;
+    private List&lt;Product&gt; _products;
+
+    public string GenerateDescription()
+    {
+        var calc = new PriceCalculator();
+        return $"Customer: {_customer.Name}, Products: {_products.Count}, " +
+               $"Total Price: {calc.Calculate(_customer, _products)}";
+    }
+}
+
+public class PriceCalculator
+{
+    public decimal Calculate(Customer customer, List&lt;Product&gt; products)
+    {
+        decimal basePrice = /* Calculate based on products */;
+        decimal discounts = /* Calculate based on customer */;
+        decimal taxes = /* Calculate based on products */;
+        return basePrice - discounts + taxes;
+    }
+}
+            </pre>
+            <p>
+                Now, we can test <ContentHighlight>PriceCalculator</ContentHighlight> independently without exposing
+                private methods.
+            </p>
+        </How>
+
+        <Summary>
+            <p>
+                <ContentHighlight>Testing private methods</ContentHighlight> directly is usually an anti-pattern, as it
+                couples tests to implementation details. Instead, test them indirectly through the public API or extract
+                them into separate classes when necessary. In rare cases where a private method is an integral part of
+                the <ContentHighlight>observable behavior</ContentHighlight> (such as a private constructor used by an
+                ORM), making it public for testing might be acceptable.
+            </p>
+        </Summary>
+    </ContentBody>
+</Content>
