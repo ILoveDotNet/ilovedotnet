@@ -23,7 +23,7 @@ public class TestingLearningPath
           Type = "blogs",
           CreatedOn = new DateTime(2025, 3, 16, 22, 30, 0, DateTimeKind.Utc),
           ModifiedOn = new DateTime(2025, 3, 16, 22, 30, 0, DateTimeKind.Utc),
-          Keywords = []
+          Keywords = [ "Anti Pattern", "Unit Testing" ]
         }
     ];
   }
