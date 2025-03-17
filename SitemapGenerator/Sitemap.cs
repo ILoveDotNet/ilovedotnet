@@ -6,13 +6,22 @@ namespace SitemapGenerator;
 public class Sitemap(TableOfContents tableOfContents, string channel)
 {
   private XDocument? _sitemap;
-  private readonly List<Url> _urls = [.. tableOfContents.GetContentsByChannel(channel).Select(content => new Url
-  {
-    Loc = $"https://ilovedotnet.org/blogs/{content.Slug}",
-    LastMod = new DateTime(content.ModifiedOn.Year, content.ModifiedOn.Month, content.ModifiedOn.Day, content.ModifiedOn.Hour, content.ModifiedOn.Minute, content.ModifiedOn.Second),
-    ChangeFreq = "weekly",
-    Priority = 0.5
-  })];
+  private readonly List<Url> _urls = 
+    channel.Equals("Channel") 
+    ? [.. tableOfContents.AvailableContentTypes.Select(contentType => new Url
+    {
+      Loc = $"https://ilovedotnet.org/channels/{contentType.ToLower().Replace(" ", "-")}",
+      LastMod = tableOfContents.GetContentsByChannel(contentType)[0].ModifiedOn,
+      ChangeFreq = "weekly",
+      Priority = 0.5
+    })]
+    : [.. tableOfContents.GetContentsByChannel(channel).Select(content => new Url
+    {
+      Loc = $"https://ilovedotnet.org/blogs/{content.Slug}",
+      LastMod = new DateTime(content.ModifiedOn.Year, content.ModifiedOn.Month, content.ModifiedOn.Day, content.ModifiedOn.Hour, content.ModifiedOn.Minute, content.ModifiedOn.Second),
+      ChangeFreq = "weekly",
+      Priority = 0.5
+    })];
 
   public void GenerateSitemap(string filePath)
   {
