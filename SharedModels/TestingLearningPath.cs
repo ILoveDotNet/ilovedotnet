@@ -2,7 +2,7 @@
 
 public class TestingLearningPath
 {
-  public readonly List<ContentMetaData> FullContents = new(3);
+  public readonly List<ContentMetaData> FullContents = new(4);
 
   public TestingLearningPath()
   {
@@ -57,6 +57,23 @@ public class TestingLearningPath
         Type = "blogs",
         CreatedOn = new DateTime(2025, 4, 6, 23, 30, 0, DateTimeKind.Utc),
         ModifiedOn = new DateTime(2025, 4, 6, 23, 30, 0, DateTimeKind.Utc),
+        Keywords = [ "Anti Pattern", "Unit Testing" ]
+      },
+      new ContentMetaData
+      {
+        Order = 4,
+        Title = "Unit Testing Anti-Pattern: Code Pollution",
+        Description = "In this post I will teach you how to avoid common unit testing anti pattern - code polltion which is adding logic to disable / enable logic only for test. All with live working demo.",
+        Author = "Abdul Rahman",
+        Slug = "unit-testing-anti-pattern-leaking-code-pollution",
+        PosterUrl = "image/blogs/testing/unit-testing-anti-pattern-leaking-code-pollution.webp",
+        ThumbnailUrl = "image/blogs/testing/unit-testing-anti-pattern-leaking-code-pollution.webp",
+        ContentUrl = "blogs/unit-testing-anti-pattern-leaking-code-pollution",
+        IconUrl = "image/icons/testing.webp",
+        Channel = "Testing",
+        Type = "blogs",
+        CreatedOn = new DateTime(2025, 4, 13, 23, 30, 0, DateTimeKind.Utc),
+        ModifiedOn = new DateTime(2025, 4, 13, 23, 30, 0, DateTimeKind.Utc),
         Keywords = [ "Anti Pattern", "Unit Testing" ]
       }
     ];

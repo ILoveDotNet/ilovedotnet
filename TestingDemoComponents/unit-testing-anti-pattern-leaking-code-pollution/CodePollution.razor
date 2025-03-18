@@ -1,0 +1,112 @@
+@page "/blogs/unit-testing-anti-pattern-leaking-code-pollution"
+@inherits BasePage
+
+<Content FileName="@nameof(CodePollution)" UseNewTableOfContentsMenu=true>
+    <ContentBody>
+        <What>
+            <p>
+                <ContentHighlight>Code pollution</ContentHighlight> is an anti-pattern that occurs when production code
+                includes elements solely for the purpose of testing. This often introduces unnecessary complexity and
+                maintenance challenges.
+            </p>
+        </What>
+
+        <Why>
+            <p>
+                <ContentHighlight>Code pollution</ContentHighlight> leads to tightly coupled test and production code,
+                increasing maintenance overhead and the risk of unintended behaviors. It commonly manifests as
+                test-specific switches or conditions embedded in production classes.
+            </p>
+        </Why>
+
+        <How>
+            <p>
+                To illustrate <ContentHighlight>code pollution</ContentHighlight>, consider a logging class with a
+                test-specific flag:
+            </p>
+
+            <pre>
+public class CustomLogger
+{
+    private readonly bool _isTestingMode;
+    
+    public CustomLogger(bool isTestingMode)
+    {
+        _isTestingMode = isTestingMode;
+    }
+
+    public void Log(string message)
+    {
+        if (_isTestingMode)
+            return;
+        
+        // Log the message to an output
+    }
+}
+
+public class ServiceController
+{
+    public void Execute(CustomLogger logger)
+    {
+        logger.Log("Execute method invoked");
+    }
+}
+        </pre>
+
+            <p>
+                In the above example, the logger includes a <ContentHighlight>Boolean switch</ContentHighlight> to
+                disable logging in test scenarios. This embeds testing logic into production code, leading to
+                unnecessary dependencies.
+            </p>
+
+            <p>
+                Instead, we can apply the <ContentHighlight>Dependency Inversion Principle</ContentHighlight> by
+                introducing an interface:
+            </p>
+
+            <pre>
+public interface ILogger
+{
+    void Log(string message);
+}
+
+public class ProductionLogger : ILogger
+{
+    public void Log(string message)
+    {
+        // Write log to file or external system
+    }
+}
+
+public class TestLogger : ILogger
+{
+    public void Log(string message)
+    {
+        // No operation (used for testing)
+    }
+}
+
+public class ServiceController
+{
+    public void Execute(ILogger logger)
+    {
+        logger.Log("Execute method invoked");
+    }
+}
+        </pre>
+
+            <p>
+                This approach keeps <ContentHighlight>testing concerns</ContentHighlight> separate from production code
+                while maintaining a clean and maintainable architecture.
+            </p>
+        </How>
+
+        <Summary>
+            <p>
+                <ContentHighlight>Code pollution</ContentHighlight> occurs when production code contains test-specific
+                logic, introducing unnecessary complexity. Using an interface-based approach helps eliminate
+                test-related conditions from production code, making it more maintainable and reducing potential errors.
+            </p>
+        </Summary>
+    </ContentBody>
+</Content>
