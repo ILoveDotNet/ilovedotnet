@@ -2,7 +2,7 @@
 
 public class TestingLearningPath
 {
-  public readonly List<ContentMetaData> FullContents = new(4);
+  public readonly List<ContentMetaData> FullContents = new(5);
 
   public TestingLearningPath()
   {
@@ -74,6 +74,23 @@ public class TestingLearningPath
         Type = "blogs",
         CreatedOn = new DateTime(2025, 4, 13, 23, 30, 0, DateTimeKind.Utc),
         ModifiedOn = new DateTime(2025, 4, 13, 23, 30, 0, DateTimeKind.Utc),
+        Keywords = [ "Anti Pattern", "Unit Testing" ]
+      },
+      new ContentMetaData
+      {
+        Order = 5,
+        Title = "Unit Testing Anti-Pattern: Mocking Concrete Classes",
+        Description = "In this post I will teach you how to avoid common unit testing anti pattern - mocking concrete classes. All with live working demo.",
+        Author = "Abdul Rahman",
+        Slug = "unit-testing-anti-pattern-mocking-concrete-classes",
+        PosterUrl = "image/blogs/testing/unit-testing-anti-pattern-mocking-concrete-classes.webp",
+        ThumbnailUrl = "image/blogs/testing/unit-testing-anti-pattern-mocking-concrete-classes.webp",
+        ContentUrl = "blogs/unit-testing-anti-pattern-mocking-concrete-classes",
+        IconUrl = "image/icons/testing.webp",
+        Channel = "Testing",
+        Type = "blogs",
+        CreatedOn = new DateTime(2025, 4, 20, 23, 30, 0, DateTimeKind.Utc),
+        ModifiedOn = new DateTime(2025, 4, 20, 23, 30, 0, DateTimeKind.Utc),
         Keywords = [ "Anti Pattern", "Unit Testing" ]
       }
     ];

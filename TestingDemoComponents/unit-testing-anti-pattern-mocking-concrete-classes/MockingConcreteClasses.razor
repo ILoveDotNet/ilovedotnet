@@ -1,0 +1,162 @@
+@page "/blogs/unit-testing-anti-pattern-mocking-concrete-classes"
+@inherits BasePage
+
+<Content FileName="@nameof(MockingConcreteClasses)" UseNewTableOfContentsMenu=true>
+    <ContentBody>
+        <What>
+            <p>
+                <ContentHighlight>Mocking concrete classes</ContentHighlight> is an approach where unit tests replace
+                parts of a concrete class instead of mocking an interface. While this can sometimes be useful, it often
+                leads to design issues by violating the <ContentHighlight>Single Responsibility Principle
+                </ContentHighlight>.
+            </p>
+        </What>
+
+        <Why>
+            <p>
+                Mocking concrete classes mixes concerns by combining business logic with dependencies that should be
+                isolated. This makes unit tests more fragile and increases maintenance overhead. A cleaner approach is
+                to separate responsibilities and mock interfaces instead.
+            </p>
+        </Why>
+
+        <How>
+            <p>Consider a class that calculates delivery statistics:</p>
+
+            <pre>
+public class DeliveryStatistics
+{
+    public (double totalWeight, double totalCost) ComputeStatistics(int customerId)
+    {
+        List&lt;ShipmentRecord&gt; shipments = FetchShipments(customerId);
+
+        double totalWeight = shipments.Sum(x => x.Weight);
+        double totalCost = shipments.Sum(x => x.Cost);
+
+        return (totalWeight, totalCost);
+    }
+
+    public virtual List&lt;ShipmentRecord&gt; FetchShipments(int customerId)
+    {
+        // Calls an external dependency to retrieve shipments
+    }
+}
+            </pre>
+
+            <p>
+                The <ContentHighlight>DeliveryStatistics</ContentHighlight> class calculates shipment costs but also
+                directly calls an unmanaged dependency. If a controller depends on it, testing becomes difficult:
+            </p>
+
+            <pre>
+public class CustomerOrdersController
+{
+    private readonly DeliveryStatistics _statistics;
+
+    public CustomerOrdersController(DeliveryStatistics statistics)
+    {
+        _statistics = statistics;
+    }
+
+    public string GetSummary(int customerId)
+    {
+        var (totalWeight, totalCost) = _statistics.ComputeStatistics(customerId);
+        return $"Total weight: {totalWeight}, Total cost: {totalCost}";
+    }
+}
+            </pre>
+
+            <p>
+                Mocking this class requires making <ContentHighlight>FetchShipments</ContentHighlight> virtual and
+                partially replacing its behavior:
+            </p>
+
+            <pre>
+[Fact]
+public void Customer_With_No_Shipments()
+{
+    // Arrange
+    var mock = new Mock&lt;DeliveryStatistics&gt; { CallBase = true };
+    mock.Setup(x => x.FetchShipments(1)).Returns(new List&lt;ShipmentRecord&gt;());
+
+    var controller = new CustomerOrdersController(mock.Object);
+
+    // Act
+    string result = controller.GetSummary(1);
+
+    // Assert
+    Assert.Equal("Total weight: 0, Total cost: 0", result);
+}
+            </pre>
+
+            <p>
+                Although this allows partial mocking, it introduces unnecessary complexity and violates the
+                <ContentHighlight>Single Responsibility Principle</ContentHighlight>. A better approach is to separate
+                concerns:
+            </p>
+
+            <pre>
+public interface IShipmentProvider
+{
+    List&lt;ShipmentRecord&gt; FetchShipments(int customerId);
+}
+
+public class ShipmentService : IShipmentProvider
+{
+    public List&lt;ShipmentRecord&gt; FetchShipments(int customerId)
+    {
+        // Calls external service to retrieve shipment data
+    }
+}
+
+public class DeliveryStatistics
+{
+    public (double totalWeight, double totalCost) ComputeStatistics(List&lt;ShipmentRecord&gt; shipments)
+    {
+        double totalWeight = shipments.Sum(x => x.Weight);
+        double totalCost = shipments.Sum(x => x.Cost);
+
+        return (totalWeight, totalCost);
+    }
+}
+            </pre>
+
+            <p>Now, the controller can depend on the interface instead of the concrete class:</p>
+
+            <pre>
+public class CustomerOrdersController
+{
+    private readonly DeliveryStatistics _statistics;
+    private readonly IShipmentProvider _shipmentProvider;
+
+    public CustomerOrdersController(DeliveryStatistics statistics, IShipmentProvider shipmentProvider)
+    {
+        _statistics = statistics;
+        _shipmentProvider = shipmentProvider;
+    }
+
+    public string GetSummary(int customerId)
+    {
+        var shipments = _shipmentProvider.FetchShipments(customerId);
+        var (totalWeight, totalCost) = _statistics.ComputeStatistics(shipments);
+        return $"Total weight: {totalWeight}, Total cost: {totalCost}";
+    }
+}
+            </pre>
+
+            <p>
+                With this approach, testing becomes easier since we can mock <ContentHighlight>IShipmentProvider
+                </ContentHighlight> instead of the entire class.
+            </p>
+        </How>
+
+        <Summary>
+            <p>
+                Mocking concrete classes is an anti-pattern that complicates unit tests and violates the
+                <ContentHighlight>Single Responsibility Principle</ContentHighlight>. Instead, separating
+                responsibilities and using dependency injection with interfaces makes the code more maintainable and
+                easier to test.
+            </p>
+        </Summary>
+    </ContentBody>
+</Content>
