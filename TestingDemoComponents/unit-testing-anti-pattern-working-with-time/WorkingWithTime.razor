@@ -1,0 +1,182 @@
+@page "/blogs/unit-testing-anti-pattern-working-with-time"
+@inherits BasePage
+
+<Content FileName="@nameof(WorkingWithTime)" UseNewTableOfContentsMenu=true>
+    <ContentBody>
+        <What>
+            <p>
+                Many applications require access to the <ContentHighlight>current date and time</ContentHighlight>.
+                However, testing code that depends on time can lead to unreliable results since the time during the
+                <ContentHighlight>Act</ContentHighlight> phase may differ from the <ContentHighlight>Assert
+                </ContentHighlight> phase. There are three ways to manage this dependency, with one being an
+                anti-pattern and two being preferable.
+            </p>
+        </What>
+
+        <Why>
+            <p>
+                Hardcoding time-dependent logic can make tests inconsistent, leading to failures that are unrelated to
+                the actual business logic. The best approach is to manage time as an <ContentHighlight>explicit
+                    dependency</ContentHighlight> rather than using static accessors like <ContentHighlight>DateTime.Now
+                </ContentHighlight>. This improves testability and ensures that unit tests remain isolated and
+                predictable. The introduction of <ContentHighlight>FakeTimeProvider</ContentHighlight> in .NET 8 offers
+                another efficient way to control time in tests.
+            </p>
+        </Why>
+
+        <How>
+            <p>
+                One approach is to use the <ContentHighlight>Ambient Context</ContentHighlight> pattern, where time is
+                accessed through a shared static class:
+            </p>
+
+            <pre>
+public static class TimeProvider
+{
+    private static Func&lt;DateTime&gt; _currentTime;
+    
+    public static DateTime Now => _currentTime();
+
+    public static void Configure(Func&lt;DateTime&gt; timeProvider)
+    {
+        _currentTime = timeProvider;
+    }
+}
+
+// Production setup
+TimeProvider.Configure(() => DateTime.Now);
+
+// Test setup
+TimeProvider.Configure(() => new DateTime(2025, 1, 1));
+            </pre>
+
+            <p>
+                While this allows controlling time in tests, it introduces global state, making tests interdependent and
+                harder to maintain. Instead, a better approach is to pass time as an <ContentHighlight>explicit
+                    dependency</ContentHighlight>:
+            </p>
+
+            <pre>
+public interface ITimeService
+{
+    DateTime Now { get; }
+}
+
+public class SystemTimeService : ITimeService
+{
+    public DateTime Now => DateTime.UtcNow;
+}
+            </pre>
+
+            <p>
+                This service can be injected into dependent classes, such as a controller:
+            </p>
+
+            <pre>
+public class OrderController
+{
+    private readonly ITimeService _timeService;
+
+    public OrderController(ITimeService timeService)
+    {
+        _timeService = timeService;
+    }
+
+    public void ConfirmOrder(int orderId)
+    {
+        Order order = GetOrderById(orderId);
+        order.Confirm(_timeService.Now);
+        SaveOrder(order);
+    }
+}
+            </pre>
+
+            <p>
+                Injecting time as a service improves testability, but the best practice is to pass the time as a
+                <ContentHighlight>plain value</ContentHighlight> once inside a business operation:
+            </p>
+
+            <pre>
+public class OrderController
+{
+    private readonly ITimeService _timeService;
+
+    public OrderController(ITimeService timeService)
+    {
+        _timeService = timeService;
+    }
+
+    public void ConfirmOrder(int orderId)
+    {
+        DateTime currentTime = _timeService.Now;
+        Order order = GetOrderById(orderId);
+        order.Confirm(currentTime);
+        SaveOrder(order);
+    }
+}
+            </pre>
+
+            <p>
+                Another modern approach in .NET 8 is using <ContentHighlight>FakeTimeProvider</ContentHighlight> from
+                the
+                <ContentHighlight>Microsoft.Extensions.TimeProvider.Testing</ContentHighlight> package. This enables
+                full control over time during testing, allowing for precise and deterministic tests.
+            </p>
+
+            <pre>
+public class OrderController
+{
+    private readonly TimeProvider _timeProvider;
+
+    public OrderController(TimeProvider timeProvider)
+    {
+        _timeProvider = timeProvider;
+    }
+
+    public void ConfirmOrder(int orderId)
+    {
+        Order order = GetOrderById(orderId);
+        order.Confirm(_timeProvider.GetUtcNow().UtcDateTime);
+        SaveOrder(order);
+    }
+}
+
+[Fact]
+public void ConfirmOrder_UsesProvidedTime()
+{
+    // Arrange
+    var fakeTimeProvider = new FakeTimeProvider();
+    var fixedTime = new DateTime(2025, 3, 16, 12, 0, 0, DateTimeKind.Utc);
+    fakeTimeProvider.SetUtcNow(fixedTime); // Set the fake time
+
+    var controller = new OrderController(fakeTimeProvider);
+    int testOrderId = 1;
+
+    // Act
+    controller.ConfirmOrder(testOrderId);
+
+    // Assert
+    Order order = controller.GetOrderById(testOrderId);
+    Assert.Equal(fixedTime, order.ConfirmedAt);
+}
+        </pre>
+
+            <p>
+                Unlike traditional approaches, <ContentHighlight>FakeTimeProvider</ContentHighlight> gives fine-grained
+                control over time behavior, making tests more predictable and eliminating race conditions. We can also 
+                use <ContentHighlight>Advance</ContentHighlight> method to move forward in time.
+            </p>
+        </How>
+
+        <Summary>
+            <p>
+                Using an <ContentHighlight>Ambient Context</ContentHighlight> for time management is an
+                <ContentHighlight>anti-pattern</ContentHighlight> because it introduces shared dependencies, making
+                tests unreliable. Instead, time should be injected as a dependency, preferably as a <ContentHighlight>
+                    plain value</ContentHighlight> within business operations. A modern alternative is
+                <ContentHighlight>FakeTimeProvider</ContentHighlight>, introduced in .NET 8, which allows precise
+                control over time-dependent operations, resulting in highly deterministic tests.
+            </p>
+        </Summary>
+    </ContentBody>
+</Content>

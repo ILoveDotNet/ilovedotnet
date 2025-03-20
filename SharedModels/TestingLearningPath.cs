@@ -92,6 +92,23 @@ public class TestingLearningPath
         CreatedOn = new DateTime(2025, 4, 20, 23, 30, 0, DateTimeKind.Utc),
         ModifiedOn = new DateTime(2025, 4, 20, 23, 30, 0, DateTimeKind.Utc),
         Keywords = [ "Anti Pattern", "Unit Testing" ]
+      },
+      new ContentMetaData
+      {
+        Order = 5,
+        Title = "Unit Testing Anti-Pattern: Working with Time",
+        Description = "In this post I will teach you how to avoid common unit testing anti pattern - Working with Time. All with live working demo.",
+        Author = "Abdul Rahman",
+        Slug = "unit-testing-anti-pattern-working-with-time",
+        PosterUrl = "image/blogs/testing/unit-testing-anti-pattern-working-with-time.webp",
+        ThumbnailUrl = "image/blogs/testing/unit-testing-anti-pattern-working-with-time.webp",
+        ContentUrl = "blogs/unit-testing-anti-pattern-working-with-time",
+        IconUrl = "image/icons/testing.webp",
+        Channel = "Testing",
+        Type = "blogs",
+        CreatedOn = new DateTime(2025, 4, 27, 23, 30, 0, DateTimeKind.Utc),
+        ModifiedOn = new DateTime(2025, 4, 27, 23, 30, 0, DateTimeKind.Utc),
+        Keywords = [ "Anti Pattern", "Unit Testing" ]
       }
     ];
   }
