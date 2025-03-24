@@ -2,7 +2,7 @@
 
 public class TestingLearningPath
 {
-  public readonly List<ContentMetaData> FullContents = new(5);
+  public readonly List<ContentMetaData> FullContents = new(7);
 
   public TestingLearningPath()
   {
@@ -95,7 +95,7 @@ public class TestingLearningPath
       },
       new ContentMetaData
       {
-        Order = 5,
+        Order = 6,
         Title = "Unit Testing Anti-Pattern: Working with Time",
         Description = "In this post I will teach you how to avoid common unit testing anti pattern - Working with Time. All with live working demo.",
         Author = "Abdul Rahman",
@@ -108,6 +108,23 @@ public class TestingLearningPath
         Type = "blogs",
         CreatedOn = new DateTime(2025, 4, 27, 23, 30, 0, DateTimeKind.Utc),
         ModifiedOn = new DateTime(2025, 4, 27, 23, 30, 0, DateTimeKind.Utc),
+        Keywords = [ "Anti Pattern", "Unit Testing" ]
+      },
+      new ContentMetaData
+      {
+        Order = 7,
+        Title = "Unit Testing Anti-Pattern: Working with Logger",
+        Description = "In this post I will teach you how to avoid common unit testing anti pattern - Working with Logger. All with live working demo.",
+        Author = "Abdul Rahman",
+        Slug = "unit-testing-anti-pattern-working-with-logger",
+        PosterUrl = "image/blogs/testing/unit-testing-anti-pattern-working-with-logger.webp",
+        ThumbnailUrl = "image/blogs/testing/unit-testing-anti-pattern-working-with-logger.webp",
+        ContentUrl = "blogs/unit-testing-anti-pattern-working-with-logger",
+        IconUrl = "image/icons/testing.webp",
+        Channel = "Testing",
+        Type = "blogs",
+        CreatedOn = new DateTime(2025, 5, 4, 23, 30, 0, DateTimeKind.Utc),
+        ModifiedOn = new DateTime(2025, 5, 4, 23, 30, 0, DateTimeKind.Utc),
         Keywords = [ "Anti Pattern", "Unit Testing" ]
       }
     ];

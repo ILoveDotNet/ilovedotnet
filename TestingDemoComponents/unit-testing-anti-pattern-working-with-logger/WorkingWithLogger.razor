@@ -1,0 +1,224 @@
+@page "/blogs/unit-testing-anti-pattern-working-with-logger"
+@inherits BasePage
+
+<Content FileName="@nameof(WorkingWithLogger)" UseNewTableOfContentsMenu=true>
+    <ContentBody>
+        <What>
+            <p>
+                Testing <ContentHighlight>logging functionality</ContentHighlight> can be challenging, as it is not
+                always clear whether it should be tested or how to approach it. This discussion explores the key
+                questions: Should you test logging? How should it be tested? How much logging is necessary? And how
+                should logger instances be managed?
+            </p>
+        </What>
+
+        <Why>
+            <p>
+                <ContentHighlight>Logging</ContentHighlight> is a cross-cutting concern present in various parts of an
+                application. While it provides valuable insights into the application's behavior, it may also introduce
+                unnecessary complexity if overused. Understanding whether <ContentHighlight>logging</ContentHighlight>
+                is a business requirement or merely an implementation detail helps determine whether it should be
+                tested. If logs are meant to be consumed by users or stakeholders, they should be tested. If they are
+                for developers only, they might not require formal testing.
+            </p>
+
+            <p>
+                Excessive or misplaced logging can <ContentHighlight>clutter the codebase and reduce maintainability
+                </ContentHighlight>. Proper testing of logging ensures that logs serve their intended purpose—whether
+                for business tracking or development debugging—without introducing unnecessary complexity.
+            </p>
+        </Why>
+
+        <How>
+            <p>Example: Implementing Domain Event-Based Logging in C#</p>
+
+            <p>
+                <strong>1. Define a Domain Event</strong><br>
+                The event represents a significant domain occurrence that needs to be logged.
+            </p>
+
+            <pre>
+                <code class="language-csharp">
+public class OrderPlacedEvent : IDomainEvent
+{
+    public Guid OrderId { get; }
+    public DateTime OccurredOn { get; }
+
+    public OrderPlacedEvent(Guid orderId)
+    {
+        OrderId = orderId;
+        OccurredOn = DateTime.UtcNow;
+    }
+}
+                </code>
+            </pre>
+
+            <p>
+                <strong>2. Implement a Domain Event Handler for Logging</strong><br>
+                The handler listens to domain events and logs relevant details.
+            </p>
+
+            <pre>
+                <code class="language-csharp">
+public class OrderPlacedEventHandler : IDomainEventHandler&lt;OrderPlacedEvent&gt;
+{
+    private readonly ILogger&lt;OrderPlacedEventHandler&gt; _logger;
+
+    public OrderPlacedEventHandler(ILogger&lt;OrderPlacedEventHandler&gt; logger)
+    {
+        _logger = logger;
+    }
+
+    public Task Handle(OrderPlacedEvent domainEvent, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Order placed: {OrderId} at {OccurredOn}", domainEvent.OrderId, domainEvent.OccurredOn);
+        return Task.CompletedTask;
+    }
+}
+                </code>
+            </pre>
+
+            <p>
+                <strong>3. Event Dispatcher (Publishing the Event)</strong><br>
+                The event is dispatched when the order is placed.
+            </p>
+
+            <pre>
+                <code class="language-csharp">
+public class OrderService
+{
+    private readonly IDomainEventDispatcher _eventDispatcher;
+
+    public OrderService(IDomainEventDispatcher eventDispatcher)
+    {
+        _eventDispatcher = eventDispatcher;
+    }
+
+    public async Task PlaceOrder(Guid orderId)
+    {
+        // Business logic for placing an order
+        var orderPlacedEvent = new OrderPlacedEvent(orderId);
+        await _eventDispatcher.Dispatch(orderPlacedEvent);
+    }
+}
+                </code>
+            </pre>
+
+            <p>
+                <strong>4. Domain Event Dispatcher</strong><br>
+                A generic dispatcher to ensure all domain events are handled.
+            </p>
+
+            <pre>
+                <code class="language-csharp">
+public interface IDomainEventDispatcher
+{
+    Task Dispatch&lt;T&gt;(T domainEvent) where T : IDomainEvent;
+}
+
+public class DomainEventDispatcher : IDomainEventDispatcher
+{
+    private readonly IEnumerable&lt;IDomainEventHandler&lt;OrderPlacedEvent&gt;&gt; _handlers;
+
+    public DomainEventDispatcher(IEnumerable&lt;IDomainEventHandler&lt;OrderPlacedEvent&gt;&gt; handlers)
+    {
+        _handlers = handlers;
+    }
+
+    public async Task Dispatch&lt;T&gt;(T domainEvent) where T : IDomainEvent
+    {
+        foreach (var handler in _handlers)
+        {
+            await handler.Handle((OrderPlacedEvent)(object)domainEvent, CancellationToken.None);
+        }
+    }
+}
+                </code>
+            </pre>
+
+            <p>
+                You can also use the <ContentHighlight>FakeLogger</ContentHighlight> introduced in .NET 8. Below is the
+                code sample that shows testing
+                logging using <ContentHighlight>Mock</ContentHighlight> vs <ContentHighlight>FakeLogger
+                </ContentHighlight>.
+            </p>
+
+            <p>
+                <strong>Before Fake Logger with Mock - Complex to Setup and Verify</strong>
+            </p>
+
+            <pre>
+                <code class="language-csharp">
+[Fact]
+public async Task InvokeAsync_ShouldReturnInternalServerError_For_Exception()
+{
+    var logger = new Mock&lt;ILogger&lt;ExceptionHandlerMiddleware&gt;&gt;();
+    var env = new Mock&lt;IWebHostEnvironment&gt;();
+    var context = new DefaultHttpContext();
+    context.Response.Body = new MemoryStream();
+    RequestDelegate next = (HttpContext httpContext) => throw new Exception("Test");
+    var middleware = new ExceptionHandlerMiddleware(env.Object, logger.Object);
+
+    await middleware.InvokeAsync(context, next);
+
+    logger.Verify(
+        x => x.Log(
+            LogLevel.Critical,
+            It.IsAny&lt;EventId&gt;(),
+            It.Is&lt;It.IsAnyType&gt;((o, t) => string.Equals("Test", o.ToString(), StringComparison.InvariantCultureIgnoreCase)),
+            It.IsAny&lt;Exception&gt;(),
+            It.IsAny&lt;Func&lt;It.IsAnyType, Exception?, string&gt;&gt;()),
+        Times.Once);
+    Assert.Equal(StatusCodes.Status500InternalServerError, context.Response.StatusCode);
+    context.Response.Body.Seek(0, SeekOrigin.Begin);
+    var body = new StreamReader(context.Response.Body).ReadToEnd();
+    Assert.Contains("An unexpected fault happened. Try again later.", body);
+}
+                </code>
+            </pre>
+
+            <p>
+                <strong>After Fake Logger - Simpler Setup, Assertion, and Testing</strong>
+            </p>
+
+            <pre>
+                <code class="language-csharp">
+[Fact]
+public async Task InvokeAsync_ShouldReturnInternalServerError_For_Exception()
+{
+    var logger = new FakeLogger&lt;ExceptionHandlerMiddleware&gt;();
+    var env = new Mock&lt;IWebHostEnvironment&gt;();
+    var context = new DefaultHttpContext();
+    context.Response.Body = new MemoryStream();
+    static Task next(HttpContext httpContext) => throw new Exception("Test");
+    var middleware = new ExceptionHandlerMiddleware(env.Object, logger);
+
+    await middleware.InvokeAsync(context, next);
+
+    Assert.Equal(1, logger.Collector.Count);
+    Assert.Equal(LogLevel.Critical, logger.LatestRecord.Level);
+    Assert.Equal("Test", logger.LatestRecord.Exception?.Message);
+    Assert.Equal(StatusCodes.Status500InternalServerError, context.Response.StatusCode);
+    context.Response.Body.Seek(0, SeekOrigin.Begin);
+    var body = new StreamReader(context.Response.Body).ReadToEnd();
+    Assert.Contains("An unexpected fault happened. Try again later.", body);
+}
+                </code>
+            </pre>
+
+            <p>
+                As you see above, the usage of FakeLogger Simplified testing a lot by reducing complex assertion.
+            </p>
+        </How>
+
+        <Summary>
+            <p>
+                Testing logging is essential when logs are an observable part of system behavior. By distinguishing
+                between <ContentHighlight>diagnostic logging</ContentHighlight> for developers and <ContentHighlight>
+                    support logging</ContentHighlight> for business needs, developers can ensure effective logging
+                strategies. The use of structured logging and well-defined logging interfaces simplifies testing and
+                improves maintainability.
+            </p>
+        </Summary>
+    </ContentBody>
+</Content>
