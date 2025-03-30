@@ -55,8 +55,8 @@ public class TestingLearningPath
         IconUrl = "image/icons/testing.webp",
         Channel = "Testing",
         Type = "blogs",
-        CreatedOn = new DateTime(2025, 4, 6, 23, 30, 0, DateTimeKind.Utc),
-        ModifiedOn = new DateTime(2025, 4, 6, 23, 30, 0, DateTimeKind.Utc),
+        CreatedOn = new DateTime(2025, 3, 30, 23, 30, 0, DateTimeKind.Utc),
+        ModifiedOn = new DateTime(2025, 3, 30, 23, 30, 0, DateTimeKind.Utc),
         Keywords = [ "Anti Pattern", "Unit Testing" ]
       },
       new ContentMetaData
@@ -72,8 +72,8 @@ public class TestingLearningPath
         IconUrl = "image/icons/testing.webp",
         Channel = "Testing",
         Type = "blogs",
-        CreatedOn = new DateTime(2025, 4, 13, 23, 30, 0, DateTimeKind.Utc),
-        ModifiedOn = new DateTime(2025, 4, 13, 23, 30, 0, DateTimeKind.Utc),
+        CreatedOn = new DateTime(2025, 4, 6, 23, 30, 0, DateTimeKind.Utc),
+        ModifiedOn = new DateTime(2025, 4, 6, 23, 30, 0, DateTimeKind.Utc),
         Keywords = [ "Anti Pattern", "Unit Testing" ]
       },
       new ContentMetaData
@@ -89,8 +89,8 @@ public class TestingLearningPath
         IconUrl = "image/icons/testing.webp",
         Channel = "Testing",
         Type = "blogs",
-        CreatedOn = new DateTime(2025, 4, 20, 23, 30, 0, DateTimeKind.Utc),
-        ModifiedOn = new DateTime(2025, 4, 20, 23, 30, 0, DateTimeKind.Utc),
+        CreatedOn = new DateTime(2025, 4, 13, 23, 30, 0, DateTimeKind.Utc),
+        ModifiedOn = new DateTime(2025, 4, 13, 23, 30, 0, DateTimeKind.Utc),
         Keywords = [ "Anti Pattern", "Unit Testing" ]
       },
       new ContentMetaData
@@ -106,8 +106,8 @@ public class TestingLearningPath
         IconUrl = "image/icons/testing.webp",
         Channel = "Testing",
         Type = "blogs",
-        CreatedOn = new DateTime(2025, 4, 27, 23, 30, 0, DateTimeKind.Utc),
-        ModifiedOn = new DateTime(2025, 4, 27, 23, 30, 0, DateTimeKind.Utc),
+        CreatedOn = new DateTime(2025, 4, 20, 23, 30, 0, DateTimeKind.Utc),
+        ModifiedOn = new DateTime(2025, 4, 20, 23, 30, 0, DateTimeKind.Utc),
         Keywords = [ "Anti Pattern", "Unit Testing" ]
       },
       new ContentMetaData
@@ -123,8 +123,8 @@ public class TestingLearningPath
         IconUrl = "image/icons/testing.webp",
         Channel = "Testing",
         Type = "blogs",
-        CreatedOn = new DateTime(2025, 5, 4, 23, 30, 0, DateTimeKind.Utc),
-        ModifiedOn = new DateTime(2025, 5, 4, 23, 30, 0, DateTimeKind.Utc),
+        CreatedOn = new DateTime(2025, 4, 27, 23, 30, 0, DateTimeKind.Utc),
+        ModifiedOn = new DateTime(2025, 4, 27, 23, 30, 0, DateTimeKind.Utc),
         Keywords = [ "Anti Pattern", "Unit Testing" ]
       }
     ];
