@@ -260,7 +260,7 @@ public class WebAPILearningPath
                 Channel = "Web API",
                 Type = "blogs",
                 CreatedOn = new DateTime(2023, 11, 12, 22, 30, 0, DateTimeKind.Utc),
-                ModifiedOn = new DateTime(2023, 11, 12, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2025, 5, 4, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Global", "Exception Handling", "Error Handling"]
             },
             new ContentMetaData
