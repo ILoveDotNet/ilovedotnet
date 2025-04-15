@@ -37,8 +37,7 @@
                 The event represents a significant domain occurrence that needs to be logged.
             </p>
 
-            <pre>
-                <code class="language-csharp">
+            <CodeSnippet CssClass="language-csharp">
 public class OrderPlacedEvent : IDomainEvent
 {
     public Guid OrderId { get; }
@@ -50,16 +49,14 @@ public class OrderPlacedEvent : IDomainEvent
         OccurredOn = DateTime.UtcNow;
     }
 }
-                </code>
-            </pre>
+            </CodeSnippet>
 
             <p>
                 <strong>2. Implement a Domain Event Handler for Logging</strong><br>
                 The handler listens to domain events and logs relevant details.
             </p>
 
-            <pre>
-                <code class="language-csharp">
+            <CodeSnippet CssClass="language-csharp">
 public class OrderPlacedEventHandler : IDomainEventHandler&lt;OrderPlacedEvent&gt;
 {
     private readonly ILogger&lt;OrderPlacedEventHandler&gt; _logger;
@@ -75,16 +72,14 @@ public class OrderPlacedEventHandler : IDomainEventHandler&lt;OrderPlacedEvent&g
         return Task.CompletedTask;
     }
 }
-                </code>
-            </pre>
+            </CodeSnippet>
 
             <p>
                 <strong>3. Event Dispatcher (Publishing the Event)</strong><br>
                 The event is dispatched when the order is placed.
             </p>
 
-            <pre>
-                <code class="language-csharp">
+            <CodeSnippet CssClass="language-csharp">
 public class OrderService
 {
     private readonly IDomainEventDispatcher _eventDispatcher;
@@ -101,16 +96,14 @@ public class OrderService
         await _eventDispatcher.Dispatch(orderPlacedEvent);
     }
 }
-                </code>
-            </pre>
+            </CodeSnippet>
 
             <p>
                 <strong>4. Domain Event Dispatcher</strong><br>
                 A generic dispatcher to ensure all domain events are handled.
             </p>
 
-            <pre>
-                <code class="language-csharp">
+            <CodeSnippet CssClass="language-csharp">
 public interface IDomainEventDispatcher
 {
     Task Dispatch&lt;T&gt;(T domainEvent) where T : IDomainEvent;
@@ -133,8 +126,7 @@ public class DomainEventDispatcher : IDomainEventDispatcher
         }
     }
 }
-                </code>
-            </pre>
+            </CodeSnippet>
 
             <p>
                 You can also use the <ContentHighlight>FakeLogger</ContentHighlight> introduced in .NET 8. Below is the
@@ -147,8 +139,7 @@ public class DomainEventDispatcher : IDomainEventDispatcher
                 <strong>Before Fake Logger with Mock - Complex to Setup and Verify</strong>
             </p>
 
-            <pre>
-                <code class="language-csharp">
+            <CodeSnippet CssClass="language-csharp">
 [Fact]
 public async Task InvokeAsync_ShouldReturnInternalServerError_For_Exception()
 {
@@ -170,15 +161,13 @@ public async Task InvokeAsync_ShouldReturnInternalServerError_For_Exception()
             It.IsAny&lt;Func&lt;It.IsAnyType, Exception?, string&gt;&gt;()),
         Times.Once);  
 }
-                </code>
-            </pre>
+            </CodeSnippet>
 
             <p>
                 <strong>After Fake Logger - Simpler Setup, Assertion, and Testing</strong>
             </p>
 
-            <pre>
-                <code class="language-csharp">
+            <CodeSnippet CssClass="language-csharp">
 [Fact]
 public async Task InvokeAsync_ShouldReturnInternalServerError_For_Exception()
 {
@@ -195,8 +184,7 @@ public async Task InvokeAsync_ShouldReturnInternalServerError_For_Exception()
     Assert.Equal(LogLevel.Critical, logger.LatestRecord.Level);
     Assert.Equal("Test", logger.LatestRecord.Exception?.Message);
 }
-                </code>
-            </pre>
+            </CodeSnippet>
 
             <p>
                 As you see above, the usage of FakeLogger Simplified testing a lot by reducing complex assertion.

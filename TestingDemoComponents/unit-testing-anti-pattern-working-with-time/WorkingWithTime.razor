@@ -30,7 +30,7 @@
                 accessed through a shared static class:
             </p>
 
-            <pre>
+            <CodeSnippet CssClass="language-csharp">
 public static class TimeProvider
 {
     private static Func&lt;DateTime&gt; _currentTime;
@@ -48,7 +48,7 @@ TimeProvider.Configure(() => DateTime.Now);
 
 // Test setup
 TimeProvider.Configure(() => new DateTime(2025, 1, 1));
-            </pre>
+            </CodeSnippet>
 
             <p>
                 While this allows controlling time in tests, it introduces global state, making tests interdependent and
@@ -56,7 +56,7 @@ TimeProvider.Configure(() => new DateTime(2025, 1, 1));
                     dependency</ContentHighlight>:
             </p>
 
-            <pre>
+            <CodeSnippet CssClass="language-csharp">
 public interface ITimeService
 {
     DateTime Now { get; }
@@ -66,13 +66,13 @@ public class SystemTimeService : ITimeService
 {
     public DateTime Now => DateTime.UtcNow;
 }
-            </pre>
+            </CodeSnippet>
 
             <p>
                 This service can be injected into dependent classes, such as a controller:
             </p>
 
-            <pre>
+            <CodeSnippet CssClass="language-csharp">
 public class OrderController
 {
     private readonly ITimeService _timeService;
@@ -89,14 +89,14 @@ public class OrderController
         SaveOrder(order);
     }
 }
-            </pre>
+            </CodeSnippet>
 
             <p>
                 Injecting time as a service improves testability, but the best practice is to pass the time as a
                 <ContentHighlight>plain value</ContentHighlight> once inside a business operation:
             </p>
 
-            <pre>
+            <CodeSnippet CssClass="language-csharp">
 public class OrderController
 {
     private readonly ITimeService _timeService;
@@ -114,7 +114,7 @@ public class OrderController
         SaveOrder(order);
     }
 }
-            </pre>
+            </CodeSnippet>
 
             <p>
                 Another modern approach in .NET 8 is using <ContentHighlight>FakeTimeProvider</ContentHighlight> from
@@ -123,7 +123,7 @@ public class OrderController
                 full control over time during testing, allowing for precise and deterministic tests.
             </p>
 
-            <pre>
+            <CodeSnippet CssClass="language-csharp">
 public class OrderController
 {
     private readonly TimeProvider _timeProvider;
@@ -159,7 +159,7 @@ public void ConfirmOrder_UsesProvidedTime()
     Order order = controller.GetOrderById(testOrderId);
     Assert.Equal(fixedTime, order.ConfirmedAt);
 }
-        </pre>
+        </CodeSnippet>
 
             <p>
                 Unlike traditional approaches, <ContentHighlight>FakeTimeProvider</ContentHighlight> gives fine-grained

@@ -23,7 +23,7 @@
         <How>
             <p>Consider a class that calculates delivery statistics:</p>
 
-            <pre>
+            <CodeSnippet CssClass="language-csharp">
 public class DeliveryStatistics
 {
     public (double totalWeight, double totalCost) ComputeStatistics(int customerId)
@@ -41,14 +41,14 @@ public class DeliveryStatistics
         // Calls an external dependency to retrieve shipments
     }
 }
-            </pre>
+            </CodeSnippet>
 
             <p>
                 The <ContentHighlight>DeliveryStatistics</ContentHighlight> class calculates shipment costs but also
                 directly calls an unmanaged dependency. If a controller depends on it, testing becomes difficult:
             </p>
 
-            <pre>
+            <CodeSnippet CssClass="language-csharp">
 public class CustomerOrdersController
 {
     private readonly DeliveryStatistics _statistics;
@@ -64,14 +64,14 @@ public class CustomerOrdersController
         return $"Total weight: {totalWeight}, Total cost: {totalCost}";
     }
 }
-            </pre>
+            </CodeSnippet>
 
             <p>
                 Mocking this class requires making <ContentHighlight>FetchShipments</ContentHighlight> virtual and
                 partially replacing its behavior:
             </p>
 
-            <pre>
+            <CodeSnippet CssClass="language-csharp">
 [Fact]
 public void Customer_With_No_Shipments()
 {
@@ -87,7 +87,7 @@ public void Customer_With_No_Shipments()
     // Assert
     Assert.Equal("Total weight: 0, Total cost: 0", result);
 }
-            </pre>
+            </CodeSnippet>
 
             <p>
                 Although this allows partial mocking, it introduces unnecessary complexity and violates the
@@ -95,7 +95,7 @@ public void Customer_With_No_Shipments()
                 concerns:
             </p>
 
-            <pre>
+            <CodeSnippet CssClass="language-csharp">
 public interface IShipmentProvider
 {
     List&lt;ShipmentRecord&gt; FetchShipments(int customerId);
@@ -119,11 +119,11 @@ public class DeliveryStatistics
         return (totalWeight, totalCost);
     }
 }
-            </pre>
+            </CodeSnippet>
 
             <p>Now, the controller can depend on the interface instead of the concrete class:</p>
 
-            <pre>
+            <CodeSnippet CssClass="language-csharp">
 public class CustomerOrdersController
 {
     private readonly DeliveryStatistics _statistics;
@@ -142,7 +142,7 @@ public class CustomerOrdersController
         return $"Total weight: {totalWeight}, Total cost: {totalCost}";
     }
 }
-            </pre>
+            </CodeSnippet>
 
             <p>
                 With this approach, testing becomes easier since we can mock <ContentHighlight>IShipmentProvider
