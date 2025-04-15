@@ -1,170 +1,207 @@
 ﻿@page "/blogs/global-exception-handling-in-asp-net-webapi"
 @inherits BasePage
 
-<Content FileName=@nameof(GlobalExceptionHandlingInASPNET)>
+<Content FileName=@nameof(GlobalExceptionHandlingInASPNET) UseNewTableOfContentsMenu=true>
     <ContentBody>
-        <p>
-            In this article, let's learn about <ContentHighlight>Global Exception Handling</ContentHighlight> in <ContentHighlight>Web API</ContentHighlight> 
-            in ASP.NET Core.
-        </p>
+        <What>
+            <p>
+                In this article, let's learn about <ContentHighlight>Global Exception Handling</ContentHighlight> in
+                <ContentHighlight>Web API</ContentHighlight> in ASP.NET Core.
+            </p>
+        </What>
 
-        <p>
-            <strong>Note:</strong> If you have not done so already, I recommend you read the article on
-            <NavLink href="blogs/webapi-importance-of-status-code" Match="NavLinkMatch.All">Importance of Status Code in Web API</NavLink>.
-        </p>
+        <Why>
+            <p>
+                <ContentHighlight>Global Exception Handling</ContentHighlight> allows us to handle exceptions globally
+                in <ContentHighlight>one single place</ContentHighlight> inside the application rather than scattering
+                try-catch blocks everywhere in the code base. This is a <ContentHighlight>good and clean practice
+                </ContentHighlight> that simplifies code maintenance and improves readability.
+            </p>
 
-        <h3>Table of Contents</h3>
+            <p>
+                Errors are inevitable in APIs. To standardize error responses, ASP.NET Core supports the Problem Details
+                payload as defined by <ContentHighlight>RFC 7807</ContentHighlight>. By enabling the default
+                implementation of <ContentHighlight>IProblemDetailsService</ContentHighlight> through <ContentHighlight>
+                    AddProblemDetails</ContentHighlight>, we can automatically generate structured error responses. This
+                approach integrates seamlessly with middlewares like the exception handler and developer exception page,
+                providing clean and consistent error details in both production and development environments. This
+                simplifies debugging and enhances the API's usability.
+            </p>
+        </Why>
 
-        <ol>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
-                    Introduction
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#why-global-exception-handling")" Match="NavLinkMatch.All">
-                    Why Global Exception Handling ?
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#creating-a-custom-error-handling-middleware")" Match="NavLinkMatch.All">
-                    Creating a Custom Error Handling Middleware
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#advantages")" Match="NavLinkMatch.All">
-                    Advantages
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
-                    Summary
-                </NavLink>
-            </li>
-        </ol>
+        <How>
+            <p>
+                To implement Global Exception Handling, follow these steps:
+            </p>
 
-        <h3 id="introduction">Introduction</h3>
+            <ol>
+                <li>
+                    <p>
+                        Starting .NET 8, We can achieve this using the AddProblemDetails to Get structured error
+                        response defined in RFC 7807 standard.
+                    </p>
 
-        <p>
-            <ContentHighlight>Exception</ContentHighlight> is a common thing we often come up with it in our applications. This happens when something goes wrong 
-            exceptionally. All the known paths in code can be handled to return expected response. And for <ContentHighlight>unhandled exceptions</ContentHighlight> 
-            or <ContentHighlight>server faults</ContentHighlight>, Global Exception Handling comes to rescue.
-        </p>
+                    <CodeSnippet CssClass="language-csharp">
+var builder = WebApplication.CreateBuilder(args);
 
-        <p>
-            <ContentHighlight>Global Exception Handling</ContentHighlight> - This is where we handle exceptions globally in 
-            <ContentHighlight>one single place</ContentHighlight> inside the application rather than scattering the try catch blocks everywhere in the code base. 
-            This is a <ContentHighlight>good and clean practice and the absolutely simplest way</ContentHighlight>.
-        </p>
+builder.Services
+.AddProblemDetails(options =>
+    options.CustomizeProblemDetails = (ctx) =>
+    {
+        var hostEnv = ctx.HttpContext.RequestServices.GetRequiredService&lt;IHostEnvironment&gt;();
+        var logger = ctx.HttpContext.RequestServices.GetRequiredService&lt;ILogger&lt;ProblemDetails&gt;&gt;();
 
-        <p>
-            This is the first thing that I do when I create new Web API Projects or when I work on existing code base. Let's focus and learn on the simplest and 
-            cleanest way of handling exceptions globally in ASP.NET Web API.
-        </p>
-
+        // exception will hold the thrown exception
+        var exception = ctx.HttpContext.Features.Get&lt;IExceptionHandlerFeature&gt;()?.Error;
         
+        if (ctx.ProblemDetails.Status == 500)
+        {
+            logger.LogCritical(exception, exception!.Message);
+            
+            if (exception is DomainException domainException)
+            {
+                ctx.ProblemDetails.Title = "An error occurred in our API. Use the trace id when contacting us.";
+                ctx.ProblemDetails.Detail = domainException.Message;
+            }
+            else if (exception is Exception ex)
+            {
+                ctx.ProblemDetails.Title = "An unexpected fault happened. Try again later.";
+                ctx.ProblemDetails.Detail = hostEnv.IsProduction() ? "An unexpected fault happened. Try again later." : ex.Message;
+            }
+        }
+    }
+)
+                    </CodeSnippet>
+                </li>
+                <li>
+                    <p>
+                        <ContentHighlight>Register</ContentHighlight> the middleware as the first middleware in the
+                        pipeline:
+                    </p>
 
-        <h3 id="why-global-exception-handling">Why Global Exception Handling ?</h3>
+                    <CodeSnippet CssClass="language-csharp">
+var builder = WebApplication.CreateBuilder(args);
 
-        <p>
-            Handling exceptions <ContentHighlight>locally</ContentHighlight> in the method where it is thrown is what I have seen in most of the code bases. 
-            This often <ContentHighlight>grows and pollutes the code base</ContentHighlight>. I have seen projects having 
-            <ContentHighlight>try catch</ContentHighlight> blocks everywhere in the code base starting from <ContentHighlight>controller</ContentHighlight> to 
-            <ContentHighlight>services</ContentHighlight> to <ContentHighlight>repositories</ContentHighlight>. This is not a good practice and it increases the 
-            complexity of the code base and makes it <ContentHighlight>difficult to read and maintain</ContentHighlight>. This is where Global Exception Handling 
-            comes to rescue.
-        </p>
+var app = builder.Build();
 
-        
+app.UseExceptionHandler() // Use this to handle exceptions globally with problem details support. If this is enabled below line can be commented.
+   .UseRouting()
+   .UseEndpoints(endpoints =>
+   {
+       endpoints.MapControllers();
+   });;
+   
+app.Run();
+                    </CodeSnippet>
+                </li>
+                <li>
+                    <p>
+                        The alternative is to <ContentHighlight>Create</ContentHighlight> a Global Exception Middleware
+                        as shown below if you want a custom response format implementation:
+                    </p>
+                    
+                    <CodeSnippet CssClass="language-csharp">
+using System.Net;
 
-        <h3 id="creating-a-custom-error-handling-middleware">Creating a Custom Error Handling Middleware</h3>
+namespace ILoveDotNet.Middlewares;
 
-        <p>
-            <strong>Note:</strong> If you have not done so already, I recommend you read the article on
-            <NavLink href="blogs/introducing-middleware-in-aspnet" Match="NavLinkMatch.All">Introducing Middleware in ASP.NET</NavLink>.
-        </p>
+public sealed class ExceptionHandlerMiddleware : IMiddleware
+{
+    private readonly IWebHostEnvironment _env;
+    private readonly ILogger&lt;ExceptionHandlerMiddleware&gt; _logger;
 
-        <p>
-            Here are the steps to implement Custom Global Exception Middleware,
-        </p>
+    public ExceptionHandlerMiddleware(IWebHostEnvironment env, ILogger&lt;ExceptionHandlerMiddleware&gt; logger)
+    {
+        _env = env;
+        _logger = logger;
+    }
 
-        <ol>
-            <li>
-                <p><ContentHighlight>Create</ContentHighlight> Global Exception Middleware as shown below</p>
+    public async Task InvokeAsync(HttpContext context, RequestDelegate next)
+    {
+        try
+        {
+            await next(context);
+        }
+        catch (DomainException ex)
+ 		{
+ 			await HandleDomainExceptionAsync(context, ex);
+ 		}
+        catch (Exception ex)
+        {
+            await HandleExceptionAsync(context, ex);
+        }
+    }
 
-                <GithubGistSnippet Title="Global Exception Middleware in ASP.NET" UserId="fingers10" FileName="7863dee1804d856c539ffce67d69645f"></GithubGistSnippet>
+    private Task HandleDomainExceptionAsync(HttpContext context, DomainException exception)
+	{
+		logger.LogCritical(exception, exception.Message);
+		string result = exception.Message;
+		context.Response.ContentType = MediaTypeNames.Application.Json;
+		context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+		return context.Response.WriteAsync(result);
+	}
 
-                
+    private Task HandleExceptionAsync(HttpContext context, Exception exception)
+    {
+        _logger.LogCritical(exception, exception.Message);
+        var result = _env.IsProduction() ? "An unexpected fault happened. Try again later." : exception.Message;
+        context.Response.ContentType = MediaTypeNames.Application.Json;
+        context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+        return context.Response.WriteAsync(result);
+    }
+}
 
-                <p>
-                    This middleware inheriting from <ContentHighlight>IMiddleware</ContentHighlight> will catch any exception thrown from the application and 
-                    write a <ContentHighlight>general error message back to the response on Prodcution environment</ContentHighlight> and the 
-                    <ContentHighlight>actual error message on Non Production environment</ContentHighlight>.
-                </p>
+public static class ExceptionHandlerMiddlewareExtensions
+{
+    public static IApplicationBuilder UseGlobalExceptionHandler(this IApplicationBuilder builder)
+    {
+        return builder.UseMiddleware&lt;ExceptionHandlerMiddleware&gt;();
+    }
+}
+                    </CodeSnippet>
 
-                <p>
-                    <ContentHighlight>RequestDelegate next</ContentHighlight> is a function delegate representing the next middleware component in the request 
-                    pipeline. <ContentHighlight>InvokeAsync</ContentHighlight> is the heart of the middleware. It is called for every request that passes through 
-                    the middleware. It takes an <ContentHighlight>HttpContext object</ContentHighlight> as a parameter, which represents the HTTP request and 
-                    response.
-                </p>
+                    <p>
+                        This middleware inherits from <ContentHighlight>IMiddleware</ContentHighlight> and catches
+                        exceptions thrown from the application. It writes a <ContentHighlight>general error message
+                        </ContentHighlight> in production and the <ContentHighlight>actual error message
+                        </ContentHighlight> in non-production environments.
+                    </p>
+                </li>
+                <li>
+                    <p>
+                        <ContentHighlight>Register</ContentHighlight> the middleware as the first middleware in the
+                        pipeline:
+                    </p>
+                    
+                    <CodeSnippet CssClass="language-csharp">
+var builder = WebApplication.CreateBuilder(args);
 
-                <p>
-                    In the <ContentHighlight>try</ContentHighlight> block, we're calling next, which effectively passes control to the next middleware in the 
-                    pipeline. <ContentHighlight>If there's an exception anywhere after this line, control will return back to this middleware</ContentHighlight>.
-                </p>
-            </li>
-            <li>
-                <p><ContentHighlight>Register</ContentHighlight> it as the first Middleware as shown below</p>
+var app = builder.Build();
 
-                <GithubGistSnippet Title="Registering Global Exception Middleware in ASP.NET" UserId="fingers10" FileName="ef81ba6921b3af4b8c5ad61bb781ef8d"></GithubGistSnippet>
+app.UseGlobalExceptionHandler()
+   .UseRouting()
+   .UseEndpoints(endpoints =>
+   {
+       endpoints.MapControllers();
+   });;
+   
+app.Run();
+                    </CodeSnippet>
+                    
+                    <p>
+                        Registering it first ensures that all exceptions are caught. If registered later, some
+                        exceptions might be missed.
+                    </p>
+                </li>
+            </ol>
+        </How>
 
-                
-
-                <p>
-                    From the above code, we can see that we are registering the <ContentHighlight CssClasses="[ break-all ]">UseGlobalExceptionMiddleware()</ContentHighlight> as the first 
-                    Middleware in the pipeline. This is important because we want to catch all the exceptions that are thrown from the application. If we register 
-                    it at the end of the pipeline, then it will not catch all the exceptions.
-                </p>
-            </li>
-        </ol>
-
-        
-
-        <h3 id="advantages">Advantages</h3>
-
-        <p>
-            The advantages of Global Exception Handling are as follows,
-        </p>
-
-        <ul>
-            <li><ContentHighlight>Single point</ContentHighlight> to <ContentHighlight>handle</ContentHighlight> and <ContentHighlight>log</ContentHighlight> exceptions.</li>
-            <li>Code becomes <ContentHighlight>easy to manage</ContentHighlight> because we don't need to look into n different <ContentHighlight>try-catch</ContentHighlight> blocks.</li>
-            <li><ContentHighlight>More readable</ContentHighlight> because a few lines of code managing the whole exceptions of application.</li>
-            <li><ContentHighlight>Removes repeated code</ContentHighlight> (try-catch everywhere).</li>
-            <li>It gives us <ContentHighlight>more control</ContentHighlight> so we can catch exceptions and return response of our own type, in most cases we return Internal Server Error.</li>
-        </ul>
-
-        
-
-        <h3 id="summary">Summary</h3>
-
-        <p>
-            In this article, we learnt about the <ContentHighlight>simplest and easiest</ContentHighlight> way to handle exception globally in ASP.NET Web 
-            API using a <ContentHighlight>custom middleware</ContentHighlight>. We also learnt about the advantages of handling exceptions globally. I hope you 
-            enjoyed reading it.
-        </p>
-
-        <p class="[ font-bold ] [ p-5 ] [ flex items-center justify-center ]">
-            <a href="https://whatsapp.com/channel/0029VaAGMV2LtOj5S5MHd23h" target="_blank">
-            <span>To learn more interesting things about .NET in a simple way, 👉🏼 Click here to Join I ❤️ .NET </span>
-            <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-brand-whatsapp ] [ fill-green-500 ] [ inline ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                <path d="M3 21l1.65 -3.8a9 9 0 1 1 3.4 2.9l-5.05 .9"></path>
-                <path d="M9 10a.5 .5 0 0 0 1 0v-1a.5 .5 0 0 0 -1 0v1a5 5 0 0 0 5 5h1a.5 .5 0 0 0 0 -1h-1a.5 .5 0 0 0 0 1"></path>
-            </svg>
-            <span>WhatsApp Channel for free to get 🔔 notified about new articles and other updates.</span>
-        </a>
-        </p>
+        <Summary>
+            <p>
+                In this article, we explored the <ContentHighlight>simplest and easiest</ContentHighlight> way to handle
+                exceptions globally in ASP.NET Web API using a <ContentHighlight>custom middleware</ContentHighlight>.
+                This approach centralizes exception handling, reduces code duplication, and improves maintainability.
+            </p>
+        </Summary>
     </ContentBody>
 </Content>
