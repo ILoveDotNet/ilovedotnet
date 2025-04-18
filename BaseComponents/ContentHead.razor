@@ -1,5 +1,7 @@
-﻿@inject IConfiguration configuration
+﻿@implements IDisposable;
+@inject IConfiguration configuration
 @inject NavigationManager navigationManager
+@inject PersistentComponentState PersistentState
 @inject Sitemaps sitemap
 @inject SlugService slugService
 @inject TableOfContents tableOfContents
@@ -113,10 +115,41 @@
     private ContentMetaData? contentMetaData = default!;
     private string BaseUrl => configuration.GetValue<string>("baseUrl")!;
     private string normalizedPosterPath => contentMetaData!.PosterUrl.ToLower();
+    private CancellationTokenSource cancellationTokenSource = new();
+    private PersistingComponentStateSubscription persistingSubscription;
 
     override protected void OnInitialized()
     {
-        slug = slugService.GetSlug();
-        contentMetaData = tableOfContents.GetContentBySlug(slug);
+        persistingSubscription = this.PersistentState.RegisterOnPersisting(() => 
+                { 
+                    this.PersistentState.PersistAsJson(nameof(slug), slug); 
+                    this.PersistentState.PersistAsJson(nameof(contentMetaData), contentMetaData);
+                    return Task.CompletedTask; 
+                });
+        
+        if (!this.PersistentState.TryTakeFromJson<string>(nameof(slug), out var restoredSlug))
+        {
+            slug = slugService.GetSlug();
+        }
+        else
+        {
+            slug = restoredSlug!;
+        }
+
+        if (!this.PersistentState.TryTakeFromJson<ContentMetaData?>(nameof(contentMetaData), out var restoredContentMetaData))
+        {
+            contentMetaData = tableOfContents.GetContentBySlug(slug);
+        }
+        else
+        {
+            contentMetaData = restoredContentMetaData;
+        }
+    }
+
+    public void Dispose()
+    {
+        cancellationTokenSource.Cancel();
+        cancellationTokenSource.Dispose();
+        persistingSubscription.Dispose();
     }
 }
