@@ -15,57 +15,33 @@
             <GoogleAdSense Type="GoogleAdSenseAdType.InFeed" Format="GoogleAdSenseAdFormat.Fluid" LayoutKey="-7m+de+1z+n+3" Slot="2741354693"></GoogleAdSense>
         }
 
-        @if (SmallDevice)
-        {
-            <section @key="@index" class="[ flex flex-col justify-between ]">
-                <header>
-                    <NavLink href="@content.ContentUrl">
+        <section @key="@index" class="[ flex flex-col justify-between ]">
+            <header>
+                <NavLink href="@content.ContentUrl">
+                    <figure>
+                        <img src="@content.PosterUrl" class="[ w-full ] [ rounded-md ]" alt="@content.Title" loading="lazy" />
+                    </figure>
+                </NavLink>
+            </header>
+            <div class="[ grow flex ]">
+                <aside class="[ basis-1/6 flex items-center ]">
+                    <NavLink href="@($"channels/{content.Channel.ToLower().ApplyHyphen()}")">
                         <figure>
-                            <img src="@content.PosterUrl" class="[ w-full ] [ rounded-md ]" alt="@content.Title" loading="lazy" />
+                            <img src="@content.IconUrl" alt="@content.Channel" loading="lazy" height="48" width="48" class="[ rounded-full ]" />
                         </figure>
                     </NavLink>
-                </header>
-                <div class="[ grow flex ]">
-                    <aside class="[ basis-1/6 flex items-center ]">
-                        <NavLink href="@($"channels/{content.Channel.ToLower().ApplyHyphen()}")">
-                            <figure>
-                                <img src="@content.IconUrl" alt="@content.Channel" loading="lazy" height="48" width="48" class="[ rounded-full ]" />
-                            </figure>
-                        </NavLink>
-                    </aside>
-                    <article class="[ grow flex flex-col justify-between basis-5/6 ] [ dark:text-white ] [ mt-2 ]">
-                        <NavLink href="@content.ContentUrl">
-                            <h2 class="[ font-medium break-words hover:underline ]">@content.Title</h2>
-                        </NavLink>
-                        <section class="[ flex justify-between ]">
-                            <p>@content.Author</p>
-                            <time datetime="@content.CreatedOn.ToString("yyyy-MM-dd HH-mm-ss")">@content.CreatedOn.Humanize()</time>
-                        </section>
-                    </article>
-                </div>
-            </section>
-        }
-        else
-        {
-            <NavLink @key="@index" href="@content.ContentUrl">
-                <section class="[ flex ] [ space-x-2 ]">
-                    <header class="[ basis-2/5 ]">
-                        <figure>
-                            <img src="@content.PosterUrl" alt="@content.Title" loading="lazy" class="[ rounded-md ]" />
-                        </figure>
-                    </header>
-                    <div class="[ basis-3/5 ]">
-                        <article class="[ flex flex-col ] [ dark:text-white ]">
-                            <h2 class="[ font-medium text-sm break-words leading-tight ]">@content.Title</h2>
-                            <section class="[ flex flex-col ]">
-                                <p class="[ text-xs dark:text-neutral-400 ]">@content.Author</p>
-                                <time class="[ text-xs dark:text-neutral-400 ]" datetime="@content.CreatedOn.ToString("yyyy-MM-dd HH-mm-ss")">@content.CreatedOn.Humanize()</time>
-                            </section>
-                        </article>
-                    </div>
-                </section>
-            </NavLink>
-        }
+                </aside>
+                <article class="[ grow flex flex-col justify-between basis-5/6 ] [ dark:text-white ] [ mt-2 ]">
+                    <NavLink href="@content.ContentUrl">
+                        <h2 class="[ font-medium break-words hover:underline ]">@content.Title</h2>
+                    </NavLink>
+                    <section class="[ flex justify-between ]">
+                        <p>@content.Author</p>
+                        <time datetime="@content.CreatedOn.ToString("yyyy-MM-dd HH-mm-ss")">@content.CreatedOn.Humanize()</time>
+                    </section>
+                </article>
+            </div>
+        </section>
     }
     <div class="[ flex items-center justify-center ]">
         <button type="button" 
@@ -87,7 +63,6 @@
     private IEnumerable<ContentMetaData> Contents = Enumerable.Empty<ContentMetaData>();
     private int Count = 1;
     private int Take => TableOfContents.PageSize * Count;
-    [CascadingParameter] public bool SmallDevice { get; set; }
 
     protected override void OnInitialized()
     {
