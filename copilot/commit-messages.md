@@ -1,6 +1,7 @@
 Write a descriptive commit message based solely on the provided changes. Follow these strict rules:
 
 
+Include current username as Author and your name as Co-Author.
 Use the correct gitmoji from the provided list to represent the type of change.
 Separate subject from body with a blank line.
 Use the body to explain what and why you have done something. In most cases, you can leave out details about how a change has been made.
