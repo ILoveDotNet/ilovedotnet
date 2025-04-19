@@ -1,0 +1,168 @@
+@page "/blogs/encrypt-and-decrypt-using-data-protection-in-asp-net-webapi"
+@inherits BasePage
+
+<Content FileName=@nameof(ASPNETCoreDataProtection) UseNewTableOfContentsMenu=true>
+  <ContentBody>
+    <What>
+      <p>
+        In ASP.NET Core, <ContentHighlight>Data Protection</ContentHighlight> is a built-in API for handling encryption
+        and decryption of sensitive data like authentication tokens, cookies, and custom application secrets. While
+        <ContentHighlight>Windows DPAPI</ContentHighlight> is often used during development on Windows, it's not always
+        suitable for production, especially in cross-platform environments. This is where <ContentHighlight>ASP.NET Core
+          Data Protection</ContentHighlight> comes in.
+      </p>
+    </What>
+
+    <Why>
+      <p>
+        The main reason to use <ContentHighlight>ASP.NET Core Data Protection</ContentHighlight> over <ContentHighlight>
+          Windows DPAPI</ContentHighlight> in production is its <ContentHighlight>cross-platform support
+        </ContentHighlight>. DPAPI is tied to Windows and depends on user or machine-specific encryption, which doesn't
+        scale well for containerized apps, Linux servers, or distributed environments. In contrast, ASP.NET Core's
+        solution allows:
+      <ul>
+        <li>Key sharing across multiple app instances</li>
+        <li>Custom key storage and protection strategies</li>
+        <li>Full control over key lifecycle and rotation</li>
+      </ul>
+      </p>
+    </Why>
+
+    <How>
+      <p>
+        First, we need to implement a custom encryption class using the <ContentHighlight>IProtection</ContentHighlight>
+        interface. This interface requires us to provide <ContentHighlight>Encrypt</ContentHighlight> and
+        <ContentHighlight>Decrypt</ContentHighlight> methods.
+      </p>
+
+      <p>
+        To begin, install the necessary NuGet packages:
+      <ul>
+        <li>
+          <ContentHighlight>Microsoft.AspNetCore.DataProtection</ContentHighlight>
+        </li>
+        <li>
+          <ContentHighlight>Microsoft.Extensions.DependencyInjection</ContentHighlight>
+        </li>
+      </ul>
+      </p>
+
+      <p>
+        Inside our class:
+      <ul>
+        <li>Inject <ContentHighlight>IDataProtectionProvider</ContentHighlight> via the constructor</li>
+        <li>Create an <ContentHighlight>IDataProtector</ContentHighlight> using the <ContentHighlight>
+            CreateProtector("purpose")</ContentHighlight> method</li>
+        <li>Use <ContentHighlight>_protector.Protect(text)</ContentHighlight> to encrypt and <ContentHighlight>
+            _protector.Unprotect(encryptedText)</ContentHighlight> to decrypt</li>
+      </ul>
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+using Microsoft.AspNetCore.DataProtection;
+using System;
+
+public class DataProtectionEncryption : IProtection
+{
+    private readonly IDataProtector _protector;
+
+    public DataProtectionEncryption(IDataProtectionProvider provider)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(provider, nameof(provider));
+
+        // You can use any string to represent the purpose of the encryption
+        _protector = provider.CreateProtector("ILoveDotNet.DataProtection.Sample");
+    }
+
+    public string Encrypt(string plainText)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(plainText, nameof(plainText));
+
+        return _protector.Protect(plainText);
+    }
+
+    public string Decrypt(string cipherText)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(cipherText, nameof(cipherText));
+
+        try
+        {
+            return _protector.Unprotect(cipherText);
+        }
+        catch
+        {
+            // Log or handle the exception as necessary
+            return string.Empty;
+        }
+    }
+}
+      </CodeSnippet>
+
+      <p>
+        One thing to note is that this method creates and stores a <ContentHighlight>physical encryption key
+        </ContentHighlight> on disk (by default). While the framework does offer protection mechanisms, you should still
+        take steps to <ContentHighlight>secure and manage your key ring</ContentHighlight>, especially in production.
+      </p>
+
+      <p>
+        Here's an outline of how it's typically used in a console app:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.DataProtection;
+using System;
+
+class Program
+{
+    static void Main(string[] args)
+    {
+        // Setup DI container
+        var services = new ServiceCollection();
+        services.AddDataProtection();
+        services.AddSingleton&lt;IProtection, DataProtectionEncryption&gt;();
+        var serviceProvider = services.BuildServiceProvider();
+
+        // Resolve encryption service
+        var encryption = serviceProvider.GetRequiredService&lt;IProtection&gt;();
+
+        // Encrypt and decrypt sample text
+        string secret = "ilovedotnet";
+        string encrypted = encryption.Encrypt(secret);
+        string decrypted = encryption.Decrypt(encrypted);
+
+        Console.WriteLine($"Original: {secret}");
+        Console.WriteLine($"Encrypted: {encrypted}");
+        Console.WriteLine($"Decrypted: {decrypted}");
+    }
+}
+      </CodeSnippet>
+
+      <p>
+        Additionally, based on the environment (development or production), you can configure different
+        <ContentHighlight>configuration providers</ContentHighlight> and encryption methods. For instance:
+      <ul>
+        <li>
+          <ContentHighlight>Development</ContentHighlight>: Secrets stored in <ContentHighlight>appsettings
+          </ContentHighlight>, encrypted with <ContentHighlight>ASP.NET Core Data Protection</ContentHighlight>
+        </li>
+        <li>
+          <ContentHighlight>Production</ContentHighlight>: Secrets stored in <ContentHighlight>Key Vault
+          </ContentHighlight> and encrypted with <ContentHighlight>ASP.NET Core Data Protection</ContentHighlight>
+        </li>
+      </ul>
+      </p>
+    </How>
+
+    <Summary>
+      <p>
+        ASP.NET Core Data Protection provides a powerful, cross-platform way to handle encryption in both development
+        and production environments. While <ContentHighlight>Windows DPAPI</ContentHighlight> works well for local windows
+        development, <ContentHighlight>Data Protection</ContentHighlight> gives you flexibility and control in modern
+        hosting environments like containers and Linux. Thanks to its integration with dependency injection and
+        configuration providers, it's easy to swap out encryption strategies based on environment, ensuring your app
+        stays secure and scalable.
+      </p>
+    </Summary>
+  </ContentBody>
+</Content>

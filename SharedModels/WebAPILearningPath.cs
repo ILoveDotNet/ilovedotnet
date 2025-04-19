@@ -2,7 +2,7 @@
 
 public class WebAPILearningPath
 {
-  public readonly List<ContentMetaData> FullContents = new(21);
+  public readonly List<ContentMetaData> FullContents = new(22);
 
   public WebAPILearningPath()
   {
@@ -364,6 +364,23 @@ public class WebAPILearningPath
                 CreatedOn = new DateTime(2025, 2, 23, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2025, 2, 23, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Hosted Service", "Distributed Lock", "System Design"]
+            },
+            new ContentMetaData
+            {
+                Order = 22,
+                Title = "Encrypt and Decrypt using ASP.NET Core Data Protection in ASP.NET WEB API",
+                Description = "In this post I will teach how to encrypt and decrypt using ASP.NET Core Data Protection in ASP.NET Web API. All with live working demo.",
+                Author = "Abdul Rahman",
+                Slug = "encrypt-and-decrypt-using-data-protection-in-asp-net-webapi",
+                PosterUrl = "image/blogs/webapi/encrypt-and-decrypt-using-data-protection-in-asp-net-webapi.webp",
+                ThumbnailUrl = "image/blogs/webapi/encrypt-and-decrypt-using-data-protection-in-asp-net-webapi.webp",
+                ContentUrl = "blogs/encrypt-and-decrypt-using-data-protection-in-asp-net-webapi",
+                IconUrl = "image/icons/web api.webp",
+                Channel = "Web API",
+                Type = "blogs",
+                CreatedOn = new DateTime(2025, 5, 18, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2025, 5, 18, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Data Protection", "Encryption", "Decryption"]
             },
         ];
   }
