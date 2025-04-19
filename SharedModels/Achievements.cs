@@ -2,14 +2,14 @@
 
 public class Achievements
 {
-  public List<GoogleSearchImpact> GoogleSearchImpacts { get; set; } = [];
-  public List<GoogleSearchImpression> GoogleSearchImpressions { get; set; } = [];
+    public List<GoogleSearchImpact> GoogleSearchImpacts { get; set; } = [];
+    public List<GoogleSearchImpression> GoogleSearchImpressions { get; set; } = [];
 
-  public Achievements()
-  {
-    GoogleSearchImpacts =
-    [
-        new() { Date = new DateOnly(2022, 9, 18), Clicks = 5 },
+    public Achievements()
+    {
+        GoogleSearchImpacts =
+        [
+            new() { Date = new DateOnly(2022, 9, 18), Clicks = 5 },
             new() { Date = new DateOnly(2022, 9, 26), Clicks = 50 },
             new() { Date = new DateOnly(2022, 10, 3), Clicks = 120 },
             new() { Date = new DateOnly(2022, 10, 14), Clicks = 250 },
@@ -30,9 +30,9 @@ public class Achievements
             new() { Date = new DateOnly(2023, 7, 25), Clicks = 3000 },
         ];
 
-    GoogleSearchImpressions =
-    [
-        new() { Date = new DateOnly(2022, 11, 30), Impressions = 17300 },
+        GoogleSearchImpressions =
+        [
+            new() { Date = new DateOnly(2022, 11, 30), Impressions = 17300 },
             new() { Date = new DateOnly(2022, 12, 31), Impressions = 16900 },
             new() { Date = new DateOnly(2023, 1, 31), Impressions = 23600 },
             new() { Date = new DateOnly(2023, 2, 28), Impressions = 30300 },
@@ -62,5 +62,5 @@ public class Achievements
             new() { Date = new DateOnly(2025, 2, 28), Impressions = 59400 },
             new() { Date = new DateOnly(2025, 3, 31), Impressions = 67200 },
         ];
-  }
+    }
 }
