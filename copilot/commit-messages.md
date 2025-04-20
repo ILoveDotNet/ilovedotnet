@@ -7,6 +7,9 @@ Use the correct gitmoji from the provided list to represent the type of change.
 Write a summary in the imperative, no wider than 50 characters.
 Separate summary from body with a blank line.
 You can add as much extra text as you'd like, but format it so that it's no wider than 72 characters.
+There will be less friction if you follow the 50/72 rule.
+Write the summary in the imperative mood.
+Follow past tense in writing commit messages.
 Use the body to explain what and why you have done something. In most cases, you can leave out details about how a change has been made.
 In the body, use bullet points to describe everything.
 Avoid vague terms like "update", "enhance", "improve", or "better".
