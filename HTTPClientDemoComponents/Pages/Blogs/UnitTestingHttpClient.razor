@@ -137,6 +137,50 @@ public async Task GetData_On200Response_MustReturnExpectedData()
             </CodeSnippet>
 
             <p>
+                What if now you have a requirement to get different response for a success status code based on input?
+                For example, you want to return Apple as response if the input contains apple in query string and return
+                Orange as response if the input contains orange in query string.
+            </p>
+
+            <p>
+                We can achieve this by using a custom message handler that checks the request and returns the response accordingly.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+public class Data
+{
+    public static List&lt;Product&gt; Products =
+        [
+            new Product { Name = "Apple", Price = 8.43m },
+            new Product { Name = "Orange", Price = 2.52m },
+            new Product { Name = "Banana", Price = 4.99m },
+            new Product { Name = "Mango", Price = 4.68m },
+            new Product { Name = "Grapes", Price = 9.98m }
+        ];
+}
+
+public class Return200OkResponseHandler() : HttpMessageHandler
+{
+    protected override Task&lt;HttpResponseMessage&gt; SendAsync(
+        HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        var productName = request.RequestUri?.Segments.LastOrDefault("apple").Replace(".json", string.Empty);
+        var product = Data.Products.SingleOrDefault(x => x.Name.ToLower().Equals(productName, StringComparison.OrdinalIgnoreCase));
+        
+        var response = new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+        {
+            Content = new StringContent(JsonSerializer.Serialize(product))
+        };
+        return Task.FromResult(response);
+    }
+}
+            </CodeSnippet>
+
+            <p>
+                See how I'm reading the request and returning the response based on the request from an in memory data. This is a simple example but you can extend it to handle more complex scenarios.
+            </p>
+
+            <p>
                 The only drawback of this approach is that you need to write a custom message handler for each status code you want to test. I feel like we will also 
                 need to maintain these custom message handlers. But this is the best approach I found to unit test HTTP client in dotnet when there is no option available 
                 to mock the HTTP client.
