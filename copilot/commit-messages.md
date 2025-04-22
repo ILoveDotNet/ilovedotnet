@@ -3,7 +3,7 @@ Write a descriptive commit message based solely on the provided changes. Follow 
 Focus on communication over writing.
 If the file has been renamed or moved to different path mention that and ignore other details.
 Analyze Entire Solution to gain more context on need basis.
-Include current username as Author and your name as Co-Author.
+Include current {{git username}} as Author and {{your name}} as Co-Author.
 Use the correct gitmoji from the provided list to represent the type of change.
 Write a summary in the imperative, no wider than 50 characters.
 Separate summary from body with a blank line.
