@@ -28,3 +28,4 @@ gitmojis:
 ✅: Add, update, or pass tests.
 🔒️: Fix security issues.
 ♻️: Refactor code.
+✏️: Rename or Move files.
