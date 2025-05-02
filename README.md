@@ -72,7 +72,7 @@ As an open-source project without funding, I cannot afford advertising I ❤️ 
 5. Try to keep content simple and short.
 6. Any ideas to improve content are welcome.
 
-# Star History
+# Star History (THANK YOU SO MUCH ❤️)
 [![Star History Chart](https://api.star-history.com/svg?repos=ILoveDotNet/ilovedotnet&type=Date)](https://star-history.com/#ILoveDotNet/ilovedotnet&Date)
 
 # Test Coverage 
