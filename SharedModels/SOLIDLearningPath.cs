@@ -56,7 +56,7 @@ public class SOLIDLearningPath
                 Channel = "SOLID",
                 Type = "blogs",
                 CreatedOn = new DateTime(2023, 4, 23, 22, 30, 0, DateTimeKind.Utc),
-                ModifiedOn = new DateTime(2023, 4, 23, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2025, 5, 25, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["OCP", "Open Closed"]
             },
             new ContentMetaData

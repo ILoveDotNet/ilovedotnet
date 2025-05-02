@@ -1,124 +1,141 @@
 @page "/blogs/open-closed-principle-in-solid"
 @inherits BasePage
 
-<Content FileName=@nameof(OpenClosed)>
-    <ContentBody>
-        <p>
-            In this article, let's learn about <ContentHighlight>Open Closed Principle</ContentHighlight> in <ContentHighlight>SOLID</ContentHighlight> Principles 
-            in .NET.
-        </p>
+<Content FileName=@nameof(OpenClosed) UseNewTableOfContentsMenu=true>
+  <ContentBody>
+    <What>
+      <p>
+        In this article, let's learn about <ContentHighlight>Open Closed Principle</ContentHighlight> in <ContentHighlight>SOLID</ContentHighlight> Principles in .NET.
+      </p>
+      <p>
+        <strong>Note:</strong> If you have not done so already, I recommend you read the article on
+        <NavLink href="blogs/single-responsibility-principle-in-solid" Match="NavLinkMatch.All">Single Responsibility Principle in SOLID</NavLink>.
+      </p>
+    </What>
+    <Why>
+      <p>
+        The <ContentHighlight>Open Closed Principle (OCP)</ContentHighlight> is a fundamental principle of <ContentHighlight>SOLID</ContentHighlight>. The <ContentHighlight>OCP</ContentHighlight> states that software entities should be <ContentHighlight>open to extension but closed to modification</ContentHighlight>.
+      </p>
+      <p>
+        We all are using <ContentHighlight>OCP</ContentHighlight> principle in DTO's / POCO's without even knowing that we are using it. In API's we send back response to client using DTO. Once clients start to consume, we cannot remove a property from DTO as it might break the clients which means <ContentHighlight>closed for modification</ContentHighlight>. But we add new property to DTO to send new data / information to clients which means <ContentHighlight>open for extension</ContentHighlight>.
+      </p>
+      <p>
+        The Open Closed Principle should be applied to any <ContentHighlight>software entity that is likely to change over time</ContentHighlight>. This includes classes, methods, and interfaces. When designing software, it is essential to consider the possibility of future changes, and the OCP helps to future-proof our codebase.
+      </p>
+    </Why>
+    <How>
+      <p>
+        Let's see a practical C# example of the <ContentHighlight>Open Closed Principle</ContentHighlight> using a tax calculation scenario. Here, we define an interface <ContentHighlight>ITaxCalculator</ContentHighlight> and provide different implementations for inclusive and exclusive tax modes. This allows us to add new tax calculation strategies without modifying the existing code.
+      </p>
+      <CodeSnippet CssClass="language-csharp">
+public interface ITaxCalculator
+{
+    bool CanHandle(string taxMode);
+    (Money baseAmount, Money taxAmount) GetTax(Money baseAmount, TaxPercentage taxPercentage);
+}
 
-        <p>
-            <strong>Note:</strong> If you have not done so already, I recommend you read the article on
-            <NavLink href="blogs/single-responsibility-principle-in-solid" Match="NavLinkMatch.All">Single Responsibility Principle in SOLID</NavLink>.
-        </p>
+public sealed class InclusiveTaxCalculator : ITaxCalculator
+{
+    public bool CanHandle(string taxMode)
+    {
+        return taxMode.Equals(&quot;Inclusive&quot;, StringComparison.InvariantCultureIgnoreCase);
+    }
 
-        <h3>Table of Contents</h3>
-        
-        <ol>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
-                    Introduction
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#when-to-apply-ocp")" Match="NavLinkMatch.All">
-                    When to apply OCP?
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#demo")" Match="NavLinkMatch.All">
-                    Demo
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#advantages")" Match="NavLinkMatch.All">
-                    Advantages
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
-                    Summary
-                </NavLink>
-            </li>
-        </ol>
+    public (Money baseAmount, Money taxAmount) GetTax(Money baseAmount, TaxPercentage taxPercentage)
+    {
+        // Calculate the tax amount based on the inclusive tax percentage
+        return (baseAmount, netTaxAmount);
+    }
+}
 
-        <h3 id="introduction">Introduction</h3>
-        
-        <p>
-            The <ContentHighlight>Open Closed Principle (OCP)</ContentHighlight> is a fundamental principle of <ContentHighlight>SOLID</ContentHighlight>. The 
-            <ContentHighlight>OCP</ContentHighlight> states that software entities should be <ContentHighlight>open to extension but closed to modification</ContentHighlight>. 
-            We all are using OCP principle in DTO's / POCO's without even knowing that we are using it. In API's we send back response to client using DTO. Once clients starts 
-            to consume we cannot remove a property from DTO as it might break the clients which means <ContentHighlight>closed for modification</ContentHighlight>. But we add new
-            property to DTO to send new data / information to clients which means <ContentHighlight>open for extension</ContentHighlight>.
-        </p>
+public sealed class ExclusiveTaxCalculator : ITaxCalculator
+{
+    public bool CanHandle(string taxMode)
+    {
+        return taxMode.Equals(&quot;Exclusive&quot;, StringComparison.InvariantCultureIgnoreCase);
+    }
 
-        
+    public (Money baseAmount, Money taxAmount) GetTax(Money baseAmount, TaxPercentage taxPercentage)
+    {
+        // Calculate the tax amount based on the exclusive tax percentage
 
-        <h3 id="when-to-apply-ocp">When to apply OCP?</h3>
+        return (baseAmount, netTaxAmount);
+    }
+}
 
-        <p>
-            The Open Closed Principle should be applied to any <ContentHighlight>software entity that is likely to change over time</ContentHighlight>. This includes classes, 
-            methods, and interfaces. When designing software, it is essential to consider the possibility of future changes, and the OCP helps to future-proof our codebase.
-        </p>
+public sealed class NullTaxCalculator : ITaxCalculator
+{
+    public bool CanHandle(string taxMode)
+    {
+        return true;
+    }
 
-        
+    public (Money baseAmount, Money taxAmount) GetTax(Money baseAmount, TaxPercentage taxPercentage)
+    {
+        return (baseAmount, Money.Create(0).Value);
+    }
+}
+      </CodeSnippet>
 
-        <h3 id="demo">Demo</h3>
+      <p>
+        Now create a factory class <ContentHighlight>TaxCalculatorFactory</ContentHighlight> that will return the appropriate tax calculator based on the tax mode.
+      </p>
 
-        <p>
-            Let's take a look at a C# code sample that demonstrates the Open Closed Principle. In this example, we have an interface called <ContentHighlight>IShape</ContentHighlight> 
-            that defines a method called <ContentHighlight>Area</ContentHighlight>. We then have two classes, <ContentHighlight>Rectangle</ContentHighlight> and <ContentHighlight>Circle</ContentHighlight>, 
-            that implement the <ContentHighlight>IShape</ContentHighlight> <ContentHighlight>interface</ContentHighlight> and provide their implementation of the <ContentHighlight>Area</ContentHighlight> 
-            method.
-        </p>
+        <CodeSnippet CssClass="language-csharp">
+public class TaxCalculatorFactory
+{
+    private readonly IEnumerable&lt;ITaxCalculator&gt; _taxCalculators;
 
-        <GithubGistSnippet Title="OCP - Open Closed Principle - Before" UserId="fingers10" FileName="fc1d35392976838eb1c3ec353959f09e"></GithubGistSnippet>
+    public TaxCalculatorFactory(IEnumerable&lt;ITaxCalculator&gt; taxCalculators)
+    {
+        _taxCalculators = taxCalculators;
+    }
 
-        
+    public ITaxCalculator GetTaxCalculator(string taxMode)
+    {
+        return _taxCalculators.FirstOrDefault(x => x.CanHandle(taxMode), new NullTaxCalculator());
+    }
+}
+      </CodeSnippet>
+      <p>
+        The <ContentHighlight>TaxCalculatorFactory</ContentHighlight> class takes a collection of <ContentHighlight>ITaxCalculator</ContentHighlight> implementations and uses the <ContentHighlight>CanHandle</ContentHighlight> method to determine which calculator to use based on the provided tax mode. If no matching calculator is found, it returns a <ContentHighlight>NullTaxCalculator</ContentHighlight>.
+      </p>
+      
+      <p>
+        Finally you need to register these in DI container.
+      </p>
 
-        <p>
-            Now let's say we need to add a <ContentHighlight>new shape</ContentHighlight> to our system, a <ContentHighlight>Triangle</ContentHighlight>. We can do this 
-            without modifying the existing code by creating a <ContentHighlight>new class</ContentHighlight> that implements the <ContentHighlight>IShape interface</ContentHighlight> 
-            and provides its implementation of the <ContentHighlight>Area</ContentHighlight> method.
-        </p>
+      <CodeSnippet CssClass="language-csharp">
+public void ConfigureServices(IServiceCollection services)
+{
+    services.AddScoped&lt;ITaxCalculator, InclusiveTaxCalculator&gt;();
+    services.AddScoped&lt;ITaxCalculator, ExclusiveTaxCalculator&gt;();
+    services.AddScoped&lt;TaxCalculatorFactory&gt;();
+}
+      </CodeSnippet>
 
-        <GithubGistSnippet Title="OCP - Open Closed Principle - After" UserId="fingers10" FileName="0af249355796573658f23903d1efd4bf"></GithubGistSnippet>
+      <p>
+        Now you can inject <ContentHighlight>TaxCalculatorFactory</ContentHighlight> in your class and use it to get the appropriate tax calculator based on the tax mode.
+      </p>
 
-        
-
-        <p>
-            By following the Open Closed Principle, we were able to extend our system to include a new shape without modifying the existing code. This allows us to avoid 
-            introducing bugs and breaking existing functionality.
-        </p>
-
-        
-
-        <h3 id="advantages">Advantages</h3>
-
-        <p>
-            The Open Closed Principle has several advantages, including:
-        </p>
-
-        <ul>
-            <li><ContentHighlight>Testability</ContentHighlight>: Makes code more testable by reducing the need for regression testing when making changes. This allows for faster and more efficient testing.</li>
-            <li><ContentHighlight>Maintainability</ContentHighlight>: Makes code more maintainable by reducing the risk of introducing bugs and breaking existing functionality when making changes.</li>
-            <li><ContentHighlight>Reusability</ContentHighlight>: By designing software entities to be open to extension but closed to modification, we can create more reusable code.</li>
-            <li><ContentHighlight>Scalability</ContentHighlight>: By allowing software entities to be extended without modifying the existing code, the OCP makes code more scalable and adaptable to changing requirements.</li>
-            <li><ContentHighlight>Better Teamwork</ContentHighlight>: Team members can work on different parts of the system simultaneously without interfering with each other's work. This leads to more efficient teamwork and a more efficient development process.</li>
-        </ul>
-
-        
-
-        <h3 id="summary">Summary</h3>
-
-        <p>
-            The <ContentHighlight>Open Closed Principle</ContentHighlight> is an essential principle of object-oriented design that states that software entities should be 
-            <ContentHighlight>open to extension but closed to modification</ContentHighlight>. By following this principle, we can ensure that our software is more 
-            <ContentHighlight>maintainable, scalable, and adaptable</ContentHighlight> to changing requirements. The use of <ContentHighlight>abstraction</ContentHighlight>, 
-            <ContentHighlight>inheritance</ContentHighlight>, and <ContentHighlight>interfaces</ContentHighlight> allows us to extend our software entities without modifying 
-            the existing code, reducing the risk of introducing bugs and breaking existing functionality. By following the OCP, we can create more flexible, maintainable, and 
-            robust codebases that are easier to test and scale.
-        </p>
-    </ContentBody>
+      <p>
+        By following the <ContentHighlight>Open Closed Principle</ContentHighlight>, you can add new tax calculation strategies (like a new tax mode) by simply creating a new class that implements <ContentHighlight>ITaxCalculator</ContentHighlight>, without modifying the existing code. This keeps your codebase flexible and easy to extend.
+      </p>
+    </How>
+    <Summary>
+      <p>
+        <strong>Advantages of Open Closed Principle:</strong>
+      </p>
+      <ul>
+        <li><ContentHighlight>Testability</ContentHighlight>: Makes code more testable by reducing the need for regression testing when making changes. This allows for faster and more efficient testing.</li>
+        <li><ContentHighlight>Maintainability</ContentHighlight>: Makes code more maintainable by reducing the risk of introducing bugs and breaking existing functionality when making changes.</li>
+        <li><ContentHighlight>Reusability</ContentHighlight>: By designing software entities to be open to extension but closed to modification, we can create more reusable code.</li>
+        <li><ContentHighlight>Scalability</ContentHighlight>: By allowing software entities to be extended without modifying the existing code, the OCP makes code more scalable and adaptable to changing requirements.</li>
+        <li><ContentHighlight>Better Teamwork</ContentHighlight>: Team members can work on different parts of the system simultaneously without interfering with each other's work. This leads to more efficient teamwork and a more efficient development process.</li>
+      </ul>
+      <p>
+        The <ContentHighlight>Open Closed Principle</ContentHighlight> is an essential principle of object-oriented design that states that software entities should be <ContentHighlight>open to extension but closed to modification</ContentHighlight>. By following this principle, we can ensure that our software is more <ContentHighlight>maintainable, scalable, and adaptable</ContentHighlight> to changing requirements. The use of <ContentHighlight>abstraction</ContentHighlight>, <ContentHighlight>inheritance</ContentHighlight>, and <ContentHighlight>interfaces</ContentHighlight> allows us to extend our software entities without modifying the existing code, reducing the risk of introducing bugs and breaking existing functionality. By following the OCP, we can create more flexible, maintainable, and robust codebases that are easier to test and scale.
+      </p>
+    </Summary>
+  </ContentBody>
 </Content>
