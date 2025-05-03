@@ -90,7 +90,7 @@ public class SOLIDLearningPath
                 Channel = "SOLID",
                 Type = "blogs",
                 CreatedOn = new DateTime(2023, 5, 7, 22, 30, 0, DateTimeKind.Utc),
-                ModifiedOn = new DateTime(2023, 5, 7, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2025, 6, 1, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["ISP", "Interface Segregation"]
             },
             new ContentMetaData

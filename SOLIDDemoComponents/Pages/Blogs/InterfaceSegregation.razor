@@ -1,149 +1,125 @@
 @page "/blogs/interface-segregation-principle-in-solid"
 @inherits BasePage
 
-<Content FileName=@nameof(InterfaceSegregation)>
-    <ContentBody>
+<Content FileName=@nameof(InterfaceSegregation) UseNewTableOfContentsMenu=true>
+  <ContentBody>
+    <What>
         <p>
-            In this article, let's learn about <ContentHighlight>Interface Segregation Principle</ContentHighlight> in <ContentHighlight>SOLID</ContentHighlight> Principles 
-            in .NET.
+            In this article, let's learn about <ContentHighlight>Interface Segregation Principle</ContentHighlight>
+            in <ContentHighlight>SOLID</ContentHighlight> Principles in .NET.
         </p>
-
         <p>
             <strong>Note:</strong> If you have not done so already, I recommend you read the article on
-            <NavLink href="blogs/liskov-substitution-principle-in-solid" Match="NavLinkMatch.All">Liskov Substitution Principle in SOLID</NavLink>.
+            <NavLink href="blogs/liskov-substitution-principle-in-solid" Match="NavLinkMatch.All">Liskov
+                Substitution Principle in SOLID</NavLink>.
         </p>
-
-        <h3>Table of Contents</h3>
-        
-        <ol>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
-                    Introduction
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#when-to-apply-isp")" Match="NavLinkMatch.All">
-                    When to apply ISP?
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#demo")" Match="NavLinkMatch.All">
-                    Demo
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#advantages")" Match="NavLinkMatch.All">
-                    Advantages
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
-                    Summary
-                </NavLink>
-            </li>
-        </ol>
-
-        <h3 id="introduction">Introduction</h3>
-        
+    </What>
+    <Why>
         <p>
-            The <ContentHighlight>Interface Segregation Principle (ISP)</ContentHighlight> is essential for creating software that is easy to maintain and scale. It ensures 
-            that clients are <ContentHighlight>only exposed to the methods they require, and not to methods that are unnecessary</ContentHighlight>. By doing so, it keeps 
-            <ContentHighlight>interfaces</ContentHighlight> lean and reduces the complexity of the codebase.
+            The <ContentHighlight>Interface Segregation Principle (ISP)</ContentHighlight> is essential for creating software that is easy to maintain and scale. It ensures that clients are <ContentHighlight>only exposed to the methods they require, and not to methods that are unnecessary</ContentHighlight>. By doing so, it keeps <ContentHighlight>interfaces</ContentHighlight> lean and reduces the complexity of the codebase.
         </p>
-
         <p>
-            Without ISP, interfaces can become bloated, and it can be challenging to maintain them. If an interface has too many methods, it can become a barrier to change. 
-            Any modification to the interface requires clients to update their implementation, which can be a time-consuming and error-prone process.
+          Without ISP, interfaces can become bloated, and it can be challenging to maintain them. If an interface has too many methods, it can become a barrier to change. Any modification to the interface requires clients to update their implementation, which can be a time-consuming and error-prone process.
         </p>
-
         <p>
-            The Interface Segregation Principle states that clients <ContentHighlight>should not be forced to implement interfaces they don't use</ContentHighlight>. Instead, 
-            interfaces should be designed to be specific to the needs of the clients that use them.
+            The Interface Segregation Principle states that clients <ContentHighlight>should not be forced to implement interfaces they don't use</ContentHighlight>. Instead, interfaces should be designed to be specific to the needs of the clients that use them.
         </p>
-
-        <p>
-            To put it simply, this principle suggests that you should break large interfaces into smaller, more specific ones that are easier to manage and maintain. Clients 
-            should only depend on the methods that they need, and not on the methods that are irrelevant to them.
+         <p>
+           To put it simply, this principle suggests that you should break large interfaces into smaller, more specific ones that are easier to manage and maintain. Clients should only depend on the methods that they need, and not on the methods that are irrelevant to them.
         </p>
+    </Why>
 
-        
+    <How>
+      <p>
+        Let's look at a real-world example where the <ContentHighlight>Interface Segregation Principle (ISP)</ContentHighlight> can make your codebase more maintainable and flexible. Imagine you have a generic repository interface that handles both read and write operations for your entities. Over time, this interface can become very large, and not all consumers need all the methods. For example, some services may only need to read data, while others need full CRUD operations.
+      </p>
+      <p>
+        Here is an example of a large repository interface that violates ISP:
+      </p>
+      <CodeSnippet CssClass="language-csharp">
+public interface IAsyncRepository&lt;T&gt; where T : class
+{
+    Task&lt;int&gt; CountAsync(CancellationToken cancellationToken = default);
+    Task&lt;int&gt; CountAsync(ISpecification&lt;T&gt; spec, string? cacheKey, CancellationToken cancellationToken = default);
+    Task&lt;Maybe&lt;T&gt;&gt; FindAsync(Guid id, CancellationToken cancellationToken = default);
+    Task&lt;Maybe&lt;T&gt;&gt; FirstOrDefaultAsync(ISpecification&lt;T&gt; spec, CancellationToken cancellationToken = default);
+    Task&lt;Maybe&lt;TResult&gt;&gt; FirstOrDefaultAsync&lt;TResult&gt;(ISpecification&lt;T, TResult&gt; spec, CancellationToken cancellationToken = default);
+    Task&lt;IReadOnlyList&lt;T&gt;&gt; FromSqlQueryAsync(FormattableString sql, CancellationToken cancellationToken = default);
+    Task&lt;IReadOnlyList&lt;T&gt;&gt; FromSqlRawAsync(string sql, CancellationToken cancellationToken = default);
+    Task&lt;IReadOnlyList&lt;T&gt;&gt; ListAsync(CancellationToken cancellationToken = default);
+    Task&lt;IReadOnlyList&lt;T&gt;&gt; ListAsync(Specification&lt;T&gt; spec, string? cacheKey, CancellationToken cancellationToken = default);
+    Task&lt;IReadOnlyList&lt;T&gt;&gt; ListAsync(ISpecification&lt;T&gt; spec, string? cacheKey, CancellationToken cancellationToken = default);
+    Task&lt;IReadOnlyList&lt;TResult&gt;&gt; ListAsync&lt;TResult&gt;(ISpecification&lt;T, TResult&gt; spec, CancellationToken cancellationToken = default);
+    
+    Task&lt;T&gt; AddAsync(T entity, CancellationToken cancellationToken = default);
+    Task&lt;IEnumerable&lt;T&gt;&gt; AddRangeAsync(IEnumerable&lt;T&gt; entity, CancellationToken cancellationToken = default);
+    Task&lt;IDbContextTransaction&gt; BeginTransactionAsync(CancellationToken cancellationToken = default);
+    void CommitTransaction();
+    Task&lt;int&gt; ExecuteSqlRawAsync(string sql, CancellationToken cancellationToken = default);
+    Task&lt;T&gt; FirstAsync(ISpecification&lt;T&gt; spec, CancellationToken cancellationToken = default);
+    void Remove(T entity);
+    void RemoveRange(IEnumerable&lt;T&gt; entity);
+    void RollbackTransaction();
+    Task&lt;Result&gt; SaveChangesAsync(CancellationToken cancellationToken = default);
+    T Update(T entity);
+    void UpdateRange(IEnumerable&lt;T&gt; entity);
+}
+      </CodeSnippet>
+      <p>
+        This interface has too many responsibilities. If a consumer only needs to read data, it is still forced to depend on all the write and transaction methods. This makes the code harder to maintain and violates the Interface Segregation Principle.
+      </p>
+      <p>
+        To follow ISP, you can split this large interface into smaller, more focused interfaces. For example, you can create a <ContentHighlight>IAsyncReadRepository&lt;T&gt;</ContentHighlight> for read operations and let <ContentHighlight>IAsyncRepository&lt;T&gt;</ContentHighlight> inherit from it for write operations:
+      </p>
+      <CodeSnippet CssClass="language-csharp">
+public interface IAsyncReadRepository&lt;T&gt; where T : class
+{
+    Task&lt;int&gt; CountAsync(CancellationToken cancellationToken = default);
+    Task&lt;int&gt; CountAsync(ISpecification&lt;T&gt; spec, string? cacheKey, CancellationToken cancellationToken = default);
+    Task&lt;Maybe&lt;T&gt;&gt; FindAsync(Guid id, CancellationToken cancellationToken = default);
+    Task&lt;Maybe&lt;T&gt;&gt; FirstOrDefaultAsync(ISpecification&lt;T&gt; spec, CancellationToken cancellationToken = default);
+    Task&lt;Maybe&lt;TResult&gt;&gt; FirstOrDefaultAsync&lt;TResult&gt;(ISpecification&lt;T, TResult&gt; spec, CancellationToken cancellationToken = default);
+    Task&lt;IReadOnlyList&lt;T&gt;&gt; FromSqlQueryAsync(FormattableString sql, CancellationToken cancellationToken = default);
+    Task&lt;IReadOnlyList&lt;T&gt;&gt; FromSqlRawAsync(string sql, CancellationToken cancellationToken = default);
+    Task&lt;IReadOnlyList&lt;T&gt;&gt; ListAsync(CancellationToken cancellationToken = default);
+    Task&lt;IReadOnlyList&lt;T&gt;&gt; ListAsync(Specification&lt;T&gt; spec, string? cacheKey, CancellationToken cancellationToken = default);
+    Task&lt;IReadOnlyList&lt;T&gt;&gt; ListAsync(ISpecification&lt;T&gt; spec, string? cacheKey, CancellationToken cancellationToken = default);
+    Task&lt;IReadOnlyList&lt;TResult&gt;&gt; ListAsync&lt;TResult&gt;(ISpecification&lt;T, TResult&gt; spec, CancellationToken cancellationToken = default);
+}
 
-        <h3 id="when-to-apply-isp">When to apply ISP?</h3>
-
-        <p>
-            You should use the Interface Segregation Principle when you have a <ContentHighlight>large interface with many methods, but some clients don't use all of them</ContentHighlight>. 
-            You should break this interface into smaller, more specific ones that are easier to manage and maintain.
-        </p>
-
-        <p>
-            For instance, if you have an interface that has methods for both hot and cold beverages, but some clients only deal with cold beverages, you should separate the 
-            cold beverage methods into their own interface. Clients that only need to work with cold beverages can then implement this smaller, more specific interface, while 
-            clients that need to work with both hot and cold beverages can implement the larger interface.
-        </p>
-
-        
-
-        <h3 id="demo">Demo</h3>
-
-        <p>
-            Let's take an example of a Coffee Machine <ContentHighlight>interface</ContentHighlight>. Assume that there are two classes - <ContentHighlight>ColdBrewCoffeeMaker</ContentHighlight> 
-            and <ContentHighlight>MokaEspressoMaker</ContentHighlight>, which implement all the functionality defined in the <ContentHighlight>ICoffeeMachine interface</ContentHighlight>. 
-            This <ContentHighlight>interface</ContentHighlight> has four methods - <ContentHighlight>AddCoffee</ContentHighlight>, <ContentHighlight>AddWater</ContentHighlight>, 
-            <ContentHighlight>GetColdCoffee</ContentHighlight>, and <ContentHighlight>GetExpressoCoffee</ContentHighlight>.
-        </p>
-
-        <GithubGistSnippet Title="ISP - Interface Segregation Principle - Before" UserId="fingers10" FileName="b645c99d92a825768b91660cb522b153"></GithubGistSnippet>
-
-        
-
-        <p>
-            The Interface Segragation Principle ensures that we can split the <ContentHighlight>interface</ContentHighlight> as we have not implemented method in both of the them. 
-            So we create two additional <ContentHighlight>interfaces</ContentHighlight>: <ContentHighlight>IColdCoffeeMachine</ContentHighlight> and <ContentHighlight>IEspressoMachine</ContentHighlight>. 
-            <ContentHighlight>IColdCoffeeMachine</ContentHighlight> extends <ContentHighlight>ICoffeeMachine</ContentHighlight> and adds the <ContentHighlight>GetColdCoffee</ContentHighlight> 
-            method, while <ContentHighlight>IEspressoMachine</ContentHighlight> extends <ContentHighlight>ICoffeeMachine</ContentHighlight> and adds the <ContentHighlight>GetEspressoCoffee</ContentHighlight> method.
-        </p>
-
-        <GithubGistSnippet Title="ISP - Interface Segregation Principle - After" UserId="fingers10" FileName="68a94018072950b8e36042186365100b"></GithubGistSnippet>
-
-        
-
-        <p>
-            This allows us to use the <ContentHighlight>ColdBrewCoffeeMaker</ContentHighlight> with only the <ContentHighlight>IColdCoffeeMachine</ContentHighlight> 
-            <ContentHighlight>interface</ContentHighlight>, and the <ContentHighlight>MokaEspressoMaker</ContentHighlight> with only the <ContentHighlight>IEspressoMachine</ContentHighlight> 
-            <ContentHighlight>interface</ContentHighlight>. We can no longer use the <ContentHighlight>ColdBrewCoffeeMaker</ContentHighlight> as a general <ContentHighlight>ICoffeeMachine</ContentHighlight>, 
-            since it doesn't implement the <ContentHighlight>GetEspressoCoffee</ContentHighlight> method, and vice versa for the <ContentHighlight>MokaEspressoMaker</ContentHighlight> 
-            and <ContentHighlight>GetColdCoffee</ContentHighlight>.
-        </p>
-
-        <p>
-            Using the interface segregation principle in this way results in cleaner and more maintainable code. We no longer have to implement methods that are not relevant 
-            to a particular class, and we can prevent accidental misuse of our code by limiting the available methods to only those that are necessary.
-        </p>
-
-        
-
-        <h3 id="advantages">Advantages</h3>
-
-        <p>
-            The Interface Segregation Principle has several advantages, including:
-        </p>
-
-        <ul>
-            <li><ContentHighlight>Encourages Modularity and Extensibility</ContentHighlight>: By segregating interfaces, each interface becomes smaller and focused on a specific functionality. This encourages modularization of code and makes it easy to extend the application by adding new functionality through new interfaces.</li>
-            <li><ContentHighlight>Improves Code Readability and Maintainability</ContentHighlight>: Interfaces that are not cluttered with unnecessary methods are easier to read and maintain. This makes the code more understandable and less prone to errors, leading to better quality software.</li>
-            <li><ContentHighlight>Reduces coupling and Improves testability</ContentHighlight>: By separating interfaces into smaller, more focused interfaces, we can reduce the coupling between classes. This makes the code more modular and easier to test. We can test each interface in isolation, which helps to identify any issues in the interface early in the development process.</li>
-            <li><ContentHighlight>Increases Code Reusability</ContentHighlight>: Interfaces that are designed with the ISP in mind can be reused in multiple projects. This saves time and effort by reducing the need to write new code for each project.</li>
-        </ul>
-
-        
-
-        <h3 id="summary">Summary</h3>
-
-        <p>
-            The <ContentHighlight>Interface Segregation Principle</ContentHighlight> is an essential part of the SOLID principles in object-oriented design. It states that a 
-            <ContentHighlight>client should not be forced to depend on methods it does not use</ContentHighlight>. By separating <ContentHighlight>interfaces</ContentHighlight> 
-            into smaller, more focused <ContentHighlight>interfaces</ContentHighlight>, we can <ContentHighlight>reduce coupling</ContentHighlight> between classes, improve 
-            <ContentHighlight>code readability</ContentHighlight> and <ContentHighlight>maintainability</ContentHighlight>, and increase <ContentHighlight>code reusability</ContentHighlight>.
-        </p>
-    </ContentBody>
+public interface IAsyncRepository&lt;T&gt; : IAsyncReadRepository&lt;T&gt; where T : class
+{
+    Task&lt;T&gt; AddAsync(T entity, CancellationToken cancellationToken = default);
+    Task&lt;IEnumerable&lt;T&gt;&gt; AddRangeAsync(IEnumerable&lt;T&gt; entity, CancellationToken cancellationToken = default);
+    Task&lt;IDbContextTransaction&gt; BeginTransactionAsync(CancellationToken cancellationToken = default);
+    void CommitTransaction();
+    Task&lt;int&gt; ExecuteSqlRawAsync(string sql, CancellationToken cancellationToken = default);
+    Task&lt;T&gt; FirstAsync(ISpecification&lt;T&gt; spec, CancellationToken cancellationToken = default);
+    void Remove(T entity);
+    void RemoveRange(IEnumerable&lt;T&gt; entity);
+    void RollbackTransaction();
+    Task&lt;Result&gt; SaveChangesAsync(CancellationToken cancellationToken = default);
+    T Update(T entity);
+    void UpdateRange(IEnumerable&lt;T&gt; entity);
+}
+      </CodeSnippet>
+      <p>
+        Now, if a service only needs to read data, it can depend on <ContentHighlight>IAsyncReadRepository&lt;T&gt;</ContentHighlight> and ignore all the write and transaction methods. This makes your code more modular, easier to test, and easier to maintain. If you need full CRUD operations, you can use <ContentHighlight>IAsyncRepository&lt;T&gt;</ContentHighlight> which includes both read and write methods.
+      </p>
+    </How>
+    <Summary>
+      <p>
+        <strong>Advantages of Interface Segregation Principle:</strong>
+      </p>
+      <ul>
+        <li><ContentHighlight>Encourages Modularity and Extensibility</ContentHighlight>: By segregating interfaces, each interface becomes smaller and focused on a specific functionality. This encourages modularization of code and makes it easy to extend the application by adding new functionality through new interfaces.</li>
+        <li><ContentHighlight>Improves Code Readability and Maintainability</ContentHighlight>: Interfaces that are not cluttered with unnecessary methods are easier to read and maintain. This makes the code more understandable and less prone to errors, leading to better quality software.</li>
+        <li><ContentHighlight>Reduces coupling and Improves testability</ContentHighlight>: By separating interfaces into smaller, more focused interfaces, we can reduce the coupling between classes. This makes the code more modular and easier to test. We can test each interface in isolation, which helps to identify any issues in the interface early in the development process.</li>
+        <li><ContentHighlight>Increases Code Reusability</ContentHighlight>: Interfaces that are designed with the ISP in mind can be reused in multiple projects. This saves time and effort by reducing the need to write new code for each project.</li>
+      </ul>
+      <p>
+        The <ContentHighlight>Interface Segregation Principle</ContentHighlight> is an essential part of the SOLID principles in object-oriented design. It states that a <ContentHighlight>client should not be forced to depend on methods it does not use</ContentHighlight>. By separating <ContentHighlight>interfaces</ContentHighlight> into smaller, more focused <ContentHighlight>interfaces</ContentHighlight>, we can <ContentHighlight>reduce coupling</ContentHighlight> between classes, improve <ContentHighlight>code readability</ContentHighlight> and <ContentHighlight>maintainability</ContentHighlight>, and increase <ContentHighlight>code reusability</ContentHighlight>.
+      </p>
+    </Summary>
+  </ContentBody>
 </Content>
