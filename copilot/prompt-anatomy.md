@@ -86,3 +86,59 @@ this issue? **Think step by step.**
 | **Be specific** | Use precise language, break down tasks, and quantify the ask where possible |
 | **Iterate and refine** | Try different prompt lengths, phrases, and level of detail |
 | **Self-reflection** | Ask for gaps in reasoning or assumptions |
+
+# Prompting for Writers and Marketers
+
+| Prompt Example | Important Concepts |
+|----------------|-------------------|
+| Summarize this blog post into a LinkedIn post targeted at mid-career tech professionals. | Audience targeting and structured outputs |
+| Rewrite this product description to sound more conversational and upbeat. | Tone control and specificity |
+| Generate five email subject lines for a product launch, using a playful, casual tone. | Temperature tuning and creative ideation |
+| Suggest three alternative blog titles that use curiosity to hook the reader. | Creative brainstorming and style shaping |
+| Create a 5-bullet executive summary of this 1,500-word case study. | Summarization and formatting control |
+| Rewrite this call-to-action to sound less pushy and more helpful. | Tone control and audience sensitivity |
+| Brainstorm five Instagram captions promoting a new whitepaper. | Audience-appropriate content generation |
+| Critique this blog post intro for clarity, coherence, and engagement. | Output evaluation (coherence, bias) |
+
+---
+
+# Prompting for Developers and IT Pros
+
+| Prompt Example | Important Concepts |
+|----------------|-------------------|
+| List three reasons to use Kubernetes, written for a beginner audience. | Coherence and audience focus |
+| Summarize this GitHub README into three key bullet points. | Summarization and structured output |
+| Create a basic AWS Lambda function in Python that returns a JSON greeting message. | Code scaffolding and API output formatting |
+| Suggest first possible causes for a Docker container restarting, step-by-step. | Chain-of-thought prompting |
+| Draft an onboarding checklist for setting up a local dev environment. | Structured output generation |
+| Create a quick cheat sheet explaining REST vs. GraphQL to junior developers. | Comparison framing and clarity |
+| Generate a sample SQL query to find the top 5 customers by total purchase amount. | Query generation and business logic prompting |
+| Write a Bash script that checks server disk space and sends an email alert if usage exceeds 90%. | Automation scripting and system operations |
+
+---
+
+# Prompting for Business, Operations, and Project Managers
+
+| Prompt Example | Important Concepts |
+|----------------|-------------------|
+| Draft a polite but firm follow-up email to a vendor about missed deadlines. | Tone control and professionalism |
+| Rewrite this internal memo to sound more action-oriented. | Coherence and tone setting |
+| List key risks for the next product launch, organized by likelihood. | Structured problem analysis |
+| Plan a phased rollout strategy for an internal tool upgrade. | Chain-of-thought and planning |
+| Create a short project status update formatted for a Slack message. Use fun emojis. | Brevity and output formatting |
+| Suggest three non-confrontational ways to escalate a project timeline. | Tone sensitivity and solution framing |
+| Generate a checklist for onboarding a remote employee. | Structured thinking and format control |
+
+---
+
+# Prompting for Creatives and Innovators
+
+| Prompt Example | Important Concepts |
+|----------------|-------------------|
+| Suggest five unconventional marketing strategies for launching a new product. | Creative ideation and risk-taking |
+| Write a product description for a smartwatch that brews coffee. | Creative writing and structure |
+| Suggest three fresh ways to explain AI to kids aged 8–10. | Audience targeting and simplification |
+| Generate five slogans for a fitness app that emphasizes speed and strength. | Tone matching and brevity |
+| Brainstorm alternative launch event ideas for a new book release. | Creative exploration |
+| Rewrite this brand manifesto to sound more rebellious and bold. | Tone control and voice amplification |
+| Create five Instagram caption ideas promoting a luxury camping experience. | Audience-focused content and brevity |
