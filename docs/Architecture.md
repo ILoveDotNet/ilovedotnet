@@ -112,6 +112,51 @@ graph TB
     class RSSFeedGenerator,SitemapGenerator,UITests utility
 ```
 
+## MAUI WebView Architecture
+
+The following diagram illustrates how MAUI.csproj uses BlazorWebView to render the same web content as the Web.csproj project but inside a native shell:
+
+```mermaid
+flowchart TB
+    subgraph "MAUI Native Application"
+        MauiShell["MAUI Shell<br>(Native Container)"]
+        BlazorWebView["BlazorWebView<br>(WebView Control)"]
+        
+        subgraph "Web Content (Same as Web.csproj)"
+            Router["Router<br>(Routes.razor)"]
+            MainLayout["MainLayout"]
+            LazyLoading["Lazy Loading"]
+            DemoComponents["Demo Components"]
+        end
+        
+        MauiShell -->|"Hosts"| BlazorWebView
+        BlazorWebView -->|"Renders"| Router
+        Router --> MainLayout
+        MainLayout --> LazyLoading
+        LazyLoading --> DemoComponents
+    end
+    
+    subgraph "Platform Native Features"
+        Notifications["Native Notifications"]
+        FileSystem["File System Access"]
+        DeviceFeatures["Device Features"]
+    end
+    
+    MauiShell -.->|"Provides access to"| Notifications
+    MauiShell -.->|"Provides access to"| FileSystem
+    MauiShell -.->|"Provides access to"| DeviceFeatures
+    
+    classDef native fill:#f96,stroke:#333,stroke-width:2px
+    classDef webview fill:#bbf,stroke:#333,stroke-width:2px
+    classDef webcontent fill:#bfb,stroke:#333,stroke-width:1px
+    classDef platformfeatures fill:#fbb,stroke:#333,stroke-width:1px
+    
+    class MauiShell native
+    class BlazorWebView webview
+    class Router,MainLayout,LazyLoading,DemoComponents webcontent
+    class Notifications,FileSystem,DeviceFeatures platformfeatures
+```
+
 ## Component Interaction and Lazy Loading
 
 The following sequence diagram illustrates how components interact and the lazy loading mechanism:
@@ -198,6 +243,7 @@ flowchart TD
 2. **Dual Entry Points**: 
    - **Web Project (Blazor WASM)**: For browser-based access
    - **MAUI Project**: For native application access across multiple platforms (iOS, Android, macOS, Windows)
+   - **MAUI as a Shell**: The MAUI project uses BlazorWebView to render the same Blazor WASM components as the Web project but inside a native application shell, providing access to native platform features while maintaining a unified codebase
 
 3. **Lazy Loading**: Components are loaded on-demand to optimize initial load time and performance.
 
@@ -237,3 +283,4 @@ flowchart TD
 - **Styling**: CSS with custom classes
 - **JavaScript Integration**: Module-based JS isolation
 - **Testing**: XUnit with coverage reporting
+- **MAUI Implementation**: Uses BlazorWebView to host the same web components as the Web project inside a native shell, providing a unified experience with native platform capabilities
