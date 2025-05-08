@@ -34,26 +34,25 @@
 |----------|-------------|
 | **Zero-shot** | The prompt includes ZERO examples |
 | **Few-shot** | The prompt includes a FEW contextual examples |
-| **Chain-of-thought** | Used to solve complex problems by breaking them into smaller steps |
+| **Chain-of-thought** | Used to solve complex problems by breaking them into **smaller steps** |
 
 ## Zero-shot Prompting
 The prompt is simple and includes ZERO examples. The model was not explicitly trained for the task; rather, it uses general knowledge acquired during training.
 
 ### Example:
 ```
-Classify the sentiment for the following
-text.
+Classify the sentiment for the following text.
+
 Text: This course is awesome!
 ```
 
 ## Few-shot Prompting
-The prompt includes a FEW contextual examples to enhance the model’s
-performance for a given task.
+The prompt includes a FEW contextual examples to enhance the model’s performance for a given task.
 
 ### Example:
 ```
-Classify the sentiment for the following
-text as superb, meh, or neutral.
+Classify the sentiment for the following text as superb, meh, or neutral.
+
 Text: This course is awesome!
 Sentiment: Superb
 Text: I’m really confused by this course!
@@ -73,6 +72,7 @@ A user reports that they can’t log into
 your company’s web app. They’re entering
 the correct username and password, but
 still get an error.
+
 What steps would you take to troubleshoot
 this issue? **Think step by step.**
 ```
