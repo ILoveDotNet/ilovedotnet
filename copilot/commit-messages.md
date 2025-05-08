@@ -36,7 +36,7 @@ Write a clear and descriptive commit message based **only on the provided change
 
 ## 🧑‍🤝‍🧑 Authorship
 
-At the bottom of the message, include:
+This is must at the bottom of the message, include:
 
 Author: {{git username}} Co-Author: {{your name}}
 
