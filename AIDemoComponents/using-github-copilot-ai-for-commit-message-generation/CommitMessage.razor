@@ -1,0 +1,295 @@
+@page "/blogs/using-github-copilot-ai-for-commit-message-generation"
+@inherits BasePage
+
+<Content FileName=@nameof(CommitMessage) UseNewTableOfContentsMenu=true>
+  <ContentBody>
+    <What>
+      <p>
+        Ever stared at your screen trying to craft the perfect commit message? You're not alone. In this guide, we'll
+        explore how to leverage <ContentHighlight>GitHub Copilot</ContentHighlight> to generate clear, consistent, and
+        informative <ContentHighlight>commit messages</ContentHighlight> that effectively communicate your code changes
+        to your team.
+      </p>
+    </What>
+
+    <Why>
+      <p>
+        High-quality commit messages are the unsung heroes of collaborative development. They provide context, document
+        changes, and create a readable history that helps teams understand the evolution of their codebase. Yet, writing
+        good commit messages is often an afterthought - rushed, inconsistent, and lacking critical information.
+      </p>
+      <p>
+        <ContentHighlight>GitHub Copilot</ContentHighlight> can transform this tedious task into a streamlined process.
+        By leveraging AI to analyze your code changes, Copilot can generate descriptive commit messages that follow
+        consistent patterns, include appropriate emoji, and provide meaningful context - all without you having to think
+        about it.
+      </p>
+      <p>
+        This approach leads to better team collaboration, easier code archaeology when debugging, and a more
+        maintainable project history. Think of it as having a commit message expert looking over your shoulder at all
+        times.
+      </p>
+    </Why>
+
+    <How>
+      <p>
+        Let's implement a system for AI-powered commit message generation using GitHub Copilot. We'll create a prompt
+        template that guides Copilot to generate consistent, informative commit messages based on your code changes.
+      </p>
+
+      <h3>Step 1: Creating Your Commit Message Prompt</h3>
+      <p>
+        First, let's create a prompt template that will instruct GitHub Copilot on exactly how to format your commit
+        messages. This template acts as a style guide for your AI assistant.
+      </p>
+
+      <CodeSnippet CssClass="language-markdown">
+# ✅ GitHub Copilot: Commit Message Instructions
+
+Write a clear and descriptive commit message based **only on the provided changes**. Follow these **strict formatting and content rules**.
+
+---
+
+## 🧠 General Rules
+
+- Focus on **communicating the purpose** of the change, not what changed.
+- Use **past tense** in the body.
+- Use the **imperative mood** in the summary (e.g., "Fix login bug").
+- If a file is **renamed or moved**, mention only that and ignore other details.
+
+---
+
+## 📦 Commit Message Format
+
+### **Summary Line** (max 50 characters)
+
+- Start with the correct **gitmoji**.
+- Write a **concise summary** in **imperative mood** (e.g., ✨ Add login button).
+- Use **no more than 50 characters**.
+
+### **Body** (optional but recommended, 72 characters per line)
+
+- Separate the summary from the body with **one blank line**.
+- Focus on **why** the change was made.
+- Use **bullet points** for readability.
+- Avoid details that are already visible in the Git diff.
+- You may write as much as needed, but **wrap at 72 characters per line**.
+- **Do not use vague terms** like _update_, _enhance_, _improve_, or _better_.
+
+> ✅ **Total message length must not exceed 500 characters**
+
+---
+
+## 🧑‍🤝‍🧑 Authorship
+
+This is must at the bottom of the message, include:
+
+Author: {{my actual git username}} Co-Author: Copilot
+
+
+---
+
+## 🔍 Contextual Awareness
+
+- When necessary, **analyze the entire solution** to gain context on the change's purpose.
+
+---
+
+## 🚀 Gitmoji Usage
+
+| Gitmoji | Meaning                          |
+|--------:|----------------------------------|
+| 🚧     | Work in progress                  |
+| ⚡️     | Improve performance               |
+| 🐛     | Fix a bug                         |
+| ✨     | Introduce a new feature           |
+| 📝     | Add or update documentation       |
+| ✅     | Add, update, or pass tests        |
+| 🔒️     | Fix security issues               |
+| ♻️     | Refactor code                     |
+| ✏️     | Rename or move files              |
+
+---
+
+Happy committing! 🧠✍️
+      </CodeSnippet>
+
+      <p>
+        Save this template in a file (e.g., <ContentHighlight>commit-messages.md</ContentHighlight>) in your project
+        repository. This ensures all team members have access to the same prompt for consistency.
+      </p>
+
+      <h3>Step 2: Setting Up Your Workflow</h3>
+      <p>
+        Now let's integrate this into your development workflow. There are several approaches:
+      </p>
+
+      <h4>Option A: Using VS Code with GitHub Copilot</h4>
+      <p>
+        If you're using VS Code with the GitHub Copilot extension, follow these steps:
+      </p>
+      <ol>
+        <li>
+          <p>After making your code changes, stage them with Git:</p>
+          <CodeSnippet CssClass="language-bash">
+git add .
+          </CodeSnippet>
+        </li>
+        <li>
+          <p>Open the Copilot Chat panel in VS Code (usually with <ContentHighlight>Ctrl+Shift+I</ContentHighlight> or
+            through the Copilot icon)</p>
+        </li>
+        <li>
+          <p>Ask Copilot to generate a commit message by copying the prompt template and adding instructions:</p>
+          <CodeSnippet CssClass="language-markdown">
+Based on the changes I've staged for commit, generate a commit message following these guidelines:
+
+{paste the content of your commit-messages.md file here}
+          </CodeSnippet>
+        </li>
+      </ol>
+
+      <h4>Option B: Using a Custom Git Command</h4>
+      <p>
+        For more seamless integration, you can create a custom Git command:
+      </p>
+      <ol>
+        <li>
+          <p>Create a script file (e.g., <ContentHighlight>copilot-commit.sh</ContentHighlight>) with the following content:</p>
+          <CodeSnippet CssClass="language-bash">
+#!/bin/bash
+
+# Get the diff of staged changes
+DIFF=$(git diff --cached)
+
+# Path to your commit message template
+TEMPLATE_PATH="./commit-messages.md"
+
+# Read the template
+TEMPLATE=$(cat $TEMPLATE_PATH)
+
+# Use VS Code Copilot CLI or another method to send the prompt and get a response
+# This is a simplified example - implementation will vary based on your setup
+COMMIT_MSG=$(echo -e "Based on these changes:\n$DIFF\n\nGenerate a commit message following these guidelines:\n$TEMPLATE" | copilot-cli)
+
+# Use the generated message for commit
+git commit -m "$COMMIT_MSG"
+          </CodeSnippet>
+        </li>
+        <li>
+          <p>Make the script executable:</p>
+          <CodeSnippet CssClass="language-bash">
+chmod +x copilot-commit.sh
+          </CodeSnippet>
+        </li>
+        <li>
+          <p>Add a Git alias for easier use:</p>
+          <CodeSnippet CssClass="language-bash">
+git config --global alias.ai-commit '!path/to/copilot-commit.sh'
+          </CodeSnippet>
+        </li>
+        <li>
+          <p>Now you can use your new command:</p>
+          <CodeSnippet CssClass="language-bash">
+git add .
+git ai-commit
+          </CodeSnippet>
+        </li>
+      </ol>
+
+      <h3>Step 3: Customizing Your Prompt</h3>
+      <p>
+        The template provided is a starting point. Consider customizing it based on your team's specific needs:
+      </p>
+      <ul>
+        <li>Add project-specific <ContentHighlight>gitmoji</ContentHighlight> categories</li>
+        <li>Include references to ticket numbers or issue tracking systems</li>
+        <li>Adjust character limits based on your team's preferences</li>
+        <li>Add domain-specific terminology or conventions</li>
+      </ul>
+
+      <h3>Step 4: Reviewing and Refining Generated Commit Messages</h3>
+      <p>
+        AI-generated commit messages are a starting point, not the final product. Always review them before committing:
+      </p>
+      <ol>
+        <li>
+          <p>Check that the <ContentHighlight>gitmoji</ContentHighlight> correctly represents the type of change</p>
+        </li>
+        <li>
+          <p>Verify that the summary accurately captures the purpose of your changes</p>
+        </li>
+        <li>
+          <p>Ensure the body provides sufficient context without being overly verbose</p>
+        </li>
+        <li>
+          <p>Edit as needed to match your team's specific guidelines</p>
+        </li>
+      </ol>
+
+      <h3>Example: Copilot in Action</h3>
+      <p>
+        Let's see a real example of how GitHub Copilot generates commit messages based on code changes:
+      </p>
+
+      <p><strong>Code Changes:</strong></p>
+      <CodeSnippet CssClass="language-csharp">
+// Before
+public async Task&lt;User&gt; GetUserById(int id)
+{
+    return await _context.Users.FindAsync(id);
+}
+
+// After
+public async Task&lt;User&gt; GetUserById(int id)
+{
+    var user = await _context.Users.FindAsync(id);
+    if (user == null)
+    {
+        throw new NotFoundException($"User with ID {id} not found");
+    }
+    return user;
+}
+      </CodeSnippet>
+
+      <p><strong>Generated Commit Message:</strong></p>
+      <CodeSnippet CssClass="language-markdown">
+🐛 Add null check in GetUserById method
+
+- Added validation to throw a proper NotFoundException when a user
+  is not found instead of returning null
+- This prevents NullReferenceException in downstream code that
+  expects a valid user object
+- Improves error handling by providing a more descriptive error
+  message with the specific user ID
+
+Author: fingers10 Co-Author: Copilot
+      </CodeSnippet>
+
+      <p>
+        Notice how the commit message correctly identifies this as a bug fix, explains the purpose of the change
+        (preventing null reference exceptions), and provides context on why this change is beneficial.
+      </p>
+    </How>
+
+    <Summary>
+      <p>
+        <ContentHighlight>GitHub Copilot</ContentHighlight> can significantly improve your Git workflow by generating
+        meaningful, consistent <ContentHighlight>commit messages</ContentHighlight> that clearly communicate the purpose
+        and context of code changes. By creating a structured prompt template, you guide Copilot to produce commit
+        messages that follow your team's conventions, include appropriate categorization, and provide valuable context
+        for future reference.
+      </p>
+      <p>
+        This approach not only saves time but also improves code documentation, facilitates better team collaboration,
+        and creates a more valuable commit history. Remember that AI-generated commit messages should be reviewed and
+        refined before committing - the goal is to augment your development workflow, not replace thoughtful
+        communication about your code changes.
+      </p>
+      <p>
+        Give it a try on your next project, and watch how this small workflow improvement can have an outsized impact on
+        your team's ability to understand, maintain, and collaborate on your codebase.
+      </p>
+    </Summary>
+  </ContentBody>
+</Content>
