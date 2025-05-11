@@ -33,6 +33,12 @@ public class LazyLoaderService(
       {
         await lazyAssemblyLoader.LoadAssembliesAsync(["BaseComponents.wasm"]);
 
+        if (path.Contains("ai", StringComparison.OrdinalIgnoreCase))
+        {
+          var assemblies = await lazyAssemblyLoader.LoadAssembliesAsync(["AIDemoComponents.wasm"]);
+          AdditionalAssemblies.AddRange(assemblies);
+        }
+
         if (path.Contains("blazor", StringComparison.OrdinalIgnoreCase))
         {
           var assemblies = await lazyAssemblyLoader.LoadAssembliesAsync(["BlazorDemoComponents.wasm"]);
