@@ -360,5 +360,10 @@ Each article should have 3-5 engaging hook approaches you could use, such as:
 - The Content component handles the generation of the table of contents automatically
 - When specifying the file name in the Content component, use `@nameof(ActualFileName)` to ensure consistency
 - Ensure proper escaping of HTML special characters in code snippets
+- **Blog Placement**: Each blog should be placed in the appropriate category project:
+  - Create the blog inside the `{{Category}}DemoComponents.csproj` project
+  - Place the blog in a folder named after the slug in the page title
+  - The Razor file should be placed inside this folder (e.g., `AIDemoComponents/using-github-copilot-ai-for-commit-message-generation/CommitMessage.razor`)
+  - Additional files like images or resources should be stored in the `wwwroot/image/blogs/{{category}}/{{slug}}`. (e.g., `AIDemoComponents/wwwroot/image/blogs/ai/using-github-copilot-ai-for-commit-message-generation/image-name.png`)
 
 By following these guidelines, you'll create valuable, consistent content that helps .NET developers learn and apply new concepts effectively.
