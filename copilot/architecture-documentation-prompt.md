@@ -51,7 +51,7 @@ Please help maintain project documentation with these specific tasks:
    - Provide a categorized summary of changes (features, fixes, refactoring, etc.)
 
 2. **Deep Code Change Analysis**
-   - Discover all code changes for all commits since v2.0.0
+   - Discover all code changes for all commits since vX.X.X
    - Provide a categorized summary based on actual code changes, not just commit messages
    - Highlight architectural changes, new patterns introduced, and significant refactorings
 
