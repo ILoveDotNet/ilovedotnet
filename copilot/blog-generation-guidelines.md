@@ -162,6 +162,7 @@ Each blog post must include these four sections in this specific order:
 - Should be concise but informative
 - Highlight key terms with `<ContentHighlight>` tags
 - Start with a hook to grab attention (bold statement, question, scenario, or analogy)
+- If needed, use `<h4>` tags for subheadings within this section
 - Example:
   ```html
   <What>
@@ -178,6 +179,7 @@ Each blog post must include these four sections in this specific order:
 - May contain multiple paragraphs for complex topics
 - Frame content in terms of problem → solution → result when possible
 - Highlight what's new, underrated, or commonly misunderstood
+- For complex "Why" sections, use `<h4>` tags to organize subsections
 - Example:
   ```html
   <Why>
@@ -198,21 +200,26 @@ Each blog post must include these four sections in this specific order:
 - Provides implementation details, usually as steps
 - Often contains code snippets, examples, and explanations
 - May include images where helpful
+- **Always use `<h4>` tags for subheadings within content sections** - this is important for readability and for the auto-generated table of contents
+- Avoid using numbered lists (`<ol>`) for step-by-step instructions - use `<h4>` headings for steps instead
 - Example:
   ```html
   <How>
     <p>
       To implement Global Exception Handling, follow these steps:
     </p>
-    <ol>
-      <li>
-        <p>Step explanation...</p>
-        <CodeSnippet CssClass="language-csharp">
-          // Code example...
-        </CodeSnippet>
-      </li>
-      <!-- Additional steps -->
-    </ol>
+    <h4>Step 1: Configure Middleware</h4>
+    <p>First, let's set up our exception handling middleware:</p>
+    <CodeSnippet CssClass="language-csharp">
+      // Code example...
+    </CodeSnippet>
+    
+    <h4>Step 2: Create Error Response Model</h4>
+    <p>Next, create a standardized error response:</p>
+    <CodeSnippet CssClass="language-csharp">
+      // Code example...
+    </CodeSnippet>
+    <!-- Additional steps -->
   </How>
   ```
 
@@ -220,6 +227,7 @@ Each blog post must include these four sections in this specific order:
 
 - Concludes the article with key takeaways
 - Should be concise but reinforce the main points
+- For longer summaries, consider using `<h4>` tags to organize content by categories (e.g., "Benefits", "Next Steps")
 - Example:
   ```html
   <Summary>
@@ -252,7 +260,7 @@ var service = context.RequestServices.GetRequiredService&lt;IMyService&gt;();
   - `language-css` for CSS
   - `language-javascript` or `language-js` for JavaScript
   - `language-razor` for Razor files
-- Ensure to escape `<` with `&lt;` and `>` with `&gt;` in code samples
+- Ensure to escape `@` with `@@` and `<` with `&lt;` and `>` with `&gt;` in code samples
 
 ### Key Term Highlighting
 
