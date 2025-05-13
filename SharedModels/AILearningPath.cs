@@ -2,7 +2,7 @@ namespace SharedModels;
 
 public class AILearningPath
 {
-  public readonly List<ContentMetaData> FullContents = new(1);
+  public readonly List<ContentMetaData> FullContents = new(2);
 
   public AILearningPath()
   {
@@ -24,6 +24,23 @@ public class AILearningPath
           CreatedOn = new DateTime(2025, 6, 8, 22, 30, 0, DateTimeKind.Utc),
           ModifiedOn = new DateTime(2025, 6, 8, 22, 30, 0, DateTimeKind.Utc),
           Keywords = ["Copilot", "GitHub", "Commit Message"]
+        },
+      new ContentMetaData
+        {
+          Order = 2,
+          Title = "Using GitHub Copilot AI for Architecture Diagram Generation",
+          Description = "Learn how to leverage GitHub Copilot to automatically generate and maintain beautiful architecture diagrams using Mermaid syntax.",
+          Author = "Abdul Rahman",
+          Slug = "using-github-copilot-ai-for-architecture-diagram-generation",
+          PosterUrl = "image/blogs/ai/using-github-copilot-ai-for-architecture-diagram-generation.webp",
+          ThumbnailUrl = "image/blogs/ai/using-github-copilot-ai-for-architecture-diagram-generation.webp",
+          ContentUrl = "blogs/using-github-copilot-ai-for-architecture-diagram-generation",
+          IconUrl = "image/icons/ai.webp",
+          Channel = "AI",
+          Type = "blogs",
+          CreatedOn = new DateTime(2025, 6, 15, 22, 30, 0, DateTimeKind.Utc),
+          ModifiedOn = new DateTime(2025, 6, 15, 22, 30, 0, DateTimeKind.Utc),
+          Keywords = ["Copilot", "GitHub", "Architecture", "Mermaid", "Diagram"]
         }
     ];
   }
