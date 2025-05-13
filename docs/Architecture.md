@@ -21,6 +21,7 @@ graph TB
     end
 
     subgraph "Demo Components" 
+        AIDemoComponents["AIDemoComponents"]
         BlazorDemo["BlazorDemoComponents"]
         LINQDemo["LINQDemoComponents"]
         DIDemoComponents["DependencyInjectionDemoComponents"]
@@ -43,17 +44,74 @@ graph TB
         TalkDemo["TalkDemoComponents"]
     end
 
-    subgraph "Utilities"
-        RSSFeedGenerator["RSS Feed Generator"]
-        SitemapGenerator["Sitemap Generator"]
-        UITests["UI Tests"]
+    subgraph "Testing & Utilities"
+        subgraph "Testing"
+            UITests["UI Tests<br>(bUnit/XUnit)"]
+            EndToEndTests["E2E Tests<br>(Playwright/NUnit)"]
+        end
+        
+        subgraph "Build & Documentation"
+            RSSFeedGenerator["RSS Feed Generator"]
+            SitemapGenerator["Sitemap Generator"]
+            ArchitectureDocs["Architecture Documentation<br>(AI-assisted)"]
+        end
     end
 
-    %% Connections between components
-    Web --> BaseComponents
+    %% Component dependencies
+    BaseComponents --> SharedModels
+    SharedComponents --> SharedModels
+    CommonComponents --> BaseComponents
+    CommonComponents --> SharedComponents
+    
+    %% Demo component dependencies
+    AIDemoComponents --> BaseComponents
+    AIDemoComponents --> SharedComponents
+    BlazorDemo --> BaseComponents
+    BlazorDemo --> SharedComponents
+    LINQDemo --> BaseComponents
+    LINQDemo --> SharedComponents
+    DIDemoComponents --> BaseComponents
+    DIDemoComponents --> SharedComponents
+    DesignPatternDemo --> BaseComponents
+    DesignPatternDemo --> SharedComponents
+    OOPSDemo --> BaseComponents
+    OOPSDemo --> SharedComponents
+    RegexDemo --> BaseComponents
+    RegexDemo --> SharedComponents
+    ReportDemo --> BaseComponents
+    ReportDemo --> SharedComponents
+    HTTPDemo --> BaseComponents
+    HTTPDemo --> SharedComponents
+    MiddlewareDemo --> BaseComponents
+    MiddlewareDemo --> SharedComponents
+    MLNETDemo --> BaseComponents
+    MLNETDemo --> SharedComponents
+    WebAPIDemo --> BaseComponents
+    WebAPIDemo --> SharedComponents
+    MAUIDemo --> BaseComponents
+    MAUIDemo --> SharedComponents
+    MSBuildDemo --> BaseComponents
+    MSBuildDemo --> SharedComponents
+    OWASPDemo --> BaseComponents
+    OWASPDemo --> SharedComponents
+    SignalRDemo --> BaseComponents
+    SignalRDemo --> SharedComponents
+    SOLIDDemo --> BaseComponents
+    SOLIDDemo --> SharedComponents
+    TDDDemo --> BaseComponents
+    TDDDemo --> SharedComponents
+    TestingDemo --> BaseComponents
+    TestingDemo --> SharedComponents
+    PythonDemo --> BaseComponents
+    PythonDemo --> SharedComponents
+    TalkDemo --> BaseComponents
+    TalkDemo --> SharedComponents
+    
+    %% Entry point dependencies
     Web --> CommonComponents
     Web --> SharedComponents
     Web --> SharedModels
+    Web --> AIDemoComponents
     Web --> BlazorDemo
     Web --> LINQDemo
     Web --> DIDemoComponents
@@ -75,10 +133,10 @@ graph TB
     Web --> PythonDemo
     Web --> TalkDemo
 
-    MAUI --> BaseComponents
     MAUI --> CommonComponents
     MAUI --> SharedComponents
     MAUI --> SharedModels
+    MAUI --> AIDemoComponents
     MAUI --> BlazorDemo
     MAUI --> LINQDemo
     MAUI --> DIDemoComponents
@@ -100,16 +158,24 @@ graph TB
     MAUI --> PythonDemo
     MAUI --> TalkDemo
 
+    %% Testing dependencies
+    UITests --> CommonComponents
+    RSSFeedGenerator --> SharedModels
+    SitemapGenerator --> SharedModels
+
     %% Layout control
     classDef entryPoint fill:#f96,stroke:#333,stroke-width:2px
     classDef coreComponent fill:#bbf,stroke:#333,stroke-width:1px
     classDef demoComponent fill:#bfb,stroke:#333,stroke-width:1px
     classDef utility fill:#fbb,stroke:#333,stroke-width:1px
+    classDef testing fill:#fcf,stroke:#333,stroke-width:1px
+    classDef buildUtil fill:#cff,stroke:#333,stroke-width:1px
 
     class Web,MAUI entryPoint
     class BaseComponents,CommonComponents,SharedComponents,SharedModels coreComponent
-    class BlazorDemo,LINQDemo,DIDemoComponents,DesignPatternDemo,OOPSDemo,RegexDemo,ReportDemo,HTTPDemo,MiddlewareDemo,MLNETDemo,WebAPIDemo,MAUIDemo,MSBuildDemo,OWASPDemo,SignalRDemo,SOLIDDemo,TDDDemo,TestingDemo,PythonDemo,TalkDemo demoComponent
-    class RSSFeedGenerator,SitemapGenerator,UITests utility
+    class AIDemoComponents,BlazorDemo,LINQDemo,DIDemoComponents,DesignPatternDemo,OOPSDemo,RegexDemo,ReportDemo,HTTPDemo,MiddlewareDemo,MLNETDemo,WebAPIDemo,MAUIDemo,MSBuildDemo,OWASPDemo,SignalRDemo,SOLIDDemo,TDDDemo,TestingDemo,PythonDemo,TalkDemo demoComponent
+    class UITests,EndToEndTests testing
+    class RSSFeedGenerator,SitemapGenerator,ArchitectureDocs buildUtil
 ```
 
 ## MAUI WebView Architecture
@@ -203,6 +269,7 @@ flowchart TD
     subgraph "Development"
         Dev["Developer Workstation"]
         GitHub["GitHub Repository"]
+        CopilotExtension["GitHub Copilot<br>(AI Assistance)"]
     end
     
     subgraph "CI/CD"
@@ -210,19 +277,27 @@ flowchart TD
         BuildWeb["Build Web App"]
         BuildMAUI["Build MAUI Apps"]
         Tests["Run Tests"]
+        subgraph "Testing"
+            UITests["UI Tests<br>(bUnit/XUnit)"]
+            E2ETests["E2E Tests<br>(Playwright/NUnit)"]
+        end
     end
     
     subgraph "Deployment Targets"
         GHPages["GitHub Pages<br>(Web)"]
-        AppStores["App Stores<br>(iOS/Android/Windows)"]
+        AppStores["App Stores<br>(iOS/Android/Windows/macOS)"]
         Docker["Docker Container"]
     end
     
     Dev -->|Push Changes| GitHub
+    Dev <-->|AI Code Assistance| CopilotExtension
+    CopilotExtension -.->|Architecture Analysis| GitHub
     GitHub -->|Trigger Workflow| Actions
     Actions --> BuildWeb
     Actions --> BuildMAUI
     Actions --> Tests
+    Tests --> UITests
+    Tests --> E2ETests
     BuildWeb -->|Deploy| GHPages
     BuildMAUI -->|Publish| AppStores
     BuildWeb -->|Package| Docker
@@ -230,10 +305,12 @@ flowchart TD
     classDef dev fill:#f9f,stroke:#333,stroke-width:1px
     classDef cicd fill:#ff9,stroke:#333,stroke-width:1px
     classDef deploy fill:#9ff,stroke:#333,stroke-width:1px
+    classDef testing fill:#fcf,stroke:#333,stroke-width:1px
     
-    class Dev,GitHub dev
+    class Dev,GitHub,CopilotExtension dev
     class Actions,BuildWeb,BuildMAUI,Tests cicd
     class GHPages,AppStores,Docker deploy
+    class UITests,E2ETests testing
 ```
 
 ## Key Architectural Characteristics
@@ -275,6 +352,7 @@ flowchart TD
    - RSSFeedGenerator
    - SitemapGenerator
    - UITests
+   - EndToEndTests (Playwright)
 
 ## Technical Implementation
 
@@ -284,3 +362,15 @@ flowchart TD
 - **JavaScript Integration**: Module-based JS isolation
 - **Testing**: XUnit with coverage reporting
 - **MAUI Implementation**: Uses BlazorWebView to host the same web components as the Web project inside a native shell, providing a unified experience with native platform capabilities
+
+## Maintenance and Evolution
+
+This architecture documentation is maintained with the help of GitHub Copilot. As the codebase evolves, the diagrams and explanations are updated using AI-assisted analysis of code changes. This approach ensures that the documentation remains accurate and up-to-date with minimal manual effort.
+
+Key benefits of this approach include:
+- Automatic detection of structural changes in the codebase
+- Consistent diagram styling and formatting
+- Accurate representation of project relationships
+- Documentation that evolves alongside the code
+
+For more details on this process, see the blog post: [Using GitHub Copilot AI for Architecture Diagram Generation](https://ilovedotnet.org/blogs/using-github-copilot-ai-for-architecture-diagram-generation)
