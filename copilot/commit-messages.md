@@ -38,7 +38,7 @@ Write a clear and descriptive commit message based **only on the provided change
 
 This is must at the bottom of the message, include:
 
-Author: {{git config user.name}} Co-Author: Copilot
+Author: `git config user.name` Co-Author: Copilot
 
 
 ---
