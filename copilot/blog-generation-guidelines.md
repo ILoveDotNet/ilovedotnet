@@ -261,6 +261,28 @@ var service = context.RequestServices.GetRequiredService&lt;IMyService&gt;();
   - `language-javascript` or `language-js` for JavaScript
   - `language-razor` for Razor files
 - Ensure to escape `@` with `@@` and `<` with `&lt;` and `>` with `&gt;` in code samples
+- **Break long lines of code** to prevent horizontal scrolling:
+  - Split long method chains across multiple lines
+  - Break long parameters lists onto separate lines
+  - Use proper indentation when breaking lines
+  - For HTML/Razor, break long attribute lists onto multiple lines
+  - Example of a properly formatted long line:
+    ```csharp
+    // Instead of this (causes horizontal scrolling):
+    var result = await _mediator.Send(new LongQueryWithManyParameters(id, name, description, category, startDate, endDate, isActive, pageSize, pageNumber));
+    
+    // Format like this (better readability, no horizontal scroll):
+    var result = await _mediator.Send(new LongQueryWithManyParameters(
+        id, 
+        name, 
+        description, 
+        category, 
+        startDate, 
+        endDate, 
+        isActive, 
+        pageSize, 
+        pageNumber));
+    ```
 
 ### Key Term Highlighting
 
