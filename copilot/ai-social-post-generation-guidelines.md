@@ -79,6 +79,7 @@ Ask these questions one at a time and wait for a response before proceeding:
 - Total length: 1,300 characters maximum (approximately 225-250 words)
 - Use 1-2 line breaks between sections and Use emoji bullet points for readability
 - Format code snippets or technical terms with appropriate markdown when possible
+- Add additional call to action before the hashtags - Click to join our WhatsApp Channel for free to get notified of dotnet content once every week - https://lnkd.in/gB9eXdvT. Follow me and click on the 🔔 in my profile to get notified of my dotnet knowledge sharings.
 - ALWAYS include these default hashtags at the end of EVERY LinkedIn post: 
   **#ilovedotnet #csharp #dotnet #dotnetdeveloper #csharpdeveloper #csharpdotnet**
 - Additionally, include 3-4 viral hashtags specific to the content
