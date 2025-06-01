@@ -2,7 +2,7 @@ namespace SharedModels;
 
 public class AILearningPath
 {
-  public readonly List<ContentMetaData> FullContents = new(2);
+  public readonly List<ContentMetaData> FullContents = new(3);
 
   public AILearningPath()
   {
@@ -41,6 +41,23 @@ public class AILearningPath
           CreatedOn = new DateTime(2025, 6, 15, 22, 30, 0, DateTimeKind.Utc),
           ModifiedOn = new DateTime(2025, 6, 15, 22, 30, 0, DateTimeKind.Utc),
           Keywords = ["Copilot", "GitHub", "Architecture", "Mermaid", "Diagram"]
+        },
+      new ContentMetaData
+        {
+          Order = 3,
+          Title = "Using GitHub Copilot AI for Documenting and Diagramming CI/CD Pipelines",
+          Description = "Learn how to leverage GitHub Copilot to automatically generate and maintain beautiful diagrams using Mermaid syntax for ci cd pipelines.",
+          Author = "Abdul Rahman",
+          Slug = "using-github-copilot-ai-for-documenting-and-diagramming-ci-cd-pipelines",
+          PosterUrl = "image/blogs/ai/using-github-copilot-ai-for-documenting-and-diagramming-ci-cd-pipelines.webp",
+          ThumbnailUrl = "image/blogs/ai/using-github-copilot-ai-for-documenting-and-diagramming-ci-cd-pipelines.webp",
+          ContentUrl = "blogs/using-github-copilot-ai-for-documenting-and-diagramming-ci-cd-pipelines",
+          IconUrl = "image/icons/ai.webp",
+          Channel = "AI",
+          Type = "blogs",
+          CreatedOn = new DateTime(2025, 6, 22, 22, 30, 0, DateTimeKind.Utc),
+          ModifiedOn = new DateTime(2025, 6, 22, 22, 30, 0, DateTimeKind.Utc),
+          Keywords = ["Copilot", "GitHub", "Documenting", "CI", "CD", "Pipelines", "Diagram"]
         }
     ];
   }
