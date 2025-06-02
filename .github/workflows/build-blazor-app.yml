@@ -19,20 +19,42 @@ on:
   workflow_dispatch: # Manually trigger the workflow
 
 jobs:
-  security-check:
-    name: Security Vulnerability Scan
+  blazor-app-ci-cd:
+    name: Blazor App Build, Test and Deploy
     runs-on: ubuntu-latest
+    permissions: # can also be defined at the workflow level for all jobs
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Restore npm dependencies
-        run: npm install
+      - name: Setup .NET
+        env:
+          DOTNET_NOLOGO: true #Disable welcome message
+          DOTNET_CLI_TELEMETRY_OPTOUT: true #Disable telemetry logs to be collected by Microsoft
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Install .NET WASM Build Tools
+        run: dotnet workload install wasm-tools
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.11.1'
+      - run: npm install
         working-directory: ./CommonComponents
-        
+
       - name: Checking Vulnerable npm Packages
         run: npm run vulnerabilitycheck
         working-directory: ./CommonComponents
+
+      - name: Restore dependencies
+        run: dotnet restore ./Web/Web.csproj
+
+      - name: Format
+        run: dotnet format ./Web/Web.csproj --include ./*Components --include ./SharedModels --include ./*Generator --include ./*Tests --verify-no-changes --verbosity diagnostic
 
       # Commented out the below steps as it is handled by NugitAudit properties in the csproj file starting .NET 8.0
       # - name: Checking Vulnerable Nuget Packages
@@ -53,79 +75,8 @@ jobs:
       # - name: Checking Deprecated Nuget Packages
       #   run: dotnet list ./Web/Web.csproj package --deprecated --include-transitive --format json
 
-  format-check:
-    name: Format Code
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup .NET
-        env:
-          DOTNET_NOLOGO: true
-          DOTNET_CLI_TELEMETRY_OPTOUT: true
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 9.0.x
-
-      - name: Install .NET WASM Build Tools
-        run: dotnet workload install wasm-tools
-
-      - name: Format
-        run: dotnet format ./Web/Web.csproj --include ./*Components --include ./SharedModels --include ./*Generator --include ./*Tests --verify-no-changes --verbosity diagnostic
-
-  build:
-    name: Build Project
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup .NET
-        env:
-          DOTNET_NOLOGO: true
-          DOTNET_CLI_TELEMETRY_OPTOUT: true
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 9.0.x
-
-      - name: Install .NET WASM Build Tools
-        run: dotnet workload install wasm-tools
-
-      - name: Restore npm dependencies
-        run: npm install
-        working-directory: ./CommonComponents
-
-      - name: Restore dependencies
-        run: dotnet restore ./Web/Web.csproj
-
       - name: Build Blazor Project
         run: dotnet build ./Web/Web.csproj --configuration Release --no-restore
-
-  test:
-    name: Run Tests
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup .NET
-        env:
-          DOTNET_NOLOGO: true
-          DOTNET_CLI_TELEMETRY_OPTOUT: true
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 9.0.x
-
-      - name: Install .NET WASM Build Tools
-        run: dotnet workload install wasm-tools
-
-      - name: Restore npm dependencies
-        run: npm install
-        working-directory: ./CommonComponents
-
-      - name: Restore dependencies
-        run: dotnet restore ./Web/Web.csproj
         
       - name: Install .NET Report Generator
         run: dotnet tool install -g dotnet-reportgenerator-globaltool
@@ -181,34 +132,6 @@ jobs:
 
       # - name: Cleanup Test Results
       #   run: rm -rf ./*Tests/**/TestResults
-
-  deploy:
-    name: Publish and Deploy
-    needs: [build, test, security-check, format-check]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup .NET
-        env:
-          DOTNET_NOLOGO: true
-          DOTNET_CLI_TELEMETRY_OPTOUT: true
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 9.0.x
-
-      - name: Install .NET WASM Build Tools
-        run: dotnet workload install wasm-tools
-
-      - name: Restore npm dependencies
-        run: npm install
-        working-directory: ./CommonComponents
-
-      - name: Restore dependencies
-        run: dotnet restore ./Web/Web.csproj
 
       - name: Publish Blazor Project
         run: dotnet publish ./Web/Web.csproj -c:Release -p:GHPages=true --no-restore -o dist/Web --nologo
