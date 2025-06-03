@@ -101,3 +101,102 @@ To remove any contents from previous runs, use the following PowerShell command:
 ```bash
 gci -include TestResults,coverage -recurse | remove-item -force -recurse
 ```
+
+# CI/CD Pipeline
+
+Our continuous integration and deployment pipeline automates building, testing, and deploying the ILoveDotNet application. 
+The pipeline is implemented using GitHub Actions and is defined in `.github/workflows/build-blazor-app.yml`.
+
+## Workflow Triggers
+
+The CI/CD pipeline can be triggered in several ways:
+- **Push to main**: Automatically runs when changes are pushed to the main branch (excluding markdown files)
+- **Pull Requests**: Runs on pull requests targeting the main branch
+- **Weekly Schedule**: Runs every Sunday at 17:00 UTC to ensure dependencies are up-to-date
+- **Manual Trigger**: Can be manually triggered through the GitHub Actions interface
+
+## Pipeline Visualization
+
+The following diagram illustrates the complete CI/CD workflow:
+
+```mermaid
+flowchart TD
+    %% Styling
+    classDef trigger fill:#663399,stroke:#333,stroke-width:2px,color:white
+    classDef job fill:#4B0082,stroke:#333,stroke-width:2px,color:white
+    classDef setup fill:#5D3FD3,stroke:#333,stroke-width:1px,color:white
+    classDef build fill:#6A0DAD,stroke:#333,stroke-width:1px,color:white
+    classDef test fill:#7851A9,stroke:#333,stroke-width:1px,color:white
+    classDef deploy fill:#9370DB,stroke:#333,stroke-width:1px,color:white
+    
+    %% Triggers
+    Triggers([GitHub Action Triggers])
+    Push[Push to main]
+    PR[Pull Request to main]
+    Schedule[Weekly Schedule]
+    Manual[Manual Trigger]
+    
+    %% Jobs
+    BlazorAppCICD[Blazor App Build, Test and Deploy]
+    
+    %% Setup steps
+    Checkout[Checkout code]
+    SetupDotNet[Setup .NET]
+    InstallWASM[Install WASM tools]
+    NPMInstall[Restore npm dependencies]
+    VulnerabilityCheck[Checking Vulnerable npm Packages]
+    RestoreDeps[Restore .NET dependencies]
+    
+    %% Build steps
+    Format[Format code]
+    BuildBlazor[Build Blazor project]
+    
+    %% Test steps
+    InstallReportGen[Install Report Generator]
+    RunTests[Run UI Tests]
+    GenerateTestReport[Generate Test Report]
+    UploadTestResults[Upload Test Results]
+    
+    %% Deploy steps
+    PublishBlazor[Publish Blazor project]
+    UploadArtifacts[Upload build artifacts]
+    DeployToGitHubPages[Deploy to GitHub Pages]
+    
+    %% Connections
+    Triggers --> Push & PR & Schedule & Manual
+    Push & PR & Schedule & Manual --> BlazorAppCICD
+    
+    BlazorAppCICD --> Checkout --> SetupDotNet
+    SetupDotNet --> InstallWASM
+    Checkout --> NPMInstall --> VulnerabilityCheck
+    InstallWASM & VulnerabilityCheck --> RestoreDeps --> Format --> BuildBlazor
+    
+    BuildBlazor --> InstallReportGen --> RunTests --> GenerateTestReport --> UploadTestResults
+    
+    UploadTestResults --> PublishBlazor --> UploadArtifacts
+    UploadArtifacts --> DeployToGitHubPages
+    
+    %% Conditional path
+    PR -.->|"skipped for pull requests"| DeployToGitHubPages
+    
+    %% Apply styles
+    class Triggers,Push,PR,Schedule,Manual trigger
+    class BlazorAppCICD job
+    class Checkout,SetupDotNet,InstallWASM,NPMInstall,VulnerabilityCheck,RestoreDeps setup
+    class Format,BuildBlazor build
+    class InstallReportGen,RunTests,GenerateTestReport,UploadTestResults test
+    class PublishBlazor,UploadArtifacts,DeployToGitHubPages deploy
+```
+
+## Workflow Structure
+
+The ILoveDotNet CI/CD pipeline uses a single comprehensive job that handles all aspects of the build, test, and deployment process. This design choice provides several advantages:
+
+1. **Simplified Dependency Management**: All steps share the same environment and workspace
+2. **Sequential Execution Control**: Each phase (setup, build, test, deploy) runs in a controlled order
+3. **Consolidated Logging**: All related logs appear in a single job context for easier troubleshooting
+4. **Resource Efficiency**: No duplicate checkout or setup steps required across multiple jobs
+
+The workflow includes conditional deployment logic to ensure GitHub Pages is only updated when appropriate conditions are met:
+- Deployments only occur on pushes to the main branch (not pull requests)
+- Deployments are skipped for automated dependency updates from Dependabot

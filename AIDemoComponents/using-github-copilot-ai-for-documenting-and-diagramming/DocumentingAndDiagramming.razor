@@ -141,18 +141,30 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Setup .NET
+        env:
+          DOTNET_NOLOGO: true
+          DOTNET_CLI_TELEMETRY_OPTOUT: true
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Install .NET WASM Build Tools
+        run: dotnet workload install wasm-tools
+
+      - name: Restore npm dependencies
+        run: npm install
+        working-directory: ./CommonComponents
       
-      # Setup steps...
+      # More steps...
       
-      - name: Build Blazor Project
-        run: dotnet build ./Web/Web.csproj --configuration Release --no-restore
-      
-      # Testing steps...
-      
-      - name: Publish Blazor Project
-        run: dotnet publish ./Web/Web.csproj -c:Release -p:GHPages=true --no-restore -o dist/Web --nologo
-      
-      # Deployment steps...
+      - name: Commit wwwroot to GitHub Pages
+        if: ${{ github.actor != 'dependabot[bot]' && github.event_name != 'pull_request' }}
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          BRANCH: gh-pages
+          FOLDER: dist/Web/wwwroot
       </CodeSnippet>
 
       <p>
@@ -179,15 +191,14 @@ flowchart TD
     Manual[Manual Trigger]
     
     %% Jobs
-    BlazorAppCICD[Blazor App CI/CD Job]
+    BlazorAppCICD[Blazor App Build, Test and Deploy]
     
     %% Setup steps
     Checkout[Checkout code]
     SetupDotNet[Setup .NET]
     InstallWASM[Install WASM tools]
-    SetupNode[Setup Node.js]
-    NPMInstall[Install npm packages]
-    SecurityCheck[Check for npm vulnerabilities]
+    NPMInstall[Restore npm dependencies]
+    VulnerabilityCheck[Checking Vulnerable npm Packages]
     RestoreDeps[Restore .NET dependencies]
     
     %% Build steps
@@ -209,10 +220,10 @@ flowchart TD
     Triggers --> Push & PR & Schedule & Manual
     Push & PR & Schedule & Manual --> BlazorAppCICD
     
-    BlazorAppCICD --> Checkout --> SetupDotNet & SetupNode
+    BlazorAppCICD --> Checkout --> SetupDotNet
     SetupDotNet --> InstallWASM
-    SetupNode --> NPMInstall --> SecurityCheck
-    InstallWASM & SecurityCheck --> RestoreDeps --> Format --> BuildBlazor
+    Checkout --> NPMInstall --> VulnerabilityCheck
+    InstallWASM & VulnerabilityCheck --> RestoreDeps --> Format --> BuildBlazor
     
     BuildBlazor --> InstallReportGen --> RunTests --> GenerateTestReport --> UploadTestResults
     
@@ -220,12 +231,12 @@ flowchart TD
     UploadArtifacts --> DeployToGitHubPages
     
     %% Conditional path
-    PR -.-> DeployToGitHubPages
+    PR -.->|"skipped for pull requests"| DeployToGitHubPages
     
     %% Apply styles
     class Triggers,Push,PR,Schedule,Manual trigger
     class BlazorAppCICD job
-    class Checkout,SetupDotNet,InstallWASM,SetupNode,NPMInstall,SecurityCheck,RestoreDeps setup
+    class Checkout,SetupDotNet,InstallWASM,NPMInstall,VulnerabilityCheck,RestoreDeps setup
     class Format,BuildBlazor build
     class InstallReportGen,RunTests,GenerateTestReport,UploadTestResults test
     class PublishBlazor,UploadArtifacts,DeployToGitHubPages deploy
@@ -250,7 +261,8 @@ dependencies between steps, and deployment paths. Include the Mermaid diagram wi
       <CodeSnippet CssClass="language-markdown">
 ## CI/CD Pipeline
 
-Our continuous integration and deployment pipeline automates building, testing, and deploying the ILoveDotNet application. 
+Our continuous integration and deployment pipeline automates building, testing, and deploying the 
+ILoveDotNet application. 
 The pipeline is implemented using GitHub Actions and is defined in `.github/workflows/build-blazor-app.yml`.
 
 ### Workflow Triggers
@@ -292,7 +304,7 @@ The setup phase prepares the environment by:
 - Checking out the code
 - Setting up .NET and Node.js environments
 - Installing required tools and dependencies
-- Running security checks on npm packages
+- Checking for vulnerable npm packages
 
 #### 2. Build
 The build phase:
@@ -312,71 +324,48 @@ The deployment phase:
 - Deploys to GitHub Pages (only for pushes to main, not pull requests)
       </CodeSnippet>
 
-      <h4>Step 4: Update Diagrams When Workflows Change</h4>
+      <h4>Step 4: Tracking Workflow Changes</h4>
 
       <p>
-        As your CI/CD pipeline evolves, keeping documentation in sync is crucial. GitHub Copilot makes this easy:
+        As your CI/CD pipeline evolves, keeping documentation in sync is crucial. GitHub Copilot makes it easy to track and document changes:
       </p>
 
       <CodeSnippet CssClass="language-markdown">
-I've updated the workflow file to add a new MAUI build job. Please analyze the changes and update the Mermaid 
-diagram in the README to include this new job and its dependencies.
+I've updated comments and configuration in our workflow file. Please analyze the changes and update the 
+documentation to reflect the current workflow structure.
       </CodeSnippet>
 
       <p>
-        GitHub Copilot will analyze the changes and update the diagram:
-      </p>
-
-      <CodeSnippet CssClass="language-diff">
-```mermaid
-flowchart TD
-    %% Styling remains the same...
-    
-    %% Triggers
-    Triggers([GitHub Action Triggers])
-    Push[Push to main]
-    PR[Pull Request to main]
-    Schedule[Weekly Schedule]
-    Manual[Manual Trigger]
-    
-    %% Jobs
-    BlazorAppCICD[Blazor App CI/CD Job]
-+   MAUIBuild[MAUI Build Job]
-    
-    %% Setup steps...
-    
-+   %% MAUI steps
-+   MAUISetup[Setup MAUI workload]
-+   BuildMAUI[Build MAUI project]
-+   PublishMAUI[Publish MAUI project]
-+   UploadMAUIArtifacts[Upload MAUI artifacts]
-    
-    %% Connections
-    Triggers --> Push & PR & Schedule & Manual
--   Push & PR & Schedule & Manual --> BlazorAppCICD
-+   Push & PR & Schedule & Manual --> BlazorAppCICD & MAUIBuild
-    
-    %% Existing connections...
-    
-+   %% MAUI job connections
-+   MAUIBuild --> Checkout --> MAUISetup --> BuildMAUI --> PublishMAUI --> UploadMAUIArtifacts
-    
-    %% Apply styles
-    class Triggers,Push,PR,Schedule,Manual trigger
--   class BlazorAppCICD job
-+   class BlazorAppCICD,MAUIBuild job
-```
-      </CodeSnippet>
-
-      <h4>Step 5: Document Complex Workflow Configurations</h4>
-
-      <p>
-        For advanced scenarios, you can ask GitHub Copilot to explain complex workflow configurations:
+        GitHub Copilot will analyze the workflow file and provide updated documentation:
       </p>
 
       <CodeSnippet CssClass="language-markdown">
-Explain the relationship between the Blazor and MAUI build processes in our workflow. How do they interact, 
-and what dependencies exist between them?
+## Workflow Evolution
+
+The ILoveDotNet CI/CD pipeline has evolved to focus on optimizing the build and deployment process for our 
+Blazor WebAssembly application. The current workflow is designed around a single job that handles the complete 
+pipeline from setup to deployment.
+
+### Key Optimizations
+
+- **Conditional Deployment**: GitHub Pages deployment only occurs on pushes to main branch and excludes 
+dependabot changes
+- **Caching Strategy**: Optimized dependencies restoration for faster builds
+- **Automated Testing**: Comprehensive test reporting with code coverage
+- **Commented Alternatives**: Preserved references to alternative approaches for future consideration
+
+These improvements ensure our CI/CD process remains robust while being easy to maintain and understand.
+      </CodeSnippet>
+
+      <h4>Step 5: Document Conditional Logic</h4>
+
+      <p>
+        For advanced scenarios, you can ask GitHub Copilot to explain complex conditional logic in your workflow:
+      </p>
+
+      <CodeSnippet CssClass="language-markdown">
+Explain the conditional logic used in our GitHub Pages deployment step. What conditions must be met for 
+deployment to occur?
       </CodeSnippet>
 
       <p>
@@ -384,33 +373,32 @@ and what dependencies exist between them?
       </p>
 
       <CodeSnippet CssClass="language-markdown">
-## Blazor and MAUI Integration
+## Deployment Conditions Analysis
 
-The ILoveDotNet project uses a dual-platform approach with both web (Blazor WASM) and native (MAUI) applications 
-sharing core component libraries. Here's how the build processes interact:
+The ILoveDotNet project uses conditional deployment to ensure GitHub Pages is only updated under specific 
+circumstances:
 
-### Shared Components
+```yaml
+- name: Commit wwwroot to GitHub Pages
+  if: ${{ github.actor != 'dependabot[bot]' && github.event_name != 'pull_request' }}
+  uses: JamesIves/github-pages-deploy-action@v4
+  with:
+    BRANCH: gh-pages
+    FOLDER: dist/Web/wwwroot
+```
 
-Both build processes rely on the same core component libraries:
-- BaseComponents
-- CommonComponents
-- SharedComponents
-- All demo component libraries
+This deployment step has two conditions that must both be satisfied:
 
-### Build Independence
+1. **Not Triggered by Dependabot**: The `github.actor != 'dependabot[bot]'` condition prevents automated 
+dependency update PRs from deploying to production. This is a security measure that ensures human review 
+before updates affect the live site.
 
-The Blazor and MAUI build jobs run in parallel to optimize CI/CD pipeline performance. They are independent 
-processes with no direct dependencies between them, allowing for faster completion of the overall workflow.
+2. **Not a Pull Request**: The `github.event_name != 'pull_request'` condition ensures deployments only 
+happen on direct pushes to the main branch, not during PR validation. This prevents feature branches from 
+deploying to production prematurely.
 
-### Deployment Coordination
-
-While the builds are independent, the deployment process follows these rules:
-1. Web deployment only occurs on pushes to main (not pull requests)
-2. MAUI builds produce platform-specific artifacts but don't deploy automatically
-3. Both processes contribute to the same test report
-
-This architecture allows us to maintain a single codebase while targeting multiple platforms with optimized 
-build processes.
+When both conditions are met (typically on manual or scheduled pushes to the main branch), the GitHub Pages 
+deployment action executes, publishing the Blazor WebAssembly application to production.
       </CodeSnippet>
 
       <h4>Step 6: Create Guidelines for CI/CD Documentation</h4>
@@ -468,89 +456,35 @@ This document provides specific instructions for maintaining CI/CD workflow docu
 Following these guidelines ensures our CI/CD documentation remains clear, accurate, and valuable to the team.
       </CodeSnippet>
 
-      <h4>Real-World Example: Updating ILoveDotNet CI/CD Documentation</h4>
+      <h4>Real-World Example: Documentation Best Practices</h4>
 
       <p>
-        Let's examine a real example of how I used GitHub Copilot to update the ILoveDotNet CI/CD documentation after making 
-        significant changes to our workflow.
+        Let's look at a practical example of how documentation best practices can be applied when working with workflow files:
       </p>
 
       <p>
-        First, I updated our <ContentHighlight>build-blazor-app.yml</ContentHighlight> file to improve job naming and add 
-        parallel testing:
-      </p>
-
-      <CodeSnippet CssClass="language-diff">
-name: build blazor app
-
-on:
-  # Trigger configuration...
-
-jobs:
--  build-test-deploy:
-+  blazor-app-ci-cd:
-+    name: Blazor App Build, Test and Deploy
-     runs-on: ubuntu-latest
-     # Job configuration...
-
-+  security-scanning:
-+    name: Security Scanning
-+    runs-on: ubuntu-latest
-+    steps:
-+      # Security scanning steps...
-      </CodeSnippet>
-
-      <p>
-        Then, I asked GitHub Copilot to update our documentation:
+        When documenting our <ContentHighlight>build-blazor-app.yml</ContentHighlight> workflow, it's important to accurately 
+        represent its structure and behavior:
       </p>
 
       <CodeSnippet CssClass="language-markdown">
-I've updated our workflow to rename the main job from "build-test-deploy" to "blazor-app-ci-cd" and added a 
-new parallel "security-scanning" job. Please update the CI/CD diagram in our README.md to reflect these changes.
+## Workflow Structure
+
+The ILoveDotNet CI/CD pipeline uses a single comprehensive job that handles all aspects of the build, test, 
+and deployment process. This design choice provides several advantages:
+
+1. **Simplified Dependency Management**: All steps share the same environment and workspace
+2. **Sequential Execution Control**: Each phase (setup, build, test, deploy) runs in a controlled order
+3. **Consolidated Logging**: All related logs appear in a single job context for easier troubleshooting
+4. **Resource Efficiency**: No duplicate checkout or setup steps required across multiple jobs
+
+The workflow includes conditional deployment logic to ensure GitHub Pages is only updated when appropriate 
+conditions are met.
       </CodeSnippet>
 
       <p>
-        GitHub Copilot analyzed the changes and generated an updated diagram:
-      </p>
-
-      <CodeSnippet CssClass="language-diff">
-```mermaid
-flowchart TD
-    %% Styling
-    classDef trigger fill:#f96,stroke:#333,stroke-width:2px
-    classDef job fill:#bbf,stroke:#333,stroke-width:2px
-    classDef setup fill:#bfb,stroke:#333,stroke-width:1px
-    classDef security fill:#ffd,stroke:#333,stroke-width:1px
-    classDef build fill:#fbf,stroke:#333,stroke-width:1px
-    classDef test fill:#fbb,stroke:#333,stroke-width:1px
-    classDef deploy fill:#bff,stroke:#333,stroke-width:1px
-    
-    %% Triggers
-    Triggers([GitHub Action Triggers])
-    Push[Push to main]
-    PR[Pull Request to main]
-    Schedule[Weekly Schedule]
-    Manual[Manual Trigger]
-    
-    %% Jobs
--   BuildTestDeploy[Build, Test and Deploy Job]
-+   BlazorAppCICD[Blazor App CI/CD Job]
-+   SecurityScan[Security Scanning Job]
-    
-    %% Connections
-    Triggers --> Push & PR & Schedule & Manual
--   Push & PR & Schedule & Manual --> BuildTestDeploy
-+   Push & PR & Schedule & Manual --> BlazorAppCICD & SecurityScan
-    
-    %% Apply styles
--   class BuildTestDeploy job
-+   class BlazorAppCICD,SecurityScan job
-```
-      </CodeSnippet>
-
-      <p>
-        The updated diagram accurately reflects the current state of our workflow, showing both jobs running in parallel from 
-        the same triggers. GitHub Copilot automatically adjusted the connections and styling to maintain consistency.
+        This documentation accurately reflects the actual structure of our workflow, making it clear that we use a single job
+        design pattern rather than parallel jobs. Maintaining this accuracy is essential for team understanding.
       </p>
     </How>
 
