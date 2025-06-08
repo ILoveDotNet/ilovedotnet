@@ -2,7 +2,7 @@ namespace SharedModels;
 
 public class AILearningPath
 {
-  public readonly List<ContentMetaData> FullContents = new(3);
+  public readonly List<ContentMetaData> FullContents = new(4);
 
   public AILearningPath()
   {
@@ -58,6 +58,23 @@ public class AILearningPath
           CreatedOn = new DateTime(2025, 6, 22, 22, 30, 0, DateTimeKind.Utc),
           ModifiedOn = new DateTime(2025, 6, 22, 22, 30, 0, DateTimeKind.Utc),
           Keywords = ["Copilot", "GitHub", "Documenting", "CI", "CD", "Pipelines", "Diagram"]
+        },
+      new ContentMetaData
+        {
+          Order = 4,
+          Title = "Using GitHub Copilot AI for Navigating New Codebase",
+          Description = "Learn how to leverage GitHub Copilot to navigate new codebase and understand the functionality.",
+          Author = "Abdul Rahman",
+          Slug = "using-github-copilot-ai-for-navigating-new-codebase",
+          PosterUrl = "image/blogs/ai/using-github-copilot-ai-for-navigating-new-codebase.webp",
+          ThumbnailUrl = "image/blogs/ai/using-github-copilot-ai-for-navigating-new-codebase.webp",
+          ContentUrl = "blogs/using-github-copilot-ai-for-navigating-new-codebase",
+          IconUrl = "image/icons/ai.webp",
+          Channel = "AI",
+          Type = "blogs",
+          CreatedOn = new DateTime(2025, 6, 29, 22, 30, 0, DateTimeKind.Utc),
+          ModifiedOn = new DateTime(2025, 6, 29, 22, 30, 0, DateTimeKind.Utc),
+          Keywords = ["Copilot", "GitHub", "New Codebase", "Analysis"]
         }
     ];
   }
