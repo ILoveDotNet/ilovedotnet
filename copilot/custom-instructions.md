@@ -1,0 +1,1 @@
+Please analyze my codebase and study how AIDemoComponents,MSBuildDemoComponents, WebAPIDemoComponents and other DemoComponents is implemented. Take your time to understand the architecture, patterns, and dependencies. Once you've fully grasped the code structure, confirm your understanding and I'll share what I need help with.
