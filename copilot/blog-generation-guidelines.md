@@ -248,7 +248,7 @@ Use the `<CodeSnippet>` component for all code blocks:
 ```html
 <CodeSnippet CssClass="language-csharp">
 // C# code here
-// Remember to escape < as &lt; and > as &gt;
+// Remember to escape < as &lt; and > as &gt; because the blog file is HTML.
 var service = context.RequestServices.GetRequiredService&lt;IMyService&gt;();
 </CodeSnippet>
 ```
@@ -260,7 +260,7 @@ var service = context.RequestServices.GetRequiredService&lt;IMyService&gt;();
   - `language-css` for CSS
   - `language-javascript` or `language-js` for JavaScript
   - `language-razor` for Razor files
-- Ensure to escape `@` with `@@` and `<` with `&lt;` and `>` with `&gt;` in code samples
+- Ensure to escape `@` with `@@` and `<` with `&lt;` and `>` with `&gt;` in code samples, as the blog file is HTML and unescaped characters will break rendering.
 - **Break long lines of code** to prevent horizontal scrolling:
   - Split long method chains across multiple lines
   - Break long parameters lists onto separate lines
@@ -397,3 +397,19 @@ Each article should have 3-5 engaging hook approaches you could use, such as:
   - Additional files like images or resources should be stored in the `wwwroot/image/blogs/{{category}}/{{slug}}`. (e.g., `AIDemoComponents/wwwroot/image/blogs/ai/using-github-copilot-ai-for-commit-message-generation/image-name.png`)
 
 By following these guidelines, you'll create valuable, consistent content that helps .NET developers learn and apply new concepts effectively.
+
+## Post-Publish Checklist (For Every New Blog Article)
+
+1. **Add to Learning Path:**
+   - Add a new entry for the article in the appropriate `*LearningPath.cs` file (e.g., `DesignPatternLearningPath.cs` for design patterns).
+   - The new entry should always be added as the last entry in the list to maintain correct order.
+   - Update the initial list size/count (e.g., `new(13)`) at the top of the file to match the total number of entries.
+   - Ensure all metadata (title, slug, description, dates, etc.) is filled out accurately.
+2. **Update Table of Contents:**
+   - If the learning path's total count or structure changes, update the relevant logic or constants in `TableOfContents.cs` to reflect the new article.
+3. **Verify Navigation:**
+   - Confirm that the new article appears in the site's navigation, lists, and search as expected.
+4. **Test Links and Images:**
+   - Ensure all internal links, images, and resources referenced in the article are present and working.
+5. **Review Formatting:**
+   - Double-check that all code snippets, highlights, and section headers render correctly in the UI.
