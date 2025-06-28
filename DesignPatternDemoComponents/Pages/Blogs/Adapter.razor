@@ -1,0 +1,304 @@
+@page "/blogs/structural-design-pattern-adapter"
+@using DesignPatternDemoComponents.Adapter
+@inherits BasePage
+
+<Content FileName=@nameof(Adapter) UseNewTableOfContentsMenu=true>
+    <ContentBody>
+        <What>
+            <p>
+                Ever tried to fit a square peg into a round hole? That's exactly what the <ContentHighlight>Adapter Design Pattern</ContentHighlight> 
+                solves in software development. In this article, let's learn about the <ContentHighlight>Adapter Pattern</ContentHighlight> in 
+                <ContentHighlight>C#</ContentHighlight> and see how it elegantly bridges incompatible interfaces to make them work together seamlessly.
+            </p>
+
+            <p>
+                The Adapter pattern is a <ContentHighlight>structural design pattern</ContentHighlight> that allows objects with incompatible 
+                interfaces to collaborate. Think of it as a translator that helps two parties communicate when they speak different languages.
+            </p>
+        </What>
+
+        <Why>
+            <p>
+                The <ContentHighlight>Adapter Pattern</ContentHighlight> becomes essential when you need to integrate with <ContentHighlight>
+                third-party libraries</ContentHighlight>, legacy systems, or external APIs that don't match your application's interface 
+                expectations. Instead of modifying existing code (which might not even be possible), you create an adapter that acts as a 
+                <ContentHighlight>bridge</ContentHighlight> between incompatible interfaces.
+            </p>
+
+            <p>
+                Here's why this pattern is crucial for modern .NET development:
+            </p>
+
+            <p>
+                <strong>Cross-Platform Compatibility:</strong> When building applications that need to work across Web API, MAUI, and Blazor WASM, 
+                you often encounter platform-specific services that can't be directly shared. The Adapter pattern provides a 
+                <ContentHighlight>unified interface</ContentHighlight> that works consistently across all platforms.
+            </p>
+
+            <p>
+                <strong>Third-Party Integration:</strong> External libraries rarely conform to your application's architecture. Adapters let you 
+                maintain <ContentHighlight>clean architecture</ContentHighlight> while still leveraging powerful third-party functionality.
+            </p>
+
+            <p>
+                <strong>Legacy System Integration:</strong> When modernizing applications, adapters help you gradually migrate from old systems 
+                without breaking existing functionality.
+            </p>
+        </Why>
+
+        <How>
+            <p>
+                Let's implement the Adapter pattern using a real-world scenario where we need to access user context information across 
+                different .NET platforms. We'll create an adapter that wraps <ContentHighlight>IHttpContextAccessor</ContentHighlight> to 
+                provide a consistent interface for user operations.
+            </p>
+
+            <h4>Step 1: Define the Target Interface</h4>
+            <p>
+                First, let's define the interface that our application expects to work with:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+public interface IUserContextAdapter
+{
+    string GetCurrentUserId();
+    string GetCurrentUserRole();
+}
+            </CodeSnippet>
+
+            <p>
+                This interface defines all the user context operations we need across our application, regardless of the underlying platform.
+            </p>
+
+            <h4>Step 2: Create the Adapter Implementation</h4>
+            <p>
+                Now, let's implement the adapter that wraps <ContentHighlight>IHttpContextAccessor</ContentHighlight> and adapts it to our 
+                expected interface:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+using Microsoft.AspNetCore.Http;
+using System.Security.Claims;
+
+public class UserContextAdapter : IUserContextAdapter
+{
+    private readonly IHttpContextAccessor _httpContextAccessor;
+
+    public UserContextAdapter(IHttpContextAccessor httpContextAccessor)
+    {
+        _httpContextAccessor = httpContextAccessor ?? 
+            throw new ArgumentNullException(nameof(httpContextAccessor));
+    }
+
+    public string GetCurrentUserId()
+    {
+        return _httpContextAccessor.HttpContext?.User
+            .FindFirst("sub")?.Value ?? string.Empty;
+    }
+
+    public string GetCurrentUserRole()
+    {
+        return _httpContextAccessor.HttpContext?.User
+            .FindFirst("role")?.Value ?? string.Empty;
+    }
+}
+            </CodeSnippet>
+
+            <p>
+                This adapter encapsulates all the complexity of working with <ContentHighlight>HttpContext</ContentHighlight> and provides a 
+                clean, testable interface for accessing user information.
+            </p>
+
+            <h4>Step 3: Register the Adapter with Dependency Injection</h4>
+            <p>
+                Register the adapter in your DI container so it can be injected throughout your application:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// In Program.cs or Startup.cs
+var builder = WebApplication.CreateBuilder(args);
+
+// Register the adaptee (what we're adapting)
+builder.Services.AddHttpContextAccessor();
+
+// Register the adapter
+builder.Services.AddScoped&lt;IUserContextAdapter, UserContextAdapter&gt;();
+
+var app = builder.Build();
+            </CodeSnippet>
+
+            <h4>Step 4: Use the Adapter in Your Services</h4>
+            <p>
+                Now you can inject and use the adapter in your services, controllers, or other components:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+[ApiController]
+[Route("api/[controller]")]
+public class UserController : ControllerBase
+{
+    private readonly IUserContextAdapter _userContext;
+
+    public UserController(IUserContextAdapter userContext)
+    {
+        _userContext = userContext;
+    }
+
+    [HttpGet("profile")]
+    public async Task&lt;IActionResult&gt; GetUserProfile()
+    {
+        var userId = _userContext.GetCurrentUserId();
+        var userRole = _userContext.GetCurrentUserRole();
+
+        var profile = new UserProfile
+        {
+            Id = userId,
+            Name = userName,
+            Role = userRole
+        };
+
+        return Ok(profile);
+    }
+
+    [HttpGet("admin-only")]
+    public async Task&lt;IActionResult&gt; GetAdminData()
+    {
+        if (!_userContext.HasRole("Admin"))
+        {
+            return Forbid("Insufficient permissions");
+        }
+
+        // Admin-only logic here
+        return Ok("Admin data");
+    }
+}
+            </CodeSnippet>
+
+            <h4>Step 5: Create Platform-Specific Adapters</h4>
+            <p>
+                For platforms like MAUI or Blazor WASM where <ContentHighlight>IHttpContextAccessor</ContentHighlight> isn't available, 
+                you can create alternative adapters:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// For MAUI applications
+public class MauiUserContextAdapter : IUserContextAdapter
+{
+    private readonly ISecureStorage _secureStorage;
+
+    public MauiUserContextAdapter(ISecureStorage secureStorage)
+    {
+        _secureStorage = secureStorage;
+    }
+
+    public string GetCurrentUserId()
+    {
+        return _secureStorage.GetAsync("user_id").GetAwaiter().GetResult() ?? string.Empty;
+    }
+
+    public string GetCurrentUserRole()
+    {
+        return _secureStorage.GetAsync("user_role").GetAwaiter().GetResult() ?? string.Empty;
+    }
+
+    // Implement other methods based on platform-specific storage
+    // ...
+}
+
+// For Blazor WASM
+public class BlazorWasmUserContextAdapter : IUserContextAdapter
+{
+    private readonly IJSRuntime _jsRuntime;
+
+    public BlazorWasmUserContextAdapter(IJSRuntime jsRuntime)
+    {
+        _jsRuntime = jsRuntime;
+    }
+
+    public string GetCurrentUserId()
+    {
+        return _jsRuntime.InvokeAsync&lt;string&gt;("localStorage.getItem", "user_id")
+            .GetAwaiter().GetResult() ?? string.Empty;
+    }
+
+    // Implement other methods using localStorage or sessionStorage
+    // ...
+}
+            </CodeSnippet>
+
+            <h4>Step 6: Testing the Adapter</h4>
+            <p>
+                The adapter pattern makes testing much easier by providing a clear interface to mock:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+[Test]
+public async Task GetUserProfile_ReturnsCorrectProfile()
+{
+    // Arrange
+    var mockUserContext = new Mock&lt;IUserContextAdapter&gt;();
+    mockUserContext.Setup(x => x.GetCurrentUserId()).Returns("123");
+    mockUserContext.Setup(x => x.GetCurrentUserRole()).Returns("Admin");
+    
+    var controller = new UserController(mockUserContext.Object);
+
+    // Act
+    var result = await controller.GetUserProfile();
+
+    // Assert
+    var okResult = result as OkObjectResult;
+    var profile = okResult?.Value as UserProfile;
+    
+    Assert.That(profile?.Id, Is.EqualTo("123"));
+    Assert.That(profile?.Role, Is.EqualTo("Admin"));
+}
+            </CodeSnippet>
+
+            <h4>Interactive Demo</h4>
+            <p>
+                Here's a working demonstration of the Adapter pattern in action. Try the different buttons to see how 
+                multiple adapters can provide the same interface while working with different underlying implementations:
+            </p>
+
+            <AdapterDemo></AdapterDemo>
+
+            <h4>Pattern Benefits</h4>
+
+            <ul>
+                <li>Both adapters implement the same interface</li>
+                <li>Client code works with either adapter without changes</li>
+                <li>Easy to swap implementations for different platforms</li>
+                <li>Clean separation between interface and implementation</li>
+                <li>Simplified testing with mock implementations</li>
+            </ul>
+        </How>
+
+        <Summary>
+            <p>
+                The <ContentHighlight>Adapter Design Pattern</ContentHighlight> is a powerful tool for creating <ContentHighlight>
+                flexible and maintainable</ContentHighlight> applications. By wrapping incompatible interfaces like 
+                <ContentHighlight>IHttpContextAccessor</ContentHighlight> with adapters, we achieve several key benefits:
+            </p>
+
+            <p>
+                <strong>Cross-Platform Consistency:</strong> The same <ContentHighlight>IUserContextAdapter</ContentHighlight> interface 
+                works across Web API, MAUI, and Blazor applications, with platform-specific implementations handling the details.
+            </p>
+
+            <p>
+                <strong>Improved Testability:</strong> Adapters provide clean interfaces that are easy to mock and test, leading to more 
+                reliable unit tests.
+            </p>
+
+            <p>
+                <strong>Separation of Concerns:</strong> Business logic remains focused on domain operations while adapters handle the 
+                technical details of accessing platform-specific services.
+            </p>
+
+            <p>
+                Remember: the Adapter pattern shines when you need to integrate with external systems or create unified interfaces across 
+                different platforms. It's the bridge that connects incompatible worlds, making your code more modular and maintainable.
+            </p>
+        </Summary>
+    </ContentBody>
+</Content>
