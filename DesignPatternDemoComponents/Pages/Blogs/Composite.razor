@@ -1,0 +1,156 @@
+@page "/blogs/structural-design-pattern-composite"
+@using DesignPatternDemoComponents.Composite
+@inherits BasePage
+
+<Content FileName=@nameof(Composite) UseNewTableOfContentsMenu=true>
+  <ContentBody>
+    <What>
+      <p>
+        Ever tried to build a navigation menu that can have submenus, and those submenus can have their own submenus, and so on? Welcome to the world of <ContentHighlight>tree structures</ContentHighlight>! In this article, let's break down the <ContentHighlight>Composite Design Pattern</ContentHighlight> in <ContentHighlight>C#</ContentHighlight>—the secret sauce for treating individual objects and groups of objects with the same code, no matter how deep the hierarchy goes.
+      </p>
+    </What>
+
+    <Why>
+      <p>
+        The <ContentHighlight>Composite Pattern</ContentHighlight> is a <ContentHighlight>structural design pattern</ContentHighlight> that lets you compose objects into tree-like structures to represent part-whole hierarchies. Why does this matter? Because it allows you to treat a single item and a group of items <ContentHighlight>uniformly</ContentHighlight>—no more special-case code for leaves versus branches.
+      </p>
+      <p>
+        Think about file systems, organization charts, or even UI menus. Each can be made up of items that are either simple (a file, a menu item) or complex (a directory, a submenu). The Composite Pattern lets you work with both using the same interface, making your code <ContentHighlight>cleaner, more flexible, and easier to extend</ContentHighlight>.
+      </p>
+      <p>
+        Here's the thing: without this pattern, you'd end up writing a lot of type-checking and branching logic. With it, you get <ContentHighlight>recursion</ContentHighlight> and <ContentHighlight>polymorphism</ContentHighlight> working together to make your life easier.
+      </p>
+    </Why>
+
+    <How>
+      <p>
+        Let's implement the Composite Pattern using a simple navigation menu as our example. We'll create a tree structure where each menu can contain menu items or other menus (submenus). The goal? Render the whole menu with a single recursive call.
+      </p>
+
+      <h4>Composite Pattern Structure (ASCII Diagram)</h4>
+      <CodeSnippet CssClass="language-ascii">
+  +-------------------+           +---------------------+
+  |   IMenuComponent  |&lt;----------|     MenuItem        |
+  +-------------------+           +---------------------+
+  | +Render()         |           | +Render()           |
+  +-------------------+           +---------------------+
+          ^
+          |
+          |
+  +-------------------+
+  |      Menu         |
+  +-------------------+
+  | -children         |
+  | +Add(child)       |
+  | +Remove(child)    |
+  | +Render()         |
+  +-------------------+
+      </CodeSnippet>
+
+      <h4>Step 1: Define the Component Interface</h4>
+      <p>
+        First, define a common interface for both menu items and menus:
+      </p>
+      <CodeSnippet CssClass="language-csharp">
+public interface IMenuComponent
+{
+    void Render(int depth = 0);
+}
+      </CodeSnippet>
+
+      <h4>Step 2: Implement the Leaf (MenuItem)</h4>
+      <p>
+        The <ContentHighlight>MenuItem</ContentHighlight> is a leaf node—it doesn't have children:
+      </p>
+      <CodeSnippet CssClass="language-csharp">
+public class MenuItem : IMenuComponent
+{
+    public string Title { get; }
+    public MenuItem(string title) => Title = title;
+    public void Render(int depth = 0)
+    {
+        Console.WriteLine(new string(' ', depth * 2) + "- " + Title);
+    }
+}
+      </CodeSnippet>
+
+      <h4>Step 3: Implement the Composite (Menu)</h4>
+      <p>
+        The <ContentHighlight>Menu</ContentHighlight> can contain both <ContentHighlight>MenuItem</ContentHighlight> and other <ContentHighlight>Menu</ContentHighlight> objects:
+      </p>
+      <CodeSnippet CssClass="language-csharp">
+public class Menu : IMenuComponent
+{
+    public string Title { get; }
+    private readonly List&lt;IMenuComponent&gt; _children = new();
+    public Menu(string title) => Title = title;
+    public void Add(IMenuComponent component) => _children.Add(component);
+    public void Remove(IMenuComponent component) => _children.Remove(component);
+    public void Render(int depth = 0)
+    {
+        Console.WriteLine(new string(' ', depth * 2) + "+ " + Title);
+        foreach (var child in _children)
+        {
+            child.Render(depth + 1);
+        }
+    }
+}
+      </CodeSnippet>
+
+      <h4>Step 4: Build and Render the Menu Tree</h4>
+      <p>
+        Now, let's put it all together and see the Composite Pattern in action:
+      </p>
+      <CodeSnippet CssClass="language-csharp">
+var rootMenu = new Menu("Main Menu");
+var fileMenu = new Menu("File");
+fileMenu.Add(new MenuItem("New"));
+fileMenu.Add(new MenuItem("Open"));
+fileMenu.Add(new MenuItem("Exit"));
+
+var editMenu = new Menu("Edit");
+editMenu.Add(new MenuItem("Undo"));
+editMenu.Add(new MenuItem("Redo"));
+
+rootMenu.Add(fileMenu);
+rootMenu.Add(editMenu);
+rootMenu.Add(new MenuItem("Help"));
+
+rootMenu.Render();
+// Output:
+// + Main Menu
+//   + File
+//     - New
+//     - Open
+//     - Exit
+//   + Edit
+//     - Undo
+//     - Redo
+//   - Help
+      </CodeSnippet>
+
+      <h4>Step 5: Interactive Demo</h4>
+      <p>
+        Try the demo below to see how the Composite Pattern lets you build and render a menu tree interactively:
+      </p>
+      <CompositeDemo></CompositeDemo>
+
+      <h4>Step 6: Why This Pattern Rocks</h4>
+      <ul>
+        <li>Uniform treatment: You can treat a single menu item and a whole menu the same way.</li>
+        <li>Easy to extend: Add new types of menu components without changing client code.</li>
+        <li>Recursive operations: Operations like rendering or calculating totals are naturally recursive.</li>
+        <li>Cleaner code: No more type-checking or special cases for leaves vs. composites.</li>
+      </ul>
+    </How>
+
+    <Summary>
+      <p>
+        The <ContentHighlight>Composite Design Pattern</ContentHighlight> is your go-to tool for working with tree-like structures in .NET. Whether you're building menus, file systems, or organization charts, this pattern lets you treat individual objects and groups of objects with the same code. That means less boilerplate, fewer bugs, and more flexibility as your app grows.
+      </p>
+      <p>
+        Next time you need to model a hierarchy, reach for the Composite Pattern—and let recursion do the heavy lifting!
+      </p>
+    </Summary>
+  </ContentBody>
+</Content>

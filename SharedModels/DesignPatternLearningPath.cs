@@ -2,7 +2,7 @@
 
 public class DesignPatternLearningPath
 {
-  public readonly List<ContentMetaData> FullContents = new(12);
+  public readonly List<ContentMetaData> FullContents = new(13);
 
   public DesignPatternLearningPath()
   {
@@ -25,6 +25,7 @@ public class DesignPatternLearningPath
                 ModifiedOn = new DateTime(2023, 3, 12, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Creational", "Structural", "Behavioral", "Gang of Four"]
             },
+        // ...existing code...
             new ContentMetaData
             {
                 Order = 2,
@@ -211,6 +212,23 @@ public class DesignPatternLearningPath
                 CreatedOn = new DateTime(2025, 7, 6, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2025, 7, 6, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Structural", "Adapter"]
+            },
+        new ContentMetaData
+            {
+                Order = 13,
+                Title = "Structural Design Pattern - Composite",
+                Description = "In this post I will teach you Structural Composite Design Pattern in .NET. All with live working demo.",
+                Author = "Abdul Rahman",
+                Slug = "structural-design-pattern-composite",
+                PosterUrl = "image/blogs/design-pattern/structural-design-pattern-composite.webp",
+                ThumbnailUrl = "image/blogs/design-pattern/structural-design-pattern-composite.webp",
+                ContentUrl = "blogs/structural-design-pattern-composite",
+                IconUrl = "image/icons/design pattern.webp",
+                Channel = "Design Pattern",
+                Type = "blogs",
+                CreatedOn = new DateTime(2025, 7, 13, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2025, 7, 13, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Structural", "Composite"]
             },
         ];
   }

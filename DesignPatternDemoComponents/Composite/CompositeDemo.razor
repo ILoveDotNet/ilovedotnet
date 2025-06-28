@@ -1,0 +1,76 @@
+@using System.Text
+
+<div>
+    <button type="button"
+        class="[ bg-cyan-500 ] [ text-white ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ]"
+        @onclick="ShowMenuDemo">
+        Show Composite Menu Demo
+    </button>
+
+    @if (showMenu)
+    {
+        <div class="mt-4">
+            <h4 class="text-lg font-semibold">Menu Structure</h4>
+            <pre class="p-2 rounded"><code>@menuOutput</code></pre>
+        </div>
+    }
+</div>
+
+@code {
+    private bool showMenu = false;
+    private string menuOutput = string.Empty;
+
+    private void ShowMenuDemo()
+    {
+        var rootMenu = new Menu("Main Menu");
+        var fileMenu = new Menu("File");
+        fileMenu.Add(new MenuItem("New"));
+        fileMenu.Add(new MenuItem("Open"));
+        fileMenu.Add(new MenuItem("Exit"));
+
+        var editMenu = new Menu("Edit");
+        editMenu.Add(new MenuItem("Undo"));
+        editMenu.Add(new MenuItem("Redo"));
+
+        rootMenu.Add(fileMenu);
+        rootMenu.Add(editMenu);
+        rootMenu.Add(new MenuItem("Help"));
+
+        var sb = new StringBuilder();
+        rootMenu.Render(sb);
+        menuOutput = sb.ToString();
+        showMenu = !showMenu;
+    }
+
+    public interface IMenuComponent
+    {
+        void Render(StringBuilder sb, int depth = 0);
+    }
+
+    public class MenuItem : IMenuComponent
+    {
+        public string Title { get; }
+        public MenuItem(string title) => Title = title;
+        public void Render(StringBuilder sb, int depth = 0)
+        {
+            sb.AppendLine(new string(' ', depth * 2) + "- " + Title);
+        }
+    }
+
+    public class Menu : IMenuComponent
+    {
+        public string Title { get; }
+        private readonly List<IMenuComponent> _children = new();
+        public Menu(string title) => Title = title;
+        public void Add(IMenuComponent component) => _children.Add(component);
+        public void Remove(IMenuComponent component) => _children.Remove(component);
+        public void Render(StringBuilder sb, int depth = 0)
+        {
+            sb.AppendLine(new string(' ', depth * 2) + "+ " + Title);
+            foreach (var child in _children)
+            {
+                child.Render(sb, depth + 1);
+            }
+        }
+    }
+}
