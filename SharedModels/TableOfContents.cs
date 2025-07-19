@@ -3,7 +3,7 @@
 public class TableOfContents
 {
   public const int PageSize = 6;
-  private readonly List<ContentMetaData> FullContents = new(142);
+  private readonly List<ContentMetaData> FullContents = new(143);
   private readonly List<AuthorMetaData> FullAuthors = new(1);
   private readonly List<SponsorMetaData> FullSponsors = new(1);
 
@@ -70,6 +70,7 @@ public class TableOfContents
     FullContents.AddRange(new PythonLearningPath().FullContents);
     FullContents.AddRange(new RegexLearningPath().FullContents);
     FullContents.AddRange(new ReportLearningPath().FullContents);
+    FullContents.AddRange(new SecurityLearningPath().FullContents);
     FullContents.AddRange(new SignalRLearningPath().FullContents);
     FullContents.AddRange(new SOLIDLearningPath().FullContents);
     FullContents.AddRange(new TalkLearningPath().FullContents);
