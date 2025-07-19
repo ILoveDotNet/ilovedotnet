@@ -1,0 +1,402 @@
+@page "/blogs/improve-data-security-by-redacting-logs-in-dotnet"
+@inherits BasePage
+
+<Content FileName=@nameof(LoggingConsiderations) UseNewTableOfContentsMenu=true>
+  <ContentBody>
+    <What>
+      <p>
+        Ever thought your logs were safe, only to discover sensitive data like 
+        <ContentHighlight>social security numbers</ContentHighlight> or <ContentHighlight>emails</ContentHighlight> 
+        hiding in plain sight? Logging in .NET isn't just about writing messages—it's about protecting your users and your 
+        business. In this article, we'll break down the <ContentHighlight>critical considerations</ContentHighlight> for 
+        secure, compliant logging in C# applications.
+      </p>
+    </What>
+
+    <Why>
+      <p>
+        Here's the thing: <ContentHighlight>logging everything</ContentHighlight> is tempting, but it can quickly turn into a 
+        compliance nightmare. Accidentally capturing <ContentHighlight>Personally Identifiable Information (PII)</ContentHighlight> 
+        in logs exposes you to risks—think GDPR fines, angry users, and sleepless nights.
+      </p>
+        <p>
+            Why should you care? Because even with authorization checks and admin-only endpoints, sensitive data can
+            slip through if you're not careful. Passing entire objects to loggers or serializers might seem
+            convenient, but it's a recipe for disaster if those objects contain private or restricted information.
+        </p>
+        <p>
+            That's why .NET developers need to be intentional about what gets logged, how it's classified, and how
+            it's protected. Logging isn't just a technical concern—it's a business-critical responsibility.
+        </p>
+    </Why>
+
+    <How>
+      <p>
+        Let's get practical. Here's how you can log responsibly and avoid common pitfalls:
+      </p>
+
+      <p>
+        Create a Simple Console Application. After creating a new Console Application, Install 
+        <ContentHighlight>Microsoft.Extensions.Hosting</ContentHighlight> Nuget package.
+      </p>
+
+      <p>The initial setup should look like below</p>
+
+<CodeSnippet CssClass="language-csharp">
+using System.Text.Json;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+
+Console.WriteLine("Log Redaction Demo");
+
+var builder = Host.CreateApplicationBuilder(args);
+
+builder.Services.AddLogging(options =>
+{
+  options.AddJsonConsole(o => o.JsonWriterOptions = new JsonWriterOptions { Indented = true });
+});
+
+var host = builder.Build();
+
+var customer = new Customer
+{
+  Name = "Abdul Rahman",
+  Email = "abdul.rahman@example.com",
+  PhoneNumber = "9876543210",
+  Address = "Dubai Bus Stand, Dubai Kuruku Santhu, Dubai",
+  AadharNumber = "0123-4567-8910"
+};
+
+var logger = host.Services.GetRequiredService&lt;ILogger&lt;;Program&gt;&gt;();
+
+logger.LogInformation("This is a log message with sensitive data: {customer}", customer);
+
+await host.RunAsync();
+
+Console.ReadLine();
+
+public sealed class Customer
+{
+  public string Name { get; set; } = string.Empty;
+  public string Email { get; set; } = string.Empty;
+  public string PhoneNumber { get; set; } = string.Empty;
+  public string Address { get; set; } = string.Empty;
+  public string AadharNumber { get; set; } = string.Empty;
+}
+</CodeSnippet>
+
+      <p>Now when you run the app, you should see the below logs.</p>
+
+<CodeSnippet CssClass="language-console">
+------------------------------------------------------------------------------
+You may only use the Microsoft Visual Studio .NET/C/C++ Debugger (vsdbg) with
+Visual Studio Code, Visual Studio or Visual Studio for Mac software to help you
+develop and test your applications.
+------------------------------------------------------------------------------
+Log Redaction Demo
+{
+  "EventId": 0,
+  "LogLevel": "Information",
+  "Category": "Program",
+  "Message": "This is a log message with sensitive data: Customer",
+  "State": {
+    "Message": "This is a log message with sensitive data: Customer",
+    "customer": "Customer",
+    "{OriginalFormat}": "This is a log message with sensitive data: {customer}"
+  }
+}
+</CodeSnippet>
+
+      <p>
+        Nothing seems to be wrong in the above log. Now lets install 
+        <ContentHighlight>Microsoft.Extensions.Telemetry</ContentHighlight> Nuget package 
+        and create a <ContentHighlight>static logger class</ContentHighlight> which will 
+        <ContentHighlight>source generate</ContentHighlight> a specific logger for Customer.
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+public static partial class Log
+{
+  [LoggerMessage(LogLevel.Information, "Customer {Customer}")]
+  public static partial void LogCustomer(this ILogger logger, [LogProperties] Customer customer);
+}
+</CodeSnippet>
+
+      <p>Now lets Log the same customer object using above logger.</p>
+
+<CodeSnippet CssClass="language-csharp">
+logger.LogCustomer(customer);
+</CodeSnippet>
+
+      <p>Now the Log contains all details including sensitive <ContentHighlight>PII</ContentHighlight> information.</p>
+
+<CodeSnippet CssClass="language-console">
+------------------------------------------------------------------------------
+You may only use the Microsoft Visual Studio .NET/C/C++ Debugger (vsdbg) with
+Visual Studio Code, Visual Studio or Visual Studio for Mac software to help you
+develop and test your applications.
+------------------------------------------------------------------------------
+Log Redaction Demo
+{
+  "EventId": 956896052,
+  "LogLevel": "Information",
+  "Category": "Program",
+  "Message": "Customer Customer",
+  "State": {
+    "Message": "customer.AadharNumber=0123-4567-8910,customer.Address=Dubai Bus Stand, Dubai Kuruku Santhu, Dubai,customer.PhoneNumber=9876543210,customer.Email=abdul.rahman@example.com,customer.Name=Abdul Rahman,Customer=Customer,{OriginalFormat}=Customer {Customer}",
+    "customer.AadharNumber": "0123-4567-8910",
+    "customer.Address": "Dubai Bus Stand, Dubai Kuruku Santhu, Dubai",
+    "customer.PhoneNumber": "9876543210",
+    "customer.Email": "abdul.rahman@example.com",
+    "customer.Name": "Abdul Rahman",
+    "Customer": "Customer",
+    "{OriginalFormat}": "Customer {Customer}"
+  }
+}
+</CodeSnippet>
+
+      <p>
+        Now lets work on to make sure only necessary information is logged. lets Now install 
+        <ContentHighlight>Microsoft.Extensions.Compliance.Redaction</ContentHighlight> and 
+        <ContentHighlight>Microsoft.Extensions.Compliance.Abstractions</ContentHighlight> Nuget packages.
+      </p>
+
+      <p>
+        Now lets Define what type of data were are working with. lets Define a 
+        <ContentHighlight>class TaxonomyClassifications</ContentHighlight> 
+        That give use an instance of type of data we are working. lets also create a 
+        <ContentHighlight>attribute</ContentHighlight> for each type of data.
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+using Microsoft.Extensions.Compliance.Classification;
+
+public static class TaxonomyClassifications
+{
+    /// &lt;summary&gt;
+    /// Anyone can see the information
+    /// &lt;/summary&gt;
+    public static DataClassification PublicInformation => new("PublicTaxonomyClassification", nameof(PublicInformation));
+
+    /// &lt;summary&gt;
+    /// Only visible to user themselves
+    /// &lt;/summary&gt;
+    public static DataClassification PrivateInformation => new("PrivateTaxonomyClassification", nameof(PrivateInformation));
+
+    /// &lt;summary&gt;
+    /// Only for internal use or employees
+    /// &lt;/summary&gt;
+    public static DataClassification InternalInformation => new("InternalTaxonomyClassification", nameof(InternalInformation));
+
+    /// &lt;summary&gt;
+    /// Sensitive PII, never log or share
+    /// &lt;/summary&gt;
+    public static DataClassification RedactedInformation => new("RedactedTaxonomyClassification", nameof(RedactedInformation));
+}
+
+public sealed class PrivateInformationAttribute() : DataClassificationAttribute(TaxonomyClassifications.PrivateInformation);
+public sealed class PublicInformationAttribute() : DataClassificationAttribute(TaxonomyClassifications.PublicInformation);
+public sealed class InternalInformationAttribute() : DataClassificationAttribute(TaxonomyClassifications.InternalInformation);
+public sealed class RedactedInformationAttribute() : DataClassificationAttribute(TaxonomyClassifications.RedactedInformation);
+</CodeSnippet>
+
+      <p>
+        Now lets add the attributes to the Customer class properties. 
+        This will help us <ContentHighlight>classify</ContentHighlight> the data and 
+        <ContentHighlight>redact</ContentHighlight> sensitive information.
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+public sealed class Customer
+{
+  public string Name { get; set; } = string.Empty;
+  public string Email { get; set; } = string.Empty;
+  public string PhoneNumber { get; set; } = string.Empty;
+  public string Address { get; set; } = string.Empty;
+  [RedactedInformation] // This field will be redacted in logs
+  public string AadharNumber { get; set; } = string.Empty;
+}
+</CodeSnippet>
+
+      <p>Now if were run the logs should look like</p>
+
+<CodeSnippet CssClass="language-console">
+------------------------------------------------------------------------------
+You may only use the Microsoft Visual Studio .NET/C/C++ Debugger (vsdbg) with
+Visual Studio Code, Visual Studio or Visual Studio for Mac software to help you
+develop and test your applications.
+------------------------------------------------------------------------------
+Log Redaction Demo
+{
+  "EventId": 956896052,
+  "LogLevel": "Information",
+  "Category": "Program",
+  "Message": "Customer Customer",
+  "State": {
+    "Message": "customer.Address=Dubai Bus Stand, Dubai Kuruku Santhu, Dubai,customer.PhoneNumber=9876543210,customer.Email=abdul.rahman@example.com,customer.Name=Abdul Rahman,Customer=Customer,{OriginalFormat}=Customer {Customer},customer.AadharNumber=\u003Comitted\u003E ([RedactedTaxonomyClassification:RedactedInformation])",
+    "customer.Address": "Dubai Bus Stand, Dubai Kuruku Santhu, Dubai",
+    "customer.PhoneNumber": "9876543210",
+    "customer.Email": "abdul.rahman@example.com",
+    "customer.Name": "Abdul Rahman",
+    "Customer": "Customer",
+    "{OriginalFormat}": "Customer {Customer}"
+  }
+}
+</CodeSnippet>
+
+      <p>
+        Since the source generated logger is not aware of How to handle redaction the Log hashing 
+        <ContentHighlight>TaxonomyClassifications</ContentHighlight> attribute present. 
+        But this still leaves use in a better position.
+        Now lets improve this By doing <ContentHighlight>EnableRedaction</ContentHighlight> in logging configuration.
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+builder.Services.AddLogging(options =>
+{
+    options.AddJsonConsole(o => o.JsonWriterOptions = new JsonWriterOptions { Indented = true });
+    options.EnableRedaction();
+});
+</CodeSnippet>
+
+      <p>This again leaves us with all data getting displayed in logs.</p>
+
+<CodeSnippet CssClass="language-console">
+------------------------------------------------------------------------------
+You may only use the Microsoft Visual Studio .NET/C/C++ Debugger (vsdbg) with
+Visual Studio Code, Visual Studio or Visual Studio for Mac software to help you
+develop and test your applications.
+------------------------------------------------------------------------------
+Log Redaction Demo
+{
+  "EventId": 956896052,
+  "LogLevel": "Information",
+  "Category": "Program",
+  "Message": "Customer Customer",
+  "State": {
+    "Message": "Microsoft.Extensions.Logging.ExtendedLogger\u002BModernTagJoiner",
+    "customer.AadharNumber": "0123-4567-8910:customer.AadharNumber",
+    "customer.Address": "Dubai Bus Stand, Dubai Kuruku Santhu, Dubai",
+    "customer.PhoneNumber": "9876543210",
+    "customer.Email": "abdul.rahman@example.com",
+    "customer.Name": "Abdul Rahman",
+    "Customer": "Customer",
+    "{OriginalFormat}": "Customer {Customer}"
+  }
+}
+</CodeSnippet>
+
+      <p>lets Now enable support for redaction those erase data while logging.</p>
+
+<CodeSnippet CssClass="language-csharp">
+using Microsoft.Extensions.Compliance.Redaction;
+builder.Services.AddRedaction(options =>
+{
+    options.SetRedactor&lt;ErasingRedactor&gt;([TaxonomyClassifications.RedactedInformation]);
+});
+</CodeSnippet>
+
+      <p>
+        Now the log gets erased. Note that this works out of box with source generated loggers. if you are using different 
+        sink or non source generated logging, you need to take a different approach.
+      </p>
+
+<CodeSnippet CssClass="language-console">
+------------------------------------------------------------------------------
+You may only use the Microsoft Visual Studio .NET/C/C++ Debugger (vsdbg) with
+Visual Studio Code, Visual Studio or Visual Studio for Mac software to help you
+develop and test your applications.
+------------------------------------------------------------------------------
+Log Redaction Demo
+{
+  "EventId": 956896052,
+  "LogLevel": "Information",
+  "Category": "Program",
+  "Message": "Customer Customer",
+  "State": {
+    "Message": "Microsoft.Extensions.Logging.ExtendedLogger\u002BModernTagJoiner",
+    "customer.AadharNumber": "",
+    "customer.Address": "Dubai Bus Stand, Dubai Kuruku Santhu, Dubai",
+    "customer.PhoneNumber": "9876543210",
+    "customer.Email": "abdul.rahman@example.com",
+    "customer.Name": "Abdul Rahman",
+    "Customer": "Customer",
+    "{OriginalFormat}": "Customer {Customer}"
+  }
+}
+</CodeSnippet>
+
+      <p>
+        Now you can see the logs getting erased. we can also bring our own <ContentHighlight>custom redactors</ContentHighlight> 
+        those do <ContentHighlight>custom manipulation</ContentHighlight> and 
+        <ContentHighlight>display custom text</ContentHighlight>.
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+public class RedactedRedactor : Redactor
+{
+    public override int GetRedactedLength(ReadOnlySpan&lt;char&gt; input)
+    {
+        return "**[REDACTED]**".Length;
+    }
+
+    public override int Redact(ReadOnlySpan&lt;char&gt; source, Span&lt;char&gt; destination)
+    {
+        "**[REDACTED]**".CopyTo(destination);
+
+        return destination.Length;
+    }
+}
+
+// in program.cs
+builder.Services.AddRedaction(options =>
+{
+    options.SetRedactor&lt;RedactedRedactor&gt;([TaxonomyClassifications.RedactedInformation]);
+});
+</CodeSnippet>
+
+      <p>
+        Now running the app gives the below logs in much better format.
+      </p>
+
+<CodeSnippet CssClass="language-console">
+------------------------------------------------------------------------------
+You may only use the Microsoft Visual Studio .NET/C/C++ Debugger (vsdbg) with
+Visual Studio Code, Visual Studio or Visual Studio for Mac software to help you
+develop and test your applications.
+------------------------------------------------------------------------------
+Log Redaction Demo
+{
+  "EventId": 956896052,
+  "LogLevel": "Information",
+  "Category": "Program",
+  "Message": "Customer Customer",
+  "State": {
+    "Message": "Microsoft.Extensions.Logging.ExtendedLogger\u002BModernTagJoiner",
+    "customer.AadharNumber": "**[REDACTED]**",
+    "customer.Address": "Dubai Bus Stand, Dubai Kuruku Santhu, Dubai",
+    "customer.PhoneNumber": "9876543210",
+    "customer.Email": "abdul.rahman@example.com",
+    "customer.Name": "Abdul Rahman",
+    "Customer": "Customer",
+    "{OriginalFormat}": "Customer {Customer}"
+  }
+}
+</CodeSnippet>
+
+      <p>
+        Finally always review the logs. Don't assume your logger is doing the right thing. Regularly inspect your logs to 
+        ensure no sensitive data is leaking. Consider custom redactors for extra control—hashing, encrypting, or replacing 
+        values as needed.
+      </p>
+    </How>
+
+    <Summary>
+      <p>
+        Logging in .NET is more than just writing messages—it's about protecting your users, your business, and your reputation. 
+        By classifying data, enabling redaction, and securing audit logs, you can avoid compliance headaches and keep sensitive 
+        information out of the wrong hands.
+      </p>
+    </Summary>
+  </ContentBody>
+</Content>
