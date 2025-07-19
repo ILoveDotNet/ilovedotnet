@@ -1,0 +1,120 @@
+@page "/blogs/improve-data-security-with-right-to-be-forgotten-in-dotnet"
+@inherits BasePage
+
+<Content FileName=@nameof(RightToBeForgotten) UseNewTableOfContentsMenu=true>
+  <ContentBody>
+    <What>
+      <p>
+        Ever tried to erase a user from your system, only to realize their data is hiding in places you never
+        expected? <ContentHighlight>The Right to Be Forgotten</ContentHighlight> isn't just a checkbox for
+        compliance—it's a high-stakes, all-or-nothing game for anyone storing <ContentHighlight>personal
+          identifiable information (PII)</ContentHighlight> in .NET applications. In this article, we'll break
+        down what it really means to "forget" a user, why it's so tricky, and how to do it right in your ASP.NET
+        Core projects.
+      </p>
+    </What>
+
+    <Why>
+      <p>
+        <ContentHighlight>Storing PII</ContentHighlight> is a responsibility, not a privilege. Regulations like
+        <ContentHighlight>GDPR</ContentHighlight> give users the right to request complete erasure of their data—no ifs,
+        ands, or backups. But here's the thing: PII isn't just in your main database. It lurks in logs, event stores,
+        request headers, and even offsite backups. Miss a spot, and you could face legal trouble or a costly data
+        breach.
+      </p>
+
+      <p>
+        A common misconception? That deleting a user record is enough. In reality, <ContentHighlight>PII can persist in
+          logs, backups, and third-party services</ContentHighlight>. Anonymizing data is only safe if it's truly
+        irreversible. And don't forget: some data (like payment history) may need to be retained for legal reasons, but
+        it must be stripped of all identifying details.
+      </p>
+    </Why>
+
+    <How>
+      <p>
+        Let's get practical. Here's how to implement the right to be forgotten in your .NET applications:
+      </p>
+      
+      <h4>Step 1: Provide a User-Initiated Delete Option</h4>
+
+      <p>
+        Whether it's a button in the user profile or a support request, users must have a clear way to request deletion.
+        For example, an API endpoint:
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+[HttpDelete("/api/users/{userId}")]
+public async Task&lt;IActionResult&gt; DeleteUser(string userId)
+{
+    // ...existing code...
+    await _userService.DeleteUserAndPIIAsync(userId);
+    return NoContent();
+}
+</CodeSnippet>
+
+      <h4>Step 2: Delete or Anonymize All PII</h4>
+
+      <p>
+        Your deletion logic must cover every storage location: databases, logs, event stores, backups, and third-party
+        services. For logs, consider hashing or removing PII:
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+// Instead of logging raw PII:
+_logger.LogInformation($"Order placed by {user.Email} at {user.Address}");
+
+// Log anonymized data:
+_logger.LogInformation($"Order placed by userId: {user.Id}");
+</CodeSnippet>
+      
+      <p>
+        If you must keep records (e.g., for accounting), strip all identifying details:
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+// Anonymize order data
+order.Name = null;
+order.Address = null;
+order.Phone = null;
+// ...existing code...
+</CodeSnippet>
+
+      <h4>Step 3: Don't Forget the Hidden Places</h4>
+
+      <p>
+        PII can hide in request headers, JWT tokens, backups, and even in-memory caches. Make sure your deletion process
+        covers:
+      </p>
+
+      <ul>
+        <li>Application logs and error logs</li>
+        <li>Request/response logs (including headers)</li>
+        <li>Event stores and message queues</li>
+        <li>Offsite/cloud backups</li>
+        <li>Third-party analytics or monitoring tools</li>
+      </ul>
+
+      <p>
+        <ContentHighlight>If you can't guarantee deletion from a location, don't store PII there in the first place.</ContentHighlight>
+      </p>
+
+      <h4>Step 4: Make Deletion Irreversible</h4>
+
+      <p>
+        The right to be forgotten should be a one-way street. Hard delete is often safer than anonymization—if you
+        anonymize, make sure it's truly irreversible. Never keep a mapping that could restore the original data.
+      </p>
+    </How>
+
+    <Summary>
+      <p>
+        The <ContentHighlight>right to be forgotten</ContentHighlight> is more than a legal checkbox—it's a technical
+        challenge that demands discipline and thoroughness. Deleting a user means deleting every trace of their PII,
+        everywhere it might exist. Miss a spot, and you risk compliance failures or worse. Build your systems with
+        deletion in mind, audit your data flows, and always err on the side of caution. When in doubt, forget more, not
+        less.
+      </p>
+    </Summary>
+  </ContentBody>
+</Content>
