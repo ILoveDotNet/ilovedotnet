@@ -123,6 +123,12 @@ public class LazyLoaderService(
           AdditionalAssemblies.AddRange(assemblies);
         }
 
+        if (path.Contains("security", StringComparison.OrdinalIgnoreCase))
+        {
+          var assemblies = await lazyAssemblyLoader.LoadAssembliesAsync(["SecurityDemoComponents.wasm"]);
+          AdditionalAssemblies.AddRange(assemblies);
+        }
+
         if (path.Contains("signalr", StringComparison.OrdinalIgnoreCase))
         {
           var assemblies = await lazyAssemblyLoader.LoadAssembliesAsync(["SignalRDemoComponents.wasm"]);
