@@ -1,0 +1,91 @@
+@page "/blogs/improve-data-security-by-preventing-excessive-data-exposure-in-dotnet"
+@inherits BasePage
+
+<Content FileName=@nameof(ExcessiveDataExposure) UseNewTableOfContentsMenu=true>
+  <ContentBody>
+    <What>
+      <p>
+        Ever returned a whole user object from your API just because it was easy? <ContentHighlight>You might be
+          exposing sensitive data you never intended to share.</ContentHighlight> In this article, we'll break down what
+        excessive data exposure is, why it's a silent GDPR violation, and how to fix it in your .NET applications.
+      </p>
+    </What>
+
+    <Why>
+      <p>
+        <ContentHighlight>Excessive data exposure</ContentHighlight> happens when APIs return more data than
+        necessary—often out of convenience or code reuse. If your endpoint returns the entire user object when only the
+        point balance is needed, you're leaking information. <ContentHighlight>GDPR</ContentHighlight> requires data
+        minimization: only return what is strictly needed for the task at hand.
+      </p>
+      <p>
+        A common misconception? That hiding fields in the frontend is enough. If the API sends it, it's exposed. Another
+        risk: failing to limit access by user role. If a customer service agent can see medical data just because it's
+        on the customer object, that's a serious breach. And don't forget backups—if they're unencrypted or overexposed,
+        all your careful API design is for nothing.
+      </p>
+    </Why>
+
+    <How>
+      <p>
+        Here's how to prevent excessive data exposure in your .NET APIs:
+      </p>
+
+      <h4>Step 1: Use Endpoint-Specific DTOs</h4>
+
+      <p>
+        Never return full entity models from your API. Instead, define Data Transfer Objects (DTOs) that include only
+        the fields needed for each endpoint.
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+// Bad: returns the entire user object
+return Ok(user);
+
+// Good: returns only the point balance
+public class PointBalanceDto
+{
+    public int Points { get; set; }
+}
+return Ok(new PointBalanceDto { Points = user.Points });
+</CodeSnippet>
+
+      <h4>Step 2: Implement Role-Based Authorization</h4>
+
+      <p>
+        Use ASP.NET Core Identity and the <ContentHighlight>[Authorize(Roles = "...")]</ContentHighlight> attribute to
+        restrict access to sensitive data. Only allow users with the correct role to access certain endpoints or fields.
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+[Authorize(Roles = "MedicalStaff")]
+[HttpGet("/api/patients/{id}/medical-info")]
+public IActionResult GetMedicalInfo(int id)
+{
+    // ...return medical info only for authorized roles...
+}
+</CodeSnippet>
+
+      <h4>Step 3: Secure Your Backups</h4>
+
+      <p>
+        Always encrypt backups and restrict access. Never store backups unencrypted or in publicly accessible locations.
+        Use strong access controls and audit backup access regularly.
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+// Example: encrypting backup data before saving
+var encrypted = _aesEncryptor.Encrypt(backupBytes);
+await _backupStorage.SaveAsync("backup.zip", encrypted);
+</CodeSnippet>
+    </How>
+
+    <Summary>
+      <p>
+        <ContentHighlight>Excessive data exposure</ContentHighlight> is one of the easiest security flaws to fix—if you
+        know what to look for. Use DTOs, enforce role-based access, and secure your backups. By minimizing what your
+        APIs return and who can access it, you'll protect your users and stay on the right side of GDPR.
+      </p>
+    </Summary>
+  </ContentBody>
+</Content>
