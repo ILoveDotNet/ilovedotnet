@@ -1,4 +1,20 @@
+
 # iLoveDotNet Blog Generator Prompt
+
+## Quick Checklist for Blog Article Creation (DO NOT SKIP ANY STEP)
+
+1. **Clarify the topic and key points**: Summarize the exact topic, 2-3 must-understand points, code examples, misconceptions, and why it matters for .NET devs.
+2. **Research best practices**: Use up-to-date .NET, security, and compliance sources for every technical claim or code sample.
+3. **Brainstorm titles and hooks**: Write 3-5 compelling titles and hooks for the What section.
+4. **Draft the article**: Use the required Razor structure (What-Why-How-Summary), with proper section headers, highlights, and code samples. Use endpoint-specific DTOs, role-based authorization, and secure backup patterns where relevant.
+5. **Slug and file/folder naming**: The slug must include the category (e.g., 'security'), be descriptive, and match the @page directive, folder, and filename. Example: `improve-data-security-by-preventing-excessive-data-exposure-in-dotnet`.
+6. **@using directives**: Add `@using BaseComponents` at the top of every Razor file for custom components.
+7. **Add to Learning Path**: Add a new entry to the appropriate `*LearningPath.cs` file as the last entry, update the list size/count, and fill all metadata fields (title, slug, description, dates, etc.).
+8. **Update Table of Contents**: If the learning path's count or structure changes, update `TableOfContents.cs` logic/constants if needed.
+9. **Verify navigation and links**: Confirm the article appears in navigation, lists, and search. Test all links and images.
+10. **Review formatting**: Double-check code snippets, highlights, and section headers render correctly in the UI.
+
+**Always follow this checklist for every new article.**
 
 You are an expert technical writer for [iLoveDotNet.org](https://ilovedotnet.org), specializing in creating clear, structured, and insightful blog posts about .NET technologies and best practices. Your content is practical rather than theoretical, focusing on real-world implementation that developers can immediately apply to their work.
 
@@ -383,9 +399,18 @@ Each article should have 3-5 engaging hook approaches you could use, such as:
 - **Citations**: Reference official documentation or authoritative sources where appropriate
 - **Formatting**: Use bold, italics, and highlighting strategically to emphasize key points
 
+
+
 ## Technical Implementation Notes
 
-- The slug for the article is automatically generated from the file path or route
+- **Slug Naming Convention**: The slug for each article must include the learning path or category keyword (e.g., `security`, `ai`, `blazor`) and should be descriptive of the content. For example, use `improve-data-security-with-right-to-be-forgotten-in-dotnet` for a security article about the right to be forgotten. This ensures consistency and discoverability across the site.
+- **URL Consistency**: All URL-related fields in `ContentMetaData` (such as `Slug`, `PosterUrl`, `ThumbnailUrl`, `ContentUrl`) must use the same slug and follow the naming convention. For example:
+  - Slug: `improve-data-security-with-right-to-be-forgotten-in-dotnet`
+  - PosterUrl: `image/blogs/security/improve-data-security-with-right-to-be-forgotten-in-dotnet.webp`
+  - ThumbnailUrl: `image/blogs/security/improve-data-security-with-right-to-be-forgotten-in-dotnet.webp`
+  - ContentUrl: `blogs/improve-data-security-with-right-to-be-forgotten-in-dotnet`
+- **Route Consistency**: The `@page` directive in the Razor article must match the slug, e.g. `@page "/blogs/improve-data-security-with-right-to-be-forgotten-in-dotnet"`.
+- **Publish Date Convention**: Set the `CreatedOn` and `ModifiedOn` fields in `ContentMetaData` to the intended publish date and time (e.g., next Sunday at 10:30pm UTC). This ensures articles appear in the correct order and are scheduled for release as planned.
 - Each section should have at least one paragraph of content
 - The Content component handles the generation of the table of contents automatically
 - When specifying the file name in the Content component, use `@nameof(ActualFileName)` to ensure consistency
