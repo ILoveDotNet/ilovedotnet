@@ -1,0 +1,364 @@
+@page "/blogs/replacing-mediatr-with-custom-mediator-dynamic-dispatch-in-webapi"
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(ReplaceMediatRWithCustomMediator) UseNewTableOfContentsMenu=true>
+    <ContentBody>
+        <What>
+            <p>
+                Every .NET developer has been there: adding MediatR to a project. In this article, let's
+                learn how to replace <ContentHighlight>MediatR</ContentHighlight> with a lightweight, custom mediator
+                implementation that gives you complete control over your <ContentHighlight>request dispatch pipeline
+                </ContentHighlight> in ASP.NET Web API.
+            </p>
+        </What>
+
+        <Why>
+            <p>
+                <ContentHighlight>MediatR</ContentHighlight> is a fantastic library, but recently, Jimmy Bogard has made
+                an announcement to transitioned from a purely open-source model to a commercial one. I fully respect his
+                decision. Here's why I choose custom mediator implementations:
+            </p>
+
+            <ul>
+                <li>
+                    <ContentHighlight>Zero External Dependencies</ContentHighlight> — remove a third-party package and
+                    its upgrade surface.
+                </li>
+                <li>
+                    <ContentHighlight>Full Control</ContentHighlight> — implement exactly the pipeline behaviors
+                    (logging, validation, caching) you need.
+                </li>
+                <li>
+                    <ContentHighlight>Simpler Debugging</ContentHighlight> — step through your own code instead of a
+                    library's internals.
+                </li>
+                <li>
+                    <ContentHighlight>Cost</ContentHighlight> — Lack of support from Organisation on Licensing.
+                </li>
+                <li>
+                    <ContentHighlight>Educational Value</ContentHighlight> — a great exercise to understand the pattern
+                    deeply.
+                </li>
+            </ul>
+
+            <p>
+                Think of it as trading a Swiss Army knife for a precision tool crafted specifically for your
+                application's needs.
+            </p>
+        </Why>
+
+        <How>
+            <p>
+                The implementation is intentionally small and focuses on the essentials. Here's how to build it step by
+                step:
+            </p>
+
+            <h4>Step 1: Define Core Request and Handler Interfaces</h4>
+
+            <p>
+                Start by creating the foundational interfaces that will replace MediatR's <code>IRequest</code> and
+                <code>IRequestHandler</code>:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// Domain/Interfaces/IRequest.cs
+namespace Domain.Interfaces;
+
+public interface IRequest&lt;TResult&gt;
+{
+}
+
+// Domain/Interfaces/IRequestHandler.cs
+namespace Domain.Interfaces;
+
+public interface IRequestHandler&lt;TRequest, TResult&gt; where TRequest : IRequest&lt;TResult&gt;
+{
+    Task&lt;TResult&gt; Handle(TRequest request, CancellationToken cancellationToken);
+}
+            </CodeSnippet>
+
+            <h4>Step 2: Add a Unit Value Type</h4>
+
+            <p>
+                Create a <ContentHighlight>Unit</ContentHighlight> type to represent "void"-style results, similar to
+                MediatR's Unit:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// Domain/Utils/Unit.cs
+namespace Domain.Utils;
+
+/// &lt;summary&gt;
+/// Represents a void type, since System.Void is not a valid return type in C#.
+/// &lt;/summary&gt;
+public readonly struct Unit : IEquatable&lt;Unit&gt;
+{
+    private static readonly Unit _value = new();
+    
+    /// &lt;summary&gt;
+    /// Default and only value of the Unit type.
+    /// &lt;/summary&gt;
+    public static ref readonly Unit Value =&gt; ref _value;
+    
+    /// &lt;summary&gt;
+    /// Task from a Unit type.
+    /// &lt;/summary&gt;
+    public static Task&lt;Unit&gt; Task { get; } = System.Threading.Tasks.Task.FromResult(_value);
+
+    public bool Equals(Unit other) =&gt; true;
+    public override bool Equals(object? obj) =&gt; obj is Unit;
+    public override int GetHashCode() =&gt; 0;
+    public static bool operator ==(Unit first, Unit second) =&gt; true;
+    public static bool operator !=(Unit first, Unit second) =&gt; false;
+    public override string ToString() =&gt; "()";
+}
+            </CodeSnippet>
+
+            <h4>Step 3: Create the Mediator Dispatcher</h4>
+
+            <p>
+                Build the core <ContentHighlight>mediator dispatcher</ContentHighlight> that uses reflection to route
+                requests to their handlers:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// Domain/Utils/Mediator.cs
+using Domain.Interfaces;
+
+namespace Domain.Utils;
+
+public sealed class Mediator
+{
+    private readonly IServiceProvider _provider;
+
+    public Mediator(IServiceProvider provider)
+    {
+        _provider = provider;
+    }
+
+    public async Task&lt;T&gt; Dispatch&lt;T&gt;(IRequest&lt;T&gt; request, CancellationToken cancellationToken = default)
+    {
+        var handlerInterface = typeof(IRequestHandler&lt;,&gt;).MakeGenericType(request.GetType(), typeof(T));
+        var handler = _provider.GetService(handlerInterface);
+
+        if (handler is null)
+            throw new InvalidOperationException($"No handler registered for request type {request.GetType()}");
+
+        dynamic dHandler = handler!;
+        T result = await dHandler.Handle((dynamic)request, cancellationToken);
+        return result;
+    }
+}
+            </CodeSnippet>
+
+            <h4>Step 4: Club Request and Handler Together</h4>
+
+            <p>
+                Instead of separate files, <ContentHighlight>keep commands and handlers together</ContentHighlight> for
+                better maintainability:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// Application/Features/Clients/Commands/CreateClient.cs
+using Application.Features.Clients.Dtos;
+using Domain.Interfaces;
+using Domain.Utils;
+
+namespace Application.Features.Clients.Commands;
+
+public sealed class CreateClientCommand : IRequest&lt;Result&lt;ClientDto, BaseError&gt;&gt;
+{
+    public string Name { get; set; } = string.Empty;
+
+    internal sealed class CreateClientCommandHandler(IUnitOfWork unitOfWork) 
+        : IRequestHandler&lt;CreateClientCommand, Result&lt;ClientDto, BaseError&gt;&gt;
+    {
+        public async Task&lt;Result&lt;ClientDto, BaseError&gt;&gt; Handle(
+            CreateClientCommand request, 
+            CancellationToken cancellationToken)
+        {
+            var clientNameResult = ClientName.Create(request.Name);
+
+            if (clientNameResult.IsFailure)
+                return Result.Failure&lt;ClientDto, BaseError&gt;(
+                    BadRequestError.Create(clientNameResult.Error));
+
+            var client = new ClientEntity(clientNameResult.Value);
+            await unitOfWork.ClientRepository.AddAsync(client, cancellationToken);
+            
+            var saveResult = await unitOfWork.SaveChangesAsync(cancellationToken);
+            
+            if (saveResult.IsFailure)
+                return Result.Failure&lt;ClientDto, BaseError&gt;(
+                    BadRequestError.Create(saveResult.Error));
+
+            var clientDto = ClientDto.FromEntity(client);
+            return Result.Success&lt;ClientDto, BaseError&gt;(clientDto);
+        }
+    }
+}
+            </CodeSnippet>
+
+            <h4>Step 5: Automatic Handler Registration</h4>
+
+            <p>
+                Create an extension method to <ContentHighlight>automatically discover and register</ContentHighlight>
+                all your handlers:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// Application/ApplicationServiceRegistration.cs
+using System.Reflection;
+using Domain.Interfaces;
+
+public static class ApplicationServiceRegistration
+{
+    public static IServiceCollection AddApplicationServices(this IServiceCollection services)
+    {
+        services.AddTransient&lt;Mediator&gt;();
+        RegisterHandlers(services);
+        return services;
+    }
+
+    private static void RegisterHandlers(IServiceCollection services)
+    {
+        var assembly = Assembly.GetExecutingAssembly();
+        var handlerTypes = assembly.GetTypes()
+            .Where(t =&gt; t.GetInterfaces()
+                .Any(i =&gt; i.IsGenericType && 
+                    i.GetGenericTypeDefinition() == typeof(IRequestHandler&lt;,&gt;)))
+            .ToList();
+
+        foreach (var handlerType in handlerTypes)
+        {
+            var interfaceType = handlerType.GetInterfaces()
+                .First(i =&gt; i.IsGenericType && 
+                    i.GetGenericTypeDefinition() == typeof(IRequestHandler&lt;,&gt;));
+            services.AddTransient(interfaceType, handlerType);
+        }
+    }
+}
+            </CodeSnippet>
+
+            <h4>Step 6: Update API Endpoints</h4>
+
+            <p>
+                Replace <code>ISender</code> or <code>IMediator</code> with your custom <ContentHighlight>Mediator
+                </ContentHighlight> in controllers:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// PublicAPI/Client/Create.cs
+using Application.Features.Clients.Commands;
+using Application.Features.Clients.Dtos;
+using Domain.Utils;
+
+namespace PublicAPI.Client;
+
+[ApiController]
+[ApiVersion("1.0")]
+public class Create(Mediator mediator) : ControllerBase
+{
+    [HttpPost("api/clients")]
+    [ProducesResponseType(StatusCodes.Status201Created, Type = typeof(ClientDto))]
+    public async Task&lt;ActionResult&lt;ClientDto&gt;&gt; HandleAsync(
+        CreateClientCommand request, 
+        CancellationToken cancellationToken = default)
+    {
+        var result = await mediator.Dispatch(request, cancellationToken);
+        
+        return result.IsSuccess 
+            ? CreatedAtRoute("GetClient", new { id = result.Value.Id }, result.Value)
+            : result.Error.ToActionResult();
+    }
+}
+            </CodeSnippet>
+
+            <h4>Step 7: Unit Testing Your Custom Mediator</h4>
+
+            <p>Create comprehensive tests to verify your mediator works correctly:</p>
+
+            <CodeSnippet CssClass="language-csharp">
+// Tests/MediatorTests.cs
+using Moq;
+
+public class MediatorTests
+{
+    [Test]
+    public async Task Dispatch_Command_ShouldCallCorrectHandler()
+    {
+        // Arrange
+        var serviceProvider = new Mock&lt;IServiceProvider&gt;();
+        var handler = new Mock&lt;IRequestHandler&lt;TestCommand, string&gt;&gt;();
+        var command = new TestCommand();
+        
+        serviceProvider.Setup(x =&gt; x.GetService(typeof(IRequestHandler&lt;TestCommand, string&gt;)))
+                      .Returns(handler.Object);
+        
+        handler.Setup(x =&gt; x.Handle(command, It.IsAny&lt;CancellationToken&gt;()))
+               .ReturnsAsync("Success");
+        
+        var mediator = new Mediator(serviceProvider.Object);
+        
+        // Act
+        var result = await mediator.Dispatch(command);
+        
+        // Assert
+        Assert.That(result, Is.EqualTo("Success"));
+        handler.Verify(x =&gt; x.Handle(command, It.IsAny&lt;CancellationToken&gt;()), Times.Once);
+    }
+
+    public class TestCommand : IRequest&lt;string&gt; { }
+}
+            </CodeSnippet>
+
+            <h4>Migration Strategy</h4>
+
+            <p>
+                When migrating from MediatR to your custom mediator, follow this <ContentHighlight>incremental approach
+                </ContentHighlight>:
+            </p>
+
+            <ul>
+                <li><strong>Start Small</strong>: Begin with one feature area (like Client management)</li>
+                <li><strong>Replace Interfaces</strong>: Update <code>IRequest</code> and <code>IRequestHandler</code>
+                    usage</li>
+                <li><strong>Update Controllers</strong>: Replace <code>ISender</code>/<code>IMediator</code> with your
+                    <code>Mediator</code></li>
+                <li><strong>Test Thoroughly</strong>: Ensure all functionality works as expected</li>
+                <li><strong>Gradual Migration</strong>: Move other feature areas one by one</li>
+            </ul>
+
+            <h4>Performance Considerations</h4>
+
+            <p>
+                <ContentHighlight>Reflection-based dispatch</ContentHighlight> has minimal overhead in most
+                applications. For high-performance scenarios, consider:
+            </p>
+
+            <ul>
+                <li><strong>Handler Caching</strong>: Cache resolved handler types to avoid repeated reflection</li>
+                <li><strong>Source Generators</strong>: Use compile-time registration for zero-reflection dispatch</li>
+                <li><strong>Benchmarking</strong>: Measure actual performance impact in your specific use case</li>
+            </ul>
+        </How>
+
+        <Summary>
+            <p>
+                Replacing <ContentHighlight>MediatR</ContentHighlight> with a custom mediator implementation offers
+                significant benefits: zero external dependencies, complete control over the request pipeline, simplified
+                debugging, and educational value. The implementation is straightforward and maintains the same clean
+                architecture benefits while being perfectly tailored to your application's needs.
+            </p>
+            
+            <p>
+                This approach demonstrates that sometimes the best solution is building exactly what you need rather
+                than depending on external libraries. Your custom mediator will be simpler, more focused, and perfectly
+                suited to your application's requirements while maintaining all the architectural benefits of the
+                mediator pattern. This can also be extended with decorator patterns to add cross-cutting concerns like
+                logging, validation, or authorization without modifying the core mediator logic.
+            </p>
+        </Summary>
+    </ContentBody>
+</Content>

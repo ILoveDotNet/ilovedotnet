@@ -2,7 +2,7 @@
 
 public class WebAPILearningPath
 {
-  public readonly List<ContentMetaData> FullContents = new(22);
+  public readonly List<ContentMetaData> FullContents = new(23);
 
   public WebAPILearningPath()
   {
@@ -381,6 +381,23 @@ public class WebAPILearningPath
                 CreatedOn = new DateTime(2025, 5, 18, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2025, 5, 18, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Data Protection", "Encryption", "Decryption"]
+            },
+            new ContentMetaData
+            {
+                Order = 23,
+                Title = "Replacing MediatR with a Custom Mediator (Dynamic Dispatch) in WEB API",
+                Description = "How to replace MediatR with a small, custom mediator implementation using dynamic dispatch and automatic handler registration.",
+                Author = "Abdul Rahman",
+                Slug = "replacing-mediatr-with-custom-mediator-dynamic-dispatch-in-webapi",
+                PosterUrl = "image/blogs/webapi/replacing-mediatr-with-custom-mediator-dynamic-dispatch-in-webapi.webp",
+                ThumbnailUrl = "image/blogs/webapi/replacing-mediatr-with-custom-mediator-dynamic-dispatch-in-webapi.webp",
+                ContentUrl = "blogs/replacing-mediatr-with-custom-mediator-dynamic-dispatch-in-webapi",
+                IconUrl = "image/icons/web api.webp",
+                Channel = "Web API",
+                Type = "blogs",
+                CreatedOn = new DateTime(2025, 8, 17, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2025, 8, 17, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["MediatR", "Mediator", "DI", "Dynamic Dispatch"]
             },
         ];
   }

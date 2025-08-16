@@ -3,16 +3,16 @@
 public class TableOfContents
 {
   public const int PageSize = 6;
-        private readonly List<ContentMetaData> FullContents = new(146);
-  private readonly List<AuthorMetaData> FullAuthors = new(1);
-  private readonly List<SponsorMetaData> FullSponsors = new(1);
+  private readonly List<ContentMetaData> _fullContents = new(147);
+  private readonly List<AuthorMetaData> _fullAuthors = new(1);
+  private readonly List<SponsorMetaData> _fullSponsors = new(1);
 
-  public IReadOnlyList<ContentMetaData> AllContents => FullContents;
-  public IReadOnlyList<AuthorMetaData> Authors => FullAuthors;
-  public IReadOnlyList<SponsorMetaData> Sponsors => FullSponsors;
+  public IReadOnlyList<ContentMetaData> AllContents => _fullContents;
+  public IReadOnlyList<AuthorMetaData> Authors => _fullAuthors;
+  public IReadOnlyList<SponsorMetaData> Sponsors => _fullSponsors;
 
   public IReadOnlyList<ContentMetaData> Contents
-          => [.. FullContents.Where(content => content.ModifiedOn.Date <= DateTime.Today.Date)];
+          => [.. _fullContents.Where(content => content.ModifiedOn.Date <= DateTime.Today.Date)];
 
   public IReadOnlyList<ContentMetaData> FilteredAndPagedContents(string? selectedContentType = null, int skip = 0, int take = PageSize)
           => [.. Contents
@@ -22,15 +22,14 @@ public class TableOfContents
               .Take(skip..take)];
 
   public IReadOnlyList<string> AvailableContentTypes
-          => [.. FullContents
+          => [.. _fullContents
               .Select(content => content.Channel)
               .OrderBy(channel => channel)
               .Distinct()];
 
   public int SelectedContentTypeTotalCount(string? selectedContentType = null)
           => Contents
-              .Where(content => string.IsNullOrWhiteSpace(selectedContentType) || content.Channel.Equals(selectedContentType, StringComparison.OrdinalIgnoreCase))
-              .Count();
+              .Count(content => string.IsNullOrWhiteSpace(selectedContentType) || content.Channel.Equals(selectedContentType, StringComparison.OrdinalIgnoreCase));
 
   public IReadOnlyList<ContentMetaData> ExceptAndPagedContents(string slug, int skip = 0, int take = PageSize)
           => [.. Contents
@@ -40,44 +39,44 @@ public class TableOfContents
               .Take(skip..take)];
 
   public ContentMetaData GetContentBySlug(string slug)
-          => FullContents
+          => _fullContents
               .Single(content => content.Slug.Equals(slug, StringComparison.OrdinalIgnoreCase));
 
   public ushort GetTotalContentsCountBySlug(string slug)
-          => (ushort)FullContents
+          => (ushort)_fullContents
                       .Count(content => content.Channel.Equals(GetContentBySlug(slug).Channel, StringComparison.OrdinalIgnoreCase));
 
   public IReadOnlyList<ContentMetaData> GetContentsByChannel(string channel)
-          => [.. FullContents
+          => [.. _fullContents
                 .Where(content => content.Channel.Equals(channel, StringComparison.OrdinalIgnoreCase))
                 .OrderByDescending(content => content.ModifiedOn)
                 .ThenByDescending(content => content.CreatedOn)];
 
   public TableOfContents()
   {
-    FullContents.AddRange(new AILearningPath().FullContents);
-    FullContents.AddRange(new BlazorLearningPath().FullContents);
-    FullContents.AddRange(new DependencyInjectionLearningPath().FullContents);
-    FullContents.AddRange(new DesignPatternLearningPath().FullContents);
-    FullContents.AddRange(new HTTPClientLearningPath().FullContents);
-    FullContents.AddRange(new LINQLearningPath().FullContents);
-    FullContents.AddRange(new MAUILearningPath().FullContents);
-    FullContents.AddRange(new MiddlewareLearningPath().FullContents);
-    FullContents.AddRange(new MLNETLearningPath().FullContents);
-    FullContents.AddRange(new MSBuildLearningPath().FullContents);
-    FullContents.AddRange(new OOPSLearningPath().FullContents);
-    FullContents.AddRange(new OWASPLearningPath().FullContents);
-    FullContents.AddRange(new PythonLearningPath().FullContents);
-    FullContents.AddRange(new RegexLearningPath().FullContents);
-    FullContents.AddRange(new ReportLearningPath().FullContents);
-    FullContents.AddRange(new SecurityLearningPath().FullContents);
-    FullContents.AddRange(new SignalRLearningPath().FullContents);
-    FullContents.AddRange(new SOLIDLearningPath().FullContents);
-    FullContents.AddRange(new TalkLearningPath().FullContents);
-    FullContents.AddRange(new TDDLearningPath().FullContents);
-    FullContents.AddRange(new TestingLearningPath().FullContents);
-    FullContents.AddRange(new WebAPILearningPath().FullContents);
-    FullAuthors.AddRange(new Authors().FullAuthors);
-    FullSponsors.AddRange(new Sponsors().FullSponsors);
+    _fullContents.AddRange(new AILearningPath().FullContents);
+    _fullContents.AddRange(new BlazorLearningPath().FullContents);
+    _fullContents.AddRange(new DependencyInjectionLearningPath().FullContents);
+    _fullContents.AddRange(new DesignPatternLearningPath().FullContents);
+    _fullContents.AddRange(new HTTPClientLearningPath().FullContents);
+    _fullContents.AddRange(new LINQLearningPath().FullContents);
+    _fullContents.AddRange(new MAUILearningPath().FullContents);
+    _fullContents.AddRange(new MiddlewareLearningPath().FullContents);
+    _fullContents.AddRange(new MLNETLearningPath().FullContents);
+    _fullContents.AddRange(new MSBuildLearningPath().FullContents);
+    _fullContents.AddRange(new OOPSLearningPath().FullContents);
+    _fullContents.AddRange(new OWASPLearningPath().FullContents);
+    _fullContents.AddRange(new PythonLearningPath().FullContents);
+    _fullContents.AddRange(new RegexLearningPath().FullContents);
+    _fullContents.AddRange(new ReportLearningPath().FullContents);
+    _fullContents.AddRange(new SecurityLearningPath().FullContents);
+    _fullContents.AddRange(new SignalRLearningPath().FullContents);
+    _fullContents.AddRange(new SOLIDLearningPath().FullContents);
+    _fullContents.AddRange(new TalkLearningPath().FullContents);
+    _fullContents.AddRange(new TDDLearningPath().FullContents);
+    _fullContents.AddRange(new TestingLearningPath().FullContents);
+    _fullContents.AddRange(new WebAPILearningPath().FullContents);
+    _fullAuthors.AddRange(new Authors().FullAuthors);
+    _fullSponsors.AddRange(new Sponsors().FullSponsors);
   }
 }
