@@ -27,4 +27,17 @@
     </ItemGroup>
   </Target>
 
+  <Target Name="GeneratePoster" BeforeTargets="PreBuildEvent" Condition="'$(Configuration)'!='Release'">
+    <PropertyGroup>
+      <PosterOutputPath>$([System.IO.Path]::Combine('wwwroot', 'image', 'blogs', 'msbuild'))</PosterOutputPath>
+    </PropertyGroup>
+
+    <Exec Command="dotnet run --project &quot;$(ProjectDir)../PosterGenerator&quot; -p BuildScope=$(ProjectName) -o &quot;$(ProjectDir)$(PosterOutputPath)&quot; --channel &quot;MSBuild&quot;" />
+
+    <ItemGroup>
+      <Content Remove="$(PosterOutputPath)\**\*" />
+      <Content Include="$(PosterOutputPath)\**\*" />
+    </ItemGroup>
+  </Target>
+
 </Project>

@@ -133,13 +133,16 @@ public class PosterGenerator(TableOfContents tableOfContents,
             IsAntialias = true
         };
 
+        // Convert channel name to uppercase
+        var upperCaseChannel = channel.ToUpperInvariant();
+        
         var bounds = new SKRect();
-        font.MeasureText(channel, out bounds, paint);
+        font.MeasureText(upperCaseChannel, out bounds, paint);
         
         var x = PosterWidth - bounds.Width - 40;
         var y = 40 + Math.Abs(bounds.Top);
         
-        canvas.DrawText(channel, x, y, font, paint);
+        canvas.DrawText(upperCaseChannel, x, y, font, paint);
     }
 
     private void DrawWebsiteBrand(SKCanvas canvas)
