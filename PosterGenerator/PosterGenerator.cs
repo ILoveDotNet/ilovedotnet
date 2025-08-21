@@ -3,45 +3,34 @@ using SharedModels;
 
 namespace PosterGenerator;
 
-public class PosterGenerator
+public class PosterGenerator(TableOfContents tableOfContents,
+                             string channel,
+                             string outputPath)
 {
-    private readonly TableOfContents _tableOfContents;
-    private readonly string _channel;
-    private readonly string _outputPath;
-    
     // Poster dimensions optimized for social sharing
     private const int PosterWidth = 1200;
     private const int PosterHeight = 630;
     
-    // Brand colors
-    private readonly SKColor _violetBackground = SKColor.Parse("#512bd4");
+    // Brand colors for gradient
+    private readonly SKColor _blueStart = SKColor.Parse("#0b6cff");   // Blue start color
+    private readonly SKColor _violetEnd = SKColor.Parse("#512bd4");   // Violet end color
     private readonly SKColor _whiteText = SKColors.White;
-    
-    public PosterGenerator(TableOfContents tableOfContents, string channel, string outputPath)
-    {
-        _tableOfContents = tableOfContents;
-        _channel = channel;
-        _outputPath = outputPath;
-    }
 
-    public void GeneratePosters()
+  public void GeneratePosters()
     {
-        var channelContents = _tableOfContents
+        var channelContents = tableOfContents
             .AllContents
-            .Where(content => content.Channel.Equals(_channel, StringComparison.OrdinalIgnoreCase))
+            .Where(content => content.Channel.Equals(channel, StringComparison.OrdinalIgnoreCase))
             .ToList();
 
-        Console.WriteLine($"Generating posters for {channelContents.Count} articles in {_channel} channel...");
+        Console.WriteLine($"Generating posters for {channelContents.Count} articles in {channel} channel...");
 
         // Ensure output directory exists
-        Directory.CreateDirectory(_outputPath);
-
-        // Load logo once and reuse
-        using var logo = LoadLogo();
+        Directory.CreateDirectory(outputPath);
         
         foreach (var content in channelContents)
         {
-            var posterPath = Path.Combine(_outputPath, $"{content.Slug}.png");
+            var posterPath = Path.Combine(outputPath, $"{content.Slug}.png");
             
             // Skip if poster already exists and content hasn't been modified
             if (ShouldSkipGeneration(posterPath, content))
@@ -52,7 +41,7 @@ public class PosterGenerator
 
             try
             {
-                GeneratePoster(content, posterPath, logo);
+                GeneratePoster(content, posterPath);
                 Console.WriteLine($"Generated poster: {content.Slug}.png");
             }
             catch (Exception ex)
@@ -61,33 +50,53 @@ public class PosterGenerator
             }
         }
 
-        Console.WriteLine($"Poster generation completed for {_channel} channel.");
+        Console.WriteLine($"Poster generation completed for {channel} channel.");
     }
 
-    private bool ShouldSkipGeneration(string posterPath, ContentMetaData content)
+    private static bool ShouldSkipGeneration(string posterPath, ContentMetaData content)
     {
-        if (!File.Exists(posterPath))
+        var webpPath = Path.ChangeExtension(posterPath, ".webp");
+        
+        // Check if both PNG and WebP files exist
+        if (!File.Exists(posterPath) || !File.Exists(webpPath))
             return false;
 
-        var posterLastWrite = File.GetLastWriteTime(posterPath);
-        return posterLastWrite >= content.ModifiedOn;
+        // Check if both files are up to date
+        var pngLastWrite = File.GetLastWriteTime(posterPath);
+        var webpLastWrite = File.GetLastWriteTime(webpPath);
+        var earliestFileTime = pngLastWrite < webpLastWrite ? pngLastWrite : webpLastWrite;
+        
+        return earliestFileTime >= content.ModifiedOn;
     }
 
-    private void GeneratePoster(ContentMetaData content, string outputPath, SKBitmap? logo)
+    private void GeneratePoster(ContentMetaData content, string outputPath)
     {
-        using var surface = SKSurface.Create(new SKImageInfo(PosterWidth, PosterHeight));
+        // Create surface with RGB color type (no alpha) for better compression
+        var imageInfo = new SKImageInfo(PosterWidth, PosterHeight, SKColorType.Rgb888x, SKAlphaType.Opaque);
+        using var surface = SKSurface.Create(imageInfo);
         var canvas = surface.Canvas;
 
-        // Clear with violet background
-        canvas.Clear(_violetBackground);
-
-        // Draw logo in top-left
-        if (logo != null)
+        // Create linear gradient background from left to right
+        var gradientColors = new SKColor[] { _blueStart, _violetEnd };
+        var gradientPositions = new float[] { 0.1405f, 0.893f }; // 14.05% and 89.3% positions
+        using var gradientShader = SKShader.CreateLinearGradient(
+            new SKPoint(0, 0),           // Start point (left)
+            new SKPoint(PosterWidth, 0), // End point (right)
+            gradientColors,
+            gradientPositions,
+            SKShaderTileMode.Clamp
+        );
+        
+        using var gradientPaint = new SKPaint
         {
-            var logoSize = 80f;
-            var logoRect = SKRect.Create(40, 40, logoSize, logoSize);
-            canvas.DrawBitmap(logo, logoRect);
-        }
+            Shader = gradientShader
+        };
+        
+        // Fill background with gradient
+        canvas.DrawRect(0, 0, PosterWidth, PosterHeight, gradientPaint);
+        canvas.SetMatrix(SKMatrix.CreateIdentity()); // Ensure perfect pixel alignment
+
+        // Logo removed for cleaner poster design
 
         // Draw channel name in top-right
         DrawChannelName(canvas, content.Channel);
@@ -98,16 +107,26 @@ public class PosterGenerator
         // Draw title in center
         DrawTitle(canvas, content.Title);
 
-        // Save as PNG
+        // Save as PNG and WebP with optimized compression
         using var image = surface.Snapshot();
-        using var data = image.Encode(SKEncodedImageFormat.Png, 90);
-        using var stream = File.OpenWrite(outputPath);
-        data.SaveTo(stream);
+        
+        // Save PNG version with quality 50 (better balance for PNG)
+        using var pngData = image.Encode(SKEncodedImageFormat.Png, 50);
+        using var pngStream = File.OpenWrite(outputPath);
+        pngData.SaveTo(pngStream);
+        pngStream.Close();
+        
+        // Save WebP version with quality 25 (excellent compression)
+        var webpPath = Path.ChangeExtension(outputPath, ".webp");
+        using var webpData = image.Encode(SKEncodedImageFormat.Webp, 25);
+        using var webpStream = File.OpenWrite(webpPath);
+        webpData.SaveTo(webpStream);
+        webpStream.Close();
     }
 
     private void DrawChannelName(SKCanvas canvas, string channel)
     {
-        using var font = new SKFont(SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold), 32f);
+        using var font = new SKFont(SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold), 72f);
         using var paint = new SKPaint
         {
             Color = _whiteText,
@@ -132,19 +151,20 @@ public class PosterGenerator
             IsAntialias = true
         };
 
-        var brandText = "I ❤️ .NET";
+        var brandText = "https://ilovedotnet.org";
         var bounds = new SKRect();
         font.MeasureText(brandText, out bounds, paint);
         
-        var x = PosterWidth - bounds.Width - 40;
-        var y = 90 + Math.Abs(bounds.Top);
+        // Position in bottom-left corner
+        var x = 40f; // Left margin
+        var y = PosterHeight - 40f; // Bottom margin
         
         canvas.DrawText(brandText, x, y, font, paint);
     }
 
     private void DrawTitle(SKCanvas canvas, string title)
     {
-        using var font = new SKFont(SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold), 48f);
+        using var font = new SKFont(SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold), 54f);
         using var paint = new SKPaint
         {
             Color = _whiteText,
@@ -154,9 +174,11 @@ public class PosterGenerator
         // Calculate available width for text (with margins)
         var availableWidth = PosterWidth - 80f; // 40px margin on each side
         var maxLines = 4;
-        var lineHeight = 60f;
+        var lineHeight = 68f;
 
-        var wrappedLines = WrapText(title, font, paint, availableWidth, maxLines);
+        // Convert title to uppercase
+        var upperCaseTitle = title.ToUpperInvariant();
+        var wrappedLines = WrapText(upperCaseTitle, font, paint, availableWidth, maxLines);
         
         // Calculate total height of text block
         var totalTextHeight = wrappedLines.Count * lineHeight;
@@ -178,7 +200,7 @@ public class PosterGenerator
         }
     }
 
-    private List<string> WrapText(string text, SKFont font, SKPaint paint, float maxWidth, int maxLines)
+    private static List<string> WrapText(string text, SKFont font, SKPaint paint, float maxWidth, int maxLines)
     {
         var words = text.Split(' ');
         var lines = new List<string>();
@@ -214,46 +236,10 @@ public class PosterGenerator
         // If we exceeded max lines, add ellipsis to the last line
         if (lines.Count == maxLines && words.Length > lines.Sum(l => l.Split(' ').Length))
         {
-            lines[lines.Count - 1] = lines[lines.Count - 1].TrimEnd() + "...";
+            lines[^1] = lines[^1].TrimEnd() + "...";
         }
 
         return lines;
     }
 
-    private SKBitmap? LoadLogo()
-    {
-        // Try multiple possible logo paths
-        var possibleLogoPaths = new[]
-        {
-            // Path when running from build process
-            Path.Combine(
-                Path.GetDirectoryName(_outputPath) ?? "",
-                "..", "..", "..", "CommonComponents", "wwwroot", "image", "brand", "mini-logo.png"),
-            
-            // Path when running from project root
-            Path.Combine("CommonComponents", "wwwroot", "image", "brand", "mini-logo.png"),
-            
-            // Path relative to PosterGenerator project
-            Path.Combine("..", "CommonComponents", "wwwroot", "image", "brand", "mini-logo.png")
-        };
-
-        foreach (var logoPath in possibleLogoPaths)
-        {
-            if (File.Exists(logoPath))
-            {
-                try
-                {
-                    Console.WriteLine($"Loading logo from: {logoPath}");
-                    return SKBitmap.Decode(logoPath);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Warning: Could not load logo from {logoPath}: {ex.Message}");
-                }
-            }
-        }
-
-        Console.WriteLine($"Logo not found in any of the expected locations");
-        return null;
-    }
 }
