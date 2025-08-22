@@ -2,7 +2,7 @@ namespace SharedModels;
 
 public class SecurityLearningPath
 {
-  public readonly List<ContentMetaData> FullContents = new(5);
+  public readonly List<ContentMetaData> FullContents = new(6);
 
   public SecurityLearningPath()
   {
@@ -92,6 +92,23 @@ public class SecurityLearningPath
           CreatedOn = new DateTime(2025, 8, 24, 22, 30, 0, DateTimeKind.Utc),
           ModifiedOn = new DateTime(2025, 8, 24, 22, 30, 0, DateTimeKind.Utc),
           Keywords = ["Hashing", "Password Security", "SHA256", "Salt", "Pepper", "Digital Signatures", "PBKDF2", "Azure Key Vault", "Non-Repudiation", "Security", ".NET"]
+        },
+      new ContentMetaData
+        {
+          Order = 6,
+          Title = "Improve Data Security with Cryptographically Secure Random Generation in .NET",
+          Description = "Master secure random number generation in .NET: avoid predictable System.Random, implement secure OTPs, create bulletproof GUIDs, and protect against randomness attacks.",
+          Author = "Abdul Rahman",
+          Slug = "improve-data-security-with-cryptographically-secure-random-generation-in-dotnet",
+          PosterUrl = "image/blogs/security/improve-data-security-with-cryptographically-secure-random-generation-in-dotnet.webp",
+          ThumbnailUrl = "image/blogs/security/improve-data-security-with-cryptographically-secure-random-generation-in-dotnet.webp",
+          ContentUrl = "blogs/improve-data-security-with-cryptographically-secure-random-generation-in-dotnet",
+          IconUrl = "image/icons/security.webp",
+          Channel = "Security",
+          Type = "blogs",
+          CreatedOn = new DateTime(2025, 8, 31, 22, 30, 0, DateTimeKind.Utc),
+          ModifiedOn = new DateTime(2025, 8, 31, 22, 30, 0, DateTimeKind.Utc),
+          Keywords = ["Cryptographically Secure Random", "RandomNumberGenerator", "System.Random", "OTP", "GUID Security", "API Tokens", "Session Security", "Modulo Bias", "Security", ".NET"]
         }
     ];
   }
