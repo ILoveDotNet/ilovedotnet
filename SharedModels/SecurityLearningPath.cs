@@ -2,7 +2,7 @@ namespace SharedModels;
 
 public class SecurityLearningPath
 {
-  public readonly List<ContentMetaData> FullContents = new(4);
+  public readonly List<ContentMetaData> FullContents = new(5);
 
   public SecurityLearningPath()
   {
@@ -75,6 +75,23 @@ public class SecurityLearningPath
           CreatedOn = new DateTime(2025, 8, 10, 22, 30, 0, DateTimeKind.Utc),
           ModifiedOn = new DateTime(2025, 8, 10, 22, 30, 0, DateTimeKind.Utc),
           Keywords = ["Excessive Data Exposure", "DTO", "Role-Based Authorization", "Backups", "GDPR", "Security", ".NET"]
+        },
+      new ContentMetaData
+        {
+          Order = 5,
+          Title = "Improve Data Security with Hashing Techniques in .NET",
+          Description = "Master secure hashing in .NET: password hashing with ASP.NET Core Identity, SHA256 with salt and pepper, and digital signatures for non-repudiation.",
+          Author = "Abdul Rahman",
+          Slug = "improve-data-security-with-hashing-techniques-in-dotnet",
+          PosterUrl = "image/blogs/security/improve-data-security-with-hashing-techniques-in-dotnet.webp",
+          ThumbnailUrl = "image/blogs/security/improve-data-security-with-hashing-techniques-in-dotnet.webp",
+          ContentUrl = "blogs/improve-data-security-with-hashing-techniques-in-dotnet",
+          IconUrl = "image/icons/security.webp",
+          Channel = "Security",
+          Type = "blogs",
+          CreatedOn = new DateTime(2025, 8, 24, 22, 30, 0, DateTimeKind.Utc),
+          ModifiedOn = new DateTime(2025, 8, 24, 22, 30, 0, DateTimeKind.Utc),
+          Keywords = ["Hashing", "Password Security", "SHA256", "Salt", "Pepper", "Digital Signatures", "PBKDF2", "Azure Key Vault", "Non-Repudiation", "Security", ".NET"]
         }
     ];
   }

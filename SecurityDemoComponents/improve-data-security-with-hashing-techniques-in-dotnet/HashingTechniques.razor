@@ -1,0 +1,343 @@
+@page "/blogs/improve-data-security-with-hashing-techniques-in-dotnet"
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(HashingTechniques) UseNewTableOfContentsMenu=true>
+    <ContentBody>
+        <What>
+            <p>
+                Storing passwords in plain text is like leaving your house keys under the doormat with a neon sign pointing to them. 
+                In this article, let's explore <ContentHighlight>hashing techniques</ContentHighlight> in <ContentHighlight>.NET</ContentHighlight> - 
+                the one-way transformation that keeps sensitive data secure while still being usable for authentication and data integrity checks.
+            </p>
+            <p>
+                We'll cover secure password hashing with <ContentHighlight>ASP.NET Core Identity</ContentHighlight>, general data hashing with 
+                <ContentHighlight>SHA256</ContentHighlight>, salt and pepper strategies, and how to implement <ContentHighlight>digital signatures</ContentHighlight> 
+                for non-repudiation using Azure Key Vault.
+            </p>
+        </What>
+
+        <Why>
+            <p>
+                <ContentHighlight>Hashing</ContentHighlight> is fundamentally different from encryption - it's a <ContentHighlight>one-way transformation</ContentHighlight> 
+                where you never intend to get the original data back. This makes it perfect for scenarios like password storage, data integrity checks, 
+                and creating audit trails that protect sensitive information.
+            </p>
+            <p>
+                Here's why hashing matters for .NET developers:
+            </p>
+            <h4>Password Security Without Recovery</h4>
+            <p>
+                Unlike encryption, hashed passwords can't be "decrypted" back to their original form. When a user logs in, you hash their input 
+                and compare it to the stored hash - never storing or handling the actual password.
+            </p>
+            <h4>Data Integrity and Checksums</h4>
+            <p>
+                Hashing allows you to detect if data has been tampered with. The same input always produces the same hash, so any change in 
+                the original data results in a completely different hash value.
+            </p>
+            <h4>Compliance and Audit Requirements</h4>
+            <p>
+                Many regulatory frameworks require secure handling of sensitive data. Hashing PII in logs allows you to maintain traceability 
+                without exposing the actual personal information, and digital signatures ensure non-repudiation for audit purposes.
+            </p>
+            <p>
+                However, not all hashing approaches are created equal. Simple hashes are vulnerable to dictionary and rainbow table attacks, 
+                which is why we need salt, pepper, and proper hashing algorithms designed for security-critical scenarios.
+            </p>
+        </Why>
+
+        <How>
+            <p>
+                Let's implement secure hashing techniques in .NET, starting with the most critical use case - password hashing.
+            </p>
+
+            <h4>Step 1: Secure Password Hashing with PasswordHasher</h4>
+            <p>
+                <strong>Important:</strong> Never roll your own password hashing implementation. Use trusted solutions like 
+                <ContentHighlight>ASP.NET Core Identity</ContentHighlight> or external providers like Auth0. However, if you're working 
+                with legacy systems that need security improvements, here's how to use .NET's built-in <ContentHighlight>PasswordHasher</ContentHighlight>:
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+using Microsoft.AspNetCore.Identity;
+
+public class UserService
+{
+    private readonly PasswordHasher&lt;User&gt; _passwordHasher;
+
+    public UserService()
+    {
+        _passwordHasher = new PasswordHasher&lt;User&gt;();
+    }
+
+    public string HashPassword(User user, string password)
+    {
+        // This automatically generates a random salt and uses PBKDF2
+        return _passwordHasher.HashPassword(user, password);
+    }
+
+    public PasswordVerificationResult VerifyPassword(User user, string hashedPassword, string providedPassword)
+    {
+        // This extracts the salt from the hash and verifies the password
+        return _passwordHasher.VerifyHashedPassword(user, hashedPassword, providedPassword);
+    }
+}
+
+public class User
+{
+    public int Id { get; set; }
+    public string Username { get; set; }
+    public string Email { get; set; }
+}
+</CodeSnippet>
+            <p>
+                The <ContentHighlight>PasswordHasher</ContentHighlight> internally uses <ContentHighlight>PBKDF2</ContentHighlight> 
+                (Password-Based Key Derivation Function 2) with HMACSHA256, automatically generates random salts, and provides a simple interface 
+                that handles all the complexity for you.
+            </p>
+
+            <h4>Step 2: General Data Hashing with SHA256</h4>
+            <p>
+                For non-password data that needs hashing (like creating checksums or anonymizing PII in logs), you can use SHA256:
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+using System.Security.Cryptography;
+using System.Text;
+
+[ApiController]
+[Route("api/[controller]")]
+public class HashingController : ControllerBase
+{
+    [HttpPost("hash")]
+    public IActionResult HashData([FromBody] string inputData)
+    {
+        // Convert string to byte array
+        byte[] inputBytes = Encoding.UTF8.GetBytes(inputData);
+        
+        // Create SHA256 hash
+        byte[] hashBytes = SHA256.HashData(inputBytes);
+        
+        // Convert to human-readable Base64 format
+        string base64Hash = Convert.ToBase64String(hashBytes);
+        
+        return Ok(new { Hash = base64Hash });
+    }
+}
+</CodeSnippet>
+            <p>
+                <strong>Warning:</strong> This basic approach is vulnerable to dictionary attacks. If someone has the hash and 
+                suspects the input was a common word or pattern, they can easily brute-force it.
+            </p>
+
+            <h4>Step 3: Adding Salt and Pepper for Enhanced Security</h4>
+            <p>
+                To make hashes more secure against dictionary and rainbow table attacks, add <ContentHighlight>salt</ContentHighlight> 
+                (unique per data item) and <ContentHighlight>pepper</ContentHighlight> (application-wide secret):
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+using System.Security.Cryptography;
+using System.Text;
+
+public class SecureHashingService
+{
+    private readonly string _pepper = "your-application-specific-secret-pepper"; // Store this in configuration
+
+    public string CreateSecureHash(string data, string salt)
+    {
+        // Combine data with salt (unique per item) and pepper (application-wide)
+        string saltedData = $"{salt}{data}{_pepper}";
+        
+        byte[] inputBytes = Encoding.UTF8.GetBytes(saltedData);
+        byte[] hashBytes = SHA256.HashData(inputBytes);
+        
+        return Convert.ToBase64String(hashBytes);
+    }
+
+    public string HashUserDataForLogging(int userId, string sensitiveData)
+    {
+        // Use user ID as salt - this makes each hash unique even for identical data
+        string salt = userId.ToString();
+        return CreateSecureHash(sensitiveData, salt);
+    }
+
+    public string CreateDataChecksum(string data)
+    {
+        // For checksums, you might use a timestamp or GUID as salt
+        string salt = Guid.NewGuid().ToString();
+        return CreateSecureHash(data, salt);
+    }
+}
+</CodeSnippet>
+            <p>
+                The <ContentHighlight>salt</ContentHighlight> should be unique per data item (like a user ID or GUID), while the 
+                <ContentHighlight>pepper</ContentHighlight> is a application-wide secret stored in configuration. This combination 
+                makes dictionary attacks exponentially more difficult because in case an attacker gets access to the database, they 
+                still need to know the pepper value to successfully brute-force the hashes.
+            </p>
+
+            <h4>Step 4: Digital Signatures for Non-Repudiation</h4>
+            <p>
+                For audit logs and compliance requirements, you need to ensure data hasn't been tampered with after creation. 
+                Simple hashing isn't enough because an attacker could modify the data and recalculate the hash. Instead, use 
+                <ContentHighlight>digital signatures</ContentHighlight> with Azure Key Vault:
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+using Azure.Identity;
+using Azure.Security.KeyVault.Keys.Cryptography;
+using System.Security.Cryptography;
+using System.Text;
+
+public class AuditSigningService
+{
+    private readonly CryptographyClient _cryptoClient;
+
+    public AuditSigningService(IConfiguration configuration)
+    {
+        var keyVaultUrl = configuration["AzureKeyVault:Url"];
+        var keyName = configuration["AzureKeyVault:SigningKeyName"];
+        
+        var credential = new DefaultAzureCredential();
+        var keyClient = new KeyClient(new Uri(keyVaultUrl), credential);
+        var key = keyClient.GetKey(keyName);
+        
+        _cryptoClient = new CryptographyClient(key.Value.Id, credential);
+    }
+
+    public async Task&lt;string&gt; SignAuditLog(string logData)
+    {
+        // Create SHA256 hash of the log data (this becomes our digest)
+        byte[] dataBytes = Encoding.UTF8.GetBytes(logData);
+        byte[] digest = SHA256.HashData(dataBytes);
+        
+        // Sign the digest using the private key in Key Vault
+        SignResult result = await _cryptoClient.SignDataAsync(
+            SignatureAlgorithm.RS256, 
+            digest);
+        
+        // Return the signature as Base64 string
+        return Convert.ToBase64String(result.Signature);
+    }
+
+    public async Task&lt;bool&gt; VerifyAuditLog(string logData, string signature)
+    {
+        try
+        {
+            // Recreate the digest from the log data
+            byte[] dataBytes = Encoding.UTF8.GetBytes(logData);
+            byte[] digest = SHA256.HashData(dataBytes);
+            
+            // Verify the signature against the digest
+            byte[] signatureBytes = Convert.FromBase64String(signature);
+            VerifyResult result = await _cryptoClient.VerifyDataAsync(
+                SignatureAlgorithm.RS256, 
+                digest, 
+                signatureBytes);
+            
+            return result.IsValid;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+}
+</CodeSnippet>
+
+            <h4>Step 5: Practical Implementation Example</h4>
+            <p>
+                Here's how you might use these techniques together in a real application:
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+public class UserManagementService
+{
+    private readonly PasswordHasher&lt;User&gt; _passwordHasher;
+    private readonly SecureHashingService _hashingService;
+    private readonly AuditSigningService _auditService;
+    private readonly ILogger&lt;UserManagementService&gt; _logger;
+
+    public UserManagementService(
+        SecureHashingService hashingService,
+        AuditSigningService auditService,
+        ILogger&lt;UserManagementService&gt; logger)
+    {
+        _passwordHasher = new PasswordHasher&lt;User&gt;();
+        _hashingService = hashingService;
+        _auditService = auditService;
+        _logger = logger;
+    }
+
+    public async Task&lt;User&gt; CreateUserAsync(string username, string email, string password)
+    {
+        var user = new User
+        {
+            Username = username,
+            Email = email
+        };
+
+        // Hash the password securely
+        user.PasswordHash = _passwordHasher.HashPassword(user, password);
+
+        // Hash PII for secure logging
+        string hashedEmail = _hashingService.HashUserDataForLogging(user.Id, email);
+        
+        // Create audit log entry
+        string auditLog = $"User created: {user.Id}, Email Hash: {hashedEmail}";
+        string signature = await _auditService.SignAuditLog(auditLog);
+        
+        // Log without exposing PII
+        _logger.LogInformation("User created with ID {UserId}, Email Hash: {EmailHash}, Signature: {Signature}", 
+            user.Id, hashedEmail, signature);
+
+        return user;
+    }
+
+    public async Task&lt;bool&gt; ValidatePasswordAsync(User user, string password)
+    {
+        var result = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, password);
+        
+        // Log authentication attempt
+        string auditLog = $"Authentication attempt for user {user.Id}: {result}";
+        string signature = await _auditService.SignAuditLog(auditLog);
+        
+        _logger.LogInformation("Authentication attempt for user {UserId}: {Result}, Signature: {Signature}", 
+            user.Id, result, signature);
+
+        return result == PasswordVerificationResult.Success;
+    }
+}
+</CodeSnippet>
+
+            <h4>Best Practices and Security Considerations</h4>
+            <p>
+                When implementing hashing in production:
+            </p>
+            <ul>
+                <li><strong>Avoid MD5:</strong> It's cryptographically broken and vulnerable to attacks</li>
+                <li><strong>Use SHA256 or better:</strong> For general hashing, SHA256 is currently secure</li>
+                <li><strong>Always use salt:</strong> Unique per data item to prevent rainbow table attacks</li>
+                <li><strong>Consider pepper:</strong> Application-wide secret for additional security</li>
+                <li><strong>Store secrets securely:</strong> Use Azure Key Vault or similar for keys and peppers</li>
+                <li><strong>Understand the difference:</strong> Hashing ≠ anonymization; hashing ≠ encryption</li>
+                <li><strong>Performance considerations:</strong> Hashing is computationally expensive; consider caching when appropriate</li>
+            </ul>
+        </How>
+
+        <Summary>
+            <p>
+                In this article, we explored the essential <ContentHighlight>hashing techniques</ContentHighlight> that every .NET developer 
+                should understand. We covered the critical difference between hashing and encryption, implemented secure password hashing with 
+                <ContentHighlight>PasswordHasher</ContentHighlight>, and learned how to protect against dictionary attacks using salt and pepper strategies.
+            </p>
+            <p>
+                Key takeaways include using <ContentHighlight>ASP.NET Core Identity</ContentHighlight> for password management rather than 
+                rolling your own solution, implementing proper salt and pepper techniques for general data hashing, and leveraging 
+                <ContentHighlight>Azure Key Vault</ContentHighlight> for digital signatures that ensure non-repudiation in audit logs.
+            </p>
+            <p>
+                Remember: hashing is a powerful one-way transformation that, when implemented correctly with proper salting and secure algorithms, 
+                provides robust protection for sensitive data while maintaining the ability to verify integrity and authenticate users. 
+                The investment in proper hashing techniques pays dividends in security, compliance, and peace of mind.
+            </p>
+        </Summary>
+    </ContentBody>
+</Content>
