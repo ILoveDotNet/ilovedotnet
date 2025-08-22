@@ -1,0 +1,60 @@
+@using System.Security.Cryptography
+@using System.Text
+
+<div class="[ flex flex-col ] [ space-y-4 ]">
+    <div class="[ flex ]">
+        <input class="[ basis-5/6 ] [ w-full ] [ px-2 py-1 ] [ border-2 border-gray-200 ] [ focus:outline-hidden focus:border-gray-400 ] [ dark:bg-black dark:border-gray-800 dark:focus:border-b-white dark:md:focus:border-blue-800 dark:caret-white dark:text-white ]" 
+               placeholder="Enter data to hash with salt"
+               @bind-value="inputData"
+               @bind-value:event="oninput" />
+        <button class="[ basis-1/6 ] [ bg-fuchsia-500 ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ] [ justify-center ]" 
+                disabled="@(string.IsNullOrWhiteSpace(inputData))"
+                @onclick="GenerateSaltedHash">
+            <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icons-tabler-outline icon-tabler-salt ] [ text-white ]" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                <path d="M12 13m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" />
+                <path d="M12 10l0 -7" />
+                <path d="M9 7l3 -3l3 3" />
+                <path d="M8.5 17l7 0" />
+                <path d="M8.5 20l7 0" />
+            </svg>
+        </button>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(saltedHash))
+{
+    <div class="[ mt-4 ]">
+        <div><strong>Input:</strong> @inputData</div>
+        <div><strong>Salt:</strong> @salt</div>
+        <div><strong>Pepper:</strong> @pepper</div>
+        <div><strong>Salted Hash:</strong> @saltedHash</div>
+    </div>
+}
+
+@code {
+    private string saltedHash = string.Empty;
+    private string? inputData;
+    private string salt = string.Empty;
+    private readonly string pepper = "app-secret-pepper";
+
+    private void GenerateSaltedHash()
+    {
+        if (string.IsNullOrWhiteSpace(inputData))
+            return;
+            
+        // Generate random salt
+        salt = Guid.NewGuid().ToString()[..8];
+        
+        // Combine data with salt and pepper
+        string saltedData = $"{salt}{inputData}{pepper}";
+        
+        // Create SHA256 hash
+        byte[] inputBytes = Encoding.UTF8.GetBytes(saltedData);
+        byte[] hashBytes = SHA256.HashData(inputBytes);
+        
+        // Convert to Base64 format
+        saltedHash = Convert.ToBase64String(hashBytes);
+        StateHasChanged();
+    }
+}

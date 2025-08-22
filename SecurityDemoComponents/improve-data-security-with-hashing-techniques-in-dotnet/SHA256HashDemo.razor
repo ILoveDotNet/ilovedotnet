@@ -1,0 +1,51 @@
+@using System.Security.Cryptography
+@using System.Text
+
+<div class="[ flex flex-col ] [ space-y-4 ]">
+    <div class="[ flex ]">
+        <input class="[ basis-5/6 ] [ w-full ] [ px-2 py-1 ] [ border-2 border-gray-200 ] [ focus:outline-hidden focus:border-gray-400 ] [ dark:bg-black dark:border-gray-800 dark:focus:border-b-white dark:md:focus:border-blue-800 dark:caret-white dark:text-white ]" 
+               placeholder="Enter text to hash"
+               @bind-value="inputText"
+               @bind-value:event="oninput" />
+        <button class="[ basis-1/6 ] [ bg-fuchsia-500 ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ] [ justify-center ]" 
+                disabled="@(string.IsNullOrWhiteSpace(inputText))"
+                @onclick="GenerateSHA256Hash">
+            <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icons-tabler-outline icon-tabler-hash ] [ text-white ]" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                <path d="M5 9l14 0" />
+                <path d="M5 15l14 0" />
+                <path d="M11 4l-4 16" />
+                <path d="M17 4l-4 16" />
+            </svg>
+        </button>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(hashedData))
+{
+    <div class="[ mt-4 ]">
+        <div><strong>Input:</strong> @inputText</div>
+        <div><strong>SHA256 Hash:</strong> @hashedData</div>
+    </div>
+}
+
+@code {
+    private string hashedData = string.Empty;
+    private string? inputText;
+
+    private void GenerateSHA256Hash()
+    {
+        if (string.IsNullOrWhiteSpace(inputText))
+            return;
+            
+        // Convert string to byte array
+        byte[] inputBytes = Encoding.UTF8.GetBytes(inputText);
+        
+        // Create SHA256 hash
+        byte[] hashBytes = SHA256.HashData(inputBytes);
+        
+        // Convert to Base64 format
+        hashedData = Convert.ToBase64String(hashBytes);
+        StateHasChanged();
+    }
+}
