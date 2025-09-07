@@ -3,7 +3,7 @@
 public class TableOfContents
 {
   public const int PageSize = 6;
-  private readonly List<ContentMetaData> _fullContents = new(150);
+  private readonly List<ContentMetaData> _fullContents = new(155);
   private readonly List<AuthorMetaData> _fullAuthors = new(1);
   private readonly List<SponsorMetaData> _fullSponsors = new(1);
 

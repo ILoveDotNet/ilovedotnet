@@ -1,0 +1,444 @@
+@page "/blogs/dependency-injection-ambient-context-antipattern-in-dotnet"
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(AmbientContextAntipattern) UseNewTableOfContentsMenu=true>
+    <ContentBody>
+        <What>
+            <p>
+                The <ContentHighlight>Ambient Context</ContentHighlight> is a subtle anti-pattern in dependency injection that appears when 
+                you access contextual information through static properties or thread-local storage instead of explicitly injecting dependencies. 
+                In this article, let's learn about the <ContentHighlight>Ambient Context anti-pattern</ContentHighlight> in .NET and understand 
+                why it undermines the benefits of proper <ContentHighlight>Dependency Injection</ContentHighlight>.
+            </p>
+        </What>
+
+        <Why>
+            <p>
+                The <ContentHighlight>Ambient Context anti-pattern</ContentHighlight> occurs when classes access contextual information 
+                (like current user, request data, or configuration) through static accessors instead of receiving them as explicit dependencies. 
+                While this pattern provides convenient access to context information, it creates several serious problems.
+            </p>
+
+            <p>
+                Common examples include accessing <ContentHighlight>HttpContext.Current</ContentHighlight>, 
+                <ContentHighlight>Thread.CurrentPrincipal</ContentHighlight>, or custom static context holders. 
+                These seem convenient but introduce hidden dependencies and make testing extremely difficult.
+            </p>
+
+            <h4>Why Ambient Context is Problematic</h4>
+
+            <p>
+                Ambient Context creates several issues:
+            </p>
+
+            <ul>
+                <li><ContentHighlight>Hidden dependencies</ContentHighlight> - Context access is not visible in the class interface</li>
+                <li><ContentHighlight>Non-deterministic behavior</ContentHighlight> - Context might not be available when expected</li>
+                <li><ContentHighlight>Threading issues</ContentHighlight> - Thread-local storage can cause unpredictable behavior</li>
+                <li><ContentHighlight>Testing difficulties</ContentHighlight> - Hard to control context during unit tests</li>
+                <li><ContentHighlight>Temporal coupling</ContentHighlight> - Code assumes context is available at specific times</li>
+                <li><ContentHighlight>Reduced reusability</ContentHighlight> - Classes become tied to specific runtime environments</li>
+            </ul>
+        </Why>
+
+        <How>
+            <h4>Example: OrderService Using Ambient Context</h4>
+
+            <p>
+                Here's a typical example of the Ambient Context anti-pattern using HttpContext access:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// Ambient Context - accessing current user through static property
+public class OrderService
+{
+    private readonly IOrderRepository orderRepository;
+    
+    public OrderService(IOrderRepository orderRepository)
+    {
+        this.orderRepository = orderRepository;
+    }
+    
+    public async Task&lt;Order&gt; CreateOrderAsync(CreateOrderRequest request)
+    {
+        // Ambient Context anti-pattern - hidden dependency on HttpContext
+        var currentUser = HttpContext.Current?.User?.Identity?.Name;
+        if (string.IsNullOrEmpty(currentUser))
+            throw new InvalidOperationException("User context not available");
+        
+        var order = new Order
+        {
+            UserId = currentUser,
+            Items = request.Items,
+            CreatedAt = DateTime.UtcNow
+        };
+        
+        return await orderRepository.SaveAsync(order);
+    }
+    
+    public async Task&lt;IEnumerable&lt;Order&gt;&gt; GetUserOrdersAsync()
+    {
+        // Another hidden dependency on ambient context
+        var currentUser = HttpContext.Current?.User?.Identity?.Name;
+        if (string.IsNullOrEmpty(currentUser))
+            throw new InvalidOperationException("User context not available");
+            
+        return await orderRepository.GetOrdersByUserAsync(currentUser);
+    }
+}
+            </CodeSnippet>
+
+            <h4>Another Example: Configuration Through Ambient Context</h4>
+
+            <p>
+                Here's another common pattern using static configuration access:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// Static configuration accessor
+public static class AppConfig
+{
+    public static string ConnectionString =&gt; 
+        ConfigurationManager.ConnectionStrings["DefaultConnection"]?.ConnectionString;
+    
+    public static int MaxRetryAttempts =&gt; 
+        int.Parse(ConfigurationManager.AppSettings["MaxRetryAttempts"] ?? "3");
+}
+
+// Service using ambient context for configuration
+public class EmailService
+{
+    public async Task SendEmailAsync(string to, string subject, string body)
+    {
+        // Hidden dependency on ambient configuration
+        var smtpServer = AppConfig.SmtpServer;
+        var smtpPort = AppConfig.SmtpPort;
+        var maxRetries = AppConfig.MaxRetryAttempts;
+        
+        using var client = new SmtpClient(smtpServer, smtpPort);
+        
+        var attempt = 0;
+        while (attempt &lt; maxRetries)
+        {
+            try
+            {
+                await client.SendMailAsync(to, "noreply@company.com", subject, body);
+                break;
+            }
+            catch (SmtpException) when (attempt &lt; maxRetries - 1)
+            {
+                attempt++;
+                await Task.Delay(1000 * attempt); // Exponential backoff
+            }
+        }
+    }
+}
+            </CodeSnippet>
+
+            <h4>Problems with Ambient Context Approach</h4>
+
+            <p>
+                <strong>1. Hidden Dependencies</strong>
+            </p>
+
+            <p>
+                The <ContentHighlight>OrderService</ContentHighlight> constructor doesn't reveal that it depends on HttpContext. 
+                You can't tell what the class needs just by looking at its public interface.
+            </p>
+
+            <p>
+                <strong>2. Testing Difficulties</strong>
+            </p>
+
+            <p>
+                Unit testing becomes complex because you must set up the ambient context:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+[Test]
+public async Task CreateOrderAsync_WithValidRequest_CreatesOrder()
+{
+    // Difficult to set up HttpContext for testing
+    var httpContext = new DefaultHttpContext();
+    httpContext.User = new ClaimsPrincipal(new ClaimsIdentity(new[]
+    {
+        new Claim(ClaimTypes.Name, "testuser@example.com")
+    }));
+    
+    // This is problematic - setting static/global state
+    HttpContext.Current = httpContext;
+    
+    try
+    {
+        // Arrange
+        var mockRepository = new Mock&lt;IOrderRepository&gt;();
+        var orderService = new OrderService(mockRepository.Object);
+        var request = new CreateOrderRequest { Items = new[] { "Item1", "Item2" } };
+        
+        // Act
+        var result = await orderService.CreateOrderAsync(request);
+        
+        // Assert
+        Assert.AreEqual("testuser@example.com", result.UserId);
+    }
+    finally
+    {
+        // Clean up global state
+        HttpContext.Current = null;
+    }
+}
+            </CodeSnippet>
+
+            <p>
+                <strong>3. Threading and Concurrency Issues</strong>
+            </p>
+
+            <p>
+                Thread-local storage can cause unpredictable behavior in async scenarios:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// Problematic: Thread-local ambient context
+public static class UserContext
+{
+    private static readonly ThreadLocal&lt;string&gt; currentUserId = new ThreadLocal&lt;string&gt;();
+    
+    public static string CurrentUserId
+    {
+        get =&gt; currentUserId.Value;
+        set =&gt; currentUserId.Value = value;
+    }
+}
+
+// This can fail in async scenarios where execution continues on different threads
+public async Task ProcessOrderAsync()
+{
+    UserContext.CurrentUserId = "user123";
+    
+    // After await, execution might continue on a different thread
+    // where UserContext.CurrentUserId is null!
+    await SomeAsyncOperation();
+    
+    var userId = UserContext.CurrentUserId; // Might be null!
+}
+            </CodeSnippet>
+
+            <h4>Refactoring from Ambient Context to Proper DI</h4>
+
+            <p>
+                The solution is to explicitly inject the required context as dependencies:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// Create explicit abstractions for context information
+public interface IUserContext
+{
+    string GetCurrentUserId();
+    bool IsAuthenticated { get; }
+}
+
+public interface IEmailConfiguration
+{
+    string SmtpServer { get; }
+    int SmtpPort { get; }
+    int MaxRetryAttempts { get; }
+}
+
+// Refactored OrderService with explicit dependencies
+public class OrderService
+{
+    private readonly IOrderRepository orderRepository;
+    private readonly IUserContext userContext;
+    
+    public OrderService(IOrderRepository orderRepository, IUserContext userContext)
+    {
+        this.orderRepository = orderRepository ?? throw new ArgumentNullException(nameof(orderRepository));
+        this.userContext = userContext ?? throw new ArgumentNullException(nameof(userContext));
+    }
+    
+    public async Task&lt;Order&gt; CreateOrderAsync(CreateOrderRequest request)
+    {
+        if (!userContext.IsAuthenticated)
+            throw new UnauthorizedAccessException("User must be authenticated");
+        
+        var currentUser = userContext.GetCurrentUserId();
+        
+        var order = new Order
+        {
+            UserId = currentUser,
+            Items = request.Items,
+            CreatedAt = DateTime.UtcNow
+        };
+        
+        return await orderRepository.SaveAsync(order);
+    }
+    
+    public async Task&lt;IEnumerable&lt;Order&gt;&gt; GetUserOrdersAsync()
+    {
+        if (!userContext.IsAuthenticated)
+            throw new UnauthorizedAccessException("User must be authenticated");
+            
+        var currentUser = userContext.GetCurrentUserId();
+        return await orderRepository.GetOrdersByUserAsync(currentUser);
+    }
+}
+
+// Refactored EmailService with explicit configuration dependency
+public class EmailService
+{
+    private readonly IEmailConfiguration config;
+    
+    public EmailService(IEmailConfiguration config)
+    {
+        this.config = config ?? throw new ArgumentNullException(nameof(config));
+    }
+    
+    public async Task SendEmailAsync(string to, string subject, string body)
+    {
+        using var client = new SmtpClient(config.SmtpServer, config.SmtpPort);
+        
+        var attempt = 0;
+        while (attempt &lt; config.MaxRetryAttempts)
+        {
+            try
+            {
+                await client.SendMailAsync(to, "noreply@company.com", subject, body);
+                break;
+            }
+            catch (SmtpException) when (attempt &lt; config.MaxRetryAttempts - 1)
+            {
+                attempt++;
+                await Task.Delay(1000 * attempt);
+            }
+        }
+    }
+}
+            </CodeSnippet>
+
+            <h4>Implementation of Context Abstractions</h4>
+
+            <p>
+                Here's how you might implement the context abstractions:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// ASP.NET Core implementation
+public class HttpUserContext : IUserContext
+{
+    private readonly IHttpContextAccessor httpContextAccessor;
+    
+    public HttpUserContext(IHttpContextAccessor httpContextAccessor)
+    {
+        this.httpContextAccessor = httpContextAccessor;
+    }
+    
+    public string GetCurrentUserId()
+    {
+        var httpContext = httpContextAccessor.HttpContext;
+        return httpContext?.User?.Identity?.Name ?? 
+               throw new InvalidOperationException("No authenticated user found");
+    }
+    
+    public bool IsAuthenticated =&gt; 
+        httpContextAccessor.HttpContext?.User?.Identity?.IsAuthenticated ?? false;
+}
+
+// Configuration implementation
+public class EmailConfiguration : IEmailConfiguration
+{
+    private readonly IConfiguration configuration;
+    
+    public EmailConfiguration(IConfiguration configuration)
+    {
+        this.configuration = configuration;
+    }
+    
+    public string SmtpServer =&gt; configuration["Email:SmtpServer"];
+    public int SmtpPort =&gt; int.Parse(configuration["Email:SmtpPort"]);
+    public int MaxRetryAttempts =&gt; int.Parse(configuration["Email:MaxRetryAttempts"]);
+}
+            </CodeSnippet>
+
+            <h4>Registration in DI Container</h4>
+
+            <CodeSnippet CssClass="language-csharp">
+// In Program.cs or Startup.cs
+public void ConfigureServices(IServiceCollection services)
+{
+    // Register the abstractions and implementations
+    services.AddHttpContextAccessor(); // Required for HttpUserContext
+    services.AddScoped&lt;IUserContext, HttpUserContext&gt;();
+    services.AddSingleton&lt;IEmailConfiguration, EmailConfiguration&gt;();
+    
+    // Register your services
+    services.AddScoped&lt;IOrderRepository, SqlOrderRepository&gt;();
+    services.AddScoped&lt;OrderService&gt;();
+    services.AddScoped&lt;EmailService&gt;();
+}
+            </CodeSnippet>
+
+            <h4>Easy Unit Testing</h4>
+
+            <p>
+                With explicit dependencies, testing becomes straightforward:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+[Test]
+public async Task CreateOrderAsync_WithAuthenticatedUser_CreatesOrder()
+{
+    // Arrange - Clean and simple
+    var mockRepository = new Mock&lt;IOrderRepository&gt;();
+    var mockUserContext = new Mock&lt;IUserContext&gt;();
+    
+    mockUserContext.Setup(x =&gt; x.IsAuthenticated).Returns(true);
+    mockUserContext.Setup(x =&gt; x.GetCurrentUserId()).Returns("testuser@example.com");
+    
+    var orderService = new OrderService(mockRepository.Object, mockUserContext.Object);
+    var request = new CreateOrderRequest { Items = new[] { "Item1", "Item2" } };
+    
+    // Act
+    var result = await orderService.CreateOrderAsync(request);
+    
+    // Assert
+    Assert.AreEqual("testuser@example.com", result.UserId);
+    mockRepository.Verify(r =&gt; r.SaveAsync(It.IsAny&lt;Order&gt;()), Times.Once);
+}
+
+[Test]
+public async Task CreateOrderAsync_WithUnauthenticatedUser_ThrowsException()
+{
+    // Arrange
+    var mockRepository = new Mock&lt;IOrderRepository&gt;();
+    var mockUserContext = new Mock&lt;IUserContext&gt;();
+    
+    mockUserContext.Setup(x =&gt; x.IsAuthenticated).Returns(false);
+    
+    var orderService = new OrderService(mockRepository.Object, mockUserContext.Object);
+    var request = new CreateOrderRequest { Items = new[] { "Item1" } };
+    
+    // Act &amp; Assert
+    await Assert.ThrowsAsync&lt;UnauthorizedAccessException&gt;(
+        () =&gt; orderService.CreateOrderAsync(request)
+    );
+}
+            </CodeSnippet>
+        </How>
+
+        <Summary>
+            <p>
+                The <ContentHighlight>Ambient Context anti-pattern</ContentHighlight> creates hidden dependencies and makes code difficult to test 
+                and reason about. While accessing context through static properties might seem convenient, it introduces non-deterministic behavior, 
+                threading issues, and tight coupling to specific runtime environments.
+            </p>
+
+            <p>
+                The solution is to create explicit abstractions for contextual information and inject them as dependencies through 
+                <ContentHighlight>Constructor Injection</ContentHighlight>. This approach makes dependencies visible, enables easy unit testing, 
+                eliminates threading issues, and improves code reusability. Remember: if your class needs contextual information, make it an 
+                explicit dependency rather than hiding it behind static accessors.
+            </p>
+        </Summary>
+    </ContentBody>
+</Content>

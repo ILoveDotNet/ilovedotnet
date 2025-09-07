@@ -1,0 +1,646 @@
+@page "/blogs/dependency-injection-constructor-over-injection-antipattern-in-dotnet"
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(ConstructorOverInjectionAntipattern) UseNewTableOfContentsMenu=true>
+    <ContentBody>
+        <What>
+            <p>
+                The <ContentHighlight>Constructor Over-injection</ContentHighlight> anti-pattern occurs when a class requires too many dependencies 
+                through its constructor, making it unwieldy and indicating potential design problems. While dependency injection promotes explicit 
+                dependencies, having too many can signal that a class is doing too much. In this article, let's learn about the 
+                <ContentHighlight>Constructor Over-injection anti-pattern</ContentHighlight> in .NET and understand when many dependencies 
+                become a problem and how to address it.
+            </p>
+        </What>
+
+        <Why>
+            <p>
+                The <ContentHighlight>Constructor Over-injection anti-pattern</ContentHighlight> is characterized by constructors that accept 
+                an excessive number of dependencies - typically more than 3-4 parameters. While there's no hard rule about the exact number, 
+                when a constructor becomes unwieldy with many parameters, it often indicates that the class is violating the 
+                <ContentHighlight>Single Responsibility Principle</ContentHighlight> and trying to do too much.
+            </p>
+
+            <p>
+                Unlike other anti-patterns, Constructor Over-injection is more of a design smell that suggests deeper architectural issues. 
+                The problem isn't with dependency injection itself, but rather with the class design that necessitates so many dependencies.
+            </p>
+
+            <h4>Why Constructor Over-injection is Problematic</h4>
+
+            <p>
+                Constructor Over-injection creates several issues:
+            </p>
+
+            <ul>
+                <li><ContentHighlight>Single Responsibility Principle violation</ContentHighlight> - Class is likely doing too much</li>
+                <li><ContentHighlight>Complex object creation</ContentHighlight> - Difficult to instantiate and test</li>
+                <li><ContentHighlight>Maintenance difficulties</ContentHighlight> - Changes require updating many dependencies</li>
+                <li><ContentHighlight>Cognitive overload</ContentHighlight> - Hard to understand what the class actually does</li>
+                <li><ContentHighlight>Tight coupling</ContentHighlight> - Class depends on many other components</li>
+                <li><ContentHighlight>Testing complexity</ContentHighlight> - Need to mock many dependencies for tests</li>
+            </ul>
+
+            <h4>When Many Dependencies Might Be Acceptable</h4>
+
+            <p>
+                Before jumping to refactoring, consider that some scenarios legitimately require multiple dependencies:
+            </p>
+
+            <ul>
+                <li><ContentHighlight>Facade classes</ContentHighlight> - Coordinating multiple subsystems</li>
+                <li><ContentHighlight>Composition roots</ContentHighlight> - Application entry points</li>
+                <li><ContentHighlight>Integration services</ContentHighlight> - Connecting disparate systems</li>
+                <li><ContentHighlight>Workflow orchestrators</ContentHighlight> - Managing complex business processes</li>
+            </ul>
+        </Why>
+
+        <How>
+            <h4>Example: OrderService with Constructor Over-injection</h4>
+
+            <p>
+                Here's a typical example of Constructor Over-injection anti-pattern:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// Constructor Over-injection anti-pattern
+public class OrderService
+{
+    private readonly IOrderRepository orderRepository;
+    private readonly ICustomerRepository customerRepository;
+    private readonly IProductRepository productRepository;
+    private readonly IInventoryService inventoryService;
+    private readonly IPricingService pricingService;
+    private readonly IPaymentService paymentService;
+    private readonly IShippingService shippingService;
+    private readonly INotificationService notificationService;
+    private readonly ITaxCalculator taxCalculator;
+    private readonly IDiscountCalculator discountCalculator;
+    private readonly IAuditLogger auditLogger;
+    private readonly IEmailService emailService;
+    private readonly IUserContext userContext;
+    
+    // Constructor with too many dependencies (13 parameters!)
+    public OrderService(
+        IOrderRepository orderRepository,
+        ICustomerRepository customerRepository,
+        IProductRepository productRepository,
+        IInventoryService inventoryService,
+        IPricingService pricingService,
+        IPaymentService paymentService,
+        IShippingService shippingService,
+        INotificationService notificationService,
+        ITaxCalculator taxCalculator,
+        IDiscountCalculator discountCalculator,
+        IAuditLogger auditLogger,
+        IEmailService emailService,
+        IUserContext userContext)
+    {
+        this.orderRepository = orderRepository ?? throw new ArgumentNullException(nameof(orderRepository));
+        this.customerRepository = customerRepository ?? throw new ArgumentNullException(nameof(customerRepository));
+        this.productRepository = productRepository ?? throw new ArgumentNullException(nameof(productRepository));
+        this.inventoryService = inventoryService ?? throw new ArgumentNullException(nameof(inventoryService));
+        this.pricingService = pricingService ?? throw new ArgumentNullException(nameof(pricingService));
+        this.paymentService = paymentService ?? throw new ArgumentNullException(nameof(paymentService));
+        this.shippingService = shippingService ?? throw new ArgumentNullException(nameof(shippingService));
+        this.notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
+        this.taxCalculator = taxCalculator ?? throw new ArgumentNullException(nameof(taxCalculator));
+        this.discountCalculator = discountCalculator ?? throw new ArgumentNullException(nameof(discountCalculator));
+        this.auditLogger = auditLogger ?? throw new ArgumentNullException(nameof(auditLogger));
+        this.emailService = emailService ?? throw new ArgumentNullException(nameof(emailService));
+        this.userContext = userContext ?? throw new ArgumentNullException(nameof(userContext));
+    }
+    
+    public async Task&lt;Order&gt; CreateOrderAsync(CreateOrderRequest request)
+    {
+        // This method uses nearly all injected dependencies
+        var currentUser = userContext.GetCurrentUserId();
+        var customer = await customerRepository.GetByIdAsync(request.CustomerId);
+        
+        auditLogger.LogOrderCreationStarted(currentUser, request.CustomerId);
+        
+        var orderItems = new List&lt;OrderItem&gt;();
+        decimal subtotal = 0;
+        
+        foreach (var item in request.Items)
+        {
+            var product = await productRepository.GetByIdAsync(item.ProductId);
+            if (!await inventoryService.IsAvailableAsync(item.ProductId, item.Quantity))
+                throw new InsufficientInventoryException($"Product {item.ProductId} not available");
+            
+            var price = await pricingService.GetPriceAsync(item.ProductId, item.Quantity);
+            var discount = await discountCalculator.CalculateDiscountAsync(customer, product, item.Quantity);
+            var itemTotal = (price * item.Quantity) - discount;
+            
+            orderItems.Add(new OrderItem
+            {
+                ProductId = item.ProductId,
+                Quantity = item.Quantity,
+                UnitPrice = price,
+                Discount = discount,
+                Total = itemTotal
+            });
+            
+            subtotal += itemTotal;
+        }
+        
+        var tax = await taxCalculator.CalculateTaxAsync(customer.Address, subtotal);
+        var shipping = await shippingService.CalculateShippingAsync(customer.Address, orderItems);
+        var total = subtotal + tax + shipping;
+        
+        var order = new Order
+        {
+            CustomerId = customer.Id,
+            Items = orderItems,
+            Subtotal = subtotal,
+            Tax = tax,
+            Shipping = shipping,
+            Total = total,
+            CreatedBy = currentUser,
+            CreatedAt = DateTime.UtcNow
+        };
+        
+        // Process payment
+        var paymentResult = await paymentService.ProcessPaymentAsync(order.Total, request.PaymentDetails);
+        if (!paymentResult.IsSuccessful)
+            throw new PaymentFailedException(paymentResult.ErrorMessage);
+        
+        order.PaymentId = paymentResult.PaymentId;
+        
+        // Save order
+        var savedOrder = await orderRepository.SaveAsync(order);
+        
+        // Send notifications
+        await notificationService.NotifyOrderCreatedAsync(savedOrder);
+        await emailService.SendOrderConfirmationAsync(customer.Email, savedOrder);
+        
+        auditLogger.LogOrderCreated(savedOrder);
+        
+        return savedOrder;
+    }
+}
+            </CodeSnippet>
+
+            <h4>Problems with Constructor Over-injection</h4>
+
+            <p>
+                <strong>1. Unwieldy Constructor</strong>
+            </p>
+
+            <p>
+                The constructor is extremely long and difficult to work with. When creating instances for testing, 
+                you need to provide 13 different dependencies.
+            </p>
+
+            <p>
+                <strong>2. Single Responsibility Principle Violation</strong>
+            </p>
+
+            <p>
+                The <ContentHighlight>OrderService</ContentHighlight> is clearly doing too much - it handles validation, 
+                pricing, tax calculation, payment processing, inventory management, notifications, and auditing.
+            </p>
+
+            <p>
+                <strong>3. Complex Testing</strong>
+            </p>
+
+            <p>
+                Unit tests become unwieldy because you must mock all dependencies:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+[Test]
+public async Task CreateOrderAsync_WithValidRequest_CreatesOrder()
+{
+    // Arrange - Must create mocks for 13 dependencies!
+    var mockOrderRepo = new Mock&lt;IOrderRepository&gt;();
+    var mockCustomerRepo = new Mock&lt;ICustomerRepository&gt;();
+    var mockProductRepo = new Mock&lt;IProductRepository&gt;();
+    var mockInventory = new Mock&lt;IInventoryService&gt;();
+    var mockPricing = new Mock&lt;IPricingService&gt;();
+    var mockPayment = new Mock&lt;IPaymentService&gt;();
+    var mockShipping = new Mock&lt;IShippingService&gt;();
+    var mockNotification = new Mock&lt;INotificationService&gt;();
+    var mockTaxCalc = new Mock&lt;ITaxCalculator&gt;();
+    var mockDiscountCalc = new Mock&lt;IDiscountCalculator&gt;();
+    var mockAuditLogger = new Mock&lt;IAuditLogger&gt;();
+    var mockEmailService = new Mock&lt;IEmailService&gt;();
+    var mockUserContext = new Mock&lt;IUserContext&gt;();
+    
+    // Setup all the mocks... (many lines of setup code)
+    
+    var orderService = new OrderService(
+        mockOrderRepo.Object,
+        mockCustomerRepo.Object,
+        mockProductRepo.Object,
+        mockInventory.Object,
+        mockPricing.Object,
+        mockPayment.Object,
+        mockShipping.Object,
+        mockNotification.Object,
+        mockTaxCalc.Object,
+        mockDiscountCalc.Object,
+        mockAuditLogger.Object,
+        mockEmailService.Object,
+        mockUserContext.Object
+    );
+    
+    // Act &amp; Assert...
+}
+            </CodeSnippet>
+
+            <h4>Refactoring Strategy 1: Extract Smaller Services</h4>
+
+            <p>
+                Break down the large service into smaller, focused services:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// Extract order calculation logic
+public class OrderCalculationService
+{
+    private readonly IPricingService pricingService;
+    private readonly ITaxCalculator taxCalculator;
+    private readonly IDiscountCalculator discountCalculator;
+    private readonly IShippingService shippingService;
+    
+    public OrderCalculationService(
+        IPricingService pricingService,
+        ITaxCalculator taxCalculator,
+        IDiscountCalculator discountCalculator,
+        IShippingService shippingService)
+    {
+        this.pricingService = pricingService;
+        this.taxCalculator = taxCalculator;
+        this.discountCalculator = discountCalculator;
+        this.shippingService = shippingService;
+    }
+    
+    public async Task&lt;OrderCalculation&gt; CalculateOrderAsync(Customer customer, OrderItem[] items)
+    {
+        decimal subtotal = 0;
+        
+        foreach (var item in items)
+        {
+            var price = await pricingService.GetPriceAsync(item.ProductId, item.Quantity);
+            var discount = await discountCalculator.CalculateDiscountAsync(customer, item.Product, item.Quantity);
+            item.UnitPrice = price;
+            item.Discount = discount;
+            item.Total = (price * item.Quantity) - discount;
+            subtotal += item.Total;
+        }
+        
+        var tax = await taxCalculator.CalculateTaxAsync(customer.Address, subtotal);
+        var shipping = await shippingService.CalculateShippingAsync(customer.Address, items);
+        
+        return new OrderCalculation
+        {
+            Subtotal = subtotal,
+            Tax = tax,
+            Shipping = shipping,
+            Total = subtotal + tax + shipping
+        };
+    }
+}
+
+// Extract order validation logic
+public class OrderValidationService
+{
+    private readonly IProductRepository productRepository;
+    private readonly IInventoryService inventoryService;
+    
+    public OrderValidationService(
+        IProductRepository productRepository,
+        IInventoryService inventoryService)
+    {
+        this.productRepository = productRepository;
+        this.inventoryService = inventoryService;
+    }
+    
+    public async Task ValidateOrderAsync(CreateOrderRequest request)
+    {
+        foreach (var item in request.Items)
+        {
+            var product = await productRepository.GetByIdAsync(item.ProductId);
+            if (product == null)
+                throw new ProductNotFoundException($"Product {item.ProductId} not found");
+                
+            if (!await inventoryService.IsAvailableAsync(item.ProductId, item.Quantity))
+                throw new InsufficientInventoryException($"Product {item.ProductId} not available");
+        }
+    }
+}
+
+// Extract order processing logic  
+public class OrderProcessingService
+{
+    private readonly IPaymentService paymentService;
+    private readonly INotificationService notificationService;
+    private readonly IEmailService emailService;
+    private readonly IAuditLogger auditLogger;
+    
+    public OrderProcessingService(
+        IPaymentService paymentService,
+        INotificationService notificationService,
+        IEmailService emailService,
+        IAuditLogger auditLogger)
+    {
+        this.paymentService = paymentService;
+        this.notificationService = notificationService;
+        this.emailService = emailService;
+        this.auditLogger = auditLogger;
+    }
+    
+    public async Task&lt;string&gt; ProcessPaymentAsync(decimal amount, PaymentDetails paymentDetails)
+    {
+        var paymentResult = await paymentService.ProcessPaymentAsync(amount, paymentDetails);
+        if (!paymentResult.IsSuccessful)
+            throw new PaymentFailedException(paymentResult.ErrorMessage);
+            
+        return paymentResult.PaymentId;
+    }
+    
+    public async Task SendNotificationsAsync(Customer customer, Order order)
+    {
+        await notificationService.NotifyOrderCreatedAsync(order);
+        await emailService.SendOrderConfirmationAsync(customer.Email, order);
+        auditLogger.LogOrderCreated(order);
+    }
+}
+            </CodeSnippet>
+
+            <h4>Refactored OrderService</h4>
+
+            <p>
+                Now the main service becomes much simpler and focused:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// Refactored OrderService with fewer, more focused dependencies
+public class OrderService
+{
+    private readonly IOrderRepository orderRepository;
+    private readonly ICustomerRepository customerRepository;
+    private readonly OrderValidationService validationService;
+    private readonly OrderCalculationService calculationService;
+    private readonly OrderProcessingService processingService;
+    private readonly IUserContext userContext;
+    
+    // Much cleaner constructor with only 6 dependencies
+    public OrderService(
+        IOrderRepository orderRepository,
+        ICustomerRepository customerRepository,
+        OrderValidationService validationService,
+        OrderCalculationService calculationService,
+        OrderProcessingService processingService,
+        IUserContext userContext)
+    {
+        this.orderRepository = orderRepository ?? throw new ArgumentNullException(nameof(orderRepository));
+        this.customerRepository = customerRepository ?? throw new ArgumentNullException(nameof(customerRepository));
+        this.validationService = validationService ?? throw new ArgumentNullException(nameof(validationService));
+        this.calculationService = calculationService ?? throw new ArgumentNullException(nameof(calculationService));
+        this.processingService = processingService ?? throw new ArgumentNullException(nameof(processingService));
+        this.userContext = userContext ?? throw new ArgumentNullException(nameof(userContext));
+    }
+    
+    public async Task&lt;Order&gt; CreateOrderAsync(CreateOrderRequest request)
+    {
+        var currentUser = userContext.GetCurrentUserId();
+        var customer = await customerRepository.GetByIdAsync(request.CustomerId);
+        
+        // Validate the order
+        await validationService.ValidateOrderAsync(request);
+        
+        // Calculate pricing, tax, shipping
+        var orderItems = CreateOrderItems(request.Items);
+        var calculation = await calculationService.CalculateOrderAsync(customer, orderItems);
+        
+        // Create the order
+        var order = new Order
+        {
+            CustomerId = customer.Id,
+            Items = orderItems,
+            Subtotal = calculation.Subtotal,
+            Tax = calculation.Tax,
+            Shipping = calculation.Shipping,
+            Total = calculation.Total,
+            CreatedBy = currentUser,
+            CreatedAt = DateTime.UtcNow
+        };
+        
+        // Process payment
+        order.PaymentId = await processingService.ProcessPaymentAsync(order.Total, request.PaymentDetails);
+        
+        // Save order
+        var savedOrder = await orderRepository.SaveAsync(order);
+        
+        // Send notifications
+        await processingService.SendNotificationsAsync(customer, savedOrder);
+        
+        return savedOrder;
+    }
+    
+    private OrderItem[] CreateOrderItems(CreateOrderItemRequest[] items)
+    {
+        return items.Select(item =&gt; new OrderItem
+        {
+            ProductId = item.ProductId,
+            Quantity = item.Quantity
+        }).ToArray();
+    }
+}
+            </CodeSnippet>
+
+            <h4>Refactoring Strategy 2: Facade Pattern with Aggregate Services</h4>
+
+            <p>
+                Another approach is to create aggregate services that group related functionality:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// Aggregate service for all order-related operations
+public interface IOrderOperations
+{
+    Task ValidateOrderAsync(CreateOrderRequest request);
+    Task&lt;OrderCalculation&gt; CalculateOrderAsync(Customer customer, OrderItem[] items);
+    Task&lt;string&gt; ProcessPaymentAsync(decimal amount, PaymentDetails paymentDetails);
+    Task SendNotificationsAsync(Customer customer, Order order);
+}
+
+public class OrderOperations : IOrderOperations
+{
+    private readonly OrderValidationService validationService;
+    private readonly OrderCalculationService calculationService;
+    private readonly OrderProcessingService processingService;
+    
+    public OrderOperations(
+        OrderValidationService validationService,
+        OrderCalculationService calculationService,
+        OrderProcessingService processingService)
+    {
+        this.validationService = validationService;
+        this.calculationService = calculationService;
+        this.processingService = processingService;
+    }
+    
+    public Task ValidateOrderAsync(CreateOrderRequest request) =&gt; 
+        validationService.ValidateOrderAsync(request);
+        
+    public Task&lt;OrderCalculation&gt; CalculateOrderAsync(Customer customer, OrderItem[] items) =&gt; 
+        calculationService.CalculateOrderAsync(customer, items);
+        
+    public Task&lt;string&gt; ProcessPaymentAsync(decimal amount, PaymentDetails paymentDetails) =&gt; 
+        processingService.ProcessPaymentAsync(amount, paymentDetails);
+        
+    public Task SendNotificationsAsync(Customer customer, Order order) =&gt; 
+        processingService.SendNotificationsAsync(customer, order);
+}
+
+// Even simpler OrderService using the aggregate
+public class OrderService
+{
+    private readonly IOrderRepository orderRepository;
+    private readonly ICustomerRepository customerRepository;
+    private readonly IOrderOperations orderOperations;
+    private readonly IUserContext userContext;
+    
+    // Only 4 dependencies!
+    public OrderService(
+        IOrderRepository orderRepository,
+        ICustomerRepository customerRepository,
+        IOrderOperations orderOperations,
+        IUserContext userContext)
+    {
+        this.orderRepository = orderRepository;
+        this.customerRepository = customerRepository;
+        this.orderOperations = orderOperations;
+        this.userContext = userContext;
+    }
+    
+    public async Task&lt;Order&gt; CreateOrderAsync(CreateOrderRequest request)
+    {
+        var currentUser = userContext.GetCurrentUserId();
+        var customer = await customerRepository.GetByIdAsync(request.CustomerId);
+        
+        await orderOperations.ValidateOrderAsync(request);
+        
+        var orderItems = CreateOrderItems(request.Items);
+        var calculation = await orderOperations.CalculateOrderAsync(customer, orderItems);
+        
+        var order = new Order
+        {
+            CustomerId = customer.Id,
+            Items = orderItems,
+            Subtotal = calculation.Subtotal,
+            Tax = calculation.Tax,
+            Shipping = calculation.Shipping,
+            Total = calculation.Total,
+            CreatedBy = currentUser,
+            CreatedAt = DateTime.UtcNow,
+            PaymentId = await orderOperations.ProcessPaymentAsync(calculation.Total, request.PaymentDetails)
+        };
+        
+        var savedOrder = await orderRepository.SaveAsync(order);
+        await orderOperations.SendNotificationsAsync(customer, savedOrder);
+        
+        return savedOrder;
+    }
+}
+            </CodeSnippet>
+
+            <h4>DI Container Registration</h4>
+
+            <CodeSnippet CssClass="language-csharp">
+public void ConfigureServices(IServiceCollection services)
+{
+    // Register the smaller, focused services
+    services.AddScoped&lt;OrderValidationService&gt;();
+    services.AddScoped&lt;OrderCalculationService&gt;();
+    services.AddScoped&lt;OrderProcessingService&gt;();
+    
+    // Register the aggregate service
+    services.AddScoped&lt;IOrderOperations, OrderOperations&gt;();
+    
+    // Register the main service
+    services.AddScoped&lt;OrderService&gt;();
+    
+    // Register all the underlying dependencies
+    services.AddScoped&lt;IOrderRepository, SqlOrderRepository&gt;();
+    services.AddScoped&lt;ICustomerRepository, SqlCustomerRepository&gt;();
+    services.AddScoped&lt;IProductRepository, SqlProductRepository&gt;();
+    // ... other services
+}
+            </CodeSnippet>
+
+            <h4>Easier Unit Testing</h4>
+
+            <p>
+                Testing becomes much more manageable with fewer dependencies:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+[Test]
+public async Task CreateOrderAsync_WithValidRequest_CreatesOrder()
+{
+    // Arrange - Only 4 mocks needed instead of 13!
+    var mockOrderRepo = new Mock&lt;IOrderRepository&gt;();
+    var mockCustomerRepo = new Mock&lt;ICustomerRepository&gt;();
+    var mockOrderOperations = new Mock&lt;IOrderOperations&gt;();
+    var mockUserContext = new Mock&lt;IUserContext&gt;();
+    
+    // Setup the mocks...
+    var customer = new Customer { Id = 1, Email = "test@example.com" };
+    mockCustomerRepo.Setup(r =&gt; r.GetByIdAsync(1)).ReturnsAsync(customer);
+    mockUserContext.Setup(u =&gt; u.GetCurrentUserId()).Returns("user123");
+    
+    var calculation = new OrderCalculation { Subtotal = 100, Tax = 10, Shipping = 5, Total = 115 };
+    mockOrderOperations.Setup(o =&gt; o.CalculateOrderAsync(customer, It.IsAny&lt;OrderItem[]&gt;()))
+                      .ReturnsAsync(calculation);
+    
+    mockOrderOperations.Setup(o =&gt; o.ProcessPaymentAsync(115, It.IsAny&lt;PaymentDetails&gt;()))
+                      .ReturnsAsync("payment123");
+    
+    var orderService = new OrderService(
+        mockOrderRepo.Object,
+        mockCustomerRepo.Object,
+        mockOrderOperations.Object,
+        mockUserContext.Object
+    );
+    
+    var request = new CreateOrderRequest 
+    { 
+        CustomerId = 1, 
+        Items = new[] { new CreateOrderItemRequest { ProductId = 1, Quantity = 2 } },
+        PaymentDetails = new PaymentDetails()
+    };
+    
+    // Act
+    var result = await orderService.CreateOrderAsync(request);
+    
+    // Assert
+    Assert.AreEqual(115, result.Total);
+    Assert.AreEqual("payment123", result.PaymentId);
+    mockOrderOperations.Verify(o =&gt; o.ValidateOrderAsync(request), Times.Once);
+    mockOrderOperations.Verify(o =&gt; o.SendNotificationsAsync(customer, It.IsAny&lt;Order&gt;()), Times.Once);
+}
+            </CodeSnippet>
+        </How>
+
+        <Summary>
+            <p>
+                The <ContentHighlight>Constructor Over-injection anti-pattern</ContentHighlight> often signals that a class is violating the 
+                Single Responsibility Principle by trying to do too much. While dependency injection encourages explicit dependencies, 
+                having too many dependencies makes code difficult to understand, test, and maintain.
+            </p>
+
+            <p>
+                The solution involves refactoring large classes into smaller, more focused services using techniques like extracting specialized 
+                services, creating aggregate services, or applying the Facade pattern. This approach reduces the number of constructor parameters, 
+                improves testability, and creates a more maintainable codebase. Remember: if your constructor has more than 3-4 parameters, 
+                consider whether your class is doing too much and needs to be broken down into smaller, more focused components.
+            </p>
+        </Summary>
+    </ContentBody>
+</Content>
