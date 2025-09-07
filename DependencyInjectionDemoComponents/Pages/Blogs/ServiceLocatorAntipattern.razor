@@ -1,0 +1,318 @@
+@page "/blogs/dependency-injection-service-locator-antipattern-in-dotnet"
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(ServiceLocatorAntipattern) UseNewTableOfContentsMenu=true>
+    <ContentBody>
+        <What>
+            <p>
+                The <ContentHighlight>Service Locator</ContentHighlight> is one of the most dangerous anti-patterns in dependency injection. 
+                In this article, let's learn about the <ContentHighlight>Service Locator anti-pattern</ContentHighlight> in .NET and understand 
+                why it's considered the exact opposite of proper <ContentHighlight>Dependency Injection</ContentHighlight>.
+            </p>
+        </What>
+
+        <Why>
+            <p>
+                The <ContentHighlight>Service Locator anti-pattern</ContentHighlight> supplies application components outside the 
+                <ContentHighlight>Composition Root</ContentHighlight> with access to an unbounded set of Volatile Dependencies. 
+                It's essentially a global registry that classes can query to get their dependencies.
+            </p>
+
+            <p>
+                While Service Locator might seem convenient at first, it creates several serious problems: it hides dependencies, 
+                makes code harder to test, introduces runtime errors that could be caught at compile time, and violates the 
+                <ContentHighlight>principle of least knowledge</ContentHighlight>.
+            </p>
+
+            <h4>Why Service Locator is Considered an Anti-pattern</h4>
+
+            <p>
+                Service Locator is problematic because:
+            </p>
+
+            <ul>
+                <li><ContentHighlight>Hidden dependencies</ContentHighlight> - Dependencies are not visible in the constructor</li>
+                <li><ContentHighlight>Runtime errors</ContentHighlight> - Missing dependencies only discovered during execution</li>
+                <li><ContentHighlight>Tight coupling to infrastructure</ContentHighlight> - Classes become dependent on the locator itself</li>
+                <li><ContentHighlight>Difficult testing</ContentHighlight> - Must set up the locator for every test</li>
+                <li><ContentHighlight>Violates Single Responsibility Principle</ContentHighlight> - Classes handle both their logic and dependency resolution</li>
+            </ul>
+        </Why>
+
+        <How>
+            <h4>Example: ProductService Using Service Locator</h4>
+
+            <p>
+                Here's a typical example of the Service Locator anti-pattern:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// Service Locator interface
+public interface IServiceLocator
+{
+    T GetService&lt;T&gt;();
+    object GetService(Type serviceType);
+}
+
+// Service Locator implementation
+public class ServiceLocator : IServiceLocator
+{
+    private readonly Dictionary&lt;Type, object&gt; services = new();
+    
+    public void RegisterService&lt;T&gt;(T service)
+    {
+        services[typeof(T)] = service;
+    }
+    
+    public T GetService&lt;T&gt;()
+    {
+        if (services.TryGetValue(typeof(T), out var service))
+            return (T)service;
+            
+        throw new InvalidOperationException($"Service of type {typeof(T).Name} not registered");
+    }
+    
+    public object GetService(Type serviceType)
+    {
+        if (services.TryGetValue(serviceType, out var service))
+            return service;
+            
+        throw new InvalidOperationException($"Service of type {serviceType.Name} not registered");
+    }
+}
+            </CodeSnippet>
+
+            <p>
+                Now, here's how a class might use the Service Locator:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+public class ProductService
+{
+    private readonly IProductRepository repository;
+    private readonly IUserContext userContext;
+    
+    public ProductService()
+    {
+        // Service Locator anti-pattern: Pulling dependencies
+        var locator = Locator.Current;
+        this.repository = locator.GetService&lt;IProductRepository&gt;();
+        this.userContext = locator.GetService&lt;IUserContext&gt;();
+    }
+    
+    public Product GetFeaturedProduct()
+    {
+        var user = userContext.GetCurrentUser();
+        return repository.GetFeaturedProduct();
+    }
+}
+
+// Global access to the locator
+public static class Locator
+{
+    public static IServiceLocator Current { get; set; }
+}
+            </CodeSnippet>
+
+            <h4>Problems with Service Locator Approach</h4>
+
+            <p>
+                <strong>1. Hidden Dependencies</strong>
+            </p>
+
+            <p>
+                Looking at the <ContentHighlight>ProductService</ContentHighlight> constructor, you cannot tell what dependencies it needs. 
+                The dependencies are only revealed when you examine the implementation details.
+            </p>
+
+            <p>
+                <strong>2. Runtime Errors</strong>
+            </p>
+
+            <p>
+                If a required service isn't registered, you'll only discover this at runtime when the code executes:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// This will throw at runtime, not compile time
+var productService = new ProductService(); // InvalidOperationException possible
+            </CodeSnippet>
+
+            <p>
+                <strong>3. Difficult Unit Testing</strong>
+            </p>
+
+            <p>
+                Testing becomes complex because you must set up the Service Locator before each test:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+[Test]
+public void GetFeaturedProduct_ReturnsProduct()
+{
+    // Must set up Service Locator for testing
+    var locator = new ServiceLocator();
+    var mockRepository = new Mock&lt;IProductRepository&gt;();
+    var mockUserContext = new Mock&lt;IUserContext&gt;();
+    
+    locator.RegisterService&lt;IProductRepository&gt;(mockRepository.Object);
+    locator.RegisterService&lt;IUserContext&gt;(mockUserContext.Object);
+    
+    Locator.Current = locator;
+    
+    try
+    {
+        // Arrange
+        var expectedProduct = new Product { Id = 1, Name = "Test Product" };
+        mockRepository.Setup(r =&gt; r.GetFeaturedProduct()).Returns(expectedProduct);
+        
+        // Act
+        var productService = new ProductService();
+        var result = productService.GetFeaturedProduct();
+        
+        // Assert
+        Assert.AreEqual(expectedProduct, result);
+    }
+    finally
+    {
+        // Clean up global state
+        Locator.Current = null;
+    }
+}
+            </CodeSnippet>
+
+            <h4>Refactoring from Service Locator to Proper DI</h4>
+
+            <p>
+                The solution is to use proper <ContentHighlight>Constructor Injection</ContentHighlight> instead:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// Properly designed ProductService with Constructor Injection
+public class ProductService
+{
+    private readonly IProductRepository repository;
+    private readonly IUserContext userContext;
+    
+    public ProductService(IProductRepository repository, IUserContext userContext)
+    {
+        this.repository = repository ?? throw new ArgumentNullException(nameof(repository));
+        this.userContext = userContext ?? throw new ArgumentNullException(nameof(userContext));
+    }
+    
+    public Product GetFeaturedProduct()
+    {
+        var user = userContext.GetCurrentUser();
+        return repository.GetFeaturedProduct();
+    }
+}
+            </CodeSnippet>
+
+            <h4>Benefits of Constructor Injection over Service Locator</h4>
+
+            <p>
+                <strong>1. Explicit Dependencies</strong>
+            </p>
+
+            <p>
+                Dependencies are clearly visible in the constructor signature. You know exactly what the class needs to function.
+            </p>
+
+            <p>
+                <strong>2. Compile-time Safety</strong>
+            </p>
+
+            <p>
+                Missing dependencies are caught at compile time or during application startup, not at runtime during execution.
+            </p>
+
+            <p>
+                <strong>3. Easy Testing</strong>
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+[Test]
+public void GetFeaturedProduct_ReturnsProduct()
+{
+    // Arrange - Clean and simple
+    var expectedProduct = new Product { Id = 1, Name = "Test Product" };
+    var mockRepository = new Mock&lt;IProductRepository&gt;();
+    var mockUserContext = new Mock&lt;IUserContext&gt;();
+    
+    mockRepository.Setup(r =&gt; r.GetFeaturedProduct()).Returns(expectedProduct);
+    
+    var productService = new ProductService(mockRepository.Object, mockUserContext.Object);
+    
+    // Act
+    var result = productService.GetFeaturedProduct();
+    
+    // Assert
+    Assert.AreEqual(expectedProduct, result);
+}
+            </CodeSnippet>
+
+            <h4>Composition Root Setup</h4>
+
+            <p>
+                With proper DI, the <ContentHighlight>Composition Root</ContentHighlight> handles object creation:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// In your Composition Root (e.g., Program.cs or Startup.cs)
+public void ConfigureServices(IServiceCollection services)
+{
+    services.AddScoped&lt;IProductRepository, SqlProductRepository&gt;();
+    services.AddScoped&lt;IUserContext, HttpUserContext&gt;();
+    services.AddScoped&lt;ProductService&gt;();
+}
+
+// Usage
+public class ProductController : ControllerBase
+{
+    private readonly ProductService productService;
+    
+    public ProductController(ProductService productService)
+    {
+        this.productService = productService;
+    }
+    
+    [HttpGet("featured")]
+    public ActionResult&lt;Product&gt; GetFeaturedProduct()
+    {
+        var product = productService.GetFeaturedProduct();
+        return Ok(product);
+    }
+}
+            </CodeSnippet>
+
+            <h4>When Service Locator Might Seem Appropriate</h4>
+
+            <p>
+                Some developers reach for Service Locator when they think they need to resolve dependencies dynamically at runtime. 
+                However, even these scenarios usually have better solutions:
+            </p>
+
+            <ul>
+                <li><ContentHighlight>Factory Pattern</ContentHighlight> - For creating objects based on runtime data</li>
+                <li><ContentHighlight>Strategy Pattern</ContentHighlight> - For selecting algorithms at runtime</li>
+                <li><ContentHighlight>Method Injection</ContentHighlight> - For dependencies that vary per method call</li>
+            </ul>
+        </How>
+
+        <Summary>
+            <p>
+                The <ContentHighlight>Service Locator anti-pattern</ContentHighlight> might seem convenient, but it introduces significant problems 
+                including hidden dependencies, runtime errors, and difficult testing. It's essentially a global registry that violates many 
+                principles of good object-oriented design.
+            </p>
+
+            <p>
+                Instead of using Service Locator, embrace proper <ContentHighlight>Constructor Injection</ContentHighlight> where dependencies 
+                are explicitly declared and injected by the <ContentHighlight>Composition Root</ContentHighlight>. This approach provides 
+                compile-time safety, clear dependency visibility, and much easier unit testing. Remember: if you find yourself reaching for 
+                a Service Locator, step back and consider how to restructure your code to use proper dependency injection instead.
+            </p>
+        </Summary>
+    </ContentBody>
+</Content>

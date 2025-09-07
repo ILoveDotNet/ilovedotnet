@@ -1,0 +1,511 @@
+@page "/blogs/dependency-injection-constrained-construction-antipattern-in-dotnet"
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(ConstrainedConstructionAntipattern) UseNewTableOfContentsMenu=true>
+    <ContentBody>
+        <What>
+            <p>
+                The <ContentHighlight>Constrained Construction</ContentHighlight> anti-pattern occurs when you artificially limit object construction 
+                to force specific instantiation patterns. This typically manifests as forcing the use of factory methods, static creation methods, 
+                or builders instead of allowing direct constructor usage. In this article, let's learn about the 
+                <ContentHighlight>Constrained Construction anti-pattern</ContentHighlight> in .NET and understand why it hampers 
+                proper <ContentHighlight>Dependency Injection</ContentHighlight>.
+            </p>
+        </What>
+
+        <Why>
+            <p>
+                The <ContentHighlight>Constrained Construction anti-pattern</ContentHighlight> happens when classes artificially restrict how 
+                they can be constructed, typically by making constructors private or internal and forcing clients to use specific creation methods. 
+                While the intention might be to ensure proper object initialization or enforce creation patterns, it actually makes 
+                <ContentHighlight>Dependency Injection</ContentHighlight> much more difficult.
+            </p>
+
+            <p>
+                This anti-pattern often emerges from well-intentioned design decisions like wanting to validate inputs, ensure proper setup, 
+                or follow specific creation patterns. However, it creates significant obstacles when trying to use DI containers and 
+                makes unit testing considerably more challenging.
+            </p>
+
+            <h4>Why Constrained Construction is Problematic</h4>
+
+            <p>
+                Constrained Construction creates several issues:
+            </p>
+
+            <ul>
+                <li><ContentHighlight>DI container incompatibility</ContentHighlight> - Most containers expect public constructors</li>
+                <li><ContentHighlight>Testing difficulties</ContentHighlight> - Hard to create test instances with mocked dependencies</li>
+                <li><ContentHighlight>Reduced flexibility</ContentHighlight> - Forces specific creation patterns on all consumers</li>
+                <li><ContentHighlight>Increased coupling</ContentHighlight> - Clients become dependent on specific factory methods</li>
+                <li><ContentHighlight>Complex composition</ContentHighlight> - Makes object graph construction more complicated</li>
+                <li><ContentHighlight>Violation of Open/Closed Principle</ContentHighlight> - Prevents extension through inheritance</li>
+            </ul>
+        </Why>
+
+        <How>
+            <h4>Example: EmailService with Constrained Construction</h4>
+
+            <p>
+                Here's a typical example of the Constrained Construction anti-pattern:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// Constrained Construction anti-pattern
+public class EmailService
+{
+    private readonly IEmailConfiguration config;
+    private readonly ILogger logger;
+    
+    // Private constructor - forces use of factory method
+    private EmailService(IEmailConfiguration config, ILogger logger)
+    {
+        this.config = config ?? throw new ArgumentNullException(nameof(config));
+        this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    }
+    
+    // Static factory method - the "correct" way to create instances
+    public static EmailService Create(IEmailConfiguration config, ILogger logger)
+    {
+        // Validation logic
+        if (string.IsNullOrEmpty(config.SmtpServer))
+            throw new ArgumentException("SMTP server must be configured", nameof(config));
+            
+        if (config.SmtpPort &lt;= 0)
+            throw new ArgumentException("SMTP port must be positive", nameof(config));
+        
+        return new EmailService(config, logger);
+    }
+    
+    public async Task SendAsync(string to, string subject, string body)
+    {
+        logger.LogInformation($"Sending email to {to}");
+        
+        using var client = new SmtpClient(config.SmtpServer, config.SmtpPort);
+        await client.SendMailAsync("noreply@company.com", to, subject, body);
+        
+        logger.LogInformation($"Email sent successfully to {to}");
+    }
+}
+            </CodeSnippet>
+
+            <h4>Another Example: Repository with Builder Pattern Constraint</h4>
+
+            <p>
+                Here's another common pattern that constrains construction:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// Repository with constrained construction via builder pattern
+public class ProductRepository
+{
+    private readonly IDbConnection connection;
+    private readonly ICacheService cache;
+    private readonly ILogger logger;
+    private readonly TimeSpan cacheTimeout;
+    
+    // Internal constructor - can't be used directly
+    internal ProductRepository(
+        IDbConnection connection, 
+        ICacheService cache, 
+        ILogger logger, 
+        TimeSpan cacheTimeout)
+    {
+        this.connection = connection;
+        this.cache = cache;
+        this.logger = logger;
+        this.cacheTimeout = cacheTimeout;
+    }
+    
+    // Builder class to constrain construction
+    public class Builder
+    {
+        private IDbConnection connection;
+        private ICacheService cache;
+        private ILogger logger;
+        private TimeSpan cacheTimeout = TimeSpan.FromMinutes(5);
+        
+        public Builder WithConnection(IDbConnection connection)
+        {
+            this.connection = connection;
+            return this;
+        }
+        
+        public Builder WithCache(ICacheService cache)
+        {
+            this.cache = cache;
+            return this;
+        }
+        
+        public Builder WithLogger(ILogger logger)
+        {
+            this.logger = logger;
+            return this;
+        }
+        
+        public Builder WithCacheTimeout(TimeSpan timeout)
+        {
+            this.cacheTimeout = timeout;
+            return this;
+        }
+        
+        public ProductRepository Build()
+        {
+            if (connection == null)
+                throw new InvalidOperationException("Database connection is required");
+            if (cache == null)
+                throw new InvalidOperationException("Cache service is required");
+            if (logger == null)
+                throw new InvalidOperationException("Logger is required");
+                
+            return new ProductRepository(connection, cache, logger, cacheTimeout);
+        }
+    }
+    
+    public async Task&lt;Product&gt; GetByIdAsync(int id)
+    {
+        var cacheKey = $"product:{id}";
+        var cached = await cache.GetAsync&lt;Product&gt;(cacheKey);
+        if (cached != null)
+        {
+            logger.LogDebug($"Product {id} found in cache");
+            return cached;
+        }
+        
+        const string sql = "SELECT * FROM Products WHERE Id = &#64;id";
+        var product = await connection.QuerySingleOrDefaultAsync&lt;Product&gt;(sql, new { id });
+        
+        if (product != null)
+        {
+            await cache.SetAsync(cacheKey, product, cacheTimeout);
+            logger.LogDebug($"Product {id} cached for {cacheTimeout}");
+        }
+        
+        return product;
+    }
+}
+            </CodeSnippet>
+
+            <h4>Problems with Constrained Construction</h4>
+
+            <p>
+                <strong>1. DI Container Incompatibility</strong>
+            </p>
+
+            <p>
+                Most DI containers expect public constructors and can't work with factory methods or builders:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// This won't work with most DI containers
+public void ConfigureServices(IServiceCollection services)
+{
+    // Can't register EmailService because constructor is private
+    // services.AddScoped&lt;EmailService&gt;(); // Compilation error or runtime exception
+    
+    // Must use workarounds with factory delegates
+    services.AddScoped&lt;EmailService&gt;(provider =&gt;
+    {
+        var config = provider.GetRequiredService&lt;IEmailConfiguration&gt;();
+        var logger = provider.GetRequiredService&lt;ILogger&lt;EmailService&gt;&gt;();
+        return EmailService.Create(config, logger);
+    });
+    
+    // Builder pattern is even more complex to register
+    services.AddScoped&lt;ProductRepository&gt;(provider =&gt;
+    {
+        var connection = provider.GetRequiredService&lt;IDbConnection&gt;();
+        var cache = provider.GetRequiredService&lt;ICacheService&gt;();
+        var logger = provider.GetRequiredService&lt;ILogger&lt;ProductRepository&gt;&gt;();
+        
+        return new ProductRepository.Builder()
+            .WithConnection(connection)
+            .WithCache(cache)
+            .WithLogger(logger)
+            .WithCacheTimeout(TimeSpan.FromMinutes(10))
+            .Build();
+    });
+}
+            </CodeSnippet>
+
+            <p>
+                <strong>2. Testing Difficulties</strong>
+            </p>
+
+            <p>
+                Unit testing becomes much more complex:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+[Test]
+public async Task SendAsync_WithValidInputs_SendsEmail()
+{
+    // Can't directly instantiate EmailService for testing
+    // var emailService = new EmailService(mockConfig, mockLogger); // Won't compile
+    
+    // Must go through factory method
+    var mockConfig = new Mock&lt;IEmailConfiguration&gt;();
+    var mockLogger = new Mock&lt;ILogger&gt;();
+    
+    mockConfig.Setup(c =&gt; c.SmtpServer).Returns("smtp.test.com");
+    mockConfig.Setup(c =&gt; c.SmtpPort).Returns(587);
+    
+    // Forced to use the factory method
+    var emailService = EmailService.Create(mockConfig.Object, mockLogger.Object);
+    
+    // Test the actual functionality
+    await emailService.SendAsync("test@example.com", "Test", "Body");
+    
+    // Verify logging
+    mockLogger.Verify(
+        l =&gt; l.LogInformation(It.Is&lt;string&gt;(s =&gt; s.Contains("Sending email to test@example.com"))),
+        Times.Once
+    );
+}
+
+[Test]
+public async Task GetByIdAsync_WithValidId_ReturnsProduct()
+{
+    // Complex test setup due to builder pattern
+    var mockConnection = new Mock&lt;IDbConnection&gt;();
+    var mockCache = new Mock&lt;ICacheService&gt;();
+    var mockLogger = new Mock&lt;ILogger&gt;();
+    
+    var repository = new ProductRepository.Builder()
+        .WithConnection(mockConnection.Object)
+        .WithCache(mockCache.Object)
+        .WithLogger(mockLogger.Object)
+        .Build();
+    
+    // Rest of test...
+}
+            </CodeSnippet>
+
+            <h4>Refactoring to Remove Constrained Construction</h4>
+
+            <p>
+                The solution is to provide public constructors and move validation logic appropriately:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// Refactored EmailService with public constructor
+public class EmailService
+{
+    private readonly IEmailConfiguration config;
+    private readonly ILogger logger;
+    
+    // Public constructor for DI container and testing
+    public EmailService(IEmailConfiguration config, ILogger logger)
+    {
+        this.config = ValidateConfig(config);
+        this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    }
+    
+    // Validation moved to private method
+    private static IEmailConfiguration ValidateConfig(IEmailConfiguration config)
+    {
+        if (config == null)
+            throw new ArgumentNullException(nameof(config));
+            
+        if (string.IsNullOrEmpty(config.SmtpServer))
+            throw new ArgumentException("SMTP server must be configured", nameof(config));
+            
+        if (config.SmtpPort &lt;= 0)
+            throw new ArgumentException("SMTP port must be positive", nameof(config));
+            
+        return config;
+    }
+    
+    public async Task SendAsync(string to, string subject, string body)
+    {
+        logger.LogInformation($"Sending email to {to}");
+        
+        using var client = new SmtpClient(config.SmtpServer, config.SmtpPort);
+        await client.SendMailAsync("noreply@company.com", to, subject, body);
+        
+        logger.LogInformation($"Email sent successfully to {to}");
+    }
+}
+
+// Refactored ProductRepository with public constructor
+public class ProductRepository
+{
+    private readonly IDbConnection connection;
+    private readonly ICacheService cache;
+    private readonly ILogger logger;
+    private readonly TimeSpan cacheTimeout;
+    
+    // Public constructor - simple and direct
+    public ProductRepository(
+        IDbConnection connection, 
+        ICacheService cache, 
+        ILogger logger,
+        IOptions&lt;CacheOptions&gt; cacheOptions = null)
+    {
+        this.connection = connection ?? throw new ArgumentNullException(nameof(connection));
+        this.cache = cache ?? throw new ArgumentNullException(nameof(cache));
+        this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        this.cacheTimeout = cacheOptions?.Value?.Timeout ?? TimeSpan.FromMinutes(5);
+    }
+    
+    public async Task&lt;Product&gt; GetByIdAsync(int id)
+    {
+        var cacheKey = $"product:{id}";
+        var cached = await cache.GetAsync&lt;Product&gt;(cacheKey);
+        if (cached != null)
+        {
+            logger.LogDebug($"Product {id} found in cache");
+            return cached;
+        }
+        
+        const string sql = "SELECT * FROM Products WHERE Id = &#64;id";
+        var product = await connection.QuerySingleOrDefaultAsync&lt;Product&gt;(sql, new { id });
+        
+        if (product != null)
+        {
+            await cache.SetAsync(cacheKey, product, cacheTimeout);
+            logger.LogDebug($"Product {id} cached for {cacheTimeout}");
+        }
+        
+        return product;
+    }
+}
+
+// Configuration class for cache options
+public class CacheOptions
+{
+    public TimeSpan Timeout { get; set; } = TimeSpan.FromMinutes(5);
+}
+            </CodeSnippet>
+
+            <h4>Simple DI Container Registration</h4>
+
+            <p>
+                With public constructors, DI registration becomes straightforward:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+public void ConfigureServices(IServiceCollection services)
+{
+    // Simple registration - DI container handles construction
+    services.AddScoped&lt;EmailService&gt;();
+    services.AddScoped&lt;ProductRepository&gt;();
+    
+    // Configure cache options
+    services.Configure&lt;CacheOptions&gt;(options =&gt;
+    {
+        options.Timeout = TimeSpan.FromMinutes(10);
+    });
+    
+    // Register dependencies
+    services.AddScoped&lt;IEmailConfiguration, EmailConfiguration&gt;();
+    services.AddScoped&lt;IDbConnection, SqlConnection&gt;();
+    services.AddScoped&lt;ICacheService, RedisCacheService&gt;();
+    services.AddLogging();
+}
+            </CodeSnippet>
+
+            <h4>Easy Unit Testing</h4>
+
+            <p>
+                Testing becomes much simpler with public constructors:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+[Test]
+public async Task SendAsync_WithValidInputs_SendsEmail()
+{
+    // Arrange - Direct instantiation for testing
+    var mockConfig = new Mock&lt;IEmailConfiguration&gt;();
+    var mockLogger = new Mock&lt;ILogger&gt;();
+    
+    mockConfig.Setup(c =&gt; c.SmtpServer).Returns("smtp.test.com");
+    mockConfig.Setup(c =&gt; c.SmtpPort).Returns(587);
+    
+    var emailService = new EmailService(mockConfig.Object, mockLogger.Object);
+    
+    // Act
+    await emailService.SendAsync("test@example.com", "Test", "Body");
+    
+    // Assert
+    mockLogger.Verify(
+        l =&gt; l.LogInformation(It.Is&lt;string&gt;(s =&gt; s.Contains("Sending email to test@example.com"))),
+        Times.Once
+    );
+}
+
+[Test]
+public async Task GetByIdAsync_WithValidId_ReturnsProduct()
+{
+    // Arrange - Simple and direct
+    var mockConnection = new Mock&lt;IDbConnection&gt;();
+    var mockCache = new Mock&lt;ICacheService&gt;();
+    var mockLogger = new Mock&lt;ILogger&gt;();
+    
+    var repository = new ProductRepository(
+        mockConnection.Object, 
+        mockCache.Object, 
+        mockLogger.Object
+    );
+    
+    // Rest of test...
+}
+            </CodeSnippet>
+
+            <h4>When Complex Construction is Actually Needed</h4>
+
+            <p>
+                If you truly need complex object creation, consider these alternatives:
+            </p>
+
+            <ul>
+                <li><ContentHighlight>Abstract Factory Pattern</ContentHighlight> - Create a separate factory interface</li>
+                <li><ContentHighlight>Builder Pattern with Public Constructor</ContentHighlight> - Keep constructor public, use builder as convenience</li>
+                <li><ContentHighlight>Configuration Objects</ContentHighlight> - Use strongly-typed configuration classes</li>
+                <li><ContentHighlight>Factory Services</ContentHighlight> - Register factory services with the DI container</li>
+            </ul>
+
+            <CodeSnippet CssClass="language-csharp">
+// Example: Factory service pattern
+public interface IEmailServiceFactory
+{
+    EmailService CreateEmailService();
+}
+
+public class EmailServiceFactory : IEmailServiceFactory
+{
+    private readonly IEmailConfiguration config;
+    private readonly ILogger&lt;EmailService&gt; logger;
+    
+    public EmailServiceFactory(IEmailConfiguration config, ILogger&lt;EmailService&gt; logger)
+    {
+        this.config = config;
+        this.logger = logger;
+    }
+    
+    public EmailService CreateEmailService()
+    {
+        // Complex creation logic here
+        return new EmailService(config, logger);
+    }
+}
+            </CodeSnippet>
+        </How>
+
+        <Summary>
+            <p>
+                The <ContentHighlight>Constrained Construction anti-pattern</ContentHighlight> makes dependency injection unnecessarily difficult 
+                by forcing specific creation patterns through private constructors, factory methods, or complex builders. While the intention might 
+                be to ensure proper object initialization, it creates significant obstacles for DI containers and makes unit testing much more complex.
+            </p>
+
+            <p>
+                The solution is to provide public constructors that accept all required dependencies, moving validation logic into private methods 
+                or constructor bodies. This approach enables seamless DI container integration, simplifies unit testing, and maintains flexibility. 
+                If complex object creation is truly needed, consider using factory patterns or configuration objects while keeping the constructor 
+                accessible for dependency injection.
+            </p>
+        </Summary>
+    </ContentBody>
+</Content>

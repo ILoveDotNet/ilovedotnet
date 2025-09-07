@@ -1,0 +1,267 @@
+@page "/blogs/dependency-injection-control-freak-antipattern-in-dotnet"
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(ControlFreakAntipattern) UseNewTableOfContentsMenu=true>
+    <ContentBody>
+        <What>
+            <p>
+                When a class insists on creating its own dependencies instead of receiving them from outside, it becomes a <ContentHighlight>Control Freak</ContentHighlight>. 
+                In this article, let's learn about the <ContentHighlight>Control Freak anti-pattern</ContentHighlight> in <ContentHighlight>Dependency Injection</ContentHighlight> 
+                and understand why it violates the principles of loose coupling and Inversion of Control.
+            </p>
+        </What>
+
+        <Why>
+            <p>
+                The <ContentHighlight>Control Freak anti-pattern</ContentHighlight> is the exact opposite of <ContentHighlight>Inversion of Control</ContentHighlight>. 
+                When a class creates its own dependencies using the <ContentHighlight>new</ContentHighlight> keyword, factory methods, or service locators, 
+                it takes control over the dependency creation process instead of allowing external configuration.
+            </p>
+
+            <p>
+                This anti-pattern makes code tightly coupled, difficult to test, and hard to extend. It prevents you from swapping implementations, 
+                makes unit testing nearly impossible without modifying the class, and violates the <ContentHighlight>Open/Closed Principle</ContentHighlight>.
+            </p>
+
+            <h4>Common Manifestations of Control Freak</h4>
+
+            <p>
+                The Control Freak anti-pattern appears in several forms:
+            </p>
+
+            <ul>
+                <li><ContentHighlight>Newing up dependencies</ContentHighlight> - Direct instantiation using the new keyword</li>
+                <li><ContentHighlight>Factory-based creation</ContentHighlight> - Using concrete or abstract factories within the class</li>
+                <li><ContentHighlight>Overloaded constructors</ContentHighlight> - Providing parameterless constructors that create default dependencies</li>
+            </ul>
+        </Why>
+
+        <How>
+            <h4>Example 1: Control Freak Through Newing Up Dependencies</h4>
+
+            <p>
+                Here's a classic example of the Control Freak anti-pattern where a <ContentHighlight>ProductService</ContentHighlight> creates its own repository:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+public class ProductService
+{
+    private readonly IProductRepository repository;
+    
+    public ProductService()
+    {
+        // Control Freak: Creating dependency directly
+        this.repository = new SqlProductRepository();
+    }
+    
+    public Product GetFeaturedProduct()
+    {
+        return repository.GetFeaturedProduct();
+    }
+}
+            </CodeSnippet>
+
+            <p>
+                <strong>Problems with this approach:</strong>
+            </p>
+
+            <ul>
+                <li>Tightly coupled to <ContentHighlight>SqlProductRepository</ContentHighlight></li>
+                <li>Cannot be unit tested with a test double</li>
+                <li>Cannot switch to a different repository implementation</li>
+                <li>Violates the Dependency Inversion Principle</li>
+            </ul>
+
+            <h4>Example 2: Control Freak Through Concrete Factory</h4>
+
+            <p>
+                Sometimes developers try to solve the coupling issue by introducing a factory, but still maintain control:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+public class ProductService
+{
+    private readonly IProductRepository repository;
+    
+    public ProductService()
+    {
+        // Still Control Freak: Using concrete factory
+        var factory = new ProductRepositoryFactory();
+        this.repository = factory.Create();
+    }
+    
+    public Product GetFeaturedProduct()
+    {
+        return repository.GetFeaturedProduct();
+    }
+}
+
+public class ProductRepositoryFactory
+{
+    public IProductRepository Create()
+    {
+        return new SqlProductRepository();
+    }
+}
+            </CodeSnippet>
+
+            <p>
+                This approach still exhibits Control Freak behavior because the class decides which factory to use and when to call it.
+            </p>
+
+            <h4>Example 3: Control Freak Through Abstract Factory</h4>
+
+            <p>
+                Even using an abstract factory can be a form of Control Freak if the class controls the factory selection:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+public abstract class ProductRepositoryFactory
+{
+    public abstract IProductRepository Create();
+}
+
+public class ProductService
+{
+    private readonly IProductRepository repository;
+    
+    public ProductService()
+    {
+        // Control Freak: Deciding which factory to use
+        ProductRepositoryFactory factory;
+        
+        if (ConfigurationManager.AppSettings["DatabaseType"] == "SqlServer")
+            factory = new SqlProductRepositoryFactory();
+        else
+            factory = new AzureProductRepositoryFactory();
+            
+        this.repository = factory.Create();
+    }
+}
+            </CodeSnippet>
+
+            <h4>Example 4: Control Freak Through Overloaded Constructors</h4>
+
+            <p>
+                Another common manifestation is providing a parameterless constructor that creates default dependencies:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+public class ProductService
+{
+    private readonly IProductRepository repository;
+    
+    // Control Freak: Parameterless constructor creates default dependency
+    public ProductService() : this(new SqlProductRepository())
+    {
+    }
+    
+    // Proper constructor for DI
+    public ProductService(IProductRepository repository)
+    {
+        this.repository = repository ?? throw new ArgumentNullException(nameof(repository));
+    }
+    
+    public Product GetFeaturedProduct()
+    {
+        return repository.GetFeaturedProduct();
+    }
+}
+            </CodeSnippet>
+
+            <p>
+                While this seems to offer flexibility, the parameterless constructor represents a <ContentHighlight>Foreign Default</ContentHighlight> 
+                because it creates a dependency defined in a different module.
+            </p>
+
+            <h4>Refactoring Away from Control Freak</h4>
+
+            <p>
+                The solution is to apply proper <ContentHighlight>Constructor Injection</ContentHighlight> and let the 
+                <ContentHighlight>Composition Root</ContentHighlight> or <ContentHighlight>Dependency Injection Container</ContentHighlight> 
+                handle dependency creation:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// Properly designed ProductService
+public class ProductService
+{
+    private readonly IProductRepository repository;
+    
+    public ProductService(IProductRepository repository)
+    {
+        this.repository = repository ?? throw new ArgumentNullException(nameof(repository));
+    }
+    
+    public Product GetFeaturedProduct()
+    {
+        return repository.GetFeaturedProduct();
+    }
+}
+
+// Composition Root handles dependency creation
+public class CompositionRoot
+{
+    public ProductService CreateProductService()
+    {
+        IProductRepository repository = new SqlProductRepository();
+        return new ProductService(repository);
+    }
+}
+            </CodeSnippet>
+
+            <h4>Benefits of Proper Dependency Injection</h4>
+
+            <p>
+                By eliminating the Control Freak anti-pattern, you gain:
+            </p>
+
+            <ul>
+                <li><ContentHighlight>Testability</ContentHighlight> - Easy to inject test doubles</li>
+                <li><ContentHighlight>Flexibility</ContentHighlight> - Can swap implementations without changing the class</li>
+                <li><ContentHighlight>Maintainability</ContentHighlight> - Dependencies are explicit and clear</li>
+                <li><ContentHighlight>Single Responsibility</ContentHighlight> - Class focuses on its core logic, not dependency management</li>
+            </ul>
+
+            <h4>Testing the Refactored Code</h4>
+
+            <p>
+                With proper dependency injection, unit testing becomes straightforward:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+[Test]
+public void GetFeaturedProduct_ReturnsExpectedProduct()
+{
+    // Arrange
+    var expectedProduct = new Product { Id = 1, Name = "Test Product" };
+    var mockRepository = new Mock&lt;IProductRepository&gt;();
+    mockRepository.Setup(r =&gt; r.GetFeaturedProduct()).Returns(expectedProduct);
+    
+    var productService = new ProductService(mockRepository.Object);
+    
+    // Act
+    var result = productService.GetFeaturedProduct();
+    
+    // Assert
+    Assert.AreEqual(expectedProduct, result);
+}
+            </CodeSnippet>
+        </How>
+
+        <Summary>
+            <p>
+                The <ContentHighlight>Control Freak anti-pattern</ContentHighlight> occurs when a class takes control of creating its own dependencies 
+                instead of receiving them from external sources. This violates the principles of <ContentHighlight>Inversion of Control</ContentHighlight> 
+                and leads to tightly coupled, hard-to-test code.
+            </p>
+
+            <p>
+                Whether through direct instantiation, factory methods, or parameterless constructors, Control Freak behavior makes code rigid and 
+                difficult to maintain. The solution is to embrace <ContentHighlight>Constructor Injection</ContentHighlight> and delegate 
+                dependency creation to the <ContentHighlight>Composition Root</ContentHighlight>, resulting in more flexible, testable, and maintainable code.
+            </p>
+        </Summary>
+    </ContentBody>
+</Content>
