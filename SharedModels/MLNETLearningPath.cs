@@ -1,12 +1,12 @@
-namespace SharedModels;
+﻿namespace SharedModels;
 public class MLNETLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(2);
-    public MLNETLearningPath()
-    {
-        FullContents = 
-        [
-            new ContentMetaData
+  public readonly List<ContentMetaData> FullContents = new(2);
+  public MLNETLearningPath()
+  {
+    FullContents =
+    [
+        new ContentMetaData
             {
                 Order = 1,
                 Title = "AI Powered Language Detection in .NET with ML.NET and AutoML",
@@ -40,6 +40,6 @@ public class MLNETLearningPath
                 ModifiedOn = new DateTime(2025, 5, 11, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["ONNX", "Machine Learning", "Image Recognition", "AI", "Artificail Intelligence"]
             }
-        ];
-    }
+    ];
+  }
 }

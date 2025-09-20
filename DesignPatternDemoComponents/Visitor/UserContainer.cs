@@ -1,4 +1,4 @@
-namespace DesignPatternDemoComponents.Visitor;
+﻿namespace DesignPatternDemoComponents.Visitor;
 
 //Step 5: Implement Object Structure
 public class UserContainer

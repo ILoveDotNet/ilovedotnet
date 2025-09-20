@@ -1,4 +1,4 @@
-using EndToEndTests.Utilities;
+﻿using EndToEndTests.Utilities;
 using Microsoft.Playwright;
 using System.Reflection;
 
@@ -11,28 +11,28 @@ public class WorkflowTests : BaseTest
   [SetUp]
   public async Task Setup()
   {
-      await Context.Tracing.StartAsync(new()
-      {
-          Title = TestContext.CurrentContext.Test.ClassName + "." + TestContext.CurrentContext.Test.Name,
-          Screenshots = true,
-          Snapshots = true,
-          Sources = true
-      });
+    await Context.Tracing.StartAsync(new()
+    {
+      Title = TestContext.CurrentContext.Test.ClassName + "." + TestContext.CurrentContext.Test.Name,
+      Screenshots = true,
+      Snapshots = true,
+      Sources = true
+    });
   }
 
   [TearDown]
   public async Task TearDown()
   {
-      // This will produce e.g.:
-      // bin/Debug/net8.0/playwright-traces/LoggedInCheckOutCancellation.zip
-      await Context.Tracing.StopAsync(new()
-      {
-          Path = Path.Combine(
-              TestContext.CurrentContext.WorkDirectory,
-              "playwright-traces",
-              $"{TestContext.CurrentContext.Test.Name}.zip"
-          )
-      });
+    // This will produce e.g.:
+    // bin/Debug/net8.0/playwright-traces/LoggedInCheckOutCancellation.zip
+    await Context.Tracing.StopAsync(new()
+    {
+      Path = Path.Combine(
+            TestContext.CurrentContext.WorkDirectory,
+            "playwright-traces",
+            $"{TestContext.CurrentContext.Test.Name}.zip"
+        )
+    });
   }
 
   [Test]

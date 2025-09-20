@@ -1,4 +1,4 @@
-namespace DesignPatternDemoComponents.Visitor;
+﻿namespace DesignPatternDemoComponents.Visitor;
 
 //Step 2: Create Concrete Elements
 public class FreeUser(string name) : IElement

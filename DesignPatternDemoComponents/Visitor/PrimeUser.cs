@@ -1,4 +1,4 @@
-namespace DesignPatternDemoComponents.Visitor;
+﻿namespace DesignPatternDemoComponents.Visitor;
 
 public class PrimeUser(string name) : IElement
 {

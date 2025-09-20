@@ -1,4 +1,4 @@
-using CommandLineSwitchParser;
+﻿using CommandLineSwitchParser;
 using PosterGenerator;
 using SharedModels;
 

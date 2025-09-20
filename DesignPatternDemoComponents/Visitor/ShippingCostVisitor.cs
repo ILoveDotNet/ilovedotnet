@@ -1,4 +1,4 @@
-namespace DesignPatternDemoComponents.Visitor;
+﻿namespace DesignPatternDemoComponents.Visitor;
 
 //Step 4: Create Concrete Visitor
 public class ShippingCostVisitor : IVisitor

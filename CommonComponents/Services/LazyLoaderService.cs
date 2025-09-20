@@ -80,7 +80,7 @@ public class LazyLoaderService(
           var assemblies = await lazyAssemblyLoader.LoadAssembliesAsync(["MAUIDemoComponents.wasm"]);
           AdditionalAssemblies.AddRange(assemblies);
         }
-        
+
         if (path.Contains("middleware", StringComparison.OrdinalIgnoreCase))
         {
           var assemblies = await lazyAssemblyLoader.LoadAssembliesAsync(["MiddlewareDemoComponents.wasm"]);

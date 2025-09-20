@@ -6,8 +6,8 @@ namespace SitemapGenerator;
 public class Sitemap(TableOfContents tableOfContents, string channel)
 {
   private XDocument? _sitemap;
-  private readonly List<Url> _urls = 
-    channel.Equals("Channel") 
+  private readonly List<Url> _urls =
+    channel.Equals("Channel")
     ? [.. tableOfContents.AvailableContentTypes.Select(contentType => new Url
     {
       Loc = $"https://ilovedotnet.org/channels/{contentType.ToLower().Replace(" ", "-")}",

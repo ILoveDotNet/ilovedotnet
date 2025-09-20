@@ -1,4 +1,4 @@
-using Blazor.Analytics;
+﻿using Blazor.Analytics;
 using CommonComponents.Models;
 using CommonComponents.Services;
 using MAUI.Services;
@@ -81,7 +81,7 @@ public static class MauiProgram
 #if DEBUG
       hostEnvironment.Environment = "Development";
 #else
-            hostEnvironment.Environment = "Production";
+      hostEnvironment.Environment = "Production";
 #endif
       return hostEnvironment;
     });
