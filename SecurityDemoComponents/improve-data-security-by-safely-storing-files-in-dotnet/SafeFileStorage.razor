@@ -1,0 +1,260 @@
+@page "/blogs/improve-data-security-by-safely-storing-files-in-dotnet"
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(SafeFileStorage) UseNewTableOfContentsMenu=true>
+  <ContentBody>
+    <What>
+      <p>
+        Accepting file uploads in your application is like opening a door to your server. <ContentHighlight>One wrong move 
+        and attackers could overwrite critical system files or access confidential data.</ContentHighlight> In this article, 
+        we'll explore how to safely store files in .NET applications, protecting against path traversal attacks and implementing 
+        proper file storage security.
+      </p>
+      <p>
+        Whether you're building a web API, desktop application, or mobile backend, the principles we cover here will help keep 
+        your application secure when handling user-uploaded files.
+      </p>
+    </What>
+
+    <Why>
+      <p>
+        <ContentHighlight>Path traversal attacks</ContentHighlight> are one of the most common and dangerous vulnerabilities 
+        in applications that accept file uploads. When users can control the file path where uploads are stored, they can 
+        potentially write files anywhere on your server—from overwriting configuration files to replacing system executables.
+      </p>
+
+      <h4>The Real-World Impact</h4>
+
+      <p>
+        Imagine this scenario: Your application stores user files in <ContentHighlight>C:\UserFiles\User9\</ContentHighlight>. 
+        A malicious user uploads a file named <ContentHighlight>..\..\config.json</ContentHighlight>. Without proper validation, 
+        this resolves to <ContentHighlight>C:\UserFiles\config.json</ContentHighlight>—they've just overwritten your application's 
+        configuration file.
+      </p>
+
+      <p>
+        Even worse, attackers can target critical directories:
+      </p>
+
+      <ul>
+        <li><ContentHighlight>C:\inetpub\wwwroot</ContentHighlight> - Inject malicious web content</li>
+        <li><ContentHighlight>C:\Windows\System32</ContentHighlight> - Replace system executables</li>
+        <li>Other users' directories - Access or modify other users' data</li>
+        <li>Cloud storage buckets - Path traversal works in cloud environments too</li>
+      </ul>
+
+      <p>
+        The attack is trivial to execute and easy to automate. Attackers can quickly guess user IDs, folder names, and 
+        file paths, making this a serious security concern for any application handling file uploads.
+      </p>
+
+      <h4>Beyond Code: Defense in Depth</h4>
+
+      <p>
+        While secure coding practices are essential, they're only one layer of defense. <ContentHighlight>Operating system 
+        permissions</ContentHighlight> provide a critical safety net. Your application should run with the minimum privileges 
+        necessary—a principle known as <ContentHighlight>least privilege</ContentHighlight>.
+      </p>
+
+      <p>
+        For example, modern IIS applications run under virtual accounts like <ContentHighlight>IIS AppPool\MyAppPool</ContentHighlight>, 
+        with read and execute permissions on <ContentHighlight>C:\inetpub\wwwroot</ContentHighlight> by default. This means even 
+        if your code has a vulnerability, the OS prevents writing to critical directories.
+      </p>
+
+      <p>
+        Never grant your application write access to directories it doesn't absolutely need. Upload folders should be:
+      </p>
+
+      <ul>
+        <li>Separate from your web application directory</li>
+        <li>On a different drive when possible (path traversal can't jump between drives)</li>
+        <li>Protected with minimal permissions (write-only if files don't need to be read back)</li>
+      </ul>
+    </Why>
+
+    <How>
+      <p>
+        Let's explore practical strategies to protect your .NET applications from path traversal attacks and implement 
+        secure file storage.
+      </p>
+
+      <h4>Step 1: Use Random Filenames</h4>
+
+      <p>
+        The simplest and most secure approach is to <ContentHighlight>completely ignore the user-provided filename</ContentHighlight> 
+        and generate a random one. This eliminates path traversal risks entirely.
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+// Generate a random filename using GUID
+var fileName = $"{Guid.NewGuid()}.pdf";
+var filePath = Path.Combine(userDirectory, fileName);
+
+// Save the original filename in your database if you need it
+await _database.SaveFileMetadataAsync(new FileMetadata
+{
+    StoredFileName = fileName,
+    OriginalFileName = uploadedFile.FileName,
+    UserId = currentUser.Id
+});
+</CodeSnippet>
+
+      <p>
+        This approach separates file storage from file presentation. Users see their original filename, but internally, 
+        files are stored with GUIDs that can't be manipulated for path traversal.
+      </p>
+
+      <h4>Step 2: Sanitize User-Provided Filenames</h4>
+
+      <p>
+        If you must preserve the original filename on disk, use .NET's <ContentHighlight>Path.GetFileName()</ContentHighlight> 
+        to strip out any path components:
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+// User uploads: "../../etc/passwd"
+var userProvidedName = uploadedFile.FileName;
+
+// Path.GetFileName extracts only the filename, removing path traversal attempts
+var safeFileName = Path.GetFileName(userProvidedName);
+// Result: "passwd" (path components removed)
+
+// Now use Path.Combine to build the full path
+var userDirectory = $"D:\\Uploads\\User{currentUser.Id}";
+var filePath = Path.Combine(userDirectory, safeFileName);
+// Result: "D:\Uploads\User123\passwd"
+</CodeSnippet>
+
+      <p>
+        <ContentHighlight>Never concatenate file paths using string operations.</ContentHighlight> Always use 
+        <ContentHighlight>Path.Combine()</ContentHighlight> which handles path separators correctly across platforms 
+        (Windows vs. Linux) and prevents common mistakes.
+      </p>
+
+      <h4>Step 3: Validate the Final Path</h4>
+
+      <p>
+        As a final safety check, verify that the resolved file path actually starts with your intended directory. 
+        This catches any edge cases that might slip through:
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+public async Task&lt;IActionResult&gt; UploadFile(IFormFile file)
+{
+    // Define the expected base directory
+    var baseDirectory = $"D:\\Uploads\\User{User.GetUserId()}";
+    
+    // Sanitize the filename
+    var safeFileName = Path.GetFileName(file.FileName);
+    
+    // Combine to create full path
+    var filePath = Path.Combine(baseDirectory, safeFileName);
+    
+    // Get the absolute path and verify it's within our base directory
+    var fullPath = Path.GetFullPath(filePath);
+    
+    if (!fullPath.StartsWith(baseDirectory, StringComparison.OrdinalIgnoreCase))
+    {
+        return BadRequest("Invalid file path detected");
+    }
+    
+    // Safe to save the file
+    using var stream = new FileStream(fullPath, FileMode.Create);
+    await file.CopyToAsync(stream);
+    
+    return Ok(new { FileName = safeFileName });
+}
+</CodeSnippet>
+
+      <p>
+        <ContentHighlight>Path.GetFullPath()</ContentHighlight> resolves any relative path components (like <ContentHighlight>..</ContentHighlight>) 
+        to their absolute form. By checking if the result starts with our base directory, we ensure files can only be 
+        written where we intend.
+      </p>
+
+      <h4>Step 4: Configure Operating System Permissions</h4>
+
+      <p>
+        Even with perfect code, defense in depth requires proper OS-level permissions. Here's how to configure IIS 
+        application pools securely:
+      </p>
+
+<CodeSnippet CssClass="language-powershell">
+# Set the application pool to use the default identity (not LocalSystem!)
+Set-ItemProperty "IIS:\AppPools\MyAppPool" -Name processModel.identityType -Value ApplicationPoolIdentity
+
+# Grant minimal permissions to the upload directory
+$uploadPath = "D:\Uploads"
+$appPoolIdentity = "IIS AppPool\MyAppPool"
+
+# Remove inherited permissions
+$acl = Get-Acl $uploadPath
+$acl.SetAccessRuleProtection($true, $false)
+
+# Grant only Write permission (add Read if you need to serve files back)
+$writePermission = New-Object System.Security.AccessControl.FileSystemAccessRule(
+    $appPoolIdentity,
+    "Write",
+    "ContainerInherit,ObjectInherit",
+    "None",
+    "Allow"
+)
+$acl.AddAccessRule($writePermission)
+Set-Acl $uploadPath $acl
+</CodeSnippet>
+
+      <p>
+        This configuration ensures that even if an attacker bypasses your code's validation, the operating system 
+        prevents writes to unauthorized locations.
+      </p>
+
+      <h4>Step 5: Additional Security Measures</h4>
+
+      <p>
+        Beyond path validation, consider these additional protections:
+      </p>
+
+      <ul>
+        <li>
+          <strong>File Size Limits:</strong> Prevent denial-of-service attacks by limiting upload sizes in your 
+          web.config or startup configuration
+        </li>
+        <li>
+          <strong>Content Type Validation:</strong> Verify the file's actual content matches its claimed type 
+          (don't trust file extensions alone)
+        </li>
+        <li>
+          <strong>Virus Scanning:</strong> Integrate with antivirus solutions to scan uploaded files before storage
+        </li>
+        <li>
+          <strong>Separate Storage:</strong> Store uploads on a different drive or server from your application code
+        </li>
+        <li>
+          <strong>Audit Logging:</strong> Log all file uploads with user IDs, timestamps, and file metadata for security audits
+        </li>
+      </ul>
+    </How>
+
+    <Summary>
+      <p>
+        Safely storing files in .NET applications requires a multi-layered approach. <ContentHighlight>Use random 
+        filenames when possible</ContentHighlight>, sanitize user input with <ContentHighlight>Path.GetFileName()</ContentHighlight>, 
+        validate paths with <ContentHighlight>Path.GetFullPath()</ContentHighlight>, and always use 
+        <ContentHighlight>Path.Combine()</ContentHighlight> instead of string concatenation.
+      </p>
+      
+      <p>
+        Remember that secure code is only one layer of defense. Configure your application pool with minimal permissions, 
+        store uploads outside your web root, and implement additional security measures like file size limits, content 
+        type validation, and audit logging. By combining these strategies, you'll protect your application from path 
+        traversal attacks and keep your users' data safe.
+      </p>
+
+      <p>
+        Defense in depth isn't just a buzzword—it's the difference between a secure application and a compromised server.
+      </p>
+    </Summary>
+  </ContentBody>
+</Content>

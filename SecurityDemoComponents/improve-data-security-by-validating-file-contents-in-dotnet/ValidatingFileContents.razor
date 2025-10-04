@@ -1,0 +1,744 @@
+@page "/blogs/improve-data-security-by-validating-file-contents-in-dotnet"
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(ValidatingFileContents) UseNewTableOfContentsMenu=true>
+  <ContentBody>
+    <What>
+      <p>
+        You've secured your file storage paths—but what about the files themselves? <ContentHighlight>A malicious user can 
+        disguise an executable as a PDF, upload a zip bomb, or inject viruses into your system.</ContentHighlight> In this 
+        article, we'll explore how to validate file contents in .NET applications, covering file size limits, type validation, 
+        and antivirus scanning to protect your application from malicious uploads.
+      </p>
+      <p>
+        Don't trust the file extension alone. Let's learn how to verify what's really inside those uploaded files.
+      </p>
+    </What>
+
+    <Why>
+      <p>
+        <ContentHighlight>File content validation</ContentHighlight> is your second line of defense after securing file paths. 
+        Users can manipulate filenames, extensions, and content to bypass basic checks. Without proper validation, you risk 
+        accepting malicious files, exhausting server resources, or exposing your users to security threats.
+      </p>
+
+      <h4>The Hidden Dangers of File Uploads</h4>
+
+      <p>
+        Here's the reality: <ContentHighlight>file extensions mean nothing</ContentHighlight>. A user can rename 
+        <ContentHighlight>malware.exe</ContentHighlight> to <ContentHighlight>invoice.pdf</ContentHighlight> and upload it. 
+        Your application might store it, serve it back to users, or attempt to process it—creating serious security risks.
+      </p>
+
+      <p>
+        Consider these real-world threats:
+      </p>
+
+      <ul>
+        <li>
+          <strong>File Type Spoofing:</strong> Attackers rename malicious executables with safe-looking extensions. If you 
+          only check the filename, you'll be fooled.
+        </li>
+        <li>
+          <strong>Zip Bombs:</strong> A tiny compressed file (kilobytes) that expands to gigabytes or terabytes when decompressed, 
+          filling up your disk space and crashing your service.
+        </li>
+        <li>
+          <strong>Resource Exhaustion:</strong> Massive file uploads consume disk space, bandwidth, and processing power, 
+          leading to degraded performance or outright denial of service.
+        </li>
+        <li>
+          <strong>Malware Distribution:</strong> If users can download files from your service, you become a distribution 
+          point for malware. Your reputation and legal liability are on the line.
+        </li>
+        <li>
+          <strong>Processing Exploits:</strong> Files with malicious content can exploit vulnerabilities in image processors, 
+          PDF readers, or document parsers running on your server.
+        </li>
+      </ul>
+
+      <h4>Why File Extensions Aren't Enough</h4>
+
+      <p>
+        Every file type has a <ContentHighlight>magic number</ContentHighlight> or <ContentHighlight>file signature</ContentHighlight>—specific 
+        bytes at the beginning of the file that identify its true type. For example, PNG files always start with 
+        <ContentHighlight>89 50 4E 47</ContentHighlight>, and JPEG files start with <ContentHighlight>FF D8 FF</ContentHighlight>.
+      </p>
+
+      <p>
+        If you rename a PDF to <ContentHighlight>.xlsx</ContentHighlight> and try to open it in Excel, Excel immediately 
+        knows it's not a real Excel file by checking those initial bytes. Your application should do the same.
+      </p>
+
+      <h4>The Cost of Not Validating</h4>
+
+      <p>
+        Without validation, you face multiple risks:
+      </p>
+
+      <ul>
+        <li>
+          <strong>Storage Costs:</strong> In cloud environments, unlimited file uploads translate directly to higher bills. 
+          Large files consume storage and bandwidth.
+        </li>
+        <li>
+          <strong>Processing Time:</strong> Processing large files requires CPU resources and time. Multiply that by hundreds 
+          of users, and your service grinds to a halt.
+        </li>
+        <li>
+          <strong>Legal Liability:</strong> If your service hosts and distributes malware, you could face legal consequences 
+          and reputational damage.
+        </li>
+        <li>
+          <strong>Service Degradation:</strong> Disk space fills up, processing queues back up, and legitimate users suffer 
+          poor performance or outright failures.
+        </li>
+      </ul>
+
+      <h4>Defense Requires Multiple Layers</h4>
+
+      <p>
+        No single check is perfect. <ContentHighlight>Antivirus software</ContentHighlight> is essential but not foolproof—different 
+        vendors detect different threats, and skilled attackers can create malware that evades detection. The only way to 
+        eliminate risk entirely is to not accept file uploads at all, but that's rarely practical.
+      </p>
+
+      <p>
+        Instead, we implement <ContentHighlight>defense in depth</ContentHighlight>: file size limits, magic number validation, 
+        and antivirus scanning working together to minimize risk.
+      </p>
+    </Why>
+
+    <How>
+      <p>
+        Let's implement comprehensive file content validation in .NET, covering size limits, type verification, and malware scanning.
+      </p>
+
+      <h4>Step 1: Implement File Size Limits</h4>
+
+      <p>
+        The first and simplest defense is limiting how large files can be. This protects against resource exhaustion and 
+        controls costs. ASP.NET Core provides multiple ways to enforce size limits.
+      </p>
+
+      <h5>Application-Wide File Size Limit</h5>
+
+      <p>
+        Set a global default in your <ContentHighlight>Program.cs</ContentHighlight>:
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+// Configure global file upload limits
+builder.Services.Configure&lt;FormOptions&gt;(options =&gt;
+{
+    // Set maximum allowed size for multipart body (file uploads)
+    options.MultipartBodyLengthLimit = 10 * 1024 * 1024; // 10 MB
+    
+    // Set maximum allowed size for in-memory buffering
+    options.MemoryBufferThreshold = 2 * 1024 * 1024; // 2 MB
+    
+    // Maximum number of form fields allowed
+    options.ValueCountLimit = 1024;
+});
+</CodeSnippet>
+
+      <h5>Per-Endpoint File Size Limits</h5>
+
+      <p>
+        For more granular control, use attributes on specific controllers or actions:
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+[ApiController]
+[Route("api/[controller]")]
+public class FileUploadController : ControllerBase
+{
+    // Define constants for size limits
+    private const int MaxFileSize = 5 * 1024 * 1024; // 5 MB
+    private const int MaxRequestSize = 10 * 1024 * 1024; // 10 MB
+    
+    [HttpPost("upload")]
+    [RequestFormLimits(
+        MultipartBodyLengthLimit = MaxFileSize,
+        ValueLengthLimit = MaxRequestSize
+    )]
+    [RequestSizeLimit(MaxRequestSize)]
+    public async Task&lt;IActionResult&gt; Upload(IFormFile file)
+    {
+        // Validate file is provided
+        if (file == null || file.Length == 0)
+        {
+            return BadRequest("No file uploaded");
+        }
+        
+        // Additional validation: check file size explicitly
+        if (file.Length &gt; MaxFileSize)
+        {
+            return BadRequest($"File size exceeds maximum allowed size of " +
+                            $"{MaxFileSize / 1024 / 1024} MB");
+        }
+        
+        // Process the file...
+        return Ok(new { FileName = file.FileName, Size = file.Length });
+    }
+}
+</CodeSnippet>
+
+      <p>
+        <ContentHighlight>RequestFormLimits</ContentHighlight> controls the multipart form data size, while 
+        <ContentHighlight>RequestSizeLimit</ContentHighlight> limits the entire request. Using both provides comprehensive 
+        protection.
+      </p>
+
+      <h4>Step 2: Validate File Types Using Magic Numbers</h4>
+
+      <p>
+        Never trust file extensions. Instead, read the first few bytes of the file and verify they match the expected 
+        <ContentHighlight>file signature</ContentHighlight> or <ContentHighlight>magic number</ContentHighlight>. You 
+        can find lists of common file signatures online (e.g., <a href="https://en.wikipedia.org/wiki/List_of_file_signatures" target="_blank" rel="noopener noreferrer">
+        Wikipedia's list of file signatures</a>).
+      </p>
+
+      <h5>Create a File Validation Service</h5>
+
+<CodeSnippet CssClass="language-csharp">
+public class FileValidationService
+{
+    // Define allowed file signatures (magic numbers)
+    private static readonly Dictionary&lt;string, List&lt;byte[]&gt;&gt; FileSignatures = 
+        new(StringComparer.OrdinalIgnoreCase)
+    {
+        // PNG files start with: 89 50 4E 47 0D 0A 1A 0A
+        { 
+            ".png", 
+            new List&lt;byte[]&gt; 
+            { 
+                new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A } 
+            } 
+        },
+        
+        // JPEG files can start with: FF D8 FF E0 or FF D8 FF E1 or FF D8 FF E8
+        { 
+            ".jpg", 
+            new List&lt;byte[]&gt; 
+            { 
+                new byte[] { 0xFF, 0xD8, 0xFF, 0xE0 },
+                new byte[] { 0xFF, 0xD8, 0xFF, 0xE1 },
+                new byte[] { 0xFF, 0xD8, 0xFF, 0xE8 }
+            } 
+        },
+        { ".jpeg", new List&lt;byte[]&gt; 
+            { 
+                new byte[] { 0xFF, 0xD8, 0xFF, 0xE0 },
+                new byte[] { 0xFF, 0xD8, 0xFF, 0xE1 },
+                new byte[] { 0xFF, 0xD8, 0xFF, 0xE8 }
+            } 
+        },
+        
+        // PDF files start with: 25 50 44 46 (%PDF)
+        { 
+            ".pdf", 
+            new List&lt;byte[]&gt; 
+            { 
+                new byte[] { 0x25, 0x50, 0x44, 0x46 } 
+            } 
+        },
+        
+        // ZIP files start with: 50 4B 03 04 or 50 4B 05 06 or 50 4B 07 08
+        { 
+            ".zip", 
+            new List&lt;byte[]&gt; 
+            { 
+                new byte[] { 0x50, 0x4B, 0x03, 0x04 },
+                new byte[] { 0x50, 0x4B, 0x05, 0x06 },
+                new byte[] { 0x50, 0x4B, 0x07, 0x08 }
+            } 
+        }
+    };
+    
+    public bool IsValidFileType(IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+        {
+            return false;
+        }
+        
+        // Get the file extension
+        var extension = Path.GetExtension(file.FileName);
+        
+        if (string.IsNullOrEmpty(extension))
+        {
+            return false;
+        }
+        
+        // Check if extension is in our allowed list
+        if (!FileSignatures.ContainsKey(extension))
+        {
+            return false;
+        }
+        
+        // Read the file signature (first 8 bytes is usually enough)
+        using var reader = new BinaryReader(file.OpenReadStream());
+        var headerBytes = reader.ReadBytes(8);
+        
+        // Get valid signatures for this extension
+        var signatures = FileSignatures[extension];
+        
+        // Check if the file header matches any valid signature
+        return signatures.Any(signature =&gt; 
+            headerBytes.Take(signature.Length).SequenceEqual(signature));
+    }
+}
+</CodeSnippet>
+
+      <h5>Use the Validation Service</h5>
+
+<CodeSnippet CssClass="language-csharp">
+[ApiController]
+[Route("api/[controller]")]
+public class FileUploadController : ControllerBase
+{
+    private readonly FileValidationService _fileValidator;
+    
+    public FileUploadController(FileValidationService fileValidator)
+    {
+        _fileValidator = fileValidator;
+    }
+    
+    [HttpPost("upload")]
+    public async Task&lt;IActionResult&gt; Upload(IFormFile file)
+    {
+        // Validate file type using magic numbers
+        if (!_fileValidator.IsValidFileType(file))
+        {
+            return BadRequest("Invalid file type. Only PNG, JPEG, and PDF files " +
+                            "are allowed.");
+        }
+        
+        // Continue with other validations and processing...
+        return Ok();
+    }
+}
+</CodeSnippet>
+
+      <p>
+        Don't forget to register the service in your <ContentHighlight>Program.cs</ContentHighlight>:
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+builder.Services.AddScoped&lt;FileValidationService&gt;();
+</CodeSnippet>
+
+      <h4>Step 3: Implement Antivirus Scanning</h4>
+
+      <p>
+        Even with file type validation, malicious content can hide inside legitimate file types. 
+        <ContentHighlight>Antivirus scanning</ContentHighlight> is essential for detecting malware, viruses, and other threats.
+      </p>
+
+      <h5>Using ClamAV for Virus Scanning</h5>
+
+      <p>
+        <ContentHighlight>ClamAV</ContentHighlight> is a free, open-source antivirus engine. While commercial solutions offer 
+        better detection rates, ClamAV is a solid choice for many applications.
+      </p>
+
+      <p>
+        First, install the NuGet package:
+      </p>
+
+<CodeSnippet CssClass="language-bash">
+dotnet add package nClam
+</CodeSnippet>
+
+      <p>
+        Set up ClamAV using Docker (easiest for development):
+      </p>
+
+<CodeSnippet CssClass="language-bash">
+docker run -d -p 3310:3310 clamav/clamav
+</CodeSnippet>
+
+      <h5>Create an Antivirus Scanning Service</h5>
+
+<CodeSnippet CssClass="language-csharp">
+using nClam;
+
+public class AntivirusService
+{
+    private readonly ClamClient _clamClient;
+    private readonly ILogger&lt;AntivirusService&gt; _logger;
+    
+    public AntivirusService(
+        IConfiguration configuration, 
+        ILogger&lt;AntivirusService&gt; logger)
+    {
+        var server = configuration["ClamAV:Server"] ?? "localhost";
+        var port = int.Parse(configuration["ClamAV:Port"] ?? "3310");
+        
+        _clamClient = new ClamClient(server, port);
+        _logger = logger;
+    }
+    
+    public async Task&lt;VirusScanResult&gt; ScanFileAsync(IFormFile file)
+    {
+        try
+        {
+            // Convert file to byte array
+            using var memoryStream = new MemoryStream();
+            await file.CopyToAsync(memoryStream);
+            var fileBytes = memoryStream.ToArray();
+            
+            // Scan the file
+            var scanResult = await _clamClient.SendAndScanFileAsync(fileBytes);
+            
+            _logger.LogInformation(
+                "Virus scan completed. File: {FileName}, Result: {Result}",
+                file.FileName,
+                scanResult.Result
+            );
+            
+            return new VirusScanResult
+            {
+                IsClean = scanResult.Result == ClamScanResults.Clean,
+                ResultMessage = scanResult.Result.ToString(),
+                VirusName = scanResult.InfectedFiles?.FirstOrDefault()?.VirusName
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error scanning file: {FileName}", file.FileName);
+            
+            // Fail secure: if scanning fails, reject the file
+            return new VirusScanResult
+            {
+                IsClean = false,
+                ResultMessage = "Scan failed - file rejected for safety",
+                VirusName = null
+            };
+        }
+    }
+}
+
+public class VirusScanResult
+{
+    public bool IsClean { get; set; }
+    public string ResultMessage { get; set; }
+    public string? VirusName { get; set; }
+}
+</CodeSnippet>
+
+      <h5>Integrate Antivirus Scanning in Your Upload Endpoint</h5>
+
+<CodeSnippet CssClass="language-csharp">
+[ApiController]
+[Route("api/[controller]")]
+public class FileUploadController : ControllerBase
+{
+    private readonly FileValidationService _fileValidator;
+    private readonly AntivirusService _antivirusService;
+    private readonly ILogger&lt;FileUploadController&gt; _logger;
+    
+    public FileUploadController(
+        FileValidationService fileValidator,
+        AntivirusService antivirusService,
+        ILogger&lt;FileUploadController&gt; logger)
+    {
+        _fileValidator = fileValidator;
+        _antivirusService = antivirusService;
+        _logger = logger;
+    }
+    
+    [HttpPost("upload")]
+    [RequestSizeLimit(10 * 1024 * 1024)] // 10 MB
+    public async Task&lt;IActionResult&gt; Upload(IFormFile file)
+    {
+        // 1. Basic validation
+        if (file == null || file.Length == 0)
+        {
+            return BadRequest("No file uploaded");
+        }
+        
+        // 2. Validate file type (efficient - check this first)
+        if (!_fileValidator.IsValidFileType(file))
+        {
+            _logger.LogWarning(
+                "Invalid file type rejected. FileName: {FileName}",
+                file.FileName
+            );
+            return BadRequest("Invalid file type");
+        }
+        
+        // 3. Scan for viruses (more expensive - do after type validation)
+        var scanResult = await _antivirusService.ScanFileAsync(file);
+        
+        if (!scanResult.IsClean)
+        {
+            _logger.LogWarning(
+                "Malicious file detected. FileName: {FileName}, Virus: {VirusName}",
+                file.FileName,
+                scanResult.VirusName
+            );
+            return BadRequest("File contains malicious content and was rejected");
+        }
+        
+        // 4. File is safe - proceed with storage
+        // ... save file logic here ...
+        
+        _logger.LogInformation(
+            "File uploaded successfully. FileName: {FileName}, Size: {Size}",
+            file.FileName,
+            file.Length
+        );
+        
+        return Ok(new 
+        { 
+            Message = "File uploaded successfully",
+            FileName = file.FileName,
+            Size = file.Length
+        });
+    }
+}
+</CodeSnippet>
+
+      <p>
+        Register the antivirus service in <ContentHighlight>Program.cs</ContentHighlight>:
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+builder.Services.AddScoped&lt;AntivirusService&gt;();
+</CodeSnippet>
+
+      <p>
+        And add the configuration to <ContentHighlight>appsettings.json</ContentHighlight>:
+      </p>
+
+<CodeSnippet CssClass="language-json">
+{
+  "ClamAV": {
+    "Server": "localhost",
+    "Port": "3310"
+  }
+}
+</CodeSnippet>
+
+      <h4>Step 4: Testing with EICAR Test File</h4>
+
+      <p>
+        To verify your antivirus integration works, use the <ContentHighlight>EICAR test file</ContentHighlight>—a harmless 
+        file that all antivirus software treats as malware for testing purposes.
+      </p>
+
+      <p>
+        Create a text file with this content:
+      </p>
+
+<CodeSnippet CssClass="language-text">
+X5O!P%@@AP[4\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*
+</CodeSnippet>
+
+      <p>
+        <strong>Important:</strong> Your antivirus software will flag this immediately. If you're in a corporate environment, 
+        inform your security team before creating this file. It's completely harmless but will trigger alerts.
+      </p>
+
+      <p>
+        Upload this file to your endpoint. You should see it rejected with a malicious content message.
+      </p>
+
+      <h4>Step 5: Additional Best Practices</h4>
+
+      <p>
+        Beyond the core validations, consider these additional security measures:
+      </p>
+
+      <ul>
+        <li>
+          <strong>Sanitize Filenames:</strong> Remove special characters and path traversal attempts from filenames before 
+          storing (as covered in the previous article on safe file storage).
+        </li>
+        <li>
+          <strong>Implement Rate Limiting:</strong> Prevent abuse by limiting how many files a user can upload in a given 
+          time period.
+        </li>
+        <li>
+          <strong>Use Content-Type Validation:</strong> Check the <ContentHighlight>Content-Type</ContentHighlight> header, 
+          but don't rely on it alone—it's easily spoofed.
+        </li>
+        <li>
+          <strong>Quarantine Suspicious Files:</strong> Instead of rejecting borderline files immediately, quarantine them 
+          for manual review.
+        </li>
+        <li>
+          <strong>Multiple Antivirus Engines:</strong> For high-security applications, scan files with multiple antivirus 
+          engines. Services like VirusTotal offer APIs for this.
+        </li>
+        <li>
+          <strong>Regular Signature Updates:</strong> Ensure your antivirus engine regularly updates its virus definitions.
+        </li>
+        <li>
+          <strong>Monitor Upload Patterns:</strong> Track upload volumes, file types, and scan results to identify suspicious 
+          behavior.
+        </li>
+      </ul>
+
+      <h4>Complete Example: Comprehensive File Upload Validation</h4>
+
+      <p>
+        Putting it all together, here's a complete example with all validation layers:
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+[ApiController]
+[Route("api/[controller]")]
+[Authorize] // Require authentication
+public class SecureFileUploadController : ControllerBase
+{
+    private const int MaxFileSize = 10 * 1024 * 1024; // 10 MB
+    private readonly FileValidationService _fileValidator;
+    private readonly AntivirusService _antivirusService;
+    private readonly ILogger&lt;SecureFileUploadController&gt; _logger;
+    
+    public SecureFileUploadController(
+        FileValidationService fileValidator,
+        AntivirusService antivirusService,
+        ILogger&lt;SecureFileUploadController&gt; logger)
+    {
+        _fileValidator = fileValidator;
+        _antivirusService = antivirusService;
+        _logger = logger;
+    }
+    
+    [HttpPost("upload")]
+    [RequestFormLimits(MultipartBodyLengthLimit = MaxFileSize)]
+    [RequestSizeLimit(MaxFileSize)]
+    public async Task&lt;IActionResult&gt; Upload(
+        [FromForm] IFormFile file,
+        CancellationToken cancellationToken)
+    {
+        var uploadId = Guid.NewGuid();
+        
+        try
+        {
+            // Step 1: Basic validation
+            if (file == null || file.Length == 0)
+            {
+                return BadRequest(new { Error = "No file provided" });
+            }
+            
+            // Step 2: Size validation
+            if (file.Length &gt; MaxFileSize)
+            {
+                _logger.LogWarning(
+                    "File size exceeded. UploadId: {UploadId}, Size: {Size}",
+                    uploadId,
+                    file.Length
+                );
+                return BadRequest(new 
+                { 
+                    Error = $"File size exceeds {MaxFileSize / 1024 / 1024} MB limit" 
+                });
+            }
+            
+            // Step 3: File type validation (fast - do this before expensive scanning)
+            if (!_fileValidator.IsValidFileType(file))
+            {
+                _logger.LogWarning(
+                    "Invalid file type. UploadId: {UploadId}, FileName: {FileName}",
+                    uploadId,
+                    file.FileName
+                );
+                return BadRequest(new 
+                { 
+                    Error = "Invalid file type. Only PNG, JPEG, and PDF files allowed" 
+                });
+            }
+            
+            // Step 4: Antivirus scanning (expensive - do last)
+            var scanResult = await _antivirusService.ScanFileAsync(file);
+            
+            if (!scanResult.IsClean)
+            {
+                _logger.LogWarning(
+                    "Malicious file detected. UploadId: {UploadId}, " +
+                    "FileName: {FileName}, Virus: {VirusName}",
+                    uploadId,
+                    file.FileName,
+                    scanResult.VirusName
+                );
+                return BadRequest(new 
+                { 
+                    Error = "File rejected: malicious content detected" 
+                });
+            }
+            
+            // Step 5: All validations passed - save the file
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var safeFileName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
+            var filePath = Path.Combine("uploads", userId, safeFileName);
+            
+            // Ensure directory exists
+            Directory.CreateDirectory(Path.GetDirectoryName(filePath));
+            
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream, cancellationToken);
+            }
+            
+            _logger.LogInformation(
+                "File uploaded successfully. UploadId: {UploadId}, " +
+                "FileName: {FileName}, StoredAs: {StoredFileName}",
+                uploadId,
+                file.FileName,
+                safeFileName
+            );
+            
+            return Ok(new
+            {
+                Message = "File uploaded successfully",
+                FileName = safeFileName,
+                OriginalFileName = file.FileName,
+                Size = file.Length,
+                UploadId = uploadId
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Error processing file upload. UploadId: {UploadId}",
+                uploadId
+            );
+            return StatusCode(500, new { Error = "Error processing file upload" });
+        }
+    }
+}
+</CodeSnippet>
+    </How>
+
+    <Summary>
+      <p>
+        <ContentHighlight>Validating file contents</ContentHighlight> requires multiple defensive layers working together. 
+        Implement <ContentHighlight>file size limits</ContentHighlight> to prevent resource exhaustion, validate 
+        <ContentHighlight>file types using magic numbers</ContentHighlight> to prevent spoofing, and perform 
+        <ContentHighlight>antivirus scanning</ContentHighlight> to detect malicious content.
+      </p>
+      
+      <p>
+        Remember: file extensions are meaningless. Read the actual bytes. Antivirus isn't perfect, but it's essential. 
+        And no single validation is enough—defense in depth is the only way to protect your application and users.
+      </p>
+
+      <p>
+        Order matters too: validate file size first (cheapest), then file type (fast), and finally run antivirus scans 
+        (expensive). This efficient ordering minimizes resource waste while maintaining security.
+      </p>
+
+      <p>
+        The only way to eliminate file upload risk entirely is to not accept uploads at all. Since that's rarely an option, 
+        implement these comprehensive validations and monitor your system continuously for suspicious activity.
+      </p>
+    </Summary>
+  </ContentBody>
+</Content>

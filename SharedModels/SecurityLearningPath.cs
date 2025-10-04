@@ -2,7 +2,7 @@
 
 public class SecurityLearningPath
 {
-  public readonly List<ContentMetaData> FullContents = new(6);
+  public readonly List<ContentMetaData> FullContents = new(9);
 
   public SecurityLearningPath()
   {
@@ -109,6 +109,57 @@ public class SecurityLearningPath
           CreatedOn = new DateTime(2025, 8, 31, 22, 30, 0, DateTimeKind.Utc),
           ModifiedOn = new DateTime(2025, 8, 31, 22, 30, 0, DateTimeKind.Utc),
           Keywords = ["Cryptographically Secure Random", "RandomNumberGenerator", "System.Random", "OTP", "GUID Security", "API Tokens", "Session Security", "Modulo Bias", "Security", ".NET"]
+        },
+      new ContentMetaData
+        {
+          Order = 7,
+          Title = "Improve Data Security by Safely Storing Files in .NET",
+          Description = "Learn how to protect against path traversal attacks, implement secure file storage, configure OS permissions, and defend your .NET applications from file upload vulnerabilities.",
+          Author = "Abdul Rahman",
+          Slug = "improve-data-security-by-safely-storing-files-in-dotnet",
+          PosterUrl = "image/blogs/security/improve-data-security-by-safely-storing-files-in-dotnet.webp",
+          ThumbnailUrl = "image/blogs/security/improve-data-security-by-safely-storing-files-in-dotnet.webp",
+          ContentUrl = "blogs/improve-data-security-by-safely-storing-files-in-dotnet",
+          IconUrl = "image/icons/security.webp",
+          Channel = "Security",
+          Type = "blogs",
+          CreatedOn = new DateTime(2025, 10, 12, 22, 30, 0, DateTimeKind.Utc),
+          ModifiedOn = new DateTime(2025, 10, 12, 22, 30, 0, DateTimeKind.Utc),
+          Keywords = ["File Upload Security", "Path Traversal", "File Storage", "IIS Security", "Least Privilege", "Input Validation", "OS Permissions", "Security", ".NET"]
+        },
+      new ContentMetaData
+        {
+          Order = 8,
+          Title = "Improve Data Security by Validating File Contents in .NET",
+          Description = "Master file content validation in .NET: implement file size limits, validate file types using magic numbers, and integrate antivirus scanning to protect against malicious uploads.",
+          Author = "Abdul Rahman",
+          Slug = "improve-data-security-by-validating-file-contents-in-dotnet",
+          PosterUrl = "image/blogs/security/improve-data-security-by-validating-file-contents-in-dotnet.webp",
+          ThumbnailUrl = "image/blogs/security/improve-data-security-by-validating-file-contents-in-dotnet.webp",
+          ContentUrl = "blogs/improve-data-security-by-validating-file-contents-in-dotnet",
+          IconUrl = "image/icons/security.webp",
+          Channel = "Security",
+          Type = "blogs",
+          CreatedOn = new DateTime(2025, 10, 19, 22, 30, 0, DateTimeKind.Utc),
+          ModifiedOn = new DateTime(2025, 10, 19, 22, 30, 0, DateTimeKind.Utc),
+          Keywords = ["File Validation", "File Upload Security", "Magic Numbers", "File Signatures", "Antivirus", "ClamAV", "File Size Limits", "Malware Detection", "Security", ".NET"]
+        },
+      new ContentMetaData
+        {
+          Order = 9,
+          Title = "Improve Data Security by Implementing Secure File Retrieval in .NET",
+          Description = "Master secure file downloads in .NET: prevent path traversal and SSRF attacks, implement proper Content-Type and Content-Disposition headers, and protect against browser-based exploits.",
+          Author = "Abdul Rahman",
+          Slug = "improve-data-security-by-implementing-secure-file-retrieval-in-dotnet",
+          PosterUrl = "image/blogs/security/improve-data-security-by-implementing-secure-file-retrieval-in-dotnet.webp",
+          ThumbnailUrl = "image/blogs/security/improve-data-security-by-implementing-secure-file-retrieval-in-dotnet.webp",
+          ContentUrl = "blogs/improve-data-security-by-implementing-secure-file-retrieval-in-dotnet",
+          IconUrl = "image/icons/security.webp",
+          Channel = "Security",
+          Type = "blogs",
+          CreatedOn = new DateTime(2025, 10, 26, 22, 30, 0, DateTimeKind.Utc),
+          ModifiedOn = new DateTime(2025, 10, 26, 22, 30, 0, DateTimeKind.Utc),
+          Keywords = ["File Download Security", "Path Traversal", "SSRF", "Server-Side Request Forgery", "Content-Type", "Content-Disposition", "XSS Prevention", "File Retrieval", "Security", ".NET"]
         }
     ];
   }

@@ -1,0 +1,856 @@
+@page "/blogs/improve-data-security-by-implementing-secure-file-retrieval-in-dotnet"
+@using SharedModels
+@inherits BasePage
+
+<Content FileName=@nameof(SecureFileRetrieval) UseNewTableOfContentsMenu=true>
+  <ContentBody>
+    <What>
+      <p>
+        You've secured file uploads—now what about downloads? <ContentHighlight>A poorly implemented file download 
+        endpoint can expose configuration files, leak user data, or become a gateway for attackers to probe your internal 
+        network.</ContentHighlight> In this article, we'll explore how to implement secure file retrieval in .NET 
+        applications, protecting against path traversal, Server-Side Request Forgery (SSRF), and browser-based exploits.
+      </p>
+      <p>
+        File downloads aren't just about sending bytes—they're about controlling what gets accessed, by whom, and how 
+        browsers handle the content.
+      </p>
+    </What>
+
+    <Why>
+      <p>
+        <ContentHighlight>File retrieval vulnerabilities</ContentHighlight> mirror upload risks but with different 
+        consequences. Instead of writing malicious files, attackers read sensitive data. The same path traversal 
+        techniques that threaten uploads can expose configuration files, database credentials, API keys, and user data 
+        during downloads.
+      </p>
+
+      <h4>The Confidentiality Crisis</h4>
+
+      <p>
+        When users control file paths in download requests, they can navigate your file system just like with uploads. 
+        The difference? They're stealing data instead of planting it. A request for 
+        <ContentHighlight>../../../../etc/passwd</ContentHighlight> or 
+        <ContentHighlight>..\..\appsettings.json</ContentHighlight> could expose your entire security infrastructure.
+      </p>
+
+      <p>
+        Consider these attack scenarios:
+      </p>
+
+      <ul>
+        <li>
+          <strong>Cross-User Data Access:</strong> User A downloads User B's invoices, medical records, or personal 
+          documents by manipulating file IDs or paths.
+        </li>
+        <li>
+          <strong>Configuration File Exposure:</strong> Attackers retrieve <ContentHighlight>appsettings.json</ContentHighlight>, 
+          <ContentHighlight>web.config</ContentHighlight>, or environment files containing database credentials and API keys.
+        </li>
+        <li>
+          <strong>Source Code Leakage:</strong> If download paths aren't restricted, attackers might access your 
+          application's source code, revealing business logic and security weaknesses.
+        </li>
+        <li>
+          <strong>Operating System Files:</strong> On Windows, files like <ContentHighlight>C:\Windows\System32\drivers\etc\hosts</ContentHighlight> 
+          or on Linux <ContentHighlight>/etc/shadow</ContentHighlight> could be targeted.
+        </li>
+      </ul>
+
+      <h4>Server-Side Request Forgery (SSRF): The Hidden Threat</h4>
+
+      <p>
+        <ContentHighlight>SSRF attacks</ContentHighlight> occur when attackers trick your server into making requests on 
+        their behalf. If your file download endpoint accepts URLs or can be manipulated to make HTTP requests, attackers 
+        can use your server to:
+      </p>
+
+      <ul>
+        <li>
+          <strong>Probe Internal Networks:</strong> Your application server often has access to internal APIs, databases, 
+          and services not exposed to the internet. Attackers can use SSRF to map and attack these systems.
+        </li>
+        <li>
+          <strong>Access Cloud Metadata:</strong> In AWS, Azure, or GCP, instances have metadata endpoints 
+          (like <ContentHighlight>http://169.254.169.254/</ContentHighlight>) that expose sensitive information including 
+          IAM credentials. SSRF can compromise your entire cloud environment.
+        </li>
+        <li>
+          <strong>Bypass Firewalls:</strong> Internal services often trust requests from application servers. SSRF turns 
+          your server into a proxy for attacking protected resources.
+        </li>
+        <li>
+          <strong>Data Exfiltration:</strong> Attackers can retrieve data from internal services and receive it through 
+          your application's response.
+        </li>
+      </ul>
+
+      <p>
+        Imagine your network: a public-facing web server, an internal API server, and a database. The web server can 
+        reach the API, but the API isn't directly accessible from the internet. If attackers can control URLs in file 
+        download requests, they transform your web server into a bridge to attack the internal API.
+      </p>
+
+      <h4>Browser-Based Exploits: Content-Type and Disposition</h4>
+
+      <p>
+        Even if file paths are secure, how browsers handle downloaded files matters. Two HTTP headers control this:
+      </p>
+
+      <ul>
+        <li>
+          <strong>Content-Type:</strong> Tells the browser what type of content it's receiving 
+          (<ContentHighlight>text/html</ContentHighlight>, <ContentHighlight>application/pdf</ContentHighlight>, etc.).
+        </li>
+        <li>
+          <strong>Content-Disposition:</strong> Controls whether the browser displays the content inline or treats it 
+          as a download (attachment).
+        </li>
+      </ul>
+
+      <p>
+        If an attacker uploads an HTML file containing malicious JavaScript, and your download endpoint serves it with 
+        <ContentHighlight>Content-Type: text/html</ContentHighlight> without 
+        <ContentHighlight>Content-Disposition: attachment</ContentHighlight>, the browser executes the JavaScript as if 
+        it's part of your application. This creates a <ContentHighlight>stored Cross-Site Scripting (XSS)</ContentHighlight> 
+        vulnerability, allowing attackers to steal session cookies, hijack accounts, or perform actions as the victim.
+      </p>
+
+      <h4>Why Defense in Depth Matters</h4>
+
+      <p>
+        Secure file retrieval requires multiple layers:
+      </p>
+
+      <ul>
+        <li>Path validation prevents traversal attacks</li>
+        <li>Access control ensures users can only access their own files</li>
+        <li>URL validation prevents SSRF</li>
+        <li>Proper headers prevent browser-based exploits</li>
+        <li>Encryption protects data even if unauthorized access occurs</li>
+      </ul>
+
+      <p>
+        No single defense is perfect. Together, they create a security posture that's nearly impossible to breach.
+      </p>
+    </Why>
+
+    <How>
+      <p>
+        Let's implement comprehensive secure file retrieval in .NET, covering path validation, SSRF prevention, and 
+        proper download headers.
+      </p>
+
+      <h4>Step 1: Secure Path-Based File Downloads</h4>
+
+      <p>
+        Just like with uploads, never trust user-provided file paths. Apply the same validation techniques to prevent 
+        path traversal attacks.
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+[ApiController]
+[Route("api/[controller]")]
+[Authorize]
+public class FileDownloadController : ControllerBase
+{
+    private readonly ILogger&lt;FileDownloadController&gt; _logger;
+    private readonly IConfiguration _configuration;
+    
+    public FileDownloadController(
+        ILogger&lt;FileDownloadController&gt; logger,
+        IConfiguration configuration)
+    {
+        _logger = logger;
+        _configuration = configuration;
+    }
+    
+    [HttpGet("{fileName}")]
+    public IActionResult Download(string fileName)
+    {
+        // Get current user ID from claims
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized();
+        }
+        
+        // Define the base directory for this user
+        var baseDirectory = Path.Combine(
+            _configuration["FileStorage:BasePath"],
+            userId
+        );
+        
+        // Sanitize the filename - remove any path components
+        var safeFileName = Path.GetFileName(fileName);
+        
+        // Combine to create the full path
+        var filePath = Path.Combine(baseDirectory, safeFileName);
+        
+        // Resolve to absolute path and validate it's within our base directory
+        var fullPath = Path.GetFullPath(filePath);
+        var fullBaseDirectory = Path.GetFullPath(baseDirectory);
+        
+        if (!fullPath.StartsWith(fullBaseDirectory, StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogWarning(
+                "Path traversal attempt detected. UserId: {UserId}, " +
+                "RequestedFile: {FileName}",
+                userId,
+                fileName
+            );
+            return BadRequest("Invalid file path");
+        }
+        
+        // Check if file exists
+        if (!System.IO.File.Exists(fullPath))
+        {
+            _logger.LogWarning(
+                "File not found. UserId: {UserId}, File: {FileName}",
+                userId,
+                safeFileName
+            );
+            return NotFound("File not found");
+        }
+        
+        // Return the file with proper headers
+        var fileBytes = System.IO.File.ReadAllBytes(fullPath);
+        
+        return File(
+            fileBytes,
+            "application/octet-stream",  // Safe default MIME type
+            safeFileName                  // This sets Content-Disposition: attachment
+        );
+    }
+}
+</CodeSnippet>
+
+      <p>
+        Key security measures in this code:
+      </p>
+
+      <ul>
+        <li><ContentHighlight>Path.GetFileName()</ContentHighlight> strips directory components from user input</li>
+        <li><ContentHighlight>Path.GetFullPath()</ContentHighlight> resolves the absolute path</li>
+        <li>Path validation ensures files can only come from the user's directory</li>
+        <li><ContentHighlight>application/octet-stream</ContentHighlight> prevents browser from executing content</li>
+        <li>Filename in <ContentHighlight>File()</ContentHighlight> method sets <ContentHighlight>Content-Disposition: attachment</ContentHighlight></li>
+      </ul>
+
+      <h4>Step 2: Implement Database-Backed File Access Control</h4>
+
+      <p>
+        For better security, don't rely on file paths alone. Use a database to track file ownership and use GUIDs as 
+        file identifiers.
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+public class FileMetadata
+{
+    public Guid FileId { get; set; }
+    public string UserId { get; set; }
+    public string OriginalFileName { get; set; }
+    public string StoredFileName { get; set; }  // GUID-based name on disk
+    public string ContentType { get; set; }
+    public long Size { get; set; }
+    public DateTime UploadedAt { get; set; }
+}
+
+[ApiController]
+[Route("api/[controller]")]
+[Authorize]
+public class SecureFileDownloadController : ControllerBase
+{
+    private readonly ApplicationDbContext _context;
+    private readonly ILogger&lt;SecureFileDownloadController&gt; _logger;
+    private readonly string _storagePath;
+    
+    public SecureFileDownloadController(
+        ApplicationDbContext context,
+        ILogger&lt;SecureFileDownloadController&gt; logger,
+        IConfiguration configuration)
+    {
+        _context = context;
+        _logger = logger;
+        _storagePath = configuration["FileStorage:BasePath"];
+    }
+    
+    [HttpGet("{fileId:guid}")]
+    public async Task&lt;IActionResult&gt; Download(Guid fileId)
+    {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        
+        // Retrieve file metadata from database
+        var fileMetadata = await _context.Files
+            .FirstOrDefaultAsync(f =&gt; f.FileId == fileId);
+        
+        if (fileMetadata == null)
+        {
+            _logger.LogWarning(
+                "File not found in database. FileId: {FileId}, UserId: {UserId}",
+                fileId,
+                userId
+            );
+            return NotFound("File not found");
+        }
+        
+        // Access control: verify the file belongs to the current user
+        if (fileMetadata.UserId != userId)
+        {
+            _logger.LogWarning(
+                "Unauthorized file access attempt. FileId: {FileId}, " +
+                "Owner: {OwnerId}, Requester: {RequesterId}",
+                fileId,
+                fileMetadata.UserId,
+                userId
+            );
+            return Forbid();
+        }
+        
+        // Build the file path using the stored filename (GUID-based)
+        var filePath = Path.Combine(_storagePath, fileMetadata.StoredFileName);
+        
+        if (!System.IO.File.Exists(filePath))
+        {
+            _logger.LogError(
+                "File exists in database but not on disk. FileId: {FileId}",
+                fileId
+            );
+            return StatusCode(500, "File retrieval error");
+        }
+        
+        // Read and return the file
+        var fileBytes = await System.IO.File.ReadAllBytesAsync(filePath);
+        
+        // Use the original filename for download, but stored name on disk
+        return File(
+            fileBytes,
+            "application/octet-stream",
+            fileMetadata.OriginalFileName
+        );
+    }
+}
+</CodeSnippet>
+
+      <p>
+        This approach provides several security benefits:
+      </p>
+
+      <ul>
+        <li>Files are identified by GUIDs, not guessable paths</li>
+        <li>Database enforces access control—users can only download their own files</li>
+        <li>Stored filenames are GUIDs, preventing path traversal entirely</li>
+        <li>Original filenames are preserved for user experience but not used for file system access</li>
+      </ul>
+
+      <h4>Step 3: Prevent Server-Side Request Forgery (SSRF)</h4>
+
+      <p>
+        If your application needs to download files from URLs (for example, proxying external content), you must 
+        carefully validate those URLs to prevent SSRF attacks.
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+[ApiController]
+[Route("api/[controller]")]
+public class ProxyDownloadController : ControllerBase
+{
+    private readonly HttpClient _httpClient;
+    private readonly ILogger&lt;ProxyDownloadController&gt; _logger;
+    private static readonly string[] AllowedDomains = new[] 
+    { 
+        "cdn.example.com",
+        "assets.example.com"
+    };
+    
+    public ProxyDownloadController(
+        HttpClient httpClient,
+        ILogger&lt;ProxyDownloadController&gt; logger)
+    {
+        _httpClient = httpClient;
+        _logger = logger;
+    }
+    
+    [HttpGet]
+    public async Task&lt;IActionResult&gt; DownloadFromUrl(
+        [FromQuery] string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return BadRequest("Path is required");
+        }
+        
+        // Remove path traversal attempts
+        if (path.Contains(".."))
+        {
+            _logger.LogWarning(
+                "Path traversal detected in URL path: {Path}",
+                path
+            );
+            return BadRequest("Invalid path");
+        }
+        
+        // Try to parse the path as an absolute URI
+        // If successful, the user is trying to specify a full URL (attack)
+        if (Uri.TryCreate(path, UriKind.Absolute, out _))
+        {
+            _logger.LogWarning(
+                "Absolute URI provided instead of path: {Path}",
+                path
+            );
+            return BadRequest("Only relative paths are allowed");
+        }
+        
+        // Build the full URL using a whitelisted domain
+        var allowedDomain = AllowedDomains[0]; // Choose based on your logic
+        var baseUri = new Uri($"https://{allowedDomain}");
+        
+        // Create the full URI by combining base and path
+        var fullUri = new Uri(baseUri, path);
+        
+        // Double-check the resulting URI is still within allowed domain
+        if (!AllowedDomains.Any(domain =&gt; 
+            fullUri.Host.Equals(domain, StringComparison.OrdinalIgnoreCase)))
+        {
+            _logger.LogWarning(
+                "URI host mismatch. Expected: {AllowedDomains}, Got: {Host}",
+                string.Join(", ", AllowedDomains),
+                fullUri.Host
+            );
+            return BadRequest("Invalid domain");
+        }
+        
+        try
+        {
+            // Make the request to the validated URL
+            var response = await _httpClient.GetAsync(fullUri);
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning(
+                    "External request failed. URL: {Url}, Status: {Status}",
+                    fullUri,
+                    response.StatusCode
+                );
+                return StatusCode((int)response.StatusCode);
+            }
+            
+            var content = await response.Content.ReadAsByteArrayAsync();
+            var contentType = response.Content.Headers.ContentType?.MediaType 
+                           ?? "application/octet-stream";
+            
+            return File(content, contentType);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Error downloading from URL: {Url}", fullUri);
+            return StatusCode(500, "Error downloading file");
+        }
+    }
+}
+</CodeSnippet>
+
+      <h5>Additional SSRF Protections</h5>
+
+      <p>
+        For high-security environments, implement these additional SSRF defenses:
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+public class SsrfProtectionService
+{
+    private static readonly HashSet&lt;string&gt; BlockedIpRanges = new()
+    {
+        "127.0.0.0/8",      // Loopback
+        "10.0.0.0/8",       // Private network
+        "172.16.0.0/12",    // Private network
+        "192.168.0.0/16",   // Private network
+        "169.254.0.0/16",   // Link-local (cloud metadata)
+        "::1/128",          // IPv6 loopback
+        "fc00::/7"          // IPv6 private
+    };
+    
+    public bool IsUrlSafe(Uri uri)
+    {
+        // Block non-HTTP(S) schemes
+        if (uri.Scheme != "http" && uri.Scheme != "https")
+        {
+            return false;
+        }
+        
+        // Resolve hostname to IP address
+        try
+        {
+            var hostEntry = Dns.GetHostEntry(uri.Host);
+            
+            // Check each resolved IP address
+            foreach (var ipAddress in hostEntry.AddressList)
+            {
+                if (IsPrivateOrLocalIp(ipAddress))
+                {
+                    return false;
+                }
+            }
+        }
+        catch (SocketException)
+        {
+            // DNS resolution failed - reject
+            return false;
+        }
+        
+        return true;
+    }
+    
+    private bool IsPrivateOrLocalIp(IPAddress ipAddress)
+    {
+        var bytes = ipAddress.GetAddressBytes();
+        
+        // IPv4 checks
+        if (ipAddress.AddressFamily == AddressFamily.InterNetwork)
+        {
+            // 127.x.x.x (loopback)
+            if (bytes[0] == 127)
+                return true;
+            
+            // 10.x.x.x (private)
+            if (bytes[0] == 10)
+                return true;
+            
+            // 172.16.x.x - 172.31.x.x (private)
+            if (bytes[0] == 172 && bytes[1] &gt;= 16 && bytes[1] &lt;= 31)
+                return true;
+            
+            // 192.168.x.x (private)
+            if (bytes[0] == 192 && bytes[1] == 168)
+                return true;
+            
+            // 169.254.x.x (link-local, cloud metadata)
+            if (bytes[0] == 169 && bytes[1] == 254)
+                return true;
+        }
+        
+        // IPv6 checks
+        if (ipAddress.AddressFamily == AddressFamily.InterNetworkV6)
+        {
+            // ::1 (loopback)
+            if (IPAddress.IsLoopback(ipAddress))
+                return true;
+            
+            // fc00::/7 (private)
+            if ((bytes[0] & 0xfe) == 0xfc)
+                return true;
+        }
+        
+        return false;
+    }
+}
+</CodeSnippet>
+
+      <h4>Step 4: Set Secure Download Headers</h4>
+
+      <p>
+        Always control the <ContentHighlight>Content-Type</ContentHighlight> and 
+        <ContentHighlight>Content-Disposition</ContentHighlight> headers. Never let users specify these values.
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+[HttpGet("{fileId:guid}")]
+public async Task&lt;IActionResult&gt; SecureDownload(Guid fileId)
+{
+    // ... access control and file retrieval logic ...
+    
+    var fileBytes = await System.IO.File.ReadAllBytesAsync(filePath);
+    
+    // Method 1: Use File() method with filename (automatically sets headers)
+    return File(
+        fileBytes,
+        "application/octet-stream",  // Safe default - treats file as binary
+        fileMetadata.OriginalFileName // Sets Content-Disposition: attachment
+    );
+    
+    // Method 2: Manually set Content-Disposition header
+    // var result = File(fileBytes, "application/octet-stream");
+    // Response.Headers.Add(
+    //     "Content-Disposition", 
+    //     $"attachment; filename=\"{fileMetadata.OriginalFileName}\""
+    // );
+    // return result;
+}
+</CodeSnippet>
+
+      <p>
+        Key points about download headers:
+      </p>
+
+      <ul>
+        <li>
+          <strong>Never use user input for Content-Type:</strong> Always use 
+          <ContentHighlight>application/octet-stream</ContentHighlight> or a validated MIME type from your database.
+        </li>
+        <li>
+          <strong>Always set Content-Disposition to attachment:</strong> This forces browsers to download instead of 
+          displaying content inline.
+        </li>
+        <li>
+          <strong>Sanitize filenames in Content-Disposition:</strong> Remove quotes, newlines, and special characters 
+          to prevent header injection attacks.
+        </li>
+      </ul>
+
+<CodeSnippet CssClass="language-csharp">
+public class FileDownloadHelper
+{
+    public static string SanitizeFilename(string filename)
+    {
+        if (string.IsNullOrWhiteSpace(filename))
+        {
+            return "download";
+        }
+        
+        // Remove path components
+        filename = Path.GetFileName(filename);
+        
+        // Remove or replace potentially dangerous characters
+        var invalidChars = Path.GetInvalidFileNameChars()
+            .Concat(new[] { '"', '\'', '\r', '\n' })
+            .ToArray();
+        
+        foreach (var c in invalidChars)
+        {
+            filename = filename.Replace(c, '_');
+        }
+        
+        // Limit length
+        if (filename.Length &gt; 200)
+        {
+            var extension = Path.GetExtension(filename);
+            var nameWithoutExt = Path.GetFileNameWithoutExtension(filename);
+            filename = nameWithoutExt.Substring(0, 200 - extension.Length) 
+                     + extension;
+        }
+        
+        return filename;
+    }
+    
+    public static FileResult CreateSecureDownload(
+        byte[] fileBytes,
+        string filename)
+    {
+        var safeFilename = SanitizeFilename(filename);
+        
+        return new FileContentResult(fileBytes, "application/octet-stream")
+        {
+            FileDownloadName = safeFilename
+        };
+    }
+}
+</CodeSnippet>
+
+      <h4>Step 5: Implement Complete Defense in Depth</h4>
+
+      <p>
+        Combine all security measures for comprehensive protection:
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+[ApiController]
+[Route("api/[controller]")]
+[Authorize]
+public class UltraSecureFileDownloadController : ControllerBase
+{
+    private readonly ApplicationDbContext _context;
+    private readonly ILogger&lt;UltraSecureFileDownloadController&gt; _logger;
+    private readonly string _storagePath;
+    
+    public UltraSecureFileDownloadController(
+        ApplicationDbContext context,
+        ILogger&lt;UltraSecureFileDownloadController&gt; logger,
+        IConfiguration configuration)
+    {
+        _context = context;
+        _logger = logger;
+        _storagePath = configuration["FileStorage:BasePath"];
+    }
+    
+    [HttpGet("{fileId:guid}")]
+    public async Task&lt;IActionResult&gt; Download(Guid fileId)
+    {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        
+        // Layer 1: Database-backed access control
+        var fileMetadata = await _context.Files
+            .FirstOrDefaultAsync(f =&gt; f.FileId == fileId);
+        
+        if (fileMetadata == null)
+        {
+            return NotFound();
+        }
+        
+        // Layer 2: Ownership verification
+        if (fileMetadata.UserId != userId)
+        {
+            _logger.LogWarning(
+                "Unauthorized access attempt. FileId: {FileId}, " +
+                "UserId: {UserId}",
+                fileId,
+                userId
+            );
+            return Forbid();
+        }
+        
+        // Layer 3: Path validation (stored filename is GUID-based)
+        var filePath = Path.Combine(_storagePath, fileMetadata.StoredFileName);
+        var fullPath = Path.GetFullPath(filePath);
+        var fullStoragePath = Path.GetFullPath(_storagePath);
+        
+        if (!fullPath.StartsWith(
+            fullStoragePath, 
+            StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogError(
+                "Path validation failed. FileId: {FileId}",
+                fileId
+            );
+            return StatusCode(500, "Security error");
+        }
+        
+        // Layer 4: File existence check
+        if (!System.IO.File.Exists(fullPath))
+        {
+            _logger.LogError(
+                "File not found on disk. FileId: {FileId}",
+                fileId
+            );
+            return NotFound();
+        }
+        
+        // Layer 5: Rate limiting (implement using middleware or library)
+        // ... rate limiting check ...
+        
+        // Read and return file with secure headers
+        var fileBytes = await System.IO.File.ReadAllBytesAsync(fullPath);
+        
+        _logger.LogInformation(
+            "File downloaded. FileId: {FileId}, UserId: {UserId}, Size: {Size}",
+            fileId,
+            userId,
+            fileBytes.Length
+        );
+        
+        // Layer 6: Secure response headers
+        return FileDownloadHelper.CreateSecureDownload(
+            fileBytes,
+            fileMetadata.OriginalFileName
+        );
+    }
+}
+</CodeSnippet>
+
+      <h4>Step 6: Additional Security Measures</h4>
+
+      <p>
+        Consider these additional protections for high-security environments:
+      </p>
+
+      <ul>
+        <li>
+          <strong>Encrypt Files at Rest:</strong> Even if attackers access files, they can't read encrypted content.
+        </li>
+        <li>
+          <strong>Implement Rate Limiting:</strong> Prevent bulk downloading attacks using libraries like 
+          AspNetCoreRateLimit.
+        </li>
+        <li>
+          <strong>Add Audit Logging:</strong> Track all download attempts with user IDs, file IDs, timestamps, and 
+          IP addresses.
+        </li>
+        <li>
+          <strong>Use Temporary Download Links:</strong> Generate time-limited, signed URLs for downloads that expire 
+          after use.
+        </li>
+        <li>
+          <strong>Implement Download Quotas:</strong> Limit how many files or bytes users can download in a given period.
+        </li>
+        <li>
+          <strong>Add Watermarking:</strong> For sensitive documents, dynamically add watermarks with user information.
+        </li>
+      </ul>
+
+<CodeSnippet CssClass="language-csharp">
+// Example: Temporary download link with expiration
+public class TemporaryDownloadService
+{
+    public string GenerateDownloadToken(Guid fileId, string userId)
+    {
+        var tokenData = new
+        {
+            FileId = fileId,
+            UserId = userId,
+            ExpiresAt = DateTime.UtcNow.AddMinutes(15)
+        };
+        
+        var json = JsonSerializer.Serialize(tokenData);
+        var encrypted = EncryptionHelper.Encrypt(json); // Implement encryption
+        return Convert.ToBase64String(encrypted);
+    }
+    
+    public bool ValidateDownloadToken(
+        string token, 
+        out Guid fileId, 
+        out string userId)
+    {
+        fileId = Guid.Empty;
+        userId = null;
+        
+        try
+        {
+            var encrypted = Convert.FromBase64String(token);
+            var json = EncryptionHelper.Decrypt(encrypted);
+            var tokenData = JsonSerializer.Deserialize&lt;dynamic&gt;(json);
+            
+            if (tokenData.ExpiresAt &lt; DateTime.UtcNow)
+            {
+                return false; // Token expired
+            }
+            
+            fileId = tokenData.FileId;
+            userId = tokenData.UserId;
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+}
+</CodeSnippet>
+    </How>
+
+    <Summary>
+      <p>
+        <ContentHighlight>Secure file retrieval</ContentHighlight> requires the same vigilance as file uploads—and then 
+        some. Validate paths with <ContentHighlight>Path.GetFileName()</ContentHighlight> and 
+        <ContentHighlight>Path.GetFullPath()</ContentHighlight>, implement database-backed access control, prevent SSRF 
+        by whitelisting domains and blocking private IP ranges, and always set secure download headers.
+      </p>
+      
+      <p>
+        Never trust user input for file paths or URLs. Never let users control Content-Type headers. Always set 
+        Content-Disposition to attachment. These simple rules prevent most file retrieval attacks.
+      </p>
+
+      <p>
+        SSRF is particularly insidious because it transforms your server into an attack platform against your own 
+        infrastructure. Validate URLs, whitelist domains, resolve and check IP addresses, and block access to private 
+        networks and cloud metadata endpoints.
+      </p>
+
+      <p>
+        Defense in depth isn't optional—it's essential. Combine path validation, access control, proper headers, 
+        encryption, audit logging, and rate limiting. Each layer catches attacks that slip through the others, creating 
+        a security posture that protects your application, your infrastructure, and your users' data.
+      </p>
+    </Summary>
+  </ContentBody>
+</Content>
