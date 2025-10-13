@@ -2,7 +2,7 @@
 
 public class SecurityLearningPath
 {
-  public readonly List<ContentMetaData> FullContents = new(9);
+  public readonly List<ContentMetaData> FullContents = new(10);
 
   public SecurityLearningPath()
   {
@@ -160,6 +160,23 @@ public class SecurityLearningPath
           CreatedOn = new DateTime(2025, 10, 26, 22, 30, 0, DateTimeKind.Utc),
           ModifiedOn = new DateTime(2025, 10, 26, 22, 30, 0, DateTimeKind.Utc),
           Keywords = ["File Download Security", "Path Traversal", "SSRF", "Server-Side Request Forgery", "Content-Type", "Content-Disposition", "XSS Prevention", "File Retrieval", "Security", ".NET"]
+        },
+      new ContentMetaData
+        {
+          Order = 10,
+          Title = "Improve Security with Dependency Management and SBOM in .NET",
+          Description = "Master supply chain security in .NET: implement dependency governance, generate Software Bill of Materials (SBOM), manage private repositories, and defend against vulnerabilities in third-party components.",
+          Author = "Abdul Rahman",
+          Slug = "improve-security-with-dependency-management-and-sbom-in-dotnet",
+          PosterUrl = "image/blogs/security/improve-security-with-dependency-management-and-sbom-in-dotnet.webp",
+          ThumbnailUrl = "image/blogs/security/improve-security-with-dependency-management-and-sbom-in-dotnet.webp",
+          ContentUrl = "blogs/improve-security-with-dependency-management-and-sbom-in-dotnet",
+          IconUrl = "image/icons/security.webp",
+          Channel = "Security",
+          Type = "blogs",
+          CreatedOn = new DateTime(2025, 11, 2, 22, 30, 0, DateTimeKind.Utc),
+          ModifiedOn = new DateTime(2025, 11, 2, 22, 30, 0, DateTimeKind.Utc),
+          Keywords = ["SBOM", "Software Bill of Materials", "Dependency Management", "Supply Chain Security", "Component Governance", "NuGet", "Vulnerability Scanning", "Private Repository", "Third-Party Dependencies", "Log4j", "Security", ".NET"]
         }
     ];
   }
