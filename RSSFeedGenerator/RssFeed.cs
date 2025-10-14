@@ -4,10 +4,34 @@ using SharedModels;
 
 namespace RSSFeedGenerator;
 
-public class RssFeed(TableOfContents tableOfContents, string filePath)
+public class RssFeed
 {
   private SyndicationFeed? _feed;
   private readonly DateTime _lastPublishedDateTime = DateTime.Now;
+  private readonly string _filePath;
+  private readonly TableOfContents _tableOfContents;
+
+  public RssFeed(TableOfContents tableOfContents, string? filePath)
+  {
+    // Use default if path is null or empty (defense in depth)
+    const string defaultFileName = "atom.xml";
+    
+    if (string.IsNullOrWhiteSpace(filePath))
+    {
+      filePath = defaultFileName;
+    }
+
+    // Ensure the path doesn't contain dangerous sequences
+    var fileName = Path.GetFileName(filePath);
+    if (string.IsNullOrWhiteSpace(fileName) || fileName.Contains(".."))
+    {
+      throw new ArgumentException("Invalid file path detected", nameof(filePath));
+    }
+
+    _tableOfContents = tableOfContents;
+    _filePath = filePath;
+  }
+
   public void GenerateFeed()
   {
     LoadExistingFeed();
@@ -29,7 +53,7 @@ public class RssFeed(TableOfContents tableOfContents, string filePath)
       TimeToLive = TimeSpan.FromHours(24),
       Copyright = new TextSyndicationContent($"Copyright {_lastPublishedDateTime.Year}"),
       Language = "en",
-      Items = tableOfContents
+      Items = _tableOfContents
                 .AllContents
                 .OrderByDescending(content => content.ModifiedOn)
                 .Select(content => new SyndicationItem(
@@ -48,16 +72,16 @@ public class RssFeed(TableOfContents tableOfContents, string filePath)
       Authors = { author }
     };
 
-    using var rssWriter = XmlWriter.Create(filePath ?? "atom.xml", new XmlWriterSettings { Indent = true });
+    using var rssWriter = XmlWriter.Create(_filePath, new XmlWriterSettings { Indent = true });
     var rssFormatter = new Rss20FeedFormatter(feed);
     rssFormatter.WriteTo(rssWriter);
   }
 
   private void LoadExistingFeed()
   {
-    if (File.Exists(filePath))
+    if (File.Exists(_filePath))
     {
-      using var reader = XmlReader.Create(filePath);
+      using var reader = XmlReader.Create(_filePath);
       _feed = SyndicationFeed.Load(reader);
     }
   }
@@ -68,12 +92,12 @@ public class RssFeed(TableOfContents tableOfContents, string filePath)
     {
       var existingItemsCount = _feed.Items.Count();
       var isAnyContentUpdatedAndRepublished = _feed
-          .Items.Any(existingItem => tableOfContents
+          .Items.Any(existingItem => _tableOfContents
                                       .AllContents
                                       .Any(content => existingItem.Id.EndsWith(content.Slug)
                                               && content.ModifiedOn != existingItem.LastUpdatedTime.DateTime));
 
-      if (existingItemsCount == tableOfContents.AllContents.Count && !isAnyContentUpdatedAndRepublished)
+      if (existingItemsCount == _tableOfContents.AllContents.Count && !isAnyContentUpdatedAndRepublished)
       {
         return false;
       }
