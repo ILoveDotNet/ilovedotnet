@@ -15,7 +15,7 @@ public class RssFeed
   {
     // Use default if path is null or empty (defense in depth)
     const string defaultFileName = "atom.xml";
-    
+
     if (string.IsNullOrWhiteSpace(filePath))
     {
       filePath = defaultFileName;
