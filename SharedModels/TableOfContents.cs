@@ -59,6 +59,7 @@ public class TableOfContents
     _fullContents.AddRange(new DependencyInjectionLearningPath().FullContents);
     _fullContents.AddRange(new DesignPatternLearningPath().FullContents);
     _fullContents.AddRange(new HTTPClientLearningPath().FullContents);
+    _fullContents.AddRange(new JSONLearningPath().FullContents);
     _fullContents.AddRange(new LINQLearningPath().FullContents);
     _fullContents.AddRange(new MAUILearningPath().FullContents);
     _fullContents.AddRange(new MiddlewareLearningPath().FullContents);

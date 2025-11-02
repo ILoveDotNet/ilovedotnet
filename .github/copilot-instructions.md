@@ -71,3 +71,174 @@ When creating new blog content:
 5. **Code**: Escape HTML characters (`<` as `&lt;`, `>` as `&gt;`)
 
 When adding new features, follow the established RCL pattern and ensure both Web and MAUI compatibility.
+
+## Creating a New Topic/Demo Components Project
+
+When creating a new `{Topic}DemoComponents` Razor Class Library:
+
+### Step 1: Create the RCL Project
+```bash
+dotnet new razorclasslib -n {Topic}DemoComponents -o {Topic}DemoComponents
+```
+
+### Step 2: Add to Solution
+```bash
+dotnet sln ILoveDotNet.sln add {Topic}DemoComponents/{Topic}DemoComponents.csproj
+```
+
+### Step 3: Add Required Project References
+```bash
+# Add BaseComponents reference
+dotnet add {Topic}DemoComponents/{Topic}DemoComponents.csproj reference BaseComponents/BaseComponents.csproj
+
+# Add SharedComponents reference
+dotnet add {Topic}DemoComponents/{Topic}DemoComponents.csproj reference SharedComponents/SharedComponents.csproj
+```
+
+### Step 4: Add to Web and MAUI Projects
+```bash
+# Add to Web project
+dotnet add Web/Web.csproj reference {Topic}DemoComponents/{Topic}DemoComponents.csproj
+
+# Add to MAUI project
+dotnet add MAUI/MAUI.csproj reference {Topic}DemoComponents/{Topic}DemoComponents.csproj
+```
+
+### Step 5: Configure Lazy Loading in Web.csproj
+Add the following to the `<ItemGroup>` containing `BlazorWebAssemblyLazyLoad` entries (maintain alphabetical order):
+```xml
+<BlazorWebAssemblyLazyLoad Include="{Topic}DemoComponents.wasm" />
+```
+
+### Step 6: Update LazyLoaderService.cs
+Add lazy loading logic in `CommonComponents/Services/LazyLoaderService.cs` in the `OnNavigateAsync` method (maintain alphabetical order):
+```csharp
+if (path.Contains("{topic-slug}", StringComparison.OrdinalIgnoreCase))
+{
+  var assemblies = await lazyAssemblyLoader.LoadAssembliesAsync(["{Topic}DemoComponents.wasm"]);
+  AdditionalAssemblies.AddRange(assemblies);
+}
+```
+
+### Step 7: Update Project File
+Replace the generated `.csproj` content with the standard pattern:
+```xml
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <ItemGroup>
+    <SupportedPlatform Include="browser" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="9.0.10" />
+  </ItemGroup>
+
+  <ItemGroup>
+  	<ProjectReference Include="..\BaseComponents\BaseComponents.csproj" />
+  	<ProjectReference Include="..\SharedComponents\SharedComponents.csproj" />
+  </ItemGroup>
+
+  <Target Name="GenerateSitemapXml" BeforeTargets="PreBuildEvent" Condition="'$(Configuration)'!='Release'">
+    <PropertyGroup>
+      <SitemapXmlFilePath>$([System.IO.Path]::Combine('wwwroot', 'sitemap-blog-{topic}.xml'))</SitemapXmlFilePath>
+    </PropertyGroup>
+
+    <Exec Command="dotnet run --project &quot;$(ProjectDir)../SitemapGenerator&quot; -p BuildScope=$(ProjectName) -o &quot;$(ProjectDir)$(SitemapXmlFilePath)&quot; --channel &quot;{Topic}Channel&quot;" />
+
+    <ItemGroup>
+      <Content Remove="$(SitemapXmlFilePath)" />
+      <Content Include="$(SitemapXmlFilePath)" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="GeneratePoster" BeforeTargets="PreBuildEvent" Condition="'$(Configuration)'!='Release'">
+    <PropertyGroup>
+      <PosterOutputPath>$([System.IO.Path]::Combine('wwwroot', 'image', 'blogs', '{topic}'))</PosterOutputPath>
+    </PropertyGroup>
+
+    <Exec Command="dotnet run --project &quot;$(ProjectDir)../PosterGenerator&quot; -p BuildScope=$(ProjectName) -o &quot;$(ProjectDir)$(PosterOutputPath)&quot; --channel &quot;{Topic}Channel&quot;" />
+
+    <ItemGroup>
+      <Content Remove="$(PosterOutputPath)\**\*" />
+      <Content Include="$(PosterOutputPath)\**\*" />
+    </ItemGroup>
+  </Target>
+
+</Project>
+```
+
+### Step 8: Update _Imports.razor
+Replace the generated `_Imports.razor` content with:
+```razor
+@using Microsoft.AspNetCore.Components.Routing
+@using Microsoft.AspNetCore.Components.Web
+@using BaseComponents
+@using SharedComponents
+@using SharedModels
+```
+
+### Step 9: Clean Up Template Files
+Remove default template files that are not needed:
+```bash
+cd {Topic}DemoComponents
+rm -f ExampleJsInterop.cs Component1.razor Component1.razor.css wwwroot/exampleJsInterop.js wwwroot/background.png
+rm -rf wwwroot/image
+```
+
+### Step 10: Update SEO Keywords in CommonComponents/Pages
+Add the new topic to the keywords meta tag in all pages within `CommonComponents/Pages`:
+- About.razor
+- Analytics.razor
+- Author.razor
+- Career.razor
+- Channel.razor
+- Disclaimer.razor
+- Index.razor
+- LearningPath.razor
+- Privacy.razor
+
+Add `{Topic}` to the `Meta Property="keywords"` Content attribute in each file (maintain alphabetical order).
+
+### Step 11: Create Learning Path and Register in TableOfContents
+Create a new learning path file in `SharedModels/{Topic}LearningPath.cs`:
+```csharp
+namespace SharedModels;
+
+public class {Topic}LearningPath
+{
+  public readonly List<ContentMetaData> FullContents = new(0);
+
+  public {Topic}LearningPath()
+  {
+    FullContents =
+    [
+    ];
+  }
+}
+```
+
+Add the learning path to `SharedModels/TableOfContents.cs` constructor (maintain alphabetical order):
+```csharp
+_fullContents.AddRange(new {Topic}LearningPath().FullContents);
+```
+
+### Step 12: Verify Build
+```bash
+# Build SharedModels to verify learning path integration
+dotnet build SharedModels/SharedModels.csproj
+
+# Build the new project
+dotnet build {Topic}DemoComponents/{Topic}DemoComponents.csproj
+
+# Build the Web project to ensure integration works
+dotnet build Web/Web.csproj
+```
+
+### Notes:
+- Replace `{Topic}` with the actual topic name (e.g., `JSON`, `Security`, `LINQ`)
+- Replace `{topic}` with lowercase version for file paths (e.g., `json`, `security`, `linq`)
+- Replace `{topic-slug}` with the URL path segment (e.g., `json`, `security`, `linq`)
+- Replace `{Topic}Channel` with the appropriate channel name for sitemap/poster generation
+- Maintain alphabetical order when adding entries to Web.csproj, LazyLoaderService.cs, keywords meta tags, and TableOfContents.cs
+- Ensure package versions match the rest of the solution (currently `9.0.10` for ASP.NET Core packages)
+- Initialize FullContents with capacity 0 for empty learning paths; increase as content is added
