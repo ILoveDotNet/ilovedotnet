@@ -1,0 +1,485 @@
+@page "/blogs/handling-json-errors-and-best-practices-in-dotnet"
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(JsonErrorHandling) UseNewTableOfContentsMenu=true>
+  <ContentBody>
+    <What>
+      <p>
+        JSON serialization errors can crash your app at the worst possible moment. <ContentHighlight>JsonException
+        </ContentHighlight>, circular references, invalid formats—they're all waiting to strike. In this article, 
+        we'll show you how to <ContentHighlight>handle JSON errors gracefully</ContentHighlight> and follow best 
+        practices that prevent these issues in the first place.
+      </p>
+    </What>
+
+    <Why>
+      <p>
+        Here's the truth about production code: <ContentHighlight>exceptions happen</ContentHighlight>. Malformed 
+        JSON from third-party APIs, unexpected null values, circular object references, or date formats that vary by 
+        region—any of these can bring down your application. The question isn't whether you'll encounter JSON errors, 
+        but <ContentHighlight>how you'll handle them when they occur</ContentHighlight>.
+      </p>
+      <p>
+        But there's good news: <ContentHighlight>doing things right pays off</ContentHighlight>. System.Text.Json 
+        provides robust error handling, flexible configuration options, and attributes that let you handle edge cases 
+        gracefully. From preserving circular references to deserializing into immutable types, the framework gives you 
+        the tools—you just need to know how to use them.
+      </p>
+      <p>
+        Think of it this way: unhandled exceptions are like driving without a seatbelt. Sure, most of the time you'll 
+        be fine. But when something goes wrong, <ContentHighlight>proper error handling is what saves you
+        </ContentHighlight>.
+      </p>
+    </Why>
+
+    <How>
+      <p>
+        Here's how to handle JSON errors and implement best practices in .NET:
+      </p>
+
+      <h4>Step 1: Understanding JsonException</h4>
+      <p>
+        System.Text.Json raises a <ContentHighlight>JsonException</ContentHighlight> when it encounters invalid JSON, 
+        exceeds maximum depth, or can't convert a value to the target property type. Always wrap deserialization in 
+        try-catch blocks when dealing with external data.
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+string jsonString = """
+{
+  "productId": 123,
+  "expiryDate": "invalid-date-format"
+}
+""";
+
+try
+{
+    var product = JsonSerializer.Deserialize&lt;Product&gt;(jsonString);
+}
+catch (JsonException ex)
+{
+    Console.WriteLine($"JSON Error: {ex.Message}");
+    // Log the error, return default values, or handle appropriately
+}
+
+/* Output:
+JSON Error: The JSON value could not be converted to System.DateTime. 
+Path: $.expiryDate
+*/
+</CodeSnippet>
+
+      <p>
+        The exception message tells you <ContentHighlight>exactly what went wrong and where</ContentHighlight>—use 
+        this information for logging and debugging.
+      </p>
+
+      <h4>Step 2: Creating Custom JSON Exceptions</h4>
+      <p>
+        For domain-specific error handling, create custom exceptions that inherit from <ContentHighlight>JsonException
+        </ContentHighlight>.
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+public class ProductJsonException : JsonException
+{
+    public ProductJsonException() { }
+    
+    public ProductJsonException(string message) 
+        : base(message) { }
+    
+    public ProductJsonException(string message, Exception innerException) 
+        : base(message, innerException) { }
+}
+
+// Usage
+try
+{
+    var product = JsonSerializer.Deserialize&lt;Product&gt;(jsonString);
+}
+catch (JsonException ex)
+{
+    // Log the original error
+    _logger.LogError(ex, "Failed to deserialize product JSON");
+    
+    // Throw custom exception with context
+    throw new ProductJsonException(
+        "Product deserialization failed. Check date format.", 
+        ex
+    );
+}
+</CodeSnippet>
+
+      <h4>Step 3: Allowing Invalid JSON (Comments and Trailing Commas)</h4>
+      <p>
+        Sometimes you receive JSON with <ContentHighlight>comments or trailing commas</ContentHighlight>—technically 
+        invalid, but still processable. Configure <ContentHighlight>JsonSerializerOptions</ContentHighlight> to handle 
+        these scenarios.
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+string jsonWithComments = """
+{
+  // This is the temperature reading
+  "temperature": "25",  // Quoted number
+  "summary": "Warm",    // Trailing comma here
+}
+""";
+
+var options = new JsonSerializerOptions
+{
+    ReadCommentHandling = JsonCommentHandling.Skip,
+    AllowTrailingCommas = true,
+    NumberHandling = JsonNumberHandling.AllowReadingFromString | 
+                     JsonNumberHandling.WriteAsString
+};
+
+var weather = JsonSerializer.Deserialize&lt;WeatherData&gt;(
+    jsonWithComments, 
+    options
+);
+
+Console.WriteLine($"Temperature: {weather.Temperature}");
+// Output: Temperature: 25
+</CodeSnippet>
+
+      <p>
+        <strong>Key options:</strong>
+      </p>
+      <ul>
+        <li><code>ReadCommentHandling.Skip</code> - Ignores // and /* */ comments</li>
+        <li><code>AllowTrailingCommas = true</code> - Permits commas after last array/object element</li>
+        <li><code>NumberHandling</code> - Controls how numbers in quotes are handled</li>
+      </ul>
+
+      <h4>Step 4: Handling Overflow JSON with JsonExtensionData</h4>
+      <p>
+        What if the JSON contains <ContentHighlight>extra properties not defined in your class</ContentHighlight>? 
+        By default, they're ignored and lost. Use <ContentHighlight>JsonExtensionData</ContentHighlight> to capture 
+        them.
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+public class WeatherForecast
+{
+    public DateTime Date { get; set; }
+    public int TemperatureCelsius { get; set; }
+    public string Summary { get; set; }
+    
+    // Captures all extra properties
+    [JsonExtensionData]
+    public Dictionary&lt;string, JsonElement&gt; ExtensionData { get; set; }
+}
+
+string json = """
+{
+  "date": "2025-11-03",
+  "temperatureCelsius": 22,
+  "summary": "Warm",
+  "humidity": 65,
+  "pressure": 1013,
+  "windSpeed": 15
+}
+""";
+
+var forecast = JsonSerializer.Deserialize&lt;WeatherForecast&gt;(json);
+
+Console.WriteLine($"Main properties captured: {forecast.Summary}");
+Console.WriteLine($"Extra properties: {forecast.ExtensionData.Count}");
+
+foreach (var kvp in forecast.ExtensionData)
+{
+    Console.WriteLine($"  {kvp.Key}: {kvp.Value}");
+}
+
+/* Output:
+Main properties captured: Warm
+Extra properties: 3
+  humidity: 65
+  pressure: 1013
+  windSpeed: 15
+*/
+</CodeSnippet>
+
+      <p>
+        <strong>The best part?</strong> When you serialize the object back, <ContentHighlight>ExtensionData properties 
+        are included as regular JSON properties</ContentHighlight>—the object makes a perfect round trip.
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+string serializedBack = JsonSerializer.Serialize(
+    forecast, 
+    new JsonSerializerOptions { WriteIndented = true }
+);
+
+Console.WriteLine(serializedBack);
+
+/* Output: Original structure preserved!
+{
+  "date": "2025-11-03T00:00:00",
+  "temperatureCelsius": 22,
+  "summary": "Warm",
+  "humidity": 65,
+  "pressure": 1013,
+  "windSpeed": 15
+}
+*/
+</CodeSnippet>
+
+      <h4>Step 5: Handling Circular References</h4>
+      <p>
+        Circular references occur when an object references itself, directly or indirectly. Without proper handling, 
+        serialization throws an exception. You have two options: <ContentHighlight>preserve references or ignore cycles
+        </ContentHighlight>.
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+public class WeatherForecast
+{
+    public DateTime Date { get; set; }
+    public int TemperatureCelsius { get; set; }
+    public List&lt;WeatherForecast&gt; HistoricalRecords { get; set; }
+}
+
+var todaysForecast = new WeatherForecast
+{
+    Date = DateTime.Today,
+    TemperatureCelsius = -38, // Record low!
+    HistoricalRecords = new List&lt;WeatherForecast&gt;()
+};
+
+// Create a circular reference - today's forecast IS the record
+todaysForecast.HistoricalRecords.Add(todaysForecast);
+
+// Option 1: Preserve references with $id and $ref
+var preserveOptions = new JsonSerializerOptions
+{
+    ReferenceHandler = ReferenceHandler.Preserve,
+    WriteIndented = true
+};
+
+string jsonPreserve = JsonSerializer.Serialize(
+    todaysForecast, 
+    preserveOptions
+);
+
+Console.WriteLine(jsonPreserve);
+
+/* Output:
+{
+  "$id": "1",
+  "date": "2025-11-03T00:00:00",
+  "temperatureCelsius": -38,
+  "historicalRecords": {
+    "$id": "2",
+    "$values": [
+      {
+        "$ref": "1"
+      }
+    ]
+  }
+}
+*/
+</CodeSnippet>
+
+      <p>
+        Notice the <code>$id</code> and <code>$ref</code> metadata—the serializer tracks objects and uses references 
+        to avoid infinite loops.
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+// Option 2: Ignore cycles (sets circular references to null)
+var ignoreOptions = new JsonSerializerOptions
+{
+    ReferenceHandler = ReferenceHandler.IgnoreCycles,
+    WriteIndented = true
+};
+
+string jsonIgnore = JsonSerializer.Serialize(todaysForecast, ignoreOptions);
+
+Console.WriteLine(jsonIgnore);
+
+/* Output:
+{
+  "date": "2025-11-03T00:00:00",
+  "temperatureCelsius": -38,
+  "historicalRecords": [
+    null
+  ]
+}
+*/
+</CodeSnippet>
+
+      <p>
+        <strong>When to use which?</strong>
+      </p>
+      <ul>
+        <li><strong>Preserve:</strong> When you need to deserialize back and maintain object references</li>
+        <li><strong>IgnoreCycles:</strong> When you just need to serialize without errors and don't care about 
+        preserving circular references</li>
+      </ul>
+
+      <h4>Step 6: Deserializing to Immutable Types</h4>
+      <p>
+        What if your class has <ContentHighlight>read-only properties or no setter</ContentHighlight>? The serializer 
+        can't set values directly—use the <ContentHighlight>JsonConstructor</ContentHighlight> attribute.
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+public class WeatherForecast
+{
+    public DateTime Date { get; }
+    
+    [JsonPropertyName("celsius")]
+    public int TemperatureCelsius { get; }
+    
+    public string Summary { get; } // No setter!
+    
+    [JsonConstructor]
+    public WeatherForecast(
+        DateTime date, 
+        int celsius, 
+        string summary)
+    {
+        Date = date;
+        TemperatureCelsius = celsius;
+        Summary = summary;
+    }
+}
+
+string json = """
+{
+  "date": "2025-11-03",
+  "celsius": -1,
+  "summary": "Freezing"
+}
+""";
+
+var forecast = JsonSerializer.Deserialize&lt;WeatherForecast&gt;(json);
+
+Console.WriteLine($"Summary: {forecast.Summary}");
+// Output: Summary: Freezing
+</CodeSnippet>
+
+      <p>
+        <strong>Important notes:</strong>
+      </p>
+      <ul>
+        <li>Constructor parameter names must <ContentHighlight>match property names</ContentHighlight> (case-insensitive)</li>
+        <li>Works even with <code>JsonPropertyName</code> attribute (use the property name, not the JSON name)</li>
+        <li>Only <ContentHighlight>one constructor</ContentHighlight> can have the <code>JsonConstructor</code> 
+        attribute</li>
+      </ul>
+
+      <h4>Step 7: Handling Non-Public Property Accessors</h4>
+      <p>
+        Sometimes properties have <ContentHighlight>private setters or getters</ContentHighlight>. Use the 
+        <ContentHighlight>JsonInclude</ContentHighlight> attribute to allow serialization/deserialization.
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+public class WeatherForecast
+{
+    public DateTime Date { get; set; }
+    
+    [JsonInclude]
+    public int TemperatureCelsius { get; private set; } // Private setter
+    
+    [JsonInclude]
+    public string Summary { private get; set; } // Private getter
+}
+
+string json = """
+{
+  "date": "2025-11-03",
+  "temperatureCelsius": 40,
+  "summary": "Hot"
+}
+""";
+
+var forecast = JsonSerializer.Deserialize&lt;WeatherForecast&gt;(json);
+
+Console.WriteLine($"Temperature: {forecast.TemperatureCelsius}°C");
+// Output: Temperature: 40°C (private setter worked!)
+
+string serialized = JsonSerializer.Serialize(forecast);
+Console.WriteLine(serialized);
+// Output includes "summary" even with private getter
+</CodeSnippet>
+
+      <h4>Step 8: Polymorphic Serialization</h4>
+      <p>
+        When a derived class has <ContentHighlight>additional properties not in the base class</ContentHighlight>, 
+        you must tell the serializer to use the derived type—otherwise, extra properties are lost.
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+public class WeatherForecast
+{
+    public DateTime Date { get; set; }
+    public int TemperatureCelsius { get; set; }
+    public string Summary { get; set; }
+}
+
+public class SeismicForecast : WeatherForecast
+{
+    public int TimeToNextEarthquake { get; set; }
+    public double Magnitude { get; set; }
+}
+
+var seismicForecast = new SeismicForecast
+{
+    Date = DateTime.Today,
+    TemperatureCelsius = 22,
+    Summary = "Clear",
+    TimeToNextEarthquake = 48,
+    Magnitude = 3.5
+};
+
+// Wrong: Only serializes base class properties
+string wrongJson = JsonSerializer.Serialize(seismicForecast);
+// Only includes Date, TemperatureCelsius, Summary
+
+// Correct: Specify the runtime type
+string correctJson = JsonSerializer.Serialize(
+    seismicForecast, 
+    seismicForecast.GetType(),
+    new JsonSerializerOptions { WriteIndented = true }
+);
+
+Console.WriteLine(correctJson);
+
+/* Output: All 5 properties included!
+{
+  "date": "2025-11-03T00:00:00",
+  "temperatureCelsius": 22,
+  "summary": "Clear",
+  "timeToNextEarthquake": 48,
+  "magnitude": 3.5
+}
+*/
+</CodeSnippet>
+
+      <p>
+        Alternatively, declare the variable as <code>object</code> to force the serializer to use the runtime type:
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+object forecast = new SeismicForecast { /* ... */ };
+string json = JsonSerializer.Serialize(forecast);
+// Automatically uses derived type
+</CodeSnippet>
+    </How>
+
+    <Summary>
+      <p>
+        JSON errors are inevitable, but with <ContentHighlight>proper error handling and configuration
+        </ContentHighlight>, they don't have to crash your application. Wrap deserialization in try-catch blocks, 
+        configure options to handle invalid JSON, use <ContentHighlight>JsonExtensionData</ContentHighlight> to 
+        preserve overflow properties, and choose the right strategy for circular references. For immutable types and 
+        non-public accessors, leverage <ContentHighlight>JsonConstructor and JsonInclude</ContentHighlight> attributes. 
+        Follow these best practices, and your JSON serialization will be robust, flexible, and production-ready.
+      </p>
+    </Summary>
+  </ContentBody>
+</Content>

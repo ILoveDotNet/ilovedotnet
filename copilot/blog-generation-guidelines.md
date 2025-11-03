@@ -9,8 +9,12 @@
 4. **Draft the article**: Use the required Razor structure (What-Why-How-Summary), with proper section headers, highlights, and code samples. Use endpoint-specific DTOs, role-based authorization, and secure backup patterns where relevant.
 5. **Slug and file/folder naming**: The slug must include the category (e.g., 'security'), be descriptive, and match the @page directive, folder, and filename. Example: `improve-data-security-by-preventing-excessive-data-exposure-in-dotnet`.
 6. **@using directives**: Add `@using BaseComponents` at the top of every Razor file for custom components.
-7. **Add to Learning Path**: Add a new entry to the appropriate `*LearningPath.cs` file as the last entry, update the list size/count, and fill all metadata fields (title, slug, description, dates, etc.).
-8. **Update Table of Contents**: If the learning path's count or structure changes, update `TableOfContents.cs` logic/constants if needed.
+1. **Add to Learning Path:**
+   - Add a new entry for the article in the appropriate `*LearningPath.cs` file (e.g., `DesignPatternLearningPath.cs` for design patterns).
+   - Update the list's total count/size to reflect the addition.
+   - Ensure all metadata (title, slug, description, dates, etc.) is filled out accurately.
+2. **Update Table of Contents:**
+   - Update the `_fullContents` capacity in `SharedModels/TableOfContents.cs` by incrementing it by 1 for each new article added.
 9. **Verify navigation and links**: Confirm the article appears in navigation, lists, and search. Test all links and images.
 10. **Review formatting**: Double-check code snippets, highlights, and section headers render correctly in the UI.
 

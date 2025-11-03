@@ -2,7 +2,7 @@
 
 public class JSONLearningPath
 {
-  public readonly List<ContentMetaData> FullContents = new(3);
+  public readonly List<ContentMetaData> FullContents = new(5);
 
   public JSONLearningPath()
   {
@@ -58,6 +58,40 @@ public class JSONLearningPath
         CreatedOn = new DateTime(2025, 11, 23, 22, 30, 0, DateTimeKind.Utc),
         ModifiedOn = new DateTime(2025, 11, 23, 22, 30, 0, DateTimeKind.Utc),
         Keywords = ["Utf8JsonReader", "Utf8JsonWriter", "JSON", "Performance", "Low-level", "System.Text.Json", "Streaming", "UTF-8"]
+      },
+      new ContentMetaData
+      {
+        Order = 4,
+        Title = "Handling JSON Errors and Best Practices in .NET",
+        Description = "Master JSON error handling with JsonException, custom exceptions, circular references, immutable types, and polymorphic serialization for robust .NET applications.",
+        Author = "Abdul Rahman",
+        Slug = "handling-json-errors-and-best-practices-in-dotnet",
+        PosterUrl = "image/blogs/json/handling-json-errors-and-best-practices-in-dotnet.webp",
+        ThumbnailUrl = "image/blogs/json/handling-json-errors-and-best-practices-in-dotnet.webp",
+        ContentUrl = "blogs/handling-json-errors-and-best-practices-in-dotnet",
+        Channel = "JSON",
+        Type = "blogs",
+        IconUrl = "image/icons/json.png",
+        CreatedOn = new DateTime(2025, 11, 30, 22, 30, 0, DateTimeKind.Utc),
+        ModifiedOn = new DateTime(2025, 11, 30, 22, 30, 0, DateTimeKind.Utc),
+        Keywords = ["JsonException", "JSON", "Error Handling", "JsonExtensionData", "Circular References", "Immutable Types", "JsonConstructor", "Polymorphic Serialization"]
+      },
+      new ContentMetaData
+      {
+        Order = 5,
+        Title = "Mastering Advanced JSON with Custom Converters and Source Generation in .NET",
+        Description = "Take full control of JSON serialization with custom converters (basic and factory patterns) and boost performance with System.Text.Json source generation.",
+        Author = "Abdul Rahman",
+        Slug = "mastering-advanced-json-with-custom-converters-and-source-generation-in-dotnet",
+        PosterUrl = "image/blogs/json/mastering-advanced-json-with-custom-converters-and-source-generation-in-dotnet.webp",
+        ThumbnailUrl = "image/blogs/json/mastering-advanced-json-with-custom-converters-and-source-generation-in-dotnet.webp",
+        ContentUrl = "blogs/mastering-advanced-json-with-custom-converters-and-source-generation-in-dotnet",
+        Channel = "JSON",
+        Type = "blogs",
+        IconUrl = "image/icons/json.webp",
+        CreatedOn = new DateTime(2025, 12, 7, 22, 30, 0, DateTimeKind.Utc),
+        ModifiedOn = new DateTime(2025, 12, 7, 22, 30, 0, DateTimeKind.Utc),
+        Keywords = ["Custom Converters", "JSON", "Source Generation", "JsonConverter", "JsonConverterFactory", "JsonSerializerContext", "Performance", "Reflection", "System.Text.Json"]
       }
     ];
   }

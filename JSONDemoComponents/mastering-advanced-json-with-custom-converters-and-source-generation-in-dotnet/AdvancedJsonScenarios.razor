@@ -1,0 +1,561 @@
+@page "/blogs/mastering-advanced-json-with-custom-converters-and-source-generation-in-dotnet"
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(AdvancedJsonScenarios) UseNewTableOfContentsMenu=true>
+    <ContentBody>
+        <What>
+            <p>
+                Not all JSON is created equal. Sometimes you need dates formatted differently. Other times you need custom logic for specific types. 
+                And if you're building high-performance applications, you want to avoid reflection overhead entirely.
+            </p>
+
+            <p>
+                In this article, we'll explore <ContentHighlight>advanced System.Text.Json functionality</ContentHighlight> that gives you complete control 
+                over JSON serialization and deserialization. We'll cover <ContentHighlight>custom converters</ContentHighlight> (both basic and factory patterns) 
+                and the <ContentHighlight>System.Text.Json source generator</ContentHighlight> - one of the most powerful features in modern .NET for boosting 
+                JSON performance.
+            </p>
+
+            <p>
+                Think of custom converters as translators that speak your application's specific dialect of JSON. And source generators? They're your 
+                performance ace in the hole, eliminating reflection by generating serialization code at compile time.
+            </p>
+        </What>
+
+        <Why>
+            <h4>Why Custom Converters Matter</h4>
+
+            <p>
+                The default JSON serializer works great for standard scenarios. But real-world applications often deal with JSON from different sources, 
+                each with its own quirks. Maybe you're integrating with an API that uses <ContentHighlight>MM/dd/yyyy</ContentHighlight> date formats. 
+                Or you need to handle custom value types that the serializer doesn't understand out of the box.
+            </p>
+
+            <p>
+                Custom converters let you override the default behavior and handle these scenarios elegantly. Here are common use cases:
+            </p>
+
+            <ul>
+                <li><ContentHighlight>Custom date formats</ContentHighlight> - Support different regional date representations</li>
+                <li><ContentHighlight>Type inference</ContentHighlight> - Help the deserializer understand if "true" is a boolean or string</li>
+                <li><ContentHighlight>Polymorphic deserialization</ContentHighlight> - Handle inheritance hierarchies correctly</li>
+                <li><ContentHighlight>Custom value types</ContentHighlight> - Serialize/deserialize phone numbers, currencies, or other domain types</li>
+                <li><ContentHighlight>Collection ordering</ContentHighlight> - Fix issues like Stack&lt;T&gt; reversal during round-tripping</li>
+            </ul>
+
+            <h4>Why Source Generation Is a Game-Changer</h4>
+
+            <p>
+                Here's the thing: by default, System.Text.Json uses <ContentHighlight>reflection</ContentHighlight> to inspect your objects at runtime. 
+                It asks questions like "What type is this?" and "What properties does it have?" every single time you serialize.
+            </p>
+
+            <p>
+                Reflection is powerful, but it's slow. The <ContentHighlight>System.Text.Json source generator</ContentHighlight> solves this by 
+                moving that inspection work to <ContentHighlight>compile time</ContentHighlight>. It generates specialized serialization code 
+                that's compiled with your application.
+            </p>
+
+            <p>
+                The result? <ContentHighlight>Faster startup times</ContentHighlight>, <ContentHighlight>better performance</ContentHighlight>, and 
+                <ContentHighlight>reduced memory allocations</ContentHighlight>. It's especially valuable for high-throughput APIs and serverless 
+                applications where cold-start time matters.
+            </p>
+        </Why>
+
+        <How>
+            <h4>Understanding Converter Patterns</h4>
+
+            <p>
+                There are two patterns for creating custom converters: <ContentHighlight>basic pattern</ContentHighlight> and 
+                <ContentHighlight>factory pattern</ContentHighlight>.
+            </p>
+
+            <p>
+                The <ContentHighlight>basic pattern</ContentHighlight> handles a single, specific type - like <ContentHighlight>DateTime</ContentHighlight>, 
+                <ContentHighlight>Dictionary&lt;int, string&gt;</ContentHighlight>, or <ContentHighlight>List&lt;DateTimeOffset&gt;</ContentHighlight>. 
+                It's straightforward and perfect when you know exactly which type needs special handling.
+            </p>
+
+            <p>
+                The <ContentHighlight>factory pattern</ContentHighlight> is more flexible. It handles generic types like 
+                <ContentHighlight>Dictionary&lt;TKey, TValue&gt;</ContentHighlight>, <ContentHighlight>List&lt;T&gt;</ContentHighlight>, or 
+                any <ContentHighlight>Enum</ContentHighlight>. The factory determines the specific type at runtime and creates the appropriate converter dynamically.
+            </p>
+
+            <h4>Step 1: Creating a Basic Pattern Converter</h4>
+
+            <p>
+                Let's create a custom converter that serializes <ContentHighlight>DateTimeOffset</ContentHighlight> values with only the date portion 
+                (removing the time component). This is useful when you want consistent date-only formatting.
+            </p>
+
+            <p>
+                Here's how to build it:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+public class DateTimeOffsetJsonConverter : JsonConverter&lt;DateTimeOffset&gt;
+{
+    public override DateTimeOffset Read(
+        ref Utf8JsonReader reader, 
+        Type typeToConvert, 
+        JsonSerializerOptions options)
+    {
+        var dateString = reader.GetString();
+        return DateTimeOffset.Parse(dateString!);
+    }
+
+    public override void Write(
+        Utf8JsonWriter writer, 
+        DateTimeOffset value, 
+        JsonSerializerOptions options)
+    {
+        // Write only the date portion, removing time
+        writer.WriteStringValue(value.ToString("yyyy-MM-dd"));
+    }
+}
+            </CodeSnippet>
+
+            <p>
+                Notice how the converter derives from <ContentHighlight>JsonConverter&lt;DateTimeOffset&gt;</ContentHighlight>. The type parameter 
+                specifies exactly what type this converter handles - that's what makes it "basic pattern."
+            </p>
+
+            <p>
+                The <ContentHighlight>Read</ContentHighlight> method handles deserialization (JSON to .NET object). The <ContentHighlight>Write</ContentHighlight> 
+                method handles serialization (.NET object to JSON).
+            </p>
+
+            <h4>Step 2: Registering the Converter</h4>
+
+            <p>
+                There are two ways to register your custom converter. The first is using <ContentHighlight>JsonSerializerOptions</ContentHighlight>:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+var options = new JsonSerializerOptions
+{
+    Converters = { new DateTimeOffsetJsonConverter() }
+};
+
+var json = JsonSerializer.Serialize(weatherForecast, options);
+            </CodeSnippet>
+
+            <p>
+                The second approach uses the <ContentHighlight>[JsonConverter]</ContentHighlight> attribute directly on properties or classes:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+public class WeatherForecast
+{
+    [JsonConverter(typeof(DateTimeOffsetJsonConverter))]
+    public DateTimeOffset Date { get; set; }
+    
+    public int TemperatureCelsius { get; set; }
+    public string? Summary { get; set; }
+}
+            </CodeSnippet>
+
+            <p>
+                You can also apply <ContentHighlight>[JsonConverter]</ContentHighlight> to the entire class:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+[JsonConverter(typeof(WeatherForecastConverter))]
+public class WeatherForecast
+{
+    // Properties...
+}
+            </CodeSnippet>
+
+            <p>
+                Both methods work perfectly. Use the attribute approach when the converter is tightly coupled to a specific property or type. 
+                Use the options approach when you want more flexibility to swap converters at runtime.
+            </p>
+
+            <h4>Step 3: Creating a Factory Pattern Converter</h4>
+
+            <p>
+                Now let's build something more sophisticated: a factory converter that handles dictionaries with 
+                <ContentHighlight>Enum</ContentHighlight> keys and transforms the values during serialization.
+            </p>
+
+            <p>
+                Here's the scenario: We have weather "feels like" data where the key is an Enum (Cold, Cool, Warm, Hot) and the value is a description. 
+                We want to customize how these sentences appear in JSON.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+public class DictionaryTKeyEnumTValueConverter : JsonConverterFactory
+{
+    public override bool CanConvert(Type typeToConvert)
+    {
+        // Only handle Dictionary&lt;TKey, TValue&gt; where TKey is an Enum
+        if (!typeToConvert.IsGenericType)
+            return false;
+
+        if (typeToConvert.GetGenericTypeDefinition() != typeof(Dictionary&lt;,&gt;))
+            return false;
+
+        // Check if the key type is an Enum
+        return typeToConvert.GetGenericArguments()[0].IsEnum;
+    }
+
+    public override JsonConverter CreateConverter(
+        Type typeToConvert, 
+        JsonSerializerOptions options)
+    {
+        Type keyType = typeToConvert.GetGenericArguments()[0];
+        Type valueType = typeToConvert.GetGenericArguments()[1];
+
+        JsonConverter converter = (JsonConverter)Activator.CreateInstance(
+            typeof(DictionaryEnumConverterInner&lt;,&gt;)
+                .MakeGenericType(new Type[] { keyType, valueType }),
+            BindingFlags.Instance | BindingFlags.Public,
+            binder: null,
+            args: new object[] { options },
+            culture: null)!;
+
+        return converter;
+    }
+
+    private class DictionaryEnumConverterInner&lt;TKey, TValue&gt; 
+        : JsonConverter&lt;Dictionary&lt;TKey, TValue&gt;&gt; 
+        where TKey : struct, Enum
+    {
+        private readonly JsonConverter&lt;TValue&gt; _valueConverter;
+        private readonly Type _valueType;
+
+        public DictionaryEnumConverterInner(JsonSerializerOptions options)
+        {
+            _valueConverter = (JsonConverter&lt;TValue&gt;)options
+                .GetConverter(typeof(TValue));
+            _valueType = typeof(TValue);
+        }
+
+        public override Dictionary&lt;TKey, TValue&gt; Read(
+            ref Utf8JsonReader reader, 
+            Type typeToConvert, 
+            JsonSerializerOptions options)
+        {
+            if (reader.TokenType != JsonTokenType.StartObject)
+                throw new JsonException();
+
+            var dictionary = new Dictionary&lt;TKey, TValue&gt;();
+
+            while (reader.Read())
+            {
+                if (reader.TokenType == JsonTokenType.EndObject)
+                    return dictionary;
+
+                string? keyString = reader.GetString();
+                TKey key = Enum.Parse&lt;TKey&gt;(keyString!);
+
+                reader.Read();
+                TValue value = _valueConverter.Read(
+                    ref reader, 
+                    _valueType, 
+                    options)!;
+
+                dictionary.Add(key, value);
+            }
+
+            throw new JsonException();
+        }
+
+        public override void Write(
+            Utf8JsonWriter writer, 
+            Dictionary&lt;TKey, TValue&gt; dictionary, 
+            JsonSerializerOptions options)
+        {
+            writer.WriteStartObject();
+
+            foreach (KeyValuePair&lt;TKey, TValue&gt; kvp in dictionary)
+            {
+                string propertyName = kvp.Key.ToString();
+                writer.WritePropertyName(propertyName);
+
+                // Custom transformation: modify the sentence
+                if (kvp.Value is string sentence)
+                {
+                    string modified = ModifySentence(propertyName, sentence);
+                    writer.WriteStringValue(modified);
+                }
+                else
+                {
+                    _valueConverter.Write(writer, kvp.Value, options);
+                }
+            }
+
+            writer.WriteEndObject();
+        }
+
+        private string ModifySentence(string location, string sentence)
+        {
+            // Transform "I am from Costa Rica. This guy is freezing"
+            // to "Costa Rica: This guy is freezing"
+            if (sentence.StartsWith("I am from "))
+            {
+                var parts = sentence.Split(". ");
+                if (parts.Length &gt;= 2)
+                {
+                    return $"{location}: {parts[1]}";
+                }
+            }
+            return sentence;
+        }
+    }
+}
+            </CodeSnippet>
+
+            <p>
+                This factory converter is more complex, but here's what makes it powerful:
+            </p>
+
+            <ul>
+                <li>The <ContentHighlight>CanConvert</ContentHighlight> method validates that we're dealing with a Dictionary&lt;TKey, TValue&gt; where TKey is an Enum</li>
+                <li>The <ContentHighlight>CreateConverter</ContentHighlight> method dynamically creates the right converter based on the actual generic arguments</li>
+                <li>The inner converter class handles the actual reading and writing, with custom logic to transform values</li>
+            </ul>
+
+            <p>
+                Here's how you'd use it:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+var feelsLike = new Dictionary&lt;Feels, string&gt;
+{
+    { Feels.Cold, "I am from Costa Rica. This guy is freezing" },
+    { Feels.Cool, "I am from Vermont. I'm okay with this" },
+    { Feels.Warm, "I am from Canada. This is Tuesday" },
+    { Feels.Hot, "I am from Siberia. Actually, this is hot" }
+};
+
+var options = new JsonSerializerOptions
+{
+    Converters = { new DictionaryTKeyEnumTValueConverter() }
+};
+
+string json = JsonSerializer.Serialize(feelsLike, options);
+// Result:
+// {
+//   "Cold": "Cold: This guy is freezing",
+//   "Cool": "Cool: I'm okay with this",
+//   "Warm": "Warm: This is Tuesday",
+//   "Hot": "Hot: Actually, this is hot"
+// }
+            </CodeSnippet>
+
+            <h4>Step 4: Understanding Reflection vs. Source Generation</h4>
+
+            <p>
+                Before we dive into source generation, let's understand the problem it solves.
+            </p>
+
+            <p>
+                When you call <ContentHighlight>JsonSerializer.Serialize(weatherForecast)</ContentHighlight>, the serializer uses 
+                <ContentHighlight>reflection</ContentHighlight> to inspect the <ContentHighlight>weatherForecast</ContentHighlight> object at runtime:
+            </p>
+
+            <ul>
+                <li>What type is this object? (WeatherForecast)</li>
+                <li>What properties does it have? (Date, TemperatureCelsius, Summary)</li>
+                <li>What are their types? (DateTimeOffset, int, string)</li>
+                <li>Are there any attributes? (JsonPropertyName, JsonIgnore, etc.)</li>
+            </ul>
+
+            <p>
+                This inspection happens <ContentHighlight>every time</ContentHighlight> you serialize. It's convenient but adds overhead - 
+                especially during application startup (the "warm-up phase").
+            </p>
+
+            <p>
+                <ContentHighlight>Source generators</ContentHighlight> shift this work to compile time. Instead of discovering type information 
+                at runtime, the generator inspects your code during compilation and generates specialized serialization code.
+            </p>
+
+            <h4>Step 5: Implementing Source Generation</h4>
+
+            <p>
+                To use the System.Text.Json source generator, you need to create a partial class that derives from 
+                <ContentHighlight>JsonSerializerContext</ContentHighlight>:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+[JsonSerializable(typeof(WeatherForecast))]
+public partial class SourceGenerationContext : JsonSerializerContext
+{
+}
+            </CodeSnippet>
+
+            <p>
+                That's it! The <ContentHighlight>[JsonSerializable]</ContentHighlight> attribute tells the generator which types to create 
+                serialization code for. The generator runs during build and creates the implementation automatically.
+            </p>
+
+            <p>
+                You can add multiple types:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+[JsonSerializable(typeof(WeatherForecast))]
+[JsonSerializable(typeof(List&lt;WeatherForecast&gt;))]
+[JsonSerializable(typeof(Dictionary&lt;string, WeatherForecast&gt;))]
+public partial class SourceGenerationContext : JsonSerializerContext
+{
+}
+            </CodeSnippet>
+
+            <h4>Step 6: Using Source-Generated Code</h4>
+
+            <p>
+                There are two ways to use source generation. The first uses <ContentHighlight>JsonTypeInfo&lt;T&gt;</ContentHighlight>:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// Deserialization
+string json = """{"Date":"2025-12-07","TemperatureCelsius":25,"Summary":"Warm"}""";
+WeatherForecast? forecast = JsonSerializer.Deserialize(
+    json, 
+    SourceGenerationContext.Default.WeatherForecast);
+
+// Serialization
+var forecast = new WeatherForecast 
+{ 
+    Date = DateTimeOffset.Now, 
+    TemperatureCelsius = 25, 
+    Summary = "Warm" 
+};
+string json = JsonSerializer.Serialize(
+    forecast, 
+    SourceGenerationContext.Default.WeatherForecast);
+            </CodeSnippet>
+
+            <p>
+                The second approach uses <ContentHighlight>JsonSerializerContext</ContentHighlight>:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// Deserialization
+WeatherForecast? forecast = JsonSerializer.Deserialize&lt;WeatherForecast&gt;(
+    json, 
+    SourceGenerationContext.Default.Options);
+
+// Serialization
+string json = JsonSerializer.Serialize(
+    forecast, 
+    SourceGenerationContext.Default.Options);
+            </CodeSnippet>
+
+            <p>
+                Both approaches avoid reflection. The serializer uses the pre-generated code instead.
+            </p>
+
+            <h4>Step 7: Viewing the Generated Code</h4>
+
+            <p>
+                Want to see what the generator creates? In Visual Studio, expand <ContentHighlight>Dependencies → Analyzers → 
+                System.Text.Json.SourceGenerator</ContentHighlight>. You'll find generated files with names like 
+                <ContentHighlight>SourceGenerationContext.WeatherForecast.g.cs</ContentHighlight>.
+            </p>
+
+            <p>
+                The generated code contains specialized methods for reading and writing your types:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// Auto-generated code (simplified for clarity)
+private static void WriteWeatherForecast(
+    Utf8JsonWriter writer, 
+    WeatherForecast value)
+{
+    writer.WriteStartObject();
+    
+    writer.WritePropertyName("Date");
+    writer.WriteStringValue(value.Date);
+    
+    writer.WritePropertyName("TemperatureCelsius");
+    writer.WriteNumberValue(value.TemperatureCelsius);
+    
+    writer.WritePropertyName("Summary");
+    writer.WriteStringValue(value.Summary);
+    
+    writer.WriteEndObject();
+}
+            </CodeSnippet>
+
+            <p>
+                This code is compiled with your application, eliminating the need for runtime reflection.
+            </p>
+
+            <h4>Step 8: Performance Benefits</h4>
+
+            <p>
+                Source generation provides several advantages:
+            </p>
+
+            <ul>
+                <li><ContentHighlight>Faster startup</ContentHighlight> - No warm-up phase for reflection</li>
+                <li><ContentHighlight>Better throughput</ContentHighlight> - Direct method calls instead of reflection</li>
+                <li><ContentHighlight>Lower memory</ContentHighlight> - Reduced allocations during serialization</li>
+                <li><ContentHighlight>AOT compatible</ContentHighlight> - Works with ahead-of-time compilation and trimming</li>
+                <li><ContentHighlight>Build-time errors</ContentHighlight> - Type issues caught during compilation</li>
+            </ul>
+
+            <p>
+                For APIs processing thousands of JSON requests per second, these benefits add up significantly.
+            </p>
+
+            <h4>Step 9: Combining Converters and Source Generation</h4>
+
+            <p>
+                You can use custom converters with source generation. Just configure them in the context:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+[JsonSerializable(typeof(WeatherForecast))]
+[JsonSourceGenerationOptions(
+    WriteIndented = true,
+    Converters = new[] { typeof(DateTimeOffsetJsonConverter) })]
+public partial class SourceGenerationContext : JsonSerializerContext
+{
+}
+            </CodeSnippet>
+
+            <p>
+                The <ContentHighlight>[JsonSourceGenerationOptions]</ContentHighlight> attribute lets you configure serialization behavior 
+                for all types in the context.
+            </p>
+        </How>
+
+        <Summary>
+            <p>
+                We've explored the advanced capabilities of System.Text.Json that give you precise control over JSON handling in .NET applications.
+            </p>
+
+            <p>
+                <ContentHighlight>Custom converters</ContentHighlight> let you override default serialization behavior. Use the 
+                <ContentHighlight>basic pattern</ContentHighlight> for specific types like DateTime or custom value types. Use the 
+                <ContentHighlight>factory pattern</ContentHighlight> when you need to handle generic types or create converters dynamically 
+                based on runtime type information.
+            </p>
+
+            <p>
+                <ContentHighlight>Source generation</ContentHighlight> eliminates reflection overhead by generating serialization code at compile time. 
+                It's perfect for high-performance scenarios, serverless functions with cold-start concerns, and applications using ahead-of-time compilation.
+            </p>
+
+            <p>
+                The combination of custom converters and source generation gives you both flexibility and performance - you can handle any JSON format 
+                while maintaining excellent runtime characteristics. Whether you're building APIs, microservices, or client applications, these advanced 
+                features help you write cleaner, faster JSON code.
+            </p>
+
+            <p>
+                In our next article, we'll wrap up the JSON series with a comprehensive summary and best practices guide. Stay tuned!
+            </p>
+        </Summary>
+    </ContentBody>
+</Content>

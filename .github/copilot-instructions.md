@@ -66,9 +66,10 @@ This is a **Blazor WebAssembly + .NET MAUI hybrid learning platform** with dual 
 When creating new blog content:
 1. **Structure**: Follow What-Why-How-Summary sections
 2. **Metadata**: Add entry to appropriate `{Topic}LearningPath.cs`
-3. **Placement**: Create in matching `{Topic}DemoComponents` project
-4. **Assets**: Store images in `wwwroot/image/blogs/{topic}/{slug}/`
-5. **Code**: Escape HTML characters (`<` as `&lt;`, `>` as `&gt;`)
+3. **Table of Contents**: Update the total count in `SharedModels/TableOfContents.cs` by incrementing `_fullContents` capacity by 1 for each new article
+4. **Placement**: Create in matching `{Topic}DemoComponents` project
+5. **Assets**: Store images in `wwwroot/image/blogs/{topic}/{slug}/`
+6. **Code**: Escape HTML characters (`<` as `&lt;`, `>` as `&gt;`)
 
 When adding new features, follow the established RCL pattern and ensure both Web and MAUI compatibility.
 
