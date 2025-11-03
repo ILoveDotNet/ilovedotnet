@@ -1,0 +1,309 @@
+@page "/blogs/maximizing-json-performance-with-utf8-reader-writer-in-dotnet"
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(Utf8JsonPerformance) UseNewTableOfContentsMenu=true>
+  <ContentBody>
+    <What>
+      <p>
+        Think <ContentHighlight>JsonSerializer</ContentHighlight> is fast? It is—but it's not the fastest. When you 
+        need <ContentHighlight>maximum performance with minimal memory allocation</ContentHighlight>, you need 
+        <ContentHighlight>Utf8JsonReader</ContentHighlight> and <ContentHighlight>Utf8JsonWriter</ContentHighlight>. 
+        In this article, we'll show you how to leverage these low-level APIs to process JSON at blazing speed.
+      </p>
+    </What>
+
+    <Why>
+      <p>
+        Here's the truth: <ContentHighlight>JsonSerializer uses Utf8JsonReader and Utf8JsonWriter under the hood
+        </ContentHighlight>. These are the low-level primitives that power all the high-level serialization you use 
+        every day. So why use them directly? Two reasons: <ContentHighlight>speed and control</ContentHighlight>.
+      </p>
+      <p>
+        When you're dealing with <ContentHighlight>massive JSON files</ContentHighlight> (think multi-gigabyte logs 
+        or streaming API responses), the overhead of creating .NET objects adds up fast. Utf8JsonReader and 
+        Utf8JsonWriter let you <ContentHighlight>process JSON token by token</ContentHighlight>—reading or writing 
+        only what you need without ever allocating objects for the parts you don't care about.
+      </p>
+      <p>
+        These are <ContentHighlight>forward-only, non-cached APIs</ContentHighlight>. You read or write sequentially, 
+        which is exactly what makes them so efficient. Think of it like streaming video versus downloading the whole 
+        file—you process only what you need, when you need it.
+      </p>
+    </Why>
+
+    <How>
+      <p>
+        Here's how to achieve high-performance JSON processing with Utf8JsonReader and Utf8JsonWriter:
+      </p>
+
+      <h4>Step 1: Understanding Utf8JsonWriter</h4>
+      <p>
+        <ContentHighlight>Utf8JsonWriter</ContentHighlight> is a forward-only writer for creating UTF-8 encoded JSON. 
+        You write elements sequentially—start an object or array, write properties and values, then end the object or 
+        array. It validates JSON structure as you write, so <ContentHighlight>invalid JSON throws an exception
+        </ContentHighlight> (unless you disable validation).
+      </p>
+
+      <h4>Step 2: Writing JSON with Utf8JsonWriter</h4>
+      <p>
+        Write to a <code>Stream</code>, <code>IBufferWriter&lt;byte&gt;</code>, or any writable UTF-8 destination.
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+using System.Text.Json;
+
+var options = new JsonWriterOptions
+{
+    Indented = true // Pretty-print the output
+};
+
+using var stream = new MemoryStream();
+using var writer = new Utf8JsonWriter(stream, options);
+
+// Start writing the JSON object
+writer.WriteStartObject();
+
+writer.WriteString("userId", "12345");
+writer.WriteNumber("temperature", 22);
+writer.WriteBoolean("isActive", true);
+
+// Write a nested object
+writer.WritePropertyName("location");
+writer.WriteStartObject();
+writer.WriteString("city", "London");
+writer.WriteNumber("latitude", 51.5074);
+writer.WriteNumber("longitude", -0.1278);
+writer.WriteEndObject();
+
+// Write an array
+writer.WritePropertyName("readings");
+writer.WriteStartArray();
+writer.WriteNumberValue(18);
+writer.WriteNumberValue(20);
+writer.WriteNumberValue(22);
+writer.WriteEndArray();
+
+writer.WriteEndObject();
+writer.Flush();
+
+// Get the JSON as a string
+string json = Encoding.UTF8.GetString(stream.ToArray());
+Console.WriteLine(json);
+
+/* Output:
+{
+  "userId": "12345",
+  "temperature": 22,
+  "isActive": true,
+  "location": {
+    "city": "London",
+    "latitude": 51.5074,
+    "longitude": -0.1278
+  },
+  "readings": [18, 20, 22]
+}
+*/
+</CodeSnippet>
+
+      <h4>Step 3: Writing Null Values and Raw JSON</h4>
+      <p>
+        You can write null values and even <ContentHighlight>raw JSON strings</ContentHighlight> directly.
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+writer.WriteStartObject();
+
+// Write a null property
+writer.WriteNull("middleName");
+
+// Write raw JSON (bypasses validation—use with caution!)
+writer.WritePropertyName("metadata");
+writer.WriteRawValue("""{"version": "2.0", "build": 42}""");
+
+writer.WriteEndObject();
+writer.Flush();
+
+/* Output:
+{
+  "middleName": null,
+  "metadata": {"version": "2.0", "build": 42}
+}
+*/
+</CodeSnippet>
+
+      <h4>Step 4: Performance Best Practices for Utf8JsonWriter</h4>
+      <ul>
+        <li><strong>Write UTF-8 directly:</strong> Utf8JsonWriter is optimized for UTF-8. Avoid UTF-16 conversions.</li>
+        <li><strong>Reuse writers:</strong> Reset and reuse writers instead of creating new instances.</li>
+        <li><strong>Flush when done:</strong> Always call <code>Flush()</code> to ensure data is written.</li>
+        <li><strong>Disable validation for speed:</strong> Set <code>SkipValidation = true</code> in options if you're 
+        certain your JSON is valid and need extra speed.</li>
+      </ul>
+
+      <h4>Step 5: Understanding Utf8JsonReader</h4>
+      <p>
+        <ContentHighlight>Utf8JsonReader</ContentHighlight> is a forward-only, low-allocation reader that processes 
+        JSON <ContentHighlight>token by token</ContentHighlight>. It's a <code>ref struct</code>, which means it 
+        lives on the stack and <ContentHighlight>cannot be passed by value</ContentHighlight>—only by reference.
+      </p>
+
+      <h4>Step 6: Reading JSON with Utf8JsonReader</h4>
+      <p>
+        Read from a <code>ReadOnlySpan&lt;byte&gt;</code> or <code>ReadOnlySequence&lt;byte&gt;</code>. The reader 
+        advances token by token, and you check the <ContentHighlight>TokenType</ContentHighlight> to determine what 
+        you're reading.
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+string jsonString = """
+{
+  "userId": "12345",
+  "temperature": 22,
+  "readings": [18, 20, 22]
+}
+""";
+
+byte[] jsonBytes = Encoding.UTF8.GetBytes(jsonString);
+var reader = new Utf8JsonReader(jsonBytes);
+
+while (reader.Read())
+{
+    switch (reader.TokenType)
+    {
+        case JsonTokenType.PropertyName:
+            string propertyName = reader.GetString();
+            Console.WriteLine($"Property: {propertyName}");
+            break;
+
+        case JsonTokenType.String:
+            string stringValue = reader.GetString();
+            Console.WriteLine($"  String Value: {stringValue}");
+            break;
+
+        case JsonTokenType.Number:
+            int numberValue = reader.GetInt32();
+            Console.WriteLine($"  Number Value: {numberValue}");
+            break;
+
+        case JsonTokenType.StartObject:
+            Console.WriteLine("Start Object");
+            break;
+
+        case JsonTokenType.EndObject:
+            Console.WriteLine("End Object");
+            break;
+
+        case JsonTokenType.StartArray:
+            Console.WriteLine("Start Array");
+            break;
+
+        case JsonTokenType.EndArray:
+            Console.WriteLine("End Array");
+            break;
+    }
+}
+
+/* Output:
+Start Object
+Property: userId
+  String Value: 12345
+Property: temperature
+  Number Value: 22
+Property: readings
+Start Array
+  Number Value: 18
+  Number Value: 20
+  Number Value: 22
+End Array
+End Object
+*/
+</CodeSnippet>
+
+      <h4>Step 7: Searching for Specific Values</h4>
+      <p>
+        You can use <ContentHighlight>ValueTextEquals</ContentHighlight> to compare property names efficiently—it 
+        handles escaped characters automatically.
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+byte[] searchProperty = Encoding.UTF8.GetBytes("temperature");
+var reader = new Utf8JsonReader(jsonBytes);
+
+while (reader.Read())
+{
+    if (reader.TokenType == JsonTokenType.PropertyName &&
+        reader.ValueTextEquals(searchProperty))
+    {
+        reader.Read(); // Move to the value
+        int temperature = reader.GetInt32();
+        Console.WriteLine($"Found temperature: {temperature}°C");
+        break; // Stop searching once found
+    }
+}
+// Output: Found temperature: 22°C
+</CodeSnippet>
+
+      <h4>Step 8: Handling the Byte Order Mark (BOM)</h4>
+      <p>
+        If your JSON might have a BOM, <ContentHighlight>remove it before reading</ContentHighlight> to avoid errors.
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+byte[] utf8Bom = new byte[] { 0xEF, 0xBB, 0xBF };
+byte[] jsonData = File.ReadAllBytes("data.json");
+
+// Remove BOM if present
+if (jsonData.Length &gt;= 3 &&
+    jsonData[0] == utf8Bom[0] &&
+    jsonData[1] == utf8Bom[1] &&
+    jsonData[2] == utf8Bom[2])
+{
+    jsonData = jsonData[3..]; // Skip the first 3 bytes
+}
+
+var reader = new Utf8JsonReader(jsonData);
+// Now safe to read
+</CodeSnippet>
+
+      <h4>Step 9: Performance Best Practices for Utf8JsonReader</h4>
+      <ul>
+        <li><strong>Read UTF-8 directly:</strong> Convert UTF-16 strings to UTF-8 bytes before reading for best performance.</li>
+        <li><strong>Use ValueTextEquals:</strong> For property comparisons, this method is faster and handles escaping.</li>
+        <li><strong>Know your structure:</strong> Sequential searches are slow; direct navigation is faster.</li>
+        <li><strong>Buffer large streams:</strong> For files over 1GB, read in chunks to avoid loading everything into memory.</li>
+        <li><strong>Pass by reference:</strong> Since it's a ref struct, pass <code>ref Utf8JsonReader</code> to methods.</li>
+      </ul>
+
+      <h4>Step 10: When to Use Low-Level APIs vs JsonSerializer</h4>
+      <p>
+        <strong>Use Utf8JsonReader/Writer when:</strong>
+      </p>
+      <ul>
+        <li>You need <ContentHighlight>maximum performance</ContentHighlight> and minimal allocations</li>
+        <li>Processing <ContentHighlight>huge files</ContentHighlight> (multi-GB logs, streaming data)</li>
+        <li>You only need <ContentHighlight>specific parts</ContentHighlight> of a large JSON payload</li>
+        <li>Building <ContentHighlight>custom serializers</ContentHighlight> or parsers</li>
+      </ul>
+      <p>
+        <strong>Use JsonSerializer when:</strong>
+      </p>
+      <ul>
+        <li>You have <ContentHighlight>strongly-typed classes</ContentHighlight> to serialize/deserialize</li>
+        <li>Convenience and ease of use outweigh raw speed</li>
+        <li>JSON payloads are <ContentHighlight>reasonably sized</ContentHighlight> (under 10MB)</li>
+      </ul>
+    </How>
+
+    <Summary>
+      <p>
+        <ContentHighlight>Utf8JsonReader</ContentHighlight> and <ContentHighlight>Utf8JsonWriter</ContentHighlight> 
+        are the <ContentHighlight>secret weapons</ContentHighlight> for high-performance JSON processing in .NET. 
+        They trade convenience for <ContentHighlight>speed, control, and minimal memory usage</ContentHighlight>. 
+        Use them when you're processing massive files, building custom parsers, or when every millisecond and 
+        megabyte counts. For everything else, JsonSerializer has you covered—because it's using these same APIs 
+        under the hood anyway.
+      </p>
+    </Summary>
+  </ContentBody>
+</Content>

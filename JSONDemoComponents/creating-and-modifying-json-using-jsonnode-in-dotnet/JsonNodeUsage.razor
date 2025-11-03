@@ -1,0 +1,259 @@
+@page "/blogs/creating-and-modifying-json-using-jsonnode-in-dotnet"
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(JsonNodeUsage) UseNewTableOfContentsMenu=true>
+  <ContentBody>
+    <What>
+      <p>
+        Need to build JSON on the fly, or modify an existing JSON response before sending it? <ContentHighlight>
+        JsonNode</ContentHighlight> is your answer. Unlike JsonDocument, which is read-only, <ContentHighlight>
+        JsonNode creates a mutable DOM</ContentHighlight> that you can change, extend, and manipulate. In this 
+        article, we'll show you how to dynamically work with JSON in .NET without being locked into immutable structures.
+      </p>
+    </What>
+
+    <Why>
+      <p>
+        <ContentHighlight>JsonDocument</ContentHighlight> is fast, but it's frozen—once parsed, you can't modify it. 
+        What if you need to <ContentHighlight>add, remove, or update properties</ContentHighlight> in a JSON object? 
+        Or build a complex JSON payload from scratch without defining a class? That's where <ContentHighlight>
+        JsonNode</ContentHighlight> shines.
+      </p>
+      <p>
+        JsonNode lives in the <ContentHighlight>System.Text.Json.Nodes</ContentHighlight> namespace and provides a 
+        <ContentHighlight>flexible, mutable API</ContentHighlight> for constructing and manipulating JSON. You can 
+        parse existing JSON, modify it, and serialize it back. Or you can build JSON from the ground up using object 
+        initializers. It's slower than JsonDocument, but the tradeoff is <ContentHighlight>mutability and ease of use
+        </ContentHighlight>.
+      </p>
+      <p>
+        Think of it like this: JsonDocument is a photo—you can look at it, but you can't edit it. JsonNode is a 
+        Photoshop layer—you can tweak, add, delete, and rearrange as needed.
+      </p>
+    </Why>
+
+    <How>
+      <p>
+        Here's how to create, modify, and manipulate JSON using JsonNode in .NET:
+      </p>
+
+      <h4>Step 1: Understanding the JsonNode Family</h4>
+      <p>
+        The <ContentHighlight>System.Text.Json.Nodes</ContentHighlight> namespace provides four key classes:
+      </p>
+      <ul>
+        <li><strong>JsonNode</strong>: The base class representing any JSON value</li>
+        <li><strong>JsonObject</strong>: Represents a JSON object (key-value pairs)</li>
+        <li><strong>JsonArray</strong>: Represents a JSON array (ordered list of values)</li>
+        <li><strong>JsonValue</strong>: Represents a primitive JSON value (string, number, boolean, null)</li>
+      </ul>
+      <p>
+        You can access child elements by index or property name, get the parent or root, and perform conversions 
+        between types.
+      </p>
+
+      <h4>Step 2: Parsing Existing JSON</h4>
+      <p>
+        Start by parsing a JSON string using <ContentHighlight>JsonNode.Parse()</ContentHighlight>. Unlike 
+        JsonDocument, you don't need a <code>using</code> statement—JsonNode doesn't implement IDisposable.
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+string jsonString = """
+{
+  "city": "Chennai",
+  "temperature": 15,
+  "conditions": ["cloudy", "windy"]
+}
+""";
+
+JsonNode weatherNode = JsonNode.Parse(jsonString);
+
+// Output the JSON as a formatted string
+var options = new JsonSerializerOptions { WriteIndented = true };
+Console.WriteLine(weatherNode.ToJsonString(options));
+</CodeSnippet>
+
+      <h4>Step 3: Accessing Properties</h4>
+      <p>
+        Access properties using indexer syntax. You can chain property access for nested objects.
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+// Get a property value
+string city = weatherNode["city"].GetValue&lt;string&gt;();
+Console.WriteLine($"City: {city}"); // Output: City: Chennai
+
+int temp = weatherNode["temperature"].GetValue&lt;int&gt;();
+Console.WriteLine($"Temperature: {temp}°C");
+
+// Access array elements
+JsonArray conditions = weatherNode["conditions"].AsArray();
+string firstCondition = conditions[0].GetValue&lt;string&gt;();
+Console.WriteLine($"First condition: {firstCondition}"); 
+// Output: First condition: cloudy
+</CodeSnippet>
+
+      <h4>Step 4: Modifying Existing JSON</h4>
+      <p>
+        Here's where JsonNode really shines. You can <ContentHighlight>add, remove, and update properties
+        </ContentHighlight> dynamically.
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+// Remove a property
+JsonObject weatherObj = weatherNode.AsObject();
+weatherObj.Remove("conditions");
+
+// Add a new property
+weatherObj["humidity"] = 75;
+weatherObj["forecast"] = "Rain expected";
+
+// Modify an existing property
+weatherObj["temperature"] = 18;
+
+Console.WriteLine(weatherNode.ToJsonString(
+    new JsonSerializerOptions { WriteIndented = true }
+));
+
+/* Output:
+{
+  "city": "Chennai",
+  "temperature": 18,
+  "humidity": 75,
+  "forecast": "Rain expected"
+}
+*/
+</CodeSnippet>
+
+      <h4>Step 5: Building JSON from Scratch</h4>
+      <p>
+        You can create complex JSON structures using <ContentHighlight>object initializers</ContentHighlight>—no 
+        parsing required.
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+var apiResponse = new JsonObject
+{
+    ["status"] = "success",
+    ["timestamp"] = DateTime.UtcNow.ToString("o"),
+    ["data"] = new JsonObject
+    {
+        ["userId"] = 12345,
+        ["username"] = "abdul_dev",
+        ["roles"] = new JsonArray { "admin", "developer", "user" }
+    },
+    ["metadata"] = new JsonObject
+    {
+        ["version"] = "2.0",
+        ["server"] = "api-01"
+    }
+};
+
+Console.WriteLine(apiResponse.ToJsonString(
+    new JsonSerializerOptions { WriteIndented = true }
+));
+
+/* Output:
+{
+  "status": "success",
+  "timestamp": "2025-11-02T10:30:00.0000000Z",
+  "data": {
+    "userId": 12345,
+    "username": "abdul_dev",
+    "roles": ["admin", "developer", "user"]
+  },
+  "metadata": {
+    "version": "2.0",
+    "server": "api-01"
+  }
+}
+*/
+</CodeSnippet>
+
+      <h4>Step 6: Working with JsonObject and JsonArray</h4>
+      <p>
+        Cast to <ContentHighlight>JsonObject</ContentHighlight> or <ContentHighlight>JsonArray</ContentHighlight> 
+        to access type-specific methods.
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+// Count properties in a JsonObject
+JsonObject dataObj = apiResponse["data"].AsObject();
+int propertyCount = dataObj.Count;
+Console.WriteLine($"Data object has {propertyCount} properties");
+
+// Get all property names
+var keys = dataObj.Select(kvp =&gt; kvp.Key);
+Console.WriteLine($"Keys: {string.Join(", ", keys)}");
+// Output: Keys: userId, username, roles
+
+// Work with JsonArray
+JsonArray rolesArray = dataObj["roles"].AsArray();
+rolesArray.Add("moderator"); // Add a new role
+rolesArray.RemoveAt(0);      // Remove "admin"
+
+Console.WriteLine($"Updated roles: {rolesArray.ToJsonString()}");
+// Output: Updated roles: ["developer","user","moderator"]
+</CodeSnippet>
+
+      <h4>Step 7: Merging and Combining JSON</h4>
+      <p>
+        You can <ContentHighlight>merge multiple JSON objects</ContentHighlight> by adding properties from one to 
+        another.
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+var additionalData = new JsonObject
+{
+    ["email"] = "abdul@example.com",
+    ["verified"] = true
+};
+
+// Add properties from additionalData to the existing data object
+foreach (var kvp in additionalData)
+{
+    dataObj[kvp.Key] = kvp.Value?.DeepClone();
+}
+
+Console.WriteLine(apiResponse.ToJsonString(
+    new JsonSerializerOptions { WriteIndented = true }
+));
+// Now "data" includes email and verified properties
+</CodeSnippet>
+
+      <h4>Step 8: Converting Between JsonNode and Objects</h4>
+      <p>
+        You can deserialize a JsonNode into a strongly-typed object when needed.
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+public class UserData
+{
+    public int UserId { get; set; }
+    public string Username { get; set; }
+    public List&lt;string&gt; Roles { get; set; }
+    public string Email { get; set; }
+    public bool Verified { get; set; }
+}
+
+// Deserialize the "data" node into a UserData object
+UserData user = dataObj.Deserialize&lt;UserData&gt;();
+
+Console.WriteLine($"User: {user.Username}, ID: {user.UserId}");
+Console.WriteLine($"Roles: {string.Join(", ", user.Roles)}");
+</CodeSnippet>
+    </How>
+
+    <Summary>
+      <p>
+        <ContentHighlight>JsonNode</ContentHighlight> gives you the <ContentHighlight>power to build and modify JSON
+        </ContentHighlight> dynamically in .NET. Whether you're constructing API responses on the fly, transforming 
+        incoming data, or working with JSON that doesn't fit a predefined schema, JsonNode provides a 
+        <ContentHighlight>flexible, mutable API</ContentHighlight> that makes these tasks simple. Use it when you 
+        need to change JSON, and reach for JsonDocument when you just need to read it fast.
+      </p>
+    </Summary>
+  </ContentBody>
+</Content>

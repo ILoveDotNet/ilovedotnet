@@ -1,0 +1,201 @@
+@page "/blogs/working-with-unknown-json-using-jsondocument-in-dotnet"
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(JsonDocumentUsage) UseNewTableOfContentsMenu=true>
+  <ContentBody>
+    <What>
+      <p>
+        Ever receive a JSON payload so big that deserializing it crashes your app? Or maybe you don't even have a 
+        class to deserialize into? <ContentHighlight>JsonDocument</ContentHighlight> solves both problems. In this 
+        article, we'll explore how to work with <ContentHighlight>unknown or dynamic JSON structures</ContentHighlight> 
+        in .NET without creating a single POCO class.
+      </p>
+    </What>
+
+    <Why>
+      <p>
+        <ContentHighlight>JsonSerializer</ContentHighlight> is great—until it isn't. When you have a massive API 
+        response (think 50MB of nested objects) and you only need <ContentHighlight>a few specific fields</ContentHighlight>, 
+        deserializing the entire payload into memory is wasteful and slow. Worse yet, what if the JSON schema keeps 
+        changing, or you're inspecting third-party data where no model exists?
+      </p>
+      <p>
+        That's where <ContentHighlight>JsonDocument</ContentHighlight> comes in. It creates an <ContentHighlight>
+        immutable, read-only Document Object Model (DOM)</ContentHighlight> that lets you navigate JSON like a tree 
+        structure. You get <ContentHighlight>random access</ContentHighlight> to any property without loading the 
+        whole object into .NET types. The performance gains are massive: shared memory buffers, direct UTF-8 reading, 
+        and values allocated only when requested.
+      </p>
+      <p>
+        Think of it this way: instead of unpacking an entire shipping container to find one box, you open the 
+        container, locate the box you need, and leave everything else untouched. That's JsonDocument.
+      </p>
+    </Why>
+
+    <How>
+      <p>
+        Here's how to leverage JsonDocument for high-performance JSON parsing in .NET:
+      </p>
+
+      <h4>Step 1: Understanding the JsonDocument Structure</h4>
+      <p>
+        The <ContentHighlight>JsonDocument</ContentHighlight> represents JSON as a tree. The top-level entry point 
+        is the <ContentHighlight>RootElement</ContentHighlight>, which is of type <ContentHighlight>JsonElement
+        </ContentHighlight>. From there, every property, object, and array is also a JsonElement. Here's the hierarchy:
+      </p>
+      <ul>
+        <li><strong>JsonDocument</strong>: The container that parses and holds the entire JSON structure</li>
+        <li><strong>RootElement</strong>: The first JsonElement, representing the top-level object or array</li>
+        <li><strong>JsonElement</strong>: Represents any value—object, array, string, number, boolean, or null</li>
+        <li><strong>JsonProperty</strong>: A name-value pair within an object</li>
+      </ul>
+
+      <h4>Step 2: Parsing JSON with JsonDocument</h4>
+      <p>
+        Start by parsing your JSON string, stream, or UTF-8 bytes. <ContentHighlight>Always use the 
+        <code>using</code> statement</ContentHighlight>—JsonDocument implements IDisposable and must be properly 
+        disposed to free memory.
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+string jsonString = """
+{
+  "user": "Abdul",
+  "temperature": 22,
+  "readings": [15, 18, 22, 19, 21]
+}
+""";
+
+using JsonDocument document = JsonDocument.Parse(jsonString);
+JsonElement root = document.RootElement;
+
+Console.WriteLine(root.GetProperty("user").GetString()); 
+// Output: Abdul
+</CodeSnippet>
+
+      <p>
+        The <ContentHighlight>Parse</ContentHighlight> method has multiple overloads—you can parse from a string, 
+        <code>ReadOnlySpan&lt;byte&gt;</code>, or <code>Stream</code>. For async scenarios, use 
+        <ContentHighlight>ParseAsync</ContentHighlight>.
+      </p>
+
+      <h4>Step 3: Accessing Properties Safely</h4>
+      <p>
+        Use <ContentHighlight>GetProperty()</ContentHighlight> when you're certain a property exists. If uncertain, 
+        use <ContentHighlight>TryGetProperty()</ContentHighlight> to avoid exceptions.
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+// Safe access with TryGetProperty
+if (root.TryGetProperty("temperature", out JsonElement tempElement))
+{
+    int temp = tempElement.GetInt32();
+    Console.WriteLine($"Temperature: {temp}°C");
+}
+else
+{
+    Console.WriteLine("Temperature property not found");
+}
+
+// Direct access (throws if property doesn't exist)
+string user = root.GetProperty("user").GetString();
+</CodeSnippet>
+
+      <h4>Step 4: Working with Arrays</h4>
+      <p>
+        JSON arrays are enumerated using <ContentHighlight>EnumerateArray()</ContentHighlight>. This is far more 
+        efficient than manual indexing.
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+JsonElement readingsArray = root.GetProperty("readings");
+
+int total = 0;
+int count = 0;
+
+foreach (JsonElement reading in readingsArray.EnumerateArray())
+{
+    total += reading.GetInt32();
+    count++;
+}
+
+double average = (double)total / count;
+Console.WriteLine($"Average reading: {average}"); 
+// Output: Average reading: 19
+</CodeSnippet>
+
+      <h4>Step 5: Deserializing Specific Elements</h4>
+      <p>
+        One powerful feature: you can <ContentHighlight>selectively deserialize</ContentHighlight> only the 
+        JsonElement you need into a strongly-typed object.
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+public class UserProfile
+{
+    public string User { get; set; }
+    public int Temperature { get; set; }
+}
+
+// Deserialize only the root element (or any sub-element)
+UserProfile profile = JsonSerializer.Deserialize&lt;UserProfile&gt;(
+    root.GetRawText()
+);
+
+Console.WriteLine($"User: {profile.User}, Temp: {profile.Temperature}°C");
+</CodeSnippet>
+
+      <h4>Step 6: Customizing Parse Behavior</h4>
+      <p>
+        Use <ContentHighlight>JsonDocumentOptions</ContentHighlight> to control parsing. For example, allow 
+        comments or trailing commas, set max depth, or handle duplicate properties.
+      </p>
+
+<CodeSnippet CssClass="language-csharp">
+var options = new JsonDocumentOptions
+{
+    CommentHandling = JsonCommentHandling.Skip,
+    AllowTrailingCommas = true,
+    MaxDepth = 64
+};
+
+using JsonDocument document = JsonDocument.Parse(jsonString, options);
+// Now JSON with comments and trailing commas won't throw exceptions
+</CodeSnippet>
+
+      <h4>Step 7: Performance Best Practices</h4>
+      <ul>
+        <li><strong>Always dispose:</strong> Use <code>using</code> statements to free memory promptly</li>
+        <li><strong>Avoid unnecessary allocations:</strong> Access values only when needed</li>
+        <li><strong>Use EnumerateArray():</strong> Don't manually index arrays</li>
+        <li><strong>Know your structure:</strong> Searching is sequential, so direct property access is faster</li>
+        <li><strong>Prefer UTF-8:</strong> JsonDocument reads UTF-8 directly; converting from UTF-16 adds overhead</li>
+        <li><strong>Use ParseAsync for I/O:</strong> When reading from streams, async prevents blocking</li>
+      </ul>
+
+<CodeSnippet CssClass="language-csharp">
+// Good: Async parsing from a stream
+await using FileStream stream = File.OpenRead("large-data.json");
+using JsonDocument document = await JsonDocument.ParseAsync(stream);
+
+// Extract only what you need
+if (document.RootElement.TryGetProperty("userId", out JsonElement userId))
+{
+    Console.WriteLine($"User ID: {userId.GetString()}");
+}
+// Everything else remains untouched in memory
+</CodeSnippet>
+    </How>
+
+    <Summary>
+      <p>
+        <ContentHighlight>JsonDocument</ContentHighlight> is your go-to tool when dealing with <ContentHighlight>
+        large, unknown, or dynamic JSON</ContentHighlight> in .NET. By creating an immutable DOM, it gives you 
+        <ContentHighlight>fast, memory-efficient random access</ContentHighlight> without deserializing entire 
+        payloads. Remember: always dispose, use TryGetProperty for safety, and leverage EnumerateArray for 
+        collections. When you need speed and flexibility, JsonDocument delivers both.
+      </p>
+    </Summary>
+  </ContentBody>
+</Content>
