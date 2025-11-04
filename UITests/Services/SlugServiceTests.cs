@@ -1,6 +1,7 @@
 ﻿using Bunit.TestDoubles;
 using Microsoft.Extensions.DependencyInjection;
 using SharedComponents;
+using TestContext = Bunit.TestContext;
 
 namespace UITests.Services;
 

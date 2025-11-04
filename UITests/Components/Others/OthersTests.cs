@@ -1,4 +1,6 @@
-﻿namespace UITests.Components.Others;
+﻿using TestContext = Bunit.TestContext;
+
+namespace UITests.Components.Others;
 
 [ExcludeFromCodeCoverage]
 public class OthersTests

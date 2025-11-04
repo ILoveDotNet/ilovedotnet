@@ -1,4 +1,6 @@
-﻿namespace UITests.Components.Navigation;
+﻿using TestContext = Bunit.TestContext;
+
+namespace UITests.Components.Navigation;
 
 [ExcludeFromCodeCoverage]
 public class NavigationTests

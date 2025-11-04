@@ -1,7 +1,8 @@
 ﻿using Bunit.TestDoubles;
 using Microsoft.Extensions.DependencyInjection;
+using TestContext = Bunit.TestContext;
 
-namespace UITests.Components.Navigation;
+namespace UITests.Components.BackToTop;
 
 public class BackToTopTests
 {
