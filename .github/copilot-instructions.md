@@ -131,7 +131,7 @@ Replace the generated `.csproj` content with the standard pattern:
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="9.0.10" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -241,5 +241,5 @@ dotnet build Web/Web.csproj
 - Replace `{topic-slug}` with the URL path segment (e.g., `json`, `security`, `linq`)
 - Replace `{Topic}Channel` with the appropriate channel name for sitemap/poster generation
 - Maintain alphabetical order when adding entries to Web.csproj, LazyLoaderService.cs, keywords meta tags, and TableOfContents.cs
-- Ensure package versions match the rest of the solution (currently `9.0.10` for ASP.NET Core packages)
+- Ensure package versions match the rest of the solution (currently `10.0.0` for ASP.NET Core packages)
 - Initialize FullContents with capacity 0 for empty learning paths; increase as content is added

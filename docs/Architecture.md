@@ -357,7 +357,7 @@ flowchart TD
 ## Technical Implementation
 
 - **Language**: C# with Razor components
-- **Framework**: .NET 9.0 with Blazor WebAssembly and .NET MAUI
+- **Framework**: .NET 10.0 with Blazor WebAssembly and .NET MAUI
 - **Styling**: CSS with custom classes
 - **JavaScript Integration**: Module-based JS isolation
 - **Testing**: XUnit with coverage reporting
