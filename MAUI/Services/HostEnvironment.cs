@@ -1,6 +1,7 @@
 ﻿using SharedModels;
 
 namespace MAUI.Services;
+
 internal class MAUIHostEnvironment : IHostEnvironment
 {
   public string Environment { get; set; } = "Local";

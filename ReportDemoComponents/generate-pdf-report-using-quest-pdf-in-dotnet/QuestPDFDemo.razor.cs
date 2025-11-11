@@ -6,6 +6,7 @@ using QuestPDF.Infrastructure;
 using SharedModels;
 
 namespace ReportDemoComponents;
+
 public class QuestPDFDemoBase : ComponentBase
 {
   [Inject] public required TableOfContents TableOfContents { get; set; }

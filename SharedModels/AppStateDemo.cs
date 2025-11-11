@@ -1,4 +1,5 @@
 ﻿namespace SharedModels;
+
 public class AppStateDemo
 {
   public event Action OnChange = default!;

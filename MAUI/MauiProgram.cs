@@ -11,6 +11,7 @@ using SharedModels;
 using Toolbelt.Blazor.Extensions.DependencyInjection;
 
 namespace MAUI;
+
 public static class MauiProgram
 {
   public static MauiApp CreateMauiApp()
