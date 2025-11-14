@@ -1,6 +1,4 @@
-﻿using TestContext = Bunit.TestContext;
-
-namespace UITests.Components.Others;
+﻿namespace UITests.Components.Others;
 
 [ExcludeFromCodeCoverage]
 public class OthersTests
@@ -9,8 +7,8 @@ public class OthersTests
   public void TestMenuToggle()
   {
     // Arrange
-    using var ctx = new TestContext();
-    var cut = ctx.RenderComponent<CommonComponents.Shared.Others>();
+    using var ctx = new BunitContext();
+    var cut = ctx.Render<CommonComponents.Shared.Others>();
 
     // Act
     cut.Find("button").Click();
@@ -24,14 +22,14 @@ public class OthersTests
   public async Task TestFocusOutHandlerAsync()
   {
     // Arrange
-    using var ctx = new TestContext();
-    var cut = ctx.RenderComponent<CommonComponents.Shared.Others>();
+    using var ctx = new BunitContext();
+    var cut = ctx.Render<CommonComponents.Shared.Others>();
 
     // Act
-    cut.Find("button").Click();
-    await Task.Delay(500);
-    cut.Find("a").Click();
-    await Task.Delay(500);
+    await cut.Find("button").ClickAsync();
+    await Task.Delay(500, Xunit.TestContext.Current.CancellationToken);
+    await cut.Find("a").ClickAsync();
+    await Task.Delay(500, Xunit.TestContext.Current.CancellationToken);
 
     // Assert
     var menu = cut.Find("#others > div");

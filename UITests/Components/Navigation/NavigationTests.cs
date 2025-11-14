@@ -1,6 +1,4 @@
-﻿using TestContext = Bunit.TestContext;
-
-namespace UITests.Components.Navigation;
+﻿namespace UITests.Components.Navigation;
 
 [ExcludeFromCodeCoverage]
 public class NavigationTests
@@ -9,10 +7,10 @@ public class NavigationTests
   public void NavigationComponent_Renders_Correctly()
   {
     // Arrange
-    using var ctx = new TestContext();
+    using var ctx = new BunitContext();
 
     // Act
-    var cut = ctx.RenderComponent<CommonComponents.Shared.Navigation>();
+    var cut = ctx.Render<CommonComponents.Shared.Navigation>();
 
     // Assert
     cut.MarkupMatches("""

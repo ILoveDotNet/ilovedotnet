@@ -1,6 +1,5 @@
 ﻿using Bunit.TestDoubles;
 using Microsoft.Extensions.DependencyInjection;
-using TestContext = Bunit.TestContext;
 
 namespace UITests.Components.BackToTop;
 
@@ -10,9 +9,9 @@ public class BackToTopTests
   public void TestScrollToTop()
   {
     // Arrange
-    using var ctx = new TestContext();
-    var navigationManager = ctx.Services.GetRequiredService<FakeNavigationManager>();
-    var cut = ctx.RenderComponent<CommonComponents.Shared.BackToTop>();
+    using var ctx = new BunitContext();
+    var navigationManager = ctx.Services.GetRequiredService<BunitNavigationManager>();
+    var cut = ctx.Render<CommonComponents.Shared.BackToTop>();
 
     // Act
     cut.Find("button").Click();
