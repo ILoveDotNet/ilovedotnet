@@ -1,0 +1,494 @@
+@page "/blogs/add-mcp-to-existing-dotnet-rest-endpoints"
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(AddMCPToExistingDotNetRESTEndpoints) UseNewTableOfContentsMenu=true>
+    <ContentBody>
+        <What>
+            <p>
+                Your existing <ContentHighlight>REST APIs</ContentHighlight> work great for web and mobile apps. But what if AI agents and chatbots could 
+                use them too—without you rewriting everything? That's exactly what the <ContentHighlight>Model Context Protocol (MCP)</ContentHighlight> 
+                enables. In this article, let's learn how to add <ContentHighlight>MCP capabilities</ContentHighlight> to your existing 
+                <ContentHighlight>ASP.NET Core REST APIs</ContentHighlight>, turning them into AI-ready backends with minimal effort.
+            </p>
+        </What>
+
+        <Why>
+            <p>
+                Here's the thing: many organizations already have robust REST APIs powering their applications. These APIs handle everything from 
+                <ContentHighlight>customer data</ContentHighlight> to <ContentHighlight>order processing</ContentHighlight> to 
+                <ContentHighlight>reporting</ContentHighlight>. But now, there's a growing need to enable AI agents, chatbots, and LLMs to interact 
+                with these same systems.
+            </p>
+
+            <p>
+                Without MCP, you'd face a challenging choice: either rebuild your APIs specifically for AI consumption, or create complex integration 
+                layers that duplicate your existing logic. Neither option is appealing.
+            </p>
+
+            <h4>Real-World AI Use Cases</h4>
+
+            <p>
+                Think about these practical scenarios that are happening right now:
+            </p>
+
+            <ul class="[ list-disc ] [ ml-4 ]">
+                <li><ContentHighlight>Sales Assistant</ContentHighlight>: An AI that updates your CRM, schedules follow-ups automatically, and provides sales briefs without manual data entry.</li>
+                <li><ContentHighlight>KPI Dashboard Agent</ContentHighlight>: A chatbot that proactively monitors key performance indicators and alerts you when metrics fall out of range.</li>
+                <li><ContentHighlight>Customer Support Copilot</ContentHighlight>: An AI that handles 80% of routine support inquiries by directly accessing order status, shipping dates, and account information.</li>
+                <li><ContentHighlight>Document Generation</ContentHighlight>: Automated creation of reports by merging templates with data from multiple backend systems.</li>
+                <li><ContentHighlight>Procurement Automation</ContentHighlight>: AI agents that create purchase orders, verify budgets, and route approvals to the right people.</li>
+            </ul>
+
+            <p>
+                That's why MCP matters. It's an <ContentHighlight>open-source standard</ContentHighlight> that lets you bolt AI capabilities onto your 
+                existing REST APIs. Your current endpoints keep working for your web and mobile apps, while AI agents can now access the same 
+                functionality through a standardized protocol designed specifically for AI interaction.
+            </p>
+        </Why>
+
+        <How>
+            <h4>Understanding MCP</h4>
+
+            <p>
+                Before we dive into implementation, let's understand what MCP actually is. The <ContentHighlight>Model Context Protocol</ContentHighlight> 
+                is an open-source standard introduced by Anthropic that enables <ContentHighlight>bidirectional communication</ContentHighlight> between 
+                AI systems and external data sources.
+            </p>
+
+            <p>
+                MCP connects three types of components:
+            </p>
+
+            <ul class="[ list-disc ] [ ml-4 ]">
+                <li><ContentHighlight>AI Clients</ContentHighlight>: ChatGPT, Claude, AI agents, development tools like VS Code</li>
+                <li><ContentHighlight>MCP Protocol</ContentHighlight>: The standardized communication layer in the middle</li>
+                <li><ContentHighlight>MCP Servers</ContentHighlight>: Your backend systems - databases, APIs, SaaS products, productivity tools</li>
+            </ul>
+
+            <p>
+                The beauty of MCP is that it's <ContentHighlight>bidirectional</ContentHighlight>—data flows both ways. AI agents can read data from your 
+                systems and also make updates, all through a consistent protocol.
+            </p>
+
+            <h4>MCP vs REST: Similarities and Differences</h4>
+
+            <p>
+                If you're thinking "isn't this just REST for AIs?"—you're partially right. Let's break down the key differences:
+            </p>
+
+            <table class="[ table-fixed border-collapse ] [ bg-white dark:bg-black ] [ border-2 ] [ dark:border-slate-500 ] [ w-full ]">
+                <thead>
+                    <tr class="[ bg-gray-100 dark:bg-slate-500 ]">
+                        <th class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Aspect</th>
+                        <th class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">REST</th>
+                        <th class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">MCP</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]"><ContentHighlight>Audience</ContentHighlight></td>
+                        <td class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Developers, service integrations</td>
+                        <td class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">LLMs, AI agents, humans via chatbots</td>
+                    </tr>
+                    <tr>
+                        <td class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]"><ContentHighlight>Discoverability</ContentHighlight></td>
+                        <td class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Optional (OpenAPI/Swagger)</td>
+                        <td class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Required, runtime discoverable</td>
+                    </tr>
+                    <tr>
+                        <td class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]"><ContentHighlight>Contracts</ContentHighlight></td>
+                        <td class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">URL endpoints, HTTP verbs, status codes</td>
+                        <td class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Named tools, JSON schemas, structured results</td>
+                    </tr>
+                    <tr>
+                        <td class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]"><ContentHighlight>Transport</ContentHighlight></td>
+                        <td class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">HTTP only</td>
+                        <td class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Standard I/O, Streamable HTTP, or custom</td>
+                    </tr>
+                    <tr>
+                        <td class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]"><ContentHighlight>Orchestration</ContentHighlight></td>
+                        <td class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Manual code to stitch calls together</td>
+                        <td class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">AI agents handle multi-step workflows</td>
+                    </tr>
+                    <tr>
+                        <td class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]"><ContentHighlight>Streaming</ContentHighlight></td>
+                        <td class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Uncommon</td>
+                        <td class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">First-class citizen</td>
+                    </tr>
+                    <tr>
+                        <td class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]"><ContentHighlight>Authentication</ContentHighlight></td>
+                        <td class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Built-in (OAuth, JWT, etc.)</td>
+                        <td class="[ border-2 ] [ dark:border-slate-600 ] [ p-2 ]">Depends on transport (OAuth available with HTTP)</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <p>
+                The key insight: <ContentHighlight>MCP servers automatically version themselves</ContentHighlight>. When an AI client connects, it 
+                discovers all available tools in real-time. No manual documentation updates needed.
+            </p>
+
+            <h4>MCP Transport Options</h4>
+
+            <p>
+                MCP supports three transport mechanisms:
+            </p>
+
+            <ul class="[ list-disc ] [ ml-4 ]">
+                <li>
+                    <ContentHighlight>Standard I/O</ContentHighlight>: Best for local scenarios where your AI and MCP server run on the same machine. 
+                    Uses standard input/output for fast, secure interprocess communication.
+                </li>
+                <li>
+                    <ContentHighlight>Streamable HTTP</ContentHighlight>: Essential for remote scenarios. Uses HTTP POST for sending data and 
+                    server-sent events for receiving streamed responses. Works with existing OAuth infrastructure and network proxies.
+                </li>
+                <li>
+                    <ContentHighlight>Custom Transports</ContentHighlight>: The spec allows custom implementations for specialized use cases, though 
+                    details are left to implementers.
+                </li>
+            </ul>
+
+            <h4>Setting Up Your .NET Project</h4>
+
+            <p>
+                Let's walk through adding MCP to an existing ASP.NET Core REST API. We'll use a simple to-do API as our example, but the principles 
+                apply to any REST API you've already built.
+            </p>
+
+            <p>
+                First, ensure you have <ContentHighlight>.NET 10</ContentHighlight> or later installed. The MCP C# SDK has significant improvements in 
+                .NET 10, including better OAuth support, structured outputs, and simplified APIs.
+            </p>
+
+            <h4>Step 1: Install the MCP SDK</h4>
+
+            <p>
+                Add the MCP C# SDK to your project:
+            </p>
+
+            <CodeSnippet CssClass="language-bash">
+dotnet add package ModelContextProtocol.AspNetCore
+            </CodeSnippet>
+
+            <h4>Step 2: Configure MCP in Program.cs</h4>
+
+            <p>
+                In your <ContentHighlight>Program.cs</ContentHighlight>, add the MCP server configuration. This sets up the MCP endpoint and tells it 
+                where to find your tools:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+using Microsoft.Extensions.AI.MCP;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Existing services
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+// Add MCP Server
+builder.Services.AddMcpServer()
+    .WithHttpTransport()
+    .WithToolsFromAssembly();
+
+var app = builder.Build();
+
+// Existing middleware
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+app.UseHttpsRedirection();
+
+// Map MCP Server
+app.MapMcpServer("/mcp");
+
+// Your existing REST endpoints
+app.MapEndpoints();
+
+app.Run();
+            </CodeSnippet>
+
+            <p>
+                Here's what's happening:
+            </p>
+
+            <ul class="[ list-disc ] [ ml-4 ]">
+                <li><ContentHighlight>AddMcpServer()</ContentHighlight>: Registers the MCP server services</li>
+                <li><ContentHighlight>WithHttpTransport()</ContentHighlight>: Configures HTTP streaming for remote access</li>
+                <li><ContentHighlight>WithToolsFromAssembly()</ContentHighlight>: Automatically discovers tools marked with MCP attributes</li>
+                <li><ContentHighlight>MapMcpServer("/mcp")</ContentHighlight>: Exposes the MCP endpoint at /mcp</li>
+            </ul>
+
+            <h4>Step 3: Create Your Existing REST Endpoints</h4>
+
+            <p>
+                Let's look at a typical REST API setup. Here's a simple to-do API with standard endpoints:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+public static class TodoEndpoints
+{
+    public static void MapEndpoints(this IEndpointRouteBuilder app)
+    {
+        var group = app.MapGroup("/api/todos");
+
+        group.MapGet("/", GetAllTodos);
+        group.MapPost("/", CreateTodo);
+        group.MapPatch("/{id}/complete", MarkComplete);
+        group.MapPatch("/{id}/incomplete", MarkIncomplete);
+    }
+
+    private static async Task&lt;IResult&gt; GetAllTodos(TodoStore store)
+    {
+        var todos = await store.GetAllAsync();
+        return Results.Ok(todos);
+    }
+
+    private static async Task&lt;IResult&gt; CreateTodo(CreateTodoRequest request, TodoStore store)
+    {
+        var todo = await store.AddAsync(request.Title, request.IsComplete);
+        return Results.Created($"/api/todos/{todo.Id}", todo);
+    }
+
+    private static async Task&lt;IResult&gt; MarkComplete(int id, TodoStore store)
+    {
+        var todo = await store.UpdateCompleteStatusAsync(id, true);
+        return Results.Ok(todo);
+    }
+
+    private static async Task&lt;IResult&gt; MarkIncomplete(int id, TodoStore store)
+    {
+        var todo = await store.UpdateCompleteStatusAsync(id, false);
+        return Results.Ok(todo);
+    }
+}
+            </CodeSnippet>
+
+            <p>
+                These endpoints work great for web and mobile clients. Now let's add MCP capabilities without touching this code.
+            </p>
+
+            <h4>Step 4: Create MCP Tools</h4>
+
+            <p>
+                Here's where the magic happens. Create a separate class for your MCP tools with <ContentHighlight>attribute-based discovery</ContentHighlight>:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+using Microsoft.Extensions.AI.MCP;
+
+[McpServerToolType]
+public class TodoMcpTools
+{
+    private readonly TodoStore _store;
+
+    public TodoMcpTools(TodoStore store)
+    {
+        _store = store;
+    }
+
+    [McpServerTool(
+        Description = "Get all to-do items, optionally filtered by completion status. " +
+                     "Pass true for completed items, false for incomplete items, or omit to get all items.")]
+    public async Task&lt;IEnumerable&lt;Todo&gt;&gt; GetTodos(
+        [Description("Filter by completed status: true for completed items, false for incomplete items, or omit to get all items")]
+        bool? complete = null)
+    {
+        var todos = await _store.GetAllAsync();
+        
+        if (complete.HasValue)
+        {
+            return todos.Where(t =&gt; t.IsComplete == complete.Value);
+        }
+        
+        return todos;
+    }
+
+    [McpServerTool(
+        Description = "Create a new to-do item with the specified title and completion status.")]
+    public async Task&lt;Todo&gt; CreateTodo(
+        [Description("The title or description of the to-do item")]
+        string title,
+        [Description("Whether the to-do is already complete (default: false)")]
+        bool isComplete = false)
+    {
+        return await _store.AddAsync(title, isComplete);
+    }
+
+    [McpServerTool(
+        Description = "Mark a to-do item as complete by its ID.")]
+    public async Task&lt;Todo&gt; MarkTodoComplete(
+        [Description("The unique identifier of the to-do item")]
+        int id)
+    {
+        return await _store.UpdateCompleteStatusAsync(id, true);
+    }
+
+    [McpServerTool(
+        Description = "Mark a to-do item as incomplete by its ID.")]
+    public async Task&lt;Todo&gt; MarkTodoIncomplete(
+        [Description("The unique identifier of the to-do item")]
+        int id)
+    {
+        return await _store.UpdateCompleteStatusAsync(id, false);
+    }
+}
+            </CodeSnippet>
+
+            <p>
+                Let's break down what makes this work:
+            </p>
+
+            <ul class="[ list-disc ] [ ml-4 ]">
+                <li>
+                    <ContentHighlight>[McpServerToolType]</ContentHighlight>: Marks this class as containing MCP tools. The SDK's assembly scanner 
+                    finds this attribute automatically.
+                </li>
+                <li>
+                    <ContentHighlight>[McpServerTool]</ContentHighlight>: Marks each method as an MCP tool. The Description property is crucial—it tells 
+                    the LLM what the tool does and how to use it.
+                </li>
+                <li>
+                    <ContentHighlight>[Description]</ContentHighlight>: Documents each parameter. Be explicit! The more detail you provide, the better 
+                    the AI understands when and how to use each parameter.
+                </li>
+            </ul>
+
+            <p>
+                Notice how the MCP tools mirror your REST endpoints but with potentially different business logic. You might want to:
+            </p>
+
+            <ul class="[ list-disc ] [ ml-4 ]">
+                <li>Expose only certain operations to AI agents</li>
+                <li>Apply different validation rules</li>
+                <li>Return data in AI-optimized formats</li>
+                <li>Add additional guardrails or rate limiting</li>
+            </ul>
+
+            <h4>Step 5: Test with an AI Client</h4>
+
+            <p>
+                Now let's see it in action. Open Claude Desktop (or any MCP-compatible AI client) and configure it to connect to your MCP server. 
+                You can interact naturally with your API:
+            </p>
+
+            <CodeSnippet CssClass="language-plaintext">
+You: Do I have anything to do right now?
+
+Claude: [Calling GetTodos tool...]
+Yes, you have one incomplete to-do: "Demo https://ilovedotnet.org"
+Would you like me to mark it as completed?
+
+You: Yes, please do that. I'm just finishing the demo now.
+
+Claude: [Calling MarkTodoComplete tool with id=1...]
+Done! I've marked "Demo https://ilovedotnet.org" as complete. Your to-do list is now clear.
+
+You: Do I have anything else to do?
+
+Claude: [Calling GetTodos with complete=false...]
+Nope, your to-do list is clear. All tasks are complete!
+            </CodeSnippet>
+
+            <p>
+                The AI agent is making real API calls through your MCP server, using the same underlying data store and business logic as your REST 
+                endpoints.
+            </p>
+
+            <h4>Key Features of the MCP C# SDK</h4>
+
+            <p>
+                The MCP C# SDK provides several powerful features:
+            </p>
+
+            <ul class="[ list-disc ] [ ml-4 ]">
+                <li>
+                    <ContentHighlight>Attribute-Based Discovery</ContentHighlight>: Just add attributes to your methods, and they're automatically 
+                    discovered and exposed as MCP tools.
+                </li>
+                <li>
+                    <ContentHighlight>Microsoft.Extensions.AI Integration</ContentHighlight>: Works seamlessly with the broader .NET AI ecosystem.
+                </li>
+                <li>
+                    <ContentHighlight>Multiple Transports</ContentHighlight>: Standard I/O for local scenarios, HTTP for remote access.
+                </li>
+                <li>
+                    <ContentHighlight>Client Support</ContentHighlight>: You can also build MCP clients in C# to consume other MCP servers.
+                </li>
+                <li>
+                    <ContentHighlight>Standards Compliant</ContentHighlight>: Works with any MCP server or client, regardless of implementation language.
+                </li>
+            </ul>
+
+            <p>
+                This is perfect if you want to quickly enable AI access to specific operations without modifying your application code.
+            </p>
+
+            <h4>Best Practices</h4>
+
+            <p>
+                When adding MCP to your existing REST APIs, keep these principles in mind:
+            </p>
+
+            <ul class="[ list-disc ] [ ml-4 ]">
+                <li>
+                    <ContentHighlight>Be Explicit in Descriptions</ContentHighlight>: The quality of your tool descriptions directly impacts how well 
+                    AI agents can use them. Don't skimp on details.
+                </li>
+                <li>
+                    <ContentHighlight>Separate Concerns</ContentHighlight>: Keep your MCP tools separate from your REST endpoints. This gives you 
+                    flexibility to apply different business rules or expose different capabilities.
+                </li>
+                <li>
+                    <ContentHighlight>Consider Security</ContentHighlight>: Apply appropriate authentication and authorization. Just because an AI can 
+                    call your API doesn't mean it should have unrestricted access.
+                </li>
+                <li>
+                    <ContentHighlight>Start Small</ContentHighlight>: Begin with read-only operations, then gradually add write capabilities as you 
+                    build confidence.
+                </li>
+                <li>
+                    <ContentHighlight>Monitor and Log</ContentHighlight>: Track how AI agents use your APIs. This helps you optimize descriptions and 
+                    identify potential issues.
+                </li>
+            </ul>
+        </How>
+
+        <Summary>
+            <p>
+                Adding <ContentHighlight>MCP capabilities</ContentHighlight> to your existing <ContentHighlight>ASP.NET Core REST APIs</ContentHighlight> 
+                is straightforward with the <ContentHighlight>MCP C# SDK</ContentHighlight>. By adding a few attributes and configuration lines, you can 
+                enable AI agents and chatbots to interact with your backend systems using the same data and business logic that powers your web and 
+                mobile applications.
+            </p>
+
+            <p>
+                The key benefits:
+            </p>
+
+            <ul class="[ list-disc ] [ ml-4 ]">
+                <li><ContentHighlight>Minimal Code Changes</ContentHighlight>: Your existing REST endpoints remain untouched</li>
+                <li><ContentHighlight>Standards-Based</ContentHighlight>: MCP is an open-source protocol that works with any compatible AI client</li>
+                <li><ContentHighlight>Runtime Discoverability</ContentHighlight>: Tools automatically version themselves—no manual documentation needed</li>
+                <li><ContentHighlight>Flexible Security</ContentHighlight>: Apply OAuth and other authentication mechanisms appropriate to your needs</li>
+                <li><ContentHighlight>Production Ready</ContentHighlight>: Built on .NET's robust infrastructure with improvements in .NET 10</li>
+            </ul>
+
+            <p>
+                Whether you're building sales assistants, customer support copilots, or automated procurement workflows, MCP provides the bridge between 
+                your existing APIs and the world of AI agents. Start with read-only operations, test thoroughly, and gradually expand capabilities as 
+                you see what's possible.
+            </p>
+
+            <p>
+                The future of software isn't just about APIs for machines or UIs for humans—it's about enabling AI agents to work alongside both. MCP 
+                gets you there without reinventing everything you've already built.
+            </p>
+        </Summary>
+    </ContentBody>
+</Content>

@@ -3,7 +3,7 @@
 public class TableOfContents
 {
   public const int PageSize = 6;
-  private readonly List<ContentMetaData> _fullContents = new(163);
+  private readonly List<ContentMetaData> _fullContents = new(164);
   private readonly List<AuthorMetaData> _fullAuthors = new(1);
   private readonly List<SponsorMetaData> _fullSponsors = new(1);
 
@@ -62,6 +62,7 @@ public class TableOfContents
     _fullContents.AddRange(new JSONLearningPath().FullContents);
     _fullContents.AddRange(new LINQLearningPath().FullContents);
     _fullContents.AddRange(new MAUILearningPath().FullContents);
+    _fullContents.AddRange(new MCPLearningPath().FullContents);
     _fullContents.AddRange(new MiddlewareLearningPath().FullContents);
     _fullContents.AddRange(new MLNETLearningPath().FullContents);
     _fullContents.AddRange(new MSBuildLearningPath().FullContents);

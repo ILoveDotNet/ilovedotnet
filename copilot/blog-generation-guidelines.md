@@ -414,7 +414,12 @@ Each article should have 3-5 engaging hook approaches you could use, such as:
   - ThumbnailUrl: `image/blogs/security/improve-data-security-with-right-to-be-forgotten-in-dotnet.webp`
   - ContentUrl: `blogs/improve-data-security-with-right-to-be-forgotten-in-dotnet`
 - **Route Consistency**: The `@page` directive in the Razor article must match the slug, e.g. `@page "/blogs/improve-data-security-with-right-to-be-forgotten-in-dotnet"`.
-- **Publish Date Convention**: Set the `CreatedOn` and `ModifiedOn` fields in `ContentMetaData` to the intended publish date and time (e.g., next Sunday at 10:30pm UTC). This ensures articles appear in the correct order and are scheduled for release as planned.
+- **Publish Date Convention**: Set the `CreatedOn` and `ModifiedOn` fields in `ContentMetaData` to the intended publish date and time. **IMPORTANT**: Articles are ALWAYS published on Sundays at 22:30 UTC. To find the correct date:
+  1. Check `CommonComponents/wwwroot/atom.xml` (sorted by descending date)
+  2. Find the latest article's `<pubDate>` (e.g., "Sun, 07 Dec 2025 22:30:00 +0530")
+  3. Add 7 days to get the next Sunday
+  4. Use 22:30 UTC as the time: `new DateTime(2025, 12, 14, 22, 30, 0, DateTimeKind.Utc)`
+  This ensures articles appear in the correct order and are scheduled for release as planned.
 - Each section should have at least one paragraph of content
 - The Content component handles the generation of the table of contents automatically
 - When specifying the file name in the Content component, use `@nameof(ActualFileName)` to ensure consistency
@@ -424,6 +429,10 @@ Each article should have 3-5 engaging hook approaches you could use, such as:
   - Place the blog in a folder named after the slug in the page title
   - The Razor file should be placed inside this folder (e.g., `AIDemoComponents/using-github-copilot-ai-for-commit-message-generation/CommitMessage.razor`)
   - Additional files like images or resources should be stored in the `wwwroot/image/blogs/{{category}}/{{slug}}`. (e.g., `AIDemoComponents/wwwroot/image/blogs/ai/using-github-copilot-ai-for-commit-message-generation/image-name.png`)
+- **Channel Naming Convention**: When configuring MSBuild targets (sitemap and poster generation) in the `{{Category}}DemoComponents.csproj` file, the `--channel` parameter must exactly match the learning path name. For example, use `--channel "MCP"` for the MCP learning path, not `--channel "MCPChannel"`. The channel name should be the same as the folder name in `SharedModels/{Channel}LearningPath.cs`.
+- **Project Reference Ordering**: When adding a new `{{Category}}DemoComponents` project reference to `Web/Web.csproj` or `MAUI/MAUI.csproj`, **ALWAYS maintain strict alphabetical order** by the project folder name. For example, `MCPDemoComponents` should appear between `MSBuildDemoComponents` and `MiddlewareDemoComponents` (not between `MAUIDemoComponents` and `MiddlewareDemoComponents`). This ensures consistency across the solution and makes it easier to locate references.
+- **README.md Update**: When creating a new topic/channel (e.g., MCP), **ALWAYS add it to the Road Map section** in `README.md`. Add the new entry at the end of the numbered list with a link to the corresponding GitHub project. Format: `{number}. [{Topic}](https://github.com/orgs/ILoveDotNet/projects/{project-number})`. For example: `33. [MCP](https://github.com/orgs/ILoveDotNet/projects/37)`. This ensures the documentation stays in sync with the actual project structure.
+- **About.razor Update**: When creating a new topic/channel, **ALWAYS add it to the Road Map section** in `CommonComponents/Pages/About.razor`. Add the new entry at the end of the ordered list (before the closing `</ol>` tag) following the same format as existing entries: `<li><a class="[ underline ]" href="https://github.com/orgs/ILoveDotNet/projects/{project-number}">{Topic}</a></li>`. For example: `<li><a class="[ underline ]" href="https://github.com/orgs/ILoveDotNet/projects/37">MCP</a></li>`. This ensures the website's About page reflects the current learning paths available.
 
 By following these guidelines, you'll create valuable, consistent content that helps .NET developers learn and apply new concepts effectively.
 
