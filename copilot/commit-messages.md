@@ -56,6 +56,11 @@ Author: `git config user.name` Co-Author: Copilot
   - Look for patterns where files are deleted and added in different locations
   - Check if content is identical or nearly identical between deleted and added files
   - Prioritize detecting moves over treating them as deletions + additions
+- **When changes are only whitespace/formatting**:
+  - Use the 🎨 gitmoji (not listed above, but valid for formatting)
+  - Keep the message simple: "🎨 Format code"
+  - In the body, specify which files or projects were formatted
+  - Example: "🎨 Format code\n\nApplied dotnet format to ensure consistent whitespace and indentation across the solution."
 
 ---
 
@@ -72,6 +77,7 @@ Author: `git config user.name` Co-Author: Copilot
 | 🔒️     | Fix security issues               |
 | ♻️     | Refactor code                     |
 | ✏️     | Rename or move files              |
+| 🎨     | Format code or improve structure  |
 
 ---
 
