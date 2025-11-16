@@ -17,6 +17,7 @@
    - Update the `_fullContents` capacity in `SharedModels/TableOfContents.cs` by incrementing it by 1 for each new article added.
 9. **Verify navigation and links**: Confirm the article appears in navigation, lists, and search. Test all links and images.
 10. **Review formatting**: Double-check code snippets, highlights, and section headers render correctly in the UI.
+11. **Run lint**: Always run `dotnet format --verbosity quiet whitespace --folder` from the root of the solution as the final step to ensure code formatting consistency across the solution.
 
 **Always follow this checklist for every new article.**
 
