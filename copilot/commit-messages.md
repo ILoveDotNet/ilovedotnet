@@ -10,6 +10,11 @@ Please analyze my staged changes and study how it is implemented. Take your time
 - Use **past tense** in the body.
 - Use the **imperative mood** in the summary (e.g., "Fix login bug").
 - If a file is **renamed or moved**, mention only that and ignore other details.
+- **IMPORTANT**: When analyzing git changes, look for file moves/renames by checking:
+  - Files deleted and added with similar/same content
+  - Path changes where the filename remains the same
+  - Use `git status` or `git diff --summary` to detect renames
+  - If detected, treat it as a move/rename operation using ✏️ gitmoji
 
 ---
 
@@ -46,6 +51,11 @@ Author: `git config user.name` Co-Author: Copilot
 ## 🔍 Contextual Awareness
 
 - When necessary, **analyze the entire solution** to gain context on the change's purpose.
+- **Before generating commit message, always check for file moves/renames**:
+  - Run `git diff --summary` or `git status` to detect renames
+  - Look for patterns where files are deleted and added in different locations
+  - Check if content is identical or nearly identical between deleted and added files
+  - Prioritize detecting moves over treating them as deletions + additions
 
 ---
 
