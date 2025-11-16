@@ -1,278 +1,358 @@
 @page "/blogs/functional-testing-your-asp-net-webapi"
 @inherits BasePage
 
-<Content FileName=@nameof(FunctionalTestingInASPNET)>
+<Content FileName=@nameof(FunctionalTestingInASPNET) UseNewTableOfContentsMenu=true>
     <ContentBody>
-        <p>
-            In this article, let's learn about how to do <ContentHighlight>Functional Test</ContentHighlight> in 
-            <ContentHighlight>WebAPI</ContentHighlight> in ASP.NET Core.
-        </p>
+        <What>
+            <p>
+                In this article, let's learn about how to do <ContentHighlight>Functional Test</ContentHighlight> in 
+                <ContentHighlight>WebAPI</ContentHighlight> in ASP.NET Core.
+            </p>
 
-        <h3>Table of Contents</h3>
+            <p>
+                <ContentHighlight>Functional Testing</ContentHighlight> ensure that an app's components function correctly at a level that includes the app's 
+                supporting <ContentHighlight>infrastructure</ContentHighlight>, such as the <ContentHighlight>database, file system, and network</ContentHighlight>. 
+                The main difference between functional testing and unit testing is that application's infrastructure components like database, file system, etc are 
+                <ContentHighlight>mocked with unit tests</ContentHighlight>. But with functional testing, we want to ensure that the whole app is working as expected 
+                with all of these components combined together. ASP.NET Core supports functional tests using a unit test framework with a test web host and an 
+                in-memory test server.        
+            </p>
+        </What>
 
-        <ol>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
-                    Introduction
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#why-functional-testing")" Match="NavLinkMatch.All">
-                    Why Functional Testing?
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#prerequisite")" Match="NavLinkMatch.All">
-                    Prerequisite
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#steps-to-do-functional-testing")" Match="NavLinkMatch.All">
-                    Steps to do Functional Testing
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
-                    Summary
-                </NavLink>
-            </li>
-        </ol>
+        <Why>
+            <p>
+                Functional tests evaluate an app's components on a <ContentHighlight>broader level</ContentHighlight> than unit tests. Unit tests are used to test 
+                isolated software components, such as individual class methods. Functional tests confirm that <ContentHighlight>two or more app components work</ContentHighlight> 
+                together to produce an expected result, possibly including every component required to <ContentHighlight>fully process a request</ContentHighlight>.
+            </p>
 
-        <h3 id="introduction">Introduction</h3>
+            <p>
+                The characteristics of functional tests include:
+            </p>
 
-        <p>
-            <ContentHighlight>Functional Testing</ContentHighlight> ensure that an app's components function correctly at a level that includes the app's 
-            supporting <ContentHighlight>infrastructure</ContentHighlight>, such as the <ContentHighlight>database, file system, and network</ContentHighlight>. 
-            The main difference between functional testing and unit testing is that application's infrastructure components like database, file system, etc are 
-            <ContentHighlight>mocked with unit tests</ContentHighlight>. But with functional testing, we want to ensure that the whole app is working as expected 
-            with all of these components combined together. ASP.NET Core supports functional tests using a unit test framework with a test web host and an 
-            in-memory test server.        
-        </p>
+            <ul>
+                <li>Use the <ContentHighlight>actual components</ContentHighlight> that the app uses in production.</li>
+                <li>Require <ContentHighlight>more code and data</ContentHighlight> processing.</li>
+                <li>Take <ContentHighlight>longer</ContentHighlight> to run.</li>
+            </ul>
 
-        
+            <p>
+                Therefore, <ContentHighlight>limit the use of functional tests to the most important infrastructure</ContentHighlight> scenarios. If a behavior can 
+                be tested using either a unit test or an functional test, choose the unit test.
+            </p>
+        </Why>
 
-        <h3 id="why-functional-testing">Why Functional Testing ?</h3>
+        <How>
+            <h4>Prerequisite</h4>
 
-        <p>
-            Functional tests evaluate an app's components on a <ContentHighlight>broader level</ContentHighlight> than unit tests. Unit tests are used to test 
-            isolated software components, such as individual class methods. Functional tests confirm that <ContentHighlight>two or more app components work</ContentHighlight> 
-            together to produce an expected result, possibly including every component required to <ContentHighlight>fully process a request</ContentHighlight>.
-        </p>
+            <p>
+                You need to have an <ContentHighlight>ASP.NET Core WebAPI</ContentHighlight> project. If you don't have one, you can create one from Visual Studio.
+            </p>
 
-        <p>
-            The characteristics of functional tests include:
-        </p>
+            <figure>
+                <img src="./image/blogs/webapi/functional-testing-your-asp-net-webapi/configure-new-project.png" alt="configure-new-project" class="[ w-full ]" />
+            </figure>
 
-        <ul>
-            <li>Use the <ContentHighlight>actual components</ContentHighlight> that the app uses in production.</li>
-            <li>Require <ContentHighlight>more code and data</ContentHighlight> processing.</li>
-            <li>Take <ContentHighlight>longer</ContentHighlight> to run.</li>
-        </ul>
+            <p>
+                We are going to learn this with <ContentHighlight>.NET 8</ContentHighlight> Web API project. 
+            </p>
 
-        <p>
-            Therefore, <ContentHighlight>limit the use of functional tests to the most important infrastructure</ContentHighlight> scenarios. If a behavior can 
-            be tested using either a unit test or an functional test, choose the unit test.
-        </p>
+            <figure>
+                <img src="./image/blogs/webapi/functional-testing-your-asp-net-webapi/new-project.png" alt="new-project" class="[ w-1/2 ]" />
+            </figure>
 
-        
-        
-        <h3 id="prerequisite">Prerequisite</h3>
+            <p>
+                The default project template contains a <ContentHighlight>WeatherForecastController</ContentHighlight>. We are going to use this controller for our 
+                functional testing. Here is the API response when we run the project.
+            </p>
 
-        <p>
-            You need to have an <ContentHighlight>ASP.NET Core WebAPI</ContentHighlight> project. If you don't have one, you can create one from Visual Studio.
-        </p>
+            <figure>
+                <img src="./image/blogs/webapi/functional-testing-your-asp-net-webapi/api-response.png" alt="api-response" class="[ w-full ]" />
+            </figure>
 
-        <figure>
-            <img src="./image/blogs/webapi/functional-testing-your-asp-net-webapi/configure-new-project.png" alt="configure-new-project" class="[ w-full ]" />
-        </figure>
+            <h4>Steps to do Functional Testing</h4>
 
-        
+            <p>
+                Let's see the steps to do functional testing in ASP.NET Core Web API.
+            </p>
 
-        <p>
-            We are going to learn this with <ContentHighlight>.NET 8</ContentHighlight> Web API project. 
-        </p>
+            <ol>
+                <li>
+                    <p>Create a <ContentHighlight>XUnit</ContentHighlight> Test Project.</p>
 
-        <figure>
-            <img src="./image/blogs/webapi/functional-testing-your-asp-net-webapi/new-project.png" alt="new-project" class="[ w-1/2 ]" />
-        </figure>
+                    <figure>
+                        <img src="./image/blogs/webapi/functional-testing-your-asp-net-webapi/create-xunit-project.png" alt="create-xunit-project" class="[ w-1/2 ]" />
+                    </figure>
+                </li>
+                <li>Add Package Reference to <ContentHighlight>Nuget</ContentHighlight> Package <ContentHighlight CssClasses="[ break-all ]">Microsoft.AspNetCore.Mvc.Testing</ContentHighlight>.</li>
+                <li>Optionally make sure you have <ContentHighlight>all Nuget Packages updated</ContentHighlight> to latest version in all your projects.</li>
+                <li>
+                    <p>Add <ContentHighlight>Project Reference to your API project</ContentHighlight> in your test project.</p>
 
-        
+                    <figure>
+                        <img src="./image/blogs/webapi/functional-testing-your-asp-net-webapi/test-project-with-nuget-and-project-reference.png" alt="test-project-with-nuget-and-project-reference" class="[ w-full ]" />
+                    </figure>
+                </li>
+                <li>
+                    <p>
+                        Now we need to expose the implicitly defined <ContentHighlight>Program class</ContentHighlight> to the test project by adding 
+                        <ContentHighlight>public partial class Program { }</ContentHighlight> to the end of <ContentHighlight>Program.cs</ContentHighlight> in 
+                        Web API.
+                    </p>
 
-        <p>
-            The default project template contains a <ContentHighlight>WeatherForecastController</ContentHighlight>. We are going to use this controller for our 
-            functional testing. Here is the API response when we run the project.
-        </p>
+                    <figure>
+                        <img src="./image/blogs/webapi/functional-testing-your-asp-net-webapi/add-partial-modifier-to-program.png" alt="add-partial-modifier-to-program" class="[ w-full ]" />
+                    </figure>
+                </li>
+                <li>
+                    <ContentHighlight CssClasses="[ break-all ]">WebApplicationFactory&lt;TEntryPoint&gt;</ContentHighlight> is used to create a 
+                    <ContentHighlight>TestServer</ContentHighlight> for the functional tests. <ContentHighlight>TEntryPoint</ContentHighlight> is the entry point 
+                    class of the <abbr title="System Under Test">SUT</abbr>, usually <ContentHighlight>Program.cs</ContentHighlight>.
+                </li>
+                <li>
+                    <p>
+                        We can add <ContentHighlight CssClasses="[ break-all ]">CustomWebApiFactory.cs</ContentHighlight> in our test project to create a custom 
+                        <ContentHighlight CssClasses="[ break-all ]">WebApplicationFactory&lt;TEntryPoint&gt;</ContentHighlight>. We can then 
+                        <ContentHighlight>override ConfigureWebHost</ContentHighlight> method to set the environment to <ContentHighlight>Test</ContentHighlight>. 
+                        This is shown in the below code.
+                    </p>
 
-        <figure>
-            <img src="./image/blogs/webapi/functional-testing-your-asp-net-webapi/api-response.png" alt="api-response" class="[ w-full ]" />
-        </figure>
+<CodeSnippet CssClass="language-csharp">
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Testing;
 
-        
+namespace FunctionalTest;
 
-        <h3 id="steps-to-do-functional-testing">Steps to do Functional Testing</h3>
+public class CustomWebApiFactory : WebApplicationFactory&lt;Program&gt;
+{
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    {
+        builder.UseEnvironment("Test");
+    }
+}
+</CodeSnippet>
+                </li>
+            </ol>
 
-        <p>
-            Let's see the steps to do functional testing in ASP.NET Core Web API.
-        </p>
+            <p>
+                 That's it we are all set. Now its time to write our first functional test. Let's write a test to check if the API returns the expected response.
+            </p>
 
-        <ol>
-            <li>
-                <p>Create a <ContentHighlight>XUnit</ContentHighlight> Test Project.</p>
+            <p>
+                We can add a <ContentHighlight>new class WeatherForecastControllerTests.cs</ContentHighlight> in our test project and add the following code.
+            </p>
 
-                <figure>
-                    <img src="./image/blogs/webapi/functional-testing-your-asp-net-webapi/create-xunit-project.png" alt="create-xunit-project" class="[ w-1/2 ]" />
-                </figure>
+<CodeSnippet CssClass="language-csharp">
+using API;
+using FluentAssertions;
+using System.Diagnostics.CodeAnalysis;
+using System.Net.Http.Json;
 
-                
-            </li>
-            <li>Add Package Reference to <ContentHighlight>Nuget</ContentHighlight> Package <ContentHighlight CssClasses="[ break-all ]">Microsoft.AspNetCore.Mvc.Testing</ContentHighlight>.</li>
-            <li>Optionally make sure you have <ContentHighlight>all Nuget Packages updated</ContentHighlight> to latest version in all your projects.</li>
-            <li>
-                <p>Add <ContentHighlight>Project Reference to your API project</ContentHighlight> in your test project.</p>
+namespace FunctionalTest;
 
-                <figure>
-                    <img src="./image/blogs/webapi/functional-testing-your-asp-net-webapi/test-project-with-nuget-and-project-reference.png" alt="test-project-with-nuget-and-project-reference" class="[ w-full ]" />
-                </figure>
+[ExcludeFromCodeCoverage]
+public class WeatherForecastControllerShouldTests(
+    CustomWebApiFactory factory) : IClassFixture&lt;CustomWebApiFactory&gt;
+{
+    [Fact]
+    public async Task ReturnExpectedResponse()
+    {
+        var result = await factory.CreateClient().GetFromJsonAsync&lt;List&lt;WeatherForecast&gt;&gt;("/weatherforecast");
+        result.Count.Should().Be(5);
+    }
+}
+</CodeSnippet>
 
-                
-            </li>
-            <li>
-                <p>
-                    Now we need to expose the implicitly defined <ContentHighlight>Program class</ContentHighlight> to the test project by adding 
-                    <ContentHighlight>public partial class Program { }</ContentHighlight> to the end of <ContentHighlight>Program.cs</ContentHighlight> in 
-                    Web API.
-                </p>
+            <p>
+                In the above code, we are inheriting from <ContentHighlight CssClasses="[ break-all ]">XUnit IClassFixture&lt;CustomWebApiFactory&gt;</ContentHighlight> and then create 
+                <ContentHighlight>HttpClient</ContentHighlight> from <ContentHighlight>factory</ContentHighlight> within our test and make a 
+                <ContentHighlight>HTTP GET</ContentHighlight> call to <ContentHighlight>weatherforecast</ContentHighlight> endpoint and deserialize the response 
+                to <ContentHighlight CssClasses="[ break-all ]">List&lt;WeatherForecast&gt;</ContentHighlight>. We are then 
+                <ContentHighlight>asserting</ContentHighlight> the count of our response. We can also assert the values of the response in the same way.
+            </p>
 
-                <figure>
-                    <img src="./image/blogs/webapi/functional-testing-your-asp-net-webapi/add-partial-modifier-to-program.png" alt="add-partial-modifier-to-program" class="[ w-full ]" />
-                </figure>
+            <p>
+                Note, I'm using <ContentHighlight CssClasses="[ break-all ]">XUnit IClassFixture&lt;CustomWebApiFactory&gt;</ContentHighlight> to create a single instance of the factory for all tests in the class. To learn more 
+                about XUnit's IClassFixture, you can refer to the official <NavLink href="https://xunit.net/docs/shared-context#class-fixture" target="_blank">documentation</NavLink> 
+            </p>
 
-                
-            </li>
-            <li>
-                <ContentHighlight CssClasses="[ break-all ]">WebApplicationFactory&lt;TEntryPoint&gt;</ContentHighlight> is used to create a 
-                <ContentHighlight>TestServer</ContentHighlight> for the functional tests. <ContentHighlight>TEntryPoint</ContentHighlight> is the entry point 
-                class of the <abbr title="System Under Test">SUT</abbr>, usually <ContentHighlight>Program.cs</ContentHighlight>.
-            </li>
-            <li>
-                <p>
-                    We can add <ContentHighlight CssClasses="[ break-all ]">CustomWebApiFactory.cs</ContentHighlight> in our test project to create a custom 
-                    <ContentHighlight CssClasses="[ break-all ]">WebApplicationFactory&lt;TEntryPoint&gt;</ContentHighlight>. We can then 
-                    <ContentHighlight>override ConfigureWebHost</ContentHighlight> method to set the environment to <ContentHighlight>Test</ContentHighlight>. 
-                    This is shown in the below code.
-                </p>
+            <p>The tests will run in the following flow.</p>
 
-                <GithubGistSnippet Title="Custom Web API Factory" UserId="fingers10" FileName="038aa1b474470229842bc772af07bcd2"></GithubGistSnippet>
-            </li>
-        </ol>
+            <ol>
+                <li>Start Test Method.</li>
+                <li>Create WebApplicationFactory.</li>
+                <li>Run Program.cs.</li>
+                <li>Service Registration.</li>
+                <li>Build Web Application.</li>
+                <li>Create HTTP Client.</li>
+                <li>Test Code Execution.</li>
+            </ol>
 
-        
+            <p>
+                Now lets run the test and see the result.
+            </p>
 
-        <p>
-             That's it we are all set. Now its time to write our first functional test. Let's write a test to check if the API returns the expected response.
-        </p>
+            <figure>
+                <img src="./image/blogs/webapi/functional-testing-your-asp-net-webapi/passing-functional-test.png" alt="passing-functional-test" class="[ w-full ]" />
+            </figure>
 
-        <p>
-            We can add a <ContentHighlight>new class WeatherForecastControllerTests.cs</ContentHighlight> in our test project and add the following code.
-        </p>
+            <p>
+                The tests are <ContentHighlight>passing</ContentHighlight>. We can also write tests to check if the API returns the expected response for different 
+                HTTP methods like POST, PUT, DELETE, etc. in the same way.
+            </p>
 
-        <GithubGistSnippet Title="First Functional Test" UserId="fingers10" FileName="c38b05c8e47b89690d2cc3fd366648cb"></GithubGistSnippet>
+            <p>
+                Before we wrap up, we can do some additional changes to test code to make it more reusable. The first step is to make a <ContentHighlight>abstract BaseTest class</ContentHighlight> and inherit 
+                our tests from that.
+            </p>
 
-        
+<CodeSnippet CssClass="language-csharp">
+namespace FunctionalTest;
 
-        <p>
-            In the above code, we are inheriting from <ContentHighlight CssClasses="[ break-all ]">XUnit IClassFixture&lt;CustomWebApiFactory&gt;</ContentHighlight> and then create 
-            <ContentHighlight>HttpClient</ContentHighlight> from <ContentHighlight>factory</ContentHighlight> within our test and make a 
-            <ContentHighlight>HTTP GET</ContentHighlight> call to <ContentHighlight>weatherforecast</ContentHighlight> endpoint and deserialize the response 
-            to <ContentHighlight CssClasses="[ break-all ]">List&lt;WeatherForecast&gt;</ContentHighlight>. We are then 
-            <ContentHighlight>asserting</ContentHighlight> the count of our response. We can also assert the values of the response in the same way.
-        </p>
+public abstract class BaseTest(CustomWebApiFactory factory)
+{
+    protected CustomWebApiFactory Factory =&gt; factory;
+    protected HttpClient Client =&gt; factory.CreateClient();
+}
+</CodeSnippet>
 
-        <p>
-            Note, I'm using <ContentHighlight CssClasses="[ break-all ]">XUnit IClassFixture&lt;CustomWebApiFactory&gt;</ContentHighlight> to create a single instance of the factory for all tests in the class. To learn more 
-            about XUnit's IClassFixture, you can refer to the official <NavLink href="https://xunit.net/docs/shared-context#class-fixture" target="_blank">documentation</NavLink> 
-        </p>
+            <p>
+                Now let's adjust our <ContentHighlight CssClasses="[ break-all ]">WeatherForecastControllerTests</ContentHighlight> to inherit from <ContentHighlight CssClasses="[ break-all ]">BaseTest</ContentHighlight> 
+                and use the <ContentHighlight>HttpClient</ContentHighlight> from <ContentHighlight>BaseTest class</ContentHighlight> as shown below.
+            </p>
 
-        <p>The tests will run in the following flow.</p>
+<CodeSnippet CssClass="language-csharp">
+using API;
+using FluentAssertions;
+using System.Diagnostics.CodeAnalysis;
+using System.Net.Http.Json;
 
-        <ol>
-            <li>Start Test Method.</li>
-            <li>Create WebApplicationFactory.</li>
-            <li>Run Program.cs.</li>
-            <li>Service Registration.</li>
-            <li>Build Web Application.</li>
-            <li>Create HTTP Client.</li>
-            <li>Test Code Execution.</li>
-        </ol>
+namespace FunctionalTest;
 
-        <p>
-            Now lets run the test and see the result.
-        </p>
+[ExcludeFromCodeCoverage]
+public class WeatherForecastControllerShouldTests(
+    CustomWebApiFactory factory) : BaseTest(factory), IClassFixture&lt;CustomWebApiFactory&gt;
+{
+    [Fact]
+    public async Task ReturnExpectedResponse()
+    {
+        var result = await Client.GetFromJsonAsync&lt;List&lt;WeatherForecast&gt;&gt;("/weatherforecast");
+        result.Count.Should().Be(5);
+    }
+}
+</CodeSnippet>
 
-        <figure>
-            <img src="./image/blogs/webapi/functional-testing-your-asp-net-webapi/passing-functional-test.png" alt="passing-functional-test" class="[ w-full ]" />
-        </figure>
+            <p>
+                Good. Now we can do final improvement which is to <ContentHighlight>assert</ContentHighlight> the <ContentHighlight>Http Status Code</ContentHighlight> 
+                of the response and move <ContentHighlight>deserialization and error logging</ContentHighlight> using <ContentHighlight>ITestOutputHelper</ContentHighlight> 
+                into a separate <ContentHighlight>HttpClientExtensions class</ContentHighlight>. This small investment will help us to write more tests easily in the 
+                future.
+            </p>
 
-        
+<CodeSnippet CssClass="language-csharp">
+using FluentAssertions;
+using System.Diagnostics.CodeAnalysis;
+using System.Net;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using Xunit.Abstractions;
 
-        <p>
-            The tests are <ContentHighlight>passing</ContentHighlight>. We can also write tests to check if the API returns the expected response for different 
-            HTTP methods like POST, PUT, DELETE, etc. in the same way.
-        </p>
+namespace FunctionalTest;
 
-        <p>
-            Before we wrap up, we can do some additional changes to test code to make it more reusable. The first step is to make a <ContentHighlight>abstract BaseTest class</ContentHighlight> and inherit 
-            our tests from that.
-        </p>
+[ExcludeFromCodeCoverage]
+public static class HttpClientExtensions
+{
+    private static readonly JsonSerializerOptions _jsonPrintOptions =
+        new() { WriteIndented = true };
 
-        <GithubGistSnippet Title="Abstract Base Test" UserId="fingers10" FileName="7590295436bb5375cf34cb9aa1d3d659"></GithubGistSnippet>
+    private static readonly JsonSerializerOptions _jsonDeserializeOptions =
+        new(JsonSerializerDefaults.Web) { Converters = { new JsonStringEnumConverter() } };
 
-        
+    public static async Task&lt;T&gt; GetJsonResultAsync&lt;T&gt;(this HttpClient client, string url,
+        HttpStatusCode expectedStatus, ITestOutputHelper output)
+    {
+        var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
+        return await DeserializeAndCheckResponse&lt;T&gt;(response, expectedStatus, output);
+    }
 
-        <p>
-            Now let's adjust our <ContentHighlight CssClasses="[ break-all ]">WeatherForecastControllerTests</ContentHighlight> to inherit from <ContentHighlight CssClasses="[ break-all ]">BaseTest</ContentHighlight> 
-            and use the <ContentHighlight>HttpClient</ContentHighlight> from <ContentHighlight>BaseTest class</ContentHighlight> as shown below.
-        </p>
+    private static async Task&lt;T&gt; DeserializeAndCheckResponse&lt;T&gt;(HttpResponseMessage response,
+        HttpStatusCode expectedStatus, ITestOutputHelper output)
+    {
+        using var streamContent = await response.Content.ReadAsStreamAsync();
+        try
+        {
+            var result = await JsonSerializer.DeserializeAsync&lt;T&gt;(streamContent, _jsonDeserializeOptions);
+            response.StatusCode.Should().Be(expectedStatus);
+            result.Should().NotBeNull();
+            return result!;
+        }
+        catch (Exception)
+        {
+            var stringContent = await response.Content.ReadAsStringAsync();
+            WriteOutput(stringContent, output);
+            throw;
+        }
+    }
 
-        <GithubGistSnippet Title="Functional Test Inherited from Base Test" UserId="fingers10" FileName="9e73474c92a2391600ace0be52a2b3d9"></GithubGistSnippet>
+    private static void WriteOutput(string stringContent, ITestOutputHelper output)
+    {
+        string? outputText;
+        try
+        {
+            var jsonContent = JsonDocument.Parse(stringContent);
+            outputText = JsonSerializer.Serialize(jsonContent, _jsonPrintOptions);
+        }
+        catch
+        {
+            outputText = stringContent;
+        }
+        output.WriteLine(outputText);
+    }
+}
+</CodeSnippet>
 
-        
+            <p>
+                Now we can use the <ContentHighlight>HttpClientExtensions</ContentHighlight> in our tests as shown below.
+            </p>
 
-        <p>
-            Good. Now we can do final improvement which is to <ContentHighlight>assert</ContentHighlight> the <ContentHighlight>Http Status Code</ContentHighlight> 
-            of the response and move <ContentHighlight>deserialization and error logging</ContentHighlight> using <ContentHighlight>ITestOutputHelper</ContentHighlight> 
-            into a separate <ContentHighlight>HttpClientExtensions class</ContentHighlight>. This small investment will help us to write more tests easily in the 
-            future.
-        </p>
+<CodeSnippet CssClass="language-csharp">
+using API;
+using FluentAssertions;
+using System.Diagnostics.CodeAnalysis;
+using System.Net;
+using Xunit.Abstractions;
 
-        <GithubGistSnippet Title="Functional Test HttpClientExtensions" UserId="fingers10" FileName="d3a54bcc1aaf24124f7fde8e218fc5c2"></GithubGistSnippet>
+namespace FunctionalTest;
 
-        
+[ExcludeFromCodeCoverage]
+public class WeatherForecastControllerShouldTests(
+    CustomWebApiFactory factory,
+    ITestOutputHelper outputHelper) : BaseTest(factory), IClassFixture&lt;CustomWebApiFactory&gt;
+{
+    [Fact]
+    public async Task ReturnExpectedResponse()
+    {
+        var result = await Client.GetJsonResultAsync&lt;List&lt;WeatherForecast&gt;&gt;("/weatherforecast", HttpStatusCode.OK, outputHelper);
+        result.Count.Should().Be(5);
+    }
+}
+</CodeSnippet>
 
-        <p>
-            Now we can use the <ContentHighlight>HttpClientExtensions</ContentHighlight> in our tests as shown below.
-        </p>
+            <p>
+                Now lets run the test and see the result.
+            </p>
 
-        <GithubGistSnippet Title="Functional Test with BaseTest and HttpClientExtensions" UserId="fingers10" FileName="8ef7dce53ca17d14e3d54b73881dd225"></GithubGistSnippet>
+            <figure>
+                <img src="./image/blogs/webapi/functional-testing-your-asp-net-webapi/passing-refactored-functional-test.png" alt="passing-refactored-functional-test" class="[ w-full ]" />
+            </figure>
+        </How>
 
-        
-
-        <p>
-            Now lets run the test and see the result.
-        </p>
-
-        <figure>
-            <img src="./image/blogs/webapi/functional-testing-your-asp-net-webapi/passing-refactored-functional-test.png" alt="passing-refactored-functional-test" class="[ w-full ]" />
-        </figure>
-
-        
-
-        <h3 id="summary">Summary</h3>
-
-        <p>
-            In this article, we learnt about what is funtional test and how to write functional test in ASP.NET Web API. Functional test help us to test 
-            <ContentHighlight>end to end functionality of our application without mocking any infrastructure dependencies</ContentHighlight>. This is very useful 
-            to test the application in real world scenario. In our next article we will learn about how to do functional testing in ASP.NET Web API with database.
-        </p>
+        <Summary>
+            <p>
+                In this article, we learnt about what is funtional test and how to write functional test in ASP.NET Web API. Functional test help us to test 
+                <ContentHighlight>end to end functionality of our application without mocking any infrastructure dependencies</ContentHighlight>. This is very useful 
+                to test the application in real world scenario. In our next article we will learn about how to do functional testing in ASP.NET Web API with database.
+            </p>
+        </Summary>
     </ContentBody>
 </Content>
