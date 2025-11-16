@@ -1,14 +1,14 @@
-namespace SharedModels;
+﻿namespace SharedModels;
 
 public class MCPLearningPath
 {
-    public readonly List<ContentMetaData> FullContents = new(1);
+  public readonly List<ContentMetaData> FullContents = new(1);
 
-    public MCPLearningPath()
-    {
-        FullContents =
-        [
-            new ContentMetaData
+  public MCPLearningPath()
+  {
+    FullContents =
+    [
+        new ContentMetaData
             {
                 Order = 1,
                 Title = "Add MCP to Existing .NET REST Endpoints",
@@ -25,6 +25,6 @@ public class MCPLearningPath
                 ModifiedOn = new DateTime(2025, 12, 14, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["MCP", "Model Context Protocol", "REST API", "AI Integration", "ASP.NET Core", "C# SDK", "AI Agents", "Chatbots", "API Management"]
             }
-        ];
-    }
+    ];
+  }
 }
