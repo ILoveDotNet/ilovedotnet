@@ -243,3 +243,10 @@ dotnet build Web/Web.csproj
 - Maintain alphabetical order when adding entries to Web.csproj, LazyLoaderService.cs, keywords meta tags, and TableOfContents.cs
 - Ensure package versions match the rest of the solution (currently `10.0.0` for ASP.NET Core packages)
 - Initialize FullContents with capacity 0 for empty learning paths; increase as content is added
+
+## Lint, Build and Test
+
+- **Lint:** `dotnet format --verbosity quiet whitespace --folder`
+- **Build:** `dotnet build ILoveDotNet.sln`
+- **Test:** `dotnet test`. To run a single test, use `--filter Name=<test_name>`.
+  - You should rarely need to run all tests except after larger changes, usually running the specific test class or method you are working on is sufficient.
