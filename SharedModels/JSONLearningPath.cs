@@ -71,7 +71,7 @@ public class JSONLearningPath
         ContentUrl = "blogs/handling-json-errors-and-best-practices-in-dotnet",
         Channel = "JSON",
         Type = "blogs",
-        IconUrl = "image/icons/json.png",
+        IconUrl = "image/icons/json.webp",
         CreatedOn = new DateTime(2025, 11, 30, 22, 30, 0, DateTimeKind.Utc),
         ModifiedOn = new DateTime(2025, 11, 30, 22, 30, 0, DateTimeKind.Utc),
         Keywords = ["JsonException", "JSON", "Error Handling", "JsonExtensionData", "Circular References", "Immutable Types", "JsonConstructor", "Polymorphic Serialization"]
