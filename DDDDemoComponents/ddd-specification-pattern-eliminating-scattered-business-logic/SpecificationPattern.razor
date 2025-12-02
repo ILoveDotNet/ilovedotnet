@@ -1,0 +1,1344 @@
+@page "/blogs/ddd-specification-pattern-eliminating-scattered-business-logic"
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(SpecificationPattern) UseNewTableOfContentsMenu=true>
+    <ContentBody>
+        <What>
+            <p>
+                The <ContentHighlight>Specification Pattern</ContentHighlight> is a <ContentHighlight>Domain-Driven Design</ContentHighlight> pattern 
+                that encapsulates business rules and domain knowledge into dedicated, reusable objects. Introduced by 
+                <ContentHighlight>Eric Evans and Martin Fowler</ContentHighlight>, this pattern addresses a critical problem in enterprise software: 
+                <ContentHighlight>scattered and duplicated business logic</ContentHighlight>.
+            </p>
+
+            <p>
+                In this article, let's learn how to eliminate duplicated business logic using the Specification Pattern in 
+                <ContentHighlight>.NET</ContentHighlight>. We'll explore how to create reusable, testable business rules that work seamlessly with both 
+                <ContentHighlight>Entity Framework Core queries</ContentHighlight> and <ContentHighlight>in-memory validation</ContentHighlight>. 
+                You'll learn to define business rules once and reuse them consistently across validation, querying, and object creation.
+            </p>
+        </What>
+
+        <Why>
+            <h4 class="[ font-semibold text-base ]">The Problem: Scattered Business Logic</h4>
+
+            <p>
+                Consider an e-commerce platform that needs to identify <ContentHighlight>premium products</ContentHighlight>. 
+                The business rule states: "Premium products must have a price above $100, belong to Electronics or Office categories, and have at least 5 units in stock."
+            </p>
+
+            <p>
+                Without specifications, this logic gets duplicated across multiple locations:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">// In PremiumProductsController
+var premiumProducts = products
+    .Where(p =&gt; p.Price &gt; 50 &amp;&amp;
+        p.Stock &gt; 5 &amp;&amp;
+        (p.Category == "Electronics" || p.Category == "Office"))
+    .ToList();
+
+// In ValidationService
+public bool IsPremiumProduct(Product product)
+{
+    return product.Price &gt;= 100 &amp;&amp;
+        product.Stock &gt; 5 &amp;&amp;
+        product.Category == "Industrial";
+}
+
+// In CatalogController
+var featured = products
+    .Where(p =&gt; p.Price &gt; 75 &amp;&amp;
+        p.Stock &gt; 15 &amp;&amp;
+        p.Category == "Consumer")
+    .ToList();</CodeSnippet>
+
+            <p>
+                Notice the problems:
+            </p>
+
+            <ul class="[ list-disc ] [ ml-4 ]">
+                <li><ContentHighlight>Three different implementations</ContentHighlight> - different price thresholds ($50, $100, $75)</li>
+                <li><ContentHighlight>Inconsistent stock requirements</ContentHighlight> - 5 vs 15 units</li>
+                <li><ContentHighlight>Different categories</ContentHighlight> - Electronics/Office vs Industrial vs Consumer</li>
+                <li><ContentHighlight>DRY principle violated</ContentHighlight> - same business concept defined multiple ways</li>
+            </ul>
+
+            <h4 class="[ font-semibold text-base ]">The Consequences</h4>
+
+            <ol class="[ list-decimal ] [ ml-4 ]">
+                <li><strong>Time Cost:</strong> Simple 5-minute changes become multi-day expeditions through the codebase</li>
+                <li><strong>Reliability Cost:</strong> Missing one location introduces subtle bugs that might not surface until production</li>
+                <li><strong>Velocity Cost:</strong> New developers spend excessive time understanding where business logic lives and how to maintain consistency</li>
+            </ol>
+
+            <h4 class="[ font-semibold text-base ]">Why Traditional Approaches Fail</h4>
+
+            <p>
+                You might think extracting logic into static methods solves this. But here's the catch: 
+                <ContentHighlight>Entity Framework Core can't translate regular methods into SQL</ContentHighlight>. 
+                You need expression trees, not compiled code. And managing expression trees manually? That's complex and error-prone.
+            </p>
+
+            <h4 class="[ font-semibold text-base ]">The Specification Pattern Advantage</h4>
+
+            <p>
+                The Specification Pattern gives you <ContentHighlight>one source of truth</ContentHighlight> for each business rule. 
+                Write it once, use it everywhere - for database queries, in-memory validation, and even test data generation. 
+                When requirements change, update exactly one place.
+            </p>
+
+            <p>
+                This pattern is essential for:
+            </p>
+
+            <ul class="[ list-disc ] [ ml-4 ]">
+                <li>Enterprise applications with complex, evolving business rules</li>
+                <li>Teams needing consistent logic across multiple developers</li>
+                <li>Systems where business rules must work in both queries and validation</li>
+                <li>Codebases prioritizing maintainability and testability</li>
+            </ul>
+        </Why>
+
+        <How>
+        <h3 id="specification-pattern-solution" class="[ font-semibold text-lg ]">Specification Pattern Solution</h3>
+
+        <p>
+            Let's see how the Specification Pattern transforms the scattered business logic problem:
+        </p>
+
+        <CodeSnippet CssClass="language-csharp">
+// Business rule as a specification
+public class PremiumProductSpecification : Specification&lt;Product&gt;
+{
+    protected override Expression&lt;Func&lt;Product, bool&gt;&gt; ToExpression()
+    {
+        return product =&gt; product.Price &gt;= 100 &amp;&amp;
+            product.Stock &gt; 5 &amp;&amp;
+            (product.Category == "Electronics" ||
+            product.Category == "Office" ||
+            product.Category == "Industrial");
+    }
+}
+
+// Usage across different contexts
+var spec = new PremiumProductSpecification();
+
+// In controllers - database query
+var premiumProducts = await repository.FindAsync(spec);
+
+// In services - in-memory validation
+if (spec.IsSatisfiedBy(product))
+{
+    ApplyPremiumDiscount(product);
+}
+</CodeSnippet>
+
+        <p>
+            Key benefits:
+        </p>
+
+        <ul class="[ list-disc ] [ ml-4 ]">
+            <li><ContentHighlight>Single Source of Truth:</ContentHighlight> Business logic defined exactly once</li>
+            <li><ContentHighlight>Reusable:</ContentHighlight> Works for both database queries and in-memory validation</li>
+            <li><ContentHighlight>Maintainable:</ContentHighlight> Change business rules in one place</li>
+            <li><ContentHighlight>Testable:</ContentHighlight> Each specification can be tested independently</li>
+            <li><ContentHighlight>Composable:</ContentHighlight> Combine specifications using logical operators</li>
+        </ul>
+
+        <p>
+            The Specification Pattern has <ContentHighlight>two core goals</ContentHighlight>:
+        </p>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li><strong>Eliminate Duplication:</strong> Follow the DRY principle by providing a single source of truth</li>
+            <li><strong>Enable Declarative Code:</strong> Express business concepts clearly, mirroring how domain experts communicate</li>
+        </ol>
+
+        <h3 id="top-use-cases" class="[ font-semibold text-lg ]">Top Use Cases for Specification Pattern</h3>
+
+        <p>
+            The Specification Pattern excels in three primary use cases:
+        </p>
+
+        <h4 class="[ font-semibold text-base ]">1. In-Memory Validation</h4>
+
+        <p>
+            Verify that objects meet business criteria while loaded in application memory, providing real-time enforcement of business rules.
+        </p>
+
+        <CodeSnippet CssClass="language-csharp">var premiumSpec = new PremiumProductSpecification();
+
+// Validate product in shopping cart
+if (premiumSpec.IsSatisfiedBy(product))
+{
+    cart.ApplyPremiumDiscount();
+}
+
+// Same spec in pricing service
+if (premiumSpec.IsSatisfiedBy(product))
+{
+    CalculatePremiumPrice(product);
+}</CodeSnippet>
+
+        <p>
+            <strong>Before:</strong> Validation logic duplicated across shopping cart, pricing service, and promotion engine, each with subtle variations.
+        </p>
+
+        <p>
+            <strong>After:</strong> Single specification used consistently everywhere, ensuring identical validation logic.
+        </p>
+
+        <h4 class="[ font-semibold text-base ]">2. Building Database Queries</h4>
+
+        <p>
+            Use the same business logic for validation to generate efficient database queries, ensuring consistency between what you validate and what you query.
+        </p>
+
+        <CodeSnippet CssClass="language-csharp">// Repository uses specification for database query
+var premiumProducts = await repository.FindAsync(premiumSpec);
+
+// Generated SQL (example):
+// SELECT * FROM Products 
+// WHERE Price &gt;= 100 
+//   AND Stock &gt; 5 
+//   AND Category IN ('Electronics', 'Office', 'Industrial')</CodeSnippet>
+
+        <p>
+            <strong>Key Advantage:</strong> The specification <ContentHighlight>generates optimized SQL</ContentHighlight> automatically through 
+            Entity Framework Core, avoiding the need to load all data and filter in memory.
+        </p>
+
+        <h4 class="[ font-semibold text-base ]">3. Guiding Object Creation</h4>
+
+        <p>
+            Ensure new objects satisfy specific business requirements, useful for recommendations and test data generation.
+        </p>
+
+        <CodeSnippet CssClass="language-csharp">// Generate test premium products
+var premiumSpec = new PremiumProductSpecification();
+var testProducts = new List&lt;Product&gt;();
+
+while (testProducts.Count &lt; 5)
+{
+    var candidate = GenerateRandomProduct();
+    if (premiumSpec.IsSatisfiedBy(candidate))
+    {
+        testProducts.Add(candidate);
+    }
+}
+
+// Create product bundles
+var bundleSpec = premiumSpec
+    .And(new InStockSpecification(10))
+    .And(new BusinessProductSpecification());
+    
+var bundleProducts = allProducts
+    .Where(bundleSpec.IsSatisfiedBy)
+    .Take(5)
+    .ToList();</CodeSnippet>
+
+        <h3 id="naive-approaches" class="[ font-semibold text-lg ]">Avoiding Naive Implementations</h3>
+
+        <p>
+            Before diving into the proper implementation, let's examine five common <ContentHighlight>anti-patterns</ContentHighlight> 
+            that developers encounter:
+        </p>
+
+        <h4 class="[ font-semibold text-base ]">Anti-Pattern 1: Direct Method Extraction</h4>
+
+        <p>
+            Extracting logic into static methods seems logical but fails with Entity Framework Core.
+        </p>
+
+        <CodeSnippet CssClass="language-csharp">// This looks reasonable but fails at runtime
+public static bool IsPremiumProduct(Product product)
+{
+    return product.Price &gt;= 100 &amp;&amp; product.Stock &gt; 5;
+}
+
+// Usage in controller - throws exception
+var products = context.Products
+    .Where(p =&gt; IsPremiumProduct(p))  // ❌ Runtime error!
+    .ToList();
+
+// Error: "LINQ expression could not be translated"</CodeSnippet>
+
+        <p>
+            <strong>Problem:</strong> Entity Framework needs <ContentHighlight>expression trees</ContentHighlight> to generate SQL. 
+            Compiled methods are "black boxes" that EF cannot translate.
+        </p>
+
+        <h4 class="[ font-semibold text-base ]">Anti-Pattern 2: Plain Expression Trees Without Encapsulation</h4>
+
+        <p>
+            Using raw expression trees solves translation but creates other problems.
+        </p>
+
+        <CodeSnippet CssClass="language-csharp">// Static expression tree
+public static Expression&lt;Func&lt;Product, bool&gt;&gt; IsPremiumProduct = 
+    product =&gt; product.Price &gt;= 100 &amp;&amp; product.Stock &gt; 5;
+
+// Database query works
+var products = context.Products.Where(IsPremiumProduct).ToList();
+
+// In-memory validation requires manual compilation
+var compiledExpression = IsPremiumProduct.Compile();  // ⚠️ Expensive!
+if (compiledExpression(product))
+{
+    // ...
+}</CodeSnippet>
+
+        <p>
+            <strong>Problems:</strong>
+        </p>
+
+        <ul class="[ list-disc ] [ ml-4 ]">
+            <li>Poor encapsulation - consumers handle compilation</li>
+            <li>No caching - compilation happens every time</li>
+            <li>Technical details leak into business logic</li>
+        </ul>
+
+        <h4 class="[ font-semibold text-base ]">Anti-Pattern 3: Client-Configured Specifications</h4>
+
+        <p>
+            Creating generic specifications that accept expressions from outside defeats the purpose.
+        </p>
+
+        <CodeSnippet CssClass="language-csharp">// Generic specification - too flexible
+public class GenericSpecification&lt;T&gt; : Specification&lt;T&gt;
+{
+    private readonly Expression&lt;Func&lt;T, bool&gt;&gt; _expression;
+    
+    public GenericSpecification(Expression&lt;Func&lt;T, bool&gt;&gt; expression)
+    {
+        _expression = expression;
+    }
+    
+    protected override Expression&lt;Func&lt;T, bool&gt;&gt; ToExpression() =&gt; _expression;
+}
+
+// Usage - business logic still scattered
+var spec1 = new GenericSpecification&lt;Product&gt;(p =&gt; p.Price &gt; 50);
+var spec2 = new GenericSpecification&lt;Product&gt;(p =&gt; p.Price &gt;= 100);
+var spec3 = new GenericSpecification&lt;Product&gt;(p =&gt; p.Price &gt; 75);</CodeSnippet>
+
+        <p>
+            <strong>Problem:</strong> Different developers create different implementations of the same business concept. 
+            The specification becomes just a thin wrapper with no real value.
+        </p>
+
+        <h4 class="[ font-semibold text-base ]">Anti-Pattern 4: Repository Method Proliferation</h4>
+
+        <p>
+            Adding new repository methods for every business rule combination.
+        </p>
+
+        <CodeSnippet CssClass="language-csharp">public class ProductRepository
+{
+    public List&lt;Product&gt; GetPremiumProducts() { }
+    public List&lt;Product&gt; GetPremiumInStockProducts() { }
+    public List&lt;Product&gt; GetPremiumBusinessProducts() { }
+    public List&lt;Product&gt; GetPremiumInStockBusinessProducts() { }
+    // ... hundreds more combinations
+}</CodeSnippet>
+
+        <p>
+            <strong>Problems:</strong> Massive repository classes, inconsistent implementations, and difficult maintenance.
+        </p>
+
+        <h4 class="[ font-semibold text-base ]">Anti-Pattern 5: Configuration Overload</h4>
+
+        <p>
+            Making specifications overly configurable loses business meaning.
+        </p>
+
+        <CodeSnippet CssClass="language-csharp">public class ConfigurableSpecification : Specification&lt;Product&gt;
+{
+    private readonly decimal? _minPrice;
+    private readonly decimal? _maxPrice;
+    private readonly int? _minStock;
+    private readonly string[] _categories;
+    
+    protected override Expression&lt;Func&lt;Product, bool&gt;&gt; ToExpression()
+    {
+        return product =&gt;
+            (!_minPrice.HasValue || product.Price &gt;= _minPrice) &amp;&amp;
+            (!_maxPrice.HasValue || product.Price &lt;= _maxPrice) &amp;&amp;
+            (!_minStock.HasValue || product.Stock &gt;= _minStock) &amp;&amp;
+            (_categories == null || _categories.Contains(product.Category));
+    }
+}</CodeSnippet>
+
+        <p>
+            <strong>Problem:</strong> Complex conditional logic, no clear business meaning, and difficult testing.
+        </p>
+
+        <h3 id="understanding-expression-trees" class="[ font-semibold text-lg ]">Understanding Expression Trees and LINQ</h3>
+
+        <p>
+            To properly implement specifications, we need to understand how <ContentHighlight>LINQ works with expression trees</ContentHighlight>.
+        </p>
+
+        <p>
+            The <code>Where</code> method in LINQ uses the same syntax but behaves differently depending on context:
+        </p>
+
+        <CodeSnippet CssClass="language-csharp">// In-memory collection - uses Func&lt;T, bool&gt; (delegate)
+List&lt;Product&gt; products = GetProducts();
+var filtered = products.Where(p =&gt; p.Price &gt; 100).ToList();
+
+// Database query - uses Expression&lt;Func&lt;T, bool&gt;&gt; (expression tree)
+IQueryable&lt;Product&gt; products = context.Products;
+var filtered = products.Where(p =&gt; p.Price &gt; 100).ToList();</CodeSnippet>
+
+        <p>
+            The C# compiler makes an intelligent choice:
+        </p>
+
+        <ul class="[ list-disc ] [ ml-4 ]">
+            <li><ContentHighlight>Delegate (Func&lt;T, bool&gt;):</ContentHighlight> Compiled code ready to execute</li>
+            <li><ContentHighlight>Expression Tree:</ContentHighlight> Data structure describing the code that can be analyzed and translated</li>
+        </ul>
+
+        <h4 class="[ font-semibold text-base ]">Expression Trees vs Delegates</h4>
+
+        <CodeSnippet CssClass="language-csharp">// Same lambda expression, different types
+Func&lt;Product, bool&gt; priceDelegate = p =&gt; p.Price &gt; 50;
+Expression&lt;Func&lt;Product, bool&gt;&gt; priceExpression = p =&gt; p.Price &gt; 50;
+
+var product = new Product { Price = 100 };
+
+// Delegate - direct execution
+bool result1 = priceDelegate(product);  // true
+
+// Expression - needs compilation
+var compiled = priceExpression.Compile();
+bool result2 = compiled(product);  // true</CodeSnippet>
+
+        <p>
+            Key differences:
+        </p>
+
+        <table class="[ table-fixed border-collapse ] [ bg-white ] [ border-2 border-gray-200 ] [ dark:bg-black dark:border-slate-500 ] [ w-full ]">
+            <thead>
+                <tr class="[ bg-gray-100 ] [ dark:bg-slate-500 ]">
+                    <th class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Aspect</th>
+                    <th class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Delegate</th>
+                    <th class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Expression Tree</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Nature</td>
+                    <td class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Compiled code</td>
+                    <td class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Data structure describing code</td>
+                </tr>
+                <tr>
+                    <td class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Execution</td>
+                    <td class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Runs immediately when called</td>
+                    <td class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Needs compilation to execute</td>
+                </tr>
+                <tr>
+                    <td class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">SQL Translation</td>
+                    <td class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Cannot translate (black box)</td>
+                    <td class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Can be analyzed and translated</td>
+                </tr>
+                <tr>
+                    <td class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Use Case</td>
+                    <td class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">In-memory operations</td>
+                    <td class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Database queries + in-memory</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h4 class="[ font-semibold text-base ]">How Entity Framework Translates Expression Trees</h4>
+
+        <p>
+            Entity Framework Core walks through expression trees and generates SQL:
+        </p>
+
+        <CodeSnippet CssClass="language-csharp">// LINQ query with expression tree
+var query = context.Products
+    .Where(p =&gt; p.Price &gt; 50 &amp;&amp; p.Stock &gt; 5);
+
+// EF Core analyzes the expression tree:
+// - Finds BinaryExpression for Price &gt; 50
+// - Finds BinaryExpression for Stock &gt; 5
+// - Finds AndAlso combining them
+
+// Generated SQL:
+// SELECT * FROM Products 
+// WHERE Price &gt; 50 AND Stock &gt; 5</CodeSnippet>
+
+        <p>
+            This transformation is why specifications work seamlessly with Entity Framework Core while maintaining type safety and testability.
+        </p>
+
+        <h3 id="building-base-specification" class="[ font-semibold text-lg ]">Building the Base Specification Class</h3>
+
+        <p>
+            Now let's build a robust base specification class that addresses all the requirements we've identified.
+        </p>
+
+        <h4 class="[ font-semibold text-base ]">Requirements</h4>
+
+        <ol class="[ list-decimal ] [ ml-4 ]">
+            <li><strong>Single Source of Truth:</strong> Business logic defined exactly once</li>
+            <li><strong>Optimal Performance:</strong> Automatic compilation caching</li>
+            <li><strong>Dual Purpose:</strong> Works for both EF Core queries and in-memory validation</li>
+            <li><strong>Hide Complexity:</strong> No technical details exposed to consumers</li>
+            <li><strong>Type Safety:</strong> Compile-time checks</li>
+            <li><strong>Handle Edge Cases:</strong> Null checks and validation</li>
+            <li><strong>Extensible:</strong> Support for composition</li>
+        </ol>
+
+        <h4 class="[ font-semibold text-base ]">Base Specification Implementation</h4>
+
+        <CodeSnippet CssClass="language-csharp">
+public abstract class Specification&lt;T&gt; where T : class
+{
+    // Cache compiled expression for performance
+    private Func&lt;T, bool&gt;? _compiledExpression;
+
+    // Derived classes implement business logic here
+    protected abstract Expression&lt;Func&lt;T, bool&gt;&gt; ToExpression();
+
+    // In-memory validation with automatic caching
+    public bool IsSatisfiedBy(T entity)
+    {
+        if (entity == null)
+            throw new ArgumentNullException(nameof(entity));
+
+        // Compile once, cache for future calls
+        _compiledExpression ??= ToExpression().Compile();
+        
+        return _compiledExpression(entity);
+    }
+
+    // Database query support for EF Core
+    public Expression&lt;Func&lt;T, bool&gt;&gt; GetExpression()
+    {
+        return ToExpression();
+    }
+
+    // Composition support (covered later)
+    public static Specification&lt;T&gt; All =&gt; new IdentitySpecification&lt;T&gt;();
+    
+    public Specification&lt;T&gt; And(Specification&lt;T&gt; other) =&gt; 
+        new AndSpecification&lt;T&gt;(this, other);
+    
+    public Specification&lt;T&gt; Or(Specification&lt;T&gt; other) =&gt; 
+        new OrSpecification&lt;T&gt;(this, other);
+    
+    public Specification&lt;T&gt; Not() =&gt; 
+        new NotSpecification&lt;T&gt;(this);
+}
+</CodeSnippet>
+
+        <p>
+            This base class satisfies all our requirements:
+        </p>
+
+        <ul class="[ list-disc ] [ ml-4 ]">
+            <li>✅ <strong>Single Source:</strong> <code>ToExpression()</code> implemented once per concrete specification</li>
+            <li>✅ <strong>Performance:</strong> Compilation happens once, cached in <code>_compiledExpression</code></li>
+            <li>✅ <strong>Dual Purpose:</strong> <code>GetExpression()</code> for EF Core, <code>IsSatisfiedBy()</code> for in-memory</li>
+            <li>✅ <strong>Hidden Complexity:</strong> Only two public methods exposed</li>
+            <li>✅ <strong>Type Safety:</strong> Generic constraint <code>where T : class</code></li>
+            <li>✅ <strong>Edge Cases:</strong> Null check in <code>IsSatisfiedBy()</code></li>
+            <li>✅ <strong>Extensible:</strong> Protected <code>ToExpression()</code> allows composition</li>
+        </ul>
+
+        <h3 id="implementing-specifications" class="[ font-semibold text-lg ]">Implementing Strongly-Typed Specifications</h3>
+
+        <p>
+            With our base class ready, let's implement concrete specifications representing real business rules.
+        </p>
+
+        <h4 class="[ font-semibold text-base ]">Premium Product Specification</h4>
+
+        <CodeSnippet CssClass="language-csharp">
+public class PremiumProductSpecification : Specification&lt;Product&gt;
+{
+    protected override Expression&lt;Func&lt;Product, bool&gt;&gt; ToExpression()
+    {
+        return product =&gt;
+            product.Price &gt;= 100 &amp;&amp;
+            product.Stock &gt; 5 &amp;&amp;
+            (product.Category == "Electronics" ||
+            product.Category == "Office" ||
+            product.Category == "Industrial");
+    }
+}
+</CodeSnippet>
+
+        <p>
+            Clean and simple! The business logic lives in exactly one place. No duplication, no configuration complexity.
+        </p>
+
+        <h4 class="[ font-semibold text-base ]">Parameterized Specification</h4>
+
+        <p>
+            Sometimes specifications need parameters:
+        </p>
+
+        <CodeSnippet CssClass="language-csharp">
+public class InStockSpecification : Specification&lt;Product&gt;
+{
+    private readonly int _minimumStock;
+
+    public InStockSpecification(int minimumStock)
+    {
+        _minimumStock = minimumStock;
+    }
+
+    protected override Expression&lt;Func&lt;Product, bool&gt;&gt; ToExpression()
+    {
+        return product =&gt; product.Stock &gt;= _minimumStock;
+    }
+}
+
+// Usage
+var inStockSpec = new InStockSpecification(10);
+var products = await repository.FindAsync(inStockSpec);
+</CodeSnippet>
+
+        <h4 class="[ font-semibold text-base ]">Business Product Specification</h4>
+
+        <CodeSnippet CssClass="language-csharp">
+public class BusinessProductSpecification : Specification&lt;Product&gt;
+{
+    protected override Expression&lt;Func&lt;Product, bool&gt;&gt; ToExpression()
+    {
+        return product =&gt; 
+            product.IsBusinessProduct &amp;&amp;
+            product.MinimumOrderQuantity &gt;= 10;
+    }
+}
+</CodeSnippet>
+
+        <h4 class="[ font-semibold text-base ]">Usage in Controllers</h4>
+
+        <CodeSnippet CssClass="language-csharp">public class PremiumProductsController : ControllerBase
+{
+    private readonly IRepository&lt;Product&gt; _repository;
+
+    [HttpGet]
+    public async Task&lt;IActionResult&gt; GetPremiumProducts()
+    {
+        var spec = new PremiumProductSpecification();
+        var products = await _repository.FindAsync(spec);
+        
+        return Ok(products);
+    }
+
+    [HttpGet("count")]
+    public async Task&lt;IActionResult&gt; CountPremiumProducts()
+    {
+        var spec = new PremiumProductSpecification();
+        var count = await _repository.CountAsync(spec);
+        
+        return Ok(new { count });
+    }
+}</CodeSnippet>
+
+        <h4 class="[ font-semibold text-base ]">Usage in Services</h4>
+
+        <CodeSnippet CssClass="language-csharp">public class ProductValidationService
+{
+    public ValidationResult ValidateForPremiumDiscount(Product product)
+    {
+        var premiumSpec = new PremiumProductSpecification();
+        
+        if (!premiumSpec.IsSatisfiedBy(product))
+        {
+            return ValidationResult.Failure("Product does not qualify as premium");
+        }
+        
+        return ValidationResult.Success();
+    }
+}</CodeSnippet>
+
+        <p>
+            Notice how the <strong>same specification</strong> works in both contexts:
+        </p>
+
+        <ul class="[ list-disc ] [ ml-4 ]">
+            <li>Controller uses <code>FindAsync(spec)</code> → Generates SQL query</li>
+            <li>Service uses <code>IsSatisfiedBy(product)</code> → In-memory validation</li>
+            <li>Both use identical business logic</li>
+        </ul>
+
+        <h3 id="integrating-ef-core" class="[ font-semibold text-lg ]">Integrating with Entity Framework Core</h3>
+
+        <p>
+            To use specifications with Entity Framework Core efficiently, let's create a <ContentHighlight>generic specification repository</ContentHighlight>.
+        </p>
+
+        <h4 class="[ font-semibold text-base ]">Specification Repository</h4>
+
+        <CodeSnippet CssClass="language-csharp">
+public class SpecificationRepository&lt;TContext, T&gt; 
+    where TContext : DbContext 
+    where T : class
+{
+    private readonly TContext _context;
+    private readonly DbSet&lt;T&gt; _dbSet;
+
+    public SpecificationRepository(TContext context)
+    {
+        _context = context;
+        _dbSet = context.Set&lt;T&gt;();
+    }
+
+    // Find entities matching specification
+    public async Task&lt;List&lt;T&gt;&gt; FindAsync(Specification&lt;T&gt; specification)
+    {
+        return await _dbSet
+            .Where(specification.GetExpression())
+            .ToListAsync();
+    }
+
+    // Check if any entity matches
+    public async Task&lt;bool&gt; AnyAsync(Specification&lt;T&gt; specification)
+    {
+        return await _dbSet
+            .AnyAsync(specification.GetExpression());
+    }
+
+    // Count matching entities
+    public async Task&lt;int&gt; CountAsync(Specification&lt;T&gt; specification)
+    {
+        return await _dbSet
+            .CountAsync(specification.GetExpression());
+    }
+
+    // Find first matching entity
+    public async Task&lt;T?&gt; FindSingleAsync(Specification&lt;T&gt; specification)
+    {
+        return await _dbSet
+            .FirstOrDefaultAsync(specification.GetExpression());
+    }
+
+    // With eager loading
+    public async Task&lt;List&lt;T&gt;&gt; FindAsync(
+        Specification&lt;T&gt; specification,
+        params Expression&lt;Func&lt;T, object&gt;&gt;[] includes)
+    {
+        IQueryable&lt;T&gt; query = _dbSet;
+        
+        foreach (var include in includes)
+        {
+            query = query.Include(include);
+        }
+        
+        return await query
+            .Where(specification.GetExpression())
+            .ToListAsync();
+    }
+}
+</CodeSnippet>
+
+        <p>
+            Register in dependency injection:
+        </p>
+
+        <CodeSnippet CssClass="language-csharp">// Program.cs or Startup.cs
+services.AddScoped&lt;SpecificationRepository&lt;AppDbContext, Product&gt;&gt;();</CodeSnippet>
+
+        <h4 class="[ font-semibold text-base ]">Usage with EF Core</h4>
+
+        <CodeSnippet CssClass="language-csharp">public class ProductController : ControllerBase
+{
+    private readonly SpecificationRepository&lt;AppDbContext, Product&gt; _repository;
+
+    // Find premium products
+    [HttpGet("premium")]
+    public async Task&lt;IActionResult&gt; GetPremium()
+    {
+        var spec = new PremiumProductSpecification();
+        var products = await _repository.FindAsync(spec);
+        return Ok(products);
+    }
+
+    // Count in-stock products
+    [HttpGet("in-stock/count")]
+    public async Task&lt;IActionResult&gt; CountInStock([FromQuery] int minStock = 10)
+    {
+        var spec = new InStockSpecification(minStock);
+        var count = await _repository.CountAsync(spec);
+        return Ok(new { count });
+    }
+
+    // Check if business products exist
+    [HttpGet("business/exists")]
+    public async Task&lt;IActionResult&gt; BusinessProductsExist()
+    {
+        var spec = new BusinessProductSpecification();
+        var exists = await _repository.AnyAsync(spec);
+        return Ok(new { exists });
+    }
+}</CodeSnippet>
+
+        <p>
+            The repository generates <ContentHighlight>optimized SQL queries</ContentHighlight>:
+        </p>
+
+        <CodeSnippet CssClass="language-csharp">// For CountAsync with InStockSpecification(10)
+SELECT COUNT(*) FROM Products WHERE Stock &gt;= 10
+
+// For FindAsync with PremiumProductSpecification
+SELECT * FROM Products 
+WHERE Price &gt;= 100 
+  AND Stock &gt; 5 
+  AND Category IN ('Electronics', 'Office', 'Industrial')</CodeSnippet>
+
+        <h4 class="[ font-semibold text-base ]">Handling Related Entities</h4>
+
+        <p>
+            Specifications can work across relationships:
+        </p>
+
+        <CodeSnippet CssClass="language-csharp">
+public class ActiveSupplierSpecification : Specification&lt;Product&gt;
+{
+    protected override Expression&lt;Func&lt;Product, bool&gt;&gt; ToExpression()
+    {
+        return product =&gt; 
+            product.Supplier != null &amp;&amp;
+            product.Supplier.Status == SupplierStatus.Active &amp;&amp;
+            product.Supplier.ReliabilityScore &gt;= 8;
+    }
+}
+
+// Usage with eager loading
+var spec = new ActiveSupplierSpecification();
+var products = await _repository.FindAsync(
+    spec,
+    p =&gt; p.Supplier  // Include related supplier
+);
+</CodeSnippet>
+
+        <h3 id="composing-specifications" class="[ font-semibold text-lg ]">Composing Specifications with Logical Operators</h3>
+
+        <p>
+            One of the most powerful features of the Specification Pattern is <ContentHighlight>composition</ContentHighlight> - 
+            combining simple specifications into complex business rules using logical operators.
+        </p>
+
+        <h4 class="[ font-semibold text-base ]">Logical Operators</h4>
+
+        <p>
+            We need three fundamental operations:
+        </p>
+
+        <ul class="[ list-disc ] [ ml-4 ]">
+            <li><ContentHighlight>AND:</ContentHighlight> Both specifications must be satisfied</li>
+            <li><ContentHighlight>OR:</ContentHighlight> At least one specification must be satisfied</li>
+            <li><ContentHighlight>NOT:</ContentHighlight> Negate a specification</li>
+        </ul>
+
+        <h4 class="[ font-semibold text-base ]">NOT Specification</h4>
+
+        <CodeSnippet CssClass="language-csharp">
+internal sealed class NotSpecification&lt;T&gt; : Specification&lt;T&gt; where T : class
+{
+    private readonly Specification&lt;T&gt; _specification;
+
+    public NotSpecification(Specification&lt;T&gt; specification)
+    {
+        _specification = specification;
+    }
+
+    protected override Expression&lt;Func&lt;T, bool&gt;&gt; ToExpression()
+    {
+        var expression = _specification.GetExpression();
+        var parameter = expression.Parameters[0];
+        var body = Expression.Not(expression.Body);
+        
+        return Expression.Lambda&lt;Func&lt;T, bool&gt;&gt;(body, parameter);
+    }
+}
+</CodeSnippet>
+
+        <h4 class="[ font-semibold text-base ]">AND Specification</h4>
+
+        <CodeSnippet CssClass="language-csharp">
+internal sealed class AndSpecification&lt;T&gt; : Specification&lt;T&gt; where T : class
+{
+    private readonly Specification&lt;T&gt; _left;
+    private readonly Specification&lt;T&gt; _right;
+
+    public AndSpecification(Specification&lt;T&gt; left, Specification&lt;T&gt; right)
+    {
+        _left = left;
+        _right = right;
+    }
+
+    protected override Expression&lt;Func&lt;T, bool&gt;&gt; ToExpression()
+    {
+        var leftExpression = _left.GetExpression();
+        var rightExpression = _right.GetExpression();
+        
+        var parameter = leftExpression.Parameters[0];
+        
+        // Replace parameter in right expression to match left
+        var rightBody = ParameterReplacer.Replace(
+            rightExpression.Body,
+            rightExpression.Parameters[0],
+            parameter
+        );
+        
+        // Combine with AndAlso for short-circuit evaluation
+        var body = Expression.AndAlso(leftExpression.Body, rightBody);
+        
+        return Expression.Lambda&lt;Func&lt;T, bool&gt;&gt;(body, parameter);
+    }
+}
+</CodeSnippet>
+
+        <h4 class="[ font-semibold text-base ]">OR Specification</h4>
+
+        <CodeSnippet CssClass="language-csharp">
+internal sealed class OrSpecification&lt;T&gt; : Specification&lt;T&gt; where T : class
+{
+    private readonly Specification&lt;T&gt; _left;
+    private readonly Specification&lt;T&gt; _right;
+
+    public OrSpecification(Specification&lt;T&gt; left, Specification&lt;T&gt; right)
+    {
+        _left = left;
+        _right = right;
+    }
+
+    protected override Expression&lt;Func&lt;T, bool&gt;&gt; ToExpression()
+    {
+        var leftExpression = _left.GetExpression();
+        var rightExpression = _right.GetExpression();
+        
+        var parameter = leftExpression.Parameters[0];
+        
+        var rightBody = ParameterReplacer.Replace(
+            rightExpression.Body,
+            rightExpression.Parameters[0],
+            parameter
+        );
+        
+        // Combine with OrElse for short-circuit evaluation
+        var body = Expression.OrElse(leftExpression.Body, rightBody);
+        
+        return Expression.Lambda&lt;Func&lt;T, bool&gt;&gt;(body, parameter);
+    }
+}
+</CodeSnippet>
+
+        <h4 class="[ font-semibold text-base ]">Parameter Replacer Helper</h4>
+
+        <p>
+            This helper ensures consistent parameter naming across composed expressions:
+        </p>
+
+        <CodeSnippet CssClass="language-csharp">internal class ParameterReplacer : ExpressionVisitor
+{
+    private readonly ParameterExpression _oldParameter;
+    private readonly ParameterExpression _newParameter;
+
+    private ParameterReplacer(
+        ParameterExpression oldParameter,
+        ParameterExpression newParameter)
+    {
+        _oldParameter = oldParameter;
+        _newParameter = newParameter;
+    }
+
+    public static Expression Replace(
+        Expression expression,
+        ParameterExpression oldParameter,
+        ParameterExpression newParameter)
+    {
+        return new ParameterReplacer(oldParameter, newParameter)
+            .Visit(expression);
+    }
+
+    protected override Expression VisitParameter(ParameterExpression node)
+    {
+        return node == _oldParameter ? _newParameter : node;
+    }
+}</CodeSnippet>
+
+        <h4 class="[ font-semibold text-base ]">Composition in Action</h4>
+
+        <CodeSnippet CssClass="language-csharp">// Complex business rule: Premium AND in-stock OR clearance, but NOT business-only
+var marketingSpec = new PremiumProductSpecification()
+    .And(new InStockSpecification(10))
+    .Or(new ClearanceSaleSpecification())
+    .And(new BusinessProductSpecification().Not());
+
+// Usage
+var products = await _repository.FindAsync(marketingSpec);
+
+// Generated SQL (example):
+// SELECT * FROM Products 
+// WHERE (
+//     (Price &gt;= 100 AND Stock &gt; 5 AND Category IN (...) AND Stock &gt;= 10)
+//     OR
+//     (Price &lt; 50 AND Stock &lt; 10)
+// )
+// AND NOT (IsBusinessProduct = 1 AND MinimumOrderQuantity &gt;= 10)</CodeSnippet>
+
+        <p>
+            <strong>Key Benefits:</strong>
+        </p>
+
+        <ul class="[ list-disc ] [ ml-4 ]">
+            <li>Fluent, readable syntax</li>
+            <li>Type-safe composition</li>
+            <li>Automatically generates optimized SQL</li>
+            <li>Reusable building blocks</li>
+        </ul>
+
+        <h3 id="identity-specification" class="[ font-semibold text-lg ]">Identity Specification for Dynamic Queries</h3>
+
+        <p>
+            The <ContentHighlight>Identity Specification</ContentHighlight> acts as a neutral element for AND operations, 
+            perfect for building dynamic queries with optional filters.
+        </p>
+
+        <h4 class="[ font-semibold text-base ]">Identity Specification Implementation</h4>
+
+        <CodeSnippet CssClass="language-csharp">internal sealed class IdentitySpecification&lt;T&gt; : Specification&lt;T&gt; where T : class
+{
+    protected override Expression&lt;Func&lt;T, bool&gt;&gt; ToExpression()
+    {
+        // Always returns true - matches all entities
+        return entity =&gt; true;
+    }
+}</CodeSnippet>
+
+        <h4 class="[ font-semibold text-base ]">Optimizations in Base Class</h4>
+
+        <CodeSnippet CssClass="language-csharp">public abstract class Specification&lt;T&gt; where T : class
+{
+    // Identity specification for starting dynamic queries
+    public static Specification&lt;T&gt; All =&gt; new IdentitySpecification&lt;T&gt;();
+
+    public Specification&lt;T&gt; And(Specification&lt;T&gt; other)
+    {
+        // Optimization: If left is identity, return right
+        if (this is IdentitySpecification&lt;T&gt;)
+            return other;
+            
+        // Optimization: If right is identity, return left
+        if (other is IdentitySpecification&lt;T&gt;)
+            return this;
+            
+        return new AndSpecification&lt;T&gt;(this, other);
+    }
+
+    public Specification&lt;T&gt; Or(Specification&lt;T&gt; other)
+    {
+        // Optimization: If either is identity, entire OR is always true
+        if (this is IdentitySpecification&lt;T&gt; || other is IdentitySpecification&lt;T&gt;)
+            return All;
+            
+        return new OrSpecification&lt;T&gt;(this, other);
+    }
+}</CodeSnippet>
+
+        <h4 class="[ font-semibold text-base ]">Dynamic Search Endpoint</h4>
+
+        <p>
+            Build queries dynamically based on optional filter parameters:
+        </p>
+
+        <CodeSnippet CssClass="language-csharp">[HttpGet("search")]
+public async Task&lt;IActionResult&gt; Search(
+    [FromQuery] string? category = null,
+    [FromQuery] int? minStock = null,
+    [FromQuery] decimal? minPrice = null)
+{
+    // Start with identity (match all)
+    var spec = Specification&lt;Product&gt;.All;
+    
+    // Add filters only if provided
+    if (!string.IsNullOrWhiteSpace(category))
+    {
+        spec = spec.And(new CategorySpecification(category));
+    }
+    
+    if (minStock.HasValue)
+    {
+        spec = spec.And(new InStockSpecification(minStock.Value));
+    }
+    
+    if (minPrice.HasValue)
+    {
+        spec = spec.And(new MinimumPriceSpecification(minPrice.Value));
+    }
+    
+    var products = await _repository.FindAsync(spec);
+    return Ok(products);
+}</CodeSnippet>
+
+        <p>
+            <strong>Query Scenarios:</strong>
+        </p>
+
+        <CodeSnippet CssClass="language-csharp">// No filters - returns all products
+GET /search
+// SQL: SELECT * FROM Products
+
+// Only category filter
+GET /search?category=Electronics
+// SQL: SELECT * FROM Products WHERE Category = 'Electronics'
+
+// Multiple filters
+GET /search?category=Electronics&amp;minStock=10&amp;minPrice=50
+// SQL: SELECT * FROM Products 
+//      WHERE Category = 'Electronics' 
+//        AND Stock &gt;= 10 
+//        AND Price &gt;= 50</CodeSnippet>
+
+        <p>
+            The beauty of this approach:
+        </p>
+
+        <ul class="[ list-disc ] [ ml-4 ]">
+            <li>No null checks needed</li>
+            <li>Clean, linear code</li>
+            <li>Efficient SQL generation</li>
+            <li>Easy to extend with new filters</li>
+        </ul>
+
+        <h3 id="best-practices" class="[ font-semibold text-lg ]">Best Practices</h3>
+
+        <h4 class="[ font-semibold text-base ]">1. Structure: Strongly-Typed Classes</h4>
+
+        <p>
+            ✅ <strong>Do:</strong> Create dedicated specification classes for each business concept
+        </p>
+
+        <CodeSnippet CssClass="language-csharp">public class PremiumProductSpecification : Specification&lt;Product&gt;
+{
+    // Clear business meaning
+    protected override Expression&lt;Func&lt;Product, bool&gt;&gt; ToExpression() { }
+}</CodeSnippet>
+
+        <p>
+            ❌ <strong>Don't:</strong> Use generic specifications with external configuration
+        </p>
+
+        <CodeSnippet CssClass="language-csharp">// Loses business meaning
+var spec = new GenericSpecification&lt;Product&gt;(p =&gt; p.Price &gt; 100);</CodeSnippet>
+
+        <h4 class="[ font-semibold text-base ]">2. Focus: Single Responsibility</h4>
+
+        <p>
+            Keep specifications focused on one business concept:
+        </p>
+
+        <CodeSnippet CssClass="language-csharp">// ✅ Good - clear purpose
+public class ClearanceSaleSpecification : Specification&lt;Product&gt; { }
+
+// ❌ Bad - too flexible
+public class ConfigurableProductSpecification : Specification&lt;Product&gt;
+{
+    public ConfigurableProductSpecification(
+        decimal? minPrice, 
+        decimal? maxPrice, 
+        int? minStock,
+        string[] categories) { }
+}</CodeSnippet>
+
+        <h4 class="[ font-semibold text-base ]">3. Immutability: Thread-Safe Specifications</h4>
+
+        <CodeSnippet CssClass="language-csharp">public class InStockSpecification : Specification&lt;Product&gt;
+{
+    private readonly int _minimumStock;  // ✅ readonly field
+
+    public InStockSpecification(int minimumStock)
+    {
+        _minimumStock = minimumStock;
+    }
+    
+    // Immutable - safe for concurrent use
+}</CodeSnippet>
+
+        <h4 class="[ font-semibold text-base ]">4. Performance: Monitor Generated SQL</h4>
+
+        <p>
+            Always verify that specifications generate efficient queries:
+        </p>
+
+        <CodeSnippet CssClass="language-csharp">// Enable EF Core logging
+services.AddDbContext&lt;AppDbContext&gt;(options =&gt;
+    options.UseSqlServer(connectionString)
+           .LogTo(Console.WriteLine, LogLevel.Information));
+
+// Check generated SQL
+var spec = new PremiumProductSpecification();
+var products = await _repository.FindAsync(spec);
+
+// Console output:
+// SELECT * FROM Products 
+// WHERE Price &gt;= 100 AND Stock &gt; 5 AND ...</CodeSnippet>
+
+        <h4 class="[ font-semibold text-base ]">5. Repository: Specification-Aware Methods</h4>
+
+        <CodeSnippet CssClass="language-csharp">// ✅ Good - uses specifications
+public Task&lt;List&lt;T&gt;&gt; FindAsync(Specification&lt;T&gt; spec) { }
+public Task&lt;int&gt; CountAsync(Specification&lt;T&gt; spec) { }
+
+// ❌ Bad - specific methods for each rule
+public Task&lt;List&lt;Product&gt;&gt; GetPremiumProducts() { }
+public Task&lt;List&lt;Product&gt;&gt; GetPremiumInStockProducts() { }
+public Task&lt;List&lt;Product&gt;&gt; GetPremiumBusinessProducts() { }
+// ... hundreds more</CodeSnippet>
+
+        <h4 class="[ font-semibold text-base ]">6. Composition: Use Logical Operators</h4>
+
+        <p>
+            Prefer composition over inheritance:
+        </p>
+
+        <CodeSnippet CssClass="language-csharp">// ✅ Good - composable
+var spec = new PremiumProductSpecification()
+    .And(new InStockSpecification(10))
+    .Or(new ClearanceSaleSpecification());
+
+// ❌ Bad - inheritance hierarchy
+public class PremiumInStockSpecification : PremiumProductSpecification { }
+public class PremiumBusinessSpecification : PremiumProductSpecification { }</CodeSnippet>
+
+        <h4 class="[ font-semibold text-base ]">7. Testing: Independent Verification</h4>
+
+        <CodeSnippet CssClass="language-csharp">[Fact]
+public void PremiumProductSpecification_Should_Match_Qualified_Products()
+{
+    // Arrange
+    var spec = new PremiumProductSpecification();
+    var qualifiedProduct = new Product 
+    { 
+        Price = 150, 
+        Stock = 10, 
+        Category = "Electronics" 
+    };
+    var unqualifiedProduct = new Product 
+    { 
+        Price = 50, 
+        Stock = 10, 
+        Category = "Electronics" 
+    };
+
+    // Act & Assert
+    Assert.True(spec.IsSatisfiedBy(qualifiedProduct));
+    Assert.False(spec.IsSatisfiedBy(unqualifiedProduct));
+}</CodeSnippet>
+
+        <h4 class="[ font-semibold text-base ]">When to Use Specifications</h4>
+
+        <p>
+            Three key questions to guide your decision:
+        </p>
+
+        <table class="[ table-fixed border-collapse ] [ bg-white ] [ border-2 border-gray-200 ] [ dark:bg-black dark:border-slate-500 ] [ w-full ]">
+            <thead>
+                <tr class="[ bg-gray-100 ] [ dark:bg-slate-500 ]">
+                    <th class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Question</th>
+                    <th class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Yes = Use Specifications</th>
+                    <th class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">No = Simple Code</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Does logic appear in multiple places?</td>
+                    <td class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Specifications eliminate duplication</td>
+                    <td class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Direct implementation is fine</td>
+                </tr>
+                <tr>
+                    <td class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Is this an enterprise application?</td>
+                    <td class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Specifications provide structure</td>
+                    <td class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Simple solutions work well</td>
+                </tr>
+                <tr>
+                    <td class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Will business rules change frequently?</td>
+                    <td class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Single source of truth</td>
+                    <td class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Scattered logic acceptable</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <p>
+            <strong>Perfect for:</strong>
+        </p>
+
+        <ul class="[ list-disc ] [ ml-4 ]">
+            <li>Enterprise applications with complex business rules</li>
+            <li>E-commerce platforms with product filtering and eligibility</li>
+            <li>Financial systems with regulatory compliance rules</li>
+            <li>Multi-team codebases needing consistency</li>
+        </ul>
+
+        <p>
+            <strong>Not recommended for:</strong>
+        </p>
+
+        <ul class="[ list-disc ] [ ml-4 ]">
+            <li>Simple CRUD applications</li>
+            <li>One-time data migrations</li>
+            <li>Prototype or proof-of-concept projects</li>
+            <li>Ultra-high-performance systems where microseconds matter</li>
+        </ul>
+        </How>
+
+        <Summary>
+        <p>
+            In this article, we explored how the <ContentHighlight>Specification Pattern</ContentHighlight> from 
+            <ContentHighlight>Domain-Driven Design</ContentHighlight> eliminates scattered and duplicated business logic in enterprise applications.
+        </p>
+
+        <p>
+            <strong>Key Takeaways:</strong>
+        </p>
+
+        <ul class="[ list-disc ] [ ml-4 ]">
+            <li>
+                <strong>Problem Solved:</strong> Scattered business logic leads to duplication, inconsistency, and maintenance nightmares. 
+                The Specification Pattern provides a <ContentHighlight>single source of truth</ContentHighlight>.
+            </li>
+            <li>
+                <strong>Core Concept:</strong> Specifications encapsulate business rules into reusable objects that work for both 
+                <ContentHighlight>database queries and in-memory validation</ContentHighlight>.
+            </li>
+            <li>
+                <strong>Expression Trees:</strong> Understanding the difference between delegates and expression trees is crucial. 
+                Entity Framework Core needs expression trees to generate SQL.
+            </li>
+            <li>
+                <strong>Base Class:</strong> A robust base specification class handles compilation caching, null checks, and 
+                provides a clean API for consumers.
+            </li>
+            <li>
+                <strong>Strongly-Typed:</strong> Each business concept gets its own specification class, maintaining clear business meaning.
+            </li>
+            <li>
+                <strong>Composition:</strong> Logical operators (AND, OR, NOT) enable building complex rules from simple specifications.
+            </li>
+            <li>
+                <strong>Identity Pattern:</strong> The identity specification enables clean dynamic query building with optional filters.
+            </li>
+            <li>
+                <strong>Best Practices:</strong> Keep specifications focused, immutable, and testable. Monitor generated SQL for performance.
+            </li>
+        </ul>
+
+        <p>
+            The Specification Pattern transforms maintenance nightmares into elegant, maintainable code. When business requirements change, 
+            you update <ContentHighlight>exactly one place</ContentHighlight>, and the change propagates automatically to all consumers. 
+            This is the power of proper domain-driven design.
+        </p>
+        </Summary>
+    </ContentBody>
+</Content>

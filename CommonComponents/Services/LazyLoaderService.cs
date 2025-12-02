@@ -51,6 +51,12 @@ public class LazyLoaderService(
           AdditionalAssemblies.AddRange(assemblies);
         }
 
+        if (path.Contains("ddd", StringComparison.OrdinalIgnoreCase))
+        {
+          var assemblies = await lazyAssemblyLoader.LoadAssembliesAsync(["DDDDemoComponents.wasm"]);
+          AdditionalAssemblies.AddRange(assemblies);
+        }
+
         if (path.Contains("dependency-injection", StringComparison.OrdinalIgnoreCase))
         {
           var assemblies = await lazyAssemblyLoader.LoadAssembliesAsync(["DependencyInjectionDemoComponents.wasm"]);
