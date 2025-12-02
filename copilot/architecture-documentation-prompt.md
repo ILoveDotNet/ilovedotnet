@@ -13,7 +13,7 @@ Analyze my ILoveDotNet codebase to create visual representations of the architec
 Please perform the following tasks in sequence:
 
 1. **Analyze Application Structure**
-   - Examine the entire ILoveDotNet.sln structure including all projects
+   - Examine the entire ILoveDotNet.slnx structure including all projects
    - Focus on both Web (Blazor WASM) and MAUI projects as the main entry points
    - Analyze how component libraries are organized and referenced
    - Identify key services and their dependencies

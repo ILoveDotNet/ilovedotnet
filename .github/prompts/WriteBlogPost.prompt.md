@@ -126,7 +126,7 @@ Follow these steps in order:
    
    ✅ **Build Verification:**
    - [ ] Run `dotnet format --verbosity quiet whitespace --folder`
-   - [ ] Run `dotnet build ILoveDotNet.sln` with 0 errors
+   - [ ] Run `dotnet build ILoveDotNet.slnx` with 0 errors
    
    **DO NOT consider the task complete until ALL checkboxes are verified.**
 
