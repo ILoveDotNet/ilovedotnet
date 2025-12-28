@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <ItemGroup>
+    <SupportedPlatform Include="browser" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+  	<ProjectReference Include="..\BaseComponents\BaseComponents.csproj" />
+  	<ProjectReference Include="..\SharedComponents\SharedComponents.csproj" />
+  </ItemGroup>
+
+  <Target Name="GenerateSitemapXml" BeforeTargets="PreBuildEvent" Condition="'$(Configuration)'!='Release'">
+    <PropertyGroup>
+      <SitemapXmlFilePath>$([System.IO.Path]::Combine('wwwroot', 'sitemap-blog-caching.xml'))</SitemapXmlFilePath>
+    </PropertyGroup>
+
+    <Exec Command="dotnet run --project &quot;$(ProjectDir)../SitemapGenerator&quot; -p BuildScope=$(ProjectName) -o &quot;$(ProjectDir)$(SitemapXmlFilePath)&quot; --channel &quot;Caching&quot;" />
+
+    <ItemGroup>
+      <Content Remove="$(SitemapXmlFilePath)" />
+      <Content Include="$(SitemapXmlFilePath)" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="GeneratePoster" BeforeTargets="PreBuildEvent" Condition="'$(Configuration)'!='Release'">
+    <PropertyGroup>
+      <PosterOutputPath>$([System.IO.Path]::Combine('wwwroot', 'image', 'blogs', 'caching'))</PosterOutputPath>
+    </PropertyGroup>
+
+    <Exec Command="dotnet run --project &quot;$(ProjectDir)../PosterGenerator&quot; -p BuildScope=$(ProjectName) -o &quot;$(ProjectDir)$(PosterOutputPath)&quot; --channel &quot;Caching&quot;" />
+
+    <ItemGroup>
+      <Content Remove="$(PosterOutputPath)\**\*" />
+      <Content Include="$(PosterOutputPath)\**\*" />
+    </ItemGroup>
+  </Target>
+
+</Project>

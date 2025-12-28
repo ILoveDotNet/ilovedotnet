@@ -56,6 +56,7 @@ Choosing a project idea could be difficult. We need to ensure stability and main
 32. [JSON](https://github.com/orgs/ILoveDotNet/projects/36)
 33. [MCP](https://github.com/orgs/ILoveDotNet/projects/37)
 34. [Database](https://github.com/orgs/ILoveDotNet/projects/38)
+35. [Caching](https://github.com/orgs/ILoveDotNet/projects/39)
 
 # Please share with the community
 As an open-source project without funding, I cannot afford advertising I ❤️ .NET in a typical way. Instead, the project relies on community interactions. Please consider sharing a post about I ❤️ .NET and the value it provides. It really does help!

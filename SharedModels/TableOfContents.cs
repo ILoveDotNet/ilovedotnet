@@ -3,7 +3,7 @@
 public class TableOfContents
 {
   public const int PageSize = 6;
-  private readonly List<ContentMetaData> _fullContents = new(166);
+  private readonly List<ContentMetaData> _fullContents = new(167);
   private readonly List<AuthorMetaData> _fullAuthors = new(1);
   private readonly List<SponsorMetaData> _fullSponsors = new(1);
 
@@ -56,6 +56,7 @@ public class TableOfContents
   {
     _fullContents.AddRange(new AILearningPath().FullContents);
     _fullContents.AddRange(new BlazorLearningPath().FullContents);
+    _fullContents.AddRange(new CachingLearningPath().FullContents);
     _fullContents.AddRange(new DatabaseLearningPath().FullContents);
     _fullContents.AddRange(new DDDLearningPath().FullContents);
     _fullContents.AddRange(new DependencyInjectionLearningPath().FullContents);
