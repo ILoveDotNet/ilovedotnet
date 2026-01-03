@@ -1,0 +1,575 @@
+@page "/blogs/avoiding-cache-stampede-and-handling-nulls-in-dotnet"
+@using SharedModels
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(CacheStampede) UseNewTableOfContentsMenu=true>
+    <ContentBody>
+        <What>
+            <p>
+                Your weather API gets hammered with 10,000 requests asking for the same city's forecast. Cache expires at 8 AM - peak traffic time. 
+                Without proper protection, all 10,000 requests slam your external API simultaneously, burning through your rate limits and costing you money.
+            </p>
+            
+            <p>
+                In this article, we'll build <ContentHighlight>production-grade caching patterns</ContentHighlight> that prevent these disasters. You'll learn 
+                <ContentHighlight>atomic cache operations</ContentHighlight>, <ContentHighlight>stampede prevention techniques</ContentHighlight>, and 
+                <ContentHighlight>defensive null handling</ContentHighlight> - techniques that protect both your infrastructure and your budget.
+            </p>
+            
+            <p>
+                We'll tackle three critical scenarios you'll face in production:
+            </p>
+            
+            <ul>
+                <li>Caching <ContentHighlight>missing or invalid data</ContentHighlight> to prevent abuse and rate limit exhaustion</li>
+                <li>Using <ContentHighlight>coordinated cache operations</ContentHighlight> instead of naive get-then-set patterns</li>
+                <li>Preventing <ContentHighlight>thundering herd problems</ContentHighlight> when cache entries expire under load</li>
+            </ul>
+        </What>
+
+        <Why>
+            <h4>The Hidden Cost of Cache Misses</h4>
+            
+            <p>
+                Imagine you're building a weather dashboard that displays forecasts for major cities. Your external API allows 
+                <ContentHighlight>1,000 requests per hour</ContentHighlight>. During morning rush hour, 5,000 users request London's forecast. 
+                The cached entry just expired.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// Production Incident: 8:00 AM, London forecast cache expired
+// Your naive implementation:
+
+foreach (var user in 5000_concurrent_users)
+{
+    var forecast = cache.Get("weather:london");
+    if (forecast == null)
+    {
+        forecast = await weatherApi.GetForecastAsync("london"); // $$$ API call
+        cache.Set("weather:london", forecast);
+    }
+}
+
+// Result:
+// - 5,000 API calls in 2 seconds (you only have quota for 1,000/hour!)
+// - API returns 429 Too Many Requests
+// - Users see errors
+// - You get a surprise $500 overage bill
+            </CodeSnippet>
+
+            <p>
+                The problem? Your code checks the cache, finds nothing, then calls the API - but hundreds of other requests are doing 
+                <ContentHighlight>the exact same thing simultaneously</ContentHighlight>. By the time request #1 saves the forecast to cache, 
+                requests #2-5000 have already started their API calls.
+            </p>
+
+            <h4>The DOS Attack Vector: Not Caching Failures</h4>
+
+            <p>
+                Here's an even worse scenario: someone discovers your API endpoint structure and starts hammering non-existent cities:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// Attacker sends automated requests:
+GET /api/weather/NOTACITY12345
+GET /api/weather/FAKEPLACE99999
+GET /api/weather/INVALIDCITY777
+// ... repeated 10,000 times per minute
+
+// Your vulnerable code:
+public async Task&lt;WeatherForecast?&gt; GetForecast(string city)
+{
+    var cacheKey = $"weather:{city}";
+    var cached = await cache.GetAsync&lt;WeatherForecast&gt;(cacheKey);
+    
+    if (cached == null) // Always null for fake cities!
+    {
+        // Call external API every single time
+        cached = await weatherApi.GetForecastAsync(city); // Returns null
+        
+        // Don't cache null - MAJOR SECURITY FLAW!
+        if (cached != null)
+        {
+            await cache.SetAsync(cacheKey, cached);
+        }
+    }
+    
+    return cached;
+}
+
+// Impact:
+// - External API gets 10,000 requests for non-existent cities
+// - Your API key gets rate limited or banned
+// - Legitimate users can't access weather data
+// - This is a textbook Denial of Service (DOS) attack
+
+            </CodeSnippet>
+
+            <h4>Real-World Impact</h4>
+
+            <p>
+                In production environments, improper caching patterns lead to:
+            </p>
+
+            <ul>
+                <li><strong>API cost overruns</strong> - Third-party API calls can cost $0.001-$0.01 each; 10,000 unnecessary calls = $10-$100 wasted</li>
+                <li><strong>Rate limit violations</strong> - Getting your API key throttled or banned affects all users</li>
+                <li><strong>Degraded user experience</strong> - Slow responses when external services are overloaded</li>
+                <li><strong>Security vulnerabilities</strong> - Easy DOS attack vectors that competitors or bad actors can exploit</li>
+                <li><strong>Infrastructure scaling costs</strong> - Auto-scaling triggers unnecessarily, increasing hosting bills</li>
+            </ul>
+
+            <p>
+                The solution? <ContentHighlight>Defensive caching patterns</ContentHighlight> that protect against these scenarios through 
+                coordination, negative caching, and atomic operations.
+            </p>
+        </Why>
+
+        <How>
+            <h4>Solution 1: Always Cache the Result (Including Nulls)</h4>
+
+            <p>
+                The first defensive pattern: <ContentHighlight>cache everything</ContentHighlight>, even when data doesn't exist. 
+                Let's implement this for our weather API:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+public class WeatherService
+{
+    private readonly IHybridCache _cache;
+    private readonly IWeatherApi _weatherApi;
+    
+    public WeatherService(IHybridCache cache, IWeatherApi weatherApi)
+    {
+        _cache = cache;
+        _weatherApi = weatherApi;
+    }
+    
+    public async Task&lt;WeatherForecast?&gt; GetForecastAsync(string city)
+    {
+        var cacheKey = $"weather:{city.ToLowerInvariant()}";
+        
+        // GetOrCreateAsync provides automatic stampede protection through request coalescing:
+        // - If cache key exists: return cached value immediately
+        // - If cache key missing: first request executes factory, others wait for same result
+        // - No locks needed - HybridCache handles coordination internally
+        var forecast = await _cache.GetOrCreateAsync(
+            cacheKey,
+            async cancellationToken =&gt;
+            {
+                // This factory runs ONCE even with 10,000 concurrent requests
+                // Requests 2-10,000 wait for request #1's result instead of calling API
+                var result = await _weatherApi.GetForecastAsync(city, cancellationToken);
+                return result; // Can be null for invalid cities
+            },
+            new HybridCacheEntryOptions
+            {
+                Expiration = TimeSpan.FromMinutes(30),
+                LocalCacheExpiration = TimeSpan.FromMinutes(10)
+            }
+        );
+        
+        return forecast;
+    }
+}
+
+// Benefits:
+// ✅ Invalid cities cached as null (prevents DOS)
+// ✅ Only 1 API call per cache miss (coordination)
+// ✅ Subsequent requests served from cache
+// ✅ Rate limits protected
+            </CodeSnippet>
+
+            <h4>Solution 2: Different TTL for Negative Results</h4>
+
+            <p>
+                Sometimes you want shorter cache duration for missing data. Here's how to implement <ContentHighlight>adaptive caching</ContentHighlight>:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+public async Task&lt;WeatherForecast?&gt; GetForecastWithAdaptiveTTL(string city)
+{
+    var cacheKey = $"weather:{city.ToLowerInvariant()}";
+    
+    var forecast = await _cache.GetOrCreateAsync(
+        cacheKey,
+        async cancellationToken =&gt;
+        {
+            return await _weatherApi.GetForecastAsync(city, cancellationToken);
+        },
+        new HybridCacheEntryOptions
+        {
+            // Default: 30 minutes for valid data
+            Expiration = TimeSpan.FromMinutes(30)
+        }
+    );
+    
+    // Adjust TTL for null results
+    if (forecast == null)
+    {
+        await _cache.SetAsync(
+            cacheKey,
+            forecast,
+            new HybridCacheEntryOptions
+            {
+                // Shorter: 5 minutes for invalid cities
+                Expiration = TimeSpan.FromMinutes(5)
+            }
+        );
+    }
+    
+    return forecast;
+}
+
+// Strategy:
+// - Valid forecasts: 30-minute cache
+// - Invalid cities: 5-minute cache (in case they add the city later)
+// - Still prevents DOS (5 minutes is enough protection)
+            </CodeSnippet>
+
+            <h4>Solution 3: Proving Stampede Protection Works</h4>
+
+            <p>
+                Let's simulate 2,000 concurrent users requesting London's weather to demonstrate coordination:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+using Microsoft.Extensions.Caching.Hybrid;
+using System.Diagnostics;
+
+public class WeatherStampedeSimulation
+{
+    private int _apiCallCount = 0;
+    private readonly IHybridCache _cache;
+    
+    // Simulated external API call
+    private async Task&lt;WeatherForecast&gt; CallExternalApiAsync(string city)
+    {
+        Interlocked.Increment(ref _apiCallCount);
+        await Task.Delay(500); // Simulate network latency
+        
+        return new WeatherForecast
+        {
+            City = city,
+            Temperature = Random.Shared.Next(15, 30),
+            Condition = "Partly Cloudy"
+        };
+    }
+    
+    public async Task SimulateTrafficSpikeAsync()
+    {
+        const int concurrentUsers = 2000;
+        const string city = "London";
+        
+        // Create 2000 concurrent tasks
+        var tasks = Enumerable.Range(0, concurrentUsers)
+            .Select(async _ =&gt;
+            {
+                return await _cache.GetOrCreateAsync(
+                    $"weather:{city}",
+                    async ct =&gt; await CallExternalApiAsync(city)
+                );
+            })
+            .ToArray();
+        
+        var sw = Stopwatch.StartNew();
+        await Task.WhenAll(tasks);
+        sw.Stop();
+        
+        Console.WriteLine($"Concurrent Users: {concurrentUsers}");
+        Console.WriteLine($"External API Calls: {_apiCallCount}");
+        Console.WriteLine($"Total Time: {sw.ElapsedMilliseconds}ms");
+        Console.WriteLine($"Avg per Request: {sw.ElapsedMilliseconds / (double)concurrentUsers:F2}ms");
+    }
+}
+
+// Output:
+// Concurrent Users: 2000
+// External API Calls: 1        ← Only ONE API call!
+// Total Time: 523ms
+// Avg per Request: 0.26ms      ← Lightning fast for cached requests
+            </CodeSnippet>
+
+            <h4>Solution 4: The Option/Maybe Pattern (No Nulls)</h4>
+
+            <p>
+                If you prefer avoiding nulls entirely, use the <ContentHighlight>Option Pattern</ContentHighlight> to explicitly represent presence/absence:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+    {
+        // Not in cache - get from database
+        product = await database.GetProductAsync(productId); // May return null
+        await cache.SetAsync(cacheKey, product); // Still won't cache null!
+    }
+    
+    return product;
+}
+
+// Better: Can distinguish cache miss from null
+// Problem: Still no stampede protection, separate operations
+// Attack: Still vulnerable to repeated queries for non-existent items
+            </CodeSnippet>
+
+            <CodeSnippet CssClass="language-csharp">
+// APPROACH 3: Cache null with GetOrSet (CORRECT!)
+public async Task&lt;Product?&gt; GetProductApproach3(int productId)
+{
+    var cacheKey = $"product:{productId}";
+    
+    // Atomic operation that DOES cache null
+    var product = await fusionCache.GetOrSetAsync(
+        cacheKey,
+        async _ =&gt; await database.GetProductAsync(productId) // Returns null if not found
+    );
+    
+    return product; // May be null, but that's cached!
+}
+            </CodeSnippet>
+
+            <h4>Solution 4: The Option/Maybe Pattern (No Nulls)</h4>
+
+            <p>
+                If you prefer avoiding nulls entirely, use the <ContentHighlight>Option Pattern</ContentHighlight> to explicitly represent presence/absence:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// Option type - represents "some value" or "no value"
+public readonly record struct Option&lt;T&gt;
+{
+    private readonly T? _value;
+    public bool IsSome { get; }
+    public bool IsNone =&gt; !IsSome;
+    
+    private Option(T? value, bool isSome)
+    {
+        _value = value;
+        IsSome = isSome;
+    }
+    
+    public static Option&lt;T&gt; Some(T value) =&gt; new(value, true);
+    public static Option&lt;T&gt; None() =&gt; new(default, false);
+    
+    public T ValueOr(T defaultValue) =&gt; IsSome ? _value! : defaultValue;
+    
+    public TResult Match&lt;TResult&gt;(
+        Func&lt;T, TResult&gt; some,
+        Func&lt;TResult&gt; none) =&gt; IsSome ? some(_value!) : none();
+}
+
+// Usage in weather service
+public async Task&lt;Option&lt;WeatherForecast&gt;&gt; GetForecastOptionAsync(string city)
+{
+    var cacheKey = $"weather:{city.ToLowerInvariant()}";
+    
+    var option = await _cache.GetOrCreateAsync(
+        cacheKey,
+        async cancellationToken =&gt;
+        {
+            var forecast = await _weatherApi.GetForecastAsync(city, cancellationToken);
+            return forecast != null 
+                ? Option&lt;WeatherForecast&gt;.Some(forecast)
+                : Option&lt;WeatherForecast&gt;.None();
+        }
+    );
+    
+    return option;
+}
+
+// Consumer code - pattern matching
+var optionForecast = await service.GetForecastOptionAsync("Paris");
+
+var message = optionForecast.Match(
+    some: forecast =&gt; $"{forecast.City}: {forecast.Temperature}°C",
+    none: () =&gt; "City not found"
+);
+
+// Benefits:
+// ✅ Explicit absence handling
+// ✅ No NullReferenceException risk
+// ✅ Still gets coordination &amp; DOS protection
+// ✅ Cache stores "None" state (not just null)
+            </CodeSnippet>
+
+            <h4>Production Monitoring: Detecting Cache Issues</h4>
+
+            <p>
+                In production, you need visibility into cache behavior. Here's how to instrument your caching layer:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+using Microsoft.Extensions.Logging;
+using System.Diagnostics;
+
+public class MonitoredWeatherService
+{
+    private readonly IHybridCache _cache;
+    private readonly IWeatherApi _weatherApi;
+    private readonly ILogger&lt;MonitoredWeatherService&gt; _logger;
+    private readonly IMeterFactory _meterFactory;
+    private readonly Counter&lt;long&gt; _cacheHits;
+    private readonly Counter&lt;long&gt; _cacheMisses;
+    private readonly Counter&lt;long&gt; _apiCalls;
+    private readonly Histogram&lt;double&gt; _apiLatency;
+    
+    public MonitoredWeatherService(
+        IHybridCache cache,
+        IWeatherApi weatherApi,
+        ILogger&lt;MonitoredWeatherService&gt; logger,
+        IMeterFactory meterFactory)
+    {
+        _cache = cache;
+        _weatherApi = weatherApi;
+        _logger = logger;
+        
+        var meter = meterFactory.Create("WeatherService");
+        _cacheHits = meter.CreateCounter&lt;long&gt;("cache.hits");
+        _cacheMisses = meter.CreateCounter&lt;long&gt;("cache.misses");
+        _apiCalls = meter.CreateCounter&lt;long&gt;("api.calls");
+        _apiLatency = meter.CreateHistogram&lt;double&gt;("api.latency.ms");
+    }
+    
+    public async Task&lt;WeatherForecast?&gt; GetForecastAsync(string city)
+    {
+        var cacheKey = $"weather:{city.ToLowerInvariant()}";
+        var sw = Stopwatch.StartNew();
+        
+        try
+        {
+            var forecast = await _cache.GetOrCreateAsync(
+                cacheKey,
+                async cancellationToken =&gt;
+                {
+                    _cacheMisses.Add(1);
+                    _logger.LogInformation("Cache MISS for {City}", city);
+                    
+                    var apiSw = Stopwatch.StartNew();
+                    var result = await _weatherApi.GetForecastAsync(city, cancellationToken);
+                    apiSw.Stop();
+                    
+                    _apiCalls.Add(1);
+                    _apiLatency.Record(apiSw.ElapsedMilliseconds);
+                    
+                    _logger.LogInformation(
+                        "External API call for {City} completed in {Ms}ms, Result: {HasValue}",
+                        city, apiSw.ElapsedMilliseconds, result != null);
+                    
+                    return result;
+                },
+                new HybridCacheEntryOptions
+                {
+                    Expiration = TimeSpan.FromMinutes(30)
+                }
+            );
+            
+            if (sw.ElapsedMilliseconds &lt; 10) // Fast response = cache hit
+            {
+                _cacheHits.Add(1);
+                _logger.LogDebug("Cache HIT for {City}", city);
+            }
+            
+            return forecast;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching forecast for {City}", city);
+            throw;
+        }
+    }
+}
+
+// Metrics exposed via OpenTelemetry:
+// - cache.hits: Count of cache hits
+// - cache.misses: Count of cache misses  
+// - api.calls: External API invocations
+// - api.latency.ms: API response time distribution
+
+// Use Grafana/Prometheus to alert on:
+// - High cache miss rate (&gt;20%)
+// - Spike in API calls (possible stampede)
+// - High API latency (&gt;1000ms)
+            </CodeSnippet>
+
+            <h4>Decision Matrix: Which Pattern to Use?</h4>
+
+            <CodeSnippet CssClass="language-csharp">
+╔════════════════════════╦══════════════════════╦══════════════════════════════╗
+║ Scenario               ║ Recommended Pattern  ║ Why?                         ║
+╠════════════════════════╬══════════════════════╬══════════════════════════════╣
+║ Public-facing API      ║ GetOrCreate + Null   ║ DOS protection critical      ║
+║                        ║ Caching              ║                              ║
+╠════════════════════════╬══════════════════════╬══════════════════════════════╣
+║ Internal services      ║ GetOrCreate + Option ║ Better type safety           ║
+║                        ║ Pattern              ║                              ║
+╠════════════════════════╬══════════════════════╬══════════════════════════════╣
+║ High-traffic endpoints ║ HybridCache with     ║ Built-in L1+L2 caching       ║
+║                        ║ Redis                ║                              ║
+╠════════════════════════╬══════════════════════╬══════════════════════════════╣
+║ Paid external APIs     ║ Adaptive TTL +       ║ Cost optimization            ║
+║                        ║ Monitoring           ║                              ║
+╠════════════════════════╬══════════════════════╬══════════════════════════════╣
+║ Rapidly changing data  ║ Short TTL +          ║ Freshness vs performance     ║
+║                        ║ Background refresh   ║ balance                      ║
+╚════════════════════════╩══════════════════════╩══════════════════════════════╝
+
+Library Recommendations:
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ .NET 9+        → HybridCache (built-in, excellent coordination)             │
+│ .NET 6-8       → FusionCache (battle-tested, rich features)                 │
+│ Simple caching → MemoryCache (no stampede protection, use carefully)        │
+│ Distributed    → HybridCache + Redis (multi-tier, shared across instances)  │
+└─────────────────────────────────────────────────────────────────────────────┘
+            </CodeSnippet>
+        </How>
+
+        <Summary>
+            <p>
+                We've built production-grade caching patterns that protect against common disasters:
+            </p>
+            
+            <ul>
+                <li>
+                    <ContentHighlight>Negative Caching</ContentHighlight> - Cache null/missing results to prevent DOS attacks from repeated 
+                    queries for non-existent data, protecting API rate limits and reducing costs
+                </li>
+                <li>
+                    <ContentHighlight>Atomic Operations</ContentHighlight> - Use GetOrCreate/GetOrSet instead of separate Get+Set calls to enable 
+                    automatic coordination that prevents stampede conditions
+                </li>
+                <li>
+                    <ContentHighlight>Request Coordination</ContentHighlight> - Libraries like HybridCache and FusionCache ensure only one request executes 
+                    expensive operations while others wait for the shared result
+                </li>
+                <li>
+                    <ContentHighlight>Adaptive TTL</ContentHighlight> - Apply different cache durations for successful vs failed lookups to balance 
+                    freshness with protection
+                </li>
+                <li>
+                    <ContentHighlight>Option Pattern</ContentHighlight> - Eliminate null reference issues while maintaining full stampede protection 
+                    through explicit presence/absence types
+                </li>
+            </ul>
+
+            <p>
+                Production-ready implementation checklist:
+            </p>
+
+            <ul>
+                <li><strong>Use HybridCache (.NET 9+)</strong> or FusionCache for automatic coordination</li>
+                <li><strong>Always cache the result</strong> - including null, Option.None, or error states</li>
+                <li><strong>Instrument with metrics</strong> - track cache hits, misses, API calls, and latency</li>
+                <li><strong>Set up alerts</strong> - detect stampede events and low hit rates in production</li>
+                <li><strong>Consider adaptive TTL</strong> - shorter duration for negative results</li>
+                <li><strong>Test under load</strong> - simulate concurrent traffic to verify coordination works</li>
+                <li><strong>Monitor costs</strong> - track external API usage to catch inefficient caching</li>
+            </ul>
+
+            <p>
+                These patterns transform caching from a potential vulnerability into a robust defense layer. Your infrastructure stays healthy during traffic 
+                spikes, your API costs remain predictable, and malicious actors can't exploit cache misses to DOS your services. Implement them correctly, 
+                and your system will handle Black Friday traffic with the same ease as a quiet Tuesday afternoon.
+            </p>
+        </Summary>
+    </ContentBody>
+</Content>
