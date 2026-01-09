@@ -1,0 +1,399 @@
+@page "/blogs/building-ai-chat-applications-in-dotnet-with-microsoft-extensions-ai"
+@using SharedModels
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(BuildingAIChatApp) UseNewTableOfContentsMenu=true>
+    <ContentBody>
+        <What>
+            <p>
+                In this article, we'll explore how to build a <ContentHighlight>console-based AI chat application</ContentHighlight> in 
+                <ContentHighlight>.NET</ContentHighlight> that leverages <ContentHighlight>Microsoft.Extensions.AI</ContentHighlight> for 
+                unified AI abstractions and <ContentHighlight>OllamaSharp</ContentHighlight> for local LLM integration. Think of it as building 
+                your own ChatGPT-like experience, but running entirely on your local machine with full control over the model.
+            </p>
+
+            <p>
+                The beauty of <ContentHighlight>Microsoft.Extensions.AI</ContentHighlight>? It's a unified abstraction layer that lets you swap 
+                AI providers seamlessly. Start with <ContentHighlight>Ollama</ContentHighlight> for local development, then switch to 
+                <ContentHighlight>Azure OpenAI</ContentHighlight> for production - all without changing your core application logic.
+            </p>
+        </What>
+
+        <Why>
+            <p>
+                Let's address the elephant in the room: Python dominates AI development. But that doesn't mean .NET developers should jump ship. 
+                Here's why staying in the .NET ecosystem for AI makes perfect sense:
+            </p>
+
+            <h4>Leverage your existing .NET expertise</h4>
+
+            <p>
+                Why learn a new language and ecosystem when you can use the tools you already master? .NET offers <ContentHighlight>robust 
+                dependency injection</ContentHighlight>, <ContentHighlight>background services</ContentHighlight>, <ContentHighlight>configuration 
+                management</ContentHighlight>, and <ContentHighlight>hosting infrastructure</ContentHighlight> - all battle-tested in enterprise 
+                environments. These aren't afterthoughts in .NET; they're first-class citizens.
+            </p>
+
+            <h4>Production-ready from day one</h4>
+
+            <p>
+                .NET applications are built for production. With built-in support for <ContentHighlight>structured logging</ContentHighlight>, 
+                <ContentHighlight>health checks</ContentHighlight>, <ContentHighlight>telemetry</ContentHighlight>, and <ContentHighlight>dependency 
+                injection</ContentHighlight>, you're not cobbling together a production deployment - you're using proven patterns that power Fortune 
+                500 companies.
+            </p>
+
+            <h4>Provider flexibility without the pain</h4>
+
+            <p>
+                <ContentHighlight>Microsoft.Extensions.AI</ContentHighlight> provides a game-changing abstraction. Write your code once against the 
+                <ContentHighlight>IChatClient</ContentHighlight> interface, then swap providers at runtime. Start local with Ollama, move to Azure 
+                OpenAI for production, or experiment with OpenAI directly - all with minimal code changes. This is the power of proper abstraction design.
+            </p>
+
+            <h4>Type safety and modern C# features</h4>
+
+            <p>
+                Python's dynamic typing can lead to runtime surprises. C# gives you <ContentHighlight>compile-time safety</ContentHighlight>, 
+                <ContentHighlight>async/await</ContentHighlight> patterns that are clean and efficient, <ContentHighlight>LINQ</ContentHighlight> 
+                for data manipulation, and <ContentHighlight>nullable reference types</ContentHighlight> that catch bugs before they hit production.
+            </p>
+        </Why>
+
+        <How>
+            <h4>Step 1: Set up your project and dependencies</h4>
+
+            <p>
+                First, create a new console application and add the required NuGet packages:
+            </p>
+
+            <CodeSnippet CssClass="language-bash">
+dotnet new console -n AIChat
+cd AIChat
+dotnet add package Microsoft.Extensions.AI
+dotnet add package Microsoft.Extensions.Hosting
+dotnet add package OllamaSharp
+dotnet user-secrets init
+            </CodeSnippet>
+
+            <p>
+                The packages we're using:
+            </p>
+
+            <ul>
+                <li><ContentHighlight>Microsoft.Extensions.AI</ContentHighlight> - Unified AI abstractions for chat, embeddings, and more</li>
+                <li><ContentHighlight>Microsoft.Extensions.Hosting</ContentHighlight> - Generic Host for dependency injection and app lifecycle</li>
+                <li><ContentHighlight>OllamaSharp</ContentHighlight> - Client library for Ollama, a tool for running LLMs locally</li>
+            </ul>
+
+            <p>
+                Your <ContentHighlight>App.csproj</ContentHighlight> should look like this:
+            </p>
+
+            <CodeSnippet CssClass="language-xml">
+&lt;Project Sdk="Microsoft.NET.Sdk"&gt;
+
+  &lt;PropertyGroup&gt;
+    &lt;OutputType&gt;Exe&lt;/OutputType&gt;
+    &lt;TargetFramework&gt;net10.0&lt;/TargetFramework&gt;
+    &lt;ImplicitUsings&gt;enable&lt;/ImplicitUsings&gt;
+    &lt;Nullable&gt;enable&lt;/Nullable&gt;
+    &lt;UserSecretsId&gt;58bd4602-408b-4e27-a45e-2f09cacaeb3c&lt;/UserSecretsId&gt;
+  &lt;/PropertyGroup&gt;
+
+  &lt;ItemGroup&gt;
+    &lt;PackageReference Include="Microsoft.Extensions.AI" Version="10.1.1" /&gt;
+    &lt;PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.1" /&gt;
+    &lt;PackageReference Include="OllamaSharp" Version="5.4.12" /&gt;
+  &lt;/ItemGroup&gt;
+
+&lt;/Project&gt;
+            </CodeSnippet>
+
+            <h4>Step 2: Configure user secrets for secure configuration</h4>
+
+            <p>
+                Never hardcode endpoints or API keys. Use <ContentHighlight>user secrets</ContentHighlight> for local development:
+            </p>
+
+            <CodeSnippet CssClass="language-bash">
+dotnet user-secrets set "Chat:Ollama:Endpoint" "http://localhost:11434"
+            </CodeSnippet>
+
+            <p>
+                This stores your configuration securely outside of source control. For production, use Azure Key Vault or environment variables.
+            </p>
+
+            <h4>Step 3: Set up the host and dependency injection</h4>
+
+            <p>
+                The <ContentHighlight>Program.cs</ContentHighlight> file is where we configure our application host, set up dependency injection, 
+                and register our services:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+using App;
+using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using OllamaSharp;
+
+var host = Host.CreateApplicationBuilder(args);
+
+// Configure the host to read user secrets
+host.Configuration.AddUserSecrets&lt;Program&gt;();
+
+// Get the Ollama endpoint from configuration
+var endpoint = host.Configuration["Chat:Ollama:Endpoint"] 
+    ?? throw new InvalidOperationException(
+        "Missing configuration: Endpoint. See the README for details.");
+
+var model = "llama3.1";
+
+// Create the Ollama client
+var client = new OllamaApiClient(endpoint)
+{
+    SelectedModel = model
+};
+
+// Register the chat client with DI
+IChatClient innerClient = client;
+host.Services.AddChatClient(innerClient).UseLogging();
+
+// Register our background service
+host.Services.AddHostedService&lt;ChatApp&gt;();
+
+var app = host.Build();
+
+// Run the app
+await app.RunAsync();
+            </CodeSnippet>
+
+            <p>
+                Notice how we're using the <ContentHighlight>Generic Host pattern</ContentHighlight>. This gives us:
+            </p>
+
+            <ul>
+                <li><ContentHighlight>Configuration</ContentHighlight> - Load settings from user secrets, environment variables, or appsettings.json</li>
+                <li><ContentHighlight>Dependency Injection</ContentHighlight> - Register and resolve services cleanly</li>
+                <li><ContentHighlight>Logging</ContentHighlight> - Built-in structured logging with <ContentHighlight>.UseLogging()</ContentHighlight></li>
+                <li><ContentHighlight>Lifecycle Management</ContentHighlight> - Graceful startup and shutdown</li>
+            </ul>
+
+            <h4>Step 4: Create the chat application as a background service</h4>
+
+            <p>
+                The <ContentHighlight>BackgroundService</ContentHighlight> base class provides lifecycle hooks for long-running operations. 
+                Here's our complete chat implementation:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Hosting;
+
+namespace App;
+
+internal class ChatApp(
+    IChatClient ai, 
+    IHostApplicationLifetime lifetime) : BackgroundService
+{
+    private static bool exitRequested = false;
+    readonly List&lt;ChatMessage&gt; history = [];
+    
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        // Handle Ctrl+C gracefully
+        Console.CancelKeyPress += (sender, e) =&gt;
+        {
+            Console.WriteLine("\nCtrl+C detected. Exiting gracefully...");
+            e.Cancel = true;
+            lifetime.StopApplication();
+            exitRequested = true;
+        };
+
+        // Initialize conversation with system message
+        ChatMessage systemMessage = new(
+            ChatRole.System, 
+            "You are an AI assistant that tries to answer the user's query.");
+        history.Add(systemMessage);
+        
+        // Get initial greeting
+        ChatResponse response = await ai.GetResponseAsync(
+            history, 
+            cancellationToken: stoppingToken);
+        Console.WriteLine("AI: " + (string.IsNullOrWhiteSpace(response.Text) 
+            ? "How can I assist you today?" 
+            : response.Text));
+        
+        // Main conversation loop
+        while (stoppingToken.IsCancellationRequested == false)
+        {
+            Console.Write("Prompt &gt; ");
+            string? userMessage = Console.ReadLine();
+            
+            if (userMessage == null || exitRequested)
+                break;
+            
+            // Add user message to history
+            history.Add(new ChatMessage(ChatRole.User, userMessage));
+            
+            // Stream the response for better UX
+            var responseText = new TextContent("");
+            var currentResponseMessage = new ChatMessage(
+                ChatRole.Assistant, 
+                [responseText]);
+            
+            await foreach (var chunk in ai.GetStreamingResponseAsync(
+                history, 
+                cancellationToken: stoppingToken))
+            {
+                history.AddMessages(
+                    chunk, 
+                    filter: c =&gt; c is not TextContent);
+                responseText.Text += chunk.Text;
+                Console.Write(chunk.Text);
+            }
+            
+            history.Add(currentResponseMessage);
+            Console.WriteLine();
+        }
+    }
+}
+            </CodeSnippet>
+
+            <p>
+                Let's break down what makes this implementation powerful:
+            </p>
+
+            <h4>Conversation history management</h4>
+
+            <p>
+                The <ContentHighlight>history</ContentHighlight> list maintains the entire conversation context. This is crucial for the AI to 
+                understand follow-up questions and maintain coherent conversations. Each message includes a role (System, User, or Assistant) and 
+                the content.
+            </p>
+
+            <h4>Streaming responses for better UX</h4>
+
+            <p>
+                Instead of waiting for the complete response, we use <ContentHighlight>GetStreamingResponseAsync</ContentHighlight> to display 
+                tokens as they're generated. This creates a ChatGPT-like experience where users see the response appearing in real-time rather 
+                than waiting for the entire answer.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+await foreach (var chunk in ai.GetStreamingResponseAsync(
+    history, 
+    cancellationToken: stoppingToken))
+{
+    Console.Write(chunk.Text);
+}
+            </CodeSnippet>
+
+            <h4>Graceful shutdown handling</h4>
+
+            <p>
+                The <ContentHighlight>Console.CancelKeyPress</ContentHighlight> event handler ensures that when users press Ctrl+C, the application 
+                shuts down gracefully without leaving resources hanging. This is production-grade error handling.
+            </p>
+
+            <h4>Step 5: Run your AI chat application</h4>
+
+            <p>
+                Before running the application, make sure you have Ollama installed and running locally. Download it from 
+                <ContentHighlight>ollama.ai</ContentHighlight> and pull the model:
+            </p>
+
+            <CodeSnippet CssClass="language-bash">
+ollama pull llama3.1
+            </CodeSnippet>
+
+            <p>
+                Now run your .NET application:
+            </p>
+
+            <CodeSnippet CssClass="language-bash">
+dotnet run
+            </CodeSnippet>
+
+            <p>
+                You'll see a greeting from the AI, and you can start chatting:
+            </p>
+
+            <CodeSnippet CssClass="language-text">
+AI: How can I assist you today?
+Prompt &gt; What is dependency injection?
+AI: Dependency injection is a design pattern...
+Prompt &gt; Give me an example in C#
+AI: Here's a practical example...
+            </CodeSnippet>
+
+            <h4>Step 6: The power of abstraction - swapping to Azure OpenAI</h4>
+
+            <p>
+                Here's where <ContentHighlight>Microsoft.Extensions.AI</ContentHighlight> truly shines. Want to use Azure OpenAI instead of Ollama? 
+                Just swap the client implementation:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// Instead of OllamaSharp:
+// var client = new OllamaApiClient(endpoint)
+// {
+//     SelectedModel = model
+// };
+
+// Use Azure OpenAI:
+var client = new AzureOpenAIClient(
+    new Uri(endpoint),
+    new AzureKeyCredential(apikey)
+);
+
+IChatClient innerClient = client.AsChatClient("gpt-4o");
+host.Services.AddChatClient(innerClient).UseLogging();
+            </CodeSnippet>
+
+            <p>
+                That's it. Your <ContentHighlight>ChatApp</ContentHighlight> class doesn't change at all. The <ContentHighlight>IChatClient</ContentHighlight> 
+                abstraction handles the differences between providers. This is the true power of interface-based design - write once, deploy anywhere.
+            </p>
+
+            <h4>Production considerations</h4>
+
+            <p>
+                For production deployments, consider these enhancements:
+            </p>
+
+            <ul>
+                <li><ContentHighlight>Rate limiting</ContentHighlight> - Add throttling to prevent API abuse</li>
+                <li><ContentHighlight>Token counting</ContentHighlight> - Monitor usage and costs with <ContentHighlight>UsageDetails</ContentHighlight></li>
+                <li><ContentHighlight>Error handling</ContentHighlight> - Implement retry policies for transient failures</li>
+                <li><ContentHighlight>Conversation persistence</ContentHighlight> - Store history in a database for multi-session support</li>
+                <li><ContentHighlight>Structured logging</ContentHighlight> - Use ILogger for observability in production</li>
+                <li><ContentHighlight>Configuration management</ContentHighlight> - Use Azure App Configuration or Key Vault</li>
+            </ul>
+        </How>
+
+        <Summary>
+            <p>
+                In this article, we've shattered the myth that AI development requires Python. We built a <ContentHighlight>production-ready AI 
+                chat application</ContentHighlight> in <ContentHighlight>.NET</ContentHighlight> using <ContentHighlight>Microsoft.Extensions.AI</ContentHighlight> 
+                and <ContentHighlight>OllamaSharp</ContentHighlight>, leveraging familiar .NET patterns like <ContentHighlight>Generic Host</ContentHighlight>, 
+                <ContentHighlight>Dependency Injection</ContentHighlight>, <ContentHighlight>Background Services</ContentHighlight>, and 
+                <ContentHighlight>User Secrets</ContentHighlight>.
+            </p>
+
+            <p>
+                The key takeaway? <ContentHighlight>Microsoft.Extensions.AI</ContentHighlight> provides a unified abstraction that lets you write your 
+                AI logic once and swap providers effortlessly. Start local with Ollama for development, then move to Azure OpenAI for production without 
+                rewriting your application logic. This is enterprise-grade AI development with the type safety, tooling, and ecosystem you already know.
+            </p>
+
+            <p>
+                .NET developers no longer need to compromise. You can build sophisticated AI applications using the same robust patterns that power 
+                mission-critical enterprise systems - all while staying in the ecosystem you've mastered.
+            </p>
+        </Summary>
+    </ContentBody>
+</Content>

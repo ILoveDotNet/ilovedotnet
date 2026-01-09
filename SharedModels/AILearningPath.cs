@@ -2,7 +2,7 @@
 
 public class AILearningPath
 {
-  public readonly List<ContentMetaData> FullContents = new(4);
+  public readonly List<ContentMetaData> FullContents = new(5);
 
   public AILearningPath()
   {
@@ -75,6 +75,23 @@ public class AILearningPath
           CreatedOn = new DateTime(2025, 6, 29, 22, 30, 0, DateTimeKind.Utc),
           ModifiedOn = new DateTime(2025, 6, 29, 22, 30, 0, DateTimeKind.Utc),
           Keywords = ["Copilot", "GitHub", "New Codebase", "Analysis"]
+        },
+      new ContentMetaData
+        {
+          Order = 5,
+          Title = "Building AI Chat Applications in .NET with Microsoft.Extensions.AI",
+          Description = "In this post I will teach you how to build production-ready AI chat applications in .NET using Microsoft.Extensions.AI and OllamaSharp, proving that AI development belongs in C# just as much as Python. All with live working demo.",
+          Author = "Abdul Rahman",
+          Slug = "building-ai-chat-applications-in-dotnet-with-microsoft-extensions-ai",
+          PosterUrl = "image/blogs/ai/building-ai-chat-applications-in-dotnet-with-microsoft-extensions-ai.webp",
+          ThumbnailUrl = "image/blogs/ai/building-ai-chat-applications-in-dotnet-with-microsoft-extensions-ai.webp",
+          ContentUrl = "blogs/building-ai-chat-applications-in-dotnet-with-microsoft-extensions-ai",
+          IconUrl = "image/icons/ai.webp",
+          Channel = "AI",
+          Type = "blogs",
+          CreatedOn = new DateTime(2026, 1, 18, 22, 30, 0, DateTimeKind.Utc),
+          ModifiedOn = new DateTime(2026, 1, 18, 22, 30, 0, DateTimeKind.Utc),
+          Keywords = ["Chat", "Microsoft.Extensions.AI", "OllamaSharp", "Ollama", "LLM", "Azure OpenAI"]
         }
     ];
   }
