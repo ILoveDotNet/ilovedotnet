@@ -23,7 +23,7 @@ public class CachingLearningPath
                 Channel = "Caching",
                 CreatedOn = new DateTime(2026, 1, 4, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2026, 1, 4, 22, 30, 0, DateTimeKind.Utc),
-                Keywords = ["Caching", "Performance", "In-Memory Cache", "Distributed Cache", "Data Caching", "Memoization", "Cache Strategy", ".NET Performance"]
+                Keywords = ["Performance", "In-Memory Cache", "Distributed Cache", "Data Caching", "Memoization", "Cache Strategy", ".NET Performance"]
             },
         new ContentMetaData
             {
