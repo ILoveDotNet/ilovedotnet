@@ -72,9 +72,9 @@ public class RssFeed
       Authors = { author }
     };
 
-    using var rssWriter = XmlWriter.Create(_filePath, new XmlWriterSettings { Indent = true });
-    var rssFormatter = new Rss20FeedFormatter(feed);
-    rssFormatter.WriteTo(rssWriter);
+    using var atomWriter = XmlWriter.Create(_filePath, new XmlWriterSettings { Indent = true });
+    var atomFormatter = new Atom10FeedFormatter(feed);
+    atomFormatter.WriteTo(atomWriter);
   }
 
   private void LoadExistingFeed()
@@ -82,7 +82,9 @@ public class RssFeed
     if (File.Exists(_filePath))
     {
       using var reader = XmlReader.Create(_filePath);
-      _feed = SyndicationFeed.Load(reader);
+      var formatter = new Atom10FeedFormatter();
+      formatter.ReadFrom(reader);
+      _feed = formatter.Feed;
     }
   }
 

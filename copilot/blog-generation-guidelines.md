@@ -418,7 +418,7 @@ Each article should have 3-5 engaging hook approaches you could use, such as:
 - **Route Consistency**: The `@page` directive in the Razor article must match the slug, e.g. `@page "/blogs/improve-data-security-with-right-to-be-forgotten-in-dotnet"`.
 - **Publish Date Convention**: Set the `CreatedOn` and `ModifiedOn` fields in `ContentMetaData` to the intended publish date and time. **IMPORTANT**: Articles are ALWAYS published on Sundays at 22:30 UTC. To find the correct date:
   1. Check `CommonComponents/wwwroot/atom.xml` (sorted by descending date)
-  2. Find the latest article's `<pubDate>` (e.g., "Sun, 07 Dec 2025 22:30:00 +0530")
+  2. Find the latest article's `<updated>` or `<published>` date (e.g., "2025-12-07T22:30:00Z")
   3. Add 7 days to get the next Sunday
   4. Use 22:30 UTC as the time: `new DateTime(2025, 12, 14, 22, 30, 0, DateTimeKind.Utc)`
   This ensures articles appear in the correct order and are scheduled for release as planned.
