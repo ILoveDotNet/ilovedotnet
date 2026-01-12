@@ -1,0 +1,942 @@
+@page "/blogs/blazor-wasm-two-factor-authentication-with-qr-codes-and-asp-net-identity"
+@using SharedModels
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(TwoFactorAuthentication) UseNewTableOfContentsMenu=true>
+    <ContentBody>
+        <What>
+            <p>
+                Ever locked yourself out of an account because you lost your phone? Two-factor authentication can feel like that friend who's overly protective—annoying until you realize they just saved you from disaster. In this article, let's learn about implementing <ContentHighlight>two-factor authentication (2FA)</ContentHighlight> with <ContentHighlight>QR codes</ContentHighlight> and <ContentHighlight>TOTP (Time-based One-Time Password)</ContentHighlight> in <ContentHighlight>Blazor WebAssembly Standalone</ContentHighlight> applications using <ContentHighlight>ASP.NET Core Identity</ContentHighlight>.
+            </p>
+
+            <p>
+                We'll build on top of the cookie-based authentication system and add a complete 2FA solution that includes QR code generation, authenticator app integration, and recovery codes. You'll learn how users can scan a QR code with apps like Microsoft Authenticator or Google Authenticator to enable 2FA protection for their accounts.
+            </p>
+        </What>
+
+        <Why>
+            <h4>The Security Gap in Single-Factor Authentication</h4>
+
+            <p>
+                Passwords alone are a <ContentHighlight>single point of failure</ContentHighlight>. Here's what happens without 2FA:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// ❌ Password-only login - One compromised password = complete account takeover
+@@code {
+    public async Task LoginUser()
+    {
+        var result = await Acct.LoginAsync(email, password);
+        
+        if (result.Succeeded)
+        {
+            // User is in! But what if the password was:
+            // - Phished from a fake site
+            // - Leaked in a data breach
+            // - Guessed through brute force
+            // - Stolen via keylogger
+        }
+    }
+}
+            </CodeSnippet>
+
+            <p>
+                With <ContentHighlight>2FA enabled</ContentHighlight>, even if an attacker steals the password, they still can't access the account without the second factor—a time-sensitive code from the user's authenticator app.
+            </p>
+
+            <h4>Why TOTP Over SMS-Based 2FA?</h4>
+
+            <p>
+                <ContentHighlight>TOTP (Time-based One-Time Password)</ContentHighlight> is superior to SMS-based 2FA for several reasons:
+            </p>
+
+            <ul>
+                <li><ContentHighlight>No SIM swap attacks</ContentHighlight> - Attackers can't intercept codes by taking over your phone number</li>
+                <li><ContentHighlight>Works offline</ContentHighlight> - Authenticator apps generate codes without internet connectivity</li>
+                <li><ContentHighlight>Faster and more reliable</ContentHighlight> - No waiting for SMS delivery or carrier issues</li>
+                <li><ContentHighlight>Free and standardized</ContentHighlight> - Based on RFC 6238, compatible with any TOTP authenticator app</li>
+                <li><ContentHighlight>Better user experience</ContentHighlight> - QR code setup is instant and easy</li>
+            </ul>
+
+            <h4>The Complete 2FA Workflow</h4>
+
+            <p>
+                Here's how 2FA changes the authentication flow:
+            </p>
+
+            <CodeSnippet CssClass="language-bash">
+WITHOUT 2FA:
+1. User enters email + password → Backend validates → Login successful
+
+WITH 2FA:
+1. User enters email + password → Backend validates credentials
+2. Backend responds: "RequiresTwoFactor"
+3. UI shows TOTP code input field
+4. User opens authenticator app, gets 6-digit code (changes every 30 seconds)
+5. User enters code → Backend validates TOTP → Login successful
+
+OR (if using recovery code):
+4. User lost their phone, uses one of 10 recovery codes
+5. Backend validates recovery code → Login successful → Recovery codes regenerated
+            </CodeSnippet>
+
+            <h4>Recovery Codes: The Safety Net</h4>
+
+            <p>
+                What happens when users lose their phone or authenticator app? Without <ContentHighlight>recovery codes</ContentHighlight>, they're permanently locked out:
+            </p>
+
+            <CodeSnippet CssClass="language-bash">
+❌ Lost phone + No recovery codes = Permanent account lockout
+✅ Lost phone + Recovery codes = Can still access account and re-configure 2FA
+            </CodeSnippet>
+
+            <p>
+                Recovery codes are <ContentHighlight>single-use backup codes</ContentHighlight> that users should print and store securely. When 2FA is enabled, the system generates 10 recovery codes. Each can be used once to bypass the TOTP requirement.
+            </p>
+
+            <h4>The QR Code Advantage</h4>
+
+            <p>
+                Before QR codes, users had to manually type a long shared secret key into their authenticator app—error-prone and frustrating. With <ContentHighlight>QR code generation</ContentHighlight>, setup is instant:
+            </p>
+
+            <ul>
+                <li>User enables 2FA in your app</li>
+                <li>Backend generates a unique shared secret</li>
+                <li>Frontend creates QR code containing: organization name, user email, and shared secret</li>
+                <li>User scans QR code with authenticator app</li>
+                <li>Both backend and authenticator app now share the same secret</li>
+                <li>Every 30 seconds, both generate the same 6-digit code using the secret + current time</li>
+            </ul>
+        </Why>
+
+        <How>
+            <h4>Step 1: Add QR Code Generation Library</h4>
+
+            <p>
+                First, add a NuGet package to generate QR codes. We'll use <ContentHighlight>Net.Codecrete.QrCodeGenerator</ContentHighlight>, a lightweight .NET library:
+            </p>
+
+            <CodeSnippet CssClass="language-bash">
+dotnet add package Net.Codecrete.QrCodeGenerator
+            </CodeSnippet>
+
+            <p>
+                This package generates QR codes as SVG graphics, perfect for rendering in Blazor without external dependencies.
+            </p>
+
+            <h4>Step 2: Configure TOTP Organization Name</h4>
+
+            <p>
+                Set a recognizable organization name that appears in users' authenticator apps. Add this to <ContentHighlight>wwwroot/appsettings.json</ContentHighlight>:
+            </p>
+
+            <CodeSnippet CssClass="language-json">
+{
+    "BackendUrl": "https://localhost:5001",
+    "FrontendUrl": "https://localhost:5002",
+    "TotpOrganizationName": "I Love DotNet"
+}
+            </CodeSnippet>
+
+            <p>
+                Keep the organization name <ContentHighlight>under 30 characters</ContentHighlight> so it displays properly on narrow mobile screens. Users will see this name in their authenticator app next to the 6-digit code.
+            </p>
+
+            <h4>Step 3: Create 2FA Model Classes</h4>
+
+            <p>
+                Add three model classes to handle 2FA API communication. First, <ContentHighlight>LoginResponse</ContentHighlight> to detect 2FA requirements:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+namespace BlazorWasmAuth.Identity.Models;
+
+public class LoginResponse
+{
+    public string? Type { get; set; }
+    public string? Title { get; set; }
+    public int Status { get; set; }
+    public string? Detail { get; set; }
+}
+            </CodeSnippet>
+
+            <p>
+                Next, <ContentHighlight>TwoFactorRequest</ContentHighlight> for managing 2FA operations:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+namespace BlazorWasmAuth.Identity.Models;
+
+public class TwoFactorRequest
+{
+    public bool? Enable { get; set; }
+    public string? TwoFactorCode { get; set; }
+    public bool? ResetSharedKey { get; set; }
+    public bool? ResetRecoveryCodes { get; set; }
+    public bool? ForgetMachine { get; set; }
+}
+            </CodeSnippet>
+
+            <p>
+                Finally, <ContentHighlight>TwoFactorResponse</ContentHighlight> to receive 2FA status and data:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+namespace BlazorWasmAuth.Identity.Models;
+
+public class TwoFactorResponse
+{
+    public string SharedKey { get; set; } = string.Empty;
+    public int RecoveryCodesLeft { get; set; } = 0;
+    public string[] RecoveryCodes { get; set; } = [];
+    public bool IsTwoFactorEnabled { get; set; }
+    public bool IsMachineRemembered { get; set; }
+    public string[] ErrorList { get; set; } = [];
+}
+            </CodeSnippet>
+
+            <h4>Step 4: Extend IAccountManagement Interface</h4>
+
+            <p>
+                Add method signatures for 2FA operations to your <ContentHighlight>IAccountManagement</ContentHighlight> interface:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// Add to IAccountManagement.cs
+public Task&lt;FormResult&gt; LoginTwoFactorCodeAsync(
+    string email, 
+    string password, 
+    string twoFactorCode);
+
+public Task&lt;FormResult&gt; LoginTwoFactorRecoveryCodeAsync(
+    string email, 
+    string password, 
+    string twoFactorRecoveryCode);
+
+public Task&lt;TwoFactorResponse&gt; TwoFactorRequestAsync(
+    TwoFactorRequest twoFactorRequest);
+            </CodeSnippet>
+
+            <h4>Step 5: Update CookieAuthenticationStateProvider</h4>
+
+            <p>
+                Add the <ContentHighlight>System.Text.Json.Serialization</ContentHighlight> namespace and update JSON serializer options to ignore null values:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+using System.Text.Json.Serialization;
+
+// In CookieAuthenticationStateProvider class
+private readonly JsonSerializerOptions jsonSerializerOptions =
+    new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+    };
+            </CodeSnippet>
+
+            <p>
+                Replace the <ContentHighlight>LoginAsync</ContentHighlight> method to detect 2FA requirements:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+public async Task&lt;FormResult&gt; LoginAsync(string email, string password)
+{
+    try
+    {
+        using var result = await httpClient.PostAsJsonAsync(
+            "login?useCookies=true", new
+            {
+                email,
+                password
+            });
+
+        if (result.IsSuccessStatusCode)
+        {
+            NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
+            return new FormResult { Succeeded = true };
+        }
+        else if (result.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            using var responseJson = await result.Content.ReadAsStringAsync();
+            var response = JsonSerializer.Deserialize&lt;LoginResponse&gt;(
+                responseJson, jsonSerializerOptions);
+
+            // Check if 2FA is required
+            if (response?.Detail == "RequiresTwoFactor")
+            {
+                return new FormResult
+                {
+                    Succeeded = false,
+                    ErrorList = [ "RequiresTwoFactor" ]
+                };
+            }
+        }
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Login failed");
+    }
+
+    return new FormResult
+    {
+        Succeeded = false,
+        ErrorList = [ "Invalid email and/or password." ]
+    };
+}
+            </CodeSnippet>
+
+            <p>
+                Add <ContentHighlight>LoginTwoFactorCodeAsync</ContentHighlight> to handle TOTP code authentication:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+public async Task&lt;FormResult&gt; LoginTwoFactorCodeAsync(
+    string email, string password, string twoFactorCode)
+{
+    try
+    {
+        using var result = await httpClient.PostAsJsonAsync(
+            "login?useCookies=true", new
+            {
+                email,
+                password,
+                twoFactorCode
+            });
+
+        if (result.IsSuccessStatusCode)
+        {
+            NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
+            return new FormResult { Succeeded = true };
+        }
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Two-factor login failed");
+    }
+
+    return new FormResult
+    {
+        Succeeded = false,
+        ErrorList = [ "Invalid two-factor code." ]
+    };
+}
+            </CodeSnippet>
+
+            <p>
+                Add <ContentHighlight>LoginTwoFactorRecoveryCodeAsync</ContentHighlight> for recovery code authentication:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+public async Task&lt;FormResult&gt; LoginTwoFactorRecoveryCodeAsync(
+    string email, 
+    string password, 
+    string twoFactorRecoveryCode)
+{
+    try
+    {
+        using var result = await httpClient.PostAsJsonAsync(
+            "login?useCookies=true", new
+            {
+                email,
+                password,
+                twoFactorRecoveryCode
+            });
+
+        if (result.IsSuccessStatusCode)
+        {
+            NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
+            return new FormResult { Succeeded = true };
+        }
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Recovery code login failed");
+    }
+
+    return new FormResult
+    {
+        Succeeded = false,
+        ErrorList = [ "Invalid recovery code." ]
+    };
+}
+            </CodeSnippet>
+
+            <p>
+                Add <ContentHighlight>TwoFactorRequestAsync</ContentHighlight> to manage all 2FA operations:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+public async Task&lt;TwoFactorResponse&gt; TwoFactorRequestAsync(
+    TwoFactorRequest twoFactorRequest)
+{
+    string[] defaultDetail = 
+        [ "An unknown error prevented two-factor authentication." ];
+
+    using var response = await httpClient.PostAsJsonAsync(
+        "manage/2fa", 
+        twoFactorRequest, 
+        jsonSerializerOptions);
+
+    if (response.IsSuccessStatusCode)
+    {
+        return await response.Content
+            .ReadFromJsonAsync&lt;TwoFactorResponse&gt;() ??
+            new()
+            { 
+                ErrorList = [ "There was an error processing the request." ]
+            };
+    }
+
+    // Parse error details from response
+    var details = await response.Content.ReadAsStringAsync();
+    var problemDetails = JsonDocument.Parse(details);
+    var errors = new List&lt;string&gt;();
+    var errorList = problemDetails.RootElement.GetProperty("errors");
+
+    foreach (var errorEntry in errorList.EnumerateObject())
+    {
+        if (errorEntry.Value.ValueKind == JsonValueKind.String)
+        {
+            errors.Add(errorEntry.Value.GetString()!);
+        }
+        else if (errorEntry.Value.ValueKind == JsonValueKind.Array)
+        {
+            errors.AddRange(
+                errorEntry.Value.EnumerateArray()
+                    .Select(e =&gt; e.GetString() ?? string.Empty)
+                    .Where(e =&gt; !string.IsNullOrEmpty(e)));
+        }
+    }
+
+    return new TwoFactorResponse
+    {
+        ErrorList = problemDetails == null ? defaultDetail : [.. errors]
+    };
+}
+            </CodeSnippet>
+
+            <h4>Step 6: Create Enhanced Login Component</h4>
+
+            <p>
+                Replace the Login component to support both regular login and 2FA code entry:
+            </p>
+
+            <CodeSnippet CssClass="language-razor">
+@@page "/login"
+@@using System.ComponentModel.DataAnnotations
+@@using BlazorWasmAuth.Identity
+@@using BlazorWasmAuth.Identity.Models
+@@inject IAccountManagement Acct
+@@inject NavigationManager Navigation
+
+&lt;PageTitle&gt;Login&lt;/PageTitle&gt;
+
+&lt;h1&gt;Login&lt;/h1&gt;
+
+&lt;AuthorizeView&gt;
+    &lt;Authorized&gt;
+        &lt;div class="alert alert-success"&gt;
+            You're logged in as @@context.User.Identity?.Name.
+        &lt;/div&gt;
+    &lt;/Authorized&gt;
+    &lt;NotAuthorized&gt;
+        @@foreach (var error in formResult.ErrorList)
+        {
+            &lt;div class="alert alert-danger"&gt;@@error&lt;/div&gt;
+        }
+        
+        &lt;EditForm Model="Input" method="post" OnValidSubmit="LoginUser"&gt;
+            &lt;DataAnnotationsValidator /&gt;
+            
+            &lt;!-- Email/Password fields (hidden when 2FA is required) --&gt;
+            &lt;div style="display:@@(requiresTwoFactor ? "none" : "block")"&gt;
+                &lt;div class="form-floating mb-3"&gt;
+                    &lt;InputText @@bind-Value="Input.Email"
+                               class="form-control"
+                               autocomplete="username"
+                               placeholder="name@@example.com" /&gt;
+                    &lt;label&gt;Email&lt;/label&gt;
+                    &lt;ValidationMessage For="() =&gt; Input.Email" /&gt;
+                &lt;/div&gt;
+
+                &lt;div class="form-floating mb-3"&gt;
+                    &lt;InputText type="password"
+                               @@bind-Value="Input.Password"
+                               class="form-control"
+                               autocomplete="current-password"
+                               placeholder="password" /&gt;
+                    &lt;label&gt;Password&lt;/label&gt;
+                    &lt;ValidationMessage For="() =&gt; Input.Password" /&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;!-- 2FA code field (shown when 2FA is required) --&gt;
+            &lt;div style="display:@@(requiresTwoFactor ? "block" : "none")"&gt;
+                &lt;div class="form-floating mb-3"&gt;
+                    &lt;InputText @@bind-Value="Input.TwoFactorCodeOrRecoveryCode"
+                               class="form-control"
+                               autocomplete="off"
+                               placeholder="###### or #####-#####" /&gt;
+                    &lt;label&gt;Two-factor Code or Recovery Code&lt;/label&gt;
+                    &lt;ValidationMessage 
+                        For="() =&gt; Input.TwoFactorCodeOrRecoveryCode" /&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;button type="submit" class="btn btn-primary"&gt;Log in&lt;/button&gt;
+        &lt;/EditForm&gt;
+    &lt;/NotAuthorized&gt;
+&lt;/AuthorizeView&gt;
+
+@@code {
+    private FormResult formResult = new();
+    private bool requiresTwoFactor;
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = new();
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    public async Task LoginUser()
+    {
+        if (requiresTwoFactor)
+        {
+            if (!string.IsNullOrEmpty(Input.TwoFactorCodeOrRecoveryCode))
+            {
+                // 6-digit code = TOTP, 11-character = recovery code
+                if (Input.TwoFactorCodeOrRecoveryCode.Length == 6)
+                {
+                    formResult = await Acct.LoginTwoFactorCodeAsync(
+                        Input.Email, 
+                        Input.Password, 
+                        Input.TwoFactorCodeOrRecoveryCode);
+                }
+                else
+                {
+                    formResult = await Acct.LoginTwoFactorRecoveryCodeAsync(
+                        Input.Email, 
+                        Input.Password, 
+                        Input.TwoFactorCodeOrRecoveryCode);
+                }
+            }
+        }
+        else
+        {
+            formResult = await Acct.LoginAsync(Input.Email, Input.Password);
+            requiresTwoFactor = 
+                formResult.ErrorList.Contains("RequiresTwoFactor");
+            Input.TwoFactorCodeOrRecoveryCode = string.Empty;
+
+            if (requiresTwoFactor)
+            {
+                formResult.ErrorList = [];
+            }
+        }
+
+        if (formResult.Succeeded &amp;&amp; !string.IsNullOrEmpty(ReturnUrl))
+        {
+            Navigation.NavigateTo(ReturnUrl);
+        }
+    }
+
+    private sealed class InputModel
+    {
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; } = string.Empty;
+
+        [Required]
+        [DataType(DataType.Password)]
+        public string Password { get; set; } = string.Empty;
+
+        [RegularExpression(@@"^([0-9]{6})|([A-Z0-9]{5}[-]{1}[A-Z0-9]{5})$", 
+            ErrorMessage = "Must be 6-digit code (######) or " +
+                          "recovery code (#####-#####)")]
+        public string TwoFactorCodeOrRecoveryCode { get; set; } = string.Empty;
+    }
+}
+            </CodeSnippet>
+
+            <figure>
+                <img src="./image/blogs/blazor/wasm/blazor-wasm-two-factor-authentication-with-qr-codes-and-asp-net-identity/login.png" alt="Login" />
+                <figcaption>Login</figcaption>
+            </figure>
+
+            <figure>
+                <img src="./image/blogs/blazor/wasm/blazor-wasm-two-factor-authentication-with-qr-codes-and-asp-net-identity/enter-totp.png" alt="Enter TOTP" />
+                <figcaption>Enter TOTP</figcaption>
+            </figure>
+
+            <figure>
+                <img src="./image/blogs/blazor/wasm/blazor-wasm-two-factor-authentication-with-qr-codes-and-asp-net-identity/profile.png" alt="Profile" />
+                <figcaption>Profile</figcaption>
+            </figure>
+
+            <figure>
+                <img src="./image/blogs/blazor/wasm/blazor-wasm-two-factor-authentication-with-qr-codes-and-asp-net-identity/logout.png" alt="Logout" />
+                <figcaption>Logout</figcaption>
+            </figure>
+
+            <h4>Step 7: Create Recovery Codes Display Component</h4>
+
+            <p>
+                Add a component to display recovery codes to users when 2FA is enabled:
+            </p>
+
+            <CodeSnippet CssClass="language-razor">
+&lt;h3&gt;Recovery Codes&lt;/h3&gt;
+
+&lt;div class="alert alert-warning" role="alert"&gt;
+    &lt;p&gt;
+        &lt;strong&gt;Put these codes in a safe place.&lt;/strong&gt;
+    &lt;/p&gt;
+    &lt;p&gt;
+        If you lose your device and don't have an unused 
+        recovery code, you can't access your account.
+    &lt;/p&gt;
+&lt;/div&gt;
+
+&lt;div class="row"&gt;
+    &lt;div class="col-md-12"&gt;
+        @@foreach (var recoveryCode in RecoveryCodes)
+        {
+            &lt;div&gt;
+                &lt;code class="recovery-code"&gt;@@recoveryCode&lt;/code&gt;
+            &lt;/div&gt;
+        }
+    &lt;/div&gt;
+&lt;/div&gt;
+
+@@code {
+    [Parameter]
+    public string[] RecoveryCodes { get; set; } = [];
+}
+            </CodeSnippet>
+
+            <figure>
+                <img src="./image/blogs/blazor/wasm/blazor-wasm-two-factor-authentication-with-qr-codes-and-asp-net-identity/recovery-codes.png" alt="Recovery Codes" />
+                <figcaption>Recovery Codes</figcaption>
+            </figure>
+
+            <h4>Step 8: Create the 2FA Management Page</h4>
+
+            <p>
+                Create the main component for managing 2FA with QR code generation:
+            </p>
+
+            <CodeSnippet CssClass="language-razor">
+@@page "/manage-2fa"
+@@using System.ComponentModel.DataAnnotations
+@@using System.Globalization
+@@using System.Text.Encodings.Web
+@@using Net.Codecrete.QrCodeGenerator
+@@using BlazorWasmAuth.Identity
+@@using BlazorWasmAuth.Identity.Models
+@@attribute [Authorize]
+@@inject IAccountManagement Acct
+@@inject IConfiguration Config
+
+&lt;PageTitle&gt;Manage 2FA&lt;/PageTitle&gt;
+
+&lt;h1&gt;Manage Two-factor Authentication&lt;/h1&gt;
+&lt;hr /&gt;
+
+@@if (loading)
+{
+    &lt;p&gt;Loading...&lt;/p&gt;
+}
+else if (twoFactorResponse is not null)
+{
+    @@foreach (var error in twoFactorResponse.ErrorList)
+    {
+        &lt;div class="alert alert-danger"&gt;@@error&lt;/div&gt;
+    }
+
+    @@if (twoFactorResponse.IsTwoFactorEnabled)
+    {
+        &lt;div class="alert alert-success"&gt;
+            Two-factor authentication is enabled for your account.
+        &lt;/div&gt;
+
+        &lt;button @@onclick="Disable2FA" class="btn btn-primary m-1"&gt;
+            Disable 2FA
+        &lt;/button&gt;
+
+        @@if (twoFactorResponse.RecoveryCodes is null)
+        {
+            &lt;div class="m-1"&gt;
+                Recovery Codes Remaining: @@twoFactorResponse.RecoveryCodesLeft
+            &lt;/div&gt;
+            &lt;button @@onclick="GenerateNewCodes" class="btn btn-primary m-1"&gt;
+                Generate New Recovery Codes
+            &lt;/button&gt;
+        }
+        else
+        {
+            &lt;ShowRecoveryCodes RecoveryCodes="twoFactorResponse.RecoveryCodes" /&gt;
+        }
+    }
+    else
+    {
+        &lt;h3&gt;Configure authenticator app&lt;/h3&gt;
+        &lt;ol&gt;
+            &lt;li&gt;
+                &lt;p&gt;Download a two-factor authenticator app like:&lt;/p&gt;
+                &lt;ul&gt;
+                    &lt;li&gt;Microsoft Authenticator for 
+                        &lt;a href="https://go.microsoft.com/fwlink/?Linkid=825072"&gt;
+                            Android
+                        &lt;/a&gt; and 
+                        &lt;a href="https://go.microsoft.com/fwlink/?Linkid=825073"&gt;
+                            iOS
+                        &lt;/a&gt;
+                    &lt;/li&gt;
+                    &lt;li&gt;Google Authenticator for 
+                        &lt;a href="https://play.google.com/store/apps/details?id=com.google.android.apps.authenticator2"&gt;
+                            Android
+                        &lt;/a&gt; and 
+                        &lt;a href="https://itunes.apple.com/us/app/google-authenticator/id388497605?mt=8"&gt;
+                            iOS
+                        &lt;/a&gt;
+                    &lt;/li&gt;
+                &lt;/ul&gt;
+            &lt;/li&gt;
+            &lt;li&gt;
+                &lt;p&gt;
+                    Scan the QR Code or enter this key 
+                    &lt;kbd&gt;@@twoFactorResponse.SharedKey&lt;/kbd&gt; 
+                    into your authenticator app.
+                &lt;/p&gt;
+                &lt;div&gt;
+                    &lt;svg xmlns="http://www.w3.org/2000/svg" 
+                         height="300" width="300" 
+                         stroke="none" version="1.1" 
+                         viewBox="0 0 50 50"&gt;
+                        &lt;rect width="300" height="300" fill="#ffffff" /&gt;
+                        &lt;path d="@@svgGraphicsPath" fill="#000000" /&gt;
+                    &lt;/svg&gt;
+                &lt;/div&gt;
+            &lt;/li&gt;
+            &lt;li&gt;
+                &lt;p&gt;Enter the verification code from your authenticator app:&lt;/p&gt;
+                &lt;EditForm Model="Input" OnValidSubmit="OnValidSubmitAsync"&gt;
+                    &lt;DataAnnotationsValidator /&gt;
+                    &lt;div class="form-floating mb-3"&gt;
+                        &lt;InputText @@bind-Value="Input.Code"
+                                   class="form-control"
+                                   autocomplete="off"
+                                   placeholder="Enter the code" /&gt;
+                        &lt;label&gt;Verification Code&lt;/label&gt;
+                        &lt;ValidationMessage For="() =&gt; Input.Code" /&gt;
+                    &lt;/div&gt;
+                    &lt;button type="submit" class="btn btn-primary"&gt;
+                        Verify
+                    &lt;/button&gt;
+                &lt;/EditForm&gt;
+            &lt;/li&gt;
+        &lt;/ol&gt;
+    }
+}
+
+@@code {
+    private TwoFactorResponse twoFactorResponse = new();
+    private bool loading = true;
+    private string? svgGraphicsPath;
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = new();
+
+    [CascadingParameter]
+    private Task&lt;AuthenticationState&gt;? authenticationState { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        twoFactorResponse = await Acct.TwoFactorRequestAsync(new());
+        svgGraphicsPath = await GetQrCode(twoFactorResponse.SharedKey);
+        loading = false;
+    }
+
+    private async Task&lt;string&gt; GetQrCode(string sharedKey)
+    {
+        if (authenticationState is not null &amp;&amp; !string.IsNullOrEmpty(sharedKey))
+        {
+            var authState = await authenticationState;
+            var email = authState?.User?.Identity?.Name!;
+            
+            // Generate TOTP URI for authenticator apps
+            var uri = string.Format(
+                CultureInfo.InvariantCulture,
+                "otpauth://totp/{0}:{1}?secret={2}&amp;issuer={0}&amp;digits=6",
+                UrlEncoder.Default.Encode(Config["TotpOrganizationName"]!),
+                email,
+                twoFactorResponse.SharedKey);
+            
+            var qr = QrCode.EncodeText(uri, QrCode.Ecc.Medium);
+            return qr.ToGraphicsPath();
+        }
+
+        return string.Empty;
+    }
+
+    private async Task Disable2FA()
+    {
+        await Acct.TwoFactorRequestAsync(new() { ForgetMachine = true });
+        twoFactorResponse = 
+            await Acct.TwoFactorRequestAsync(new() { ResetSharedKey = true });
+        svgGraphicsPath = await GetQrCode(twoFactorResponse.SharedKey);
+    }
+
+    private async Task GenerateNewCodes()
+    {
+        twoFactorResponse = 
+            await Acct.TwoFactorRequestAsync(new() { ResetRecoveryCodes = true });
+    }
+
+    private async Task OnValidSubmitAsync()
+    {
+        twoFactorResponse = await Acct.TwoFactorRequestAsync(
+            new() 
+            { 
+                Enable = true, 
+                TwoFactorCode = Input.Code 
+            });
+        
+        Input.Code = string.Empty;
+
+        // Generate recovery codes when enabling 2FA
+        if (twoFactorResponse.RecoveryCodes is null || 
+            twoFactorResponse.RecoveryCodes.Length == 0)
+        {
+            await GenerateNewCodes();
+        }
+    }
+
+    private sealed class InputModel
+    {
+        [Required]
+        [RegularExpression(@@"^([0-9]{6})$", 
+            ErrorMessage = "Must be a six-digit code (######)")]
+        [DataType(DataType.Text)]
+        public string Code { get; set; } = string.Empty;
+    }
+}
+            </CodeSnippet>
+
+            <figure>
+                <img src="./image/blogs/blazor/wasm/blazor-wasm-two-factor-authentication-with-qr-codes-and-asp-net-identity/manage-2fa.png" alt="Manage 2FA" />
+                <figcaption>Manage 2FA</figcaption>
+            </figure>
+
+            <h4>Step 9: Add Navigation Link</h4>
+
+            <p>
+                Add a link to the navigation menu for authenticated users to access 2FA management:
+            </p>
+
+            <CodeSnippet CssClass="language-razor">
+&lt;!-- In NavMenu.razor, inside &lt;Authorized&gt; section --&gt;
+&lt;div class="nav-item px-3"&gt;
+    &lt;NavLink class="nav-link" href="manage-2fa"&gt;
+        &lt;span class="bi bi-key" aria-hidden="true"&gt;&lt;/span&gt; Manage 2FA
+    &lt;/NavLink&gt;
+&lt;/div&gt;
+            </CodeSnippet>
+
+            <h4>Step 10: Understanding the TOTP URI Format</h4>
+
+            <p>
+                The QR code contains a specially formatted URI that authenticator apps understand:
+            </p>
+
+            <CodeSnippet CssClass="language-bash">
+otpauth://totp/{OrganizationName}:{UserEmail}?secret={SharedKey}&amp;issuer={OrganizationName}&amp;digits=6
+
+Example:
+otpauth://totp/I%20Love%20DotNet:user@example.com?secret=JBSWY3DPEHPK3PXP&amp;issuer=I%20Love%20DotNet&amp;digits=6
+
+Breaking it down:
+- otpauth://totp/     : Indicates this is a TOTP secret
+- I%20Love%20DotNet  : Organization name (URL-encoded)
+- user@example.com    : User's email
+- JBSWY3DPEHPK3PXP    : Shared secret (Base32 encoded)
+- issuer              : Organization name again (displayed in app)
+- digits=6            : Generate 6-digit codes
+            </CodeSnippet>
+
+            <h4>Step 11: Never Require 2FA on Every Login (Optional)</h4>
+
+            <p>
+                By default, ASP.NET Core Identity <ContentHighlight>remembers the machine</ContentHighlight> after successful 2FA login. To require 2FA on every login, call ForgetMachine after authentication:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// In Login component, after successful TOTP login
+if (Input.TwoFactorCodeOrRecoveryCode.Length == 6)
+{
+    formResult = await Acct.LoginTwoFactorCodeAsync(
+        Input.Email, Input.Password, 
+        Input.TwoFactorCodeOrRecoveryCode);
+
+    // Always require 2FA on next login
+    if (formResult.Succeeded)
+    {
+        var forgetMachine = 
+            await Acct.TwoFactorRequestAsync(new() { ForgetMachine = true });
+    }
+}
+            </CodeSnippet>
+
+            <p>
+                This is more secure but less convenient for users. Most apps remember the machine for 30 days.
+            </p>
+
+            <h4>Step 12: Handling TOTP Time Skew Issues</h4>
+
+            <p>
+                TOTP depends on <ContentHighlight>accurate time synchronization</ContentHighlight> between the server and the authenticator app device. Codes are valid for only 30 seconds:
+            </p>
+
+            <CodeSnippet CssClass="language-bash">
+Time Skew Problems:
+- Server time: 10:30:15 UTC
+- User device: 10:29:45 UTC (30 seconds behind)
+- Result: User's code is from the previous 30-second window → Authentication fails
+
+Solutions:
+1. Ensure server time is synced with NTP (Network Time Protocol)
+2. Advise users to enable automatic time on their devices
+3. ASP.NET Core Identity allows ±1 time window tolerance by default
+            </CodeSnippet>
+
+            <p>
+                If users report frequent 2FA failures, check server time synchronization first.
+            </p>
+        </How>
+
+        <Summary>
+            <p>
+                In this article, we implemented a complete <ContentHighlight>two-factor authentication system</ContentHighlight> with <ContentHighlight>QR codes</ContentHighlight> and <ContentHighlight>TOTP</ContentHighlight> in <ContentHighlight>Blazor WebAssembly Standalone</ContentHighlight> applications. Here are the key takeaways:
+            </p>
+
+            <ul>
+                <li><ContentHighlight>TOTP is superior to SMS-based 2FA</ContentHighlight> - More secure, works offline, and prevents SIM swap attacks</li>
+                <li><ContentHighlight>QR codes simplify setup</ContentHighlight> - Users scan once instead of typing long secret keys</li>
+                <li><ContentHighlight>Recovery codes are essential</ContentHighlight> - Generate 10 single-use codes to prevent permanent lockouts</li>
+                <li><ContentHighlight>Login flow changes with 2FA</ContentHighlight> - Detect "RequiresTwoFactor" response and show code input field</li>
+                <li><ContentHighlight>Three authentication methods</ContentHighlight> - Password only, password + TOTP code, or password + recovery code</li>
+                <li><ContentHighlight>Shared secret synchronization</ContentHighlight> - Both backend and authenticator app generate the same code using the secret + time</li>
+                <li><ContentHighlight>Time accuracy matters</ContentHighlight> - TOTP codes expire every 30 seconds; server and client clocks must be synchronized</li>
+                <li><ContentHighlight>Machine memory is optional</ContentHighlight> - Can remember devices or require 2FA on every login</li>
+            </ul>
+
+            <p>
+                This implementation gives you <ContentHighlight>bank-level security</ContentHighlight> for your Blazor WASM apps while maintaining excellent user experience. The combination of QR code setup, authenticator app integration, and recovery codes creates a robust 2FA solution that protects user accounts even when passwords are compromised.
+            </p>
+        </Summary>
+    </ContentBody>
+</Content>

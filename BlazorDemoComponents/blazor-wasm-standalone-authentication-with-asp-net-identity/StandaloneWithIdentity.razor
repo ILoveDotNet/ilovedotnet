@@ -1,0 +1,925 @@
+@page "/blogs/blazor-wasm-standalone-authentication-with-asp-net-identity"
+@using SharedModels
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(StandaloneWithIdentity) UseNewTableOfContentsMenu=true>
+    <ContentBody>
+        <What>
+            <p>
+                Building a <ContentHighlight>Blazor WebAssembly</ContentHighlight> app with authentication feels like assembling furniture without instructions—you know the pieces fit together somehow, but where do you even start? In this article, let's learn about implementing <ContentHighlight>cookie-based authentication</ContentHighlight> in <ContentHighlight>Blazor WebAssembly Standalone applications</ContentHighlight> using <ContentHighlight>ASP.NET Core Identity</ContentHighlight>. We'll explore how to create a complete authentication system that works seamlessly across a separate backend API and a client-side SPA.
+            </p>
+
+            <p>
+                Unlike traditional Blazor Server apps where authentication is straightforward, <ContentHighlight>Blazor WASM Standalone</ContentHighlight> runs entirely in the browser and needs a separate backend for authentication. This creates unique challenges around state management, cookie handling, and cross-origin requests.
+            </p>
+        </What>
+
+        <Why>
+            <h4>The Authentication Dilemma in Blazor WASM</h4>
+
+            <p>
+                When you build a Blazor WebAssembly app, you're creating a <ContentHighlight>client-side SPA</ContentHighlight> that runs entirely in the browser. But authentication needs a secure backend. Here's what happens without proper setup:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// ❌ This won't work in Blazor WASM - No server-side session
+@@inject AuthenticationStateProvider AuthStateProvider
+
+@@code {
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        // user.Identity.IsAuthenticated will always be false without proper setup
+    }
+}
+            </CodeSnippet>
+
+            <p>
+                The problem? Your Blazor WASM app has <ContentHighlight>no built-in session management</ContentHighlight>. It's just static files served to the browser. Authentication state lives on the server, but your UI needs to know about it.
+            </p>
+
+            <h4>Why Cookie-Based Auth Matters</h4>
+
+            <p>
+                You might think, "Why not just use JWT tokens?" While tokens work, <ContentHighlight>cookie-based authentication</ContentHighlight> offers several advantages:
+            </p>
+
+            <ul>
+                <li><ContentHighlight>Automatic credential handling</ContentHighlight> - Browsers send cookies automatically with every request</li>
+                <li><ContentHighlight>Better security</ContentHighlight> - HttpOnly cookies can't be accessed by JavaScript, protecting against XSS attacks</li>
+                <li><ContentHighlight>Simpler implementation</ContentHighlight> - No need to manually attach tokens to every API call</li>
+                <li><ContentHighlight>Native browser support</ContentHighlight> - Logout is as simple as clearing the cookie</li>
+                <li><ContentHighlight>Works seamlessly with Identity API</ContentHighlight> - ASP.NET Core Identity endpoints use cookies by default</li>
+            </ul>
+
+            <h4>The Two-Server Architecture</h4>
+
+            <p>
+                A <ContentHighlight>standalone Blazor WASM with Identity</ContentHighlight> requires two separate applications:
+            </p>
+
+            <CodeSnippet CssClass="language-bash">
+┌─────────────────────────────────────────────────────────────────┐
+│                    Client Browser                               │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │         Blazor WASM App (https://localhost:5002)          │  │
+│  │  • Runs in browser                                        │  │
+│  │  • Static files only                                      │  │
+│  │  • Makes HTTP calls to backend                            │  │
+│  │  • Manages UI state via AuthenticationStateProvider       │  │
+│  └───────────────────────────────────────────────────────────┘  │
+│                            │                                    │
+│                            │ HTTP + Cookies                     │
+│                            ▼                                    │
+└─────────────────────────────────────────────────────────────────┘
+                             │
+                             │ CORS-enabled requests
+                             │
+┌─────────────────────────────────────────────────────────────────┐
+│              Backend API (https://localhost:5001)               │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │  • ASP.NET Core Web API                                   │  │
+│  │  • Identity endpoints (/register, /login, /logout)        │  │
+│  │  • EF Core + Identity database                            │  │
+│  │  • Cookie authentication                                  │  │
+│  │  • Protected endpoints with [Authorize]                   │  │
+│  └───────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
+            </CodeSnippet>
+
+            <p>
+                Without this separation, you can't have a truly standalone WASM app with server-side authentication. The backend handles all security-sensitive operations while the frontend provides the interactive UI.
+            </p>
+        </Why>
+
+        <How>
+            <h4>Step 1: Setting Up the Backend API</h4>
+
+            <p>
+                Let's start by creating a minimal API backend with Identity support. The backend needs three key components: <ContentHighlight>Identity configuration</ContentHighlight>, <ContentHighlight>CORS policy</ContentHighlight>, and <ContentHighlight>cookie authentication</ContentHighlight>.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+using Backend;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// 1. Establish cookie authentication
+builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme)
+    .AddIdentityCookies();
+
+// 2. Add the database (in-memory for demo, use real DB in production)
+builder.Services.AddDbContext&lt;AppDbContext&gt;(options =&gt;
+    options.UseInMemoryDatabase("AppDb"));
+
+// 3. Add Identity and opt-in to endpoints
+builder.Services.AddIdentityCore&lt;AppUser&gt;()
+    .AddRoles&lt;IdentityRole&gt;()
+    .AddEntityFrameworkStores&lt;AppDbContext&gt;()
+    .AddApiEndpoints();
+
+// 4. Configure CORS for the Blazor WASM client
+builder.Services.AddCors(options =&gt; options.AddPolicy(
+    "wasm",
+    policy =&gt; policy
+        .WithOrigins([
+            builder.Configuration["BackendUrl"] ?? "https://localhost:5001",
+            builder.Configuration["FrontendUrl"] ?? "https://localhost:5002"
+        ])
+        .AllowAnyMethod()
+        .AllowAnyHeader()
+        .AllowCredentials())); // Critical for cookies!
+
+// 5. Add authorization
+builder.Services.AddAuthorizationBuilder();
+
+var app = builder.Build();
+
+// 6. Map Identity API endpoints
+app.MapIdentityApi&lt;AppUser&gt;();
+
+// 7. Activate CORS (must come before auth middleware)
+app.UseCors("wasm");
+
+// 8. Enable authentication and authorization
+app.UseAuthentication();
+app.UseAuthorization();
+
+// 9. Custom logout endpoint
+app.MapPost("/logout", async (
+    SignInManager&lt;AppUser&gt; signInManager,
+    [FromBody] object empty) =&gt;
+{
+    if (empty is not null)
+    {
+        await signInManager.SignOutAsync();
+        return Results.Ok();
+    }
+    return Results.Unauthorized();
+}).RequireAuthorization();
+
+// 10. Custom roles endpoint
+app.MapGet("/roles", (ClaimsPrincipal user) =&gt;
+{
+    if (user.Identity is not null &amp;&amp; user.Identity.IsAuthenticated)
+    {
+        var identity = (ClaimsIdentity)user.Identity;
+        var roles = identity.FindAll(identity.RoleClaimType)
+            .Select(c =&gt; new
+            {
+                c.Issuer,
+                c.OriginalIssuer,
+                c.Type,
+                c.Value,
+                c.ValueType
+            });
+        return TypedResults.Json(roles);
+    }
+    return Results.Unauthorized();
+}).RequireAuthorization();
+
+app.Run();
+
+// Identity database context
+class AppDbContext(DbContextOptions&lt;AppDbContext&gt; options) 
+    : IdentityDbContext&lt;AppUser&gt;(options)
+{
+}
+            </CodeSnippet>
+
+            <p>
+                The <ContentHighlight>AllowCredentials()</ContentHighlight> setting is crucial—without it, browsers won't send cookies cross-origin. The <ContentHighlight>MapIdentityApi</ContentHighlight> call automatically creates endpoints for registration, login, 2FA, and account management.
+            </p>
+
+            <h4>Step 2: Creating the User Model</h4>
+
+            <p>
+                Your user model extends <ContentHighlight>IdentityUser</ContentHighlight> to leverage all built-in Identity features. You can add custom properties as needed:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+using Microsoft.AspNetCore.Identity;
+
+namespace Backend;
+
+public class AppUser : IdentityUser
+{
+    // Add custom properties here
+    // public string? FirstName { get; set; }
+    // public string? LastName { get; set; }
+}
+            </CodeSnippet>
+
+            <h4>Step 3: Seeding Initial Data</h4>
+
+            <p>
+                For testing, seed some users with different roles. In production, you'd register users through your app:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+
+namespace Backend;
+
+public class SeedData
+{
+    private static readonly IEnumerable&lt;SeedUser&gt; seedUsers =
+    [
+        new SeedUser()
+        {
+            Email = "admin@@example.com",
+            NormalizedEmail = "ADMIN@@EXAMPLE.COM",
+            NormalizedUserName = "ADMIN@@EXAMPLE.COM",
+            RoleList = [ "Administrator", "Manager" ],
+            UserName = "admin@@example.com"
+        },
+        new SeedUser()
+        {
+            Email = "user@@example.com",
+            NormalizedEmail = "USER@@EXAMPLE.COM",
+            NormalizedUserName = "USER@@EXAMPLE.COM",
+            RoleList = [ "User" ],
+            UserName = "user@@example.com"
+        },
+    ];
+
+    public static async Task InitializeAsync(IServiceProvider serviceProvider)
+    {
+        using var context = new AppDbContext(
+            serviceProvider.GetRequiredService&lt;DbContextOptions&lt;AppDbContext&gt;&gt;());
+
+        if (context.Users.Any())
+            return;
+
+        var password = new PasswordHasher&lt;AppUser&gt;();
+
+        // Create roles
+        using var roleManager = serviceProvider
+            .GetRequiredService&lt;RoleManager&lt;IdentityRole&gt;&gt;();
+
+        string[] roles = [ "Administrator", "Manager", "User" ];
+
+        foreach (var role in roles)
+        {
+            if (!await roleManager.RoleExistsAsync(role))
+            {
+                await roleManager.CreateAsync(new IdentityRole(role));
+            }
+        }
+
+        // Create users
+        using var userManager = serviceProvider
+            .GetRequiredService&lt;UserManager&lt;AppUser&gt;&gt;();
+
+        foreach (var user in seedUsers)
+        {
+            var hashed = password.HashPassword(user, "Password123!");
+            user.PasswordHash = hashed;
+            
+            await context.Users.AddAsync(user);
+
+            if (user.Email is not null)
+            {
+                var appUser = await userManager.FindByEmailAsync(user.Email);
+                if (appUser is not null &amp;&amp; user.RoleList is not null)
+                {
+                    await userManager.AddToRolesAsync(appUser, user.RoleList);
+                }
+            }
+        }
+
+        await context.SaveChangesAsync();
+    }
+
+    private class SeedUser : AppUser
+    {
+        public string[]? RoleList { get; set; }
+    }
+}
+            </CodeSnippet>
+
+            <h4>Step 4: Configuring the Blazor WASM Client</h4>
+
+            <p>
+                The Blazor WASM app needs several NuGet packages to handle authentication:
+            </p>
+
+            <CodeSnippet CssClass="language-xml">
+&lt;Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly"&gt;
+  &lt;PropertyGroup&gt;
+    &lt;TargetFramework&gt;net10.0&lt;/TargetFramework&gt;
+    &lt;Nullable&gt;enable&lt;/Nullable&gt;
+  &lt;/PropertyGroup&gt;
+
+  &lt;ItemGroup&gt;
+    &lt;PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" 
+                      Version="10.0.0" /&gt;
+    &lt;PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Authentication" 
+                      Version="10.0.0" /&gt;
+    &lt;PackageReference Include="Microsoft.Extensions.Http" 
+                      Version="10.0.0" /&gt;
+  &lt;/ItemGroup&gt;
+&lt;/Project&gt;
+            </CodeSnippet>
+
+            <h4>Step 5: Creating the Cookie Handler</h4>
+
+            <p>
+                The <ContentHighlight>CookieHandler</ContentHighlight> ensures cookies are sent with every API request. This is the bridge between your Blazor UI and the backend authentication:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+using Microsoft.AspNetCore.Components.WebAssembly.Http;
+
+namespace BlazorWasmAuth.Identity;
+
+public class CookieHandler : DelegatingHandler
+{
+    protected override Task&lt;HttpResponseMessage&gt; SendAsync(
+        HttpRequestMessage request,
+        CancellationToken cancellationToken)
+    {
+        // Tell the browser to include cookies with this request
+        request.SetBrowserRequestCredentials(BrowserRequestCredentials.Include);
+        
+        // Add header to identify AJAX requests
+        request.Headers.Add("X-Requested-With", ["XMLHttpRequest"]);
+
+        return base.SendAsync(request, cancellationToken);
+    }
+}
+            </CodeSnippet>
+
+            <p>
+                Without <ContentHighlight>SetBrowserRequestCredentials</ContentHighlight>, browsers won't send cookies to the backend, and authentication will fail silently.
+            </p>
+
+            <h4>Step 6: Building the Authentication State Provider</h4>
+
+            <p>
+                This is the heart of the authentication system. The <ContentHighlight>CookieAuthenticationStateProvider</ContentHighlight> manages user state in the Blazor app:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+using System.Net;
+using System.Net.Http.Json;
+using System.Security.Claims;
+using System.Text.Json;
+using Microsoft.AspNetCore.Components.Authorization;
+
+namespace BlazorWasmAuth.Identity;
+
+public class CookieAuthenticationStateProvider(
+    IHttpClientFactory httpClientFactory,
+    ILogger&lt;CookieAuthenticationStateProvider&gt; logger)
+    : AuthenticationStateProvider, IAccountManagement
+{
+    private readonly JsonSerializerOptions jsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    };
+
+    private readonly HttpClient httpClient = httpClientFactory.CreateClient("Auth");
+    private bool authenticated = false;
+    private readonly ClaimsPrincipal unauthenticated = new(new ClaimsIdentity());
+
+    public async Task&lt;FormResult&gt; RegisterAsync(string email, string password)
+    {
+        try
+        {
+            var result = await httpClient.PostAsJsonAsync("register", new
+            {
+                email,
+                password
+            });
+
+            if (result.IsSuccessStatusCode)
+            {
+                return new FormResult { Succeeded = true };
+            }
+
+            // Parse error details
+            var details = await result.Content.ReadAsStringAsync();
+            var problemDetails = JsonDocument.Parse(details);
+            var errors = new List&lt;string&gt;();
+            var errorList = problemDetails.RootElement.GetProperty("errors");
+
+            foreach (var errorEntry in errorList.EnumerateObject())
+            {
+                if (errorEntry.Value.ValueKind == JsonValueKind.String)
+                {
+                    errors.Add(errorEntry.Value.GetString()!);
+                }
+                else if (errorEntry.Value.ValueKind == JsonValueKind.Array)
+                {
+                    errors.AddRange(
+                        errorEntry.Value.EnumerateArray()
+                            .Select(e =&gt; e.GetString() ?? string.Empty)
+                            .Where(e =&gt; !string.IsNullOrEmpty(e)));
+                }
+            }
+
+            return new FormResult
+            {
+                Succeeded = false,
+                ErrorList = [.. errors]
+            };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Registration failed");
+            return new FormResult
+            {
+                Succeeded = false,
+                ErrorList = ["An unknown error prevented registration."]
+            };
+        }
+    }
+
+    public async Task&lt;FormResult&gt; LoginAsync(string email, string password)
+    {
+        try
+        {
+            // Login with cookies - critical query parameter!
+            var result = await httpClient.PostAsJsonAsync(
+                "login?useCookies=true", new
+                {
+                    email,
+                    password
+                });
+
+            if (result.IsSuccessStatusCode)
+            {
+                // Notify Blazor to refresh auth state
+                NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
+                return new FormResult { Succeeded = true };
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Login failed");
+        }
+
+        return new FormResult
+        {
+            Succeeded = false,
+            ErrorList = ["Invalid email and/or password."]
+        };
+    }
+
+    public override async Task&lt;AuthenticationState&gt; GetAuthenticationStateAsync()
+    {
+        authenticated = false;
+        var user = unauthenticated;
+
+        try
+        {
+            // Call the secured /manage/info endpoint
+            using var userResponse = await httpClient.GetAsync("manage/info");
+            userResponse.EnsureSuccessStatusCode();
+
+            var userJson = await userResponse.Content.ReadAsStringAsync();
+            var userInfo = JsonSerializer.Deserialize&lt;UserInfo&gt;(
+                userJson, 
+                jsonOptions);
+
+            if (userInfo != null)
+            {
+                // Build claims from user info
+                var claims = new List&lt;Claim&gt;
+                {
+                    new(ClaimTypes.Name, userInfo.Email),
+                    new(ClaimTypes.Email, userInfo.Email),
+                };
+
+                // Add additional claims
+                claims.AddRange(
+                    userInfo.Claims
+                        .Where(c =&gt; c.Key != ClaimTypes.Name 
+                                 &amp;&amp; c.Key != ClaimTypes.Email)
+                        .Select(c =&gt; new Claim(c.Key, c.Value)));
+
+                // Fetch roles from custom endpoint
+                using var rolesResponse = await httpClient.GetAsync("roles");
+                rolesResponse.EnsureSuccessStatusCode();
+
+                var rolesJson = await rolesResponse.Content.ReadAsStringAsync();
+                var roles = JsonSerializer.Deserialize&lt;RoleClaim[]&gt;(
+                    rolesJson, 
+                    jsonOptions);
+
+                if (roles?.Length &gt; 0)
+                {
+                    foreach (var role in roles)
+                    {
+                        if (!string.IsNullOrEmpty(role.Type) 
+                            &amp;&amp; !string.IsNullOrEmpty(role.Value))
+                        {
+                            claims.Add(new Claim(
+                                role.Type, 
+                                role.Value, 
+                                role.ValueType, 
+                                role.Issuer, 
+                                role.OriginalIssuer));
+                        }
+                    }
+                }
+
+                var id = new ClaimsIdentity(
+                    claims, 
+                    nameof(CookieAuthenticationStateProvider));
+                user = new ClaimsPrincipal(id);
+                authenticated = true;
+            }
+        }
+        catch (HttpRequestException ex) 
+            when (ex.StatusCode != HttpStatusCode.Unauthorized)
+        {
+            logger.LogError(ex, "Auth state retrieval failed");
+        }
+
+        return new AuthenticationState(user);
+    }
+
+    public async Task LogoutAsync()
+    {
+        var emptyContent = new StringContent(
+            "{}", 
+            Encoding.UTF8, 
+            "application/json");
+        await httpClient.PostAsync("logout", emptyContent);
+        NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
+    }
+
+    public async Task&lt;bool&gt; CheckAuthenticatedAsync()
+    {
+        await GetAuthenticationStateAsync();
+        return authenticated;
+    }
+}
+            </CodeSnippet>
+
+            <p>
+                The <ContentHighlight>?useCookies=true</ContentHighlight> parameter in the login endpoint is essential—it tells Identity to use cookie authentication instead of bearer tokens.
+            </p>
+
+            <h4>Step 7: Registering Services in Program.cs</h4>
+
+            <p>
+                Wire everything together in the Blazor WASM Program.cs:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Components.Web;
+using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using BlazorWasmAuth;
+using BlazorWasmAuth.Identity;
+
+var builder = WebAssemblyHostBuilder.CreateDefault(args);
+builder.RootComponents.Add&lt;App&gt;("#app");
+builder.RootComponents.Add&lt;HeadOutlet&gt;("head::after");
+
+// Register the cookie handler
+builder.Services.AddTransient&lt;CookieHandler&gt;();
+
+// Set up authorization
+builder.Services.AddAuthorizationCore();
+
+// Register custom authentication state provider
+builder.Services.AddScoped&lt;AuthenticationStateProvider, 
+    CookieAuthenticationStateProvider&gt;();
+
+// Register account management interface
+builder.Services.AddScoped(sp =&gt; 
+    (IAccountManagement)sp.GetRequiredService&lt;AuthenticationStateProvider&gt;());
+
+// Default HttpClient for the app
+builder.Services.AddScoped(sp =&gt; new HttpClient
+{
+    BaseAddress = new Uri(
+        builder.Configuration["FrontendUrl"] ?? "https://localhost:5002")
+});
+
+// Auth-specific HttpClient with cookie handler
+builder.Services.AddHttpClient(
+    "Auth",
+    opt =&gt; opt.BaseAddress = new Uri(
+        builder.Configuration["BackendUrl"] ?? "https://localhost:5001"))
+    .AddHttpMessageHandler&lt;CookieHandler&gt;();
+
+await builder.Build().RunAsync();
+            </CodeSnippet>
+
+            <h4>Step 8: Creating Login and Registration Pages</h4>
+
+            <p>
+                Build clean, functional UI components for authentication. Here's the login page:
+            </p>
+
+            <CodeSnippet CssClass="language-razor">
+@@page "/login"
+@@using System.ComponentModel.DataAnnotations
+@@using BlazorWasmAuth.Identity
+@@inject IAccountManagement Acct
+@@inject NavigationManager Navigation
+
+&lt;PageTitle&gt;Login&lt;/PageTitle&gt;
+
+&lt;h1&gt;Login&lt;/h1&gt;
+
+&lt;AuthorizeView&gt;
+    &lt;Authorized&gt;
+        &lt;div class="alert alert-success"&gt;
+            You're logged in as @@context.User.Identity?.Name.
+        &lt;/div&gt;
+    &lt;/Authorized&gt;
+    &lt;NotAuthorized&gt;
+        @@foreach (var error in formResult.ErrorList)
+        {
+            &lt;div class="alert alert-danger"&gt;@@error&lt;/div&gt;
+        }
+
+        &lt;EditForm Model="Input" method="post" OnValidSubmit="LoginUser"&gt;
+            &lt;DataAnnotationsValidator /&gt;
+            
+            &lt;div class="form-floating mb-3"&gt;
+                &lt;InputText @@bind-Value="Input.Email"
+                           class="form-control"
+                           autocomplete="username"
+                           placeholder="name@@example.com" /&gt;
+                &lt;label&gt;Email&lt;/label&gt;
+                &lt;ValidationMessage For="() =&gt; Input.Email" /&gt;
+            &lt;/div&gt;
+
+            &lt;div class="form-floating mb-3"&gt;
+                &lt;InputText type="password"
+                           @@bind-Value="Input.Password"
+                           class="form-control"
+                           autocomplete="current-password"
+                           placeholder="password" /&gt;
+                &lt;label&gt;Password&lt;/label&gt;
+                &lt;ValidationMessage For="() =&gt; Input.Password" /&gt;
+            &lt;/div&gt;
+
+            &lt;button type="submit" class="btn btn-primary"&gt;Log in&lt;/button&gt;
+        &lt;/EditForm&gt;
+    &lt;/NotAuthorized&gt;
+&lt;/AuthorizeView&gt;
+
+@@code {
+    private FormResult formResult = new();
+
+    [SupplyParameterFromForm]
+    private InputModel? Input { get; set; }
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    protected override void OnInitialized() =&gt; Input ??= new();
+
+    public async Task LoginUser()
+    {
+        if (Input is not null)
+        {
+            formResult = await Acct.LoginAsync(Input.Email, Input.Password);
+        }
+
+        if (formResult.Succeeded &amp;&amp; !string.IsNullOrEmpty(ReturnUrl))
+        {
+            Navigation.NavigateTo(ReturnUrl);
+        }
+    }
+
+    private sealed class InputModel
+    {
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; } = string.Empty;
+
+        [Required]
+        [DataType(DataType.Password)]
+        public string Password { get; set; } = string.Empty;
+    }
+}
+            </CodeSnippet>
+
+            <figure>
+                <img src="./image/blogs/blazor/wasm/blazor-wasm-standalone-authentication-with-asp-net-identity/login.png" alt="Login" />
+                <figcaption>Login</figcaption>
+            </figure>
+
+            <figure>
+                <img src="./image/blogs/blazor/wasm/blazor-wasm-standalone-authentication-with-asp-net-identity/profile.png" alt="Profile" />
+                <figcaption>Profile</figcaption>
+            </figure>
+
+            <figure>
+                <img src="./image/blogs/blazor/wasm/blazor-wasm-standalone-authentication-with-asp-net-identity/logout.png" alt="Logout" />
+                <figcaption>Logout</figcaption>
+            </figure>
+
+            <h4>Step 9: Using Authorization in Components</h4>
+
+            <p>
+                Now you can use <ContentHighlight>AuthorizeView</ContentHighlight> anywhere in your app:
+            </p>
+
+            <CodeSnippet CssClass="language-razor">
+@@page "/"
+
+&lt;AuthorizeView&gt;
+    &lt;Authorized&gt;
+        &lt;h1&gt;Welcome, @@context.User.Identity?.Name!&lt;/h1&gt;
+        
+        &lt;AuthorizeView Roles="Administrator"&gt;
+            &lt;Authorized&gt;
+                &lt;p&gt;You have admin access.&lt;/p&gt;
+            &lt;/Authorized&gt;
+        &lt;/AuthorizeView&gt;
+    &lt;/Authorized&gt;
+    &lt;NotAuthorized&gt;
+        &lt;h1&gt;Please log in&lt;/h1&gt;
+        &lt;a href="login"&gt;Login&lt;/a&gt;
+    &lt;/NotAuthorized&gt;
+&lt;/AuthorizeView&gt;
+            </CodeSnippet>
+
+            <h4>Step 10: Protecting API Endpoints with Roles</h4>
+
+            <p>
+                Back in your backend, protect endpoints with roles:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// Endpoint requiring authentication
+app.MapPost("/data-processing", ([FromBody] FormModel model) =&gt;
+    Results.Text($"Processed {model.Message.Length} characters"))
+    .RequireAuthorization();
+
+// Endpoint requiring specific role
+app.MapPost("/admin-action", ([FromBody] FormModel model) =&gt;
+    Results.Text($"Admin action completed"))
+    .RequireAuthorization(policy =&gt; policy.RequireRole("Administrator"));
+
+// Endpoint requiring multiple roles
+app.MapPost("/manager-action", ([FromBody] FormModel model) =&gt;
+    Results.Text($"Manager action completed"))
+    .RequireAuthorization(policy =&gt; 
+        policy.RequireRole("Administrator", "Manager"));
+            </CodeSnippet>
+
+            <h4>Understanding the Authentication Flow</h4>
+
+            <p>
+                Here's what happens when a user logs in:
+            </p>
+
+            <CodeSnippet CssClass="language-bash">
+1. User submits login form in Blazor WASM
+   ↓
+2. CookieAuthenticationStateProvider calls backend /login?useCookies=true
+   ↓
+3. Backend validates credentials and sets HttpOnly cookie
+   ↓
+4. Cookie automatically sent with all subsequent requests via CookieHandler
+   ↓
+5. GetAuthenticationStateAsync calls /manage/info and /roles
+   ↓
+6. Backend validates cookie and returns user info + roles
+   ↓
+7. CookieAuthenticationStateProvider builds ClaimsPrincipal
+   ↓
+8. NotifyAuthenticationStateChanged updates all AuthorizeView components
+   ↓
+9. UI re-renders showing authenticated content
+            </CodeSnippet>
+
+            <h4>Common Pitfalls and Solutions</h4>
+
+            <p>
+                <strong>Problem: Cookies aren't being sent</strong><br />
+                <strong>Solution:</strong> Ensure <ContentHighlight>AllowCredentials()</ContentHighlight> is set in CORS policy and <ContentHighlight>SetBrowserRequestCredentials(Include)</ContentHighlight> is used in CookieHandler.
+            </p>
+
+            <p>
+                <strong>Problem: Authentication state doesn't update after login</strong><br />
+                <strong>Solution:</strong> Call <ContentHighlight>NotifyAuthenticationStateChanged()</ContentHighlight> after successful login.
+            </p>
+
+            <p>
+                <strong>Problem: CORS errors</strong><br />
+                <strong>Solution:</strong> Ensure CORS middleware is added <ContentHighlight>before</ContentHighlight> authentication middleware. Order matters!
+            </p>
+
+            <p>
+                <strong>Problem: Roles aren't available in claims</strong><br />
+                <strong>Solution:</strong> Create a custom <ContentHighlight>/roles</ContentHighlight> endpoint since Identity's default endpoints don't return roles in the user info.
+            </p>
+
+            <h4>Cross-Domain Hosting Configuration</h4>
+
+            <p>
+                If you host the backend and frontend on <ContentHighlight>different domains</ContentHighlight>, you need to adjust the cookie configuration for cross-domain scenarios:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// In Backend/Program.cs - Uncomment and modify for cross-domain hosting
+builder.Services.ConfigureApplicationCookie(options =&gt;
+{
+    // Change from Lax to None for cross-domain
+    options.Cookie.SameSite = SameSiteMode.None;
+    
+    // Always use secure cookies for cross-domain
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+});
+            </CodeSnippet>
+
+            <p>
+                The default settings (<ContentHighlight>SameSiteMode.Lax</ContentHighlight> and <ContentHighlight>CookieSecurePolicy.SameAsRequest</ContentHighlight>) work for same-domain hosting. For different domains, you must use <ContentHighlight>SameSiteMode.None</ContentHighlight> with HTTPS-only cookies.
+            </p>
+
+            <h4>Security Considerations</h4>
+
+            <p>
+                <strong>Never store secrets in client-side code.</strong> Blazor WASM runs entirely in the browser, making all code visible. Key security principles:
+            </p>
+
+            <ul>
+                <li><ContentHighlight>No sensitive data in WASM</ContentHighlight> - Never put connection strings, API keys, or secrets in your Blazor WASM app</li>
+                <li><ContentHighlight>AuthorizeView is not security</ContentHighlight> - All content in AuthorizeView components is downloadable; it only hides UI elements</li>
+                <li><ContentHighlight>Always validate on the server</ContentHighlight> - Backend endpoints must enforce authorization with [Authorize] or RequireAuthorization()</li>
+                <li><ContentHighlight>Use secure authentication flows</ContentHighlight> - Cookie-based auth with HttpOnly cookies prevents JavaScript access</li>
+                <li><ContentHighlight>Enable HTTPS</ContentHighlight> - Always use HTTPS in production to protect cookies in transit</li>
+            </ul>
+
+            <h4>Additional Identity Features</h4>
+
+            <p>
+                The <ContentHighlight>MapIdentityApi</ContentHighlight> endpoints provide more than just login and registration:
+            </p>
+
+            <ul>
+                <li><ContentHighlight>Two-factor authentication (2FA)</ContentHighlight> - Built-in support for TOTP authenticator apps</li>
+                <li><ContentHighlight>Email confirmation</ContentHighlight> - Verify user email addresses before allowing login</li>
+                <li><ContentHighlight>Password recovery</ContentHighlight> - Reset passwords via email tokens</li>
+                <li><ContentHighlight>Account management</ContentHighlight> - Update email, password, and user info at /manage/info</li>
+            </ul>
+
+            <p>
+                To implement these features, you'll need to configure email services and customize the registration flow to send confirmation emails.
+            </p>
+
+            <h4>Debugging and Troubleshooting Tips</h4>
+
+            <p>
+                Enable <ContentHighlight>detailed logging</ContentHighlight> to diagnose authentication issues:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// In BlazorWasmAuth/Program.cs
+builder.Logging.SetMinimumLevel(LogLevel.Debug);
+builder.Logging.AddFilter("Microsoft.AspNetCore.Components.WebAssembly.Authentication", 
+    LogLevel.Trace);
+            </CodeSnippet>
+
+            <p>
+                Common troubleshooting steps:
+            </p>
+
+            <ul>
+                <li>Clear browser cookies and site data between tests</li>
+                <li>Check network traffic in browser DevTools to see exact API responses</li>
+                <li>Verify URLs in appsettings.json match your actual endpoints</li>
+                <li>Use InPrivate/Incognito mode to avoid cookie conflicts</li>
+                <li>Check that both apps are running on correct ports</li>
+            </ul>
+        </How>
+
+        <Summary>
+            <p>
+                In this article, we explored building a complete <ContentHighlight>authentication system</ContentHighlight> for <ContentHighlight>Blazor WebAssembly Standalone</ContentHighlight> applications using <ContentHighlight>cookie-based authentication</ContentHighlight> with <ContentHighlight>ASP.NET Core Identity</ContentHighlight>. Here are the key takeaways:
+            </p>
+
+            <ul>
+                <li><ContentHighlight>Two-server architecture</ContentHighlight> - Blazor WASM runs in the browser while authentication lives on a separate backend API</li>
+                <li><ContentHighlight>Cookie-based auth</ContentHighlight> provides better security and simpler implementation than bearer tokens for browser apps</li>
+                <li><ContentHighlight>CookieHandler</ContentHighlight> ensures cookies are automatically sent with every API request</li>
+                <li><ContentHighlight>Custom AuthenticationStateProvider</ContentHighlight> manages user state and claims in the Blazor app</li>
+                <li><ContentHighlight>CORS configuration</ContentHighlight> with AllowCredentials is critical for cross-origin cookie authentication</li>
+                <li><ContentHighlight>Identity API endpoints</ContentHighlight> provide built-in registration, login, and account management</li>
+                <li><ContentHighlight>Role-based authorization</ContentHighlight> works seamlessly once proper claims are established</li>
+            </ul>
+
+            <p>
+                This pattern gives you a <ContentHighlight>production-ready authentication system</ContentHighlight> that's secure, maintainable, and follows .NET best practices. The separation of concerns between frontend and backend makes it easy to scale, test, and deploy independently.
+            </p>
+        </Summary>
+    </ContentBody>
+</Content>

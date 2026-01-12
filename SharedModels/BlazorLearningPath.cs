@@ -2,7 +2,7 @@
 
 public class BlazorLearningPath
 {
-  public readonly List<ContentMetaData> FullContents = new(32);
+  public readonly List<ContentMetaData> FullContents = new(34);
 
   public BlazorLearningPath()
   {
@@ -551,6 +551,40 @@ public class BlazorLearningPath
                 CreatedOn = new DateTime(2025, 1, 19, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2025, 1, 19, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Playwright", "E2E", "End to End Testing"]
+            },
+            new ContentMetaData
+            {
+                Order = 33,
+                Title = "Blazor WASM Standalone Authentication with ASP.NET Identity",
+                Description = "In this article let's learn how to implement cookie-based authentication in Blazor WebAssembly Standalone applications using ASP.NET Core Identity. All with live working demo.",
+                Author = "Abdul Rahman",
+                Slug = "blazor-wasm-standalone-authentication-with-asp-net-identity",
+                PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-standalone-authentication-with-asp-net-identity.webp",
+                ThumbnailUrl = "image/blogs/blazor/wasm/blazor-wasm-standalone-authentication-with-asp-net-identity.webp",
+                ContentUrl = "blogs/blazor-wasm-standalone-authentication-with-asp-net-identity",
+                IconUrl = "image/icons/blazor.webp",
+                Channel = "Blazor",
+                Type = "blogs",
+                CreatedOn = new DateTime(2026, 1, 25, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2026, 1, 25, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Authentication", "Identity", "Cookie", "Standalone", "WASM"]
+            },
+            new ContentMetaData
+            {
+                Order = 34,
+                Title = "Blazor WASM Two-Factor Authentication with QR Codes and ASP.NET Identity",
+                Description = "In this article let's learn how to implement two-factor authentication (2FA) with QR codes and TOTP in Blazor WebAssembly Standalone applications using ASP.NET Core Identity. All with live working demo.",
+                Author = "Abdul Rahman",
+                Slug = "blazor-wasm-two-factor-authentication-with-qr-codes-and-asp-net-identity",
+                PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-two-factor-authentication-with-qr-codes-and-asp-net-identity.webp",
+                ThumbnailUrl = "image/blogs/blazor/wasm/blazor-wasm-two-factor-authentication-with-qr-codes-and-asp-net-identity.webp",
+                ContentUrl = "blogs/blazor-wasm-two-factor-authentication-with-qr-codes-and-asp-net-identity",
+                IconUrl = "image/icons/blazor.webp",
+                Channel = "Blazor",
+                Type = "blogs",
+                CreatedOn = new DateTime(2026, 2, 1, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2026, 2, 1, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["2FA", "Two-Factor Authentication", "QR Code", "TOTP", "Identity", "Security", "Authenticator App"]
             },
         ];
   }
