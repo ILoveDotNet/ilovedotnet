@@ -1,0 +1,730 @@
+@page "/blogs/automate-nuget-upgrades-with-github-copilot-ai-skills"
+@using SharedModels
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(AutomateNuGetUpgradesWithGitHubCopilotAISkills) UseNewTableOfContentsMenu=true>
+    <ContentBody>
+        <What>
+            <p>
+                Managing NuGet package versions across .NET solutions is a maintenance nightmare—especially when breaking changes lurk in every minor version bump. 
+                <ContentHighlight>GitHub Copilot Skills</ContentHighlight> combined with <ContentHighlight>Model Context Protocol (MCP)</ContentHighlight> transform 
+                this tedious process into an intelligent, automated workflow that not only upgrades packages but also fetches live documentation to understand and 
+                fix breaking changes on the fly.
+            </p>
+
+            <p>
+                A <ContentHighlight>GitHub Copilot Skill</ContentHighlight> is a reusable capability stored in your repository's <ContentHighlight>.github/skills</ContentHighlight> 
+                directory. Unlike agents (which are conversational workflows), skills are <strong>contextual tools</strong> that Copilot can invoke when referenced via 
+                <ContentHighlight>#file:SKILL.md</ContentHighlight> syntax. Think of skills as specialized knowledge modules that teach Copilot domain-specific expertise—like 
+                enforcing strict NuGet management rules, version verification protocols, and restoration workflows.
+            </p>
+
+            <p>
+                In this article, you'll learn how to build a NuGet upgrade skill that combines three powerful capabilities: <strong>automated package discovery</strong>, 
+                <strong>intelligent version updates with safety checks</strong>, and <strong>live documentation lookup via MCP</strong> to resolve breaking changes 
+                automatically. Instead of spending hours debugging cryptic errors after a package upgrade, you'll type one command and let the skill handle everything—from 
+                verifying versions exist on NuGet.org to reading official migration guides and applying the necessary code fixes.
+            </p>
+
+            <h4>How Skills Differ from Agents</h4>
+
+            <p>
+                While agents are <ContentHighlight>conversational workflows</ContentHighlight> designed for multi-step tasks (like the .NET upgrade agent we covered 
+                previously), skills are <ContentHighlight>reusable knowledge modules</ContentHighlight> that:
+            </p>
+
+            <ul>
+                <li><strong>Enforce rules and constraints:</strong> "NEVER add packages by editing .csproj, always use dotnet CLI"</li>
+                <li><strong>Provide verification workflows:</strong> "Check if version exists before updating"</li>
+                <li><strong>Offer domain expertise:</strong> "Understand Central Package Management vs per-project versioning"</li>
+                <li><strong>Can be composed:</strong> Skills can reference other skills and integrate with MCP tools</li>
+            </ul>
+
+            <p>
+                Skills are invoked differently too—you reference them directly in prompts using <ContentHighlight>#file:.github/skills/name/SKILL.md</ContentHighlight>, 
+                making them immediately available without needing to select an agent mode first.
+            </p>
+        </What>
+
+        <Why>
+            <p>
+                NuGet package upgrades fail spectacularly in production because traditional approaches ignore the <strong>context</strong> needed to make safe changes. 
+                Here's what goes wrong and why GitHub Copilot Skills with MCP solve these problems definitively.
+            </p>
+
+            <h4>Problem 1: Package Version Chaos Without Verification</h4>
+
+            <p>
+                Developers commonly update package versions by directly editing <ContentHighlight>.csproj</ContentHighlight> files or 
+                <ContentHighlight>Directory.Packages.props</ContentHighlight>, leading to catastrophic failures:
+            </p>
+
+            <CodeSnippet CssClass="language-xml">
+&lt;!-- Developer manually edits Directory.Packages.props --&gt;
+&lt;ItemGroup&gt;
+  &lt;!-- Typo: 8.0.2 doesn't exist, should be 8.0.1 --&gt;
+  &lt;PackageVersion Include="Microsoft.AspNetCore.OpenApi" 
+                  Version="8.0.2" /&gt;
+  &lt;!-- Wrong major version for compatibility --&gt;
+  &lt;PackageVersion Include="Newtonsoft.Json" 
+                  Version="14.0.0" /&gt;
+&lt;/ItemGroup&gt;
+</CodeSnippet>
+
+            <p>
+                What happens next:
+            </p>
+
+            <CodeSnippet CssClass="language-bash">
+dotnet restore
+
+# Output:
+error NU1102: Unable to find package Microsoft.AspNetCore.OpenApi 
+             with version (= 8.0.2)
+error NU1605: Detected package downgrade: Newtonsoft.Json from 13.0.3 
+             to 14.0.0 (doesn't exist!)
+</CodeSnippet>
+
+            <p>
+                <strong>Consequence:</strong> The build breaks, CI/CD pipelines fail, and developers waste 30+ minutes debugging version typos and compatibility issues 
+                that shouldn't exist in the first place.
+            </p>
+
+            <h4>Problem 2: Breaking Changes Discovered Too Late</h4>
+
+            <p>
+                Version upgrades often introduce breaking changes that only surface at runtime. Consider upgrading 
+                <ContentHighlight>System.Text.Json</ContentHighlight> from 6.0 to 8.0:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// This worked in System.Text.Json 6.0
+public class ApiResponse
+{
+    public DateTime Timestamp { get; set; }
+}
+
+var options = new JsonSerializerOptions
+{
+    // PropertyNameCaseInsensitive changed behavior in 8.0
+    PropertyNameCaseInsensitive = true
+};
+
+var json = "{\"timestamp\":\"2024-01-15T10:30:00\"}";
+var response = JsonSerializer.Deserialize&lt;ApiResponse&gt;(json, options);
+
+// Runtime Exception in 8.0:
+// System.Text.Json.JsonException: The JSON value could not be converted
+</CodeSnippet>
+
+            <p>
+                <strong>Consequence:</strong> The upgrade passes all unit tests (because they don't cover this edge case), deploys to production, and crashes when 
+                processing real API responses. The team scrambles to roll back, losing hours of productivity and damaging user trust.
+            </p>
+
+            <h4>Problem 3: No Guidance on Fixing Breaking Changes</h4>
+
+            <p>
+                When breaking changes occur, developers have to manually:
+            </p>
+
+            <ol>
+                <li>Google for migration guides</li>
+                <li>Read through 50-page changelog documents</li>
+                <li>Guess which APIs changed and how</li>
+                <li>Trial-and-error code modifications</li>
+            </ol>
+
+            <p>
+                For example, upgrading <ContentHighlight>Entity Framework Core</ContentHighlight> from 6.0 to 8.0 requires understanding:
+            </p>
+
+            <ul>
+                <li>Changes to <ContentHighlight>DbContext</ContentHighlight> configuration patterns</li>
+                <li>New required using statements</li>
+                <li>Modified query execution behavior</li>
+                <li>Deprecated overload replacements</li>
+            </ul>
+
+            <p>
+                <strong>Consequence:</strong> What should be a 10-minute upgrade turns into a 3-day research project, with multiple failed attempts and code 
+                modifications that may or may not align with best practices.
+            </p>
+
+            <h4>Why GitHub Copilot Skills + MCP Are the Solution</h4>
+
+            <p>
+                GitHub Copilot Skills combined with Model Context Protocol eliminate these problems through <ContentHighlight>intelligent automation with 
+                context-aware guidance</ContentHighlight>:
+            </p>
+
+            <ul>
+                <li>
+                    <strong>Version verification before updates:</strong> Skills enforce checking NuGet.org via <ContentHighlight>dotnet package search</ContentHighlight> 
+                    to confirm versions exist before making any file changes
+                </li>
+                <li>
+                    <strong>Centralized version management detection:</strong> Skills automatically determine if your solution uses 
+                    <ContentHighlight>Directory.Packages.props</ContentHighlight> or per-project versioning, updating the correct files
+                </li>
+                <li>
+                    <strong>Live documentation lookup via MCP:</strong> When breaking changes occur, skills use MCP tools (like <ContentHighlight>context7</ContentHighlight> 
+                    or <ContentHighlight>microsoft-docs</ContentHighlight>) to fetch official migration guides, changelogs, and API documentation in real-time
+                </li>
+                <li>
+                    <strong>Automated fix application:</strong> Skills parse documentation, identify required code changes, and apply them systematically across 
+                    your codebase
+                </li>
+                <li>
+                    <strong>Safety through workflows:</strong> Skills enforce <ContentHighlight>dotnet restore</ContentHighlight> after every change to immediately 
+                    catch compatibility issues
+                </li>
+            </ul>
+
+            <p>
+                Instead of 3 days of manual work plus debugging, a skill-based upgrade completes in 15 minutes—with higher accuracy, better documentation, and 
+                zero guesswork about breaking changes.
+            </p>
+        </Why>
+
+        <How>
+            <h4>Step 1: Create the Skills Directory Structure</h4>
+
+            <p>
+                Start by setting up the skills directory in your repository:
+            </p>
+
+            <CodeSnippet CssClass="language-bash">
+mkdir -p .github/skills/nuget-manager
+cd .github/skills/nuget-manager
+</CodeSnippet>
+
+            <h4>Step 2: Create the NuGet Manager Skill File</h4>
+
+            <p>
+                Create <ContentHighlight>SKILL.md</ContentHighlight> in the <ContentHighlight>.github/skills/nuget-manager</ContentHighlight> directory with 
+                comprehensive rules and workflows:
+            </p>
+
+            <CodeSnippet CssClass="language-markdown">
+---
+name: nuget-manager
+description: 'Manage NuGet packages safely with version verification and MCP docs'
+---
+
+# NuGet Manager Skill
+
+## Core Rules
+
+1. **NEVER** directly edit `.csproj`, `.props`, or `Directory.Packages.props` 
+   to **add** or **remove** packages. Always use `dotnet` CLI.
+2. **DIRECT EDITING** is ONLY permitted for **changing versions** of existing 
+   packages.
+3. **VERSION UPDATES** must follow the mandatory workflow:
+   - Verify target version exists on NuGet.org
+   - Determine version management strategy (central vs per-project)
+   - Update version string in appropriate file
+   - Run `dotnet restore` to verify compatibility
+   - If breaking changes occur, use MCP to fetch documentation
+
+## Version Verification
+
+Before updating any package version, verify it exists:
+
+```bash
+# Using jq (macOS/Linux)
+dotnet package search &lt;PACKAGE_NAME&gt; --exact-match --format json | \
+  jq -e '.searchResult[].packages[] | select(.version == "&lt;VERSION&gt;")'
+
+# Using PowerShell (Windows)
+(dotnet package search &lt;PACKAGE_NAME&gt; --exact-match --format json | \
+  ConvertFrom-Json).searchResult.packages | \
+  Where-Object { $_.version -eq "&lt;VERSION&gt;" }
+```
+
+## Version Management Detection
+
+Determine if using Central Package Management:
+
+```bash
+# Check for Directory.Packages.props in solution root
+if [ -f "Directory.Packages.props" ]; then
+  echo "Using Central Package Management"
+  # Update: &lt;PackageVersion Include="Name" Version="1.2.3" /&gt;
+else
+  echo "Using per-project versioning"
+  # Update: &lt;PackageReference Include="Name" Version="1.2.3" /&gt;
+fi
+```
+
+## Upgrade Workflow
+
+1. **Verify version exists** using search command
+2. **Locate version definition** (Directory.Packages.props or .csproj)
+3. **Update version string** in identified file
+4. **Run `dotnet restore`**
+5. **If errors occur:**
+   - Use MCP to fetch migration guides
+   - Parse documentation for required changes
+   - Apply fixes systematically
+   - Re-run restore
+
+## MCP Integration for Breaking Changes
+
+When breaking changes are detected:
+
+```plaintext
+Use #mcp_context7_get-library-docs or #mcp_microsoft-doc_microsoft_docs_fetch 
+to retrieve:
+- Official migration guides
+- API changelog
+- Breaking change documentation
+- Code samples showing new patterns
+```
+
+## Examples
+
+### Safe Package Addition
+```bash
+dotnet add src/MyApi/MyApi.csproj package Serilog
+```
+
+### Version Update with Verification
+```bash
+# 1. Verify 8.0.1 exists
+dotnet package search Microsoft.AspNetCore.OpenApi \
+  --exact-match --format json
+
+# 2. Update Directory.Packages.props
+# &lt;PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="8.0.1" /&gt;
+
+# 3. Restore and validate
+dotnet restore
+```
+</CodeSnippet>
+
+            <h4>Step 3: Enable MCP Tools in Your Environment</h4>
+
+            <p>
+                GitHub Copilot automatically integrates with MCP servers when configured. Verify MCP tools are available:
+            </p>
+
+            <CodeSnippet CssClass="language-bash">
+# Check available MCP tools in Copilot Chat
+# You should see tools like:
+# - mcp_context7_resolve-library-id
+# - mcp_context7_get-library-docs
+# - mcp_microsoft-doc_microsoft_docs_search
+# - mcp_microsoft-doc_microsoft_docs_fetch
+</CodeSnippet>
+
+            <p>
+                These tools allow Copilot to fetch documentation from:
+            </p>
+
+            <ul>
+                <li><ContentHighlight>Context7:</ContentHighlight> Up-to-date documentation for popular libraries (MongoDB, Supabase, Next.js, etc.)</li>
+                <li><ContentHighlight>Microsoft Docs:</ContentHighlight> Official .NET, Azure, and Microsoft 365 documentation</li>
+            </ul>
+
+            <h4>Step 4: Use the Skill with a Simple Prompt</h4>
+
+            <p>
+                Once your skill is created, upgrading packages becomes trivial. Open GitHub Copilot Chat and use:
+            </p>
+
+            <CodeSnippet CssClass="language-plaintext">
+Use #file:.github/skills/nuget-manager/SKILL.md and upgrade the following 
+packages to their latest versions:
+- Microsoft.AspNetCore.OpenApi to 8.0.1
+- System.Text.Json to 8.0.5
+- Entity Framework Core to 8.0.10
+
+If breaking changes occur, use MCP to read official migration guides and 
+apply necessary fixes.
+</CodeSnippet>
+
+            <p>
+                Or for a complete solution upgrade:
+            </p>
+
+            <CodeSnippet CssClass="language-plaintext">
+Use #file:.github/skills/nuget-manager/SKILL.md and upgrade all outdated 
+packages in the solution. For each package with breaking changes, fetch 
+documentation using MCP and fix the code accordingly.
+</CodeSnippet>
+
+            <h4>Step 5: What the Skill Does Automatically</h4>
+
+            <p>
+                When you execute the prompt, the skill orchestrates an intelligent upgrade workflow:
+            </p>
+
+            <h4>Phase 1: Package Discovery and Planning</h4>
+
+            <CodeSnippet CssClass="language-bash">
+# Skill executes automatically
+dotnet list package --outdated
+
+# Output:
+Project `MyApi` has the following updates to its packages
+   [net8.0]: 
+   Top-level Package                      Requested   Resolved   Latest
+   &gt; Microsoft.AspNetCore.OpenApi        8.0.0       8.0.0      8.0.1
+   &gt; System.Text.Json                    6.0.0       6.0.0      8.0.5
+   &gt; Microsoft.EntityFrameworkCore       7.0.0       7.0.0      8.0.10
+
+# Skill creates upgrade plan prioritizing:
+# 1. Packages with no dependencies first
+# 2. Packages with compatible version jumps (minor/patch)
+# 3. Packages with major version changes last (higher risk)
+</CodeSnippet>
+
+            <h4>Phase 2: Version Verification</h4>
+
+            <p>
+                For each package upgrade, the skill verifies the version exists:
+            </p>
+
+            <CodeSnippet CssClass="language-bash">
+# Skill executes for System.Text.Json
+dotnet package search System.Text.Json --exact-match --format json
+
+# Parses JSON response to confirm 8.0.5 exists:
+{
+  "searchResult": [{
+    "packages": [{
+      "id": "System.Text.Json",
+      "version": "8.0.5",
+      "description": "Provides high-performance JSON APIs...",
+      "totalDownloads": 500000000
+    }]
+  }]
+}
+
+# ✅ Version verified - proceed with update
+</CodeSnippet>
+
+            <h4>Phase 3: Centralized vs Per-Project Detection</h4>
+
+            <p>
+                The skill automatically detects your solution's package management strategy:
+            </p>
+
+            <CodeSnippet CssClass="language-xml">
+&lt;!-- Scenario 1: Central Package Management Found --&gt;
+&lt;!-- Directory.Packages.props exists in solution root --&gt;
+
+&lt;Project&gt;
+  &lt;PropertyGroup&gt;
+    &lt;ManagePackageVersionsCentrally&gt;true&lt;/ManagePackageVersionsCentrally&gt;
+  &lt;/PropertyGroup&gt;
+  &lt;ItemGroup&gt;
+    &lt;!-- Skill updates versions here --&gt;
+    &lt;PackageVersion Include="System.Text.Json" Version="6.0.0" /&gt;
+    &lt;PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="8.0.0" /&gt;
+  &lt;/ItemGroup&gt;
+&lt;/Project&gt;
+
+&lt;!-- Scenario 2: Per-Project Versioning --&gt;
+&lt;!-- No Directory.Packages.props, skill updates individual .csproj files --&gt;
+
+&lt;Project Sdk="Microsoft.NET.Sdk.Web"&gt;
+  &lt;ItemGroup&gt;
+    &lt;!-- Skill updates versions here --&gt;
+    &lt;PackageReference Include="System.Text.Json" Version="6.0.0" /&gt;
+  &lt;/ItemGroup&gt;
+&lt;/Project&gt;
+</CodeSnippet>
+
+            <h4>Phase 4: Version Update with Safety Checks</h4>
+
+            <p>
+                The skill updates versions and immediately validates:
+            </p>
+
+            <CodeSnippet CssClass="language-xml">
+&lt;!-- Before: Directory.Packages.props --&gt;
+&lt;PackageVersion Include="System.Text.Json" Version="6.0.0" /&gt;
+
+&lt;!-- After: Skill updates to --&gt;
+&lt;PackageVersion Include="System.Text.Json" Version="8.0.5" /&gt;
+</CodeSnippet>
+
+            <CodeSnippet CssClass="language-bash">
+# Skill runs immediately after update
+dotnet restore
+
+# If successful:
+Restore succeeded.
+
+# If breaking changes detected:
+error CS0619: 'JsonSerializerOptions.IgnoreNullValues' is obsolete: 
+             'Use DefaultIgnoreCondition instead'
+warning CS8618: Non-nullable property 'Name' must contain a non-null value
+</CodeSnippet>
+
+            <h4>Phase 5: MCP Documentation Lookup and Auto-Fix</h4>
+
+            <p>
+                When breaking changes are detected, the skill uses MCP to fetch documentation:
+            </p>
+
+            <CodeSnippet CssClass="language-bash">
+# Skill detects breaking change in System.Text.Json
+# Automatically invokes MCP tool:
+
+mcp_microsoft-doc_microsoft_docs_search 
+  --query "System.Text.Json 8.0 breaking changes migration guide"
+
+# Returns documentation snippets:
+{
+  "results": [
+    {
+      "title": "What's new in System.Text.Json 8.0",
+      "url": "https://learn.microsoft.com/dotnet/core/whats-new/...",
+      "excerpt": "...IgnoreNullValues property is obsolete. Use 
+                 DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull..."
+    }
+  ]
+}
+
+# Skill then fetches full documentation:
+mcp_microsoft-doc_microsoft_docs_fetch 
+  --url "https://learn.microsoft.com/dotnet/core/whats-new/dotnet-8"
+</CodeSnippet>
+
+            <p>
+                The skill parses the documentation and applies fixes automatically:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// Before: System.Text.Json 6.0 code
+var options = new JsonSerializerOptions
+{
+    IgnoreNullValues = true  // Obsolete in 8.0
+};
+
+// After: Skill applies fix from documentation
+var options = new JsonSerializerOptions
+{
+    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+};
+</CodeSnippet>
+
+            <h4>Phase 6: Comprehensive Validation Report</h4>
+
+            <p>
+                After all upgrades and fixes, the skill generates a detailed report:
+            </p>
+
+            <CodeSnippet CssClass="language-markdown">
+## NuGet Upgrade Summary
+
+**Packages Updated:** 3
+**Breaking Changes Fixed:** 2
+**Documentation Sources Used:** 2 (Microsoft Docs, Context7)
+
+### Successful Upgrades
+
+1. ✅ **Microsoft.AspNetCore.OpenApi** 8.0.0 → 8.0.1
+   - No breaking changes
+   - Restore successful
+
+2. ✅ **System.Text.Json** 6.0.0 → 8.0.5
+   - Breaking change detected: `IgnoreNullValues` obsolete
+   - Auto-fixed using Microsoft Docs migration guide
+   - Updated 3 files: ApiController.cs, JsonConfig.cs, Startup.cs
+   - Restore successful
+
+3. ✅ **Microsoft.EntityFrameworkCore** 7.0.0 → 8.0.10
+   - Breaking change detected: DbContext configuration pattern changed
+   - Auto-fixed using MCP documentation lookup
+   - Updated: Program.cs, ApplicationDbContext.cs
+   - Restore successful
+
+### Changes Applied
+
+**System.Text.Json Migration:**
+- Replaced `IgnoreNullValues` with `DefaultIgnoreCondition`
+- Added `JsonIgnoreCondition.WhenWritingNull` where needed
+- Updated null handling in API responses
+
+**Entity Framework Core Migration:**
+- Migrated from `ConfigureWarnings` to new pattern
+- Updated `DbContext` registration in Program.cs
+- Applied new query splitting behavior
+
+### Next Steps
+- Review changes in feature branch `nuget-upgrade/batch-2024-02`
+- Run full test suite
+- Deploy to staging for validation
+</CodeSnippet>
+
+            <h4>Step 6: Advanced Scenario - Custom Package Sources</h4>
+
+            <p>
+                For organizations using private NuGet feeds, extend the skill:
+            </p>
+
+            <CodeSnippet CssClass="language-markdown">
+## Custom Package Source Verification
+
+```bash
+# Add to SKILL.md for private NuGet feeds
+dotnet package search &lt;PACKAGE_NAME&gt; \
+  --source https://pkgs.dev.azure.com/yourorg/_packaging/yourfeed/nuget/v3/index.json \
+  --exact-match --format json
+```
+
+## Authentication
+
+Ensure NuGet.config is configured:
+```xml
+&lt;configuration&gt;
+  &lt;packageSources&gt;
+    &lt;add key="CompanyFeed" value="https://pkgs.dev.azure.com/..." /&gt;
+  &lt;/packageSources&gt;
+&lt;/configuration&gt;
+```
+</CodeSnippet>
+
+            <h4>Step 7: Handling Major Version Upgrades</h4>
+
+            <p>
+                For major version jumps (e.g., EF Core 6 → 8), the skill can request more context:
+            </p>
+
+            <CodeSnippet CssClass="language-plaintext">
+Use #file:.github/skills/nuget-manager/SKILL.md and upgrade 
+Entity Framework Core from 6.0 to 8.0. 
+
+Use MCP to:
+1. Fetch the official EF Core 7.0 breaking changes guide
+2. Fetch the official EF Core 8.0 breaking changes guide
+3. Create a migration checklist
+4. Apply changes incrementally, testing after each step
+</CodeSnippet>
+
+            <p>
+                The skill will fetch comprehensive documentation and create a step-by-step migration plan:
+            </p>
+
+            <CodeSnippet CssClass="language-markdown">
+## EF Core 6 → 8 Migration Plan
+
+### Phase 1: Update to 7.0 (Intermediate)
+- [ ] Update package version to 7.0.20
+- [ ] Apply 7.0 breaking changes (from MCP docs)
+- [ ] Test and validate
+
+### Phase 2: Update to 8.0 (Final)
+- [ ] Update package version to 8.0.10
+- [ ] Apply 8.0 breaking changes (from MCP docs)
+- [ ] Update query patterns for new defaults
+- [ ] Test and validate
+
+### Breaking Changes Identified (via MCP):
+
+**EF Core 7.0:**
+- `DbContext.Database.EnsureCreated()` behavior changed
+- Temporal tables require explicit configuration
+- JSON column support changes
+
+**EF Core 8.0:**
+- Query splitting behavior defaults changed
+- HierarchyId requires new package
+- Complex types formerly owned types syntax updated
+</CodeSnippet>
+
+            <h4>Tips for Effective Skill Usage</h4>
+
+            <ul>
+                <li>
+                    <strong>Be specific in prompts:</strong> Reference the skill file explicitly using 
+                    <ContentHighlight>#file:.github/skills/nuget-manager/SKILL.md</ContentHighlight>
+                </li>
+                <li>
+                    <strong>Include MCP instructions:</strong> Tell the skill to use MCP for documentation when breaking changes occur
+                </li>
+                <li>
+                    <strong>Review before committing:</strong> Always verify auto-applied fixes make sense in your context
+                </li>
+                <li>
+                    <strong>Test incrementally:</strong> For multiple package upgrades, validate each one before proceeding
+                </li>
+                <li>
+                    <strong>Update skills based on learnings:</strong> Add new patterns to SKILL.md as you encounter edge cases
+                </li>
+            </ul>
+
+            <h4>Extending the Skill for Team Workflows</h4>
+
+            <p>
+                Add team-specific rules to the skill for consistency:
+            </p>
+
+            <CodeSnippet CssClass="language-markdown">
+## Team-Specific Rules
+
+### Package Version Policies
+- Always use LTS versions for production dependencies
+- Preview packages allowed only in development branches
+- Security patches must be applied within 48 hours
+
+### Documentation Requirements
+- Document breaking changes in CHANGELOG.md
+- Update package upgrade history in docs/package-upgrades.md
+- Create GitHub issue for each major version upgrade
+
+### Testing Requirements
+- Run full integration test suite after upgrades
+- Performance test critical paths if major version changes
+- Require manual QA approval for database-related packages
+</CodeSnippet>
+        </How>
+
+        <Summary>
+            <h4>Key Takeaways</h4>
+
+            <ul>
+                <li>
+                    GitHub Copilot Skills are <ContentHighlight>reusable knowledge modules</ContentHighlight> stored in 
+                    <ContentHighlight>.github/skills</ContentHighlight> that teach Copilot domain-specific expertise—different from agents, which 
+                    are conversational workflows
+                </li>
+                <li>
+                    The <ContentHighlight>NuGet Manager skill</ContentHighlight> enforces strict safety rules: verify versions exist before updating, 
+                    detect centralized vs per-project package management, and always run <ContentHighlight>dotnet restore</ContentHighlight> after changes
+                </li>
+                <li>
+                    <ContentHighlight>Model Context Protocol (MCP)</ContentHighlight> integration allows skills to fetch live documentation from 
+                    official sources (Microsoft Docs, Context7) when breaking changes occur, eliminating manual research
+                </li>
+                <li>
+                    Skills automatically parse migration guides and apply code fixes systematically, transforming 3-day manual upgrades into 
+                    15-minute automated workflows with higher accuracy
+                </li>
+                <li>
+                    Skills are invoked via <ContentHighlight>#file:SKILL.md</ContentHighlight> syntax in prompts, making them immediately available 
+                    without selecting agent modes
+                </li>
+                <li>
+                    For major version upgrades (e.g., EF Core 6 → 8), skills can fetch documentation for <strong>intermediate versions</strong> and 
+                    create incremental migration plans tested at each step
+                </li>
+                <li>
+                    Skills are <ContentHighlight>team knowledge assets</ContentHighlight>—check them into source control, add organization-specific 
+                    rules, and improve them over time as your team encounters new upgrade patterns
+                </li>
+            </ul>
+
+            <p>
+                Start by creating your NuGet Manager skill today. The initial setup takes 20 minutes, but you'll save hours on every package upgrade 
+                and eliminate entire classes of breaking-change bugs. As your skill evolves with team-specific rules and MCP integrations, it becomes 
+                an invaluable automation asset that makes package management effortless and safe.
+            </p>
+        </Summary>
+    </ContentBody>
+</Content>

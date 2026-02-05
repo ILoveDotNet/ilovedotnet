@@ -2,7 +2,7 @@
 
 public class AILearningPath
 {
-  public readonly List<ContentMetaData> FullContents = new(5);
+  public readonly List<ContentMetaData> FullContents = new(7);
 
   public AILearningPath()
   {
@@ -92,6 +92,40 @@ public class AILearningPath
           CreatedOn = new DateTime(2026, 1, 18, 22, 30, 0, DateTimeKind.Utc),
           ModifiedOn = new DateTime(2026, 1, 18, 22, 30, 0, DateTimeKind.Utc),
           Keywords = ["Chat", "Microsoft.Extensions.AI", "OllamaSharp", "Ollama", "LLM", "Azure OpenAI"]
+        },
+      new ContentMetaData
+        {
+          Order = 6,
+          Title = "Automate .NET Framework Upgrades with GitHub Copilot AI Agents",
+          Description = "In this post I will teach you how to set up a GitHub Copilot AI Agent that automates .NET framework upgrades across your entire solution—from analyzing dependencies to updating CI/CD pipelines—all with a single natural language command.",
+          Author = "Abdul Rahman",
+          Slug = "automate-dotnet-framework-upgrades-with-github-copilot-ai-agents",
+          PosterUrl = "image/blogs/ai/automate-dotnet-framework-upgrades-with-github-copilot-ai-agents.webp",
+          ThumbnailUrl = "image/blogs/ai/automate-dotnet-framework-upgrades-with-github-copilot-ai-agents.webp",
+          ContentUrl = "blogs/automate-dotnet-framework-upgrades-with-github-copilot-ai-agents",
+          IconUrl = "image/icons/ai.webp",
+          Channel = "AI",
+          Type = "blogs",
+          CreatedOn = new DateTime(2026, 2, 8, 22, 30, 0, DateTimeKind.Utc),
+          ModifiedOn = new DateTime(2026, 2, 8, 22, 30, 0, DateTimeKind.Utc),
+          Keywords = ["Copilot", "GitHub", "AI Agent", ".NET Upgrade", "Framework Migration", "Automation"]
+        },
+      new ContentMetaData
+        {
+          Order = 7,
+          Title = "Automate NuGet Upgrades with GitHub Copilot AI Skills and Live Documentation Lookup",
+          Description = "In this post I will teach you how to build a GitHub Copilot Skill that automates NuGet package upgrades with intelligent breaking change detection and live documentation lookup via Model Context Protocol (MCP).",
+          Author = "Abdul Rahman",
+          Slug = "automate-nuget-upgrades-with-github-copilot-ai-skills",
+          PosterUrl = "image/blogs/ai/automate-nuget-upgrades-with-github-copilot-ai-skills.webp",
+          ThumbnailUrl = "image/blogs/ai/automate-nuget-upgrades-with-github-copilot-ai-skills.webp",
+          ContentUrl = "blogs/automate-nuget-upgrades-with-github-copilot-ai-skills",
+          IconUrl = "image/icons/ai.webp",
+          Channel = "AI",
+          Type = "blogs",
+          CreatedOn = new DateTime(2026, 2, 15, 22, 30, 0, DateTimeKind.Utc),
+          ModifiedOn = new DateTime(2026, 2, 15, 22, 30, 0, DateTimeKind.Utc),
+          Keywords = ["Copilot", "GitHub", "AI Skill", "NuGet", "Package Management", "MCP", "Breaking Changes"]
         }
     ];
   }
