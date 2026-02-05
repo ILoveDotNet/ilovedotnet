@@ -210,98 +210,72 @@ cd .github/skills/nuget-manager
             <CodeSnippet CssClass="language-markdown">
 ---
 name: nuget-manager
-description: 'Manage NuGet packages safely with version verification and MCP docs'
+description: 'Manage NuGet packages in .NET projects/solutions. Use this skill when adding, removing, or updating NuGet package versions. It enforces using `dotnet` CLI for package management and provides strict procedures for direct file edits only when updating versions.'
 ---
 
-# NuGet Manager Skill
+# NuGet Manager
+
+## Overview
+
+This skill ensures consistent and safe management of NuGet packages across .NET projects. It prioritizes using the `dotnet` CLI to maintain project integrity and enforces a strict verification and restoration workflow for version updates.
+
+## Prerequisites
+
+- .NET SDK installed (typically .NET 10.0 SDK or later, or a version compatible with the target solution).
+- `dotnet` CLI available on your `PATH`.
+- `jq` (JSON processor) OR PowerShell (for version verification using `dotnet package search`).
 
 ## Core Rules
 
-1. **NEVER** directly edit `.csproj`, `.props`, or `Directory.Packages.props` 
-   to **add** or **remove** packages. Always use `dotnet` CLI.
-2. **DIRECT EDITING** is ONLY permitted for **changing versions** of existing 
-   packages.
-3. **VERSION UPDATES** must follow the mandatory workflow:
-   - Verify target version exists on NuGet.org
-   - Determine version management strategy (central vs per-project)
-   - Update version string in appropriate file
-   - Run `dotnet restore` to verify compatibility
-   - If breaking changes occur, use MCP to fetch documentation
+1.  **NEVER** directly edit `.csproj`, `.props`, or `Directory.Packages.props` files to **add** or **remove** packages. Always use `dotnet add package` and `dotnet remove package` commands.
+2.  **DIRECT EDITING** is ONLY permitted for **changing versions** of existing packages.
+3.  **VERSION UPDATES** must follow the mandatory workflow:
+    - Verify the target version exists on NuGet.
+    - Determine if versions are managed per-project (`.csproj`) or centrally (`Directory.Packages.props`).
+    - Update the version string in the appropriate file.
+    - Immediately run `dotnet restore` to verify compatibility.
 
-## Version Verification
+## Workflows
 
-Before updating any package version, verify it exists:
+### Adding a Package
+Use `dotnet add [&lt;PROJECT&gt;] package &lt;PACKAGE_NAME&gt; [--version &lt;VERSION&gt;]`.
+Example: `dotnet add src/MyProject/MyProject.csproj package Newtonsoft.Json`
 
-```bash
-# Using jq (macOS/Linux)
-dotnet package search &lt;PACKAGE_NAME&gt; --exact-match --format json | \
-  jq -e '.searchResult[].packages[] | select(.version == "&lt;VERSION&gt;")'
+### Removing a Package
+Use `dotnet remove [&lt;PROJECT&gt;] package &lt;PACKAGE_NAME&gt;`.
+Example: `dotnet remove src/MyProject/MyProject.csproj package Newtonsoft.Json`
 
-# Using PowerShell (Windows)
-(dotnet package search &lt;PACKAGE_NAME&gt; --exact-match --format json | \
-  ConvertFrom-Json).searchResult.packages | \
-  Where-Object { $_.version -eq "&lt;VERSION&gt;" }
-```
+### Updating Package Versions
+When updating a version, follow these steps:
 
-## Version Management Detection
+1.  **Verify Version Existence**:
+    Check if the version exists using the `dotnet package search` command with exact match and JSON formatting. 
+    Using `jq`:
+    `dotnet package search &lt;PACKAGE_NAME&gt; --exact-match --format json | jq -e '.searchResult[].packages[] | select(.version == "&lt;VERSION&gt;")'`
+    Using PowerShell:
+    `(dotnet package search &lt;PACKAGE_NAME&gt; --exact-match --format json | ConvertFrom-Json).searchResult.packages | Where-Object { $_.version -eq "&lt;VERSION&gt;" }`
+    
+2.  **Determine Version Management**:
+    - Search for `Directory.Packages.props` in the solution root. If present, versions should be managed there via `&lt;PackageVersion Include="Package.Name" Version="1.2.3" /&gt;`.
+    - If absent, check individual `.csproj` files for `&lt;PackageReference Include="Package.Name" Version="1.2.3" /&gt;`.
 
-Determine if using Central Package Management:
+3.  **Apply Changes**:
+    Modify the identified file with the new version string.
 
-```bash
-# Check for Directory.Packages.props in solution root
-if [ -f "Directory.Packages.props" ]; then
-  echo "Using Central Package Management"
-  # Update: &lt;PackageVersion Include="Name" Version="1.2.3" /&gt;
-else
-  echo "Using per-project versioning"
-  # Update: &lt;PackageReference Include="Name" Version="1.2.3" /&gt;
-fi
-```
-
-## Upgrade Workflow
-
-1. **Verify version exists** using search command
-2. **Locate version definition** (Directory.Packages.props or .csproj)
-3. **Update version string** in identified file
-4. **Run `dotnet restore`**
-5. **If errors occur:**
-   - Use MCP to fetch migration guides
-   - Parse documentation for required changes
-   - Apply fixes systematically
-   - Re-run restore
-
-## MCP Integration for Breaking Changes
-
-When breaking changes are detected:
-
-```plaintext
-Use #mcp_context7_get-library-docs or #mcp_microsoft-doc_microsoft_docs_fetch 
-to retrieve:
-- Official migration guides
-- API changelog
-- Breaking change documentation
-- Code samples showing new patterns
-```
+4.  **Verify Stability**:
+    Run `dotnet restore` on the project or solution. If errors occur, revert the change and investigate.
 
 ## Examples
 
-### Safe Package Addition
-```bash
-dotnet add src/MyApi/MyApi.csproj package Serilog
-```
+### User: "Add Serilog to the PublicAPI project"
+**Action**: Execute `dotnet add src/PublicAPI/PublicAPI.csproj package Serilog`.
 
-### Version Update with Verification
-```bash
-# 1. Verify 8.0.1 exists
-dotnet package search Microsoft.AspNetCore.OpenApi \
-  --exact-match --format json
-
-# 2. Update Directory.Packages.props
-# &lt;PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="8.0.1" /&gt;
-
-# 3. Restore and validate
-dotnet restore
-```
+### User: "Update System.Text.Json to 10.0.2 in the whole solution"
+**Action**:
+1. Verify 10.0.2 exists: `dotnet package search System.Text.Json --exact-match --format json` (and parse output to confirm "10.0.2" is present).
+2. Find where it's defined (e.g., `Directory.Packages.props`).
+3. Edit the file to update the version.
+4. Run `dotnet restore`.
 </CodeSnippet>
 
             <h4>Step 3: Enable MCP Tools in Your Environment</h4>
