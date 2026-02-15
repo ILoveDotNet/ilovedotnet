@@ -121,7 +121,7 @@ Follow these steps in order:
    ✅ **Metadata:**
    - [ ] Entry added to `{Category}LearningPath.cs`
    - [ ] `TableOfContents.cs` capacity incremented by 1
-   - [ ] Slug includes category keyword
+   - [ ] Slug is derived directly from title (lowercase, hyphens, remove punctuation like `-` and `.`) and includes category keyword
    - [ ] Publish date is a Sunday at 22:30 UTC
    
    ✅ **Build Verification:**
@@ -136,14 +136,21 @@ Follow these steps in order:
 * Use **table outputs** in code examples to show before/after data states
 * Use **ASCII or mermaid diagrams** inside `<CodeSnippet>` for visual representation of complex concepts
 * All **images must be WebP format** (`.webp` extension)
-* **Slug must include category** keyword (e.g., `database-normalization-eliminating-wasteful-determinism`)
+* **Slug generation rules**: 
+  - Derive slug DIRECTLY from the article title
+  - Convert to lowercase, replace spaces with hyphens, remove punctuation (`.`, `-`, `!`, `?`, etc.)
+  - Title should naturally include the topic/category keyword
+  - Example: Title "Introduction to Logging in .NET - From Basics to Best Practices" → Slug `introduction-to-logging-in-dotnet-from-basics-to-best-practices`
 * **Test the solution builds** successfully before considering the task complete
-
-## Common Pitfalls to Avoid
-
-1. **Content Duplication**: Never repeat introduction or problem examples in the How section. What = definition, Why = problems, How = implementation.
-2. Don't forget to add the `Channel` property in `ContentMetaData` (required field)
-3. Don't forget to update `TableOfContents.cs` capacity
+**Slug Mismatch**: Always derive the slug directly from the title. Don't create a different slug independently. 
+   - ❌ Wrong: Title "Introduction to X" → Slug `x-introduction-guide`
+   - ✅ Correct: Title "Introduction to X" → Slug `introduction-to-x`
+3. Don't forget to add the `Channel` property in `ContentMetaData` (required field)
+4. Don't forget to update `TableOfContents.cs` capacity
+5. Maintain alphabetical order when adding project references
+6. Always use Sunday 22:30 UTC for publish dates
+7. Escape HTML entities in code snippets (`<` → `&lt;`, `>` → `&gt;`, `@` → `@@`)
+8. Don't forget to update `TableOfContents.cs` capacity
 4. Maintain alphabetical order when adding project references
 5. Always use Sunday 22:30 UTC for publish dates
 6. Escape HTML entities in code snippets (`<` → `&lt;`, `>` → `&gt;`, `@` → `@@`)

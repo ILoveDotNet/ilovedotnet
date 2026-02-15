@@ -408,7 +408,14 @@ Each article should have 3-5 engaging hook approaches you could use, such as:
 
 ## Technical Implementation Notes
 
-- **Slug Naming Convention**: The slug for each article must include the learning path or category keyword (e.g., `security`, `ai`, `blazor`) and should be descriptive of the content. For example, use `improve-data-security-with-right-to-be-forgotten-in-dotnet` for a security article about the right to be forgotten. This ensures consistency and discoverability across the site.
+- **Slug Naming Convention**: The slug MUST be derived directly from the article title using these rules:
+  1. Convert the title to lowercase
+  2. Replace spaces with hyphens (`-`)
+  3. Remove punctuation marks (`.`, `-`, `!`, `?`, `:`, etc.)
+  4. The title should naturally include the learning path or category keyword (e.g., `security`, `ai`, `blazor`, `logging`)
+  5. Example: Title "Introduction to Logging in .NET - From Basics to Best Practices" → Slug `introduction-to-logging-in-dotnet-from-basics-to-best-practices`
+  6. Example: Title "Improve Data Security with Right to Be Forgotten in .NET" → Slug `improve-data-security-with-right-to-be-forgotten-in-dotnet`
+  7. **CRITICAL**: Do NOT create a slug independently from the title. Always derive it directly from the title text.
 - **URL Consistency**: All URL-related fields in `ContentMetaData` (such as `Slug`, `PosterUrl`, `ThumbnailUrl`, `ContentUrl`, `IconUrl`) must use the same slug and follow the naming convention. **All images must use WebP format (.webp extension)** for optimal performance. For example:
   - Slug: `improve-data-security-with-right-to-be-forgotten-in-dotnet`
   - PosterUrl: `image/blogs/security/improve-data-security-with-right-to-be-forgotten-in-dotnet.webp`
