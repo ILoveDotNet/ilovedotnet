@@ -555,13 +555,13 @@ public class BlazorLearningPath
             new ContentMetaData
             {
                 Order = 33,
-                Title = "Blazor WASM Standalone Authentication with ASP.NET Identity",
+                Title = "Blazor WASM Standalone Cookie Authentication with ASP.NET Identity",
                 Description = "In this article let's learn how to implement cookie-based authentication in Blazor WebAssembly Standalone applications using ASP.NET Core Identity. All with live working demo.",
                 Author = "Abdul Rahman",
-                Slug = "blazor-wasm-standalone-authentication-with-asp-net-identity",
-                PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-standalone-authentication-with-asp-net-identity.webp",
-                ThumbnailUrl = "image/blogs/blazor/wasm/blazor-wasm-standalone-authentication-with-asp-net-identity.webp",
-                ContentUrl = "blogs/blazor-wasm-standalone-authentication-with-asp-net-identity",
+                Slug = "blazor-wasm-standalone-cookie-authentication-with-asp-net-identity",
+                PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-standalone-cookie-authentication-with-asp-net-identity.webp",
+                ThumbnailUrl = "image/blogs/blazor/wasm/blazor-wasm-standalone-cookie-authentication-with-asp-net-identity.webp",
+                ContentUrl = "blogs/blazor-wasm-standalone-cookie-authentication-with-asp-net-identity",
                 IconUrl = "image/icons/blazor.webp",
                 Channel = "Blazor",
                 Type = "blogs",
