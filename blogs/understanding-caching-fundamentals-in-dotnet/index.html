@@ -1,0 +1,1216 @@
+<!DOCTYPE html><html lang="en"><head>
+    <meta charset="utf-8"/>
+    <meta name="author" content="Abdul Rahman Shabeek Mohamed"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+    <meta name="copyright" content="I Love DotNet"/>
+    <meta name="language" content="EN"/>
+    <meta name="robots" content="index,follow"/>
+    <meta name="owner" content="Abdul Rahman Shabeek Mohamed"/>
+    <meta name="fediverse:creator" content="@thebhai@mastodon.social"/>
+    <!--<meta http-equiv="Content-Security-Policy"
+          content="base-uri 'self';
+               block-all-mixed-content;
+               img-src data: 'self'
+                       https://pagead2.googlesyndication.com;
+               object-src 'none';
+               script-src 'self'
+                          https://pagead2.googlesyndication.com
+                          https://www.googletagmanager.com
+                          https://gist.github.com
+                          'unsafe-eval'
+                          'unsafe-inline'
+                          data:;
+               style-src 'self'
+                         https://github.githubassets.com
+                         'unsafe-inline';
+               upgrade-insecure-requests;">-->
+    <title>Understanding Caching Fundamentals in .NET - I ❤️ DotNet</title>
+    <base href="/"/>
+    
+<!--Blazor-WebAssembly:{"environmentName":"Production","environmentVariables":{}}--><!--Blazor:{"type":"webassembly","prerenderId":"ed475d259ba74adc97d07feacf0d00d9","key":{"locationHash":"77D12F14A8105320B1AAED6AE7E689DA0EC4483270A645E84079EAA0FFDF550D:0","formattedComponentKey":""},"assembly":"Microsoft.AspNetCore.Components.Web","typeName":"Microsoft.AspNetCore.Components.Web.HeadOutlet","parameterDefinitions":"W10=","parameterValues":"W10="}--><script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "publisher": {
+        "@type": "Organization",
+        "name": "I Love DotNet",
+        "url": "https://ilovedotnet.org/",
+        "logo": {
+            "@type": "ImageObject",
+            "url": "https://ilovedotnet.org/favicon.ico",
+            "width": 16,
+            "height": 16
+        }
+    },
+    "author": {
+        "@type": "Person",
+        "name": "Abdul Rahman Shabeek Mohamed",
+        "image": {
+            "@type": "ImageObject",
+            "url": "//https://www.gravatar.com/avatar/6f221209a03c1800679fc684dea24bf2?s=250&d=mm&r=x",
+            "width": 250,
+            "height": 250
+        },
+        "url": "https://ilovedotnet.org/author/abdulrahman/",
+        "sameAs": [
+            "https://www.linkedin.com/in/fingers10",
+            "https://github.com/fingers10",
+            "https://stackoverflow.com/users/10851213/fingers10",
+            "https://www.youtube.com/channel/UCOS3wCw7SVXjXXffMPqid7A"
+        ]
+    },
+    "headline": "Understanding Caching Fundamentals in .NET",
+    "url": "https://ilovedotnet.org/Caching/understanding-caching-fundamentals-in-dotnet/",
+    "datePublished": "2026-01-04T22:30:00.000Z",
+    "dateModified": "2026-01-04T22:30:00.000Z",
+    "image": {
+        "@type": "ImageObject",
+        "url": "https://ilovedotnet.org/image/blogs/caching/understanding-caching-fundamentals-in-dotnet.png",
+        "width": 1265,
+        "height": 827
+    },
+    "keywords": ".NET, DotNet, I Love DotNet, I ❤️ DotNet, Blazor, Blazor (WebAssembly), Blazor Wasm, C#, Entity Framework, LINQ, ML.NET, Web API, TDD, OOPS, Middleware, JWT, Dependency Injection, Report, Design Pattern, SOLID, HTTP Client, OWASP, SignalR, Performance, In-Memory Cache, Distributed Cache, Data Caching, Memoization, Cache Strategy, .NET Performance",
+    "description": "In this post, I will teach you the fundamentals of caching in .NET - what it is, when to use it, and how to implement effective caching strategies that dramatically improve application performance. All with practical examples and best practices.",
+    "mainEntityOfPage": {
+        "@type": "WebPage",
+        "@id": "https://ilovedotnet.org/"
+    }
+}
+</script><!--Blazor:{"prerenderId":"ed475d259ba74adc97d07feacf0d00d9"}-->
+
+    <script type="text/default-title">I ❤️ DotNet</script>
+    <script type="text/default-meta-elements">[[,"author",,,"Abdul Rahman Shabeek Mohamed"],[,"viewport",,,"width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"],[,"copyright",,,"I Love DotNet"],[,"language",,,"EN"],[,"robots",,,"index,follow"],[,"owner",,,"Abdul Rahman Shabeek Mohamed"],[,"fediverse:creator",,,"@thebhai@mastodon.social"]]</script>
+    <meta property="description" content="In this post, I will teach you the fundamentals of caching in .NET - what it is, when to use it, and how to implement effective caching strategies that dramatically improve application performance. All with practical examples and best practices."/>
+    <meta property="keywords" content=".NET, DotNet, I Love DotNet, I ❤️ DotNet, Blazor, Blazor (WebAssembly), Blazor Wasm, C#, Entity Framework, LINQ, ML.NET, Web API, TDD, OOPS, Middleware, JWT, Dependency Injection, Report, Design Pattern, SOLID, HTTP Client, OWASP, SignalR, Performance, In-Memory Cache, Distributed Cache, Data Caching, Memoization, Cache Strategy, .NET Performance"/>
+    <meta property="url" content="https://ilovedotnet.org/Caching/understanding-caching-fundamentals-in-dotnet/"/>
+    <meta property="identifier-URL" content="https://ilovedotnet.org/Caching/understanding-caching-fundamentals-in-dotnet/"/>
+    <meta property="og:site_name" content="I Love DotNet"/>
+    <meta property="og:type" content="article"/>
+    <meta property="og:title" content="Understanding Caching Fundamentals in .NET"/>
+    <meta property="og:image" content="https://ilovedotnet.org/image/blogs/caching/understanding-caching-fundamentals-in-dotnet.png"/>
+    <meta property="og:image:alt" content="DotNet bot with heart and DotNet brand"/>
+    <meta property="og:description" content="In this post, I will teach you the fundamentals of caching in .NET - what it is, when to use it, and how to implement effective caching strategies that dramatically improve application performance. All with practical examples and best practices."/>
+    <meta property="og:url" content="https://ilovedotnet.org/Caching/understanding-caching-fundamentals-in-dotnet/"/>
+    <meta property="twitter:card" content="summary_large_image"/>
+    <meta property="twitter:title" content="Understanding Caching Fundamentals in .NET"/>
+    <meta property="twitter:image" content="https://ilovedotnet.org/image/blogs/caching/understanding-caching-fundamentals-in-dotnet.png"/>
+    <meta property="twitter:image:alt" content="DotNet bot with heart and DotNet brand"/>
+    <meta property="twitter:description" content="In this post, I will teach you the fundamentals of caching in .NET - what it is, when to use it, and how to implement effective caching strategies that dramatically improve application performance. All with practical examples and best practices."/>
+    <meta property="twitter:url" content="https://ilovedotnet.org/Caching/understanding-caching-fundamentals-in-dotnet/"/>
+    <meta property="article:published_time" content="2026-01-04T22:30:00.000Z"/>
+    <meta property="article:modified_time" content="2026-01-04T22:30:00.000Z"/>
+    <meta property="article:tag" content=".NET Performance"/>
+    <script type="text/default-link-elements">[]</script>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-authors.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-blazor-wasm.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-dependency-injection.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-design-pattern.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-http-client.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-linq.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-maui.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-middleware.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-mlnet.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-msbuild.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-oops.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-owasp.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-python.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-regex.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-report.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-signalr.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-solid.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-tdd.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-testing.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-webapi.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-channels.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-talk.xml" type="application/xml" title="Sitemap"/>
+    <link rel="alternate" href="https://ilovedotnet.org/atom.xml" type="application/atom+xml"/>
+    <link rel="alternate" href="https://ilovedotnet.org/Caching/understanding-caching-fundamentals-in-dotnet/" hreflang="en"/>
+    <link rel="alternate" href="https://ilovedotnet.org/Caching/understanding-caching-fundamentals-in-dotnet/" hreflang="x-default"/>
+    <link rel="canonical" href="https://ilovedotnet.org/Caching/understanding-caching-fundamentals-in-dotnet/"/>
+    <link rel="index" href="https://ilovedotnet.org/Caching/understanding-caching-fundamentals-in-dotnet/" title="Understanding Caching Fundamentals in .NET - I ❤️ DotNet"/>
+</head><body class="[ m-0 ] [ h-full ] [ dark:bg-stone-900 ] [ bg-gray-100 ]"><resourcepreloader>
+    <link href="css/charts.min.css" rel="stylesheet"/>
+    <link href="highlight.min.css" rel="stylesheet"/>
+    <link href="github-dark.min.css" rel="stylesheet"/>
+    <link href="css/app.min.css" rel="stylesheet"/>
+    <link href="manifest.json" rel="manifest"/>
+    <link rel="icon" type="image/x-icon" href="favicon.ico"/>
+    <link rel="me" href="https://www.linkedin.com/in/thebhai" type="text/html"/>
+    <link rel="me" href="https://mastodon.social/@thebhai" type="text/html"/>
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="appicons/apple-touch-icon-144x144.png"/>
+    <link rel="apple-touch-icon-precomposed" sizes="152x152" href="appicons/apple-touch-icon-152x152.png"/>
+    <link rel="icon" type="image/png" href="appicons/favicon-196x196.png" sizes="196x196"/>
+    <link rel="preconnect" href="https://googleads.g.doubleclick.net"/>
+    <link rel="preconnect" href="https://pagead2.googlesyndication.com"/>
+    <link rel="preconnect" href="https://fundingchoicesmessages.google.com"/>
+    <link rel="icon" type="image/png" href="appicons/favicon-128.png" sizes="128x128"/>
+    <link href="_framework/dotnet.s1qmja40mg.js" rel="preload" as="script" fetchpriority="high" crossorigin="anonymous" integrity="sha256-YMizAWn0laVNFBix/zN9YaN+OcEWeNbBI6203FmSavQ="/>
+    <script type="importmap">{
+  "imports": {
+    "./_framework/blazor.webassembly.js": "./_framework/blazor.webassembly.66stpp682q.js",
+    "./_framework/dotnet.native.js": "./_framework/dotnet.native.5u40guk9m1.js",
+    "./_framework/dotnet.runtime.js": "./_framework/dotnet.runtime.q5rqv3xrhm.js",
+    "./_framework/dotnet.js": "./_framework/dotnet.s1qmja40mg.js"
+  },
+  "scopes": {},
+  "integrity": {
+    "./_framework/blazor.webassembly.66stpp682q.js": "sha256-3lCWrko3zwspV40aQhs2S/IMkRSarnHRKIdkHhuXIBA=",
+    "./_framework/blazor.webassembly.js": "sha256-3lCWrko3zwspV40aQhs2S/IMkRSarnHRKIdkHhuXIBA=",
+    "./_framework/dotnet.js": "sha256-YMizAWn0laVNFBix/zN9YaN+OcEWeNbBI6203FmSavQ=",
+    "./_framework/dotnet.native.5u40guk9m1.js": "sha256-gx+fL0jAhKq+lcmOHWlWqq6juYDskXwLwW32Ely9jok=",
+    "./_framework/dotnet.native.js": "sha256-gx+fL0jAhKq+lcmOHWlWqq6juYDskXwLwW32Ely9jok=",
+    "./_framework/dotnet.runtime.js": "sha256-ArknccFM1sHNVcih0x1h52AG+abNCoQjl6BlVrv3ePw=",
+    "./_framework/dotnet.runtime.q5rqv3xrhm.js": "sha256-ArknccFM1sHNVcih0x1h52AG+abNCoQjl6BlVrv3ePw=",
+    "./_framework/dotnet.s1qmja40mg.js": "sha256-YMizAWn0laVNFBix/zN9YaN+OcEWeNbBI6203FmSavQ="
+  }
+}</script>
+    <script type="text/javascript">
+        if (!window.location.host.includes('localhost')) {
+            (function(c,l,a,r,i,t,y){
+                c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+                t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+                y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+            })(window, document, "clarity", "script", "o0565ytixx");
+        }
+    </script>
+    <script async="" src="https://fundingchoicesmessages.google.com/i/pub-1536083653226834?ers=1" nonce="dOfxAvcES0_Mwd7YjKmn_Q"></script>
+    <script nonce="dOfxAvcES0_Mwd7YjKmn_Q">
+        if (!window.location.host.includes('localhost')) {
+            (function () { function signalGooglefcPresent() { if (!window.frames['googlefcPresent']) { if (document.body) { const iframe = document.createElement('iframe'); iframe.style = 'width: 0; height: 0; border: none; z-index: -1000; left: -1000px; top: -1000px;'; iframe.style.display = 'none'; iframe.name = 'googlefcPresent'; document.body.appendChild(iframe); } else { setTimeout(signalGooglefcPresent, 0); } } } signalGooglefcPresent(); })();
+        }
+    </script>
+    <script>
+        if (!window.location.host.includes('localhost')) {
+            (function () {
+                /*
+                Copyright The Closure Library Authors.
+                SPDX-License-Identifier: Apache-2.0
+                */
+                'use strict'; var aa = function (a) { var b = 0; return function () { return b < a.length ? { done: !1, value: a[b++] } : { done: !0 } } }, ba = "function" == typeof Object.create ? Object.create : function (a) { var b = function () { }; b.prototype = a; return new b }, k; if ("function" == typeof Object.setPrototypeOf) k = Object.setPrototypeOf; else { var m; a: { var ca = { a: !0 }, n = {}; try { n.__proto__ = ca; m = n.a; break a } catch (a) { } m = !1 } k = m ? function (a, b) { a.__proto__ = b; if (a.__proto__ !== b) throw new TypeError(a + " is not extensible"); return a } : null }
+                var p = k, q = function (a, b) { a.prototype = ba(b.prototype); a.prototype.constructor = a; if (p) p(a, b); else for (var c in b) if ("prototype" != c) if (Object.defineProperties) { var d = Object.getOwnPropertyDescriptor(b, c); d && Object.defineProperty(a, c, d) } else a[c] = b[c]; a.v = b.prototype }, r = this || self, da = function () { }, t = function (a) { return a }; var u; var w = function (a, b) { this.g = b === v ? a : "" }; w.prototype.toString = function () { return this.g + "" }; var v = {}, x = function (a) { if (void 0 === u) { var b = null; var c = r.trustedTypes; if (c && c.createPolicy) { try { b = c.createPolicy("goog#html", { createHTML: t, createScript: t, createScriptURL: t }) } catch (d) { r.console && r.console.error(d.message) } u = b } else u = b } a = (b = u) ? b.createScriptURL(a) : a; return new w(a, v) }; var A = function () { return Math.floor(2147483648 * Math.random()).toString(36) + Math.abs(Math.floor(2147483648 * Math.random()) ^ Date.now()).toString(36) }; var B = {}, C = null; var D = "function" === typeof Uint8Array; function E(a, b, c) { return "object" === typeof a ? D && !Array.isArray(a) && a instanceof Uint8Array ? c(a) : F(a, b, c) : b(a) } function F(a, b, c) { if (Array.isArray(a)) { for (var d = Array(a.length), e = 0; e < a.length; e++) { var f = a[e]; null != f && (d[e] = E(f, b, c)) } Array.isArray(a) && a.s && G(d); return d } d = {}; for (e in a) Object.prototype.hasOwnProperty.call(a, e) && (f = a[e], null != f && (d[e] = E(f, b, c))); return d }
+                function ea(a) {
+                    return F(a, function (b) { return "number" === typeof b ? isFinite(b) ? b : String(b) : b }, function (b) {
+                        var c; void 0 === c && (c = 0); if (!C) { C = {}; for (var d = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789".split(""), e = ["+/=", "+/", "-_=", "-_.", "-_"], f = 0; 5 > f; f++) { var h = d.concat(e[f].split("")); B[f] = h; for (var g = 0; g < h.length; g++) { var l = h[g]; void 0 === C[l] && (C[l] = g) } } } c = B[c]; d = Array(Math.floor(b.length / 3)); e = c[64] || ""; for (f = h = 0; h < b.length - 2; h += 3) {
+                            var y = b[h], z = b[h + 1]; l = b[h + 2]; g = c[y >> 2]; y = c[(y & 3) <<
+                                4 | z >> 4]; z = c[(z & 15) << 2 | l >> 6]; l = c[l & 63]; d[f++] = "" + g + y + z + l
+                        } g = 0; l = e; switch (b.length - h) { case 2: g = b[h + 1], l = c[(g & 15) << 2] || e; case 1: b = b[h], d[f] = "" + c[b >> 2] + c[(b & 3) << 4 | g >> 4] + l + e }return d.join("")
+                    })
+                } var fa = { s: { value: !0, configurable: !0 } }, G = function (a) { Array.isArray(a) && !Object.isFrozen(a) && Object.defineProperties(a, fa); return a }; var H; var J = function (a, b, c) {
+                    var d = H; H = null; a || (a = d); d = this.constructor.u; a || (a = d ? [d] : []); this.j = d ? 0 : -1; this.h = null; this.g = a; a: { d = this.g.length; a = d - 1; if (d && (d = this.g[a], !(null === d || "object" != typeof d || Array.isArray(d) || D && d instanceof Uint8Array))) { this.l = a - this.j; this.i = d; break a } void 0 !== b && -1 < b ? (this.l = Math.max(b, a + 1 - this.j), this.i = null) : this.l = Number.MAX_VALUE } if (c) for (b = 0; b < c.length; b++)a = c[b], a < this.l ? (a += this.j, (d = this.g[a]) ? G(d) : this.g[a] = I) : (d = this.l + this.j, this.g[d] || (this.i = this.g[d] = {}), (d = this.i[a]) ?
+                        G(d) : this.i[a] = I)
+                }, I = Object.freeze(G([])), K = function (a, b) { if (-1 === b) return null; if (b < a.l) { b += a.j; var c = a.g[b]; return c !== I ? c : a.g[b] = G([]) } if (a.i) return c = a.i[b], c !== I ? c : a.i[b] = G([]) }, M = function (a, b) { var c = L; if (-1 === b) return null; a.h || (a.h = {}); if (!a.h[b]) { var d = K(a, b); d && (a.h[b] = new c(d)) } return a.h[b] }; J.prototype.toJSON = function () { var a = N(this, !1); return ea(a) };
+                var N = function (a, b) { if (a.h) for (var c in a.h) if (Object.prototype.hasOwnProperty.call(a.h, c)) { var d = a.h[c]; if (Array.isArray(d)) for (var e = 0; e < d.length; e++)d[e] && N(d[e], b); else d && N(d, b) } return a.g }, O = function (a, b) { H = b = b ? JSON.parse(b) : null; a = new a(b); H = null; return a }; J.prototype.toString = function () { return N(this, !1).toString() }; var P = function (a) { J.call(this, a) }; q(P, J); function ha(a) { var b, c = (a.ownerDocument && a.ownerDocument.defaultView || window).document, d = null === (b = c.querySelector) || void 0 === b ? void 0 : b.call(c, "script[nonce]"); (b = d ? d.nonce || d.getAttribute("nonce") || "" : "") && a.setAttribute("nonce", b) }; var Q = function (a, b) { b = String(b); "application/xhtml+xml" === a.contentType && (b = b.toLowerCase()); return a.createElement(b) }, R = function (a) { this.g = a || r.document || document }; R.prototype.appendChild = function (a, b) { a.appendChild(b) }; var S = function (a, b, c, d, e, f) { try { var h = a.g, g = Q(a.g, "SCRIPT"); g.async = !0; g.src = b instanceof w && b.constructor === w ? b.g : "type_error:TrustedResourceUrl"; ha(g); h.head.appendChild(g); g.addEventListener("load", function () { e(); d && h.head.removeChild(g) }); g.addEventListener("error", function () { 0 < c ? S(a, b, c - 1, d, e, f) : (d && h.head.removeChild(g), f()) }) } catch (l) { f() } }; var ia = r.atob("aHR0cHM6Ly93d3cuZ3N0YXRpYy5jb20vaW1hZ2VzL2ljb25zL21hdGVyaWFsL3N5c3RlbS8xeC93YXJuaW5nX2FtYmVyXzI0ZHAucG5n"), ja = r.atob("WW91IGFyZSBzZWVpbmcgdGhpcyBtZXNzYWdlIGJlY2F1c2UgYWQgb3Igc2NyaXB0IGJsb2NraW5nIHNvZnR3YXJlIGlzIGludGVyZmVyaW5nIHdpdGggdGhpcyBwYWdlLg=="), ka = r.atob("RGlzYWJsZSBhbnkgYWQgb3Igc2NyaXB0IGJsb2NraW5nIHNvZnR3YXJlLCB0aGVuIHJlbG9hZCB0aGlzIHBhZ2Uu"), la = function (a, b, c) { this.h = a; this.j = new R(this.h); this.g = null; this.i = []; this.l = !1; this.o = b; this.m = c }, V = function (a) {
+                    if (a.h.body && !a.l) {
+                        var b =
+                            function () { T(a); r.setTimeout(function () { return U(a, 3) }, 50) }; S(a.j, a.o, 2, !0, function () { r[a.m] || b() }, b); a.l = !0
+                    }
+                }, T = function (a) {
+                    for (var b = W(1, 5), c = 0; c < b; c++) { var d = X(a); a.h.body.appendChild(d); a.i.push(d) } b = X(a); b.style.bottom = "0"; b.style.left = "0"; b.style.position = "fixed"; b.style.width = W(100, 110).toString() + "%"; b.style.zIndex = W(2147483544, 2147483644).toString(); b.style["background-color"] = ma(249, 259, 242, 252, 219, 229); b.style["box-shadow"] = "0 0 12px #888"; b.style.color = ma(0, 10, 0, 10, 0, 10); b.style.display =
+                        "flex"; b.style["justify-content"] = "center"; b.style["font-family"] = "Roboto, Arial"; c = X(a); c.style.width = W(80, 85).toString() + "%"; c.style.maxWidth = W(750, 775).toString() + "px"; c.style.margin = "24px"; c.style.display = "flex"; c.style["align-items"] = "flex-start"; c.style["justify-content"] = "center"; d = Q(a.j.g, "IMG"); d.className = A(); d.src = ia; d.style.height = "24px"; d.style.width = "24px"; d.style["padding-right"] = "16px"; var e = X(a), f = X(a); f.style["font-weight"] = "bold"; f.textContent = ja; var h = X(a); h.textContent = ka; Y(a,
+                            e, f); Y(a, e, h); Y(a, c, d); Y(a, c, e); Y(a, b, c); a.g = b; a.h.body.appendChild(a.g); b = W(1, 5); for (c = 0; c < b; c++)d = X(a), a.h.body.appendChild(d), a.i.push(d)
+                }, Y = function (a, b, c) { for (var d = W(1, 5), e = 0; e < d; e++) { var f = X(a); b.appendChild(f) } b.appendChild(c); c = W(1, 5); for (d = 0; d < c; d++)e = X(a), b.appendChild(e) }, W = function (a, b) { return Math.floor(a + Math.random() * (b - a)) }, ma = function (a, b, c, d, e, f) {
+                    return "rgb(" + W(Math.max(a, 0), Math.min(b, 255)).toString() + "," + W(Math.max(c, 0), Math.min(d, 255)).toString() + "," + W(Math.max(e, 0), Math.min(f,
+                        255)).toString() + ")"
+                }, X = function (a) { a = Q(a.j.g, "DIV"); a.className = A(); return a }, U = function (a, b) { 0 >= b || null != a.g && 0 != a.g.offsetHeight && 0 != a.g.offsetWidth || (na(a), T(a), r.setTimeout(function () { return U(a, b - 1) }, 50)) }, na = function (a) { var b = a.i; var c = "undefined" != typeof Symbol && Symbol.iterator && b[Symbol.iterator]; b = c ? c.call(b) : { next: aa(b) }; for (c = b.next(); !c.done; c = b.next())(c = c.value) && c.parentNode && c.parentNode.removeChild(c); a.i = []; (b = a.g) && b.parentNode && b.parentNode.removeChild(b); a.g = null }; var pa = function (a, b, c, d, e) { var f = oa(c), h = function (l) { l.appendChild(f); r.setTimeout(function () { f ? (0 !== f.offsetHeight && 0 !== f.offsetWidth ? b() : a(), f.parentNode && f.parentNode.removeChild(f)) : a() }, d) }, g = function (l) { document.body ? h(document.body) : 0 < l ? r.setTimeout(function () { g(l - 1) }, e) : b() }; g(3) }, oa = function (a) { var b = document.createElement("div"); b.className = a; b.style.width = "1px"; b.style.height = "1px"; b.style.position = "absolute"; b.style.left = "-10000px"; b.style.top = "-10000px"; b.style.zIndex = "-10000"; return b }; var L = function (a) { J.call(this, a) }; q(L, J); var qa = function (a) { J.call(this, a) }; q(qa, J); var ra = function (a, b) { this.l = a; this.m = new R(a.document); this.g = b; this.i = K(this.g, 1); b = M(this.g, 2); this.o = x(K(b, 4) || ""); this.h = !1; b = M(this.g, 13); b = x(K(b, 4) || ""); this.j = new la(a.document, b, K(this.g, 12)) }; ra.prototype.start = function () { sa(this) };
+                var sa = function (a) { ta(a); S(a.m, a.o, 3, !1, function () { a: { var b = a.i; var c = r.btoa(b); if (c = r[c]) { try { var d = O(P, r.atob(c)) } catch (e) { b = !1; break a } b = b === K(d, 1) } else b = !1 } b ? Z(a, K(a.g, 14)) : (Z(a, K(a.g, 8)), V(a.j)) }, function () { pa(function () { Z(a, K(a.g, 7)); V(a.j) }, function () { return Z(a, K(a.g, 6)) }, K(a.g, 9), K(a.g, 10), K(a.g, 11)) }) }, Z = function (a, b) { a.h || (a.h = !0, a = new a.l.XMLHttpRequest, a.open("GET", b, !0), a.send()) }, ta = function (a) { var b = r.btoa(a.i); a.l[b] && Z(a, K(a.g, 5)) }; (function (a, b) { r[a] = function (c) { for (var d = [], e = 0; e < arguments.length; ++e)d[e - 0] = arguments[e]; r[a] = da; b.apply(null, d) } })("__h82AlnkH6D91__", function (a) { "function" === typeof window.atob && (new ra(window, O(qa, window.atob(a)))).start() });
+            }).call(this);
+
+            window.__h82AlnkH6D91__("WyJwdWItMTUzNjA4MzY1MzIyNjgzNCIsW251bGwsbnVsbCxudWxsLCJodHRwczovL2Z1bmRpbmdjaG9pY2VzbWVzc2FnZXMuZ29vZ2xlLmNvbS9iL3B1Yi0xNTM2MDgzNjUzMjI2ODM0Il0sbnVsbCxudWxsLCJodHRwczovL2Z1bmRpbmdjaG9pY2VzbWVzc2FnZXMuZ29vZ2xlLmNvbS9lbC9BR1NLV3hYajNKNGktY00wVWloYjRfLVVJQXdrSHJ4Yl9EWXBFa3NXOW1WalVlRkVzZVNQVHhUOTAydzZ4MGd6b1E5NFA3OHFZZWhyV2FvU2gySWxfUEQ5eFRfQjVRXHUwMDNkXHUwMDNkP3RlXHUwMDNkVE9LRU5fRVhQT1NFRCIsImh0dHBzOi8vZnVuZGluZ2Nob2ljZXNtZXNzYWdlcy5nb29nbGUuY29tL2VsL0FHU0tXeFZSMWROcWh4V3lsVjRuNHJGQVVoRDR2ZjFNaGdFcHl5M2VoU3l2QndTQzF1c0dVWV9LbUVRSThEc1pyUk1hQ0NmYWdXNkNPVUN2ODNJbVVKTEJibTZ2TWdcdTAwM2RcdTAwM2Q/YWJcdTAwM2QxXHUwMDI2c2JmXHUwMDNkMSIsImh0dHBzOi8vZnVuZGluZ2Nob2ljZXNtZXNzYWdlcy5nb29nbGUuY29tL2VsL0FHU0tXeFZidGltVm5CbWlZa1lDMWFWR0ViMnQycGViNkxCMzZGOXhqOXZYYzRhbmdXcW5Ca0lnbkVuYXdvYnZyRU0xNWxBNlpyQ3JXOUNkTnkzZHFudkg4SmFUcGdcdTAwM2RcdTAwM2Q/YWJcdTAwM2QyXHUwMDI2c2JmXHUwMDNkMSIsImh0dHBzOi8vZnVuZGluZ2Nob2ljZXNtZXNzYWdlcy5nb29nbGUuY29tL2VsL0FHU0tXeFhrQWpIZ09OZHFJcW9DcXZHYlBDMmFMQnNGMzFDeHNTRWNtcEllOHNyak5wTkhfOC1jaEJ5WUlyRDFfT2JaWm9SSlAxRi1mOE9qQjBnMnpfaVRZYTdoaEFcdTAwM2RcdTAwM2Q/c2JmXHUwMDNkMiIsImRpdi1ncHQtYWQiLDIwLDEwMCwiY0hWaUxURTFNell3T0RNMk5UTXlNalk0TXpRXHUwMDNkIixbbnVsbCxudWxsLG51bGwsImh0dHBzOi8vd3d3LmdzdGF0aWMuY29tLzBlbW4vZi9wL3B1Yi0xNTM2MDgzNjUzMjI2ODM0LmpzP3VzcXBcdTAwM2RDQVEiXSwiaHR0cHM6Ly9mdW5kaW5nY2hvaWNlc21lc3NhZ2VzLmdvb2dsZS5jb20vZWwvQUdTS1d4VWt4c0lqNWhFcmJHb1g0RnZnY1F0TjVkcnVuWkxEbHNUY2FRTWx3V1kwR1oySm94bklBQkh0eE9wckxJeUxLSEhDRUtWUk52QlFPVm4xTkVDczRqN3F5Z1x1MDAzZFx1MDAzZCJd");
+        }
+    </script>
+    <script async="" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1536083653226834" crossorigin="anonymous"></script>
+    <script>
+        if (localStorage.DisplayMode === 'dark' || (!('DisplayMode' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
+
+
+
+    <div id="app" class="[ dark:text-white ]">
+<!-- %%-PRERENDERING-BEGIN-%% -->
+<!--Blazor:{"type":"webassembly","prerenderId":"4ee91bf9c934477582db2012d4799462","key":{"locationHash":"5A77B35847144BFA5AAD4B6E75ECBFC65A5AF21F4F3ACA798E2BA892F3E88F38:0","formattedComponentKey":""},"assembly":"Web","typeName":"Web.App","parameterDefinitions":"W10=","parameterValues":"W10="}--><header id="header" class="[ flex items-center justify-between ] [ bg-white ] [ px-5 ] [ dark:bg-gray-800 dark:bg-gray-800/80 ] [ h-14 ] [ sticky top-0 ] [ backdrop-blur-xs bg-white/80 ] [ z-10 ]"><button type="button" class="[ hidden md:block ] [ mr-4 ]" aria-label="Toggle Menu"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-menu-2 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+           <line x1="4" y1="6" x2="20" y2="6"></line>
+           <line x1="4" y1="12" x2="20" y2="12"></line>
+           <line x1="4" y1="18" x2="20" y2="18"></line></svg></button>
+    <h1 id="brand" class="[  ]"><a href="/" class="[ font-bold ] [ flex items-center justify-between space-x-1 ] active" aria-current="page"><span class="[ dark:text-white ]">I</span>
+            <span class="animate-pulse">❤️</span>
+            <span class="[ text-indigo-600 ] [ dark:text-white ]">.NET</span></a></h1>
+    <section id="search" class="[ flex grow justify-end md:justify-center ]"><button type="button" aria-label="Exit Search" class="[ hidden ] [ bg-white ] [ h-10 w-10 ] [ border-2 border-gray-200 ] [ dark:bg-gray-800 dark:border-gray-800 ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-arrow-left ] [ inline ] [ text-gray-500 ] [ stroke-1 ] [ dark:text-white ]" width="25" height="25" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <line x1="5" y1="12" x2="11" y2="18"></line>
+            <line x1="5" y1="12" x2="11" y2="6"></line></svg></button>
+    <div class="[ dropdown ] [  ] [ w-1/2 ] [ hidden ] [  ]"><div class="[ dropdown-trigger ] [ w-full ]"><input type="search" placeholder="Type / to search" class="[ w-full h-full ] [ px-4 ] [ border-2 border-gray-200 ] [ focus:outline-hidden focus:border-gray-400 ] [ dark:bg-black dark:border-gray-800 dark:focus:border-b-white dark:md:focus:border-blue-800 dark:caret-white dark:text-white ]" autocapitalize="none" autocomplete="off" name="search" autocorrect="off" aria-haspopup="true" aria-controls="dropdown-menu" value=""/></div>
+        <div class="[ dropdown-menu ] [ bg-white dark:bg-black ] [ w-full ]" id="dropdown-menu" role="menu"><div class="[ dropdown-content ] [ dark:bg-black ] [ overflow-y-auto ]" style="max-height:50vh;"></div></div></div>
+    <button type="button" aria-label="Search" class="[ h-10 w-10 ] [  ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-search ] [ inline ] [ text-gray-500 ] [ stroke-1 ] [ dark:text-white ]" width="25" height="25" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <circle cx="10" cy="10" r="7"></circle>
+            <line x1="21" y1="21" x2="15" y2="15"></line></svg></button></section>
+    <section id="display-and-social" class="[  ] [ flex items-center space-x-1.5 ]"><a href="https://github.com/ILoveDotNet/ilovedotnet" target="blank" aria-label="Give a Star in GitHub" class="[ flex items-center space-x-1 ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-star ] [ fill-yellow-400 stroke-yellow-400 ] [ animate-pulse ]" width="25" height="25" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                <path d="M12 17.75l-6.172 3.245l1.179 -6.873l-5 -4.867l6.9 -1l3.086 -6.253l3.086 6.253l6.9 1l-5 4.867l1.179 6.873z"></path></svg>
+            <span class="hidden md:block">Starred 152</span></a>
+        <section id="displaymode"><div class="dropdown is-right "><div class="dropdown-trigger"><button class="button [ flex items-center ]" aria-haspopup="true" aria-controls="displaymode-menu" aria-label="Theme Selector"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-device-desktop ] [ dark:text-white ]" width="25" height="25" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <rect x="3" y="4" width="18" height="12" rx="1"></rect>
+                        <line x1="7" y1="20" x2="17" y2="20"></line>
+                        <line x1="9" y1="16" x2="9" y2="20"></line>
+                        <line x1="15" y1="16" x2="15" y2="20"></line></svg></button></div>
+        <div class="dropdown-menu [ bg-white dark:bg-black ]" id="displaymode-menu" role="menu"><div class="dropdown-content [ dark:bg-black ]"><button type="button" class="dropdown-item [ flex items-center space-x-1 ] [ dark:hover:bg-gray-700 ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-device-desktop ] [ dark:text-white ]" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <rect x="3" y="4" width="18" height="12" rx="1"></rect>
+                        <line x1="7" y1="20" x2="17" y2="20"></line>
+                        <line x1="9" y1="16" x2="9" y2="20"></line>
+                        <line x1="15" y1="16" x2="15" y2="20"></line></svg>
+                    <p class="[ dark:text-white ]">System</p></button>
+                <button type="button" class="dropdown-item [ flex items-center space-x-1 ] [ dark:hover:bg-gray-700 ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-moon ] [ dark:text-white ]" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z"></path></svg>
+                    <p class="[ dark:text-white ]">Dark</p></button>
+                <button type="button" class="dropdown-item [ flex items-center space-x-1 ] [ dark:hover:bg-gray-700 ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-brightness-up ] [ dark:text-white ]" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <line x1="12" y1="5" x2="12" y2="3"></line>
+                        <line x1="17" y1="7" x2="18.4" y2="5.6"></line>
+                        <line x1="19" y1="12" x2="21" y2="12"></line>
+                        <line x1="17" y1="17" x2="18.4" y2="18.4"></line>
+                        <line x1="12" y1="19" x2="12" y2="21"></line>
+                        <line x1="7" y1="17" x2="5.6" y2="18.4"></line>
+                        <line x1="6" y1="12" x2="4" y2="12"></line>
+                        <line x1="7" y1="7" x2="5.6" y2="5.6"></line></svg>
+                    <p class="[ dark:text-white ]">Light</p></button></div></div></div></section>
+        <section id="others"><div class="dropdown is-right "><div class="dropdown-trigger"><button class="button [ flex items-center ]" aria-haspopup="true" aria-controls="others-menu" aria-label="Others"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-dots-vertical ] [ dark:text-white ]" width="20" height="20" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                    <circle cx="12" cy="12" r="1"></circle>
+                    <circle cx="12" cy="19" r="1"></circle>
+                    <circle cx="12" cy="5" r="1"></circle></svg></button></div>
+        <div class="dropdown-menu [ bg-white dark:bg-black ]" id="others-menu" role="menu"><div class="dropdown-content [ dark:bg-black ]"><a href="https://github.com/sponsors/fingers10" target="_blank" class="dropdown-item [ flex items-center space-x-1 ] [ dark:hover:bg-gray-700 ]" __internal_stoppropagation_onfocusout=""><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-heart ] [ text-red-500 ] [ fill-red-500 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428m0 0a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572"></path></svg>
+                    <p class="[ dark:text-white ]">Sponsor Us</p></a>
+                <hr class="dropdown-divider"/>
+                <a href="/disclaimer" __internal_stoppropagation_onfocusout="" class="dropdown-item [ flex items-center space-x-1 ] [ dark:hover:bg-gray-700 ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-hand-off ] [ text-yellow-500 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                       <line x1="3" y1="3" x2="21" y2="21"></line>
+                       <path d="M8 13.5v-5.5m.44 -3.562a1.5 1.5 0 0 1 2.56 1.062v1.5m0 4.008v.992m0 -6.5v-2a1.5 1.5 0 1 1 3 0v6.5m0 -4.5a1.5 1.5 0 0 1 3 0v6.5m0 -4.5a1.5 1.5 0 0 1 3 0v8.5a6 6 0 0 1 -6 6h-2c-2.114 -.292 -3.956 -1.397 -5 -3l-2.7 -5.25a1.7 1.7 0 0 1 2.75 -2l.9 1.75"></path></svg>
+                    <span class="[ dark:text-white ]">Disclaimer</span></a>
+                <a href="/privacy" __internal_stoppropagation_onfocusout="" class="dropdown-item [ flex items-center space-x-1 ] [ dark:hover:bg-gray-700 ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-lock-square ] [ text-orange-500 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <rect x="8" y="11" width="8" height="5" rx="1"></rect>
+                        <path d="M10 11v-2a2 2 0 1 1 4 0v2"></path>
+                        <rect x="4" y="4" width="16" height="16" rx="2"></rect></svg>
+                    <span class="[ dark:text-white ]">Privacy</span></a></div></div></div></section></section></header>
+<main id="main" class="[ [ pb-14 md:pb-0 md:pl-16 ] ]"><section class="[ font-bold ] [ p-5 ] [ flex flex-col items-center justify-center ]"><a href="https://whatsapp.com/channel/0029VaAGMV2LtOj5S5MHd23h" target="_blank"><span>👉🏼 Click here to Join I ❤️ .NET </span>
+        <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-brand-whatsapp ] [ fill-green-500 ] [ inline ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <path d="M3 21l1.65 -3.8a9 9 0 1 1 3.4 2.9l-5.05 .9"></path>
+            <path d="M9 10a.5 .5 0 0 0 1 0v-1a.5 .5 0 0 0 -1 0v1a5 5 0 0 0 5 5h1a.5 .5 0 0 0 0 -1h-1a.5 .5 0 0 0 0 1"></path></svg>
+        <span>WhatsApp Channel to get 🔔 notified about new articles and other updates.</span></a></section>
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<section class="[ flex flex-col lg:flex-row ] [ p-1 md:p-5 lg:px-20 ] [ lg:space-x-5 space-y-5 lg:space-y-0 ]"><article class="[ lg:basis-3/4 ] [ space-y-5 ]"><header class="[ space-y-2 ]"><figure><img src="image/blogs/caching/understanding-caching-fundamentals-in-dotnet.webp" alt="Understanding Caching Fundamentals in .NET" class="[ w-full ]" loading="lazy"/></figure><h2 class="[ dark:text-white ] [ font-semibold text-xl ]">Understanding Caching Fundamentals in .NET</h2>
+    <section class="[ flex flex-col md:flex-row justify-between ] [ space-y-1 md:space-y-0 ] [ dark:text-white ] [ font-bold ]"><div><p>Author - <a href="authors/abdul-rahman" class="[ underline ]">Abdul Rahman (Bhai)</a></p>
+            <time datetime="2026-01-04 22:30:00">Last updated one month ago</time></div>
+        <div><section class="[ flex justify-between md:justify-start ]"><a href="https://github.com/sponsors/fingers10" target="_blank" aria-label="Sponsor Us"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-heart ] [ text-red-500 ] [ fill-red-500 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+           <path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428m0 0a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572"></path></svg></a>
+    <a href="https://api.whatsapp.com/send?text=Understanding Caching Fundamentals in .NET%20https%3a%2f%2filovedotnet.org%2fblogs%2funderstanding-caching-fundamentals-in-dotnet%2f" target="_blank" aria-label="Share via Whatsapp"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-brand-whatsapp ] [ text-emerald-500 dark:text-emerald-300 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <path d="M3 21l1.65 -3.8a9 9 0 1 1 3.4 2.9l-5.05 .9"></path>
+            <path d="M9 10a0.5 .5 0 0 0 1 0v-1a0.5 .5 0 0 0 -1 0v1a5 5 0 0 0 5 5h1a0.5 .5 0 0 0 0 -1h-1a0.5 .5 0 0 0 0 1"></path></svg></a>
+    <a href="https://www.linkedin.com/shareArticle?mini=true&amp;url=https%3a%2f%2filovedotnet.org%2fblogs%2funderstanding-caching-fundamentals-in-dotnet%2f" target="_blank" aria-label="Share via Linkedin"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-brand-linkedin ] [ text-blue-500 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+            <line x1="8" y1="11" x2="8" y2="16"></line>
+            <line x1="8" y1="8" x2="8" y2="8.01"></line>
+            <line x1="12" y1="16" x2="12" y2="11"></line>
+            <path d="M16 16v-3a2 2 0 0 0 -4 0"></path></svg></a>
+    <a href="https://www.facebook.com/sharer.php?u=https%3a%2f%2filovedotnet.org%2fblogs%2funderstanding-caching-fundamentals-in-dotnet%2f" target="_blank" aria-label="Share via Facebook"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-brand-facebook ] [ text-blue-400 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <path d="M7 10v4h3v7h4v-7h3l1 -4h-4v-2a1 1 0 0 1 1 -1h3v-4h-3a5 5 0 0 0 -5 5v2h-3"></path></svg></a>
+    <a href="https://twitter.com/intent/tweet?url=https%3a%2f%2filovedotnet.org%2fblogs%2funderstanding-caching-fundamentals-in-dotnet%2f&amp;text=Understanding Caching Fundamentals in .NET" target="_blank" aria-label="Share via Tweet"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-brand-twitter ] [ text-blue-700 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <path d="M22 4.01c-1 .49 -1.98 .689 -3 .99c-1.121 -1.265 -2.783 -1.335 -4.38 -.737s-2.643 2.06 -2.62 3.737v1c-3.245 .083 -6.135 -1.395 -8 -4c0 0 -4.182 7.433 4 11c-1.872 1.247 -3.739 2.088 -6 2c3.308 1.803 6.913 2.423 10.034 1.517c3.58 -1.04 6.522 -3.723 7.651 -7.742a13.84 13.84 0 0 0 .497 -3.753c-.002 -.249 1.51 -2.772 1.818 -4.013z"></path></svg></a></section></div></section>
+    <section class="[ flex items-center justify-between ]"><a href="channels/caching" class="[ flex ]"><aside><figure class="[ mt-2 mr-2 ]"><img src="/image/icons/caching.webp" alt="Caching" loading="lazy" height="48" width="48" class="[ rounded-full ]"/></figure></aside>
+            <article class="[ flex flex-col justify-between ] [ dark:text-white ] [ mt-2 ]"><h2 class="[ font-medium break-words ] [ uppercase ]">Caching</h2>
+                <section class="[ flex justify-between ]"><p>2 Articles</p></section></article></a>
+        <a href="https://github.com/ILoveDotNet/ilovedotnet/blob/main/CachingDemoComponents/Pages/Blogs/UnderstandingCachingFundamentals.razor" target="_blank" class="[ md:bg-red-700 ] [ text-red-500 md:text-white uppercase ] [ px-3 py-2 ] [ font-semibold ]">Improve</a></section>
+    <hr class="[ dark:text-white my-1.5 ]"/></header>
+        <section class="[ dark:text-white ] [ space-y-2 ] [ prose dark:prose-invert ] [ min-w-full ]"><h3>Table of Contents</h3><ol><li><a href="blogs/understanding-caching-fundamentals-in-dotnet#what" class="active" aria-current="page">
+                            What we gonna do?
+                        </a></li>
+                    <li><a href="blogs/understanding-caching-fundamentals-in-dotnet#why" class="active" aria-current="page">
+                            Why we gonna do?
+                        </a></li>
+                    <li><a href="blogs/understanding-caching-fundamentals-in-dotnet#how" class="active" aria-current="page">
+                            How we gonna do?
+                        </a></li>
+                    <li><a href="blogs/understanding-caching-fundamentals-in-dotnet#summary" class="active" aria-current="page">
+                            Summary
+                        </a></li></ol><h3 id="what">What we gonna do?</h3>
+
+<p>
+                Your API gateway translates the same user profile data a hundred times per second. Each translation hits a database, burns CPU cycles, and adds latency. There's a smarter approach. In this article, let's explore <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Caching in .NET</span> - the performance optimization technique that stores computed results in fast, temporary storage so repeated operations become instant lookups instead of expensive recalculations.
+            </p>
+
+            <p><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Caching</span> is the practice of storing the results of expensive operations in a dedicated, high-speed storage layer for quick retrieval on subsequent requests. Think of it as keeping your most-used tools within arm's reach instead of walking to the garage every time you need them. This simple concept powers everything from your browser to massive distributed systems.
+            </p>
+
+            <p>
+                We'll explore what makes caching effective, the trade-offs involved, and the fundamental principles that guide when and how to cache data. We'll also cover <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">memoization</span>, a specialized form of caching for pure functions, and understand why caching isn't just an optimization - it's a fundamental building block of modern computing.
+            </p>
+
+        <h3 id="why">Why we gonna do?</h3>
+
+<h4>The Performance Problem</h4>
+
+            <p>
+                Every data access comes with a cost. When your application needs product information, it might query a database, call a remote API, perform complex calculations, or decrypt sensitive data. Each operation burns CPU cycles, consumes memory, and adds milliseconds (or seconds) to response times.
+            </p>
+
+            <p>
+                Consider an API aggregation scenario: your BFF (Backend for Frontend) combines data from three microservices to build a user dashboard. Without caching, every dashboard request triggers three separate API calls:
+            </p>
+
+            <pre><code id="08e842fb-dca2-4f1f-bfa5-ef76958e770c" class="language-csharp">
+// Without caching - multiple API calls on every request
+public async Task&lt;UserDashboard&gt; GetUserDashboardAsync(string userId)
+{
+    // Three separate HTTP calls
+    var profileTask = _httpClient.GetFromJsonAsync&lt;UserProfile&gt;(
+        $"https://profile-api/users/{userId}");
+    var metricsTask = _httpClient.GetFromJsonAsync&lt;UserMetrics&gt;(
+        $"https://metrics-api/users/{userId}/summary");
+    var activityTask = _httpClient.GetFromJsonAsync&lt;Activity[]&gt;(
+        $"https://activity-api/users/{userId}/recent");
+    
+    await Task.WhenAll(profileTask, metricsTask, activityTask);
+    
+    return new UserDashboard 
+    {
+        Profile = await profileTask,
+        Metrics = await metricsTask,
+        RecentActivity = await activityTask
+    };
+    // Total latency: 300-800ms (network + processing)
+}
+</code></pre>
+
+            <p>
+                The problem multiplies with concurrent users. If 500 users refresh their dashboard within the same minute, your system makes 1,500 external API calls for data that rarely changes. That's wasted network bandwidth, unnecessary load on downstream services, and slow dashboard loading times.
+            </p>
+
+            <h4>The Speed Advantage</h4>
+
+            <p>
+                Different storage systems have dramatically different performance characteristics. Understanding these differences explains why caching works:
+            </p>
+
+            <pre><code id="736af68f-e289-4954-9626-1e56900c3b67" class="language-text">
+.NET Cache Performance Benchmarks:
+┌─────────────────────────────┬───────────────┬─────────────────┐
+│ Operation                   │ Median Time   │ Ops/sec         │
+├─────────────────────────────┼───────────────┼─────────────────┤
+│ IMemoryCache.TryGetValue    │ 15 ns         │ ~66M            │
+│ ConcurrentDictionary lookup │ 45 ns         │ ~22M            │
+│ Redis GET (localhost)       │ 0.3-0.8 ms    │ ~3,000          │
+│ SQL Server SELECT by PK     │ 2-15 ms       │ ~200            │
+│ EF Core query (simple)      │ 8-35 ms       │ ~60             │
+│ HTTP API call (same DC)     │ 20-150 ms     │ ~15             │
+│ HTTP API call (external)    │ 200-2000 ms   │ ~2              │
+└─────────────────────────────┴───────────────┴─────────────────┘
+
+Real-World Impact:
+• IMemoryCache: 4,000x faster than local SQL Server
+• Redis: 25-50x faster than SQL Server  
+• Both: Enable sub-millisecond response times at scale
+</code></pre>
+
+            <p>
+                Here's the thing: even if you <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">don't use caching</span>, you're still dealing with <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">copies of data</span>. When you query a database, the engine serializes data, sends it over the network, and your application deserializes it into objects. That's copying. The difference? <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Caching gives you control</span> over where and how long you keep those copies.
+            </p>
+
+            <h4>Why Caching Matters Everywhere</h4>
+
+            <p>
+                Caching isn't just for databases. It's a fundamental pattern in computer science that appears at every layer:
+            </p>
+
+            <ul><li><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">CPU Caching</span>: L1, L2, L3 caches store frequently accessed memory</li>
+                <li><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Browser Caching</span>: Saves images, scripts, and stylesheets locally</li>
+                <li><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">CDN Caching</span>: Distributes content geographically for faster delivery</li>
+                <li><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">DNS Caching</span>: Remembers IP address lookups</li>
+                <li><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Application Caching</span>: Stores computed results and database queries</li></ul>
+
+            <p>
+                The web would be unbearably slow without caching. Loading a typical webpage involves hundreds of requests - images, fonts, scripts, stylesheets. Without browser and CDN caching, each page load would be <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">20 to 100 times slower</span>. That's not an exaggeration; that's the measured difference between cached and non-cached web browsing.
+            </p>
+
+            <p>
+                The benefits of caching extend beyond speed:
+            </p>
+
+            <ul><li><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Reduced Database Load</span>: Fewer queries mean better database performance</li>
+                <li><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Lower Infrastructure Costs</span>: Less CPU, memory, and network usage</li>
+                <li><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Improved Scalability</span>: Handle more users with same resources</li>
+                <li><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Better User Experience</span>: Faster responses keep users engaged</li>
+                <li><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Resilience</span>: Serve cached data even if backend is temporarily unavailable</li></ul>
+
+        <h3 id="how">How we gonna do?</h3>
+
+<h4>The Fundamental Trade-Off</h4>
+
+            <p>
+                Caching isn't free. It trades <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">memory for speed</span> and accepts <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">eventual consistency</span> instead of real-time accuracy. Understanding this trade-off is crucial for effective caching.
+            </p>
+
+            <pre><code id="e3773542-0422-4b7f-8031-7a06ded908b7" class="language-csharp">
+// The caching decision tree
+Caching Benefits:
+✓ Faster response times
+✓ Reduced computational cost  
+✓ Lower database/API load
+✓ Better scalability
+
+Caching Costs:
+✗ Memory consumption
+✗ Data staleness (cached data may be outdated)
+✗ Cache invalidation complexity
+✗ Additional infrastructure (for distributed caching)
+</code></pre>
+
+            <h4>When to Cache</h4>
+
+            <p>
+                Caching works best when data is <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">read frequently</span> and <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">changed infrequently</span>. The return on investment comes from serving the same data multiple times from cache.
+            </p>
+
+            <pre><code id="ae723106-20cb-47f8-914b-0b70cc82d9a6" class="language-csharp">
+// Real API traffic patterns analysis
+User Profile API (Authentication Service):
+• 2.4M requests/hour during peak
+• 85K unique user IDs accessed
+• Average: 28 requests per user profile
+• Hit Rate with 15min TTL: 96.4%
+• Savings: 2.3M database queries/hour
+
+Configuration API (App Settings):
+• 450K requests/hour
+• 12 unique config keys accessed
+• Average: 37,500 requests per config
+• Hit Rate with 5min TTL: 99.97%
+• Savings: Nearly all database queries eliminated
+
+Real-Time Inventory API (High Churn):
+• 680K requests/hour
+• 520K unique SKUs accessed  
+• Average: 1.3 requests per SKU
+• Hit Rate with 10sec TTL: 23%
+• Result: Poor ROI - cache not recommended
+</code></pre>
+
+            <p>
+                The pattern is clear: <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">cache effectiveness depends on request skew</span>, not total volume. Configuration and authentication endpoints show extreme skew (few unique items, many requests) making them ideal for caching. Real-time inventory has low skew (many unique items, few repeats) making caching less valuable despite high traffic.
+            </p>
+
+            <h4>What to Cache</h4>
+
+            <p>
+                Not all data deserves caching. Focus on data that's <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">expensive to compute or fetch</span> and accessed <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">frequently</span>.
+            </p>
+
+            <pre><code id="96a30dad-e7db-4e16-8121-cea207dd585e" class="language-csharp">
+// .NET API caching candidates
+✓ JWT token claims (validated on every authorized request)
+✓ User permissions/roles (read-heavy, change infrequently)
+✓ API rate limit counters (high-frequency reads/writes)
+✓ Geolocation lookups (IP to country/city mapping)
+✓ Exchange rate conversions (updated hourly)
+✓ Computed dashboard aggregations (expensive LINQ queries)
+✓ Third-party API responses (weather, maps, stock quotes)
+✓ Compiled Razor views (OutputCache in .NET 7+)
+
+// Poor caching candidates  
+✗ Real-time WebSocket messages (ephemeral data)
+✗ User shopping cart state (frequently modified)
+✗ Live sports scores (constant updates)
+✗ Password reset tokens (one-time use, security sensitive)
+✗ Audit log entries (write-once, read-rarely)
+</code></pre>
+
+            <p>
+                You can cache at different granularities. Cache entire objects, specific properties, or computed results. You can even cache different instances of the same type differently:
+            </p>
+
+            <pre><code id="bc03ce9b-a801-4183-a2d2-c5f71ca42cbf" class="language-csharp">
+// Adaptive caching strategy for APIs
+public class ApiCachingPolicy
+{
+    public TimeSpan GetCacheDuration(string endpoint, HttpContext context)
+    {
+        // Authentication endpoints: short TTL for security
+        if (endpoint.StartsWith("/api/auth"))
+            return TimeSpan.FromMinutes(5);
+        
+        // User-specific data: medium TTL
+        if (context.User.Identity?.IsAuthenticated == true)
+            return TimeSpan.FromMinutes(15);
+        
+        // Public reference data: long TTL
+        if (endpoint.StartsWith("/api/reference"))
+            return TimeSpan.FromHours(4);
+        
+        // Real-time data: very short TTL
+        if (endpoint.Contains("live") || endpoint.Contains("realtime"))
+            return TimeSpan.FromSeconds(10);
+        
+        // Default: moderate caching
+        return TimeSpan.FromMinutes(30);
+    }
+}
+</code></pre>
+
+            <h4>How to Cache Effectively</h4>
+
+            <p>
+                Effective caching requires careful consideration of <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">cache duration</span>, <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">invalidation strategy</span>, and <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">cache key design</span>.
+            </p>
+
+            <h5 class="[ font-semibold ]">.NET IMemoryCache with Eviction Callbacks</h5>
+
+            <pre><code id="1690a411-7785-4313-a835-5f28f3f14a46" class="language-csharp">
+public class UserProfileCache
+{
+    private readonly IMemoryCache _cache;
+    private readonly ILogger&lt;UserProfileCache&gt; _logger;
+    
+    public async Task&lt;UserProfile&gt; GetOrCreateAsync(string userId)
+    {
+        return await _cache.GetOrCreateAsync($"profile:{userId}", async entry =&gt;
+        {
+            // Configure cache entry options
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(15);
+            entry.SlidingExpiration = TimeSpan.FromMinutes(5);
+            
+            // Set priority for eviction under memory pressure
+            entry.Priority = CacheItemPriority.Normal;
+            
+            // Register eviction callback for logging/metrics
+            entry.RegisterPostEvictionCallback((key, value, reason, state) =&gt;
+            {
+                _logger.LogInformation(
+                    "Cache entry {Key} evicted. Reason: {Reason}",
+                    key, reason);
+                    
+                // Track cache eviction metrics
+                if (reason == EvictionReason.Capacity)
+                {
+                    // Memory pressure detected - consider alerting
+                }
+            });
+            
+            // Fetch from database on cache miss
+            return await FetchUserProfileFromDatabaseAsync(userId);
+        });
+    }
+}
+</code></pre>
+
+            <p><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Absolute expiration</span> sets a hard deadline - the cache entry will be removed after that time regardless of access. <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Sliding expiration</span> resets the timer on each access, keeping frequently used items in cache longer. <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Priority</span> influences eviction order under memory pressure (Low, Normal, High, NeverRemove).
+            </p>
+
+            <h5 class="[ font-semibold ]">.NET ResponseCaching Middleware</h5>
+
+            <pre><code id="45b1c840-2ca4-4d7e-83ac-3f8a460eb4ea" class="language-csharp">
+// Program.cs configuration
+builder.Services.AddResponseCaching(options =&gt;
+{
+    options.MaximumBodySize = 64 * 1024 * 1024; // 64 MB
+    options.UseCaseSensitivePaths = false;
+});
+
+var app = builder.Build();
+app.UseResponseCaching();
+
+// Controller usage
+[ApiController]
+[Route("api/[controller]")]
+public class CatalogController : ControllerBase
+{
+    [HttpGet("categories")]
+    [ResponseCache(Duration = 300, Location = ResponseCacheLocation.Any, 
+                   VaryByHeader = "Accept-Language")]
+    public async Task&lt;IActionResult&gt; GetCategoriesAsync()
+    {
+        var categories = await _catalogService.GetCategoriesAsync();
+        return Ok(categories);
+        // Cached for 5 minutes, browser + proxy caching enabled
+    }
+    
+    [HttpGet("search")]
+    [ResponseCache(Duration = 60, VaryByQueryKeys = new[] { "q", "page" })]
+    public async Task&lt;IActionResult&gt; SearchAsync([FromQuery] string q, [FromQuery] int page = 1)
+    {
+        var results = await _searchService.SearchAsync(q, page);
+        return Ok(results);
+        // Cached by query parameters: different cache for "q=shoes" vs "q=boots"
+    }
+}
+</code></pre>
+
+            <h5 class="[ font-semibold ]">OutputCache Policies (.NET 10)</h5>
+
+            <pre><code id="2ca573c9-abad-490a-ad76-7714c8986b40" class="language-csharp">
+// Program.cs - OutputCache configuration
+builder.Services.AddOutputCache(options =&gt;
+{
+    // Base policy for all endpoints
+    options.AddBasePolicy(builder =&gt; builder.Expire(TimeSpan.FromSeconds(30)));
+    
+    // Named policy for API endpoints
+    options.AddPolicy("ApiEndpoints", builder =&gt; 
+        builder.Expire(TimeSpan.FromMinutes(5))
+               .SetVaryByQuery("page", "pageSize")
+               .Tag("api-cache"));
+    
+    // Policy with custom cache key
+    options.AddPolicy("UserSpecific", builder =&gt;
+        builder.Expire(TimeSpan.FromMinutes(10))
+               .SetVaryByHeader("Authorization")
+               .Cache());
+});
+
+var app = builder.Build();
+app.UseOutputCache();
+
+// Minimal API usage
+app.MapGet("/api/weather/{city}", async (string city, WeatherService service) =&gt;
+{
+    return await service.GetWeatherAsync(city);
+})
+.CacheOutput(builder =&gt; builder.Expire(TimeSpan.FromMinutes(15)).Tag("weather"));
+
+// Programmatic cache eviction by tag
+app.MapPost("/api/admin/clear-cache", async (IOutputCacheStore cache) =&gt;
+{
+    await cache.EvictByTagAsync("api-cache", default);
+    return Results.Ok("Cache cleared");
+});
+</code></pre>
+
+            <h5 class="[ font-semibold ]">Distributed Caching with Redis</h5>
+
+            <pre><code id="2863eb0c-1a68-475d-ab67-bf0d9b190ec8" class="language-csharp">
+// Program.cs - Redis distributed cache
+builder.Services.AddStackExchangeRedisCache(options =&gt;
+{
+    options.Configuration = builder.Configuration.GetConnectionString("Redis");
+    options.InstanceName = "MyApp:";
+    
+    // Connection pool configuration
+    options.ConfigurationOptions = new ConfigurationOptions
+    {
+        EndPoints = { "localhost:6379" },
+        AbortOnConnectFail = false,
+        ConnectTimeout = 5000,
+        SyncTimeout = 5000,
+        AsyncTimeout = 5000
+    };
+});
+
+// Service usage
+public class DistributedCacheService
+{
+    private readonly IDistributedCache _cache;
+    
+    public async Task&lt;T?&gt; GetOrSetAsync&lt;T&gt;(string key, 
+        Func&lt;Task&lt;T&gt;&gt; factory, TimeSpan expiration)
+    {
+        // Try to get from Redis
+        var cachedData = await _cache.GetStringAsync(key);
+        if (cachedData != null)
+        {
+            return JsonSerializer.Deserialize&lt;T&gt;(cachedData);
+        }
+        
+        // Cache miss - fetch and store
+        var data = await factory();
+        var serialized = JsonSerializer.Serialize(data);
+        
+        var options = new DistributedCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = expiration
+        };
+        
+        await _cache.SetStringAsync(key, serialized, options);
+        return data;
+    }
+}
+
+// Azure Cache for Redis with geo-replication
+builder.Services.AddStackExchangeRedisCache(options =&gt;
+{
+    options.Configuration = 
+        "mycache.redis.cache.windows.net:6380,password=***,ssl=True,abortConnect=False";
+    options.InstanceName = "production:";
+});
+</code></pre>
+
+            <h4>Cache Invalidation</h4>
+
+            <p>
+                There are only two hard problems in computer science: cache invalidation and naming things. When data changes, you need to update or remove the cached version to prevent serving stale data.
+            </p>
+
+            <pre><code id="5751f2db-2ce0-4075-bbbd-e620352c2c9d" class="language-csharp">
+// Cache invalidation strategies
+public class ProductService
+{
+    // Strategy 1: Time-based expiration (passive)
+    // Cache entry expires automatically after set duration
+    // Pro: Simple, no manual intervention
+    // Con: May serve stale data until expiration
+    
+    // Strategy 2: Explicit invalidation (active)
+    public async Task UpdateProductAsync(Product product)
+    {
+        await _repository.UpdateAsync(product);
+        
+        // Remove from cache after update
+        string cacheKey = $"product:{product.Id}";
+        _cache.Remove(cacheKey);
+        // Next request will fetch fresh data
+    }
+    
+    // Strategy 3: Cache-aside with update
+    public async Task UpdateProductAsync(Product product)
+    {
+        await _repository.UpdateAsync(product);
+        
+        // Immediately update cache with new data
+        string cacheKey = $"product:{product.Id}";
+        _cache.Set(cacheKey, product, _cacheOptions);
+        // No cache miss on next request
+    }
+}
+</code></pre>
+
+            <h4>Understanding Memoization</h4>
+
+            <p><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Memoization</span> is a specialized caching technique for <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">pure functions</span>. A pure function always returns the same output for the same input with no side effects - perfect for caching.
+            </p>
+
+            <pre><code id="07594d19-b450-47dc-a294-3c67bbc2f55d" class="language-csharp">
+// Pure function - LINQ expression compilation
+public class ExpressionCompiler
+{
+    // Expensive: compiling expression trees
+    public Func&lt;User, bool&gt; CompilePredicate(string filterExpression)
+    {
+        var parameter = Expression.Parameter(typeof(User), "user");
+        var body = ParseAndBuildExpression(filterExpression, parameter);
+        var lambda = Expression.Lambda&lt;Func&lt;User, bool&gt;&gt;(body, parameter);
+        return lambda.Compile(); // Compilation is expensive
+        // Same input = same compiled output (pure function)
+    }
+}
+
+// Memoized version with ConcurrentDictionary
+public class MemoizedExpressionCompiler
+{
+    private readonly ConcurrentDictionary&lt;string, Func&lt;User, bool&gt;&gt; 
+        _compiledCache = new();
+    
+    public Func&lt;User, bool&gt; CompilePredicate(string filterExpression)
+    {
+        return _compiledCache.GetOrAdd(filterExpression, expr =&gt;
+        {
+            var parameter = Expression.Parameter(typeof(User), "user");
+            var body = ParseAndBuildExpression(expr, parameter);
+            var lambda = Expression.Lambda&lt;Func&lt;User, bool&gt;&gt;(body, parameter);
+            return lambda.Compile();
+        });
+    }
+}
+
+// Benchmark results (BenchmarkDotNet):
+// Without memoization: 245 μs per compilation
+// With memoization (hit): 18 ns (13,600x faster)
+// Memory cost: ~2KB per cached expression
+</code></pre>
+
+            <p><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Referential transparency</span> is the property that makes memoization safe. It means calling a function with certain inputs is equivalent to using its return value directly. You can substitute one for the other without changing program behavior.
+            </p>
+
+            <pre><code id="157ee5ff-bcd9-4845-9cad-8bb19c885fe7" class="language-csharp">
+// Referentially transparent (memoizable)
+public decimal CalculateTotal(decimal price, decimal taxRate)
+    =&gt; price * (1 + taxRate);
+    // Pure calculation, same inputs = same output
+
+// NOT referentially transparent (not memoizable)  
+public decimal CalculateTotalWithTimestamp(decimal price, decimal taxRate)
+    =&gt; price * (1 + taxRate) * DateTime.Now.Ticks;
+    // Depends on current time - output changes even with same inputs
+
+// NOT referentially transparent (not memoizable)
+public async Task&lt;Product&gt; GetProductWithInventory(int productId)
+{
+    var product = await _db.Products.FindAsync(productId);
+    product.CurrentStock = await GetRealTimeInventory(productId);
+    return product;
+    // Has side effect (database access)
+    // Output changes based on external state
+}
+</code></pre>
+
+            <h4>Cache Layers and Architecture</h4>
+
+            <p>
+                Real-world applications often use <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">multiple cache layers</span>, each optimized for different scenarios:
+            </p>
+
+            <pre><code id="eff15b3c-26e5-4ac4-9a13-b46eeaac463c" class="language-text">
+Multi-Layer Caching Architecture:
+
+┌─────────────────────────────────────────────┐
+│          Client Request                     │
+└─────────────────┬───────────────────────────┘
+                  │
+                  ▼
+┌─────────────────────────────────────────────┐
+│     L1: In-Memory Cache (IMemoryCache)      │
+│     • Fastest (nanoseconds)                 │
+│     • Process-local                         │
+│     • Lost on restart                       │
+└─────────────────┬───────────────────────────┘
+                  │ Miss
+                  ▼
+┌─────────────────────────────────────────────┐
+│   L2: Distributed Cache (Redis, etc.)       │
+│     • Fast (milliseconds)                   │
+│     • Shared across instances               │
+│     • Survives restarts                     │
+└─────────────────┬───────────────────────────┘
+                  │ Miss
+                  ▼
+┌─────────────────────────────────────────────┐
+│          L3: Database / API                 │
+│     • Slowest (hundreds of milliseconds)    │
+│     • Source of truth                       │
+│     • Authoritative data                    │
+└─────────────────────────────────────────────┘
+</code></pre>
+
+            <h4>Monitoring and Performance Metrics</h4>
+
+            <p><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Production caching requires observability</span>. Track these key metrics to measure effectiveness and detect issues:
+            </p>
+
+            <pre><code id="d752a3d3-08dc-457e-a0cf-bff61d8083bb" class="language-csharp">
+public class CacheMetrics
+{
+    private long _hits;
+    private long _misses;
+    private long _evictions;
+    
+    public void RecordHit() =&gt; Interlocked.Increment(ref _hits);
+    public void RecordMiss() =&gt; Interlocked.Increment(ref _misses);
+    public void RecordEviction() =&gt; Interlocked.Increment(ref _evictions);
+    
+    public CacheStatistics GetStatistics()
+    {
+        var totalRequests = _hits + _misses;
+        var hitRate = totalRequests &gt; 0 
+            ? (_hits / (double)totalRequests) * 100 
+            : 0;
+            
+        return new CacheStatistics
+        {
+            Hits = _hits,
+            Misses = _misses,
+            Evictions = _evictions,
+            HitRate = hitRate,
+            TotalRequests = totalRequests
+        };
+    }
+}
+
+// Key metrics to monitor:
+// • Hit Rate: Target &gt;80% for effective caching
+// • Miss Rate: High misses indicate poor cache key design or TTL
+// • Eviction Rate: High evictions suggest memory pressure
+// • Average Latency: Cache hits should be &lt;1ms
+// • Memory Usage: Track cache size growth
+// • Staleness: Time between updates and cache expiration
+</code></pre>
+
+            <p>
+                In production systems, hit rates vary from 60% (poor) to 99.9% (excellent) depending on access patterns. A 95%+ hit rate typically indicates well-designed caching. Below 70% suggests the cached data has too much uniqueness or TTLs are too short.
+            </p>
+
+            <h4>Common Pitfalls to Avoid</h4>
+
+            <p>
+                Caching can backfire if done incorrectly. Here are critical mistakes to avoid:
+            </p>
+
+            <pre><code id="e5ba5e0b-4377-4ef3-be2b-b1ff0f7d6033" class="language-csharp">
+// ❌ WRONG: Caching mutable objects
+public class OrderService
+{
+    public Order GetOrder(int orderId)
+    {
+        if (_cache.TryGetValue(orderId, out Order order))
+            return order; // Dangerous! Caller can modify cached object
+    }
+}
+
+// ✓ CORRECT: Return defensive copy or use immutable types
+public Order GetOrder(int orderId)
+{
+    if (_cache.TryGetValue(orderId, out Order order))
+        return order.Clone(); // Return copy, protect cache
+}
+
+// ❌ WRONG: Unbounded cache growth
+public void CacheUserSession(string sessionId, UserSession session)
+{
+    _cache.Set(sessionId, session); // No expiration!
+    // Memory leak - cache grows forever
+}
+
+// ✓ CORRECT: Always set expiration
+public void CacheUserSession(string sessionId, UserSession session)
+{
+    var options = new MemoryCacheEntryOptions
+    {
+        AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1)
+    };
+    _cache.Set(sessionId, session, options);
+}
+
+// ❌ WRONG: Cache stampede - thundering herd problem
+// 1000 concurrent requests miss cache
+// All 1000 query database simultaneously
+// Database overwhelmed, performance degrades
+
+// ✓ CORRECT: Use locking or semaphore
+private readonly SemaphoreSlim _cacheLock = new(1, 1);
+
+public async Task&lt;Product&gt; GetProductAsync(int id)
+{
+    if (_cache.TryGetValue(id, out Product product))
+        return product;
+        
+    await _cacheLock.WaitAsync();
+    try
+    {
+        // Double-check after acquiring lock
+        if (_cache.TryGetValue(id, out product))
+            return product;
+            
+        // Only one thread fetches from database
+        product = await _repository.GetByIdAsync(id);
+        _cache.Set(id, product, _cacheOptions);
+        return product;
+    }
+    finally
+    {
+        _cacheLock.Release();
+    }
+}
+</code></pre>
+
+            <h4>Monitoring and Metrics</h4>
+
+            <p>
+                You can't improve what you don't measure. Track these metrics to understand cache effectiveness:
+            </p>
+
+            <pre><code id="f0c2bdc3-d00c-46ce-b0ae-88b2fa7562d6" class="language-csharp">
+// Key cache metrics
+Cache Hit Rate = (Cache Hits / Total Requests) x 100%
+// Target: &gt;80% for read-heavy workloads
+
+Cache Miss Rate = (Cache Misses / Total Requests) x 100%  
+// Lower is better
+
+Eviction Rate = (Items Evicted / Items Added) x 100%
+// High rate may indicate cache size too small
+
+Average Response Time (Cache Hit) vs (Cache Miss)
+// Should show significant difference
+
+// Example: Logging cache metrics
+public class CachedProductService
+{
+    private long _cacheHits;
+    private long _cacheMisses;
+    
+    public async Task&lt;Product&gt; GetProductAsync(int id)
+    {
+        if (_cache.TryGetValue(id, out Product product))
+        {
+            Interlocked.Increment(ref _cacheHits);
+            return product;
+        }
+        
+        Interlocked.Increment(ref _cacheMisses);
+        product = await _repository.GetByIdAsync(id);
+        _cache.Set(id, product, _options);
+        return product;
+    }
+    
+    public double GetHitRate() 
+        =&gt; (double)_cacheHits / (_cacheHits + _cacheMisses) * 100;
+}
+</code></pre>
+
+        <h3 id="summary">Summary</h3>
+
+<h4>Key Takeaways</h4>
+
+            <ul><li><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Caching trades memory for speed</span> by storing frequently accessed data in fast storage layers. This can improve response times by 10x to 10,000x depending on the data source.
+                </li>
+                <li><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Cache when data is read frequently and changed infrequently</span>. The benefit comes from serving the same data multiple times from cache instead of repeatedly fetching it.
+                </li>
+                <li><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Not all data should be cached</span>. Focus on expensive operations, stable data, and high-traffic scenarios. Avoid caching rapidly changing or rarely accessed data.
+                </li>
+                <li><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Cache invalidation is crucial</span>. Use time-based expiration for simplicity or explicit invalidation for accuracy. Consider the staleness tolerance of your application.
+                </li>
+                <li><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Memoization is caching for pure functions</span>. Functions that are referentially transparent (same input always produces same output with no side effects) are perfect candidates.
+                </li>
+                <li><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Multi-layer caching maximizes performance</span>. Combine in-memory caching for speed with distributed caching for scale and persistence.
+                </li>
+                <li><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Monitor cache effectiveness</span>. Track hit rates, miss rates, and response times to validate your caching strategy and identify opportunities for improvement.
+                </li>
+                <li><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Avoid common pitfalls</span> like caching mutable objects, unbounded cache growth, and cache stampede. Always set expiration policies and protect against thundering herd problems.
+                </li></ul>
+
+            <h4>What's Next?</h4>
+
+            <p>
+                Caching is fundamental to building high-performance .NET applications. Start with simple in-memory caching using <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">IMemoryCache</span> for frequently accessed data. Monitor the results and expand to distributed caching with <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Redis</span> or <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">SQL Server Cache</span> when you need to scale across multiple instances. Remember: caching is a tool, not a silver bullet. Use it strategically where it provides the most value.
+            </p>
+            <section class="[ font-bold ] [ p-5 ] [ flex flex-col items-center justify-center ]"><a href="https://whatsapp.com/channel/0029VaAGMV2LtOj5S5MHd23h" target="_blank"><span>👉🏼 Click here to Join I ❤️ .NET </span>
+        <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-brand-whatsapp ] [ fill-green-500 ] [ inline ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <path d="M3 21l1.65 -3.8a9 9 0 1 1 3.4 2.9l-5.05 .9"></path>
+            <path d="M9 10a.5 .5 0 0 0 1 0v-1a.5 .5 0 0 0 -1 0v1a5 5 0 0 0 5 5h1a.5 .5 0 0 0 0 -1h-1a.5 .5 0 0 0 0 1"></path></svg>
+        <span>WhatsApp Channel to get 🔔 notified about new articles and other updates.</span></a></section>
+            </section>
+        <footer class="[ grid justify-items-start ] [ overflow-x-scroll ]"><ul class="[ list-none ] [ flex items-center justify-start md:justify-center ] [ space-x-3 ] [ overflow-hidden ]"><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ]">Caching</li><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ] [ whitespace-nowrap ]">Performance</li><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ] [ whitespace-nowrap ]">In-Memory Cache</li><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ] [ whitespace-nowrap ]">Distributed Cache</li><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ] [ whitespace-nowrap ]">Data Caching</li><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ] [ whitespace-nowrap ]">Memoization</li><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ] [ whitespace-nowrap ]">Cache Strategy</li><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ] [ whitespace-nowrap ]">.NET Performance</li></ul></footer>
+        <hr class="[ dark:text-white my-1.5 ]"/></article>
+    <aside class="[ flex flex-col lg:basis-1/4 ] [ space-y-2 ]"><div><figure><a href="https://linkedin.com/in/thebhai" target="_blank"><img src="./image/authors/abdul rahman.webp" alt="Abdul Rahman" class="[ w-full ]"/></a>
+            <a href="https://mvp.microsoft.com/en-US/MVP/profile/b177819f-95fb-ed11-8f6d-000d3a560942" target="_blank"><img src="./image/authors/mvp-badge-horizontal.png" alt="MVP Badge Horizontal" class="[ w-full ]"/></a></figure></div>
+    <div class="[ lg:sticky lg:top-14 ]"></div><section class="[ flex flex-col justify-between ] [ transition duration-300 ] [ md:hover:scale-110 ] [ dark:bg-stone-900 ] [ bg-gray-100 ]"><header><a href="blogs/automate-nuget-upgrades-with-github-copilot-ai-skills"><figure><img src="image/blogs/ai/automate-nuget-upgrades-with-github-copilot-ai-skills.webp" class="[ w-full ] [ rounded-md ]" alt="Automate NuGet Upgrades with GitHub Copilot AI Skills and Live Documentation Lookup" loading="lazy"/></figure></a></header>
+    <main class="[ grow flex space-x-2 ]"><aside class="[ basis-1/6 flex items-center ]"><a href="channels/ai"><figure class="mt-2"><img src="image/icons/ai.webp" alt="AI" loading="lazy" height="48" width="48" class="[ rounded-full ]"/></figure></a></aside>
+        <article class="[ grow flex flex-col justify-between basis-5/6 ] [ dark:text-white ] [ mt-2 ]"><a href="blogs/automate-nuget-upgrades-with-github-copilot-ai-skills"><h2 class="[ font-medium break-words hover:underline ]">Automate NuGet Upgrades with GitHub Copilot AI Skills and Live Documentation Lookup</h2></a>
+            <section class="[ flex justify-between ]"><p>Abdul Rahman</p>
+                <time datetime="2026-02-15 22-30-00">4 hours from now</time></section></article></main></section><section class="[ flex flex-col justify-between ] [ transition duration-300 ] [ md:hover:scale-110 ] [ dark:bg-stone-900 ] [ bg-gray-100 ]"><header><a href="blogs/automate-dotnet-framework-upgrades-with-github-copilot-ai-agents"><figure><img src="image/blogs/ai/automate-dotnet-framework-upgrades-with-github-copilot-ai-agents.webp" class="[ w-full ] [ rounded-md ]" alt="Automate .NET Framework Upgrades with GitHub Copilot AI Agents" loading="lazy"/></figure></a></header>
+    <main class="[ grow flex space-x-2 ]"><aside class="[ basis-1/6 flex items-center ]"><a href="channels/ai"><figure class="mt-2"><img src="image/icons/ai.webp" alt="AI" loading="lazy" height="48" width="48" class="[ rounded-full ]"/></figure></a></aside>
+        <article class="[ grow flex flex-col justify-between basis-5/6 ] [ dark:text-white ] [ mt-2 ]"><a href="blogs/automate-dotnet-framework-upgrades-with-github-copilot-ai-agents"><h2 class="[ font-medium break-words hover:underline ]">Automate .NET Framework Upgrades with GitHub Copilot AI Agents</h2></a>
+            <section class="[ flex justify-between ]"><p>Abdul Rahman</p>
+                <time datetime="2026-02-08 22-30-00">6 days ago</time></section></article></main></section><section class="[ flex flex-col justify-between ] [ transition duration-300 ] [ md:hover:scale-110 ] [ dark:bg-stone-900 ] [ bg-gray-100 ]"><header><a href="blogs/blazor-wasm-two-factor-authentication-with-qr-codes-and-asp-net-identity"><figure><img src="image/blogs/blazor/wasm/blazor-wasm-two-factor-authentication-with-qr-codes-and-asp-net-identity.webp" class="[ w-full ] [ rounded-md ]" alt="Blazor WASM Two-Factor Authentication with QR Codes and ASP.NET Identity" loading="lazy"/></figure></a></header>
+    <main class="[ grow flex space-x-2 ]"><aside class="[ basis-1/6 flex items-center ]"><a href="channels/blazor"><figure class="mt-2"><img src="image/icons/blazor.webp" alt="Blazor" loading="lazy" height="48" width="48" class="[ rounded-full ]"/></figure></a></aside>
+        <article class="[ grow flex flex-col justify-between basis-5/6 ] [ dark:text-white ] [ mt-2 ]"><a href="blogs/blazor-wasm-two-factor-authentication-with-qr-codes-and-asp-net-identity"><h2 class="[ font-medium break-words hover:underline ]">Blazor WASM Two-Factor Authentication with QR Codes and ASP.NET Identity</h2></a>
+            <section class="[ flex justify-between ]"><p>Abdul Rahman</p>
+                <time datetime="2026-02-01 22-30-00">13 days ago</time></section></article></main></section><section class="[ flex flex-col justify-between ] [ transition duration-300 ] [ md:hover:scale-110 ] [ dark:bg-stone-900 ] [ bg-gray-100 ]"><header><a href="blogs/blazor-wasm-standalone-cookie-authentication-with-asp-net-identity"><figure><img src="image/blogs/blazor/wasm/blazor-wasm-standalone-cookie-authentication-with-asp-net-identity.webp" class="[ w-full ] [ rounded-md ]" alt="Blazor WASM Standalone Cookie Authentication with ASP.NET Identity" loading="lazy"/></figure></a></header>
+    <main class="[ grow flex space-x-2 ]"><aside class="[ basis-1/6 flex items-center ]"><a href="channels/blazor"><figure class="mt-2"><img src="image/icons/blazor.webp" alt="Blazor" loading="lazy" height="48" width="48" class="[ rounded-full ]"/></figure></a></aside>
+        <article class="[ grow flex flex-col justify-between basis-5/6 ] [ dark:text-white ] [ mt-2 ]"><a href="blogs/blazor-wasm-standalone-cookie-authentication-with-asp-net-identity"><h2 class="[ font-medium break-words hover:underline ]">Blazor WASM Standalone Cookie Authentication with ASP.NET Identity</h2></a>
+            <section class="[ flex justify-between ]"><p>Abdul Rahman</p>
+                <time datetime="2026-01-25 22-30-00">20 days ago</time></section></article></main></section><section class="[ flex flex-col justify-between ] [ transition duration-300 ] [ md:hover:scale-110 ] [ dark:bg-stone-900 ] [ bg-gray-100 ]"><header><a href="blogs/building-ai-chat-applications-in-dotnet-with-microsoft-extensions-ai"><figure><img src="image/blogs/ai/building-ai-chat-applications-in-dotnet-with-microsoft-extensions-ai.webp" class="[ w-full ] [ rounded-md ]" alt="Building AI Chat Applications in .NET with Microsoft.Extensions.AI" loading="lazy"/></figure></a></header>
+    <main class="[ grow flex space-x-2 ]"><aside class="[ basis-1/6 flex items-center ]"><a href="channels/ai"><figure class="mt-2"><img src="image/icons/ai.webp" alt="AI" loading="lazy" height="48" width="48" class="[ rounded-full ]"/></figure></a></aside>
+        <article class="[ grow flex flex-col justify-between basis-5/6 ] [ dark:text-white ] [ mt-2 ]"><a href="blogs/building-ai-chat-applications-in-dotnet-with-microsoft-extensions-ai"><h2 class="[ font-medium break-words hover:underline ]">Building AI Chat Applications in .NET with Microsoft.Extensions.AI</h2></a>
+            <section class="[ flex justify-between ]"><p>Abdul Rahman</p>
+                <time datetime="2026-01-18 22-30-00">27 days ago</time></section></article></main></section><section class="[ flex flex-col justify-between ] [ transition duration-300 ] [ md:hover:scale-110 ] [ dark:bg-stone-900 ] [ bg-gray-100 ]"><header><a href="blogs/avoiding-cache-stampede-and-handling-nulls-in-dotnet"><figure><img src="image/blogs/caching/avoiding-cache-stampede-and-handling-nulls-in-dotnet.webp" class="[ w-full ] [ rounded-md ]" alt="Avoiding Cache Stampede and Handling Nulls in .NET" loading="lazy"/></figure></a></header>
+    <main class="[ grow flex space-x-2 ]"><aside class="[ basis-1/6 flex items-center ]"><a href="channels/caching"><figure class="mt-2"><img src="image/icons/caching.webp" alt="Caching" loading="lazy" height="48" width="48" class="[ rounded-full ]"/></figure></a></aside>
+        <article class="[ grow flex flex-col justify-between basis-5/6 ] [ dark:text-white ] [ mt-2 ]"><a href="blogs/avoiding-cache-stampede-and-handling-nulls-in-dotnet"><h2 class="[ font-medium break-words hover:underline ]">Avoiding Cache Stampede and Handling Nulls in .NET</h2></a>
+            <section class="[ flex justify-between ]"><p>Abdul Rahman</p>
+                <time datetime="2026-01-11 22-30-00">one month ago</time></section></article></main></section><div class="[ flex items-center justify-center ]"><button type="button" class="[ cursor-pointer ] [ px-3 py-1 ] [ rounded-md ] [ whitespace-nowrap ] [ flex items-center justify-center ] [ disabled:opacity-75 disabled:cursor-not-allowed ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-caret-down ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                <path d="M6 10l6 6l6 -6h-12"></path></svg>
+            <p>Show more</p></button></div>
+    </aside></section></main><nav class="[ fixed bottom-0 h-14 w-full md:top-14 md:left-0 md:h-full md:w-16 ] 
+            [ bg-white ] [ dark:bg-gray-800 dark:bg-gray-800/80 ] [ backdrop-blur-xs bg-white/80 ] [ md:pt-2 ]
+            [ flex justify-around items-center md:flex-col md:justify-start md:space-y-4 ]"><a href="/" class="[ flex flex-col items-center ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-home ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <polyline points="5 12 3 12 12 3 21 12 19 12"></polyline>
+            <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7"></path>
+            <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6"></path></svg>
+        <span class="[ text-xs text-center ]">Home</span></a>
+    <a href="/learningpath" class="[ flex flex-col items-center ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-compass ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <polyline points="8 16 10 10 16 8 14 14 8 16"></polyline>
+            <circle cx="12" cy="12" r="9"></circle>
+            <line x1="12" y1="3" x2="12" y2="5"></line>
+            <line x1="12" y1="19" x2="12" y2="21"></line>
+            <line x1="3" y1="12" x2="5" y2="12"></line>
+            <line x1="19" y1="12" x2="21" y2="12"></line></svg>
+        <span class="[ text-xs text-center ]">Learning Path</span></a>
+    <a href="/career" class="[ flex flex-col items-center ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icons-tabler-outline icon-tabler-briefcase ]" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <path d="M3 7m0 2a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v9a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2z"></path>
+            <path d="M8 7v-2a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v2"></path>
+            <path d="M12 12l0 .01"></path>
+            <path d="M3 13a20 20 0 0 0 18 0"></path></svg>
+        <span class="[ text-xs text-center ]">Career</span></a>
+    <a href="/analytics" class="[ flex flex-col items-center ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-graph ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <path d="M4 18v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z"></path>
+            <path d="M7 14l3 -3l2 2l3 -3l2 2"></path></svg>
+        <span class="[ text-xs text-center ]">Analytics</span></a>
+    <a href="/about" class="[ flex flex-col items-center ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-info-circle ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <circle cx="12" cy="12" r="9"></circle>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            <polyline points="11 12 12 12 12 16 13 16"></polyline></svg>
+        <span class="[ text-xs text-center ]">About</span></a></nav><aside class="[ fixed bottom-14 md:bottom-0 right-2 ]"><button type="button" aria-label="Scroll to Top"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-square-rounded-chevron-up-filled ]" width="40" height="40" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <path d="M12 2c-.218 0 -.432 .002 -.642 .005l-.616 .017l-.299 .013l-.579 .034l-.553 .046c-4.785 .464 -6.732 2.411 -7.196 7.196l-.046 .553l-.034 .579c-.005 .098 -.01 .198 -.013 .299l-.017 .616l-.004 .318l-.001 .324c0 .218 .002 .432 .005 .642l.017 .616l.013 .299l.034 .579l.046 .553c.464 4.785 2.411 6.732 7.196 7.196l.553 .046l.579 .034c.098 .005 .198 .01 .299 .013l.616 .017l.642 .005l.642 -.005l.616 -.017l.299 -.013l.579 -.034l.553 -.046c4.785 -.464 6.732 -2.411 7.196 -7.196l.046 -.553l.034 -.579c.005 -.098 .01 -.198 .013 -.299l.017 -.616l.005 -.642l-.005 -.642l-.017 -.616l-.013 -.299l-.034 -.579l-.046 -.553c-.464 -4.785 -2.411 -6.732 -7.196 -7.196l-.553 -.046l-.579 -.034a28.058 28.058 0 0 0 -.299 -.013l-.616 -.017l-.318 -.004l-.324 -.001zm-.707 7.293a1 1 0 0 1 1.32 -.083l.094 .083l3 3a1 1 0 0 1 -1.32 1.497l-.094 -.083l-2.293 -2.292l-2.293 2.292a1 1 0 0 1 -1.32 .083l-.094 -.083a1 1 0 0 1 -.083 -1.32l.083 -.094l3 -3z" fill="currentColor" stroke-width="0"></path></svg></button></aside>
+            <!--Blazor:{"prerenderId":"4ee91bf9c934477582db2012d4799462"}-->
+<!-- %%-PRERENDERING-END-%% -->
+<!--Blazor-WebAssembly-Component-State:eyJzdGFycyI6Ik1UVXkiLCJNaWNyb3NvZnQuQXNwTmV0Q29yZS5Db21wb25lbnRzLkluZnJhc3RydWN0dXJlLlBlcnNpc3RlbnRTZXJ2aWNlc1JlZ2lzdHJ5IjoiVzNzaVlYTnpaVzFpYkhraU9pSk5hV055YjNOdlpuUXVRWE53VG1WMFEyOXlaUzVEYjIxd2IyNWxiblJ6TGtWdVpIQnZhVzUwY3lJc0ltWjFiR3hVZVhCbFRtRnRaU0k2SWsxcFkzSnZjMjltZEM1QmMzQk9aWFJEYjNKbExrTnZiWEJ2Ym1WdWRITXVVbVZ6YjNWeVkyVkRiMnhzWldOMGFXOXVVSEp2ZG1sa1pYSWlmU3g3SW1GemMyVnRZbXg1SWpvaVRXbGpjbTl6YjJaMExrRnpjRTVsZEVOdmNtVXVRMjl0Y0c5dVpXNTBjeTVYWldJaUxDSm1kV3hzVkhsd1pVNWhiV1VpT2lKTmFXTnliM052Wm5RdVFYTndUbVYwUTI5eVpTNURiMjF3YjI1bGJuUnpMa1p2Y20xekxrRnVkR2xtYjNKblpYSjVVM1JoZEdWUWNtOTJhV1JsY2lKOVhRPT0iLCJLU3p0VDg0Z0FpVjBJTy9VQlJScE9tOEs0anFFZlx1MDAyQjFKenZWT0NNQmxzaVU9IjoiZXlKMllXeDFaU0k2SWtObVJFbzRRVmRXTjBoeU5HVmhiRVpvV214bFJtVTBka1JHZVU4MVdUUjZSMjVZZW5sWlFUSldWVVpEYzNodlNFcGlaMGM1VUdGVWNXVnJkRU5JV0hSU2VsSlNlbkZyUW1aWFVWZEtjbk5rUkZwamJqaHZaVzF2TTNwTU9XNXBhVlY0WkRkMVdsOU9UVmxLTTNGbVFXdE1UVEJUV2tJeVdWVlBTM3BFVmtsTVpsRnFaa0p6YzJacGJYUTFhRXQ0UzNSM1drbHROamxsZFY5aklpd2labTl5YlVacFpXeGtUbUZ0WlNJNklsOWZVbVZ4ZFdWemRGWmxjbWxtYVdOaGRHbHZibFJ2YTJWdUluMD0ifQ==--></div>
+
+    <div id="blazor-error-ui" class="[ bg-red-500 ] [ text-white ] [ fixed bottom-0 ] [ w-full ] [ p-2 ]" style="display: none;">
+        An unhandled error has occurred. Please click on
+        <a href="javascript: void(0)" class="[ inline-block ] [ underline ] [ hover\:text-white ]" onclick="location.reload()">Reload</a>
+        to proceed.
+        <button class="[ dismiss ] [ fixed right-5 bottom-2 ]">
+            <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-x ] [ text-white ]" width="25" height="25" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
+    </div>
+
+    <script src="_content/Microsoft.AspNetCore.Components.WebAssembly.Authentication/AuthenticationService.js"></script>
+    <script src="_framework/blazor.webassembly.66stpp682q.js" autostart="false"></script>
+    <script src="_content/Blazor-Analytics/blazor-analytics.js"></script>
+    <script src="highlight.min.js"></script>
+    <script src="csharp.min.js"></script>
+    <!--<script>navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' } );</script>-->
+    <script src="brotliloader.min.js" type="module"></script>
+
+
+
+</resourcepreloader></body></html>

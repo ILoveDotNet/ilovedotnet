@@ -1,0 +1,992 @@
+<!DOCTYPE html><html lang="en"><head>
+    <meta charset="utf-8"/>
+    <meta name="author" content="Abdul Rahman Shabeek Mohamed"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+    <meta name="copyright" content="I Love DotNet"/>
+    <meta name="language" content="EN"/>
+    <meta name="robots" content="index,follow"/>
+    <meta name="owner" content="Abdul Rahman Shabeek Mohamed"/>
+    <meta name="fediverse:creator" content="@thebhai@mastodon.social"/>
+    <!--<meta http-equiv="Content-Security-Policy"
+          content="base-uri 'self';
+               block-all-mixed-content;
+               img-src data: 'self'
+                       https://pagead2.googlesyndication.com;
+               object-src 'none';
+               script-src 'self'
+                          https://pagead2.googlesyndication.com
+                          https://www.googletagmanager.com
+                          https://gist.github.com
+                          'unsafe-eval'
+                          'unsafe-inline'
+                          data:;
+               style-src 'self'
+                         https://github.githubassets.com
+                         'unsafe-inline';
+               upgrade-insecure-requests;">-->
+    <title>Improve Security with Dependency Management and SBOM in .NET - I ❤️ DotNet</title>
+    <base href="/"/>
+    
+<!--Blazor-WebAssembly:{"environmentName":"Production","environmentVariables":{}}--><!--Blazor:{"type":"webassembly","prerenderId":"7fdcde6cfdad4427b43824af7ce8ac13","key":{"locationHash":"77D12F14A8105320B1AAED6AE7E689DA0EC4483270A645E84079EAA0FFDF550D:0","formattedComponentKey":""},"assembly":"Microsoft.AspNetCore.Components.Web","typeName":"Microsoft.AspNetCore.Components.Web.HeadOutlet","parameterDefinitions":"W10=","parameterValues":"W10="}--><script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "publisher": {
+        "@type": "Organization",
+        "name": "I Love DotNet",
+        "url": "https://ilovedotnet.org/",
+        "logo": {
+            "@type": "ImageObject",
+            "url": "https://ilovedotnet.org/favicon.ico",
+            "width": 16,
+            "height": 16
+        }
+    },
+    "author": {
+        "@type": "Person",
+        "name": "Abdul Rahman Shabeek Mohamed",
+        "image": {
+            "@type": "ImageObject",
+            "url": "//https://www.gravatar.com/avatar/6f221209a03c1800679fc684dea24bf2?s=250&d=mm&r=x",
+            "width": 250,
+            "height": 250
+        },
+        "url": "https://ilovedotnet.org/author/abdulrahman/",
+        "sameAs": [
+            "https://www.linkedin.com/in/fingers10",
+            "https://github.com/fingers10",
+            "https://stackoverflow.com/users/10851213/fingers10",
+            "https://www.youtube.com/channel/UCOS3wCw7SVXjXXffMPqid7A"
+        ]
+    },
+    "headline": "Improve Security with Dependency Management and SBOM in .NET",
+    "url": "https://ilovedotnet.org/blogs/improve-security-with-dependency-management-and-sbom-in-dotnet/",
+    "datePublished": "2025-11-02T22:30:00.000Z",
+    "dateModified": "2025-11-02T22:30:00.000Z",
+    "image": {
+        "@type": "ImageObject",
+        "url": "https://ilovedotnet.org/image/blogs/security/improve-security-with-dependency-management-and-sbom-in-dotnet.png",
+        "width": 1265,
+        "height": 827
+    },
+    "keywords": ".NET, DotNet, I Love DotNet, I ❤️ DotNet, Blazor, Blazor (WebAssembly), Blazor Wasm, C#, Entity Framework, LINQ, ML.NET, Web API, TDD, OOPS, Middleware, JWT, Dependency Injection, Report, Design Pattern, SOLID, HTTP Client, OWASP, SignalR, SBOM, Software Bill of Materials, Dependency Management, Supply Chain Security, Component Governance, NuGet, Vulnerability Scanning, Private Repository, Third-Party Dependencies, Log4j, Security, .NET",
+    "description": "Master supply chain security in .NET: implement dependency governance, generate Software Bill of Materials (SBOM), manage private repositories, and defend against vulnerabilities in third-party components.",
+    "mainEntityOfPage": {
+        "@type": "WebPage",
+        "@id": "https://ilovedotnet.org/"
+    }
+}
+</script><!--Blazor:{"prerenderId":"7fdcde6cfdad4427b43824af7ce8ac13"}-->
+
+    <script type="text/default-title">I ❤️ DotNet</script>
+    <script type="text/default-meta-elements">[[,"author",,,"Abdul Rahman Shabeek Mohamed"],[,"viewport",,,"width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"],[,"copyright",,,"I Love DotNet"],[,"language",,,"EN"],[,"robots",,,"index,follow"],[,"owner",,,"Abdul Rahman Shabeek Mohamed"],[,"fediverse:creator",,,"@thebhai@mastodon.social"]]</script>
+    <meta property="description" content="Master supply chain security in .NET: implement dependency governance, generate Software Bill of Materials (SBOM), manage private repositories, and defend against vulnerabilities in third-party components."/>
+    <meta property="keywords" content=".NET, DotNet, I Love DotNet, I ❤️ DotNet, Blazor, Blazor (WebAssembly), Blazor Wasm, C#, Entity Framework, LINQ, ML.NET, Web API, TDD, OOPS, Middleware, JWT, Dependency Injection, Report, Design Pattern, SOLID, HTTP Client, OWASP, SignalR, SBOM, Software Bill of Materials, Dependency Management, Supply Chain Security, Component Governance, NuGet, Vulnerability Scanning, Private Repository, Third-Party Dependencies, Log4j, Security, .NET"/>
+    <meta property="url" content="https://ilovedotnet.org/blogs/improve-security-with-dependency-management-and-sbom-in-dotnet/"/>
+    <meta property="identifier-URL" content="https://ilovedotnet.org/blogs/improve-security-with-dependency-management-and-sbom-in-dotnet/"/>
+    <meta property="og:site_name" content="I Love DotNet"/>
+    <meta property="og:type" content="article"/>
+    <meta property="og:title" content="Improve Security with Dependency Management and SBOM in .NET"/>
+    <meta property="og:image" content="https://ilovedotnet.org/image/blogs/security/improve-security-with-dependency-management-and-sbom-in-dotnet.png"/>
+    <meta property="og:image:alt" content="DotNet bot with heart and DotNet brand"/>
+    <meta property="og:description" content="Master supply chain security in .NET: implement dependency governance, generate Software Bill of Materials (SBOM), manage private repositories, and defend against vulnerabilities in third-party components."/>
+    <meta property="og:url" content="https://ilovedotnet.org/blogs/improve-security-with-dependency-management-and-sbom-in-dotnet/"/>
+    <meta property="twitter:card" content="summary_large_image"/>
+    <meta property="twitter:title" content="Improve Security with Dependency Management and SBOM in .NET"/>
+    <meta property="twitter:image" content="https://ilovedotnet.org/image/blogs/security/improve-security-with-dependency-management-and-sbom-in-dotnet.png"/>
+    <meta property="twitter:image:alt" content="DotNet bot with heart and DotNet brand"/>
+    <meta property="twitter:description" content="Master supply chain security in .NET: implement dependency governance, generate Software Bill of Materials (SBOM), manage private repositories, and defend against vulnerabilities in third-party components."/>
+    <meta property="twitter:url" content="https://ilovedotnet.org/blogs/improve-security-with-dependency-management-and-sbom-in-dotnet/"/>
+    <meta property="article:published_time" content="2025-11-02T22:30:00.000Z"/>
+    <meta property="article:modified_time" content="2025-11-02T22:30:00.000Z"/>
+    <meta property="article:tag" content=".NET"/>
+    <script type="text/default-link-elements">[]</script>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-authors.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-blazor-wasm.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-dependency-injection.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-design-pattern.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-http-client.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-linq.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-maui.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-middleware.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-mlnet.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-msbuild.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-oops.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-owasp.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-python.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-regex.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-report.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-signalr.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-solid.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-tdd.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-testing.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-webapi.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-channels.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-talk.xml" type="application/xml" title="Sitemap"/>
+    <link rel="alternate" href="https://ilovedotnet.org/atom.xml" type="application/atom+xml"/>
+    <link rel="alternate" href="https://ilovedotnet.org/blogs/improve-security-with-dependency-management-and-sbom-in-dotnet/" hreflang="en"/>
+    <link rel="alternate" href="https://ilovedotnet.org/blogs/improve-security-with-dependency-management-and-sbom-in-dotnet/" hreflang="x-default"/>
+    <link rel="canonical" href="https://ilovedotnet.org/blogs/improve-security-with-dependency-management-and-sbom-in-dotnet/"/>
+    <link rel="index" href="https://ilovedotnet.org/blogs/improve-security-with-dependency-management-and-sbom-in-dotnet/" title="Improve Security with Dependency Management and SBOM in .NET - I ❤️ DotNet"/>
+</head><body class="[ m-0 ] [ h-full ] [ dark:bg-stone-900 ] [ bg-gray-100 ]"><resourcepreloader>
+    <link href="css/charts.min.css" rel="stylesheet"/>
+    <link href="highlight.min.css" rel="stylesheet"/>
+    <link href="github-dark.min.css" rel="stylesheet"/>
+    <link href="css/app.min.css" rel="stylesheet"/>
+    <link href="manifest.json" rel="manifest"/>
+    <link rel="icon" type="image/x-icon" href="favicon.ico"/>
+    <link rel="me" href="https://www.linkedin.com/in/thebhai" type="text/html"/>
+    <link rel="me" href="https://mastodon.social/@thebhai" type="text/html"/>
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="appicons/apple-touch-icon-144x144.png"/>
+    <link rel="apple-touch-icon-precomposed" sizes="152x152" href="appicons/apple-touch-icon-152x152.png"/>
+    <link rel="icon" type="image/png" href="appicons/favicon-196x196.png" sizes="196x196"/>
+    <link rel="preconnect" href="https://googleads.g.doubleclick.net"/>
+    <link rel="preconnect" href="https://pagead2.googlesyndication.com"/>
+    <link rel="preconnect" href="https://fundingchoicesmessages.google.com"/>
+    <link rel="icon" type="image/png" href="appicons/favicon-128.png" sizes="128x128"/>
+    <link href="_framework/dotnet.s1qmja40mg.js" rel="preload" as="script" fetchpriority="high" crossorigin="anonymous" integrity="sha256-YMizAWn0laVNFBix/zN9YaN+OcEWeNbBI6203FmSavQ="/>
+    <script type="importmap">{
+  "imports": {
+    "./_framework/blazor.webassembly.js": "./_framework/blazor.webassembly.66stpp682q.js",
+    "./_framework/dotnet.native.js": "./_framework/dotnet.native.5u40guk9m1.js",
+    "./_framework/dotnet.runtime.js": "./_framework/dotnet.runtime.q5rqv3xrhm.js",
+    "./_framework/dotnet.js": "./_framework/dotnet.s1qmja40mg.js"
+  },
+  "scopes": {},
+  "integrity": {
+    "./_framework/blazor.webassembly.66stpp682q.js": "sha256-3lCWrko3zwspV40aQhs2S/IMkRSarnHRKIdkHhuXIBA=",
+    "./_framework/blazor.webassembly.js": "sha256-3lCWrko3zwspV40aQhs2S/IMkRSarnHRKIdkHhuXIBA=",
+    "./_framework/dotnet.js": "sha256-YMizAWn0laVNFBix/zN9YaN+OcEWeNbBI6203FmSavQ=",
+    "./_framework/dotnet.native.5u40guk9m1.js": "sha256-gx+fL0jAhKq+lcmOHWlWqq6juYDskXwLwW32Ely9jok=",
+    "./_framework/dotnet.native.js": "sha256-gx+fL0jAhKq+lcmOHWlWqq6juYDskXwLwW32Ely9jok=",
+    "./_framework/dotnet.runtime.js": "sha256-ArknccFM1sHNVcih0x1h52AG+abNCoQjl6BlVrv3ePw=",
+    "./_framework/dotnet.runtime.q5rqv3xrhm.js": "sha256-ArknccFM1sHNVcih0x1h52AG+abNCoQjl6BlVrv3ePw=",
+    "./_framework/dotnet.s1qmja40mg.js": "sha256-YMizAWn0laVNFBix/zN9YaN+OcEWeNbBI6203FmSavQ="
+  }
+}</script>
+    <script type="text/javascript">
+        if (!window.location.host.includes('localhost')) {
+            (function(c,l,a,r,i,t,y){
+                c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+                t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+                y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+            })(window, document, "clarity", "script", "o0565ytixx");
+        }
+    </script>
+    <script async="" src="https://fundingchoicesmessages.google.com/i/pub-1536083653226834?ers=1" nonce="dOfxAvcES0_Mwd7YjKmn_Q"></script>
+    <script nonce="dOfxAvcES0_Mwd7YjKmn_Q">
+        if (!window.location.host.includes('localhost')) {
+            (function () { function signalGooglefcPresent() { if (!window.frames['googlefcPresent']) { if (document.body) { const iframe = document.createElement('iframe'); iframe.style = 'width: 0; height: 0; border: none; z-index: -1000; left: -1000px; top: -1000px;'; iframe.style.display = 'none'; iframe.name = 'googlefcPresent'; document.body.appendChild(iframe); } else { setTimeout(signalGooglefcPresent, 0); } } } signalGooglefcPresent(); })();
+        }
+    </script>
+    <script>
+        if (!window.location.host.includes('localhost')) {
+            (function () {
+                /*
+                Copyright The Closure Library Authors.
+                SPDX-License-Identifier: Apache-2.0
+                */
+                'use strict'; var aa = function (a) { var b = 0; return function () { return b < a.length ? { done: !1, value: a[b++] } : { done: !0 } } }, ba = "function" == typeof Object.create ? Object.create : function (a) { var b = function () { }; b.prototype = a; return new b }, k; if ("function" == typeof Object.setPrototypeOf) k = Object.setPrototypeOf; else { var m; a: { var ca = { a: !0 }, n = {}; try { n.__proto__ = ca; m = n.a; break a } catch (a) { } m = !1 } k = m ? function (a, b) { a.__proto__ = b; if (a.__proto__ !== b) throw new TypeError(a + " is not extensible"); return a } : null }
+                var p = k, q = function (a, b) { a.prototype = ba(b.prototype); a.prototype.constructor = a; if (p) p(a, b); else for (var c in b) if ("prototype" != c) if (Object.defineProperties) { var d = Object.getOwnPropertyDescriptor(b, c); d && Object.defineProperty(a, c, d) } else a[c] = b[c]; a.v = b.prototype }, r = this || self, da = function () { }, t = function (a) { return a }; var u; var w = function (a, b) { this.g = b === v ? a : "" }; w.prototype.toString = function () { return this.g + "" }; var v = {}, x = function (a) { if (void 0 === u) { var b = null; var c = r.trustedTypes; if (c && c.createPolicy) { try { b = c.createPolicy("goog#html", { createHTML: t, createScript: t, createScriptURL: t }) } catch (d) { r.console && r.console.error(d.message) } u = b } else u = b } a = (b = u) ? b.createScriptURL(a) : a; return new w(a, v) }; var A = function () { return Math.floor(2147483648 * Math.random()).toString(36) + Math.abs(Math.floor(2147483648 * Math.random()) ^ Date.now()).toString(36) }; var B = {}, C = null; var D = "function" === typeof Uint8Array; function E(a, b, c) { return "object" === typeof a ? D && !Array.isArray(a) && a instanceof Uint8Array ? c(a) : F(a, b, c) : b(a) } function F(a, b, c) { if (Array.isArray(a)) { for (var d = Array(a.length), e = 0; e < a.length; e++) { var f = a[e]; null != f && (d[e] = E(f, b, c)) } Array.isArray(a) && a.s && G(d); return d } d = {}; for (e in a) Object.prototype.hasOwnProperty.call(a, e) && (f = a[e], null != f && (d[e] = E(f, b, c))); return d }
+                function ea(a) {
+                    return F(a, function (b) { return "number" === typeof b ? isFinite(b) ? b : String(b) : b }, function (b) {
+                        var c; void 0 === c && (c = 0); if (!C) { C = {}; for (var d = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789".split(""), e = ["+/=", "+/", "-_=", "-_.", "-_"], f = 0; 5 > f; f++) { var h = d.concat(e[f].split("")); B[f] = h; for (var g = 0; g < h.length; g++) { var l = h[g]; void 0 === C[l] && (C[l] = g) } } } c = B[c]; d = Array(Math.floor(b.length / 3)); e = c[64] || ""; for (f = h = 0; h < b.length - 2; h += 3) {
+                            var y = b[h], z = b[h + 1]; l = b[h + 2]; g = c[y >> 2]; y = c[(y & 3) <<
+                                4 | z >> 4]; z = c[(z & 15) << 2 | l >> 6]; l = c[l & 63]; d[f++] = "" + g + y + z + l
+                        } g = 0; l = e; switch (b.length - h) { case 2: g = b[h + 1], l = c[(g & 15) << 2] || e; case 1: b = b[h], d[f] = "" + c[b >> 2] + c[(b & 3) << 4 | g >> 4] + l + e }return d.join("")
+                    })
+                } var fa = { s: { value: !0, configurable: !0 } }, G = function (a) { Array.isArray(a) && !Object.isFrozen(a) && Object.defineProperties(a, fa); return a }; var H; var J = function (a, b, c) {
+                    var d = H; H = null; a || (a = d); d = this.constructor.u; a || (a = d ? [d] : []); this.j = d ? 0 : -1; this.h = null; this.g = a; a: { d = this.g.length; a = d - 1; if (d && (d = this.g[a], !(null === d || "object" != typeof d || Array.isArray(d) || D && d instanceof Uint8Array))) { this.l = a - this.j; this.i = d; break a } void 0 !== b && -1 < b ? (this.l = Math.max(b, a + 1 - this.j), this.i = null) : this.l = Number.MAX_VALUE } if (c) for (b = 0; b < c.length; b++)a = c[b], a < this.l ? (a += this.j, (d = this.g[a]) ? G(d) : this.g[a] = I) : (d = this.l + this.j, this.g[d] || (this.i = this.g[d] = {}), (d = this.i[a]) ?
+                        G(d) : this.i[a] = I)
+                }, I = Object.freeze(G([])), K = function (a, b) { if (-1 === b) return null; if (b < a.l) { b += a.j; var c = a.g[b]; return c !== I ? c : a.g[b] = G([]) } if (a.i) return c = a.i[b], c !== I ? c : a.i[b] = G([]) }, M = function (a, b) { var c = L; if (-1 === b) return null; a.h || (a.h = {}); if (!a.h[b]) { var d = K(a, b); d && (a.h[b] = new c(d)) } return a.h[b] }; J.prototype.toJSON = function () { var a = N(this, !1); return ea(a) };
+                var N = function (a, b) { if (a.h) for (var c in a.h) if (Object.prototype.hasOwnProperty.call(a.h, c)) { var d = a.h[c]; if (Array.isArray(d)) for (var e = 0; e < d.length; e++)d[e] && N(d[e], b); else d && N(d, b) } return a.g }, O = function (a, b) { H = b = b ? JSON.parse(b) : null; a = new a(b); H = null; return a }; J.prototype.toString = function () { return N(this, !1).toString() }; var P = function (a) { J.call(this, a) }; q(P, J); function ha(a) { var b, c = (a.ownerDocument && a.ownerDocument.defaultView || window).document, d = null === (b = c.querySelector) || void 0 === b ? void 0 : b.call(c, "script[nonce]"); (b = d ? d.nonce || d.getAttribute("nonce") || "" : "") && a.setAttribute("nonce", b) }; var Q = function (a, b) { b = String(b); "application/xhtml+xml" === a.contentType && (b = b.toLowerCase()); return a.createElement(b) }, R = function (a) { this.g = a || r.document || document }; R.prototype.appendChild = function (a, b) { a.appendChild(b) }; var S = function (a, b, c, d, e, f) { try { var h = a.g, g = Q(a.g, "SCRIPT"); g.async = !0; g.src = b instanceof w && b.constructor === w ? b.g : "type_error:TrustedResourceUrl"; ha(g); h.head.appendChild(g); g.addEventListener("load", function () { e(); d && h.head.removeChild(g) }); g.addEventListener("error", function () { 0 < c ? S(a, b, c - 1, d, e, f) : (d && h.head.removeChild(g), f()) }) } catch (l) { f() } }; var ia = r.atob("aHR0cHM6Ly93d3cuZ3N0YXRpYy5jb20vaW1hZ2VzL2ljb25zL21hdGVyaWFsL3N5c3RlbS8xeC93YXJuaW5nX2FtYmVyXzI0ZHAucG5n"), ja = r.atob("WW91IGFyZSBzZWVpbmcgdGhpcyBtZXNzYWdlIGJlY2F1c2UgYWQgb3Igc2NyaXB0IGJsb2NraW5nIHNvZnR3YXJlIGlzIGludGVyZmVyaW5nIHdpdGggdGhpcyBwYWdlLg=="), ka = r.atob("RGlzYWJsZSBhbnkgYWQgb3Igc2NyaXB0IGJsb2NraW5nIHNvZnR3YXJlLCB0aGVuIHJlbG9hZCB0aGlzIHBhZ2Uu"), la = function (a, b, c) { this.h = a; this.j = new R(this.h); this.g = null; this.i = []; this.l = !1; this.o = b; this.m = c }, V = function (a) {
+                    if (a.h.body && !a.l) {
+                        var b =
+                            function () { T(a); r.setTimeout(function () { return U(a, 3) }, 50) }; S(a.j, a.o, 2, !0, function () { r[a.m] || b() }, b); a.l = !0
+                    }
+                }, T = function (a) {
+                    for (var b = W(1, 5), c = 0; c < b; c++) { var d = X(a); a.h.body.appendChild(d); a.i.push(d) } b = X(a); b.style.bottom = "0"; b.style.left = "0"; b.style.position = "fixed"; b.style.width = W(100, 110).toString() + "%"; b.style.zIndex = W(2147483544, 2147483644).toString(); b.style["background-color"] = ma(249, 259, 242, 252, 219, 229); b.style["box-shadow"] = "0 0 12px #888"; b.style.color = ma(0, 10, 0, 10, 0, 10); b.style.display =
+                        "flex"; b.style["justify-content"] = "center"; b.style["font-family"] = "Roboto, Arial"; c = X(a); c.style.width = W(80, 85).toString() + "%"; c.style.maxWidth = W(750, 775).toString() + "px"; c.style.margin = "24px"; c.style.display = "flex"; c.style["align-items"] = "flex-start"; c.style["justify-content"] = "center"; d = Q(a.j.g, "IMG"); d.className = A(); d.src = ia; d.style.height = "24px"; d.style.width = "24px"; d.style["padding-right"] = "16px"; var e = X(a), f = X(a); f.style["font-weight"] = "bold"; f.textContent = ja; var h = X(a); h.textContent = ka; Y(a,
+                            e, f); Y(a, e, h); Y(a, c, d); Y(a, c, e); Y(a, b, c); a.g = b; a.h.body.appendChild(a.g); b = W(1, 5); for (c = 0; c < b; c++)d = X(a), a.h.body.appendChild(d), a.i.push(d)
+                }, Y = function (a, b, c) { for (var d = W(1, 5), e = 0; e < d; e++) { var f = X(a); b.appendChild(f) } b.appendChild(c); c = W(1, 5); for (d = 0; d < c; d++)e = X(a), b.appendChild(e) }, W = function (a, b) { return Math.floor(a + Math.random() * (b - a)) }, ma = function (a, b, c, d, e, f) {
+                    return "rgb(" + W(Math.max(a, 0), Math.min(b, 255)).toString() + "," + W(Math.max(c, 0), Math.min(d, 255)).toString() + "," + W(Math.max(e, 0), Math.min(f,
+                        255)).toString() + ")"
+                }, X = function (a) { a = Q(a.j.g, "DIV"); a.className = A(); return a }, U = function (a, b) { 0 >= b || null != a.g && 0 != a.g.offsetHeight && 0 != a.g.offsetWidth || (na(a), T(a), r.setTimeout(function () { return U(a, b - 1) }, 50)) }, na = function (a) { var b = a.i; var c = "undefined" != typeof Symbol && Symbol.iterator && b[Symbol.iterator]; b = c ? c.call(b) : { next: aa(b) }; for (c = b.next(); !c.done; c = b.next())(c = c.value) && c.parentNode && c.parentNode.removeChild(c); a.i = []; (b = a.g) && b.parentNode && b.parentNode.removeChild(b); a.g = null }; var pa = function (a, b, c, d, e) { var f = oa(c), h = function (l) { l.appendChild(f); r.setTimeout(function () { f ? (0 !== f.offsetHeight && 0 !== f.offsetWidth ? b() : a(), f.parentNode && f.parentNode.removeChild(f)) : a() }, d) }, g = function (l) { document.body ? h(document.body) : 0 < l ? r.setTimeout(function () { g(l - 1) }, e) : b() }; g(3) }, oa = function (a) { var b = document.createElement("div"); b.className = a; b.style.width = "1px"; b.style.height = "1px"; b.style.position = "absolute"; b.style.left = "-10000px"; b.style.top = "-10000px"; b.style.zIndex = "-10000"; return b }; var L = function (a) { J.call(this, a) }; q(L, J); var qa = function (a) { J.call(this, a) }; q(qa, J); var ra = function (a, b) { this.l = a; this.m = new R(a.document); this.g = b; this.i = K(this.g, 1); b = M(this.g, 2); this.o = x(K(b, 4) || ""); this.h = !1; b = M(this.g, 13); b = x(K(b, 4) || ""); this.j = new la(a.document, b, K(this.g, 12)) }; ra.prototype.start = function () { sa(this) };
+                var sa = function (a) { ta(a); S(a.m, a.o, 3, !1, function () { a: { var b = a.i; var c = r.btoa(b); if (c = r[c]) { try { var d = O(P, r.atob(c)) } catch (e) { b = !1; break a } b = b === K(d, 1) } else b = !1 } b ? Z(a, K(a.g, 14)) : (Z(a, K(a.g, 8)), V(a.j)) }, function () { pa(function () { Z(a, K(a.g, 7)); V(a.j) }, function () { return Z(a, K(a.g, 6)) }, K(a.g, 9), K(a.g, 10), K(a.g, 11)) }) }, Z = function (a, b) { a.h || (a.h = !0, a = new a.l.XMLHttpRequest, a.open("GET", b, !0), a.send()) }, ta = function (a) { var b = r.btoa(a.i); a.l[b] && Z(a, K(a.g, 5)) }; (function (a, b) { r[a] = function (c) { for (var d = [], e = 0; e < arguments.length; ++e)d[e - 0] = arguments[e]; r[a] = da; b.apply(null, d) } })("__h82AlnkH6D91__", function (a) { "function" === typeof window.atob && (new ra(window, O(qa, window.atob(a)))).start() });
+            }).call(this);
+
+            window.__h82AlnkH6D91__("WyJwdWItMTUzNjA4MzY1MzIyNjgzNCIsW251bGwsbnVsbCxudWxsLCJodHRwczovL2Z1bmRpbmdjaG9pY2VzbWVzc2FnZXMuZ29vZ2xlLmNvbS9iL3B1Yi0xNTM2MDgzNjUzMjI2ODM0Il0sbnVsbCxudWxsLCJodHRwczovL2Z1bmRpbmdjaG9pY2VzbWVzc2FnZXMuZ29vZ2xlLmNvbS9lbC9BR1NLV3hYajNKNGktY00wVWloYjRfLVVJQXdrSHJ4Yl9EWXBFa3NXOW1WalVlRkVzZVNQVHhUOTAydzZ4MGd6b1E5NFA3OHFZZWhyV2FvU2gySWxfUEQ5eFRfQjVRXHUwMDNkXHUwMDNkP3RlXHUwMDNkVE9LRU5fRVhQT1NFRCIsImh0dHBzOi8vZnVuZGluZ2Nob2ljZXNtZXNzYWdlcy5nb29nbGUuY29tL2VsL0FHU0tXeFZSMWROcWh4V3lsVjRuNHJGQVVoRDR2ZjFNaGdFcHl5M2VoU3l2QndTQzF1c0dVWV9LbUVRSThEc1pyUk1hQ0NmYWdXNkNPVUN2ODNJbVVKTEJibTZ2TWdcdTAwM2RcdTAwM2Q/YWJcdTAwM2QxXHUwMDI2c2JmXHUwMDNkMSIsImh0dHBzOi8vZnVuZGluZ2Nob2ljZXNtZXNzYWdlcy5nb29nbGUuY29tL2VsL0FHU0tXeFZidGltVm5CbWlZa1lDMWFWR0ViMnQycGViNkxCMzZGOXhqOXZYYzRhbmdXcW5Ca0lnbkVuYXdvYnZyRU0xNWxBNlpyQ3JXOUNkTnkzZHFudkg4SmFUcGdcdTAwM2RcdTAwM2Q/YWJcdTAwM2QyXHUwMDI2c2JmXHUwMDNkMSIsImh0dHBzOi8vZnVuZGluZ2Nob2ljZXNtZXNzYWdlcy5nb29nbGUuY29tL2VsL0FHU0tXeFhrQWpIZ09OZHFJcW9DcXZHYlBDMmFMQnNGMzFDeHNTRWNtcEllOHNyak5wTkhfOC1jaEJ5WUlyRDFfT2JaWm9SSlAxRi1mOE9qQjBnMnpfaVRZYTdoaEFcdTAwM2RcdTAwM2Q/c2JmXHUwMDNkMiIsImRpdi1ncHQtYWQiLDIwLDEwMCwiY0hWaUxURTFNell3T0RNMk5UTXlNalk0TXpRXHUwMDNkIixbbnVsbCxudWxsLG51bGwsImh0dHBzOi8vd3d3LmdzdGF0aWMuY29tLzBlbW4vZi9wL3B1Yi0xNTM2MDgzNjUzMjI2ODM0LmpzP3VzcXBcdTAwM2RDQVEiXSwiaHR0cHM6Ly9mdW5kaW5nY2hvaWNlc21lc3NhZ2VzLmdvb2dsZS5jb20vZWwvQUdTS1d4VWt4c0lqNWhFcmJHb1g0RnZnY1F0TjVkcnVuWkxEbHNUY2FRTWx3V1kwR1oySm94bklBQkh0eE9wckxJeUxLSEhDRUtWUk52QlFPVm4xTkVDczRqN3F5Z1x1MDAzZFx1MDAzZCJd");
+        }
+    </script>
+    <script async="" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1536083653226834" crossorigin="anonymous"></script>
+    <script>
+        if (localStorage.DisplayMode === 'dark' || (!('DisplayMode' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
+
+
+
+    <div id="app" class="[ dark:text-white ]">
+<!-- %%-PRERENDERING-BEGIN-%% -->
+<!--Blazor:{"type":"webassembly","prerenderId":"63c3e2238ed74b558be653856c94f4ba","key":{"locationHash":"5A77B35847144BFA5AAD4B6E75ECBFC65A5AF21F4F3ACA798E2BA892F3E88F38:0","formattedComponentKey":""},"assembly":"Web","typeName":"Web.App","parameterDefinitions":"W10=","parameterValues":"W10="}--><header id="header" class="[ flex items-center justify-between ] [ bg-white ] [ px-5 ] [ dark:bg-gray-800 dark:bg-gray-800/80 ] [ h-14 ] [ sticky top-0 ] [ backdrop-blur-xs bg-white/80 ] [ z-10 ]"><button type="button" class="[ hidden md:block ] [ mr-4 ]" aria-label="Toggle Menu"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-menu-2 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+           <line x1="4" y1="6" x2="20" y2="6"></line>
+           <line x1="4" y1="12" x2="20" y2="12"></line>
+           <line x1="4" y1="18" x2="20" y2="18"></line></svg></button>
+    <h1 id="brand" class="[  ]"><a href="/" class="[ font-bold ] [ flex items-center justify-between space-x-1 ] active" aria-current="page"><span class="[ dark:text-white ]">I</span>
+            <span class="animate-pulse">❤️</span>
+            <span class="[ text-indigo-600 ] [ dark:text-white ]">.NET</span></a></h1>
+    <section id="search" class="[ flex grow justify-end md:justify-center ]"><button type="button" aria-label="Exit Search" class="[ hidden ] [ bg-white ] [ h-10 w-10 ] [ border-2 border-gray-200 ] [ dark:bg-gray-800 dark:border-gray-800 ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-arrow-left ] [ inline ] [ text-gray-500 ] [ stroke-1 ] [ dark:text-white ]" width="25" height="25" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <line x1="5" y1="12" x2="11" y2="18"></line>
+            <line x1="5" y1="12" x2="11" y2="6"></line></svg></button>
+    <div class="[ dropdown ] [  ] [ w-1/2 ] [ hidden ] [  ]"><div class="[ dropdown-trigger ] [ w-full ]"><input type="search" placeholder="Type / to search" class="[ w-full h-full ] [ px-4 ] [ border-2 border-gray-200 ] [ focus:outline-hidden focus:border-gray-400 ] [ dark:bg-black dark:border-gray-800 dark:focus:border-b-white dark:md:focus:border-blue-800 dark:caret-white dark:text-white ]" autocapitalize="none" autocomplete="off" name="search" autocorrect="off" aria-haspopup="true" aria-controls="dropdown-menu" value=""/></div>
+        <div class="[ dropdown-menu ] [ bg-white dark:bg-black ] [ w-full ]" id="dropdown-menu" role="menu"><div class="[ dropdown-content ] [ dark:bg-black ] [ overflow-y-auto ]" style="max-height:50vh;"></div></div></div>
+    <button type="button" aria-label="Search" class="[ h-10 w-10 ] [  ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-search ] [ inline ] [ text-gray-500 ] [ stroke-1 ] [ dark:text-white ]" width="25" height="25" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <circle cx="10" cy="10" r="7"></circle>
+            <line x1="21" y1="21" x2="15" y2="15"></line></svg></button></section>
+    <section id="display-and-social" class="[  ] [ flex items-center space-x-1.5 ]"><a href="https://github.com/ILoveDotNet/ilovedotnet" target="blank" aria-label="Give a Star in GitHub" class="[ flex items-center space-x-1 ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-star ] [ fill-yellow-400 stroke-yellow-400 ] [ animate-pulse ]" width="25" height="25" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                <path d="M12 17.75l-6.172 3.245l1.179 -6.873l-5 -4.867l6.9 -1l3.086 -6.253l3.086 6.253l6.9 1l-5 4.867l1.179 6.873z"></path></svg>
+            <span class="hidden md:block">Starred 0</span></a>
+        <section id="displaymode"><div class="dropdown is-right "><div class="dropdown-trigger"><button class="button [ flex items-center ]" aria-haspopup="true" aria-controls="displaymode-menu" aria-label="Theme Selector"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-device-desktop ] [ dark:text-white ]" width="25" height="25" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <rect x="3" y="4" width="18" height="12" rx="1"></rect>
+                        <line x1="7" y1="20" x2="17" y2="20"></line>
+                        <line x1="9" y1="16" x2="9" y2="20"></line>
+                        <line x1="15" y1="16" x2="15" y2="20"></line></svg></button></div>
+        <div class="dropdown-menu [ bg-white dark:bg-black ]" id="displaymode-menu" role="menu"><div class="dropdown-content [ dark:bg-black ]"><button type="button" class="dropdown-item [ flex items-center space-x-1 ] [ dark:hover:bg-gray-700 ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-device-desktop ] [ dark:text-white ]" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <rect x="3" y="4" width="18" height="12" rx="1"></rect>
+                        <line x1="7" y1="20" x2="17" y2="20"></line>
+                        <line x1="9" y1="16" x2="9" y2="20"></line>
+                        <line x1="15" y1="16" x2="15" y2="20"></line></svg>
+                    <p class="[ dark:text-white ]">System</p></button>
+                <button type="button" class="dropdown-item [ flex items-center space-x-1 ] [ dark:hover:bg-gray-700 ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-moon ] [ dark:text-white ]" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z"></path></svg>
+                    <p class="[ dark:text-white ]">Dark</p></button>
+                <button type="button" class="dropdown-item [ flex items-center space-x-1 ] [ dark:hover:bg-gray-700 ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-brightness-up ] [ dark:text-white ]" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <line x1="12" y1="5" x2="12" y2="3"></line>
+                        <line x1="17" y1="7" x2="18.4" y2="5.6"></line>
+                        <line x1="19" y1="12" x2="21" y2="12"></line>
+                        <line x1="17" y1="17" x2="18.4" y2="18.4"></line>
+                        <line x1="12" y1="19" x2="12" y2="21"></line>
+                        <line x1="7" y1="17" x2="5.6" y2="18.4"></line>
+                        <line x1="6" y1="12" x2="4" y2="12"></line>
+                        <line x1="7" y1="7" x2="5.6" y2="5.6"></line></svg>
+                    <p class="[ dark:text-white ]">Light</p></button></div></div></div></section>
+        <section id="others"><div class="dropdown is-right "><div class="dropdown-trigger"><button class="button [ flex items-center ]" aria-haspopup="true" aria-controls="others-menu" aria-label="Others"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-dots-vertical ] [ dark:text-white ]" width="20" height="20" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                    <circle cx="12" cy="12" r="1"></circle>
+                    <circle cx="12" cy="19" r="1"></circle>
+                    <circle cx="12" cy="5" r="1"></circle></svg></button></div>
+        <div class="dropdown-menu [ bg-white dark:bg-black ]" id="others-menu" role="menu"><div class="dropdown-content [ dark:bg-black ]"><a href="https://github.com/sponsors/fingers10" target="_blank" class="dropdown-item [ flex items-center space-x-1 ] [ dark:hover:bg-gray-700 ]" __internal_stoppropagation_onfocusout=""><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-heart ] [ text-red-500 ] [ fill-red-500 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428m0 0a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572"></path></svg>
+                    <p class="[ dark:text-white ]">Sponsor Us</p></a>
+                <hr class="dropdown-divider"/>
+                <a href="/disclaimer" __internal_stoppropagation_onfocusout="" class="dropdown-item [ flex items-center space-x-1 ] [ dark:hover:bg-gray-700 ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-hand-off ] [ text-yellow-500 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                       <line x1="3" y1="3" x2="21" y2="21"></line>
+                       <path d="M8 13.5v-5.5m.44 -3.562a1.5 1.5 0 0 1 2.56 1.062v1.5m0 4.008v.992m0 -6.5v-2a1.5 1.5 0 1 1 3 0v6.5m0 -4.5a1.5 1.5 0 0 1 3 0v6.5m0 -4.5a1.5 1.5 0 0 1 3 0v8.5a6 6 0 0 1 -6 6h-2c-2.114 -.292 -3.956 -1.397 -5 -3l-2.7 -5.25a1.7 1.7 0 0 1 2.75 -2l.9 1.75"></path></svg>
+                    <span class="[ dark:text-white ]">Disclaimer</span></a>
+                <a href="/privacy" __internal_stoppropagation_onfocusout="" class="dropdown-item [ flex items-center space-x-1 ] [ dark:hover:bg-gray-700 ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-lock-square ] [ text-orange-500 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <rect x="8" y="11" width="8" height="5" rx="1"></rect>
+                        <path d="M10 11v-2a2 2 0 1 1 4 0v2"></path>
+                        <rect x="4" y="4" width="16" height="16" rx="2"></rect></svg>
+                    <span class="[ dark:text-white ]">Privacy</span></a></div></div></div></section></section></header>
+<main id="main" class="[ [ pb-14 md:pb-0 md:pl-16 ] ]"><section class="[ font-bold ] [ p-5 ] [ flex flex-col items-center justify-center ]"><a href="https://whatsapp.com/channel/0029VaAGMV2LtOj5S5MHd23h" target="_blank"><span>👉🏼 Click here to Join I ❤️ .NET </span>
+        <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-brand-whatsapp ] [ fill-green-500 ] [ inline ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <path d="M3 21l1.65 -3.8a9 9 0 1 1 3.4 2.9l-5.05 .9"></path>
+            <path d="M9 10a.5 .5 0 0 0 1 0v-1a.5 .5 0 0 0 -1 0v1a5 5 0 0 0 5 5h1a.5 .5 0 0 0 0 -1h-1a.5 .5 0 0 0 0 1"></path></svg>
+        <span>WhatsApp Channel to get 🔔 notified about new articles and other updates.</span></a></section>
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<section class="[ flex flex-col lg:flex-row ] [ p-1 md:p-5 lg:px-20 ] [ lg:space-x-5 space-y-5 lg:space-y-0 ]"><article class="[ lg:basis-3/4 ] [ space-y-5 ]"><header class="[ space-y-2 ]"><figure><img src="image/blogs/security/improve-security-with-dependency-management-and-sbom-in-dotnet.webp" alt="Improve Security with Dependency Management and SBOM in .NET" class="[ w-full ]" loading="lazy"/></figure><h2 class="[ dark:text-white ] [ font-semibold text-xl ]">Improve Security with Dependency Management and SBOM in .NET</h2>
+    <section class="[ flex flex-col md:flex-row justify-between ] [ space-y-1 md:space-y-0 ] [ dark:text-white ] [ font-bold ]"><div><p>Author - <a href="authors/abdul-rahman" class="[ underline ]">Abdul Rahman (Bhai)</a></p>
+            <time datetime="2025-11-02 22:30:00">Last updated 3 months ago</time></div>
+        <div><section class="[ flex justify-between md:justify-start ]"><a href="https://github.com/sponsors/fingers10" target="_blank" aria-label="Sponsor Us"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-heart ] [ text-red-500 ] [ fill-red-500 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+           <path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428m0 0a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572"></path></svg></a>
+    <a href="https://api.whatsapp.com/send?text=Improve Security with Dependency Management and SBOM in .NET%20https%3a%2f%2filovedotnet.org%2fblogs%2fimprove-security-with-dependency-management-and-sbom-in-dotnet%2f" target="_blank" aria-label="Share via Whatsapp"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-brand-whatsapp ] [ text-emerald-500 dark:text-emerald-300 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <path d="M3 21l1.65 -3.8a9 9 0 1 1 3.4 2.9l-5.05 .9"></path>
+            <path d="M9 10a0.5 .5 0 0 0 1 0v-1a0.5 .5 0 0 0 -1 0v1a5 5 0 0 0 5 5h1a0.5 .5 0 0 0 0 -1h-1a0.5 .5 0 0 0 0 1"></path></svg></a>
+    <a href="https://www.linkedin.com/shareArticle?mini=true&amp;url=https%3a%2f%2filovedotnet.org%2fblogs%2fimprove-security-with-dependency-management-and-sbom-in-dotnet%2f" target="_blank" aria-label="Share via Linkedin"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-brand-linkedin ] [ text-blue-500 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+            <line x1="8" y1="11" x2="8" y2="16"></line>
+            <line x1="8" y1="8" x2="8" y2="8.01"></line>
+            <line x1="12" y1="16" x2="12" y2="11"></line>
+            <path d="M16 16v-3a2 2 0 0 0 -4 0"></path></svg></a>
+    <a href="https://www.facebook.com/sharer.php?u=https%3a%2f%2filovedotnet.org%2fblogs%2fimprove-security-with-dependency-management-and-sbom-in-dotnet%2f" target="_blank" aria-label="Share via Facebook"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-brand-facebook ] [ text-blue-400 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <path d="M7 10v4h3v7h4v-7h3l1 -4h-4v-2a1 1 0 0 1 1 -1h3v-4h-3a5 5 0 0 0 -5 5v2h-3"></path></svg></a>
+    <a href="https://twitter.com/intent/tweet?url=https%3a%2f%2filovedotnet.org%2fblogs%2fimprove-security-with-dependency-management-and-sbom-in-dotnet%2f&amp;text=Improve Security with Dependency Management and SBOM in .NET" target="_blank" aria-label="Share via Tweet"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-brand-twitter ] [ text-blue-700 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <path d="M22 4.01c-1 .49 -1.98 .689 -3 .99c-1.121 -1.265 -2.783 -1.335 -4.38 -.737s-2.643 2.06 -2.62 3.737v1c-3.245 .083 -6.135 -1.395 -8 -4c0 0 -4.182 7.433 4 11c-1.872 1.247 -3.739 2.088 -6 2c3.308 1.803 6.913 2.423 10.034 1.517c3.58 -1.04 6.522 -3.723 7.651 -7.742a13.84 13.84 0 0 0 .497 -3.753c-.002 -.249 1.51 -2.772 1.818 -4.013z"></path></svg></a></section></div></section>
+    <section class="[ flex items-center justify-between ]"><a href="channels/security" class="[ flex ]"><aside><figure class="[ mt-2 mr-2 ]"><img src="/image/icons/security.webp" alt="Security" loading="lazy" height="48" width="48" class="[ rounded-full ]"/></figure></aside>
+            <article class="[ flex flex-col justify-between ] [ dark:text-white ] [ mt-2 ]"><h2 class="[ font-medium break-words ] [ uppercase ]">Security</h2>
+                <section class="[ flex justify-between ]"><p>10 Articles</p></section></article></a>
+        <a href="https://github.com/ILoveDotNet/ilovedotnet/blob/main/SecurityDemoComponents/Pages/Blogs/DependencyManagementAndSBOM.razor" target="_blank" class="[ md:bg-red-700 ] [ text-red-500 md:text-white uppercase ] [ px-3 py-2 ] [ font-semibold ]">Improve</a></section>
+    <hr class="[ dark:text-white my-1.5 ]"/></header>
+        <section class="[ dark:text-white ] [ space-y-2 ] [ prose dark:prose-invert ] [ min-w-full ]"><h3>Table of Contents</h3><ol><li><a href="blogs/improve-security-with-dependency-management-and-sbom-in-dotnet#what" class="active" aria-current="page">
+                            What we gonna do?
+                        </a></li>
+                    <li><a href="blogs/improve-security-with-dependency-management-and-sbom-in-dotnet#why" class="active" aria-current="page">
+                            Why we gonna do?
+                        </a></li>
+                    <li><a href="blogs/improve-security-with-dependency-management-and-sbom-in-dotnet#how" class="active" aria-current="page">
+                            How we gonna do?
+                        </a></li>
+                    <li><a href="blogs/improve-security-with-dependency-management-and-sbom-in-dotnet#summary" class="active" aria-current="page">
+                            Summary
+                        </a></li></ol><h3 id="what">What we gonna do?</h3>
+
+<p>
+        Think your application is secure because you wrote the code yourself? <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Think again.</span> 
+        On average, <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">80% of your application</span> comes from third-party dependencies—and every 
+        single one is a potential security risk. In this article, we'll explore <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">dependency management</span> 
+        and <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Software Bill of Materials (SBOM)</span> in .NET, showing you how to regain control 
+        over your software supply chain.
+      </p>
+
+    <h3 id="why">Why we gonna do?</h3>
+
+<p>
+        The software supply chain is under attack. Remember <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Log4j in 2021</span>? That single 
+        vulnerability in a widely-used logging library compromised millions of applications worldwide—and organizations are 
+        <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">still finding instances in 2025</span>. Why? Because most companies have no idea what 
+        components are buried deep in their dependency trees.
+      </p>
+      <p>
+        Here's the harsh reality: third-party components can be <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">abandoned</span> by their 
+        creators, <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">compromised</span> by attackers, or simply <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">contain 
+        undiscovered vulnerabilities</span>. The 2018 EventStream attack showed how easily a malicious actor 
+        can take over a popular package and inject bitcoin-stealing code. SolarWinds proved that even trusted vendors can 
+        distribute compromised software.
+      </p>
+      <p>
+        But here's what keeps security teams up at night: <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">transitive dependencies</span>—the 
+        dependencies of your dependencies. Your PDF library might be using Log4j without you knowing it. You're not just 
+        responsible for the 5 packages you directly reference, but also the <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">75+ packages they pull in</span>.
+      </p>
+      <p>
+        The US government now <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">requires an SBOM</span> for any software sold or leased to federal 
+        agencies. This isn't bureaucracy—it's recognition that supply chain security is critical infrastructure. If you can't 
+        answer "what's in my software?" within minutes of a vulnerability disclosure, you're already too late.
+      </p>
+
+    <h3 id="how">How we gonna do?</h3>
+
+<p>
+        Securing your dependency chain requires a systematic approach. Let's build a complete governance framework that gives 
+        you visibility, control, and rapid response capabilities.
+      </p>
+
+      <h4>Understanding the Risk Landscape</h4>
+
+      <p>
+        Before implementing solutions, understand what you're protecting against. Third-party dependencies face several 
+        critical threats:
+      </p>
+
+      <p><strong>Abandoned Components:</strong> Developers move on. Projects get neglected. When a component is abandoned, 
+        bugs never get fixed, vulnerabilities remain unpatched, and compatibility with newer frameworks degrades. Running 
+        .NET Core 3 components on .NET 8 isn't just risky—.NET Core 3 has been <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">out of support for years</span>.
+      </p>
+
+      <p><strong>Compromised Packages:</strong> Attackers can inject malicious code into legitimate packages through several vectors:
+      </p>
+      <ul><li>Taking over abandoned projects with authentic-looking contributions</li>
+        <li>Compromising the vendor's build pipeline (like SolarWinds)</li>
+        <li>Publishing typosquatting packages with similar names</li>
+        <li>Social engineering package maintainers to hand over access</li></ul>
+
+      <p><strong>Licensing Conflicts:</strong> Use a GPL-licensed component in your proprietary software? You might be 
+        <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">legally required to open-source your entire application</span>. Most developers 
+        never check licenses until it's too late.
+      </p>
+
+      <p><strong>Disclosed Vulnerabilities:</strong> When a CVE is published, attackers immediately start scanning for victims. 
+        The race is on—can you patch faster than they can exploit?
+      </p>
+
+      <h4>Step 1: Establish Component Governance</h4>
+
+      <p>
+        No more grabbing packages from NuGet on a whim. Every component must go through a vetting process before it enters 
+        your codebase.
+      </p>
+
+      <p><strong>Create an Architectural Decision Record (ADR):</strong> Document why you need this component. An ADR should include:
+      </p>
+
+<pre><code id="1181f095-31ae-42d7-8fec-8ce96b5f6871" class="language-markdown">
+# ADR: Adding Stripe.NET Payment Library
+
+## Status
+Proposed
+
+## Context
+We need to process credit card payments securely. Building our own payment 
+processing would be costly and risky given PCI DSS compliance requirements.
+
+## Decision Drivers
+- PCI DSS compliance requirements
+- Need for production-ready payment processing
+- Developer experience and documentation quality
+- Long-term vendor stability and support
+
+## Considered Options
+1. Stripe.NET
+2. Braintree SDK
+3. PayPal Checkout SDK
+
+## Pros and Cons
+
+### Stripe.NET
+- ✅ 54 million downloads (proven track record)
+- ✅ Active development (weekly releases)
+- ✅ Comprehensive documentation
+- ✅ MIT license (compatible with our proprietary code)
+- ✅ No known vulnerabilities in last 2 years
+- ✅ Strong security disclosure program
+- ❌ Requires Stripe merchant account
+
+### Decision
+Selected Stripe.NET based on community adoption, security track record, 
+and licensing compatibility.
+
+## Consequences
+- Development team needs training on Stripe API
+- Monthly dependency review required
+- Must monitor Stripe security advisories
+</code></pre>
+
+      <p><strong>Classify and Inventory:</strong> Rate each component's criticality. A library handling credit cards gets 
+        <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">critical classification</span>; a utility for generating QR codes gets lower priority.
+      </p>
+
+<pre><code id="b6c8b204-b531-4a17-b048-c417ff707026" class="language-csharp">
+public enum ComponentCriticality
+{
+    Critical,   // Handles PII, auth, payments - immediate patch required
+    High,       // Core business logic - patch within 48 hours
+    Medium,     // Supporting features - patch within 1 week
+    Low         // Nice-to-have features - patch during normal cycle
+}
+
+public class ComponentMetadata
+{
+    public string Name { get; set; }
+    public string Version { get; set; }
+    public ComponentCriticality Criticality { get; set; }
+    public string License { get; set; }
+    public DateTime LastReviewed { get; set; }
+    public DateTime NextReviewDue { get; set; }
+    public List&lt;string&gt; TransitiveDependencies { get; set; }
+    public string VendorSecurityContact { get; set; }
+}
+</code></pre>
+
+      <h4>Step 2: Security Assessment Process</h4>
+
+      <p>
+        Before approving any component, run it through comprehensive security checks:
+      </p>
+
+      <p><strong>1. Check CVE Databases:</strong> Search for known vulnerabilities. Even if vulnerabilities exist, they 
+        might not apply to your use case—but you need to know about them.
+      </p>
+
+<pre><code id="7542cc70-f5b2-4d21-b9cd-98fd076dd5c7" class="language-bash">
+# Check for vulnerabilities in your project
+dotnet list package --vulnerable
+
+# Check for outdated packages
+dotnet list package --outdated
+</code></pre>
+
+      <p><strong>2. Run Static Analysis:</strong> If source code is available, run SAST tools against it.
+      </p>
+
+      <p><strong>3. Review the Project:</strong> Visit the GitHub repository. Look for:
+      </p>
+      <ul><li><strong>Recent commits:</strong> Active development is a good sign</li>
+        <li><strong>Issue resolution time:</strong> How fast do maintainers respond to bugs?</li>
+        <li><strong>Security policy:</strong> Do they have responsible disclosure?</li>
+        <li><strong>Community size:</strong> More stars/forks = more eyes on the code</li>
+        <li><strong>Dependencies:</strong> What transitive dependencies will this bring in?</li></ul>
+
+      <p><strong>4. Validate the License:</strong> Ensure it's compatible with your software's license. Use AI to help 
+        interpret complex legal terms if needed.
+      </p>
+
+      <p><strong>5. OSINT Research:</strong> Search for any security incidents involving the vendor or component. Have 
+        they been breached before? How did they respond?
+      </p>
+
+      <h4>Step 3: Generate and Maintain an SBOM</h4>
+
+      <p>
+        A <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Software Bill of Materials (SBOM)</span> is your complete inventory—every component, 
+        every version, every transitive dependency. It's the foundation of supply chain security.
+      </p>
+
+      <p><strong>What an SBOM Contains:</strong></p>
+      <ul><li>Component name and version</li>
+        <li>Vendor/publisher information</li>
+        <li>Licensing details</li>
+        <li>Dependency relationships</li>
+        <li>Cryptographic hash for verification</li></ul>
+
+      <p><strong>Generate SBOM with Microsoft's Free Tool:</strong></p>
+
+<pre><code id="1cac037e-5a66-4d45-9cba-909e43ddbc2d" class="language-bash">
+# Install the SBOM tool
+dotnet tool install --global Microsoft.Sbom.DotNetTool
+
+# Generate SBOM in SPDX JSON format
+sbom-tool generate -b /path/to/build/output -bc /path/to/project -pn "MyApp" -pv "1.0.0" -ps "MyCompany" -nsb https://mycompany.com
+
+# For Example at the root of your project,
+sbom-tool generate -b ./ -bc ./ -pn ILoveDotNet -pv 1.0.0 -ps ILoveDotNet -pm
+
+# The tool creates a manifest with cryptographic hash for tamper detection
+</code></pre>
+
+      <p>
+        The generated SBOM looks like this (simplified):
+      </p>
+
+<pre><code id="a2bd186f-e719-4d54-9d9f-b61fb3f058d6" class="language-json">
+{
+  "spdxVersion": "SPDX-2.2",
+  "name": "MyApp",
+  "packages": [
+    {
+      "name": "Newtonsoft.Json",
+      "versionInfo": "13.0.3",
+      "supplier": "Organization: Newtonsoft",
+      "licenseConcluded": "MIT",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "abc123..."
+        }
+      ]
+    },
+    {
+      "name": "System.Text.Json",
+      "versionInfo": "8.0.0",
+      "supplier": "Organization: Microsoft"
+    }
+  ],
+  "relationships": [
+    {
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "Newtonsoft.Json"
+    }
+  ]
+}
+</code></pre>
+
+      <p><strong>Integrate SBOM Generation into CI/CD:</strong> Make SBOM generation automatic. Every build should produce 
+        a fresh, signed SBOM.
+      </p>
+
+<pre><code id="51efe352-9898-419f-b957-0420400a51d1" class="language-yaml">
+# Azure DevOps Pipeline example
+- task: DotNetCoreCLI@2
+  displayName: 'Build Application'
+  inputs:
+    command: 'build'
+    projects: '**/*.csproj'
+
+- task: PowerShell@2
+  displayName: 'Generate SBOM'
+  inputs:
+    targetType: 'inline'
+    script: |
+      sbom-tool generate `
+        -b $(Build.ArtifactStagingDirectory) `
+        -bc $(Build.SourcesDirectory) `
+        -pn "$(Build.Repository.Name)" `
+        -pv "$(Build.BuildNumber)" `
+        -ps "MyOrganization"
+
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish SBOM'
+  inputs:
+    PathtoPublish: '_manifest/spdx_2.2'
+    ArtifactName: 'sbom'
+</code></pre>
+
+      <h4>Step 4: Implement Private Package Repository</h4>
+
+      <p>
+        Never pull dependencies directly from public NuGet in production builds. Instead, maintain a <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">
+        private repository</span> with vetted, approved packages.
+      </p>
+
+      <p><strong>Why Private Repositories Matter:</strong></p>
+      <ul><li><strong>Control:</strong> You decide when to update, not package authors</li>
+        <li><strong>Stability:</strong> Packages can't disappear from NuGet and break your builds</li>
+        <li><strong>Security:</strong> Scan packages before they enter your environment</li>
+        <li><strong>Compliance:</strong> Maintain audit trail of approved components</li></ul>
+
+      <p><strong>Setup with Azure Artifacts:</strong></p>
+
+<pre><code id="bab0e002-9752-4fc6-92e6-74f485df9b70" class="language-bash">
+# Create a feed in Azure DevOps Artifacts
+# Then configure your NuGet.Config to use it
+
+&lt;?xml version="1.0" encoding="utf-8"?&gt;
+&lt;configuration&gt;
+  &lt;packageSources&gt;
+    &lt;clear /&gt;
+    &lt;!-- Private feed only - blocks direct access to public NuGet --&gt;
+    &lt;add key="MyCompanyFeed" 
+         value="https://pkgs.dev.azure.com/myorg/_packaging/myfeed/nuget/v3/index.json" /&gt;
+  &lt;/packageSources&gt;
+  &lt;packageSourceCredentials&gt;
+    &lt;MyCompanyFeed&gt;
+      &lt;add key="Username" value="AzureDevOps" /&gt;
+      &lt;add key="ClearTextPassword" value="%AZURE_DEVOPS_PAT%" /&gt;
+    &lt;/MyCompanyFeed&gt;
+  &lt;/packageSourceCredentials&gt;
+&lt;/configuration&gt;
+</code></pre>
+
+      <p><strong>Vetting Workflow:</strong></p>
+      <ol><li>Developer requests component via ADR</li>
+        <li>Security team runs assessment (CVE check, SAST, license review)</li>
+        <li>Approved packages are uploaded to private feed</li>
+        <li>Developers can now reference the component</li>
+        <li>Regular reviews ensure packages stay current</li></ol>
+
+      <h4>Step 5: Define Update Strategy and SLAs</h4>
+
+      <p>
+        Not every package update needs immediate deployment. Define <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Service Level Agreements (SLAs)</span> 
+        based on vulnerability severity:
+      </p>
+
+<pre><code id="66b55f84-c45a-43c1-96c3-c43ce1647124" class="language-csharp">
+public class PatchingSLA
+{
+    public static readonly Dictionary&lt;VulnerabilitySeverity, TimeSpan&gt; ResponseTimes = new()
+    {
+        { VulnerabilitySeverity.Critical, TimeSpan.FromHours(24) },
+        { VulnerabilitySeverity.High, TimeSpan.FromHours(48) },
+        { VulnerabilitySeverity.Medium, TimeSpan.FromDays(7) },
+        { VulnerabilitySeverity.Low, TimeSpan.FromDays(30) }
+    };
+}
+
+public enum VulnerabilitySeverity
+{
+    Critical,  // Active exploitation, RCE, auth bypass
+    High,      // Significant security impact, no known exploits yet
+    Medium,    // Moderate risk, mitigations available
+    Low        // Minimal risk or requires unlikely conditions
+}
+</code></pre>
+
+      <p><strong>Regular Update Schedule:</strong> For non-security updates, establish a cadence:
+      </p>
+      <ul><li><strong>Monthly reviews:</strong> Check for new versions of critical components</li>
+        <li><strong>Quarterly updates:</strong> Update medium-criticality components</li>
+        <li><strong>Annual reviews:</strong> Re-evaluate all component choices</li></ul>
+
+      <p><strong>Wait Before Updating:</strong> Don't jump on the latest version immediately. Give new releases 2-4 weeks 
+        to shake out bugs that slipped past the vendor's testing.
+      </p>
+
+      <h4>Step 6: Automate Vulnerability Monitoring</h4>
+
+      <p>
+        Set up automated scanning in your CI/CD pipeline:
+      </p>
+
+<pre><code id="89e41b27-7e62-4251-a591-29f396e3bcc5" class="language-yaml">
+# GitHub Actions example
+name: Security Scan
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run daily at 2 AM
+    - cron: '0 2 * * *'
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'
+      
+      - name: Restore dependencies
+        run: dotnet restore
+      
+      - name: Check for vulnerable packages
+        run: |
+          dotnet list package --vulnerable --include-transitive 2&gt;&amp;1 | tee vulnerability-scan.txt
+          
+          # Fail the build if critical or high vulnerabilities are found
+          if grep -i "critical\|high" vulnerability-scan.txt; then
+            echo "Critical or high vulnerabilities detected!"
+            exit 1
+          fi
+      
+      - name: Generate SBOM
+        run: |
+          dotnet tool install --global Microsoft.Sbom.DotNetTool
+          sbom-tool generate -b ./bin -bc ./ -pn MyApp -pv 1.0.0 -ps MyOrg
+      
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v3
+        with:
+          name: sbom
+          path: _manifest/spdx_2.2/
+</code></pre>
+
+      <h4>Step 7: Managing the NuGet Package Manager in Visual Studio</h4>
+
+      <p>
+        Visual Studio's NuGet Package Manager is your frontline tool for dependency management. Here's how to use it effectively:
+      </p>
+
+      <p><strong>View Installed Packages:</strong> Navigate to <code>Tools &gt; NuGet Package Manager &gt; Manage NuGet Packages 
+        for Solution</code>. The <strong>Installed</strong> tab shows all direct dependencies plus <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">transitive 
+        dependencies</span>. Notice how 5 direct packages might pull in 75+ transitive dependencies.
+      </p>
+
+      <p><strong>Identify Vulnerable Packages:</strong> Visual Studio highlights packages with known vulnerabilities, showing 
+        severity levels (Critical, High, Medium, Low). Click the warning icon to see CVE details and recommended actions.
+      </p>
+
+<pre><code id="fa44215f-e257-42cb-84e7-e6a49976768b" class="language-plaintext">
+Example: Newtonsoft.Json 12.0.1
+⚠️ High Severity Vulnerability Detected
+CVE-2024-12345: Improper Input Validation
+Recommendation: Update to version 13.0.3 or later
+</code></pre>
+
+      <p><strong>Update Packages Safely:</strong> The <strong>Updates</strong> tab shows available updates. Don't blindly 
+        update everything—review release notes first. Major version changes can introduce breaking changes.
+      </p>
+
+      <p><strong>Configure Private Feeds:</strong> In <code>Tools &gt; Options &gt; NuGet Package Manager &gt; Package Sources</code>, 
+        add your private feed and <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">remove or disable public NuGet.org</span> to prevent 
+        unapproved package installation.
+      </p>
+
+      <h4>Real-World Example: The Log4j Response</h4>
+
+      <p>
+        When Log4Shell (CVE-2021-44228) was disclosed in December 2021, organizations with proper dependency management responded in hours. Those without it? Many are still cleaning up in 2025.
+      </p>
+
+      <p><strong>With SBOM and Governance:</strong></p>
+      <ol><li>Run: <code>grep -r "log4j" sbom.json</code></li>
+        <li>Immediately identify all affected applications</li>
+        <li>Pull patched version from private repository (already vetted)</li>
+        <li>Deploy emergency patch using existing CI/CD pipeline</li>
+        <li>Total time: 4-6 hours</li></ol>
+
+      <p><strong>Without SBOM and Governance:</strong></p>
+      <ol><li>Manually search through hundreds of applications</li>
+        <li>Check if any use Java libraries (not just direct Log4j usage)</li>
+        <li>Download patch from public repository (is it safe? who knows?)</li>
+        <li>Test patch against each application individually</li>
+        <li>Deploy manually because no automation exists</li>
+        <li>Total time: Days to weeks (and you still miss some instances)</li></ol>
+
+      <h4>Additional Tools and Options</h4>
+
+      <p>
+        Beyond Microsoft's SBOM tool, consider these alternatives:
+      </p>
+
+      <ul><li><strong>Syft:</strong> Open-source SBOM generator supporting multiple languages</li>
+        <li><strong>CycloneDX:</strong> Modern SBOM standard with vulnerability disclosure support</li>
+        <li><strong>GitHub Dependency Graph:</strong> Automatic SBOM generation for GitHub repositories</li>
+        <li><strong>OWASP Dependency-Check:</strong> Identifies known vulnerabilities in project dependencies</li></ul>
+
+<pre><code id="d34ac177-76c7-45a4-a578-2bf834f267b3" class="language-bash">
+# Using Syft to generate SBOM
+syft packages dir:/path/to/project -o spdx-json &gt; sbom.spdx.json
+
+# Using CycloneDX with .NET
+dotnet tool install --global CycloneDX
+dotnet CycloneDX /path/to/project.csproj -o /output -j
+</code></pre>
+
+      <h4>Licensing Due Diligence</h4>
+
+      <p>
+        Don't overlook licensing. A GPL-licensed component in proprietary software can create <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">legal 
+        liability</span>. Common open-source licenses:
+      </p>
+
+      <ul><li><strong>MIT/Apache 2.0:</strong> Permissive, safe for commercial use</li>
+        <li><strong>BSD:</strong> Permissive with some restrictions</li>
+        <li><strong>GPL/LGPL:</strong> Copyleft licenses—require derivative works to use same license</li>
+        <li><strong>AGPL:</strong> Like GPL but applies to network services too</li></ul>
+
+      <p>
+        When in doubt, use AI to interpret licensing terms: "Explain how the GPL 3.0 license affects my proprietary 
+        .NET application that uses this library."
+      </p>
+
+    <h3 id="summary">Summary</h3>
+
+<p>
+        Dependency management isn't optional—it's <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">critical infrastructure</span>. Every third-party 
+        component is a potential attack vector, and you're responsible for all of them, including transitive dependencies.
+      </p>
+      <p>
+        Build a governance framework: vet components with ADRs, maintain a private repository, generate SBOMs automatically, 
+        and define clear SLAs for patching vulnerabilities. When the next Log4j-scale incident hits, you'll respond in hours, 
+        not weeks.
+      </p>
+      <p>
+        The supply chain is under attack. The question isn't whether you'll be targeted—it's whether you'll be ready. Start 
+        with an SBOM, establish governance, and never trust a dependency blindly again.
+      </p>
+            <section class="[ font-bold ] [ p-5 ] [ flex flex-col items-center justify-center ]"><a href="https://whatsapp.com/channel/0029VaAGMV2LtOj5S5MHd23h" target="_blank"><span>👉🏼 Click here to Join I ❤️ .NET </span>
+        <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-brand-whatsapp ] [ fill-green-500 ] [ inline ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <path d="M3 21l1.65 -3.8a9 9 0 1 1 3.4 2.9l-5.05 .9"></path>
+            <path d="M9 10a.5 .5 0 0 0 1 0v-1a.5 .5 0 0 0 -1 0v1a5 5 0 0 0 5 5h1a.5 .5 0 0 0 0 -1h-1a.5 .5 0 0 0 0 1"></path></svg>
+        <span>WhatsApp Channel to get 🔔 notified about new articles and other updates.</span></a></section>
+            </section>
+        <footer class="[ grid justify-items-start ] [ overflow-x-scroll ]"><ul class="[ list-none ] [ flex items-center justify-start md:justify-center ] [ space-x-3 ] [ overflow-hidden ]"><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ]">Security</li><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ] [ whitespace-nowrap ]">SBOM</li><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ] [ whitespace-nowrap ]">Software Bill of Materials</li><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ] [ whitespace-nowrap ]">Dependency Management</li><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ] [ whitespace-nowrap ]">Supply Chain Security</li><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ] [ whitespace-nowrap ]">Component Governance</li><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ] [ whitespace-nowrap ]">NuGet</li><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ] [ whitespace-nowrap ]">Vulnerability Scanning</li><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ] [ whitespace-nowrap ]">Private Repository</li><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ] [ whitespace-nowrap ]">Third-Party Dependencies</li><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ] [ whitespace-nowrap ]">Log4j</li><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ] [ whitespace-nowrap ]">Security</li><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ] [ whitespace-nowrap ]">.NET</li></ul></footer>
+        <hr class="[ dark:text-white my-1.5 ]"/></article>
+    <aside class="[ flex flex-col lg:basis-1/4 ] [ space-y-2 ]"><div><figure><a href="https://linkedin.com/in/thebhai" target="_blank"><img src="./image/authors/abdul rahman.webp" alt="Abdul Rahman" class="[ w-full ]"/></a>
+            <a href="https://mvp.microsoft.com/en-US/MVP/profile/b177819f-95fb-ed11-8f6d-000d3a560942" target="_blank"><img src="./image/authors/mvp-badge-horizontal.png" alt="MVP Badge Horizontal" class="[ w-full ]"/></a></figure></div>
+    <div class="[ lg:sticky lg:top-14 ]"></div><section class="[ flex flex-col justify-between ] [ transition duration-300 ] [ md:hover:scale-110 ] [ dark:bg-stone-900 ] [ bg-gray-100 ]"><header><a href="blogs/automate-nuget-upgrades-with-github-copilot-ai-skills"><figure><img src="image/blogs/ai/automate-nuget-upgrades-with-github-copilot-ai-skills.webp" class="[ w-full ] [ rounded-md ]" alt="Automate NuGet Upgrades with GitHub Copilot AI Skills and Live Documentation Lookup" loading="lazy"/></figure></a></header>
+    <main class="[ grow flex space-x-2 ]"><aside class="[ basis-1/6 flex items-center ]"><a href="channels/ai"><figure class="mt-2"><img src="image/icons/ai.webp" alt="AI" loading="lazy" height="48" width="48" class="[ rounded-full ]"/></figure></a></aside>
+        <article class="[ grow flex flex-col justify-between basis-5/6 ] [ dark:text-white ] [ mt-2 ]"><a href="blogs/automate-nuget-upgrades-with-github-copilot-ai-skills"><h2 class="[ font-medium break-words hover:underline ]">Automate NuGet Upgrades with GitHub Copilot AI Skills and Live Documentation Lookup</h2></a>
+            <section class="[ flex justify-between ]"><p>Abdul Rahman</p>
+                <time datetime="2026-02-15 22-30-00">4 hours from now</time></section></article></main></section><section class="[ flex flex-col justify-between ] [ transition duration-300 ] [ md:hover:scale-110 ] [ dark:bg-stone-900 ] [ bg-gray-100 ]"><header><a href="blogs/automate-dotnet-framework-upgrades-with-github-copilot-ai-agents"><figure><img src="image/blogs/ai/automate-dotnet-framework-upgrades-with-github-copilot-ai-agents.webp" class="[ w-full ] [ rounded-md ]" alt="Automate .NET Framework Upgrades with GitHub Copilot AI Agents" loading="lazy"/></figure></a></header>
+    <main class="[ grow flex space-x-2 ]"><aside class="[ basis-1/6 flex items-center ]"><a href="channels/ai"><figure class="mt-2"><img src="image/icons/ai.webp" alt="AI" loading="lazy" height="48" width="48" class="[ rounded-full ]"/></figure></a></aside>
+        <article class="[ grow flex flex-col justify-between basis-5/6 ] [ dark:text-white ] [ mt-2 ]"><a href="blogs/automate-dotnet-framework-upgrades-with-github-copilot-ai-agents"><h2 class="[ font-medium break-words hover:underline ]">Automate .NET Framework Upgrades with GitHub Copilot AI Agents</h2></a>
+            <section class="[ flex justify-between ]"><p>Abdul Rahman</p>
+                <time datetime="2026-02-08 22-30-00">6 days ago</time></section></article></main></section><section class="[ flex flex-col justify-between ] [ transition duration-300 ] [ md:hover:scale-110 ] [ dark:bg-stone-900 ] [ bg-gray-100 ]"><header><a href="blogs/blazor-wasm-two-factor-authentication-with-qr-codes-and-asp-net-identity"><figure><img src="image/blogs/blazor/wasm/blazor-wasm-two-factor-authentication-with-qr-codes-and-asp-net-identity.webp" class="[ w-full ] [ rounded-md ]" alt="Blazor WASM Two-Factor Authentication with QR Codes and ASP.NET Identity" loading="lazy"/></figure></a></header>
+    <main class="[ grow flex space-x-2 ]"><aside class="[ basis-1/6 flex items-center ]"><a href="channels/blazor"><figure class="mt-2"><img src="image/icons/blazor.webp" alt="Blazor" loading="lazy" height="48" width="48" class="[ rounded-full ]"/></figure></a></aside>
+        <article class="[ grow flex flex-col justify-between basis-5/6 ] [ dark:text-white ] [ mt-2 ]"><a href="blogs/blazor-wasm-two-factor-authentication-with-qr-codes-and-asp-net-identity"><h2 class="[ font-medium break-words hover:underline ]">Blazor WASM Two-Factor Authentication with QR Codes and ASP.NET Identity</h2></a>
+            <section class="[ flex justify-between ]"><p>Abdul Rahman</p>
+                <time datetime="2026-02-01 22-30-00">13 days ago</time></section></article></main></section><section class="[ flex flex-col justify-between ] [ transition duration-300 ] [ md:hover:scale-110 ] [ dark:bg-stone-900 ] [ bg-gray-100 ]"><header><a href="blogs/blazor-wasm-standalone-cookie-authentication-with-asp-net-identity"><figure><img src="image/blogs/blazor/wasm/blazor-wasm-standalone-cookie-authentication-with-asp-net-identity.webp" class="[ w-full ] [ rounded-md ]" alt="Blazor WASM Standalone Cookie Authentication with ASP.NET Identity" loading="lazy"/></figure></a></header>
+    <main class="[ grow flex space-x-2 ]"><aside class="[ basis-1/6 flex items-center ]"><a href="channels/blazor"><figure class="mt-2"><img src="image/icons/blazor.webp" alt="Blazor" loading="lazy" height="48" width="48" class="[ rounded-full ]"/></figure></a></aside>
+        <article class="[ grow flex flex-col justify-between basis-5/6 ] [ dark:text-white ] [ mt-2 ]"><a href="blogs/blazor-wasm-standalone-cookie-authentication-with-asp-net-identity"><h2 class="[ font-medium break-words hover:underline ]">Blazor WASM Standalone Cookie Authentication with ASP.NET Identity</h2></a>
+            <section class="[ flex justify-between ]"><p>Abdul Rahman</p>
+                <time datetime="2026-01-25 22-30-00">20 days ago</time></section></article></main></section><section class="[ flex flex-col justify-between ] [ transition duration-300 ] [ md:hover:scale-110 ] [ dark:bg-stone-900 ] [ bg-gray-100 ]"><header><a href="blogs/building-ai-chat-applications-in-dotnet-with-microsoft-extensions-ai"><figure><img src="image/blogs/ai/building-ai-chat-applications-in-dotnet-with-microsoft-extensions-ai.webp" class="[ w-full ] [ rounded-md ]" alt="Building AI Chat Applications in .NET with Microsoft.Extensions.AI" loading="lazy"/></figure></a></header>
+    <main class="[ grow flex space-x-2 ]"><aside class="[ basis-1/6 flex items-center ]"><a href="channels/ai"><figure class="mt-2"><img src="image/icons/ai.webp" alt="AI" loading="lazy" height="48" width="48" class="[ rounded-full ]"/></figure></a></aside>
+        <article class="[ grow flex flex-col justify-between basis-5/6 ] [ dark:text-white ] [ mt-2 ]"><a href="blogs/building-ai-chat-applications-in-dotnet-with-microsoft-extensions-ai"><h2 class="[ font-medium break-words hover:underline ]">Building AI Chat Applications in .NET with Microsoft.Extensions.AI</h2></a>
+            <section class="[ flex justify-between ]"><p>Abdul Rahman</p>
+                <time datetime="2026-01-18 22-30-00">27 days ago</time></section></article></main></section><section class="[ flex flex-col justify-between ] [ transition duration-300 ] [ md:hover:scale-110 ] [ dark:bg-stone-900 ] [ bg-gray-100 ]"><header><a href="blogs/avoiding-cache-stampede-and-handling-nulls-in-dotnet"><figure><img src="image/blogs/caching/avoiding-cache-stampede-and-handling-nulls-in-dotnet.webp" class="[ w-full ] [ rounded-md ]" alt="Avoiding Cache Stampede and Handling Nulls in .NET" loading="lazy"/></figure></a></header>
+    <main class="[ grow flex space-x-2 ]"><aside class="[ basis-1/6 flex items-center ]"><a href="channels/caching"><figure class="mt-2"><img src="image/icons/caching.webp" alt="Caching" loading="lazy" height="48" width="48" class="[ rounded-full ]"/></figure></a></aside>
+        <article class="[ grow flex flex-col justify-between basis-5/6 ] [ dark:text-white ] [ mt-2 ]"><a href="blogs/avoiding-cache-stampede-and-handling-nulls-in-dotnet"><h2 class="[ font-medium break-words hover:underline ]">Avoiding Cache Stampede and Handling Nulls in .NET</h2></a>
+            <section class="[ flex justify-between ]"><p>Abdul Rahman</p>
+                <time datetime="2026-01-11 22-30-00">one month ago</time></section></article></main></section><div class="[ flex items-center justify-center ]"><button type="button" class="[ cursor-pointer ] [ px-3 py-1 ] [ rounded-md ] [ whitespace-nowrap ] [ flex items-center justify-center ] [ disabled:opacity-75 disabled:cursor-not-allowed ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-caret-down ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                <path d="M6 10l6 6l6 -6h-12"></path></svg>
+            <p>Show more</p></button></div>
+    </aside></section></main><nav class="[ fixed bottom-0 h-14 w-full md:top-14 md:left-0 md:h-full md:w-16 ] 
+            [ bg-white ] [ dark:bg-gray-800 dark:bg-gray-800/80 ] [ backdrop-blur-xs bg-white/80 ] [ md:pt-2 ]
+            [ flex justify-around items-center md:flex-col md:justify-start md:space-y-4 ]"><a href="/" class="[ flex flex-col items-center ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-home ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <polyline points="5 12 3 12 12 3 21 12 19 12"></polyline>
+            <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7"></path>
+            <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6"></path></svg>
+        <span class="[ text-xs text-center ]">Home</span></a>
+    <a href="/learningpath" class="[ flex flex-col items-center ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-compass ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <polyline points="8 16 10 10 16 8 14 14 8 16"></polyline>
+            <circle cx="12" cy="12" r="9"></circle>
+            <line x1="12" y1="3" x2="12" y2="5"></line>
+            <line x1="12" y1="19" x2="12" y2="21"></line>
+            <line x1="3" y1="12" x2="5" y2="12"></line>
+            <line x1="19" y1="12" x2="21" y2="12"></line></svg>
+        <span class="[ text-xs text-center ]">Learning Path</span></a>
+    <a href="/career" class="[ flex flex-col items-center ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icons-tabler-outline icon-tabler-briefcase ]" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <path d="M3 7m0 2a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v9a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2z"></path>
+            <path d="M8 7v-2a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v2"></path>
+            <path d="M12 12l0 .01"></path>
+            <path d="M3 13a20 20 0 0 0 18 0"></path></svg>
+        <span class="[ text-xs text-center ]">Career</span></a>
+    <a href="/analytics" class="[ flex flex-col items-center ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-graph ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <path d="M4 18v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z"></path>
+            <path d="M7 14l3 -3l2 2l3 -3l2 2"></path></svg>
+        <span class="[ text-xs text-center ]">Analytics</span></a>
+    <a href="/about" class="[ flex flex-col items-center ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-info-circle ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <circle cx="12" cy="12" r="9"></circle>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            <polyline points="11 12 12 12 12 16 13 16"></polyline></svg>
+        <span class="[ text-xs text-center ]">About</span></a></nav><aside class="[ fixed bottom-14 md:bottom-0 right-2 ]"><button type="button" aria-label="Scroll to Top"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-square-rounded-chevron-up-filled ]" width="40" height="40" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <path d="M12 2c-.218 0 -.432 .002 -.642 .005l-.616 .017l-.299 .013l-.579 .034l-.553 .046c-4.785 .464 -6.732 2.411 -7.196 7.196l-.046 .553l-.034 .579c-.005 .098 -.01 .198 -.013 .299l-.017 .616l-.004 .318l-.001 .324c0 .218 .002 .432 .005 .642l.017 .616l.013 .299l.034 .579l.046 .553c.464 4.785 2.411 6.732 7.196 7.196l.553 .046l.579 .034c.098 .005 .198 .01 .299 .013l.616 .017l.642 .005l.642 -.005l.616 -.017l.299 -.013l.579 -.034l.553 -.046c4.785 -.464 6.732 -2.411 7.196 -7.196l.046 -.553l.034 -.579c.005 -.098 .01 -.198 .013 -.299l.017 -.616l.005 -.642l-.005 -.642l-.017 -.616l-.013 -.299l-.034 -.579l-.046 -.553c-.464 -4.785 -2.411 -6.732 -7.196 -7.196l-.553 -.046l-.579 -.034a28.058 28.058 0 0 0 -.299 -.013l-.616 -.017l-.318 -.004l-.324 -.001zm-.707 7.293a1 1 0 0 1 1.32 -.083l.094 .083l3 3a1 1 0 0 1 -1.32 1.497l-.094 -.083l-2.293 -2.292l-2.293 2.292a1 1 0 0 1 -1.32 .083l-.094 -.083a1 1 0 0 1 -.083 -1.32l.083 -.094l3 -3z" fill="currentColor" stroke-width="0"></path></svg></button></aside>
+            <!--Blazor:{"prerenderId":"63c3e2238ed74b558be653856c94f4ba"}-->
+<!-- %%-PRERENDERING-END-%% -->
+<!--Blazor-WebAssembly-Component-State:eyJzdGFycyI6Ik1BPT0iLCJNaWNyb3NvZnQuQXNwTmV0Q29yZS5Db21wb25lbnRzLkluZnJhc3RydWN0dXJlLlBlcnNpc3RlbnRTZXJ2aWNlc1JlZ2lzdHJ5IjoiVzNzaVlYTnpaVzFpYkhraU9pSk5hV055YjNOdlpuUXVRWE53VG1WMFEyOXlaUzVEYjIxd2IyNWxiblJ6TGtWdVpIQnZhVzUwY3lJc0ltWjFiR3hVZVhCbFRtRnRaU0k2SWsxcFkzSnZjMjltZEM1QmMzQk9aWFJEYjNKbExrTnZiWEJ2Ym1WdWRITXVVbVZ6YjNWeVkyVkRiMnhzWldOMGFXOXVVSEp2ZG1sa1pYSWlmU3g3SW1GemMyVnRZbXg1SWpvaVRXbGpjbTl6YjJaMExrRnpjRTVsZEVOdmNtVXVRMjl0Y0c5dVpXNTBjeTVYWldJaUxDSm1kV3hzVkhsd1pVNWhiV1VpT2lKTmFXTnliM052Wm5RdVFYTndUbVYwUTI5eVpTNURiMjF3YjI1bGJuUnpMa1p2Y20xekxrRnVkR2xtYjNKblpYSjVVM1JoZEdWUWNtOTJhV1JsY2lKOVhRPT0iLCJLU3p0VDg0Z0FpVjBJTy9VQlJScE9tOEs0anFFZlx1MDAyQjFKenZWT0NNQmxzaVU9IjoiZXlKMllXeDFaU0k2SWtObVJFbzRRVmRXTjBoeU5HVmhiRVpvV214bFJtVTBka1JHZDJvdGNIVlVjMUZoY2t0MU5HOURObWh0UkhGQ1pFVkJVRTUzWlVsSWJHUnNSRGxuVVU1UU4yMTRMWGhWZEVKWVdsSmFXR1ZvWmtaYWMwWTNSR3AyVlRSWWFrcGZaazloZVRkVFJVVmFORmhzT1dVNVpITlFNRlJtUmpWcGMyUnhRVm95Y21ZelIwVTNYMEp2V1ZkUFZEWlJTa054VUV3NVdYaGlkelpKZFUxQklpd2labTl5YlVacFpXeGtUbUZ0WlNJNklsOWZVbVZ4ZFdWemRGWmxjbWxtYVdOaGRHbHZibFJ2YTJWdUluMD0ifQ==--></div>
+
+    <div id="blazor-error-ui" class="[ bg-red-500 ] [ text-white ] [ fixed bottom-0 ] [ w-full ] [ p-2 ]" style="display: none;">
+        An unhandled error has occurred. Please click on
+        <a href="javascript: void(0)" class="[ inline-block ] [ underline ] [ hover\:text-white ]" onclick="location.reload()">Reload</a>
+        to proceed.
+        <button class="[ dismiss ] [ fixed right-5 bottom-2 ]">
+            <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-x ] [ text-white ]" width="25" height="25" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
+    </div>
+
+    <script src="_content/Microsoft.AspNetCore.Components.WebAssembly.Authentication/AuthenticationService.js"></script>
+    <script src="_framework/blazor.webassembly.66stpp682q.js" autostart="false"></script>
+    <script src="_content/Blazor-Analytics/blazor-analytics.js"></script>
+    <script src="highlight.min.js"></script>
+    <script src="csharp.min.js"></script>
+    <!--<script>navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' } );</script>-->
+    <script src="brotliloader.min.js" type="module"></script>
+
+
+
+</resourcepreloader></body></html>

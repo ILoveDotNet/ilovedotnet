@@ -1,0 +1,1382 @@
+<!DOCTYPE html><html lang="en"><head>
+    <meta charset="utf-8"/>
+    <meta name="author" content="Abdul Rahman Shabeek Mohamed"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+    <meta name="copyright" content="I Love DotNet"/>
+    <meta name="language" content="EN"/>
+    <meta name="robots" content="index,follow"/>
+    <meta name="owner" content="Abdul Rahman Shabeek Mohamed"/>
+    <meta name="fediverse:creator" content="@thebhai@mastodon.social"/>
+    <!--<meta http-equiv="Content-Security-Policy"
+          content="base-uri 'self';
+               block-all-mixed-content;
+               img-src data: 'self'
+                       https://pagead2.googlesyndication.com;
+               object-src 'none';
+               script-src 'self'
+                          https://pagead2.googlesyndication.com
+                          https://www.googletagmanager.com
+                          https://gist.github.com
+                          'unsafe-eval'
+                          'unsafe-inline'
+                          data:;
+               style-src 'self'
+                         https://github.githubassets.com
+                         'unsafe-inline';
+               upgrade-insecure-requests;">-->
+    <title>Blazor WASM Two-Factor Authentication with QR Codes and ASP.NET Identity - I ❤️ DotNet</title>
+    <base href="/"/>
+    
+<!--Blazor-WebAssembly:{"environmentName":"Production","environmentVariables":{}}--><!--Blazor:{"type":"webassembly","prerenderId":"b622cbc1061a4b61a5b2aa710cb50d70","key":{"locationHash":"77D12F14A8105320B1AAED6AE7E689DA0EC4483270A645E84079EAA0FFDF550D:0","formattedComponentKey":""},"assembly":"Microsoft.AspNetCore.Components.Web","typeName":"Microsoft.AspNetCore.Components.Web.HeadOutlet","parameterDefinitions":"W10=","parameterValues":"W10="}--><script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "publisher": {
+        "@type": "Organization",
+        "name": "I Love DotNet",
+        "url": "https://ilovedotnet.org/",
+        "logo": {
+            "@type": "ImageObject",
+            "url": "https://ilovedotnet.org/favicon.ico",
+            "width": 16,
+            "height": 16
+        }
+    },
+    "author": {
+        "@type": "Person",
+        "name": "Abdul Rahman Shabeek Mohamed",
+        "image": {
+            "@type": "ImageObject",
+            "url": "//https://www.gravatar.com/avatar/6f221209a03c1800679fc684dea24bf2?s=250&d=mm&r=x",
+            "width": 250,
+            "height": 250
+        },
+        "url": "https://ilovedotnet.org/author/abdulrahman/",
+        "sameAs": [
+            "https://www.linkedin.com/in/fingers10",
+            "https://github.com/fingers10",
+            "https://stackoverflow.com/users/10851213/fingers10",
+            "https://www.youtube.com/channel/UCOS3wCw7SVXjXXffMPqid7A"
+        ]
+    },
+    "headline": "Blazor WASM Two-Factor Authentication with QR Codes and ASP.NET Identity",
+    "url": "https://ilovedotnet.org/blogs/blazor-wasm-two-factor-authentication-with-qr-codes-and-asp-net-identity/",
+    "datePublished": "2026-02-01T22:30:00.000Z",
+    "dateModified": "2026-02-01T22:30:00.000Z",
+    "image": {
+        "@type": "ImageObject",
+        "url": "https://ilovedotnet.org/image/blogs/blazor/wasm/blazor-wasm-two-factor-authentication-with-qr-codes-and-asp-net-identity.png",
+        "width": 1265,
+        "height": 827
+    },
+    "keywords": ".NET, DotNet, I Love DotNet, I ❤️ DotNet, Blazor, Blazor (WebAssembly), Blazor Wasm, C#, Entity Framework, LINQ, ML.NET, Web API, TDD, OOPS, Middleware, JWT, Dependency Injection, Report, Design Pattern, SOLID, HTTP Client, OWASP, SignalR, 2FA, Two-Factor Authentication, QR Code, TOTP, Identity, Security, Authenticator App",
+    "description": "In this article let's learn how to implement two-factor authentication (2FA) with QR codes and TOTP in Blazor WebAssembly Standalone applications using ASP.NET Core Identity. All with live working demo.",
+    "mainEntityOfPage": {
+        "@type": "WebPage",
+        "@id": "https://ilovedotnet.org/"
+    }
+}
+</script><!--Blazor:{"prerenderId":"b622cbc1061a4b61a5b2aa710cb50d70"}-->
+
+    <script type="text/default-title">I ❤️ DotNet</script>
+    <script type="text/default-meta-elements">[[,"author",,,"Abdul Rahman Shabeek Mohamed"],[,"viewport",,,"width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"],[,"copyright",,,"I Love DotNet"],[,"language",,,"EN"],[,"robots",,,"index,follow"],[,"owner",,,"Abdul Rahman Shabeek Mohamed"],[,"fediverse:creator",,,"@thebhai@mastodon.social"]]</script>
+    <meta property="description" content="In this article let's learn how to implement two-factor authentication (2FA) with QR codes and TOTP in Blazor WebAssembly Standalone applications using ASP.NET Core Identity. All with live working demo."/>
+    <meta property="keywords" content=".NET, DotNet, I Love DotNet, I ❤️ DotNet, Blazor, Blazor (WebAssembly), Blazor Wasm, C#, Entity Framework, LINQ, ML.NET, Web API, TDD, OOPS, Middleware, JWT, Dependency Injection, Report, Design Pattern, SOLID, HTTP Client, OWASP, SignalR, 2FA, Two-Factor Authentication, QR Code, TOTP, Identity, Security, Authenticator App"/>
+    <meta property="url" content="https://ilovedotnet.org/blogs/blazor-wasm-two-factor-authentication-with-qr-codes-and-asp-net-identity/"/>
+    <meta property="identifier-URL" content="https://ilovedotnet.org/blogs/blazor-wasm-two-factor-authentication-with-qr-codes-and-asp-net-identity/"/>
+    <meta property="og:site_name" content="I Love DotNet"/>
+    <meta property="og:type" content="article"/>
+    <meta property="og:title" content="Blazor WASM Two-Factor Authentication with QR Codes and ASP.NET Identity"/>
+    <meta property="og:image" content="https://ilovedotnet.org/image/blogs/blazor/wasm/blazor-wasm-two-factor-authentication-with-qr-codes-and-asp-net-identity.png"/>
+    <meta property="og:image:alt" content="DotNet bot with heart and DotNet brand"/>
+    <meta property="og:description" content="In this article let's learn how to implement two-factor authentication (2FA) with QR codes and TOTP in Blazor WebAssembly Standalone applications using ASP.NET Core Identity. All with live working demo."/>
+    <meta property="og:url" content="https://ilovedotnet.org/blogs/blazor-wasm-two-factor-authentication-with-qr-codes-and-asp-net-identity/"/>
+    <meta property="twitter:card" content="summary_large_image"/>
+    <meta property="twitter:title" content="Blazor WASM Two-Factor Authentication with QR Codes and ASP.NET Identity"/>
+    <meta property="twitter:image" content="https://ilovedotnet.org/image/blogs/blazor/wasm/blazor-wasm-two-factor-authentication-with-qr-codes-and-asp-net-identity.png"/>
+    <meta property="twitter:image:alt" content="DotNet bot with heart and DotNet brand"/>
+    <meta property="twitter:description" content="In this article let's learn how to implement two-factor authentication (2FA) with QR codes and TOTP in Blazor WebAssembly Standalone applications using ASP.NET Core Identity. All with live working demo."/>
+    <meta property="twitter:url" content="https://ilovedotnet.org/blogs/blazor-wasm-two-factor-authentication-with-qr-codes-and-asp-net-identity/"/>
+    <meta property="article:published_time" content="2026-02-01T22:30:00.000Z"/>
+    <meta property="article:modified_time" content="2026-02-01T22:30:00.000Z"/>
+    <meta property="article:tag" content="Authenticator App"/>
+    <script type="text/default-link-elements">[]</script>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-authors.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-blazor-wasm.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-dependency-injection.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-design-pattern.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-http-client.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-linq.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-maui.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-middleware.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-mlnet.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-msbuild.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-oops.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-owasp.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-python.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-regex.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-report.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-signalr.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-solid.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-tdd.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-testing.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-webapi.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-channels.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-talk.xml" type="application/xml" title="Sitemap"/>
+    <link rel="alternate" href="https://ilovedotnet.org/atom.xml" type="application/atom+xml"/>
+    <link rel="alternate" href="https://ilovedotnet.org/blogs/blazor-wasm-two-factor-authentication-with-qr-codes-and-asp-net-identity/" hreflang="en"/>
+    <link rel="alternate" href="https://ilovedotnet.org/blogs/blazor-wasm-two-factor-authentication-with-qr-codes-and-asp-net-identity/" hreflang="x-default"/>
+    <link rel="canonical" href="https://ilovedotnet.org/blogs/blazor-wasm-two-factor-authentication-with-qr-codes-and-asp-net-identity/"/>
+    <link rel="index" href="https://ilovedotnet.org/blogs/blazor-wasm-two-factor-authentication-with-qr-codes-and-asp-net-identity/" title="Blazor WASM Two-Factor Authentication with QR Codes and ASP.NET Identity - I ❤️ DotNet"/>
+</head><body class="[ m-0 ] [ h-full ] [ dark:bg-stone-900 ] [ bg-gray-100 ]"><resourcepreloader>
+    <link href="css/charts.min.css" rel="stylesheet"/>
+    <link href="highlight.min.css" rel="stylesheet"/>
+    <link href="github-dark.min.css" rel="stylesheet"/>
+    <link href="css/app.min.css" rel="stylesheet"/>
+    <link href="manifest.json" rel="manifest"/>
+    <link rel="icon" type="image/x-icon" href="favicon.ico"/>
+    <link rel="me" href="https://www.linkedin.com/in/thebhai" type="text/html"/>
+    <link rel="me" href="https://mastodon.social/@thebhai" type="text/html"/>
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="appicons/apple-touch-icon-144x144.png"/>
+    <link rel="apple-touch-icon-precomposed" sizes="152x152" href="appicons/apple-touch-icon-152x152.png"/>
+    <link rel="icon" type="image/png" href="appicons/favicon-196x196.png" sizes="196x196"/>
+    <link rel="preconnect" href="https://googleads.g.doubleclick.net"/>
+    <link rel="preconnect" href="https://pagead2.googlesyndication.com"/>
+    <link rel="preconnect" href="https://fundingchoicesmessages.google.com"/>
+    <link rel="icon" type="image/png" href="appicons/favicon-128.png" sizes="128x128"/>
+    <link href="_framework/dotnet.s1qmja40mg.js" rel="preload" as="script" fetchpriority="high" crossorigin="anonymous" integrity="sha256-YMizAWn0laVNFBix/zN9YaN+OcEWeNbBI6203FmSavQ="/>
+    <script type="importmap">{
+  "imports": {
+    "./_framework/blazor.webassembly.js": "./_framework/blazor.webassembly.66stpp682q.js",
+    "./_framework/dotnet.native.js": "./_framework/dotnet.native.5u40guk9m1.js",
+    "./_framework/dotnet.runtime.js": "./_framework/dotnet.runtime.q5rqv3xrhm.js",
+    "./_framework/dotnet.js": "./_framework/dotnet.s1qmja40mg.js"
+  },
+  "scopes": {},
+  "integrity": {
+    "./_framework/blazor.webassembly.66stpp682q.js": "sha256-3lCWrko3zwspV40aQhs2S/IMkRSarnHRKIdkHhuXIBA=",
+    "./_framework/blazor.webassembly.js": "sha256-3lCWrko3zwspV40aQhs2S/IMkRSarnHRKIdkHhuXIBA=",
+    "./_framework/dotnet.js": "sha256-YMizAWn0laVNFBix/zN9YaN+OcEWeNbBI6203FmSavQ=",
+    "./_framework/dotnet.native.5u40guk9m1.js": "sha256-gx+fL0jAhKq+lcmOHWlWqq6juYDskXwLwW32Ely9jok=",
+    "./_framework/dotnet.native.js": "sha256-gx+fL0jAhKq+lcmOHWlWqq6juYDskXwLwW32Ely9jok=",
+    "./_framework/dotnet.runtime.js": "sha256-ArknccFM1sHNVcih0x1h52AG+abNCoQjl6BlVrv3ePw=",
+    "./_framework/dotnet.runtime.q5rqv3xrhm.js": "sha256-ArknccFM1sHNVcih0x1h52AG+abNCoQjl6BlVrv3ePw=",
+    "./_framework/dotnet.s1qmja40mg.js": "sha256-YMizAWn0laVNFBix/zN9YaN+OcEWeNbBI6203FmSavQ="
+  }
+}</script>
+    <script type="text/javascript">
+        if (!window.location.host.includes('localhost')) {
+            (function(c,l,a,r,i,t,y){
+                c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+                t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+                y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+            })(window, document, "clarity", "script", "o0565ytixx");
+        }
+    </script>
+    <script async="" src="https://fundingchoicesmessages.google.com/i/pub-1536083653226834?ers=1" nonce="dOfxAvcES0_Mwd7YjKmn_Q"></script>
+    <script nonce="dOfxAvcES0_Mwd7YjKmn_Q">
+        if (!window.location.host.includes('localhost')) {
+            (function () { function signalGooglefcPresent() { if (!window.frames['googlefcPresent']) { if (document.body) { const iframe = document.createElement('iframe'); iframe.style = 'width: 0; height: 0; border: none; z-index: -1000; left: -1000px; top: -1000px;'; iframe.style.display = 'none'; iframe.name = 'googlefcPresent'; document.body.appendChild(iframe); } else { setTimeout(signalGooglefcPresent, 0); } } } signalGooglefcPresent(); })();
+        }
+    </script>
+    <script>
+        if (!window.location.host.includes('localhost')) {
+            (function () {
+                /*
+                Copyright The Closure Library Authors.
+                SPDX-License-Identifier: Apache-2.0
+                */
+                'use strict'; var aa = function (a) { var b = 0; return function () { return b < a.length ? { done: !1, value: a[b++] } : { done: !0 } } }, ba = "function" == typeof Object.create ? Object.create : function (a) { var b = function () { }; b.prototype = a; return new b }, k; if ("function" == typeof Object.setPrototypeOf) k = Object.setPrototypeOf; else { var m; a: { var ca = { a: !0 }, n = {}; try { n.__proto__ = ca; m = n.a; break a } catch (a) { } m = !1 } k = m ? function (a, b) { a.__proto__ = b; if (a.__proto__ !== b) throw new TypeError(a + " is not extensible"); return a } : null }
+                var p = k, q = function (a, b) { a.prototype = ba(b.prototype); a.prototype.constructor = a; if (p) p(a, b); else for (var c in b) if ("prototype" != c) if (Object.defineProperties) { var d = Object.getOwnPropertyDescriptor(b, c); d && Object.defineProperty(a, c, d) } else a[c] = b[c]; a.v = b.prototype }, r = this || self, da = function () { }, t = function (a) { return a }; var u; var w = function (a, b) { this.g = b === v ? a : "" }; w.prototype.toString = function () { return this.g + "" }; var v = {}, x = function (a) { if (void 0 === u) { var b = null; var c = r.trustedTypes; if (c && c.createPolicy) { try { b = c.createPolicy("goog#html", { createHTML: t, createScript: t, createScriptURL: t }) } catch (d) { r.console && r.console.error(d.message) } u = b } else u = b } a = (b = u) ? b.createScriptURL(a) : a; return new w(a, v) }; var A = function () { return Math.floor(2147483648 * Math.random()).toString(36) + Math.abs(Math.floor(2147483648 * Math.random()) ^ Date.now()).toString(36) }; var B = {}, C = null; var D = "function" === typeof Uint8Array; function E(a, b, c) { return "object" === typeof a ? D && !Array.isArray(a) && a instanceof Uint8Array ? c(a) : F(a, b, c) : b(a) } function F(a, b, c) { if (Array.isArray(a)) { for (var d = Array(a.length), e = 0; e < a.length; e++) { var f = a[e]; null != f && (d[e] = E(f, b, c)) } Array.isArray(a) && a.s && G(d); return d } d = {}; for (e in a) Object.prototype.hasOwnProperty.call(a, e) && (f = a[e], null != f && (d[e] = E(f, b, c))); return d }
+                function ea(a) {
+                    return F(a, function (b) { return "number" === typeof b ? isFinite(b) ? b : String(b) : b }, function (b) {
+                        var c; void 0 === c && (c = 0); if (!C) { C = {}; for (var d = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789".split(""), e = ["+/=", "+/", "-_=", "-_.", "-_"], f = 0; 5 > f; f++) { var h = d.concat(e[f].split("")); B[f] = h; for (var g = 0; g < h.length; g++) { var l = h[g]; void 0 === C[l] && (C[l] = g) } } } c = B[c]; d = Array(Math.floor(b.length / 3)); e = c[64] || ""; for (f = h = 0; h < b.length - 2; h += 3) {
+                            var y = b[h], z = b[h + 1]; l = b[h + 2]; g = c[y >> 2]; y = c[(y & 3) <<
+                                4 | z >> 4]; z = c[(z & 15) << 2 | l >> 6]; l = c[l & 63]; d[f++] = "" + g + y + z + l
+                        } g = 0; l = e; switch (b.length - h) { case 2: g = b[h + 1], l = c[(g & 15) << 2] || e; case 1: b = b[h], d[f] = "" + c[b >> 2] + c[(b & 3) << 4 | g >> 4] + l + e }return d.join("")
+                    })
+                } var fa = { s: { value: !0, configurable: !0 } }, G = function (a) { Array.isArray(a) && !Object.isFrozen(a) && Object.defineProperties(a, fa); return a }; var H; var J = function (a, b, c) {
+                    var d = H; H = null; a || (a = d); d = this.constructor.u; a || (a = d ? [d] : []); this.j = d ? 0 : -1; this.h = null; this.g = a; a: { d = this.g.length; a = d - 1; if (d && (d = this.g[a], !(null === d || "object" != typeof d || Array.isArray(d) || D && d instanceof Uint8Array))) { this.l = a - this.j; this.i = d; break a } void 0 !== b && -1 < b ? (this.l = Math.max(b, a + 1 - this.j), this.i = null) : this.l = Number.MAX_VALUE } if (c) for (b = 0; b < c.length; b++)a = c[b], a < this.l ? (a += this.j, (d = this.g[a]) ? G(d) : this.g[a] = I) : (d = this.l + this.j, this.g[d] || (this.i = this.g[d] = {}), (d = this.i[a]) ?
+                        G(d) : this.i[a] = I)
+                }, I = Object.freeze(G([])), K = function (a, b) { if (-1 === b) return null; if (b < a.l) { b += a.j; var c = a.g[b]; return c !== I ? c : a.g[b] = G([]) } if (a.i) return c = a.i[b], c !== I ? c : a.i[b] = G([]) }, M = function (a, b) { var c = L; if (-1 === b) return null; a.h || (a.h = {}); if (!a.h[b]) { var d = K(a, b); d && (a.h[b] = new c(d)) } return a.h[b] }; J.prototype.toJSON = function () { var a = N(this, !1); return ea(a) };
+                var N = function (a, b) { if (a.h) for (var c in a.h) if (Object.prototype.hasOwnProperty.call(a.h, c)) { var d = a.h[c]; if (Array.isArray(d)) for (var e = 0; e < d.length; e++)d[e] && N(d[e], b); else d && N(d, b) } return a.g }, O = function (a, b) { H = b = b ? JSON.parse(b) : null; a = new a(b); H = null; return a }; J.prototype.toString = function () { return N(this, !1).toString() }; var P = function (a) { J.call(this, a) }; q(P, J); function ha(a) { var b, c = (a.ownerDocument && a.ownerDocument.defaultView || window).document, d = null === (b = c.querySelector) || void 0 === b ? void 0 : b.call(c, "script[nonce]"); (b = d ? d.nonce || d.getAttribute("nonce") || "" : "") && a.setAttribute("nonce", b) }; var Q = function (a, b) { b = String(b); "application/xhtml+xml" === a.contentType && (b = b.toLowerCase()); return a.createElement(b) }, R = function (a) { this.g = a || r.document || document }; R.prototype.appendChild = function (a, b) { a.appendChild(b) }; var S = function (a, b, c, d, e, f) { try { var h = a.g, g = Q(a.g, "SCRIPT"); g.async = !0; g.src = b instanceof w && b.constructor === w ? b.g : "type_error:TrustedResourceUrl"; ha(g); h.head.appendChild(g); g.addEventListener("load", function () { e(); d && h.head.removeChild(g) }); g.addEventListener("error", function () { 0 < c ? S(a, b, c - 1, d, e, f) : (d && h.head.removeChild(g), f()) }) } catch (l) { f() } }; var ia = r.atob("aHR0cHM6Ly93d3cuZ3N0YXRpYy5jb20vaW1hZ2VzL2ljb25zL21hdGVyaWFsL3N5c3RlbS8xeC93YXJuaW5nX2FtYmVyXzI0ZHAucG5n"), ja = r.atob("WW91IGFyZSBzZWVpbmcgdGhpcyBtZXNzYWdlIGJlY2F1c2UgYWQgb3Igc2NyaXB0IGJsb2NraW5nIHNvZnR3YXJlIGlzIGludGVyZmVyaW5nIHdpdGggdGhpcyBwYWdlLg=="), ka = r.atob("RGlzYWJsZSBhbnkgYWQgb3Igc2NyaXB0IGJsb2NraW5nIHNvZnR3YXJlLCB0aGVuIHJlbG9hZCB0aGlzIHBhZ2Uu"), la = function (a, b, c) { this.h = a; this.j = new R(this.h); this.g = null; this.i = []; this.l = !1; this.o = b; this.m = c }, V = function (a) {
+                    if (a.h.body && !a.l) {
+                        var b =
+                            function () { T(a); r.setTimeout(function () { return U(a, 3) }, 50) }; S(a.j, a.o, 2, !0, function () { r[a.m] || b() }, b); a.l = !0
+                    }
+                }, T = function (a) {
+                    for (var b = W(1, 5), c = 0; c < b; c++) { var d = X(a); a.h.body.appendChild(d); a.i.push(d) } b = X(a); b.style.bottom = "0"; b.style.left = "0"; b.style.position = "fixed"; b.style.width = W(100, 110).toString() + "%"; b.style.zIndex = W(2147483544, 2147483644).toString(); b.style["background-color"] = ma(249, 259, 242, 252, 219, 229); b.style["box-shadow"] = "0 0 12px #888"; b.style.color = ma(0, 10, 0, 10, 0, 10); b.style.display =
+                        "flex"; b.style["justify-content"] = "center"; b.style["font-family"] = "Roboto, Arial"; c = X(a); c.style.width = W(80, 85).toString() + "%"; c.style.maxWidth = W(750, 775).toString() + "px"; c.style.margin = "24px"; c.style.display = "flex"; c.style["align-items"] = "flex-start"; c.style["justify-content"] = "center"; d = Q(a.j.g, "IMG"); d.className = A(); d.src = ia; d.style.height = "24px"; d.style.width = "24px"; d.style["padding-right"] = "16px"; var e = X(a), f = X(a); f.style["font-weight"] = "bold"; f.textContent = ja; var h = X(a); h.textContent = ka; Y(a,
+                            e, f); Y(a, e, h); Y(a, c, d); Y(a, c, e); Y(a, b, c); a.g = b; a.h.body.appendChild(a.g); b = W(1, 5); for (c = 0; c < b; c++)d = X(a), a.h.body.appendChild(d), a.i.push(d)
+                }, Y = function (a, b, c) { for (var d = W(1, 5), e = 0; e < d; e++) { var f = X(a); b.appendChild(f) } b.appendChild(c); c = W(1, 5); for (d = 0; d < c; d++)e = X(a), b.appendChild(e) }, W = function (a, b) { return Math.floor(a + Math.random() * (b - a)) }, ma = function (a, b, c, d, e, f) {
+                    return "rgb(" + W(Math.max(a, 0), Math.min(b, 255)).toString() + "," + W(Math.max(c, 0), Math.min(d, 255)).toString() + "," + W(Math.max(e, 0), Math.min(f,
+                        255)).toString() + ")"
+                }, X = function (a) { a = Q(a.j.g, "DIV"); a.className = A(); return a }, U = function (a, b) { 0 >= b || null != a.g && 0 != a.g.offsetHeight && 0 != a.g.offsetWidth || (na(a), T(a), r.setTimeout(function () { return U(a, b - 1) }, 50)) }, na = function (a) { var b = a.i; var c = "undefined" != typeof Symbol && Symbol.iterator && b[Symbol.iterator]; b = c ? c.call(b) : { next: aa(b) }; for (c = b.next(); !c.done; c = b.next())(c = c.value) && c.parentNode && c.parentNode.removeChild(c); a.i = []; (b = a.g) && b.parentNode && b.parentNode.removeChild(b); a.g = null }; var pa = function (a, b, c, d, e) { var f = oa(c), h = function (l) { l.appendChild(f); r.setTimeout(function () { f ? (0 !== f.offsetHeight && 0 !== f.offsetWidth ? b() : a(), f.parentNode && f.parentNode.removeChild(f)) : a() }, d) }, g = function (l) { document.body ? h(document.body) : 0 < l ? r.setTimeout(function () { g(l - 1) }, e) : b() }; g(3) }, oa = function (a) { var b = document.createElement("div"); b.className = a; b.style.width = "1px"; b.style.height = "1px"; b.style.position = "absolute"; b.style.left = "-10000px"; b.style.top = "-10000px"; b.style.zIndex = "-10000"; return b }; var L = function (a) { J.call(this, a) }; q(L, J); var qa = function (a) { J.call(this, a) }; q(qa, J); var ra = function (a, b) { this.l = a; this.m = new R(a.document); this.g = b; this.i = K(this.g, 1); b = M(this.g, 2); this.o = x(K(b, 4) || ""); this.h = !1; b = M(this.g, 13); b = x(K(b, 4) || ""); this.j = new la(a.document, b, K(this.g, 12)) }; ra.prototype.start = function () { sa(this) };
+                var sa = function (a) { ta(a); S(a.m, a.o, 3, !1, function () { a: { var b = a.i; var c = r.btoa(b); if (c = r[c]) { try { var d = O(P, r.atob(c)) } catch (e) { b = !1; break a } b = b === K(d, 1) } else b = !1 } b ? Z(a, K(a.g, 14)) : (Z(a, K(a.g, 8)), V(a.j)) }, function () { pa(function () { Z(a, K(a.g, 7)); V(a.j) }, function () { return Z(a, K(a.g, 6)) }, K(a.g, 9), K(a.g, 10), K(a.g, 11)) }) }, Z = function (a, b) { a.h || (a.h = !0, a = new a.l.XMLHttpRequest, a.open("GET", b, !0), a.send()) }, ta = function (a) { var b = r.btoa(a.i); a.l[b] && Z(a, K(a.g, 5)) }; (function (a, b) { r[a] = function (c) { for (var d = [], e = 0; e < arguments.length; ++e)d[e - 0] = arguments[e]; r[a] = da; b.apply(null, d) } })("__h82AlnkH6D91__", function (a) { "function" === typeof window.atob && (new ra(window, O(qa, window.atob(a)))).start() });
+            }).call(this);
+
+            window.__h82AlnkH6D91__("WyJwdWItMTUzNjA4MzY1MzIyNjgzNCIsW251bGwsbnVsbCxudWxsLCJodHRwczovL2Z1bmRpbmdjaG9pY2VzbWVzc2FnZXMuZ29vZ2xlLmNvbS9iL3B1Yi0xNTM2MDgzNjUzMjI2ODM0Il0sbnVsbCxudWxsLCJodHRwczovL2Z1bmRpbmdjaG9pY2VzbWVzc2FnZXMuZ29vZ2xlLmNvbS9lbC9BR1NLV3hYajNKNGktY00wVWloYjRfLVVJQXdrSHJ4Yl9EWXBFa3NXOW1WalVlRkVzZVNQVHhUOTAydzZ4MGd6b1E5NFA3OHFZZWhyV2FvU2gySWxfUEQ5eFRfQjVRXHUwMDNkXHUwMDNkP3RlXHUwMDNkVE9LRU5fRVhQT1NFRCIsImh0dHBzOi8vZnVuZGluZ2Nob2ljZXNtZXNzYWdlcy5nb29nbGUuY29tL2VsL0FHU0tXeFZSMWROcWh4V3lsVjRuNHJGQVVoRDR2ZjFNaGdFcHl5M2VoU3l2QndTQzF1c0dVWV9LbUVRSThEc1pyUk1hQ0NmYWdXNkNPVUN2ODNJbVVKTEJibTZ2TWdcdTAwM2RcdTAwM2Q/YWJcdTAwM2QxXHUwMDI2c2JmXHUwMDNkMSIsImh0dHBzOi8vZnVuZGluZ2Nob2ljZXNtZXNzYWdlcy5nb29nbGUuY29tL2VsL0FHU0tXeFZidGltVm5CbWlZa1lDMWFWR0ViMnQycGViNkxCMzZGOXhqOXZYYzRhbmdXcW5Ca0lnbkVuYXdvYnZyRU0xNWxBNlpyQ3JXOUNkTnkzZHFudkg4SmFUcGdcdTAwM2RcdTAwM2Q/YWJcdTAwM2QyXHUwMDI2c2JmXHUwMDNkMSIsImh0dHBzOi8vZnVuZGluZ2Nob2ljZXNtZXNzYWdlcy5nb29nbGUuY29tL2VsL0FHU0tXeFhrQWpIZ09OZHFJcW9DcXZHYlBDMmFMQnNGMzFDeHNTRWNtcEllOHNyak5wTkhfOC1jaEJ5WUlyRDFfT2JaWm9SSlAxRi1mOE9qQjBnMnpfaVRZYTdoaEFcdTAwM2RcdTAwM2Q/c2JmXHUwMDNkMiIsImRpdi1ncHQtYWQiLDIwLDEwMCwiY0hWaUxURTFNell3T0RNMk5UTXlNalk0TXpRXHUwMDNkIixbbnVsbCxudWxsLG51bGwsImh0dHBzOi8vd3d3LmdzdGF0aWMuY29tLzBlbW4vZi9wL3B1Yi0xNTM2MDgzNjUzMjI2ODM0LmpzP3VzcXBcdTAwM2RDQVEiXSwiaHR0cHM6Ly9mdW5kaW5nY2hvaWNlc21lc3NhZ2VzLmdvb2dsZS5jb20vZWwvQUdTS1d4VWt4c0lqNWhFcmJHb1g0RnZnY1F0TjVkcnVuWkxEbHNUY2FRTWx3V1kwR1oySm94bklBQkh0eE9wckxJeUxLSEhDRUtWUk52QlFPVm4xTkVDczRqN3F5Z1x1MDAzZFx1MDAzZCJd");
+        }
+    </script>
+    <script async="" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1536083653226834" crossorigin="anonymous"></script>
+    <script>
+        if (localStorage.DisplayMode === 'dark' || (!('DisplayMode' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
+
+
+
+    <div id="app" class="[ dark:text-white ]">
+<!-- %%-PRERENDERING-BEGIN-%% -->
+<!--Blazor:{"type":"webassembly","prerenderId":"05da184540d942ad879b4cc3f4d32b37","key":{"locationHash":"5A77B35847144BFA5AAD4B6E75ECBFC65A5AF21F4F3ACA798E2BA892F3E88F38:0","formattedComponentKey":""},"assembly":"Web","typeName":"Web.App","parameterDefinitions":"W10=","parameterValues":"W10="}--><header id="header" class="[ flex items-center justify-between ] [ bg-white ] [ px-5 ] [ dark:bg-gray-800 dark:bg-gray-800/80 ] [ h-14 ] [ sticky top-0 ] [ backdrop-blur-xs bg-white/80 ] [ z-10 ]"><button type="button" class="[ hidden md:block ] [ mr-4 ]" aria-label="Toggle Menu"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-menu-2 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+           <line x1="4" y1="6" x2="20" y2="6"></line>
+           <line x1="4" y1="12" x2="20" y2="12"></line>
+           <line x1="4" y1="18" x2="20" y2="18"></line></svg></button>
+    <h1 id="brand" class="[  ]"><a href="/" class="[ font-bold ] [ flex items-center justify-between space-x-1 ] active" aria-current="page"><span class="[ dark:text-white ]">I</span>
+            <span class="animate-pulse">❤️</span>
+            <span class="[ text-indigo-600 ] [ dark:text-white ]">.NET</span></a></h1>
+    <section id="search" class="[ flex grow justify-end md:justify-center ]"><button type="button" aria-label="Exit Search" class="[ hidden ] [ bg-white ] [ h-10 w-10 ] [ border-2 border-gray-200 ] [ dark:bg-gray-800 dark:border-gray-800 ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-arrow-left ] [ inline ] [ text-gray-500 ] [ stroke-1 ] [ dark:text-white ]" width="25" height="25" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <line x1="5" y1="12" x2="11" y2="18"></line>
+            <line x1="5" y1="12" x2="11" y2="6"></line></svg></button>
+    <div class="[ dropdown ] [  ] [ w-1/2 ] [ hidden ] [  ]"><div class="[ dropdown-trigger ] [ w-full ]"><input type="search" placeholder="Type / to search" class="[ w-full h-full ] [ px-4 ] [ border-2 border-gray-200 ] [ focus:outline-hidden focus:border-gray-400 ] [ dark:bg-black dark:border-gray-800 dark:focus:border-b-white dark:md:focus:border-blue-800 dark:caret-white dark:text-white ]" autocapitalize="none" autocomplete="off" name="search" autocorrect="off" aria-haspopup="true" aria-controls="dropdown-menu" value=""/></div>
+        <div class="[ dropdown-menu ] [ bg-white dark:bg-black ] [ w-full ]" id="dropdown-menu" role="menu"><div class="[ dropdown-content ] [ dark:bg-black ] [ overflow-y-auto ]" style="max-height:50vh;"></div></div></div>
+    <button type="button" aria-label="Search" class="[ h-10 w-10 ] [  ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-search ] [ inline ] [ text-gray-500 ] [ stroke-1 ] [ dark:text-white ]" width="25" height="25" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <circle cx="10" cy="10" r="7"></circle>
+            <line x1="21" y1="21" x2="15" y2="15"></line></svg></button></section>
+    <section id="display-and-social" class="[  ] [ flex items-center space-x-1.5 ]"><a href="https://github.com/ILoveDotNet/ilovedotnet" target="blank" aria-label="Give a Star in GitHub" class="[ flex items-center space-x-1 ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-star ] [ fill-yellow-400 stroke-yellow-400 ] [ animate-pulse ]" width="25" height="25" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                <path d="M12 17.75l-6.172 3.245l1.179 -6.873l-5 -4.867l6.9 -1l3.086 -6.253l3.086 6.253l6.9 1l-5 4.867l1.179 6.873z"></path></svg>
+            <span class="hidden md:block">Starred 152</span></a>
+        <section id="displaymode"><div class="dropdown is-right "><div class="dropdown-trigger"><button class="button [ flex items-center ]" aria-haspopup="true" aria-controls="displaymode-menu" aria-label="Theme Selector"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-device-desktop ] [ dark:text-white ]" width="25" height="25" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <rect x="3" y="4" width="18" height="12" rx="1"></rect>
+                        <line x1="7" y1="20" x2="17" y2="20"></line>
+                        <line x1="9" y1="16" x2="9" y2="20"></line>
+                        <line x1="15" y1="16" x2="15" y2="20"></line></svg></button></div>
+        <div class="dropdown-menu [ bg-white dark:bg-black ]" id="displaymode-menu" role="menu"><div class="dropdown-content [ dark:bg-black ]"><button type="button" class="dropdown-item [ flex items-center space-x-1 ] [ dark:hover:bg-gray-700 ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-device-desktop ] [ dark:text-white ]" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <rect x="3" y="4" width="18" height="12" rx="1"></rect>
+                        <line x1="7" y1="20" x2="17" y2="20"></line>
+                        <line x1="9" y1="16" x2="9" y2="20"></line>
+                        <line x1="15" y1="16" x2="15" y2="20"></line></svg>
+                    <p class="[ dark:text-white ]">System</p></button>
+                <button type="button" class="dropdown-item [ flex items-center space-x-1 ] [ dark:hover:bg-gray-700 ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-moon ] [ dark:text-white ]" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z"></path></svg>
+                    <p class="[ dark:text-white ]">Dark</p></button>
+                <button type="button" class="dropdown-item [ flex items-center space-x-1 ] [ dark:hover:bg-gray-700 ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-brightness-up ] [ dark:text-white ]" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <line x1="12" y1="5" x2="12" y2="3"></line>
+                        <line x1="17" y1="7" x2="18.4" y2="5.6"></line>
+                        <line x1="19" y1="12" x2="21" y2="12"></line>
+                        <line x1="17" y1="17" x2="18.4" y2="18.4"></line>
+                        <line x1="12" y1="19" x2="12" y2="21"></line>
+                        <line x1="7" y1="17" x2="5.6" y2="18.4"></line>
+                        <line x1="6" y1="12" x2="4" y2="12"></line>
+                        <line x1="7" y1="7" x2="5.6" y2="5.6"></line></svg>
+                    <p class="[ dark:text-white ]">Light</p></button></div></div></div></section>
+        <section id="others"><div class="dropdown is-right "><div class="dropdown-trigger"><button class="button [ flex items-center ]" aria-haspopup="true" aria-controls="others-menu" aria-label="Others"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-dots-vertical ] [ dark:text-white ]" width="20" height="20" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                    <circle cx="12" cy="12" r="1"></circle>
+                    <circle cx="12" cy="19" r="1"></circle>
+                    <circle cx="12" cy="5" r="1"></circle></svg></button></div>
+        <div class="dropdown-menu [ bg-white dark:bg-black ]" id="others-menu" role="menu"><div class="dropdown-content [ dark:bg-black ]"><a href="https://github.com/sponsors/fingers10" target="_blank" class="dropdown-item [ flex items-center space-x-1 ] [ dark:hover:bg-gray-700 ]" __internal_stoppropagation_onfocusout=""><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-heart ] [ text-red-500 ] [ fill-red-500 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428m0 0a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572"></path></svg>
+                    <p class="[ dark:text-white ]">Sponsor Us</p></a>
+                <hr class="dropdown-divider"/>
+                <a href="/disclaimer" __internal_stoppropagation_onfocusout="" class="dropdown-item [ flex items-center space-x-1 ] [ dark:hover:bg-gray-700 ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-hand-off ] [ text-yellow-500 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                       <line x1="3" y1="3" x2="21" y2="21"></line>
+                       <path d="M8 13.5v-5.5m.44 -3.562a1.5 1.5 0 0 1 2.56 1.062v1.5m0 4.008v.992m0 -6.5v-2a1.5 1.5 0 1 1 3 0v6.5m0 -4.5a1.5 1.5 0 0 1 3 0v6.5m0 -4.5a1.5 1.5 0 0 1 3 0v8.5a6 6 0 0 1 -6 6h-2c-2.114 -.292 -3.956 -1.397 -5 -3l-2.7 -5.25a1.7 1.7 0 0 1 2.75 -2l.9 1.75"></path></svg>
+                    <span class="[ dark:text-white ]">Disclaimer</span></a>
+                <a href="/privacy" __internal_stoppropagation_onfocusout="" class="dropdown-item [ flex items-center space-x-1 ] [ dark:hover:bg-gray-700 ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-lock-square ] [ text-orange-500 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <rect x="8" y="11" width="8" height="5" rx="1"></rect>
+                        <path d="M10 11v-2a2 2 0 1 1 4 0v2"></path>
+                        <rect x="4" y="4" width="16" height="16" rx="2"></rect></svg>
+                    <span class="[ dark:text-white ]">Privacy</span></a></div></div></div></section></section></header>
+<main id="main" class="[ [ pb-14 md:pb-0 md:pl-16 ] ]"><section class="[ font-bold ] [ p-5 ] [ flex flex-col items-center justify-center ]"><a href="https://whatsapp.com/channel/0029VaAGMV2LtOj5S5MHd23h" target="_blank"><span>👉🏼 Click here to Join I ❤️ .NET </span>
+        <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-brand-whatsapp ] [ fill-green-500 ] [ inline ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <path d="M3 21l1.65 -3.8a9 9 0 1 1 3.4 2.9l-5.05 .9"></path>
+            <path d="M9 10a.5 .5 0 0 0 1 0v-1a.5 .5 0 0 0 -1 0v1a5 5 0 0 0 5 5h1a.5 .5 0 0 0 0 -1h-1a.5 .5 0 0 0 0 1"></path></svg>
+        <span>WhatsApp Channel to get 🔔 notified about new articles and other updates.</span></a></section>
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<section class="[ flex flex-col lg:flex-row ] [ p-1 md:p-5 lg:px-20 ] [ lg:space-x-5 space-y-5 lg:space-y-0 ]"><article class="[ lg:basis-3/4 ] [ space-y-5 ]"><header class="[ space-y-2 ]"><figure><img src="image/blogs/blazor/wasm/blazor-wasm-two-factor-authentication-with-qr-codes-and-asp-net-identity.webp" alt="Blazor WASM Two-Factor Authentication with QR Codes and ASP.NET Identity" class="[ w-full ]" loading="lazy"/></figure><h2 class="[ dark:text-white ] [ font-semibold text-xl ]">Blazor WASM Two-Factor Authentication with QR Codes and ASP.NET Identity</h2>
+    <section class="[ flex flex-col md:flex-row justify-between ] [ space-y-1 md:space-y-0 ] [ dark:text-white ] [ font-bold ]"><div><p>Author - <a href="authors/abdul-rahman" class="[ underline ]">Abdul Rahman (Bhai)</a></p>
+            <time datetime="2026-02-01 22:30:00">Last updated 13 days ago</time></div>
+        <div><section class="[ flex justify-between md:justify-start ]"><a href="https://github.com/sponsors/fingers10" target="_blank" aria-label="Sponsor Us"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-heart ] [ text-red-500 ] [ fill-red-500 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+           <path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428m0 0a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572"></path></svg></a>
+    <a href="https://api.whatsapp.com/send?text=Blazor WASM Two-Factor Authentication with QR Codes and ASP.NET Identity%20https%3a%2f%2filovedotnet.org%2fblogs%2fblazor-wasm-two-factor-authentication-with-qr-codes-and-asp-net-identity%2f" target="_blank" aria-label="Share via Whatsapp"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-brand-whatsapp ] [ text-emerald-500 dark:text-emerald-300 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <path d="M3 21l1.65 -3.8a9 9 0 1 1 3.4 2.9l-5.05 .9"></path>
+            <path d="M9 10a0.5 .5 0 0 0 1 0v-1a0.5 .5 0 0 0 -1 0v1a5 5 0 0 0 5 5h1a0.5 .5 0 0 0 0 -1h-1a0.5 .5 0 0 0 0 1"></path></svg></a>
+    <a href="https://www.linkedin.com/shareArticle?mini=true&amp;url=https%3a%2f%2filovedotnet.org%2fblogs%2fblazor-wasm-two-factor-authentication-with-qr-codes-and-asp-net-identity%2f" target="_blank" aria-label="Share via Linkedin"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-brand-linkedin ] [ text-blue-500 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+            <line x1="8" y1="11" x2="8" y2="16"></line>
+            <line x1="8" y1="8" x2="8" y2="8.01"></line>
+            <line x1="12" y1="16" x2="12" y2="11"></line>
+            <path d="M16 16v-3a2 2 0 0 0 -4 0"></path></svg></a>
+    <a href="https://www.facebook.com/sharer.php?u=https%3a%2f%2filovedotnet.org%2fblogs%2fblazor-wasm-two-factor-authentication-with-qr-codes-and-asp-net-identity%2f" target="_blank" aria-label="Share via Facebook"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-brand-facebook ] [ text-blue-400 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <path d="M7 10v4h3v7h4v-7h3l1 -4h-4v-2a1 1 0 0 1 1 -1h3v-4h-3a5 5 0 0 0 -5 5v2h-3"></path></svg></a>
+    <a href="https://twitter.com/intent/tweet?url=https%3a%2f%2filovedotnet.org%2fblogs%2fblazor-wasm-two-factor-authentication-with-qr-codes-and-asp-net-identity%2f&amp;text=Blazor WASM Two-Factor Authentication with QR Codes and ASP.NET Identity" target="_blank" aria-label="Share via Tweet"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-brand-twitter ] [ text-blue-700 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <path d="M22 4.01c-1 .49 -1.98 .689 -3 .99c-1.121 -1.265 -2.783 -1.335 -4.38 -.737s-2.643 2.06 -2.62 3.737v1c-3.245 .083 -6.135 -1.395 -8 -4c0 0 -4.182 7.433 4 11c-1.872 1.247 -3.739 2.088 -6 2c3.308 1.803 6.913 2.423 10.034 1.517c3.58 -1.04 6.522 -3.723 7.651 -7.742a13.84 13.84 0 0 0 .497 -3.753c-.002 -.249 1.51 -2.772 1.818 -4.013z"></path></svg></a></section></div></section>
+    <section class="[ flex items-center justify-between ]"><a href="channels/blazor" class="[ flex ]"><aside><figure class="[ mt-2 mr-2 ]"><img src="/image/icons/blazor.webp" alt="Blazor" loading="lazy" height="48" width="48" class="[ rounded-full ]"/></figure></aside>
+            <article class="[ flex flex-col justify-between ] [ dark:text-white ] [ mt-2 ]"><h2 class="[ font-medium break-words ] [ uppercase ]">Blazor</h2>
+                <section class="[ flex justify-between ]"><p>34 Articles</p></section></article></a>
+        <a href="https://github.com/ILoveDotNet/ilovedotnet/blob/main/BlazorDemoComponents/Pages/Blogs/TwoFactorAuthentication.razor" target="_blank" class="[ md:bg-red-700 ] [ text-red-500 md:text-white uppercase ] [ px-3 py-2 ] [ font-semibold ]">Improve</a></section>
+    <hr class="[ dark:text-white my-1.5 ]"/></header>
+        <section class="[ dark:text-white ] [ space-y-2 ] [ prose dark:prose-invert ] [ min-w-full ]"><h3>Table of Contents</h3><ol><li><a href="blogs/blazor-wasm-two-factor-authentication-with-qr-codes-and-asp-net-identity#what" class="active" aria-current="page">
+                            What we gonna do?
+                        </a></li>
+                    <li><a href="blogs/blazor-wasm-two-factor-authentication-with-qr-codes-and-asp-net-identity#why" class="active" aria-current="page">
+                            Why we gonna do?
+                        </a></li>
+                    <li><a href="blogs/blazor-wasm-two-factor-authentication-with-qr-codes-and-asp-net-identity#how" class="active" aria-current="page">
+                            How we gonna do?
+                        </a></li>
+                    <li><a href="blogs/blazor-wasm-two-factor-authentication-with-qr-codes-and-asp-net-identity#summary" class="active" aria-current="page">
+                            Summary
+                        </a></li></ol><h3 id="what">What we gonna do?</h3>
+
+<p>
+                Ever locked yourself out of an account because you lost your phone? Two-factor authentication can feel like that friend who's overly protective—annoying until you realize they just saved you from disaster. In this article, let's learn about implementing <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">two-factor authentication (2FA)</span> with <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">QR codes</span> and <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">TOTP (Time-based One-Time Password)</span> in <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Blazor WebAssembly Standalone</span> applications using <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">ASP.NET Core Identity</span>.
+            </p>
+
+            <p>
+                We'll build on top of the cookie-based authentication system and add a complete 2FA solution that includes QR code generation, authenticator app integration, and recovery codes. You'll learn how users can scan a QR code with apps like Microsoft Authenticator or Google Authenticator to enable 2FA protection for their accounts.
+            </p>
+
+        <h3 id="why">Why we gonna do?</h3>
+
+<h4>The Security Gap in Single-Factor Authentication</h4>
+
+            <p>
+                Passwords alone are a <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">single point of failure</span>. Here's what happens without 2FA:
+            </p>
+
+            <pre><code id="979dd160-2427-40d9-9720-bab740bbc52b" class="language-csharp">
+// ❌ Password-only login - One compromised password = complete account takeover
+@code {
+    public async Task LoginUser()
+    {
+        var result = await Acct.LoginAsync(email, password);
+        
+        if (result.Succeeded)
+        {
+            // User is in! But what if the password was:
+            // - Phished from a fake site
+            // - Leaked in a data breach
+            // - Guessed through brute force
+            // - Stolen via keylogger
+        }
+    }
+}
+            </code></pre>
+
+            <p>
+                With <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">2FA enabled</span>, even if an attacker steals the password, they still can't access the account without the second factor—a time-sensitive code from the user's authenticator app.
+            </p>
+
+            <h4>Why TOTP Over SMS-Based 2FA?</h4>
+
+            <p><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">TOTP (Time-based One-Time Password)</span> is superior to SMS-based 2FA for several reasons:
+            </p>
+
+            <ul><li><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">No SIM swap attacks</span> - Attackers can't intercept codes by taking over your phone number</li>
+                <li><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Works offline</span> - Authenticator apps generate codes without internet connectivity</li>
+                <li><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Faster and more reliable</span> - No waiting for SMS delivery or carrier issues</li>
+                <li><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Free and standardized</span> - Based on RFC 6238, compatible with any TOTP authenticator app</li>
+                <li><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Better user experience</span> - QR code setup is instant and easy</li></ul>
+
+            <h4>The Complete 2FA Workflow</h4>
+
+            <p>
+                Here's how 2FA changes the authentication flow:
+            </p>
+
+            <pre><code id="850dda6f-3743-4af5-9f21-0ad740264d69" class="language-bash">
+WITHOUT 2FA:
+1. User enters email + password → Backend validates → Login successful
+
+WITH 2FA:
+1. User enters email + password → Backend validates credentials
+2. Backend responds: "RequiresTwoFactor"
+3. UI shows TOTP code input field
+4. User opens authenticator app, gets 6-digit code (changes every 30 seconds)
+5. User enters code → Backend validates TOTP → Login successful
+
+OR (if using recovery code):
+4. User lost their phone, uses one of 10 recovery codes
+5. Backend validates recovery code → Login successful → Recovery codes regenerated
+            </code></pre>
+
+            <h4>Recovery Codes: The Safety Net</h4>
+
+            <p>
+                What happens when users lose their phone or authenticator app? Without <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">recovery codes</span>, they're permanently locked out:
+            </p>
+
+            <pre><code id="8a894a44-f61d-43c5-b86d-09c92d8f37ec" class="language-bash">
+❌ Lost phone + No recovery codes = Permanent account lockout
+✅ Lost phone + Recovery codes = Can still access account and re-configure 2FA
+            </code></pre>
+
+            <p>
+                Recovery codes are <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">single-use backup codes</span> that users should print and store securely. When 2FA is enabled, the system generates 10 recovery codes. Each can be used once to bypass the TOTP requirement.
+            </p>
+
+            <h4>The QR Code Advantage</h4>
+
+            <p>
+                Before QR codes, users had to manually type a long shared secret key into their authenticator app—error-prone and frustrating. With <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">QR code generation</span>, setup is instant:
+            </p>
+
+            <ul><li>User enables 2FA in your app</li>
+                <li>Backend generates a unique shared secret</li>
+                <li>Frontend creates QR code containing: organization name, user email, and shared secret</li>
+                <li>User scans QR code with authenticator app</li>
+                <li>Both backend and authenticator app now share the same secret</li>
+                <li>Every 30 seconds, both generate the same 6-digit code using the secret + current time</li></ul>
+
+        <h3 id="how">How we gonna do?</h3>
+
+<h4>Step 1: Add QR Code Generation Library</h4>
+
+            <p>
+                First, add a NuGet package to generate QR codes. We'll use <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Net.Codecrete.QrCodeGenerator</span>, a lightweight .NET library:
+            </p>
+
+            <pre><code id="89512705-52e4-4139-9abd-6a5b0eeda2dc" class="language-bash">
+dotnet add package Net.Codecrete.QrCodeGenerator
+            </code></pre>
+
+            <p>
+                This package generates QR codes as SVG graphics, perfect for rendering in Blazor without external dependencies.
+            </p>
+
+            <h4>Step 2: Configure TOTP Organization Name</h4>
+
+            <p>
+                Set a recognizable organization name that appears in users' authenticator apps. Add this to <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">wwwroot/appsettings.json</span>:
+            </p>
+
+            <pre><code id="119ff677-bc6a-4916-877e-d92f162992ce" class="language-json">
+{
+    "BackendUrl": "https://localhost:5001",
+    "FrontendUrl": "https://localhost:5002",
+    "TotpOrganizationName": "I Love DotNet"
+}
+            </code></pre>
+
+            <p>
+                Keep the organization name <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">under 30 characters</span> so it displays properly on narrow mobile screens. Users will see this name in their authenticator app next to the 6-digit code.
+            </p>
+
+            <h4>Step 3: Create 2FA Model Classes</h4>
+
+            <p>
+                Add three model classes to handle 2FA API communication. First, <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">LoginResponse</span> to detect 2FA requirements:
+            </p>
+
+            <pre><code id="cc912289-29eb-4525-a778-1f7be7abc27e" class="language-csharp">
+namespace BlazorWasmAuth.Identity.Models;
+
+public class LoginResponse
+{
+    public string? Type { get; set; }
+    public string? Title { get; set; }
+    public int Status { get; set; }
+    public string? Detail { get; set; }
+}
+            </code></pre>
+
+            <p>
+                Next, <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">TwoFactorRequest</span> for managing 2FA operations:
+            </p>
+
+            <pre><code id="734ab975-3f54-4955-8192-858e7bd08007" class="language-csharp">
+namespace BlazorWasmAuth.Identity.Models;
+
+public class TwoFactorRequest
+{
+    public bool? Enable { get; set; }
+    public string? TwoFactorCode { get; set; }
+    public bool? ResetSharedKey { get; set; }
+    public bool? ResetRecoveryCodes { get; set; }
+    public bool? ForgetMachine { get; set; }
+}
+            </code></pre>
+
+            <p>
+                Finally, <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">TwoFactorResponse</span> to receive 2FA status and data:
+            </p>
+
+            <pre><code id="68ca6f79-6b89-42d8-828b-9178173e3cc5" class="language-csharp">
+namespace BlazorWasmAuth.Identity.Models;
+
+public class TwoFactorResponse
+{
+    public string SharedKey { get; set; } = string.Empty;
+    public int RecoveryCodesLeft { get; set; } = 0;
+    public string[] RecoveryCodes { get; set; } = [];
+    public bool IsTwoFactorEnabled { get; set; }
+    public bool IsMachineRemembered { get; set; }
+    public string[] ErrorList { get; set; } = [];
+}
+            </code></pre>
+
+            <h4>Step 4: Extend IAccountManagement Interface</h4>
+
+            <p>
+                Add method signatures for 2FA operations to your <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">IAccountManagement</span> interface:
+            </p>
+
+            <pre><code id="3ffb5e6a-fb52-4d35-85a8-cef1dae0f1fd" class="language-csharp">
+// Add to IAccountManagement.cs
+public Task&lt;FormResult&gt; LoginTwoFactorCodeAsync(
+    string email, 
+    string password, 
+    string twoFactorCode);
+
+public Task&lt;FormResult&gt; LoginTwoFactorRecoveryCodeAsync(
+    string email, 
+    string password, 
+    string twoFactorRecoveryCode);
+
+public Task&lt;TwoFactorResponse&gt; TwoFactorRequestAsync(
+    TwoFactorRequest twoFactorRequest);
+            </code></pre>
+
+            <h4>Step 5: Update CookieAuthenticationStateProvider</h4>
+
+            <p>
+                Add the <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">System.Text.Json.Serialization</span> namespace and update JSON serializer options to ignore null values:
+            </p>
+
+            <pre><code id="ed6afbdf-b1ff-4448-ac40-cee5ce775e93" class="language-csharp">
+using System.Text.Json.Serialization;
+
+// In CookieAuthenticationStateProvider class
+private readonly JsonSerializerOptions jsonSerializerOptions =
+    new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+    };
+            </code></pre>
+
+            <p>
+                Replace the <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">LoginAsync</span> method to detect 2FA requirements:
+            </p>
+
+            <pre><code id="63763314-5a05-48ec-aeaa-16eb3b7bb299" class="language-csharp">
+public async Task&lt;FormResult&gt; LoginAsync(string email, string password)
+{
+    try
+    {
+        using var result = await httpClient.PostAsJsonAsync(
+            "login?useCookies=true", new
+            {
+                email,
+                password
+            });
+
+        if (result.IsSuccessStatusCode)
+        {
+            NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
+            return new FormResult { Succeeded = true };
+        }
+        else if (result.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            using var responseJson = await result.Content.ReadAsStringAsync();
+            var response = JsonSerializer.Deserialize&lt;LoginResponse&gt;(
+                responseJson, jsonSerializerOptions);
+
+            // Check if 2FA is required
+            if (response?.Detail == "RequiresTwoFactor")
+            {
+                return new FormResult
+                {
+                    Succeeded = false,
+                    ErrorList = [ "RequiresTwoFactor" ]
+                };
+            }
+        }
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Login failed");
+    }
+
+    return new FormResult
+    {
+        Succeeded = false,
+        ErrorList = [ "Invalid email and/or password." ]
+    };
+}
+            </code></pre>
+
+            <p>
+                Add <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">LoginTwoFactorCodeAsync</span> to handle TOTP code authentication:
+            </p>
+
+            <pre><code id="f9682dcd-c43d-4591-b0ca-33935923a32c" class="language-csharp">
+public async Task&lt;FormResult&gt; LoginTwoFactorCodeAsync(
+    string email, string password, string twoFactorCode)
+{
+    try
+    {
+        using var result = await httpClient.PostAsJsonAsync(
+            "login?useCookies=true", new
+            {
+                email,
+                password,
+                twoFactorCode
+            });
+
+        if (result.IsSuccessStatusCode)
+        {
+            NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
+            return new FormResult { Succeeded = true };
+        }
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Two-factor login failed");
+    }
+
+    return new FormResult
+    {
+        Succeeded = false,
+        ErrorList = [ "Invalid two-factor code." ]
+    };
+}
+            </code></pre>
+
+            <p>
+                Add <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">LoginTwoFactorRecoveryCodeAsync</span> for recovery code authentication:
+            </p>
+
+            <pre><code id="b3bb79a2-defb-4012-a738-66df51a41825" class="language-csharp">
+public async Task&lt;FormResult&gt; LoginTwoFactorRecoveryCodeAsync(
+    string email, 
+    string password, 
+    string twoFactorRecoveryCode)
+{
+    try
+    {
+        using var result = await httpClient.PostAsJsonAsync(
+            "login?useCookies=true", new
+            {
+                email,
+                password,
+                twoFactorRecoveryCode
+            });
+
+        if (result.IsSuccessStatusCode)
+        {
+            NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
+            return new FormResult { Succeeded = true };
+        }
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Recovery code login failed");
+    }
+
+    return new FormResult
+    {
+        Succeeded = false,
+        ErrorList = [ "Invalid recovery code." ]
+    };
+}
+            </code></pre>
+
+            <p>
+                Add <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">TwoFactorRequestAsync</span> to manage all 2FA operations:
+            </p>
+
+            <pre><code id="dc177b77-bb88-45cc-8467-d1e5e83b292c" class="language-csharp">
+public async Task&lt;TwoFactorResponse&gt; TwoFactorRequestAsync(
+    TwoFactorRequest twoFactorRequest)
+{
+    string[] defaultDetail = 
+        [ "An unknown error prevented two-factor authentication." ];
+
+    using var response = await httpClient.PostAsJsonAsync(
+        "manage/2fa", 
+        twoFactorRequest, 
+        jsonSerializerOptions);
+
+    if (response.IsSuccessStatusCode)
+    {
+        return await response.Content
+            .ReadFromJsonAsync&lt;TwoFactorResponse&gt;() ??
+            new()
+            { 
+                ErrorList = [ "There was an error processing the request." ]
+            };
+    }
+
+    // Parse error details from response
+    var details = await response.Content.ReadAsStringAsync();
+    var problemDetails = JsonDocument.Parse(details);
+    var errors = new List&lt;string&gt;();
+    var errorList = problemDetails.RootElement.GetProperty("errors");
+
+    foreach (var errorEntry in errorList.EnumerateObject())
+    {
+        if (errorEntry.Value.ValueKind == JsonValueKind.String)
+        {
+            errors.Add(errorEntry.Value.GetString()!);
+        }
+        else if (errorEntry.Value.ValueKind == JsonValueKind.Array)
+        {
+            errors.AddRange(
+                errorEntry.Value.EnumerateArray()
+                    .Select(e =&gt; e.GetString() ?? string.Empty)
+                    .Where(e =&gt; !string.IsNullOrEmpty(e)));
+        }
+    }
+
+    return new TwoFactorResponse
+    {
+        ErrorList = problemDetails == null ? defaultDetail : [.. errors]
+    };
+}
+            </code></pre>
+
+            <h4>Step 6: Create Enhanced Login Component</h4>
+
+            <p>
+                Replace the Login component to support both regular login and 2FA code entry:
+            </p>
+
+            <pre><code id="9b52c161-7662-49e4-891b-8baed8ef70f4" class="language-razor">@page "/login"
+@using System.ComponentModel.DataAnnotations
+@using BlazorWasmAuth.Identity
+@using BlazorWasmAuth.Identity.Models
+@inject IAccountManagement Acct
+@inject NavigationManager Navigation
+
+&lt;PageTitle&gt;Login&lt;/PageTitle&gt;
+
+&lt;h1&gt;Login&lt;/h1&gt;
+
+&lt;AuthorizeView&gt;
+    &lt;Authorized&gt;
+        &lt;div class="alert alert-success"&gt;
+            You're logged in as @context.User.Identity?.Name.
+        &lt;/div&gt;
+    &lt;/Authorized&gt;
+    &lt;NotAuthorized&gt;
+        @foreach (var error in formResult.ErrorList)
+        {
+            &lt;div class="alert alert-danger"&gt;@error&lt;/div&gt;
+        }
+        
+        &lt;EditForm Model="Input" method="post" OnValidSubmit="LoginUser"&gt;
+            &lt;DataAnnotationsValidator /&gt;
+            
+            &lt;!-- Email/Password fields (hidden when 2FA is required) --&gt;
+            &lt;div style="display:@(requiresTwoFactor ? "none" : "block")"&gt;
+                &lt;div class="form-floating mb-3"&gt;
+                    &lt;InputText @bind-Value="Input.Email"
+                               class="form-control"
+                               autocomplete="username"
+                               placeholder="name@example.com" /&gt;
+                    &lt;label&gt;Email&lt;/label&gt;
+                    &lt;ValidationMessage For="() =&gt; Input.Email" /&gt;
+                &lt;/div&gt;
+
+                &lt;div class="form-floating mb-3"&gt;
+                    &lt;InputText type="password"
+                               @bind-Value="Input.Password"
+                               class="form-control"
+                               autocomplete="current-password"
+                               placeholder="password" /&gt;
+                    &lt;label&gt;Password&lt;/label&gt;
+                    &lt;ValidationMessage For="() =&gt; Input.Password" /&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;!-- 2FA code field (shown when 2FA is required) --&gt;
+            &lt;div style="display:@(requiresTwoFactor ? "block" : "none")"&gt;
+                &lt;div class="form-floating mb-3"&gt;
+                    &lt;InputText @bind-Value="Input.TwoFactorCodeOrRecoveryCode"
+                               class="form-control"
+                               autocomplete="off"
+                               placeholder="###### or #####-#####" /&gt;
+                    &lt;label&gt;Two-factor Code or Recovery Code&lt;/label&gt;
+                    &lt;ValidationMessage 
+                        For="() =&gt; Input.TwoFactorCodeOrRecoveryCode" /&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;button type="submit" class="btn btn-primary"&gt;Log in&lt;/button&gt;
+        &lt;/EditForm&gt;
+    &lt;/NotAuthorized&gt;
+&lt;/AuthorizeView&gt;
+
+@code {
+    private FormResult formResult = new();
+    private bool requiresTwoFactor;
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = new();
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    public async Task LoginUser()
+    {
+        if (requiresTwoFactor)
+        {
+            if (!string.IsNullOrEmpty(Input.TwoFactorCodeOrRecoveryCode))
+            {
+                // 6-digit code = TOTP, 11-character = recovery code
+                if (Input.TwoFactorCodeOrRecoveryCode.Length == 6)
+                {
+                    formResult = await Acct.LoginTwoFactorCodeAsync(
+                        Input.Email, 
+                        Input.Password, 
+                        Input.TwoFactorCodeOrRecoveryCode);
+                }
+                else
+                {
+                    formResult = await Acct.LoginTwoFactorRecoveryCodeAsync(
+                        Input.Email, 
+                        Input.Password, 
+                        Input.TwoFactorCodeOrRecoveryCode);
+                }
+            }
+        }
+        else
+        {
+            formResult = await Acct.LoginAsync(Input.Email, Input.Password);
+            requiresTwoFactor = 
+                formResult.ErrorList.Contains("RequiresTwoFactor");
+            Input.TwoFactorCodeOrRecoveryCode = string.Empty;
+
+            if (requiresTwoFactor)
+            {
+                formResult.ErrorList = [];
+            }
+        }
+
+        if (formResult.Succeeded &amp;&amp; !string.IsNullOrEmpty(ReturnUrl))
+        {
+            Navigation.NavigateTo(ReturnUrl);
+        }
+    }
+
+    private sealed class InputModel
+    {
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; } = string.Empty;
+
+        [Required]
+        [DataType(DataType.Password)]
+        public string Password { get; set; } = string.Empty;
+
+        [RegularExpression(@"^([0-9]{6})|([A-Z0-9]{5}[-]{1}[A-Z0-9]{5})$", 
+            ErrorMessage = "Must be 6-digit code (######) or " +
+                          "recovery code (#####-#####)")]
+        public string TwoFactorCodeOrRecoveryCode { get; set; } = string.Empty;
+    }
+}
+            </code></pre>
+
+            <figure><img src="./image/blogs/blazor/wasm/blazor-wasm-two-factor-authentication-with-qr-codes-and-asp-net-identity/login.png" alt="Login"/>
+                <figcaption>Login</figcaption></figure>
+
+            <figure><img src="./image/blogs/blazor/wasm/blazor-wasm-two-factor-authentication-with-qr-codes-and-asp-net-identity/enter-totp.png" alt="Enter TOTP"/>
+                <figcaption>Enter TOTP</figcaption></figure>
+
+            <figure><img src="./image/blogs/blazor/wasm/blazor-wasm-two-factor-authentication-with-qr-codes-and-asp-net-identity/profile.png" alt="Profile"/>
+                <figcaption>Profile</figcaption></figure>
+
+            <figure><img src="./image/blogs/blazor/wasm/blazor-wasm-two-factor-authentication-with-qr-codes-and-asp-net-identity/logout.png" alt="Logout"/>
+                <figcaption>Logout</figcaption></figure>
+
+            <h4>Step 7: Create Recovery Codes Display Component</h4>
+
+            <p>
+                Add a component to display recovery codes to users when 2FA is enabled:
+            </p>
+
+            <pre><code id="1c575ebe-420d-4b23-8402-1bc7cd7794ad" class="language-razor">
+&lt;h3&gt;Recovery Codes&lt;/h3&gt;
+
+&lt;div class="alert alert-warning" role="alert"&gt;
+    &lt;p&gt;
+        &lt;strong&gt;Put these codes in a safe place.&lt;/strong&gt;
+    &lt;/p&gt;
+    &lt;p&gt;
+        If you lose your device and don't have an unused 
+        recovery code, you can't access your account.
+    &lt;/p&gt;
+&lt;/div&gt;
+
+&lt;div class="row"&gt;
+    &lt;div class="col-md-12"&gt;
+        @foreach (var recoveryCode in RecoveryCodes)
+        {
+            &lt;div&gt;
+                &lt;code class="recovery-code"&gt;@recoveryCode&lt;/code&gt;
+            &lt;/div&gt;
+        }
+    &lt;/div&gt;
+&lt;/div&gt;
+
+@code {
+    [Parameter]
+    public string[] RecoveryCodes { get; set; } = [];
+}
+            </code></pre>
+
+            <figure><img src="./image/blogs/blazor/wasm/blazor-wasm-two-factor-authentication-with-qr-codes-and-asp-net-identity/recovery-codes.png" alt="Recovery Codes"/>
+                <figcaption>Recovery Codes</figcaption></figure>
+
+            <h4>Step 8: Create the 2FA Management Page</h4>
+
+            <p>
+                Create the main component for managing 2FA with QR code generation:
+            </p>
+
+            <pre><code id="d0353a70-9697-4056-8ef6-647eb8892b7f" class="language-razor">@page "/manage-2fa"
+@using System.ComponentModel.DataAnnotations
+@using System.Globalization
+@using System.Text.Encodings.Web
+@using Net.Codecrete.QrCodeGenerator
+@using BlazorWasmAuth.Identity
+@using BlazorWasmAuth.Identity.Models
+@attribute [Authorize]
+@inject IAccountManagement Acct
+@inject IConfiguration Config
+
+&lt;PageTitle&gt;Manage 2FA&lt;/PageTitle&gt;
+
+&lt;h1&gt;Manage Two-factor Authentication&lt;/h1&gt;
+&lt;hr /&gt;
+
+@if (loading)
+{
+    &lt;p&gt;Loading...&lt;/p&gt;
+}
+else if (twoFactorResponse is not null)
+{
+    @foreach (var error in twoFactorResponse.ErrorList)
+    {
+        &lt;div class="alert alert-danger"&gt;@error&lt;/div&gt;
+    }
+
+    @if (twoFactorResponse.IsTwoFactorEnabled)
+    {
+        &lt;div class="alert alert-success"&gt;
+            Two-factor authentication is enabled for your account.
+        &lt;/div&gt;
+
+        &lt;button @onclick="Disable2FA" class="btn btn-primary m-1"&gt;
+            Disable 2FA
+        &lt;/button&gt;
+
+        @if (twoFactorResponse.RecoveryCodes is null)
+        {
+            &lt;div class="m-1"&gt;
+                Recovery Codes Remaining: @twoFactorResponse.RecoveryCodesLeft
+            &lt;/div&gt;
+            &lt;button @onclick="GenerateNewCodes" class="btn btn-primary m-1"&gt;
+                Generate New Recovery Codes
+            &lt;/button&gt;
+        }
+        else
+        {
+            &lt;ShowRecoveryCodes RecoveryCodes="twoFactorResponse.RecoveryCodes" /&gt;
+        }
+    }
+    else
+    {
+        &lt;h3&gt;Configure authenticator app&lt;/h3&gt;
+        &lt;ol&gt;
+            &lt;li&gt;
+                &lt;p&gt;Download a two-factor authenticator app like:&lt;/p&gt;
+                &lt;ul&gt;
+                    &lt;li&gt;Microsoft Authenticator for 
+                        &lt;a href="https://go.microsoft.com/fwlink/?Linkid=825072"&gt;
+                            Android
+                        &lt;/a&gt; and 
+                        &lt;a href="https://go.microsoft.com/fwlink/?Linkid=825073"&gt;
+                            iOS
+                        &lt;/a&gt;
+                    &lt;/li&gt;
+                    &lt;li&gt;Google Authenticator for 
+                        &lt;a href="https://play.google.com/store/apps/details?id=com.google.android.apps.authenticator2"&gt;
+                            Android
+                        &lt;/a&gt; and 
+                        &lt;a href="https://itunes.apple.com/us/app/google-authenticator/id388497605?mt=8"&gt;
+                            iOS
+                        &lt;/a&gt;
+                    &lt;/li&gt;
+                &lt;/ul&gt;
+            &lt;/li&gt;
+            &lt;li&gt;
+                &lt;p&gt;
+                    Scan the QR Code or enter this key 
+                    &lt;kbd&gt;@twoFactorResponse.SharedKey&lt;/kbd&gt; 
+                    into your authenticator app.
+                &lt;/p&gt;
+                &lt;div&gt;
+                    &lt;svg xmlns="http://www.w3.org/2000/svg" 
+                         height="300" width="300" 
+                         stroke="none" version="1.1" 
+                         viewBox="0 0 50 50"&gt;
+                        &lt;rect width="300" height="300" fill="#ffffff" /&gt;
+                        &lt;path d="@svgGraphicsPath" fill="#000000" /&gt;
+                    &lt;/svg&gt;
+                &lt;/div&gt;
+            &lt;/li&gt;
+            &lt;li&gt;
+                &lt;p&gt;Enter the verification code from your authenticator app:&lt;/p&gt;
+                &lt;EditForm Model="Input" OnValidSubmit="OnValidSubmitAsync"&gt;
+                    &lt;DataAnnotationsValidator /&gt;
+                    &lt;div class="form-floating mb-3"&gt;
+                        &lt;InputText @bind-Value="Input.Code"
+                                   class="form-control"
+                                   autocomplete="off"
+                                   placeholder="Enter the code" /&gt;
+                        &lt;label&gt;Verification Code&lt;/label&gt;
+                        &lt;ValidationMessage For="() =&gt; Input.Code" /&gt;
+                    &lt;/div&gt;
+                    &lt;button type="submit" class="btn btn-primary"&gt;
+                        Verify
+                    &lt;/button&gt;
+                &lt;/EditForm&gt;
+            &lt;/li&gt;
+        &lt;/ol&gt;
+    }
+}
+
+@code {
+    private TwoFactorResponse twoFactorResponse = new();
+    private bool loading = true;
+    private string? svgGraphicsPath;
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = new();
+
+    [CascadingParameter]
+    private Task&lt;AuthenticationState&gt;? authenticationState { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        twoFactorResponse = await Acct.TwoFactorRequestAsync(new());
+        svgGraphicsPath = await GetQrCode(twoFactorResponse.SharedKey);
+        loading = false;
+    }
+
+    private async Task&lt;string&gt; GetQrCode(string sharedKey)
+    {
+        if (authenticationState is not null &amp;&amp; !string.IsNullOrEmpty(sharedKey))
+        {
+            var authState = await authenticationState;
+            var email = authState?.User?.Identity?.Name!;
+            
+            // Generate TOTP URI for authenticator apps
+            var uri = string.Format(
+                CultureInfo.InvariantCulture,
+                "otpauth://totp/{0}:{1}?secret={2}&amp;issuer={0}&amp;digits=6",
+                UrlEncoder.Default.Encode(Config["TotpOrganizationName"]!),
+                email,
+                twoFactorResponse.SharedKey);
+            
+            var qr = QrCode.EncodeText(uri, QrCode.Ecc.Medium);
+            return qr.ToGraphicsPath();
+        }
+
+        return string.Empty;
+    }
+
+    private async Task Disable2FA()
+    {
+        await Acct.TwoFactorRequestAsync(new() { ForgetMachine = true });
+        twoFactorResponse = 
+            await Acct.TwoFactorRequestAsync(new() { ResetSharedKey = true });
+        svgGraphicsPath = await GetQrCode(twoFactorResponse.SharedKey);
+    }
+
+    private async Task GenerateNewCodes()
+    {
+        twoFactorResponse = 
+            await Acct.TwoFactorRequestAsync(new() { ResetRecoveryCodes = true });
+    }
+
+    private async Task OnValidSubmitAsync()
+    {
+        twoFactorResponse = await Acct.TwoFactorRequestAsync(
+            new() 
+            { 
+                Enable = true, 
+                TwoFactorCode = Input.Code 
+            });
+        
+        Input.Code = string.Empty;
+
+        // Generate recovery codes when enabling 2FA
+        if (twoFactorResponse.RecoveryCodes is null || 
+            twoFactorResponse.RecoveryCodes.Length == 0)
+        {
+            await GenerateNewCodes();
+        }
+    }
+
+    private sealed class InputModel
+    {
+        [Required]
+        [RegularExpression(@"^([0-9]{6})$", 
+            ErrorMessage = "Must be a six-digit code (######)")]
+        [DataType(DataType.Text)]
+        public string Code { get; set; } = string.Empty;
+    }
+}
+            </code></pre>
+
+            <figure><img src="./image/blogs/blazor/wasm/blazor-wasm-two-factor-authentication-with-qr-codes-and-asp-net-identity/manage-2fa.png" alt="Manage 2FA"/>
+                <figcaption>Manage 2FA</figcaption></figure>
+
+            <h4>Step 9: Add Navigation Link</h4>
+
+            <p>
+                Add a link to the navigation menu for authenticated users to access 2FA management:
+            </p>
+
+            <pre><code id="7f6e430c-a553-4529-b89d-d72dc11265ff" class="language-razor">
+&lt;!-- In NavMenu.razor, inside &lt;Authorized&gt; section --&gt;
+&lt;div class="nav-item px-3"&gt;
+    &lt;NavLink class="nav-link" href="manage-2fa"&gt;
+        &lt;span class="bi bi-key" aria-hidden="true"&gt;&lt;/span&gt; Manage 2FA
+    &lt;/NavLink&gt;
+&lt;/div&gt;
+            </code></pre>
+
+            <h4>Step 10: Understanding the TOTP URI Format</h4>
+
+            <p>
+                The QR code contains a specially formatted URI that authenticator apps understand:
+            </p>
+
+            <pre><code id="43080ff6-b6be-462a-b574-deabe6cf73e4" class="language-bash">
+otpauth://totp/{OrganizationName}:{UserEmail}?secret={SharedKey}&amp;issuer={OrganizationName}&amp;digits=6
+
+Example:
+otpauth://totp/I%20Love%20DotNet:user@example.com?secret=JBSWY3DPEHPK3PXP&amp;issuer=I%20Love%20DotNet&amp;digits=6
+
+Breaking it down:
+- otpauth://totp/     : Indicates this is a TOTP secret
+- I%20Love%20DotNet  : Organization name (URL-encoded)
+- user@example.com    : User's email
+- JBSWY3DPEHPK3PXP    : Shared secret (Base32 encoded)
+- issuer              : Organization name again (displayed in app)
+- digits=6            : Generate 6-digit codes
+            </code></pre>
+
+            <h4>Step 11: Never Require 2FA on Every Login (Optional)</h4>
+
+            <p>
+                By default, ASP.NET Core Identity <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">remembers the machine</span> after successful 2FA login. To require 2FA on every login, call ForgetMachine after authentication:
+            </p>
+
+            <pre><code id="d88aefaa-5e21-4c2c-914a-cd4dc2d565d0" class="language-csharp">
+// In Login component, after successful TOTP login
+if (Input.TwoFactorCodeOrRecoveryCode.Length == 6)
+{
+    formResult = await Acct.LoginTwoFactorCodeAsync(
+        Input.Email, Input.Password, 
+        Input.TwoFactorCodeOrRecoveryCode);
+
+    // Always require 2FA on next login
+    if (formResult.Succeeded)
+    {
+        var forgetMachine = 
+            await Acct.TwoFactorRequestAsync(new() { ForgetMachine = true });
+    }
+}
+            </code></pre>
+
+            <p>
+                This is more secure but less convenient for users. Most apps remember the machine for 30 days.
+            </p>
+
+            <h4>Step 12: Handling TOTP Time Skew Issues</h4>
+
+            <p>
+                TOTP depends on <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">accurate time synchronization</span> between the server and the authenticator app device. Codes are valid for only 30 seconds:
+            </p>
+
+            <pre><code id="2eb184ca-3b71-4118-91b7-05bb60541c16" class="language-bash">
+Time Skew Problems:
+- Server time: 10:30:15 UTC
+- User device: 10:29:45 UTC (30 seconds behind)
+- Result: User's code is from the previous 30-second window → Authentication fails
+
+Solutions:
+1. Ensure server time is synced with NTP (Network Time Protocol)
+2. Advise users to enable automatic time on their devices
+3. ASP.NET Core Identity allows ±1 time window tolerance by default
+            </code></pre>
+
+            <p>
+                If users report frequent 2FA failures, check server time synchronization first.
+            </p>
+
+        <h3 id="summary">Summary</h3>
+
+<p>
+                In this article, we implemented a complete <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">two-factor authentication system</span> with <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">QR codes</span> and <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">TOTP</span> in <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Blazor WebAssembly Standalone</span> applications. Here are the key takeaways:
+            </p>
+
+            <ul><li><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">TOTP is superior to SMS-based 2FA</span> - More secure, works offline, and prevents SIM swap attacks</li>
+                <li><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">QR codes simplify setup</span> - Users scan once instead of typing long secret keys</li>
+                <li><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Recovery codes are essential</span> - Generate 10 single-use codes to prevent permanent lockouts</li>
+                <li><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Login flow changes with 2FA</span> - Detect "RequiresTwoFactor" response and show code input field</li>
+                <li><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Three authentication methods</span> - Password only, password + TOTP code, or password + recovery code</li>
+                <li><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Shared secret synchronization</span> - Both backend and authenticator app generate the same code using the secret + time</li>
+                <li><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Time accuracy matters</span> - TOTP codes expire every 30 seconds; server and client clocks must be synchronized</li>
+                <li><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Machine memory is optional</span> - Can remember devices or require 2FA on every login</li></ul>
+
+            <p>
+                This implementation gives you <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">bank-level security</span> for your Blazor WASM apps while maintaining excellent user experience. The combination of QR code setup, authenticator app integration, and recovery codes creates a robust 2FA solution that protects user accounts even when passwords are compromised.
+            </p>
+            <section class="[ font-bold ] [ p-5 ] [ flex flex-col items-center justify-center ]"><a href="https://whatsapp.com/channel/0029VaAGMV2LtOj5S5MHd23h" target="_blank"><span>👉🏼 Click here to Join I ❤️ .NET </span>
+        <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-brand-whatsapp ] [ fill-green-500 ] [ inline ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <path d="M3 21l1.65 -3.8a9 9 0 1 1 3.4 2.9l-5.05 .9"></path>
+            <path d="M9 10a.5 .5 0 0 0 1 0v-1a.5 .5 0 0 0 -1 0v1a5 5 0 0 0 5 5h1a.5 .5 0 0 0 0 -1h-1a.5 .5 0 0 0 0 1"></path></svg>
+        <span>WhatsApp Channel to get 🔔 notified about new articles and other updates.</span></a></section>
+            </section>
+        <footer class="[ grid justify-items-start ] [ overflow-x-scroll ]"><ul class="[ list-none ] [ flex items-center justify-start md:justify-center ] [ space-x-3 ] [ overflow-hidden ]"><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ]">Blazor</li><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ] [ whitespace-nowrap ]">2FA</li><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ] [ whitespace-nowrap ]">Two-Factor Authentication</li><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ] [ whitespace-nowrap ]">QR Code</li><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ] [ whitespace-nowrap ]">TOTP</li><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ] [ whitespace-nowrap ]">Identity</li><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ] [ whitespace-nowrap ]">Security</li><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ] [ whitespace-nowrap ]">Authenticator App</li></ul></footer>
+        <hr class="[ dark:text-white my-1.5 ]"/></article>
+    <aside class="[ flex flex-col lg:basis-1/4 ] [ space-y-2 ]"><div><figure><a href="https://linkedin.com/in/thebhai" target="_blank"><img src="./image/authors/abdul rahman.webp" alt="Abdul Rahman" class="[ w-full ]"/></a>
+            <a href="https://mvp.microsoft.com/en-US/MVP/profile/b177819f-95fb-ed11-8f6d-000d3a560942" target="_blank"><img src="./image/authors/mvp-badge-horizontal.png" alt="MVP Badge Horizontal" class="[ w-full ]"/></a></figure></div>
+    <div class="[ lg:sticky lg:top-14 ]"></div><section class="[ flex flex-col justify-between ] [ transition duration-300 ] [ md:hover:scale-110 ] [ dark:bg-stone-900 ] [ bg-gray-100 ]"><header><a href="blogs/automate-nuget-upgrades-with-github-copilot-ai-skills"><figure><img src="image/blogs/ai/automate-nuget-upgrades-with-github-copilot-ai-skills.webp" class="[ w-full ] [ rounded-md ]" alt="Automate NuGet Upgrades with GitHub Copilot AI Skills and Live Documentation Lookup" loading="lazy"/></figure></a></header>
+    <main class="[ grow flex space-x-2 ]"><aside class="[ basis-1/6 flex items-center ]"><a href="channels/ai"><figure class="mt-2"><img src="image/icons/ai.webp" alt="AI" loading="lazy" height="48" width="48" class="[ rounded-full ]"/></figure></a></aside>
+        <article class="[ grow flex flex-col justify-between basis-5/6 ] [ dark:text-white ] [ mt-2 ]"><a href="blogs/automate-nuget-upgrades-with-github-copilot-ai-skills"><h2 class="[ font-medium break-words hover:underline ]">Automate NuGet Upgrades with GitHub Copilot AI Skills and Live Documentation Lookup</h2></a>
+            <section class="[ flex justify-between ]"><p>Abdul Rahman</p>
+                <time datetime="2026-02-15 22-30-00">4 hours from now</time></section></article></main></section><section class="[ flex flex-col justify-between ] [ transition duration-300 ] [ md:hover:scale-110 ] [ dark:bg-stone-900 ] [ bg-gray-100 ]"><header><a href="blogs/automate-dotnet-framework-upgrades-with-github-copilot-ai-agents"><figure><img src="image/blogs/ai/automate-dotnet-framework-upgrades-with-github-copilot-ai-agents.webp" class="[ w-full ] [ rounded-md ]" alt="Automate .NET Framework Upgrades with GitHub Copilot AI Agents" loading="lazy"/></figure></a></header>
+    <main class="[ grow flex space-x-2 ]"><aside class="[ basis-1/6 flex items-center ]"><a href="channels/ai"><figure class="mt-2"><img src="image/icons/ai.webp" alt="AI" loading="lazy" height="48" width="48" class="[ rounded-full ]"/></figure></a></aside>
+        <article class="[ grow flex flex-col justify-between basis-5/6 ] [ dark:text-white ] [ mt-2 ]"><a href="blogs/automate-dotnet-framework-upgrades-with-github-copilot-ai-agents"><h2 class="[ font-medium break-words hover:underline ]">Automate .NET Framework Upgrades with GitHub Copilot AI Agents</h2></a>
+            <section class="[ flex justify-between ]"><p>Abdul Rahman</p>
+                <time datetime="2026-02-08 22-30-00">6 days ago</time></section></article></main></section><section class="[ flex flex-col justify-between ] [ transition duration-300 ] [ md:hover:scale-110 ] [ dark:bg-stone-900 ] [ bg-gray-100 ]"><header><a href="blogs/blazor-wasm-standalone-cookie-authentication-with-asp-net-identity"><figure><img src="image/blogs/blazor/wasm/blazor-wasm-standalone-cookie-authentication-with-asp-net-identity.webp" class="[ w-full ] [ rounded-md ]" alt="Blazor WASM Standalone Cookie Authentication with ASP.NET Identity" loading="lazy"/></figure></a></header>
+    <main class="[ grow flex space-x-2 ]"><aside class="[ basis-1/6 flex items-center ]"><a href="channels/blazor"><figure class="mt-2"><img src="image/icons/blazor.webp" alt="Blazor" loading="lazy" height="48" width="48" class="[ rounded-full ]"/></figure></a></aside>
+        <article class="[ grow flex flex-col justify-between basis-5/6 ] [ dark:text-white ] [ mt-2 ]"><a href="blogs/blazor-wasm-standalone-cookie-authentication-with-asp-net-identity"><h2 class="[ font-medium break-words hover:underline ]">Blazor WASM Standalone Cookie Authentication with ASP.NET Identity</h2></a>
+            <section class="[ flex justify-between ]"><p>Abdul Rahman</p>
+                <time datetime="2026-01-25 22-30-00">20 days ago</time></section></article></main></section><section class="[ flex flex-col justify-between ] [ transition duration-300 ] [ md:hover:scale-110 ] [ dark:bg-stone-900 ] [ bg-gray-100 ]"><header><a href="blogs/building-ai-chat-applications-in-dotnet-with-microsoft-extensions-ai"><figure><img src="image/blogs/ai/building-ai-chat-applications-in-dotnet-with-microsoft-extensions-ai.webp" class="[ w-full ] [ rounded-md ]" alt="Building AI Chat Applications in .NET with Microsoft.Extensions.AI" loading="lazy"/></figure></a></header>
+    <main class="[ grow flex space-x-2 ]"><aside class="[ basis-1/6 flex items-center ]"><a href="channels/ai"><figure class="mt-2"><img src="image/icons/ai.webp" alt="AI" loading="lazy" height="48" width="48" class="[ rounded-full ]"/></figure></a></aside>
+        <article class="[ grow flex flex-col justify-between basis-5/6 ] [ dark:text-white ] [ mt-2 ]"><a href="blogs/building-ai-chat-applications-in-dotnet-with-microsoft-extensions-ai"><h2 class="[ font-medium break-words hover:underline ]">Building AI Chat Applications in .NET with Microsoft.Extensions.AI</h2></a>
+            <section class="[ flex justify-between ]"><p>Abdul Rahman</p>
+                <time datetime="2026-01-18 22-30-00">27 days ago</time></section></article></main></section><section class="[ flex flex-col justify-between ] [ transition duration-300 ] [ md:hover:scale-110 ] [ dark:bg-stone-900 ] [ bg-gray-100 ]"><header><a href="blogs/avoiding-cache-stampede-and-handling-nulls-in-dotnet"><figure><img src="image/blogs/caching/avoiding-cache-stampede-and-handling-nulls-in-dotnet.webp" class="[ w-full ] [ rounded-md ]" alt="Avoiding Cache Stampede and Handling Nulls in .NET" loading="lazy"/></figure></a></header>
+    <main class="[ grow flex space-x-2 ]"><aside class="[ basis-1/6 flex items-center ]"><a href="channels/caching"><figure class="mt-2"><img src="image/icons/caching.webp" alt="Caching" loading="lazy" height="48" width="48" class="[ rounded-full ]"/></figure></a></aside>
+        <article class="[ grow flex flex-col justify-between basis-5/6 ] [ dark:text-white ] [ mt-2 ]"><a href="blogs/avoiding-cache-stampede-and-handling-nulls-in-dotnet"><h2 class="[ font-medium break-words hover:underline ]">Avoiding Cache Stampede and Handling Nulls in .NET</h2></a>
+            <section class="[ flex justify-between ]"><p>Abdul Rahman</p>
+                <time datetime="2026-01-11 22-30-00">one month ago</time></section></article></main></section><section class="[ flex flex-col justify-between ] [ transition duration-300 ] [ md:hover:scale-110 ] [ dark:bg-stone-900 ] [ bg-gray-100 ]"><header><a href="blogs/understanding-caching-fundamentals-in-dotnet"><figure><img src="image/blogs/caching/understanding-caching-fundamentals-in-dotnet.webp" class="[ w-full ] [ rounded-md ]" alt="Understanding Caching Fundamentals in .NET" loading="lazy"/></figure></a></header>
+    <main class="[ grow flex space-x-2 ]"><aside class="[ basis-1/6 flex items-center ]"><a href="channels/caching"><figure class="mt-2"><img src="image/icons/caching.webp" alt="Caching" loading="lazy" height="48" width="48" class="[ rounded-full ]"/></figure></a></aside>
+        <article class="[ grow flex flex-col justify-between basis-5/6 ] [ dark:text-white ] [ mt-2 ]"><a href="blogs/understanding-caching-fundamentals-in-dotnet"><h2 class="[ font-medium break-words hover:underline ]">Understanding Caching Fundamentals in .NET</h2></a>
+            <section class="[ flex justify-between ]"><p>Abdul Rahman</p>
+                <time datetime="2026-01-04 22-30-00">one month ago</time></section></article></main></section><div class="[ flex items-center justify-center ]"><button type="button" class="[ cursor-pointer ] [ px-3 py-1 ] [ rounded-md ] [ whitespace-nowrap ] [ flex items-center justify-center ] [ disabled:opacity-75 disabled:cursor-not-allowed ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-caret-down ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                <path d="M6 10l6 6l6 -6h-12"></path></svg>
+            <p>Show more</p></button></div>
+    </aside></section></main><nav class="[ fixed bottom-0 h-14 w-full md:top-14 md:left-0 md:h-full md:w-16 ] 
+            [ bg-white ] [ dark:bg-gray-800 dark:bg-gray-800/80 ] [ backdrop-blur-xs bg-white/80 ] [ md:pt-2 ]
+            [ flex justify-around items-center md:flex-col md:justify-start md:space-y-4 ]"><a href="/" class="[ flex flex-col items-center ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-home ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <polyline points="5 12 3 12 12 3 21 12 19 12"></polyline>
+            <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7"></path>
+            <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6"></path></svg>
+        <span class="[ text-xs text-center ]">Home</span></a>
+    <a href="/learningpath" class="[ flex flex-col items-center ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-compass ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <polyline points="8 16 10 10 16 8 14 14 8 16"></polyline>
+            <circle cx="12" cy="12" r="9"></circle>
+            <line x1="12" y1="3" x2="12" y2="5"></line>
+            <line x1="12" y1="19" x2="12" y2="21"></line>
+            <line x1="3" y1="12" x2="5" y2="12"></line>
+            <line x1="19" y1="12" x2="21" y2="12"></line></svg>
+        <span class="[ text-xs text-center ]">Learning Path</span></a>
+    <a href="/career" class="[ flex flex-col items-center ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icons-tabler-outline icon-tabler-briefcase ]" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <path d="M3 7m0 2a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v9a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2z"></path>
+            <path d="M8 7v-2a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v2"></path>
+            <path d="M12 12l0 .01"></path>
+            <path d="M3 13a20 20 0 0 0 18 0"></path></svg>
+        <span class="[ text-xs text-center ]">Career</span></a>
+    <a href="/analytics" class="[ flex flex-col items-center ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-graph ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <path d="M4 18v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z"></path>
+            <path d="M7 14l3 -3l2 2l3 -3l2 2"></path></svg>
+        <span class="[ text-xs text-center ]">Analytics</span></a>
+    <a href="/about" class="[ flex flex-col items-center ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-info-circle ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <circle cx="12" cy="12" r="9"></circle>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            <polyline points="11 12 12 12 12 16 13 16"></polyline></svg>
+        <span class="[ text-xs text-center ]">About</span></a></nav><aside class="[ fixed bottom-14 md:bottom-0 right-2 ]"><button type="button" aria-label="Scroll to Top"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-square-rounded-chevron-up-filled ]" width="40" height="40" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <path d="M12 2c-.218 0 -.432 .002 -.642 .005l-.616 .017l-.299 .013l-.579 .034l-.553 .046c-4.785 .464 -6.732 2.411 -7.196 7.196l-.046 .553l-.034 .579c-.005 .098 -.01 .198 -.013 .299l-.017 .616l-.004 .318l-.001 .324c0 .218 .002 .432 .005 .642l.017 .616l.013 .299l.034 .579l.046 .553c.464 4.785 2.411 6.732 7.196 7.196l.553 .046l.579 .034c.098 .005 .198 .01 .299 .013l.616 .017l.642 .005l.642 -.005l.616 -.017l.299 -.013l.579 -.034l.553 -.046c4.785 -.464 6.732 -2.411 7.196 -7.196l.046 -.553l.034 -.579c.005 -.098 .01 -.198 .013 -.299l.017 -.616l.005 -.642l-.005 -.642l-.017 -.616l-.013 -.299l-.034 -.579l-.046 -.553c-.464 -4.785 -2.411 -6.732 -7.196 -7.196l-.553 -.046l-.579 -.034a28.058 28.058 0 0 0 -.299 -.013l-.616 -.017l-.318 -.004l-.324 -.001zm-.707 7.293a1 1 0 0 1 1.32 -.083l.094 .083l3 3a1 1 0 0 1 -1.32 1.497l-.094 -.083l-2.293 -2.292l-2.293 2.292a1 1 0 0 1 -1.32 .083l-.094 -.083a1 1 0 0 1 -.083 -1.32l.083 -.094l3 -3z" fill="currentColor" stroke-width="0"></path></svg></button></aside>
+            <!--Blazor:{"prerenderId":"05da184540d942ad879b4cc3f4d32b37"}-->
+<!-- %%-PRERENDERING-END-%% -->
+<!--Blazor-WebAssembly-Component-State:eyJzdGFycyI6Ik1UVXkiLCJNaWNyb3NvZnQuQXNwTmV0Q29yZS5Db21wb25lbnRzLkluZnJhc3RydWN0dXJlLlBlcnNpc3RlbnRTZXJ2aWNlc1JlZ2lzdHJ5IjoiVzNzaVlYTnpaVzFpYkhraU9pSk5hV055YjNOdlpuUXVRWE53VG1WMFEyOXlaUzVEYjIxd2IyNWxiblJ6TGtWdVpIQnZhVzUwY3lJc0ltWjFiR3hVZVhCbFRtRnRaU0k2SWsxcFkzSnZjMjltZEM1QmMzQk9aWFJEYjNKbExrTnZiWEJ2Ym1WdWRITXVVbVZ6YjNWeVkyVkRiMnhzWldOMGFXOXVVSEp2ZG1sa1pYSWlmU3g3SW1GemMyVnRZbXg1SWpvaVRXbGpjbTl6YjJaMExrRnpjRTVsZEVOdmNtVXVRMjl0Y0c5dVpXNTBjeTVYWldJaUxDSm1kV3hzVkhsd1pVNWhiV1VpT2lKTmFXTnliM052Wm5RdVFYTndUbVYwUTI5eVpTNURiMjF3YjI1bGJuUnpMa1p2Y20xekxrRnVkR2xtYjNKblpYSjVVM1JoZEdWUWNtOTJhV1JsY2lKOVhRPT0iLCJLU3p0VDg0Z0FpVjBJTy9VQlJScE9tOEs0anFFZlx1MDAyQjFKenZWT0NNQmxzaVU9IjoiZXlKMllXeDFaU0k2SWtObVJFbzRRVmRXTjBoeU5HVmhiRVpvV214bFJtVTBka1JHZW5aSU9IVldSbkZYV1U1aFJVZEVUR3RpWVdvMlpsUlRWVXBYYzBFeFExSTRSRTl0VEdSU2FXOVdSM2xzVjNoQ1oyd3lhVWR4V0ZsaVprbHVibXhvVHpSU1FrVnNjWEpYYWxsRlEwTnRWVTFvWkVselltSldaVWN5VVV0MmFURmxVVUZYYTFsMVkxQkhMV1V0VlZadGFVbHRUV2RmZEZwbVlXVlVOMUp5TlhwSklpd2labTl5YlVacFpXeGtUbUZ0WlNJNklsOWZVbVZ4ZFdWemRGWmxjbWxtYVdOaGRHbHZibFJ2YTJWdUluMD0ifQ==--></div>
+
+    <div id="blazor-error-ui" class="[ bg-red-500 ] [ text-white ] [ fixed bottom-0 ] [ w-full ] [ p-2 ]" style="display: none;">
+        An unhandled error has occurred. Please click on
+        <a href="javascript: void(0)" class="[ inline-block ] [ underline ] [ hover\:text-white ]" onclick="location.reload()">Reload</a>
+        to proceed.
+        <button class="[ dismiss ] [ fixed right-5 bottom-2 ]">
+            <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-x ] [ text-white ]" width="25" height="25" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
+    </div>
+
+    <script src="_content/Microsoft.AspNetCore.Components.WebAssembly.Authentication/AuthenticationService.js"></script>
+    <script src="_framework/blazor.webassembly.66stpp682q.js" autostart="false"></script>
+    <script src="_content/Blazor-Analytics/blazor-analytics.js"></script>
+    <script src="highlight.min.js"></script>
+    <script src="csharp.min.js"></script>
+    <!--<script>navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' } );</script>-->
+    <script src="brotliloader.min.js" type="module"></script>
+
+
+
+</resourcepreloader></body></html>

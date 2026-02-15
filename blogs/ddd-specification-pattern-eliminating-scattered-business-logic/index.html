@@ -1,0 +1,1717 @@
+<!DOCTYPE html><html lang="en"><head>
+    <meta charset="utf-8"/>
+    <meta name="author" content="Abdul Rahman Shabeek Mohamed"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+    <meta name="copyright" content="I Love DotNet"/>
+    <meta name="language" content="EN"/>
+    <meta name="robots" content="index,follow"/>
+    <meta name="owner" content="Abdul Rahman Shabeek Mohamed"/>
+    <meta name="fediverse:creator" content="@thebhai@mastodon.social"/>
+    <!--<meta http-equiv="Content-Security-Policy"
+          content="base-uri 'self';
+               block-all-mixed-content;
+               img-src data: 'self'
+                       https://pagead2.googlesyndication.com;
+               object-src 'none';
+               script-src 'self'
+                          https://pagead2.googlesyndication.com
+                          https://www.googletagmanager.com
+                          https://gist.github.com
+                          'unsafe-eval'
+                          'unsafe-inline'
+                          data:;
+               style-src 'self'
+                         https://github.githubassets.com
+                         'unsafe-inline';
+               upgrade-insecure-requests;">-->
+    <title>Specification Pattern - Eliminating Scattered Business Logic in DDD - I ❤️ DotNet</title>
+    <base href="/"/>
+    
+<!--Blazor-WebAssembly:{"environmentName":"Production","environmentVariables":{}}--><!--Blazor:{"type":"webassembly","prerenderId":"786420230dcf4729b0e8fc9d4695cae1","key":{"locationHash":"77D12F14A8105320B1AAED6AE7E689DA0EC4483270A645E84079EAA0FFDF550D:0","formattedComponentKey":""},"assembly":"Microsoft.AspNetCore.Components.Web","typeName":"Microsoft.AspNetCore.Components.Web.HeadOutlet","parameterDefinitions":"W10=","parameterValues":"W10="}--><script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "publisher": {
+        "@type": "Organization",
+        "name": "I Love DotNet",
+        "url": "https://ilovedotnet.org/",
+        "logo": {
+            "@type": "ImageObject",
+            "url": "https://ilovedotnet.org/favicon.ico",
+            "width": 16,
+            "height": 16
+        }
+    },
+    "author": {
+        "@type": "Person",
+        "name": "Abdul Rahman Shabeek Mohamed",
+        "image": {
+            "@type": "ImageObject",
+            "url": "//https://www.gravatar.com/avatar/6f221209a03c1800679fc684dea24bf2?s=250&d=mm&r=x",
+            "width": 250,
+            "height": 250
+        },
+        "url": "https://ilovedotnet.org/author/abdulrahman/",
+        "sameAs": [
+            "https://www.linkedin.com/in/fingers10",
+            "https://github.com/fingers10",
+            "https://stackoverflow.com/users/10851213/fingers10",
+            "https://www.youtube.com/channel/UCOS3wCw7SVXjXXffMPqid7A"
+        ]
+    },
+    "headline": "Specification Pattern - Eliminating Scattered Business Logic in DDD",
+    "url": "https://ilovedotnet.org/blogs/ddd-specification-pattern-eliminating-scattered-business-logic/",
+    "datePublished": "2025-12-28T22:30:00.000Z",
+    "dateModified": "2025-12-28T22:30:00.000Z",
+    "image": {
+        "@type": "ImageObject",
+        "url": "https://ilovedotnet.org/image/blogs/ddd/ddd-specification-pattern-eliminating-scattered-business-logic.png",
+        "width": 1265,
+        "height": 827
+    },
+    "keywords": ".NET, DotNet, I Love DotNet, I ❤️ DotNet, Blazor, Blazor (WebAssembly), Blazor Wasm, C#, Entity Framework, LINQ, ML.NET, Web API, TDD, OOPS, Middleware, JWT, Dependency Injection, Report, Design Pattern, SOLID, HTTP Client, OWASP, SignalR, Specification Pattern, Domain-Driven Design, DDD, Business Logic, Entity Framework Core, Expression Trees, LINQ, Design Patterns",
+    "description": "In this post I will teach you how to eliminate scattered and duplicated business logic using the Specification Pattern from Domain-Driven Design. All with live working demo.",
+    "mainEntityOfPage": {
+        "@type": "WebPage",
+        "@id": "https://ilovedotnet.org/"
+    }
+}
+</script><!--Blazor:{"prerenderId":"786420230dcf4729b0e8fc9d4695cae1"}-->
+
+    <script type="text/default-title">I ❤️ DotNet</script>
+    <script type="text/default-meta-elements">[[,"author",,,"Abdul Rahman Shabeek Mohamed"],[,"viewport",,,"width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"],[,"copyright",,,"I Love DotNet"],[,"language",,,"EN"],[,"robots",,,"index,follow"],[,"owner",,,"Abdul Rahman Shabeek Mohamed"],[,"fediverse:creator",,,"@thebhai@mastodon.social"]]</script>
+    <meta property="description" content="In this post I will teach you how to eliminate scattered and duplicated business logic using the Specification Pattern from Domain-Driven Design. All with live working demo."/>
+    <meta property="keywords" content=".NET, DotNet, I Love DotNet, I ❤️ DotNet, Blazor, Blazor (WebAssembly), Blazor Wasm, C#, Entity Framework, LINQ, ML.NET, Web API, TDD, OOPS, Middleware, JWT, Dependency Injection, Report, Design Pattern, SOLID, HTTP Client, OWASP, SignalR, Specification Pattern, Domain-Driven Design, DDD, Business Logic, Entity Framework Core, Expression Trees, LINQ, Design Patterns"/>
+    <meta property="url" content="https://ilovedotnet.org/blogs/ddd-specification-pattern-eliminating-scattered-business-logic/"/>
+    <meta property="identifier-URL" content="https://ilovedotnet.org/blogs/ddd-specification-pattern-eliminating-scattered-business-logic/"/>
+    <meta property="og:site_name" content="I Love DotNet"/>
+    <meta property="og:type" content="article"/>
+    <meta property="og:title" content="Specification Pattern - Eliminating Scattered Business Logic in DDD"/>
+    <meta property="og:image" content="https://ilovedotnet.org/image/blogs/ddd/ddd-specification-pattern-eliminating-scattered-business-logic.png"/>
+    <meta property="og:image:alt" content="DotNet bot with heart and DotNet brand"/>
+    <meta property="og:description" content="In this post I will teach you how to eliminate scattered and duplicated business logic using the Specification Pattern from Domain-Driven Design. All with live working demo."/>
+    <meta property="og:url" content="https://ilovedotnet.org/blogs/ddd-specification-pattern-eliminating-scattered-business-logic/"/>
+    <meta property="twitter:card" content="summary_large_image"/>
+    <meta property="twitter:title" content="Specification Pattern - Eliminating Scattered Business Logic in DDD"/>
+    <meta property="twitter:image" content="https://ilovedotnet.org/image/blogs/ddd/ddd-specification-pattern-eliminating-scattered-business-logic.png"/>
+    <meta property="twitter:image:alt" content="DotNet bot with heart and DotNet brand"/>
+    <meta property="twitter:description" content="In this post I will teach you how to eliminate scattered and duplicated business logic using the Specification Pattern from Domain-Driven Design. All with live working demo."/>
+    <meta property="twitter:url" content="https://ilovedotnet.org/blogs/ddd-specification-pattern-eliminating-scattered-business-logic/"/>
+    <meta property="article:published_time" content="2025-12-28T22:30:00.000Z"/>
+    <meta property="article:modified_time" content="2025-12-28T22:30:00.000Z"/>
+    <meta property="article:tag" content="Design Patterns"/>
+    <script type="text/default-link-elements">[]</script>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-authors.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-blazor-wasm.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-dependency-injection.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-design-pattern.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-http-client.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-linq.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-maui.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-middleware.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-mlnet.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-msbuild.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-oops.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-owasp.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-python.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-regex.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-report.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-signalr.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-solid.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-tdd.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-testing.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-webapi.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-channels.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-talk.xml" type="application/xml" title="Sitemap"/>
+    <link rel="alternate" href="https://ilovedotnet.org/atom.xml" type="application/atom+xml"/>
+    <link rel="alternate" href="https://ilovedotnet.org/blogs/ddd-specification-pattern-eliminating-scattered-business-logic/" hreflang="en"/>
+    <link rel="alternate" href="https://ilovedotnet.org/blogs/ddd-specification-pattern-eliminating-scattered-business-logic/" hreflang="x-default"/>
+    <link rel="canonical" href="https://ilovedotnet.org/blogs/ddd-specification-pattern-eliminating-scattered-business-logic/"/>
+    <link rel="index" href="https://ilovedotnet.org/blogs/ddd-specification-pattern-eliminating-scattered-business-logic/" title="Specification Pattern - Eliminating Scattered Business Logic in DDD - I ❤️ DotNet"/>
+</head><body class="[ m-0 ] [ h-full ] [ dark:bg-stone-900 ] [ bg-gray-100 ]"><resourcepreloader>
+    <link href="css/charts.min.css" rel="stylesheet"/>
+    <link href="highlight.min.css" rel="stylesheet"/>
+    <link href="github-dark.min.css" rel="stylesheet"/>
+    <link href="css/app.min.css" rel="stylesheet"/>
+    <link href="manifest.json" rel="manifest"/>
+    <link rel="icon" type="image/x-icon" href="favicon.ico"/>
+    <link rel="me" href="https://www.linkedin.com/in/thebhai" type="text/html"/>
+    <link rel="me" href="https://mastodon.social/@thebhai" type="text/html"/>
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="appicons/apple-touch-icon-144x144.png"/>
+    <link rel="apple-touch-icon-precomposed" sizes="152x152" href="appicons/apple-touch-icon-152x152.png"/>
+    <link rel="icon" type="image/png" href="appicons/favicon-196x196.png" sizes="196x196"/>
+    <link rel="preconnect" href="https://googleads.g.doubleclick.net"/>
+    <link rel="preconnect" href="https://pagead2.googlesyndication.com"/>
+    <link rel="preconnect" href="https://fundingchoicesmessages.google.com"/>
+    <link rel="icon" type="image/png" href="appicons/favicon-128.png" sizes="128x128"/>
+    <link href="_framework/dotnet.s1qmja40mg.js" rel="preload" as="script" fetchpriority="high" crossorigin="anonymous" integrity="sha256-YMizAWn0laVNFBix/zN9YaN+OcEWeNbBI6203FmSavQ="/>
+    <script type="importmap">{
+  "imports": {
+    "./_framework/blazor.webassembly.js": "./_framework/blazor.webassembly.66stpp682q.js",
+    "./_framework/dotnet.native.js": "./_framework/dotnet.native.5u40guk9m1.js",
+    "./_framework/dotnet.runtime.js": "./_framework/dotnet.runtime.q5rqv3xrhm.js",
+    "./_framework/dotnet.js": "./_framework/dotnet.s1qmja40mg.js"
+  },
+  "scopes": {},
+  "integrity": {
+    "./_framework/blazor.webassembly.66stpp682q.js": "sha256-3lCWrko3zwspV40aQhs2S/IMkRSarnHRKIdkHhuXIBA=",
+    "./_framework/blazor.webassembly.js": "sha256-3lCWrko3zwspV40aQhs2S/IMkRSarnHRKIdkHhuXIBA=",
+    "./_framework/dotnet.js": "sha256-YMizAWn0laVNFBix/zN9YaN+OcEWeNbBI6203FmSavQ=",
+    "./_framework/dotnet.native.5u40guk9m1.js": "sha256-gx+fL0jAhKq+lcmOHWlWqq6juYDskXwLwW32Ely9jok=",
+    "./_framework/dotnet.native.js": "sha256-gx+fL0jAhKq+lcmOHWlWqq6juYDskXwLwW32Ely9jok=",
+    "./_framework/dotnet.runtime.js": "sha256-ArknccFM1sHNVcih0x1h52AG+abNCoQjl6BlVrv3ePw=",
+    "./_framework/dotnet.runtime.q5rqv3xrhm.js": "sha256-ArknccFM1sHNVcih0x1h52AG+abNCoQjl6BlVrv3ePw=",
+    "./_framework/dotnet.s1qmja40mg.js": "sha256-YMizAWn0laVNFBix/zN9YaN+OcEWeNbBI6203FmSavQ="
+  }
+}</script>
+    <script type="text/javascript">
+        if (!window.location.host.includes('localhost')) {
+            (function(c,l,a,r,i,t,y){
+                c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+                t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+                y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+            })(window, document, "clarity", "script", "o0565ytixx");
+        }
+    </script>
+    <script async="" src="https://fundingchoicesmessages.google.com/i/pub-1536083653226834?ers=1" nonce="dOfxAvcES0_Mwd7YjKmn_Q"></script>
+    <script nonce="dOfxAvcES0_Mwd7YjKmn_Q">
+        if (!window.location.host.includes('localhost')) {
+            (function () { function signalGooglefcPresent() { if (!window.frames['googlefcPresent']) { if (document.body) { const iframe = document.createElement('iframe'); iframe.style = 'width: 0; height: 0; border: none; z-index: -1000; left: -1000px; top: -1000px;'; iframe.style.display = 'none'; iframe.name = 'googlefcPresent'; document.body.appendChild(iframe); } else { setTimeout(signalGooglefcPresent, 0); } } } signalGooglefcPresent(); })();
+        }
+    </script>
+    <script>
+        if (!window.location.host.includes('localhost')) {
+            (function () {
+                /*
+                Copyright The Closure Library Authors.
+                SPDX-License-Identifier: Apache-2.0
+                */
+                'use strict'; var aa = function (a) { var b = 0; return function () { return b < a.length ? { done: !1, value: a[b++] } : { done: !0 } } }, ba = "function" == typeof Object.create ? Object.create : function (a) { var b = function () { }; b.prototype = a; return new b }, k; if ("function" == typeof Object.setPrototypeOf) k = Object.setPrototypeOf; else { var m; a: { var ca = { a: !0 }, n = {}; try { n.__proto__ = ca; m = n.a; break a } catch (a) { } m = !1 } k = m ? function (a, b) { a.__proto__ = b; if (a.__proto__ !== b) throw new TypeError(a + " is not extensible"); return a } : null }
+                var p = k, q = function (a, b) { a.prototype = ba(b.prototype); a.prototype.constructor = a; if (p) p(a, b); else for (var c in b) if ("prototype" != c) if (Object.defineProperties) { var d = Object.getOwnPropertyDescriptor(b, c); d && Object.defineProperty(a, c, d) } else a[c] = b[c]; a.v = b.prototype }, r = this || self, da = function () { }, t = function (a) { return a }; var u; var w = function (a, b) { this.g = b === v ? a : "" }; w.prototype.toString = function () { return this.g + "" }; var v = {}, x = function (a) { if (void 0 === u) { var b = null; var c = r.trustedTypes; if (c && c.createPolicy) { try { b = c.createPolicy("goog#html", { createHTML: t, createScript: t, createScriptURL: t }) } catch (d) { r.console && r.console.error(d.message) } u = b } else u = b } a = (b = u) ? b.createScriptURL(a) : a; return new w(a, v) }; var A = function () { return Math.floor(2147483648 * Math.random()).toString(36) + Math.abs(Math.floor(2147483648 * Math.random()) ^ Date.now()).toString(36) }; var B = {}, C = null; var D = "function" === typeof Uint8Array; function E(a, b, c) { return "object" === typeof a ? D && !Array.isArray(a) && a instanceof Uint8Array ? c(a) : F(a, b, c) : b(a) } function F(a, b, c) { if (Array.isArray(a)) { for (var d = Array(a.length), e = 0; e < a.length; e++) { var f = a[e]; null != f && (d[e] = E(f, b, c)) } Array.isArray(a) && a.s && G(d); return d } d = {}; for (e in a) Object.prototype.hasOwnProperty.call(a, e) && (f = a[e], null != f && (d[e] = E(f, b, c))); return d }
+                function ea(a) {
+                    return F(a, function (b) { return "number" === typeof b ? isFinite(b) ? b : String(b) : b }, function (b) {
+                        var c; void 0 === c && (c = 0); if (!C) { C = {}; for (var d = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789".split(""), e = ["+/=", "+/", "-_=", "-_.", "-_"], f = 0; 5 > f; f++) { var h = d.concat(e[f].split("")); B[f] = h; for (var g = 0; g < h.length; g++) { var l = h[g]; void 0 === C[l] && (C[l] = g) } } } c = B[c]; d = Array(Math.floor(b.length / 3)); e = c[64] || ""; for (f = h = 0; h < b.length - 2; h += 3) {
+                            var y = b[h], z = b[h + 1]; l = b[h + 2]; g = c[y >> 2]; y = c[(y & 3) <<
+                                4 | z >> 4]; z = c[(z & 15) << 2 | l >> 6]; l = c[l & 63]; d[f++] = "" + g + y + z + l
+                        } g = 0; l = e; switch (b.length - h) { case 2: g = b[h + 1], l = c[(g & 15) << 2] || e; case 1: b = b[h], d[f] = "" + c[b >> 2] + c[(b & 3) << 4 | g >> 4] + l + e }return d.join("")
+                    })
+                } var fa = { s: { value: !0, configurable: !0 } }, G = function (a) { Array.isArray(a) && !Object.isFrozen(a) && Object.defineProperties(a, fa); return a }; var H; var J = function (a, b, c) {
+                    var d = H; H = null; a || (a = d); d = this.constructor.u; a || (a = d ? [d] : []); this.j = d ? 0 : -1; this.h = null; this.g = a; a: { d = this.g.length; a = d - 1; if (d && (d = this.g[a], !(null === d || "object" != typeof d || Array.isArray(d) || D && d instanceof Uint8Array))) { this.l = a - this.j; this.i = d; break a } void 0 !== b && -1 < b ? (this.l = Math.max(b, a + 1 - this.j), this.i = null) : this.l = Number.MAX_VALUE } if (c) for (b = 0; b < c.length; b++)a = c[b], a < this.l ? (a += this.j, (d = this.g[a]) ? G(d) : this.g[a] = I) : (d = this.l + this.j, this.g[d] || (this.i = this.g[d] = {}), (d = this.i[a]) ?
+                        G(d) : this.i[a] = I)
+                }, I = Object.freeze(G([])), K = function (a, b) { if (-1 === b) return null; if (b < a.l) { b += a.j; var c = a.g[b]; return c !== I ? c : a.g[b] = G([]) } if (a.i) return c = a.i[b], c !== I ? c : a.i[b] = G([]) }, M = function (a, b) { var c = L; if (-1 === b) return null; a.h || (a.h = {}); if (!a.h[b]) { var d = K(a, b); d && (a.h[b] = new c(d)) } return a.h[b] }; J.prototype.toJSON = function () { var a = N(this, !1); return ea(a) };
+                var N = function (a, b) { if (a.h) for (var c in a.h) if (Object.prototype.hasOwnProperty.call(a.h, c)) { var d = a.h[c]; if (Array.isArray(d)) for (var e = 0; e < d.length; e++)d[e] && N(d[e], b); else d && N(d, b) } return a.g }, O = function (a, b) { H = b = b ? JSON.parse(b) : null; a = new a(b); H = null; return a }; J.prototype.toString = function () { return N(this, !1).toString() }; var P = function (a) { J.call(this, a) }; q(P, J); function ha(a) { var b, c = (a.ownerDocument && a.ownerDocument.defaultView || window).document, d = null === (b = c.querySelector) || void 0 === b ? void 0 : b.call(c, "script[nonce]"); (b = d ? d.nonce || d.getAttribute("nonce") || "" : "") && a.setAttribute("nonce", b) }; var Q = function (a, b) { b = String(b); "application/xhtml+xml" === a.contentType && (b = b.toLowerCase()); return a.createElement(b) }, R = function (a) { this.g = a || r.document || document }; R.prototype.appendChild = function (a, b) { a.appendChild(b) }; var S = function (a, b, c, d, e, f) { try { var h = a.g, g = Q(a.g, "SCRIPT"); g.async = !0; g.src = b instanceof w && b.constructor === w ? b.g : "type_error:TrustedResourceUrl"; ha(g); h.head.appendChild(g); g.addEventListener("load", function () { e(); d && h.head.removeChild(g) }); g.addEventListener("error", function () { 0 < c ? S(a, b, c - 1, d, e, f) : (d && h.head.removeChild(g), f()) }) } catch (l) { f() } }; var ia = r.atob("aHR0cHM6Ly93d3cuZ3N0YXRpYy5jb20vaW1hZ2VzL2ljb25zL21hdGVyaWFsL3N5c3RlbS8xeC93YXJuaW5nX2FtYmVyXzI0ZHAucG5n"), ja = r.atob("WW91IGFyZSBzZWVpbmcgdGhpcyBtZXNzYWdlIGJlY2F1c2UgYWQgb3Igc2NyaXB0IGJsb2NraW5nIHNvZnR3YXJlIGlzIGludGVyZmVyaW5nIHdpdGggdGhpcyBwYWdlLg=="), ka = r.atob("RGlzYWJsZSBhbnkgYWQgb3Igc2NyaXB0IGJsb2NraW5nIHNvZnR3YXJlLCB0aGVuIHJlbG9hZCB0aGlzIHBhZ2Uu"), la = function (a, b, c) { this.h = a; this.j = new R(this.h); this.g = null; this.i = []; this.l = !1; this.o = b; this.m = c }, V = function (a) {
+                    if (a.h.body && !a.l) {
+                        var b =
+                            function () { T(a); r.setTimeout(function () { return U(a, 3) }, 50) }; S(a.j, a.o, 2, !0, function () { r[a.m] || b() }, b); a.l = !0
+                    }
+                }, T = function (a) {
+                    for (var b = W(1, 5), c = 0; c < b; c++) { var d = X(a); a.h.body.appendChild(d); a.i.push(d) } b = X(a); b.style.bottom = "0"; b.style.left = "0"; b.style.position = "fixed"; b.style.width = W(100, 110).toString() + "%"; b.style.zIndex = W(2147483544, 2147483644).toString(); b.style["background-color"] = ma(249, 259, 242, 252, 219, 229); b.style["box-shadow"] = "0 0 12px #888"; b.style.color = ma(0, 10, 0, 10, 0, 10); b.style.display =
+                        "flex"; b.style["justify-content"] = "center"; b.style["font-family"] = "Roboto, Arial"; c = X(a); c.style.width = W(80, 85).toString() + "%"; c.style.maxWidth = W(750, 775).toString() + "px"; c.style.margin = "24px"; c.style.display = "flex"; c.style["align-items"] = "flex-start"; c.style["justify-content"] = "center"; d = Q(a.j.g, "IMG"); d.className = A(); d.src = ia; d.style.height = "24px"; d.style.width = "24px"; d.style["padding-right"] = "16px"; var e = X(a), f = X(a); f.style["font-weight"] = "bold"; f.textContent = ja; var h = X(a); h.textContent = ka; Y(a,
+                            e, f); Y(a, e, h); Y(a, c, d); Y(a, c, e); Y(a, b, c); a.g = b; a.h.body.appendChild(a.g); b = W(1, 5); for (c = 0; c < b; c++)d = X(a), a.h.body.appendChild(d), a.i.push(d)
+                }, Y = function (a, b, c) { for (var d = W(1, 5), e = 0; e < d; e++) { var f = X(a); b.appendChild(f) } b.appendChild(c); c = W(1, 5); for (d = 0; d < c; d++)e = X(a), b.appendChild(e) }, W = function (a, b) { return Math.floor(a + Math.random() * (b - a)) }, ma = function (a, b, c, d, e, f) {
+                    return "rgb(" + W(Math.max(a, 0), Math.min(b, 255)).toString() + "," + W(Math.max(c, 0), Math.min(d, 255)).toString() + "," + W(Math.max(e, 0), Math.min(f,
+                        255)).toString() + ")"
+                }, X = function (a) { a = Q(a.j.g, "DIV"); a.className = A(); return a }, U = function (a, b) { 0 >= b || null != a.g && 0 != a.g.offsetHeight && 0 != a.g.offsetWidth || (na(a), T(a), r.setTimeout(function () { return U(a, b - 1) }, 50)) }, na = function (a) { var b = a.i; var c = "undefined" != typeof Symbol && Symbol.iterator && b[Symbol.iterator]; b = c ? c.call(b) : { next: aa(b) }; for (c = b.next(); !c.done; c = b.next())(c = c.value) && c.parentNode && c.parentNode.removeChild(c); a.i = []; (b = a.g) && b.parentNode && b.parentNode.removeChild(b); a.g = null }; var pa = function (a, b, c, d, e) { var f = oa(c), h = function (l) { l.appendChild(f); r.setTimeout(function () { f ? (0 !== f.offsetHeight && 0 !== f.offsetWidth ? b() : a(), f.parentNode && f.parentNode.removeChild(f)) : a() }, d) }, g = function (l) { document.body ? h(document.body) : 0 < l ? r.setTimeout(function () { g(l - 1) }, e) : b() }; g(3) }, oa = function (a) { var b = document.createElement("div"); b.className = a; b.style.width = "1px"; b.style.height = "1px"; b.style.position = "absolute"; b.style.left = "-10000px"; b.style.top = "-10000px"; b.style.zIndex = "-10000"; return b }; var L = function (a) { J.call(this, a) }; q(L, J); var qa = function (a) { J.call(this, a) }; q(qa, J); var ra = function (a, b) { this.l = a; this.m = new R(a.document); this.g = b; this.i = K(this.g, 1); b = M(this.g, 2); this.o = x(K(b, 4) || ""); this.h = !1; b = M(this.g, 13); b = x(K(b, 4) || ""); this.j = new la(a.document, b, K(this.g, 12)) }; ra.prototype.start = function () { sa(this) };
+                var sa = function (a) { ta(a); S(a.m, a.o, 3, !1, function () { a: { var b = a.i; var c = r.btoa(b); if (c = r[c]) { try { var d = O(P, r.atob(c)) } catch (e) { b = !1; break a } b = b === K(d, 1) } else b = !1 } b ? Z(a, K(a.g, 14)) : (Z(a, K(a.g, 8)), V(a.j)) }, function () { pa(function () { Z(a, K(a.g, 7)); V(a.j) }, function () { return Z(a, K(a.g, 6)) }, K(a.g, 9), K(a.g, 10), K(a.g, 11)) }) }, Z = function (a, b) { a.h || (a.h = !0, a = new a.l.XMLHttpRequest, a.open("GET", b, !0), a.send()) }, ta = function (a) { var b = r.btoa(a.i); a.l[b] && Z(a, K(a.g, 5)) }; (function (a, b) { r[a] = function (c) { for (var d = [], e = 0; e < arguments.length; ++e)d[e - 0] = arguments[e]; r[a] = da; b.apply(null, d) } })("__h82AlnkH6D91__", function (a) { "function" === typeof window.atob && (new ra(window, O(qa, window.atob(a)))).start() });
+            }).call(this);
+
+            window.__h82AlnkH6D91__("WyJwdWItMTUzNjA4MzY1MzIyNjgzNCIsW251bGwsbnVsbCxudWxsLCJodHRwczovL2Z1bmRpbmdjaG9pY2VzbWVzc2FnZXMuZ29vZ2xlLmNvbS9iL3B1Yi0xNTM2MDgzNjUzMjI2ODM0Il0sbnVsbCxudWxsLCJodHRwczovL2Z1bmRpbmdjaG9pY2VzbWVzc2FnZXMuZ29vZ2xlLmNvbS9lbC9BR1NLV3hYajNKNGktY00wVWloYjRfLVVJQXdrSHJ4Yl9EWXBFa3NXOW1WalVlRkVzZVNQVHhUOTAydzZ4MGd6b1E5NFA3OHFZZWhyV2FvU2gySWxfUEQ5eFRfQjVRXHUwMDNkXHUwMDNkP3RlXHUwMDNkVE9LRU5fRVhQT1NFRCIsImh0dHBzOi8vZnVuZGluZ2Nob2ljZXNtZXNzYWdlcy5nb29nbGUuY29tL2VsL0FHU0tXeFZSMWROcWh4V3lsVjRuNHJGQVVoRDR2ZjFNaGdFcHl5M2VoU3l2QndTQzF1c0dVWV9LbUVRSThEc1pyUk1hQ0NmYWdXNkNPVUN2ODNJbVVKTEJibTZ2TWdcdTAwM2RcdTAwM2Q/YWJcdTAwM2QxXHUwMDI2c2JmXHUwMDNkMSIsImh0dHBzOi8vZnVuZGluZ2Nob2ljZXNtZXNzYWdlcy5nb29nbGUuY29tL2VsL0FHU0tXeFZidGltVm5CbWlZa1lDMWFWR0ViMnQycGViNkxCMzZGOXhqOXZYYzRhbmdXcW5Ca0lnbkVuYXdvYnZyRU0xNWxBNlpyQ3JXOUNkTnkzZHFudkg4SmFUcGdcdTAwM2RcdTAwM2Q/YWJcdTAwM2QyXHUwMDI2c2JmXHUwMDNkMSIsImh0dHBzOi8vZnVuZGluZ2Nob2ljZXNtZXNzYWdlcy5nb29nbGUuY29tL2VsL0FHU0tXeFhrQWpIZ09OZHFJcW9DcXZHYlBDMmFMQnNGMzFDeHNTRWNtcEllOHNyak5wTkhfOC1jaEJ5WUlyRDFfT2JaWm9SSlAxRi1mOE9qQjBnMnpfaVRZYTdoaEFcdTAwM2RcdTAwM2Q/c2JmXHUwMDNkMiIsImRpdi1ncHQtYWQiLDIwLDEwMCwiY0hWaUxURTFNell3T0RNMk5UTXlNalk0TXpRXHUwMDNkIixbbnVsbCxudWxsLG51bGwsImh0dHBzOi8vd3d3LmdzdGF0aWMuY29tLzBlbW4vZi9wL3B1Yi0xNTM2MDgzNjUzMjI2ODM0LmpzP3VzcXBcdTAwM2RDQVEiXSwiaHR0cHM6Ly9mdW5kaW5nY2hvaWNlc21lc3NhZ2VzLmdvb2dsZS5jb20vZWwvQUdTS1d4VWt4c0lqNWhFcmJHb1g0RnZnY1F0TjVkcnVuWkxEbHNUY2FRTWx3V1kwR1oySm94bklBQkh0eE9wckxJeUxLSEhDRUtWUk52QlFPVm4xTkVDczRqN3F5Z1x1MDAzZFx1MDAzZCJd");
+        }
+    </script>
+    <script async="" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1536083653226834" crossorigin="anonymous"></script>
+    <script>
+        if (localStorage.DisplayMode === 'dark' || (!('DisplayMode' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
+
+
+
+    <div id="app" class="[ dark:text-white ]">
+<!-- %%-PRERENDERING-BEGIN-%% -->
+<!--Blazor:{"type":"webassembly","prerenderId":"8951bab1acf6456290f02b5469d4f18b","key":{"locationHash":"5A77B35847144BFA5AAD4B6E75ECBFC65A5AF21F4F3ACA798E2BA892F3E88F38:0","formattedComponentKey":""},"assembly":"Web","typeName":"Web.App","parameterDefinitions":"W10=","parameterValues":"W10="}--><header id="header" class="[ flex items-center justify-between ] [ bg-white ] [ px-5 ] [ dark:bg-gray-800 dark:bg-gray-800/80 ] [ h-14 ] [ sticky top-0 ] [ backdrop-blur-xs bg-white/80 ] [ z-10 ]"><button type="button" class="[ hidden md:block ] [ mr-4 ]" aria-label="Toggle Menu"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-menu-2 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+           <line x1="4" y1="6" x2="20" y2="6"></line>
+           <line x1="4" y1="12" x2="20" y2="12"></line>
+           <line x1="4" y1="18" x2="20" y2="18"></line></svg></button>
+    <h1 id="brand" class="[  ]"><a href="/" class="[ font-bold ] [ flex items-center justify-between space-x-1 ] active" aria-current="page"><span class="[ dark:text-white ]">I</span>
+            <span class="animate-pulse">❤️</span>
+            <span class="[ text-indigo-600 ] [ dark:text-white ]">.NET</span></a></h1>
+    <section id="search" class="[ flex grow justify-end md:justify-center ]"><button type="button" aria-label="Exit Search" class="[ hidden ] [ bg-white ] [ h-10 w-10 ] [ border-2 border-gray-200 ] [ dark:bg-gray-800 dark:border-gray-800 ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-arrow-left ] [ inline ] [ text-gray-500 ] [ stroke-1 ] [ dark:text-white ]" width="25" height="25" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <line x1="5" y1="12" x2="11" y2="18"></line>
+            <line x1="5" y1="12" x2="11" y2="6"></line></svg></button>
+    <div class="[ dropdown ] [  ] [ w-1/2 ] [ hidden ] [  ]"><div class="[ dropdown-trigger ] [ w-full ]"><input type="search" placeholder="Type / to search" class="[ w-full h-full ] [ px-4 ] [ border-2 border-gray-200 ] [ focus:outline-hidden focus:border-gray-400 ] [ dark:bg-black dark:border-gray-800 dark:focus:border-b-white dark:md:focus:border-blue-800 dark:caret-white dark:text-white ]" autocapitalize="none" autocomplete="off" name="search" autocorrect="off" aria-haspopup="true" aria-controls="dropdown-menu" value=""/></div>
+        <div class="[ dropdown-menu ] [ bg-white dark:bg-black ] [ w-full ]" id="dropdown-menu" role="menu"><div class="[ dropdown-content ] [ dark:bg-black ] [ overflow-y-auto ]" style="max-height:50vh;"></div></div></div>
+    <button type="button" aria-label="Search" class="[ h-10 w-10 ] [  ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-search ] [ inline ] [ text-gray-500 ] [ stroke-1 ] [ dark:text-white ]" width="25" height="25" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <circle cx="10" cy="10" r="7"></circle>
+            <line x1="21" y1="21" x2="15" y2="15"></line></svg></button></section>
+    <section id="display-and-social" class="[  ] [ flex items-center space-x-1.5 ]"><a href="https://github.com/ILoveDotNet/ilovedotnet" target="blank" aria-label="Give a Star in GitHub" class="[ flex items-center space-x-1 ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-star ] [ fill-yellow-400 stroke-yellow-400 ] [ animate-pulse ]" width="25" height="25" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                <path d="M12 17.75l-6.172 3.245l1.179 -6.873l-5 -4.867l6.9 -1l3.086 -6.253l3.086 6.253l6.9 1l-5 4.867l1.179 6.873z"></path></svg>
+            <span class="hidden md:block">Starred 0</span></a>
+        <section id="displaymode"><div class="dropdown is-right "><div class="dropdown-trigger"><button class="button [ flex items-center ]" aria-haspopup="true" aria-controls="displaymode-menu" aria-label="Theme Selector"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-device-desktop ] [ dark:text-white ]" width="25" height="25" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <rect x="3" y="4" width="18" height="12" rx="1"></rect>
+                        <line x1="7" y1="20" x2="17" y2="20"></line>
+                        <line x1="9" y1="16" x2="9" y2="20"></line>
+                        <line x1="15" y1="16" x2="15" y2="20"></line></svg></button></div>
+        <div class="dropdown-menu [ bg-white dark:bg-black ]" id="displaymode-menu" role="menu"><div class="dropdown-content [ dark:bg-black ]"><button type="button" class="dropdown-item [ flex items-center space-x-1 ] [ dark:hover:bg-gray-700 ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-device-desktop ] [ dark:text-white ]" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <rect x="3" y="4" width="18" height="12" rx="1"></rect>
+                        <line x1="7" y1="20" x2="17" y2="20"></line>
+                        <line x1="9" y1="16" x2="9" y2="20"></line>
+                        <line x1="15" y1="16" x2="15" y2="20"></line></svg>
+                    <p class="[ dark:text-white ]">System</p></button>
+                <button type="button" class="dropdown-item [ flex items-center space-x-1 ] [ dark:hover:bg-gray-700 ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-moon ] [ dark:text-white ]" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z"></path></svg>
+                    <p class="[ dark:text-white ]">Dark</p></button>
+                <button type="button" class="dropdown-item [ flex items-center space-x-1 ] [ dark:hover:bg-gray-700 ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-brightness-up ] [ dark:text-white ]" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <line x1="12" y1="5" x2="12" y2="3"></line>
+                        <line x1="17" y1="7" x2="18.4" y2="5.6"></line>
+                        <line x1="19" y1="12" x2="21" y2="12"></line>
+                        <line x1="17" y1="17" x2="18.4" y2="18.4"></line>
+                        <line x1="12" y1="19" x2="12" y2="21"></line>
+                        <line x1="7" y1="17" x2="5.6" y2="18.4"></line>
+                        <line x1="6" y1="12" x2="4" y2="12"></line>
+                        <line x1="7" y1="7" x2="5.6" y2="5.6"></line></svg>
+                    <p class="[ dark:text-white ]">Light</p></button></div></div></div></section>
+        <section id="others"><div class="dropdown is-right "><div class="dropdown-trigger"><button class="button [ flex items-center ]" aria-haspopup="true" aria-controls="others-menu" aria-label="Others"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-dots-vertical ] [ dark:text-white ]" width="20" height="20" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                    <circle cx="12" cy="12" r="1"></circle>
+                    <circle cx="12" cy="19" r="1"></circle>
+                    <circle cx="12" cy="5" r="1"></circle></svg></button></div>
+        <div class="dropdown-menu [ bg-white dark:bg-black ]" id="others-menu" role="menu"><div class="dropdown-content [ dark:bg-black ]"><a href="https://github.com/sponsors/fingers10" target="_blank" class="dropdown-item [ flex items-center space-x-1 ] [ dark:hover:bg-gray-700 ]" __internal_stoppropagation_onfocusout=""><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-heart ] [ text-red-500 ] [ fill-red-500 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428m0 0a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572"></path></svg>
+                    <p class="[ dark:text-white ]">Sponsor Us</p></a>
+                <hr class="dropdown-divider"/>
+                <a href="/disclaimer" __internal_stoppropagation_onfocusout="" class="dropdown-item [ flex items-center space-x-1 ] [ dark:hover:bg-gray-700 ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-hand-off ] [ text-yellow-500 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                       <line x1="3" y1="3" x2="21" y2="21"></line>
+                       <path d="M8 13.5v-5.5m.44 -3.562a1.5 1.5 0 0 1 2.56 1.062v1.5m0 4.008v.992m0 -6.5v-2a1.5 1.5 0 1 1 3 0v6.5m0 -4.5a1.5 1.5 0 0 1 3 0v6.5m0 -4.5a1.5 1.5 0 0 1 3 0v8.5a6 6 0 0 1 -6 6h-2c-2.114 -.292 -3.956 -1.397 -5 -3l-2.7 -5.25a1.7 1.7 0 0 1 2.75 -2l.9 1.75"></path></svg>
+                    <span class="[ dark:text-white ]">Disclaimer</span></a>
+                <a href="/privacy" __internal_stoppropagation_onfocusout="" class="dropdown-item [ flex items-center space-x-1 ] [ dark:hover:bg-gray-700 ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-lock-square ] [ text-orange-500 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <rect x="8" y="11" width="8" height="5" rx="1"></rect>
+                        <path d="M10 11v-2a2 2 0 1 1 4 0v2"></path>
+                        <rect x="4" y="4" width="16" height="16" rx="2"></rect></svg>
+                    <span class="[ dark:text-white ]">Privacy</span></a></div></div></div></section></section></header>
+<main id="main" class="[ [ pb-14 md:pb-0 md:pl-16 ] ]"><section class="[ font-bold ] [ p-5 ] [ flex flex-col items-center justify-center ]"><a href="https://whatsapp.com/channel/0029VaAGMV2LtOj5S5MHd23h" target="_blank"><span>👉🏼 Click here to Join I ❤️ .NET </span>
+        <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-brand-whatsapp ] [ fill-green-500 ] [ inline ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <path d="M3 21l1.65 -3.8a9 9 0 1 1 3.4 2.9l-5.05 .9"></path>
+            <path d="M9 10a.5 .5 0 0 0 1 0v-1a.5 .5 0 0 0 -1 0v1a5 5 0 0 0 5 5h1a.5 .5 0 0 0 0 -1h-1a.5 .5 0 0 0 0 1"></path></svg>
+        <span>WhatsApp Channel to get 🔔 notified about new articles and other updates.</span></a></section>
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<section class="[ flex flex-col lg:flex-row ] [ p-1 md:p-5 lg:px-20 ] [ lg:space-x-5 space-y-5 lg:space-y-0 ]"><article class="[ lg:basis-3/4 ] [ space-y-5 ]"><header class="[ space-y-2 ]"><figure><img src="image/blogs/ddd/ddd-specification-pattern-eliminating-scattered-business-logic.webp" alt="Specification Pattern - Eliminating Scattered Business Logic in DDD" class="[ w-full ]" loading="lazy"/></figure><h2 class="[ dark:text-white ] [ font-semibold text-xl ]">Specification Pattern - Eliminating Scattered Business Logic in DDD</h2>
+    <section class="[ flex flex-col md:flex-row justify-between ] [ space-y-1 md:space-y-0 ] [ dark:text-white ] [ font-bold ]"><div><p>Author - <a href="authors/abdul-rahman" class="[ underline ]">Abdul Rahman (Bhai)</a></p>
+            <time datetime="2025-12-28 22:30:00">Last updated one month ago</time></div>
+        <div><section class="[ flex justify-between md:justify-start ]"><a href="https://github.com/sponsors/fingers10" target="_blank" aria-label="Sponsor Us"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-heart ] [ text-red-500 ] [ fill-red-500 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+           <path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428m0 0a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572"></path></svg></a>
+    <a href="https://api.whatsapp.com/send?text=Specification Pattern - Eliminating Scattered Business Logic in DDD%20https%3a%2f%2filovedotnet.org%2fblogs%2fddd-specification-pattern-eliminating-scattered-business-logic%2f" target="_blank" aria-label="Share via Whatsapp"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-brand-whatsapp ] [ text-emerald-500 dark:text-emerald-300 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <path d="M3 21l1.65 -3.8a9 9 0 1 1 3.4 2.9l-5.05 .9"></path>
+            <path d="M9 10a0.5 .5 0 0 0 1 0v-1a0.5 .5 0 0 0 -1 0v1a5 5 0 0 0 5 5h1a0.5 .5 0 0 0 0 -1h-1a0.5 .5 0 0 0 0 1"></path></svg></a>
+    <a href="https://www.linkedin.com/shareArticle?mini=true&amp;url=https%3a%2f%2filovedotnet.org%2fblogs%2fddd-specification-pattern-eliminating-scattered-business-logic%2f" target="_blank" aria-label="Share via Linkedin"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-brand-linkedin ] [ text-blue-500 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+            <line x1="8" y1="11" x2="8" y2="16"></line>
+            <line x1="8" y1="8" x2="8" y2="8.01"></line>
+            <line x1="12" y1="16" x2="12" y2="11"></line>
+            <path d="M16 16v-3a2 2 0 0 0 -4 0"></path></svg></a>
+    <a href="https://www.facebook.com/sharer.php?u=https%3a%2f%2filovedotnet.org%2fblogs%2fddd-specification-pattern-eliminating-scattered-business-logic%2f" target="_blank" aria-label="Share via Facebook"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-brand-facebook ] [ text-blue-400 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <path d="M7 10v4h3v7h4v-7h3l1 -4h-4v-2a1 1 0 0 1 1 -1h3v-4h-3a5 5 0 0 0 -5 5v2h-3"></path></svg></a>
+    <a href="https://twitter.com/intent/tweet?url=https%3a%2f%2filovedotnet.org%2fblogs%2fddd-specification-pattern-eliminating-scattered-business-logic%2f&amp;text=Specification Pattern - Eliminating Scattered Business Logic in DDD" target="_blank" aria-label="Share via Tweet"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-brand-twitter ] [ text-blue-700 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <path d="M22 4.01c-1 .49 -1.98 .689 -3 .99c-1.121 -1.265 -2.783 -1.335 -4.38 -.737s-2.643 2.06 -2.62 3.737v1c-3.245 .083 -6.135 -1.395 -8 -4c0 0 -4.182 7.433 4 11c-1.872 1.247 -3.739 2.088 -6 2c3.308 1.803 6.913 2.423 10.034 1.517c3.58 -1.04 6.522 -3.723 7.651 -7.742a13.84 13.84 0 0 0 .497 -3.753c-.002 -.249 1.51 -2.772 1.818 -4.013z"></path></svg></a></section></div></section>
+    <section class="[ flex items-center justify-between ]"><a href="channels/ddd" class="[ flex ]"><aside><figure class="[ mt-2 mr-2 ]"><img src="/image/icons/ddd.webp" alt="DDD" loading="lazy" height="48" width="48" class="[ rounded-full ]"/></figure></aside>
+            <article class="[ flex flex-col justify-between ] [ dark:text-white ] [ mt-2 ]"><h2 class="[ font-medium break-words ] [ uppercase ]">DDD</h2>
+                <section class="[ flex justify-between ]"><p>1 Articles</p></section></article></a>
+        <a href="https://github.com/ILoveDotNet/ilovedotnet/blob/main/DDDDemoComponents/Pages/Blogs/SpecificationPattern.razor" target="_blank" class="[ md:bg-red-700 ] [ text-red-500 md:text-white uppercase ] [ px-3 py-2 ] [ font-semibold ]">Improve</a></section>
+    <hr class="[ dark:text-white my-1.5 ]"/></header>
+        <section class="[ dark:text-white ] [ space-y-2 ] [ prose dark:prose-invert ] [ min-w-full ]"><h3>Table of Contents</h3><ol><li><a href="blogs/ddd-specification-pattern-eliminating-scattered-business-logic#what" class="active" aria-current="page">
+                            What we gonna do?
+                        </a></li>
+                    <li><a href="blogs/ddd-specification-pattern-eliminating-scattered-business-logic#why" class="active" aria-current="page">
+                            Why we gonna do?
+                        </a></li>
+                    <li><a href="blogs/ddd-specification-pattern-eliminating-scattered-business-logic#how" class="active" aria-current="page">
+                            How we gonna do?
+                        </a></li>
+                    <li><a href="blogs/ddd-specification-pattern-eliminating-scattered-business-logic#summary" class="active" aria-current="page">
+                            Summary
+                        </a></li></ol><h3 id="what">What we gonna do?</h3>
+
+<p>
+                The <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Specification Pattern</span> is a <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Domain-Driven Design</span> pattern 
+                that encapsulates business rules and domain knowledge into dedicated, reusable objects. Introduced by 
+                <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Eric Evans and Martin Fowler</span>, this pattern addresses a critical problem in enterprise software: 
+                <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">scattered and duplicated business logic</span>.
+            </p>
+
+            <p>
+                In this article, let's learn how to eliminate duplicated business logic using the Specification Pattern in 
+                <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">.NET</span>. We'll explore how to create reusable, testable business rules that work seamlessly with both 
+                <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Entity Framework Core queries</span> and <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">in-memory validation</span>. 
+                You'll learn to define business rules once and reuse them consistently across validation, querying, and object creation.
+            </p>
+
+        <h3 id="why">Why we gonna do?</h3>
+
+<h4 class="[ font-semibold text-base ]">The Problem: Scattered Business Logic</h4>
+
+            <p>
+                Consider an e-commerce platform that needs to identify <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">premium products</span>. 
+                The business rule states: "Premium products must have a price above $100, belong to Electronics or Office categories, and have at least 5 units in stock."
+            </p>
+
+            <p>
+                Without specifications, this logic gets duplicated across multiple locations:
+            </p>
+
+            <pre><code id="6979530a-3ed9-481e-9824-36e6d55f8e9b" class="language-csharp">// In PremiumProductsController
+var premiumProducts = products
+    .Where(p =&gt; p.Price &gt; 50 &amp;&amp;
+        p.Stock &gt; 5 &amp;&amp;
+        (p.Category == "Electronics" || p.Category == "Office"))
+    .ToList();
+
+// In ValidationService
+public bool IsPremiumProduct(Product product)
+{
+    return product.Price &gt;= 100 &amp;&amp;
+        product.Stock &gt; 5 &amp;&amp;
+        product.Category == "Industrial";
+}
+
+// In CatalogController
+var featured = products
+    .Where(p =&gt; p.Price &gt; 75 &amp;&amp;
+        p.Stock &gt; 15 &amp;&amp;
+        p.Category == "Consumer")
+    .ToList();</code></pre>
+
+            <p>
+                Notice the problems:
+            </p>
+
+            <ul class="[ list-disc ] [ ml-4 ]"><li><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Three different implementations</span> - different price thresholds ($50, $100, $75)</li>
+                <li><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Inconsistent stock requirements</span> - 5 vs 15 units</li>
+                <li><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Different categories</span> - Electronics/Office vs Industrial vs Consumer</li>
+                <li><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">DRY principle violated</span> - same business concept defined multiple ways</li></ul>
+
+            <h4 class="[ font-semibold text-base ]">The Consequences</h4>
+
+            <ol class="[ list-decimal ] [ ml-4 ]"><li><strong>Time Cost:</strong> Simple 5-minute changes become multi-day expeditions through the codebase</li>
+                <li><strong>Reliability Cost:</strong> Missing one location introduces subtle bugs that might not surface until production</li>
+                <li><strong>Velocity Cost:</strong> New developers spend excessive time understanding where business logic lives and how to maintain consistency</li></ol>
+
+            <h4 class="[ font-semibold text-base ]">Why Traditional Approaches Fail</h4>
+
+            <p>
+                You might think extracting logic into static methods solves this. But here's the catch: 
+                <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Entity Framework Core can't translate regular methods into SQL</span>. 
+                You need expression trees, not compiled code. And managing expression trees manually? That's complex and error-prone.
+            </p>
+
+            <h4 class="[ font-semibold text-base ]">The Specification Pattern Advantage</h4>
+
+            <p>
+                The Specification Pattern gives you <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">one source of truth</span> for each business rule. 
+                Write it once, use it everywhere - for database queries, in-memory validation, and even test data generation. 
+                When requirements change, update exactly one place.
+            </p>
+
+            <p>
+                This pattern is essential for:
+            </p>
+
+            <ul class="[ list-disc ] [ ml-4 ]"><li>Enterprise applications with complex, evolving business rules</li>
+                <li>Teams needing consistent logic across multiple developers</li>
+                <li>Systems where business rules must work in both queries and validation</li>
+                <li>Codebases prioritizing maintainability and testability</li></ul>
+
+        <h3 id="how">How we gonna do?</h3>
+
+<h3 id="specification-pattern-solution" class="[ font-semibold text-lg ]">Specification Pattern Solution</h3>
+
+        <p>
+            Let's see how the Specification Pattern transforms the scattered business logic problem:
+        </p>
+
+        <pre><code id="a6d70d34-4f75-4a7b-94be-f9781af8c8a0" class="language-csharp">
+// Business rule as a specification
+public class PremiumProductSpecification : Specification&lt;Product&gt;
+{
+    protected override Expression&lt;Func&lt;Product, bool&gt;&gt; ToExpression()
+    {
+        return product =&gt; product.Price &gt;= 100 &amp;&amp;
+            product.Stock &gt; 5 &amp;&amp;
+            (product.Category == "Electronics" ||
+            product.Category == "Office" ||
+            product.Category == "Industrial");
+    }
+}
+
+// Usage across different contexts
+var spec = new PremiumProductSpecification();
+
+// In controllers - database query
+var premiumProducts = await repository.FindAsync(spec);
+
+// In services - in-memory validation
+if (spec.IsSatisfiedBy(product))
+{
+    ApplyPremiumDiscount(product);
+}
+</code></pre>
+
+        <p>
+            Key benefits:
+        </p>
+
+        <ul class="[ list-disc ] [ ml-4 ]"><li><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Single Source of Truth:</span> Business logic defined exactly once</li>
+            <li><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Reusable:</span> Works for both database queries and in-memory validation</li>
+            <li><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Maintainable:</span> Change business rules in one place</li>
+            <li><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Testable:</span> Each specification can be tested independently</li>
+            <li><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Composable:</span> Combine specifications using logical operators</li></ul>
+
+        <p>
+            The Specification Pattern has <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">two core goals</span>:
+        </p>
+
+        <ol class="[ list-decimal ] [ ml-4 ]"><li><strong>Eliminate Duplication:</strong> Follow the DRY principle by providing a single source of truth</li>
+            <li><strong>Enable Declarative Code:</strong> Express business concepts clearly, mirroring how domain experts communicate</li></ol>
+
+        <h3 id="top-use-cases" class="[ font-semibold text-lg ]">Top Use Cases for Specification Pattern</h3>
+
+        <p>
+            The Specification Pattern excels in three primary use cases:
+        </p>
+
+        <h4 class="[ font-semibold text-base ]">1. In-Memory Validation</h4>
+
+        <p>
+            Verify that objects meet business criteria while loaded in application memory, providing real-time enforcement of business rules.
+        </p>
+
+        <pre><code id="a0f748b2-ce84-4ab2-b8fc-fca51f2d3bd1" class="language-csharp">var premiumSpec = new PremiumProductSpecification();
+
+// Validate product in shopping cart
+if (premiumSpec.IsSatisfiedBy(product))
+{
+    cart.ApplyPremiumDiscount();
+}
+
+// Same spec in pricing service
+if (premiumSpec.IsSatisfiedBy(product))
+{
+    CalculatePremiumPrice(product);
+}</code></pre>
+
+        <p><strong>Before:</strong> Validation logic duplicated across shopping cart, pricing service, and promotion engine, each with subtle variations.
+        </p>
+
+        <p><strong>After:</strong> Single specification used consistently everywhere, ensuring identical validation logic.
+        </p>
+
+        <h4 class="[ font-semibold text-base ]">2. Building Database Queries</h4>
+
+        <p>
+            Use the same business logic for validation to generate efficient database queries, ensuring consistency between what you validate and what you query.
+        </p>
+
+        <pre><code id="8c9f83ef-3e0c-4736-bb5f-615da61468f4" class="language-csharp">// Repository uses specification for database query
+var premiumProducts = await repository.FindAsync(premiumSpec);
+
+// Generated SQL (example):
+// SELECT * FROM Products 
+// WHERE Price &gt;= 100 
+//   AND Stock &gt; 5 
+//   AND Category IN ('Electronics', 'Office', 'Industrial')</code></pre>
+
+        <p><strong>Key Advantage:</strong> The specification <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">generates optimized SQL</span> automatically through 
+            Entity Framework Core, avoiding the need to load all data and filter in memory.
+        </p>
+
+        <h4 class="[ font-semibold text-base ]">3. Guiding Object Creation</h4>
+
+        <p>
+            Ensure new objects satisfy specific business requirements, useful for recommendations and test data generation.
+        </p>
+
+        <pre><code id="e06b8b4c-9695-47f5-a976-0604434357c8" class="language-csharp">// Generate test premium products
+var premiumSpec = new PremiumProductSpecification();
+var testProducts = new List&lt;Product&gt;();
+
+while (testProducts.Count &lt; 5)
+{
+    var candidate = GenerateRandomProduct();
+    if (premiumSpec.IsSatisfiedBy(candidate))
+    {
+        testProducts.Add(candidate);
+    }
+}
+
+// Create product bundles
+var bundleSpec = premiumSpec
+    .And(new InStockSpecification(10))
+    .And(new BusinessProductSpecification());
+    
+var bundleProducts = allProducts
+    .Where(bundleSpec.IsSatisfiedBy)
+    .Take(5)
+    .ToList();</code></pre>
+
+        <h3 id="naive-approaches" class="[ font-semibold text-lg ]">Avoiding Naive Implementations</h3>
+
+        <p>
+            Before diving into the proper implementation, let's examine five common <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">anti-patterns</span> 
+            that developers encounter:
+        </p>
+
+        <h4 class="[ font-semibold text-base ]">Anti-Pattern 1: Direct Method Extraction</h4>
+
+        <p>
+            Extracting logic into static methods seems logical but fails with Entity Framework Core.
+        </p>
+
+        <pre><code id="f2ecd3d6-e58e-47c3-a14e-abe46e79646a" class="language-csharp">// This looks reasonable but fails at runtime
+public static bool IsPremiumProduct(Product product)
+{
+    return product.Price &gt;= 100 &amp;&amp; product.Stock &gt; 5;
+}
+
+// Usage in controller - throws exception
+var products = context.Products
+    .Where(p =&gt; IsPremiumProduct(p))  // ❌ Runtime error!
+    .ToList();
+
+// Error: "LINQ expression could not be translated"</code></pre>
+
+        <p><strong>Problem:</strong> Entity Framework needs <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">expression trees</span> to generate SQL. 
+            Compiled methods are "black boxes" that EF cannot translate.
+        </p>
+
+        <h4 class="[ font-semibold text-base ]">Anti-Pattern 2: Plain Expression Trees Without Encapsulation</h4>
+
+        <p>
+            Using raw expression trees solves translation but creates other problems.
+        </p>
+
+        <pre><code id="0749089c-4247-47d4-b69d-b0b6842fc64e" class="language-csharp">// Static expression tree
+public static Expression&lt;Func&lt;Product, bool&gt;&gt; IsPremiumProduct = 
+    product =&gt; product.Price &gt;= 100 &amp;&amp; product.Stock &gt; 5;
+
+// Database query works
+var products = context.Products.Where(IsPremiumProduct).ToList();
+
+// In-memory validation requires manual compilation
+var compiledExpression = IsPremiumProduct.Compile();  // ⚠️ Expensive!
+if (compiledExpression(product))
+{
+    // ...
+}</code></pre>
+
+        <p><strong>Problems:</strong></p>
+
+        <ul class="[ list-disc ] [ ml-4 ]"><li>Poor encapsulation - consumers handle compilation</li>
+            <li>No caching - compilation happens every time</li>
+            <li>Technical details leak into business logic</li></ul>
+
+        <h4 class="[ font-semibold text-base ]">Anti-Pattern 3: Client-Configured Specifications</h4>
+
+        <p>
+            Creating generic specifications that accept expressions from outside defeats the purpose.
+        </p>
+
+        <pre><code id="5b4084a9-44f1-4cef-9079-581b2a30a833" class="language-csharp">// Generic specification - too flexible
+public class GenericSpecification&lt;T&gt; : Specification&lt;T&gt;
+{
+    private readonly Expression&lt;Func&lt;T, bool&gt;&gt; _expression;
+    
+    public GenericSpecification(Expression&lt;Func&lt;T, bool&gt;&gt; expression)
+    {
+        _expression = expression;
+    }
+    
+    protected override Expression&lt;Func&lt;T, bool&gt;&gt; ToExpression() =&gt; _expression;
+}
+
+// Usage - business logic still scattered
+var spec1 = new GenericSpecification&lt;Product&gt;(p =&gt; p.Price &gt; 50);
+var spec2 = new GenericSpecification&lt;Product&gt;(p =&gt; p.Price &gt;= 100);
+var spec3 = new GenericSpecification&lt;Product&gt;(p =&gt; p.Price &gt; 75);</code></pre>
+
+        <p><strong>Problem:</strong> Different developers create different implementations of the same business concept. 
+            The specification becomes just a thin wrapper with no real value.
+        </p>
+
+        <h4 class="[ font-semibold text-base ]">Anti-Pattern 4: Repository Method Proliferation</h4>
+
+        <p>
+            Adding new repository methods for every business rule combination.
+        </p>
+
+        <pre><code id="9d643fb9-a1b5-4294-a319-c14c7392c4a4" class="language-csharp">public class ProductRepository
+{
+    public List&lt;Product&gt; GetPremiumProducts() { }
+    public List&lt;Product&gt; GetPremiumInStockProducts() { }
+    public List&lt;Product&gt; GetPremiumBusinessProducts() { }
+    public List&lt;Product&gt; GetPremiumInStockBusinessProducts() { }
+    // ... hundreds more combinations
+}</code></pre>
+
+        <p><strong>Problems:</strong> Massive repository classes, inconsistent implementations, and difficult maintenance.
+        </p>
+
+        <h4 class="[ font-semibold text-base ]">Anti-Pattern 5: Configuration Overload</h4>
+
+        <p>
+            Making specifications overly configurable loses business meaning.
+        </p>
+
+        <pre><code id="8f3158de-d71b-4412-8ffc-55b2f067ce93" class="language-csharp">public class ConfigurableSpecification : Specification&lt;Product&gt;
+{
+    private readonly decimal? _minPrice;
+    private readonly decimal? _maxPrice;
+    private readonly int? _minStock;
+    private readonly string[] _categories;
+    
+    protected override Expression&lt;Func&lt;Product, bool&gt;&gt; ToExpression()
+    {
+        return product =&gt;
+            (!_minPrice.HasValue || product.Price &gt;= _minPrice) &amp;&amp;
+            (!_maxPrice.HasValue || product.Price &lt;= _maxPrice) &amp;&amp;
+            (!_minStock.HasValue || product.Stock &gt;= _minStock) &amp;&amp;
+            (_categories == null || _categories.Contains(product.Category));
+    }
+}</code></pre>
+
+        <p><strong>Problem:</strong> Complex conditional logic, no clear business meaning, and difficult testing.
+        </p>
+
+        <h3 id="understanding-expression-trees" class="[ font-semibold text-lg ]">Understanding Expression Trees and LINQ</h3>
+
+        <p>
+            To properly implement specifications, we need to understand how <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">LINQ works with expression trees</span>.
+        </p>
+
+        <p>
+            The <code>Where</code> method in LINQ uses the same syntax but behaves differently depending on context:
+        </p>
+
+        <pre><code id="8aaf973f-7b50-4185-bbc8-70f831a81b2b" class="language-csharp">// In-memory collection - uses Func&lt;T, bool&gt; (delegate)
+List&lt;Product&gt; products = GetProducts();
+var filtered = products.Where(p =&gt; p.Price &gt; 100).ToList();
+
+// Database query - uses Expression&lt;Func&lt;T, bool&gt;&gt; (expression tree)
+IQueryable&lt;Product&gt; products = context.Products;
+var filtered = products.Where(p =&gt; p.Price &gt; 100).ToList();</code></pre>
+
+        <p>
+            The C# compiler makes an intelligent choice:
+        </p>
+
+        <ul class="[ list-disc ] [ ml-4 ]"><li><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Delegate (Func&lt;T, bool&gt;):</span> Compiled code ready to execute</li>
+            <li><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Expression Tree:</span> Data structure describing the code that can be analyzed and translated</li></ul>
+
+        <h4 class="[ font-semibold text-base ]">Expression Trees vs Delegates</h4>
+
+        <pre><code id="f4d810d6-b990-4165-bc43-4aa84276fb08" class="language-csharp">// Same lambda expression, different types
+Func&lt;Product, bool&gt; priceDelegate = p =&gt; p.Price &gt; 50;
+Expression&lt;Func&lt;Product, bool&gt;&gt; priceExpression = p =&gt; p.Price &gt; 50;
+
+var product = new Product { Price = 100 };
+
+// Delegate - direct execution
+bool result1 = priceDelegate(product);  // true
+
+// Expression - needs compilation
+var compiled = priceExpression.Compile();
+bool result2 = compiled(product);  // true</code></pre>
+
+        <p>
+            Key differences:
+        </p>
+
+        <table class="[ table-fixed border-collapse ] [ bg-white ] [ border-2 border-gray-200 ] [ dark:bg-black dark:border-slate-500 ] [ w-full ]"><thead><tr class="[ bg-gray-100 ] [ dark:bg-slate-500 ]"><th class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Aspect</th>
+                    <th class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Delegate</th>
+                    <th class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Expression Tree</th></tr></thead>
+            <tbody><tr><td class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Nature</td>
+                    <td class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Compiled code</td>
+                    <td class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Data structure describing code</td></tr>
+                <tr><td class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Execution</td>
+                    <td class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Runs immediately when called</td>
+                    <td class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Needs compilation to execute</td></tr>
+                <tr><td class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">SQL Translation</td>
+                    <td class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Cannot translate (black box)</td>
+                    <td class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Can be analyzed and translated</td></tr>
+                <tr><td class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Use Case</td>
+                    <td class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">In-memory operations</td>
+                    <td class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Database queries + in-memory</td></tr></tbody></table>
+
+        <h4 class="[ font-semibold text-base ]">How Entity Framework Translates Expression Trees</h4>
+
+        <p>
+            Entity Framework Core walks through expression trees and generates SQL:
+        </p>
+
+        <pre><code id="eecd77d4-771a-4445-82ad-0d3632617ec3" class="language-csharp">// LINQ query with expression tree
+var query = context.Products
+    .Where(p =&gt; p.Price &gt; 50 &amp;&amp; p.Stock &gt; 5);
+
+// EF Core analyzes the expression tree:
+// - Finds BinaryExpression for Price &gt; 50
+// - Finds BinaryExpression for Stock &gt; 5
+// - Finds AndAlso combining them
+
+// Generated SQL:
+// SELECT * FROM Products 
+// WHERE Price &gt; 50 AND Stock &gt; 5</code></pre>
+
+        <p>
+            This transformation is why specifications work seamlessly with Entity Framework Core while maintaining type safety and testability.
+        </p>
+
+        <h3 id="building-base-specification" class="[ font-semibold text-lg ]">Building the Base Specification Class</h3>
+
+        <p>
+            Now let's build a robust base specification class that addresses all the requirements we've identified.
+        </p>
+
+        <h4 class="[ font-semibold text-base ]">Requirements</h4>
+
+        <ol class="[ list-decimal ] [ ml-4 ]"><li><strong>Single Source of Truth:</strong> Business logic defined exactly once</li>
+            <li><strong>Optimal Performance:</strong> Automatic compilation caching</li>
+            <li><strong>Dual Purpose:</strong> Works for both EF Core queries and in-memory validation</li>
+            <li><strong>Hide Complexity:</strong> No technical details exposed to consumers</li>
+            <li><strong>Type Safety:</strong> Compile-time checks</li>
+            <li><strong>Handle Edge Cases:</strong> Null checks and validation</li>
+            <li><strong>Extensible:</strong> Support for composition</li></ol>
+
+        <h4 class="[ font-semibold text-base ]">Base Specification Implementation</h4>
+
+        <pre><code id="e59bfef5-76aa-4d9f-b286-17f21ccb83ab" class="language-csharp">
+public abstract class Specification&lt;T&gt; where T : class
+{
+    // Cache compiled expression for performance
+    private Func&lt;T, bool&gt;? _compiledExpression;
+
+    // Derived classes implement business logic here
+    protected abstract Expression&lt;Func&lt;T, bool&gt;&gt; ToExpression();
+
+    // In-memory validation with automatic caching
+    public bool IsSatisfiedBy(T entity)
+    {
+        if (entity == null)
+            throw new ArgumentNullException(nameof(entity));
+
+        // Compile once, cache for future calls
+        _compiledExpression ??= ToExpression().Compile();
+        
+        return _compiledExpression(entity);
+    }
+
+    // Database query support for EF Core
+    public Expression&lt;Func&lt;T, bool&gt;&gt; GetExpression()
+    {
+        return ToExpression();
+    }
+
+    // Composition support (covered later)
+    public static Specification&lt;T&gt; All =&gt; new IdentitySpecification&lt;T&gt;();
+    
+    public Specification&lt;T&gt; And(Specification&lt;T&gt; other) =&gt; 
+        new AndSpecification&lt;T&gt;(this, other);
+    
+    public Specification&lt;T&gt; Or(Specification&lt;T&gt; other) =&gt; 
+        new OrSpecification&lt;T&gt;(this, other);
+    
+    public Specification&lt;T&gt; Not() =&gt; 
+        new NotSpecification&lt;T&gt;(this);
+}
+</code></pre>
+
+        <p>
+            This base class satisfies all our requirements:
+        </p>
+
+        <ul class="[ list-disc ] [ ml-4 ]"><li>✅ <strong>Single Source:</strong> <code>ToExpression()</code> implemented once per concrete specification</li>
+            <li>✅ <strong>Performance:</strong> Compilation happens once, cached in <code>_compiledExpression</code></li>
+            <li>✅ <strong>Dual Purpose:</strong> <code>GetExpression()</code> for EF Core, <code>IsSatisfiedBy()</code> for in-memory</li>
+            <li>✅ <strong>Hidden Complexity:</strong> Only two public methods exposed</li>
+            <li>✅ <strong>Type Safety:</strong> Generic constraint <code>where T : class</code></li>
+            <li>✅ <strong>Edge Cases:</strong> Null check in <code>IsSatisfiedBy()</code></li>
+            <li>✅ <strong>Extensible:</strong> Protected <code>ToExpression()</code> allows composition</li></ul>
+
+        <h3 id="implementing-specifications" class="[ font-semibold text-lg ]">Implementing Strongly-Typed Specifications</h3>
+
+        <p>
+            With our base class ready, let's implement concrete specifications representing real business rules.
+        </p>
+
+        <h4 class="[ font-semibold text-base ]">Premium Product Specification</h4>
+
+        <pre><code id="9d8b55df-0197-4703-b4f1-4df230dfd232" class="language-csharp">
+public class PremiumProductSpecification : Specification&lt;Product&gt;
+{
+    protected override Expression&lt;Func&lt;Product, bool&gt;&gt; ToExpression()
+    {
+        return product =&gt;
+            product.Price &gt;= 100 &amp;&amp;
+            product.Stock &gt; 5 &amp;&amp;
+            (product.Category == "Electronics" ||
+            product.Category == "Office" ||
+            product.Category == "Industrial");
+    }
+}
+</code></pre>
+
+        <p>
+            Clean and simple! The business logic lives in exactly one place. No duplication, no configuration complexity.
+        </p>
+
+        <h4 class="[ font-semibold text-base ]">Parameterized Specification</h4>
+
+        <p>
+            Sometimes specifications need parameters:
+        </p>
+
+        <pre><code id="cba8fc37-db03-4b49-8cf0-4aa2bfecc7db" class="language-csharp">
+public class InStockSpecification : Specification&lt;Product&gt;
+{
+    private readonly int _minimumStock;
+
+    public InStockSpecification(int minimumStock)
+    {
+        _minimumStock = minimumStock;
+    }
+
+    protected override Expression&lt;Func&lt;Product, bool&gt;&gt; ToExpression()
+    {
+        return product =&gt; product.Stock &gt;= _minimumStock;
+    }
+}
+
+// Usage
+var inStockSpec = new InStockSpecification(10);
+var products = await repository.FindAsync(inStockSpec);
+</code></pre>
+
+        <h4 class="[ font-semibold text-base ]">Business Product Specification</h4>
+
+        <pre><code id="6416de7f-87f0-4b04-aa77-36eb4c4b64e4" class="language-csharp">
+public class BusinessProductSpecification : Specification&lt;Product&gt;
+{
+    protected override Expression&lt;Func&lt;Product, bool&gt;&gt; ToExpression()
+    {
+        return product =&gt; 
+            product.IsBusinessProduct &amp;&amp;
+            product.MinimumOrderQuantity &gt;= 10;
+    }
+}
+</code></pre>
+
+        <h4 class="[ font-semibold text-base ]">Usage in Controllers</h4>
+
+        <pre><code id="d177250b-aa7f-4937-8d28-14f85b38a792" class="language-csharp">public class PremiumProductsController : ControllerBase
+{
+    private readonly IRepository&lt;Product&gt; _repository;
+
+    [HttpGet]
+    public async Task&lt;IActionResult&gt; GetPremiumProducts()
+    {
+        var spec = new PremiumProductSpecification();
+        var products = await _repository.FindAsync(spec);
+        
+        return Ok(products);
+    }
+
+    [HttpGet("count")]
+    public async Task&lt;IActionResult&gt; CountPremiumProducts()
+    {
+        var spec = new PremiumProductSpecification();
+        var count = await _repository.CountAsync(spec);
+        
+        return Ok(new { count });
+    }
+}</code></pre>
+
+        <h4 class="[ font-semibold text-base ]">Usage in Services</h4>
+
+        <pre><code id="b27fa3c7-1fcc-4cca-9002-16fe46097582" class="language-csharp">public class ProductValidationService
+{
+    public ValidationResult ValidateForPremiumDiscount(Product product)
+    {
+        var premiumSpec = new PremiumProductSpecification();
+        
+        if (!premiumSpec.IsSatisfiedBy(product))
+        {
+            return ValidationResult.Failure("Product does not qualify as premium");
+        }
+        
+        return ValidationResult.Success();
+    }
+}</code></pre>
+
+        <p>
+            Notice how the <strong>same specification</strong> works in both contexts:
+        </p>
+
+        <ul class="[ list-disc ] [ ml-4 ]"><li>Controller uses <code>FindAsync(spec)</code> → Generates SQL query</li>
+            <li>Service uses <code>IsSatisfiedBy(product)</code> → In-memory validation</li>
+            <li>Both use identical business logic</li></ul>
+
+        <h3 id="integrating-ef-core" class="[ font-semibold text-lg ]">Integrating with Entity Framework Core</h3>
+
+        <p>
+            To use specifications with Entity Framework Core efficiently, let's create a <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">generic specification repository</span>.
+        </p>
+
+        <h4 class="[ font-semibold text-base ]">Specification Repository</h4>
+
+        <pre><code id="580653cf-4e13-4925-a907-2059205ce139" class="language-csharp">
+public class SpecificationRepository&lt;TContext, T&gt; 
+    where TContext : DbContext 
+    where T : class
+{
+    private readonly TContext _context;
+    private readonly DbSet&lt;T&gt; _dbSet;
+
+    public SpecificationRepository(TContext context)
+    {
+        _context = context;
+        _dbSet = context.Set&lt;T&gt;();
+    }
+
+    // Find entities matching specification
+    public async Task&lt;List&lt;T&gt;&gt; FindAsync(Specification&lt;T&gt; specification)
+    {
+        return await _dbSet
+            .Where(specification.GetExpression())
+            .ToListAsync();
+    }
+
+    // Check if any entity matches
+    public async Task&lt;bool&gt; AnyAsync(Specification&lt;T&gt; specification)
+    {
+        return await _dbSet
+            .AnyAsync(specification.GetExpression());
+    }
+
+    // Count matching entities
+    public async Task&lt;int&gt; CountAsync(Specification&lt;T&gt; specification)
+    {
+        return await _dbSet
+            .CountAsync(specification.GetExpression());
+    }
+
+    // Find first matching entity
+    public async Task&lt;T?&gt; FindSingleAsync(Specification&lt;T&gt; specification)
+    {
+        return await _dbSet
+            .FirstOrDefaultAsync(specification.GetExpression());
+    }
+
+    // With eager loading
+    public async Task&lt;List&lt;T&gt;&gt; FindAsync(
+        Specification&lt;T&gt; specification,
+        params Expression&lt;Func&lt;T, object&gt;&gt;[] includes)
+    {
+        IQueryable&lt;T&gt; query = _dbSet;
+        
+        foreach (var include in includes)
+        {
+            query = query.Include(include);
+        }
+        
+        return await query
+            .Where(specification.GetExpression())
+            .ToListAsync();
+    }
+}
+</code></pre>
+
+        <p>
+            Register in dependency injection:
+        </p>
+
+        <pre><code id="c0e8bd71-a2e0-4a67-bdda-74e9230b3476" class="language-csharp">// Program.cs or Startup.cs
+services.AddScoped&lt;SpecificationRepository&lt;AppDbContext, Product&gt;&gt;();</code></pre>
+
+        <h4 class="[ font-semibold text-base ]">Usage with EF Core</h4>
+
+        <pre><code id="9d8e6a73-8047-4768-aaaa-56c34a9535a9" class="language-csharp">public class ProductController : ControllerBase
+{
+    private readonly SpecificationRepository&lt;AppDbContext, Product&gt; _repository;
+
+    // Find premium products
+    [HttpGet("premium")]
+    public async Task&lt;IActionResult&gt; GetPremium()
+    {
+        var spec = new PremiumProductSpecification();
+        var products = await _repository.FindAsync(spec);
+        return Ok(products);
+    }
+
+    // Count in-stock products
+    [HttpGet("in-stock/count")]
+    public async Task&lt;IActionResult&gt; CountInStock([FromQuery] int minStock = 10)
+    {
+        var spec = new InStockSpecification(minStock);
+        var count = await _repository.CountAsync(spec);
+        return Ok(new { count });
+    }
+
+    // Check if business products exist
+    [HttpGet("business/exists")]
+    public async Task&lt;IActionResult&gt; BusinessProductsExist()
+    {
+        var spec = new BusinessProductSpecification();
+        var exists = await _repository.AnyAsync(spec);
+        return Ok(new { exists });
+    }
+}</code></pre>
+
+        <p>
+            The repository generates <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">optimized SQL queries</span>:
+        </p>
+
+        <pre><code id="3a35dac2-f619-4b22-afd7-b2c7f743fc65" class="language-csharp">// For CountAsync with InStockSpecification(10)
+SELECT COUNT(*) FROM Products WHERE Stock &gt;= 10
+
+// For FindAsync with PremiumProductSpecification
+SELECT * FROM Products 
+WHERE Price &gt;= 100 
+  AND Stock &gt; 5 
+  AND Category IN ('Electronics', 'Office', 'Industrial')</code></pre>
+
+        <h4 class="[ font-semibold text-base ]">Handling Related Entities</h4>
+
+        <p>
+            Specifications can work across relationships:
+        </p>
+
+        <pre><code id="c230aaa0-a605-436e-8277-477b0acaaecb" class="language-csharp">
+public class ActiveSupplierSpecification : Specification&lt;Product&gt;
+{
+    protected override Expression&lt;Func&lt;Product, bool&gt;&gt; ToExpression()
+    {
+        return product =&gt; 
+            product.Supplier != null &amp;&amp;
+            product.Supplier.Status == SupplierStatus.Active &amp;&amp;
+            product.Supplier.ReliabilityScore &gt;= 8;
+    }
+}
+
+// Usage with eager loading
+var spec = new ActiveSupplierSpecification();
+var products = await _repository.FindAsync(
+    spec,
+    p =&gt; p.Supplier  // Include related supplier
+);
+</code></pre>
+
+        <h3 id="composing-specifications" class="[ font-semibold text-lg ]">Composing Specifications with Logical Operators</h3>
+
+        <p>
+            One of the most powerful features of the Specification Pattern is <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">composition</span> - 
+            combining simple specifications into complex business rules using logical operators.
+        </p>
+
+        <h4 class="[ font-semibold text-base ]">Logical Operators</h4>
+
+        <p>
+            We need three fundamental operations:
+        </p>
+
+        <ul class="[ list-disc ] [ ml-4 ]"><li><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">AND:</span> Both specifications must be satisfied</li>
+            <li><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">OR:</span> At least one specification must be satisfied</li>
+            <li><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">NOT:</span> Negate a specification</li></ul>
+
+        <h4 class="[ font-semibold text-base ]">NOT Specification</h4>
+
+        <pre><code id="93c71b2c-9aa1-4395-8a2b-61ea878afc62" class="language-csharp">
+internal sealed class NotSpecification&lt;T&gt; : Specification&lt;T&gt; where T : class
+{
+    private readonly Specification&lt;T&gt; _specification;
+
+    public NotSpecification(Specification&lt;T&gt; specification)
+    {
+        _specification = specification;
+    }
+
+    protected override Expression&lt;Func&lt;T, bool&gt;&gt; ToExpression()
+    {
+        var expression = _specification.GetExpression();
+        var parameter = expression.Parameters[0];
+        var body = Expression.Not(expression.Body);
+        
+        return Expression.Lambda&lt;Func&lt;T, bool&gt;&gt;(body, parameter);
+    }
+}
+</code></pre>
+
+        <h4 class="[ font-semibold text-base ]">AND Specification</h4>
+
+        <pre><code id="f630a38f-3a30-42fe-8107-d0f409d99f46" class="language-csharp">
+internal sealed class AndSpecification&lt;T&gt; : Specification&lt;T&gt; where T : class
+{
+    private readonly Specification&lt;T&gt; _left;
+    private readonly Specification&lt;T&gt; _right;
+
+    public AndSpecification(Specification&lt;T&gt; left, Specification&lt;T&gt; right)
+    {
+        _left = left;
+        _right = right;
+    }
+
+    protected override Expression&lt;Func&lt;T, bool&gt;&gt; ToExpression()
+    {
+        var leftExpression = _left.GetExpression();
+        var rightExpression = _right.GetExpression();
+        
+        var parameter = leftExpression.Parameters[0];
+        
+        // Replace parameter in right expression to match left
+        var rightBody = ParameterReplacer.Replace(
+            rightExpression.Body,
+            rightExpression.Parameters[0],
+            parameter
+        );
+        
+        // Combine with AndAlso for short-circuit evaluation
+        var body = Expression.AndAlso(leftExpression.Body, rightBody);
+        
+        return Expression.Lambda&lt;Func&lt;T, bool&gt;&gt;(body, parameter);
+    }
+}
+</code></pre>
+
+        <h4 class="[ font-semibold text-base ]">OR Specification</h4>
+
+        <pre><code id="8735ac3a-6685-4c6e-a65b-29c69c2097a7" class="language-csharp">
+internal sealed class OrSpecification&lt;T&gt; : Specification&lt;T&gt; where T : class
+{
+    private readonly Specification&lt;T&gt; _left;
+    private readonly Specification&lt;T&gt; _right;
+
+    public OrSpecification(Specification&lt;T&gt; left, Specification&lt;T&gt; right)
+    {
+        _left = left;
+        _right = right;
+    }
+
+    protected override Expression&lt;Func&lt;T, bool&gt;&gt; ToExpression()
+    {
+        var leftExpression = _left.GetExpression();
+        var rightExpression = _right.GetExpression();
+        
+        var parameter = leftExpression.Parameters[0];
+        
+        var rightBody = ParameterReplacer.Replace(
+            rightExpression.Body,
+            rightExpression.Parameters[0],
+            parameter
+        );
+        
+        // Combine with OrElse for short-circuit evaluation
+        var body = Expression.OrElse(leftExpression.Body, rightBody);
+        
+        return Expression.Lambda&lt;Func&lt;T, bool&gt;&gt;(body, parameter);
+    }
+}
+</code></pre>
+
+        <h4 class="[ font-semibold text-base ]">Parameter Replacer Helper</h4>
+
+        <p>
+            This helper ensures consistent parameter naming across composed expressions:
+        </p>
+
+        <pre><code id="8711e799-d6c0-46dc-98b4-c8b2e87c07e1" class="language-csharp">internal class ParameterReplacer : ExpressionVisitor
+{
+    private readonly ParameterExpression _oldParameter;
+    private readonly ParameterExpression _newParameter;
+
+    private ParameterReplacer(
+        ParameterExpression oldParameter,
+        ParameterExpression newParameter)
+    {
+        _oldParameter = oldParameter;
+        _newParameter = newParameter;
+    }
+
+    public static Expression Replace(
+        Expression expression,
+        ParameterExpression oldParameter,
+        ParameterExpression newParameter)
+    {
+        return new ParameterReplacer(oldParameter, newParameter)
+            .Visit(expression);
+    }
+
+    protected override Expression VisitParameter(ParameterExpression node)
+    {
+        return node == _oldParameter ? _newParameter : node;
+    }
+}</code></pre>
+
+        <h4 class="[ font-semibold text-base ]">Composition in Action</h4>
+
+        <pre><code id="61096a98-3950-421e-93d2-68d910230c84" class="language-csharp">// Complex business rule: Premium AND in-stock OR clearance, but NOT business-only
+var marketingSpec = new PremiumProductSpecification()
+    .And(new InStockSpecification(10))
+    .Or(new ClearanceSaleSpecification())
+    .And(new BusinessProductSpecification().Not());
+
+// Usage
+var products = await _repository.FindAsync(marketingSpec);
+
+// Generated SQL (example):
+// SELECT * FROM Products 
+// WHERE (
+//     (Price &gt;= 100 AND Stock &gt; 5 AND Category IN (...) AND Stock &gt;= 10)
+//     OR
+//     (Price &lt; 50 AND Stock &lt; 10)
+// )
+// AND NOT (IsBusinessProduct = 1 AND MinimumOrderQuantity &gt;= 10)</code></pre>
+
+        <p><strong>Key Benefits:</strong></p>
+
+        <ul class="[ list-disc ] [ ml-4 ]"><li>Fluent, readable syntax</li>
+            <li>Type-safe composition</li>
+            <li>Automatically generates optimized SQL</li>
+            <li>Reusable building blocks</li></ul>
+
+        <h3 id="identity-specification" class="[ font-semibold text-lg ]">Identity Specification for Dynamic Queries</h3>
+
+        <p>
+            The <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Identity Specification</span> acts as a neutral element for AND operations, 
+            perfect for building dynamic queries with optional filters.
+        </p>
+
+        <h4 class="[ font-semibold text-base ]">Identity Specification Implementation</h4>
+
+        <pre><code id="03faf493-8ab5-4d20-be0f-9871ec3bde75" class="language-csharp">internal sealed class IdentitySpecification&lt;T&gt; : Specification&lt;T&gt; where T : class
+{
+    protected override Expression&lt;Func&lt;T, bool&gt;&gt; ToExpression()
+    {
+        // Always returns true - matches all entities
+        return entity =&gt; true;
+    }
+}</code></pre>
+
+        <h4 class="[ font-semibold text-base ]">Optimizations in Base Class</h4>
+
+        <pre><code id="43edc598-0621-4e5c-bcad-6c48075298b9" class="language-csharp">public abstract class Specification&lt;T&gt; where T : class
+{
+    // Identity specification for starting dynamic queries
+    public static Specification&lt;T&gt; All =&gt; new IdentitySpecification&lt;T&gt;();
+
+    public Specification&lt;T&gt; And(Specification&lt;T&gt; other)
+    {
+        // Optimization: If left is identity, return right
+        if (this is IdentitySpecification&lt;T&gt;)
+            return other;
+            
+        // Optimization: If right is identity, return left
+        if (other is IdentitySpecification&lt;T&gt;)
+            return this;
+            
+        return new AndSpecification&lt;T&gt;(this, other);
+    }
+
+    public Specification&lt;T&gt; Or(Specification&lt;T&gt; other)
+    {
+        // Optimization: If either is identity, entire OR is always true
+        if (this is IdentitySpecification&lt;T&gt; || other is IdentitySpecification&lt;T&gt;)
+            return All;
+            
+        return new OrSpecification&lt;T&gt;(this, other);
+    }
+}</code></pre>
+
+        <h4 class="[ font-semibold text-base ]">Dynamic Search Endpoint</h4>
+
+        <p>
+            Build queries dynamically based on optional filter parameters:
+        </p>
+
+        <pre><code id="3a248024-d80e-4f88-a148-ee2ea5836f3d" class="language-csharp">[HttpGet("search")]
+public async Task&lt;IActionResult&gt; Search(
+    [FromQuery] string? category = null,
+    [FromQuery] int? minStock = null,
+    [FromQuery] decimal? minPrice = null)
+{
+    // Start with identity (match all)
+    var spec = Specification&lt;Product&gt;.All;
+    
+    // Add filters only if provided
+    if (!string.IsNullOrWhiteSpace(category))
+    {
+        spec = spec.And(new CategorySpecification(category));
+    }
+    
+    if (minStock.HasValue)
+    {
+        spec = spec.And(new InStockSpecification(minStock.Value));
+    }
+    
+    if (minPrice.HasValue)
+    {
+        spec = spec.And(new MinimumPriceSpecification(minPrice.Value));
+    }
+    
+    var products = await _repository.FindAsync(spec);
+    return Ok(products);
+}</code></pre>
+
+        <p><strong>Query Scenarios:</strong></p>
+
+        <pre><code id="9241ca09-af5e-499b-b8b6-8e564ebcddcf" class="language-csharp">// No filters - returns all products
+GET /search
+// SQL: SELECT * FROM Products
+
+// Only category filter
+GET /search?category=Electronics
+// SQL: SELECT * FROM Products WHERE Category = 'Electronics'
+
+// Multiple filters
+GET /search?category=Electronics&amp;minStock=10&amp;minPrice=50
+// SQL: SELECT * FROM Products 
+//      WHERE Category = 'Electronics' 
+//        AND Stock &gt;= 10 
+//        AND Price &gt;= 50</code></pre>
+
+        <p>
+            The beauty of this approach:
+        </p>
+
+        <ul class="[ list-disc ] [ ml-4 ]"><li>No null checks needed</li>
+            <li>Clean, linear code</li>
+            <li>Efficient SQL generation</li>
+            <li>Easy to extend with new filters</li></ul>
+
+        <h3 id="best-practices" class="[ font-semibold text-lg ]">Best Practices</h3>
+
+        <h4 class="[ font-semibold text-base ]">1. Structure: Strongly-Typed Classes</h4>
+
+        <p>
+            ✅ <strong>Do:</strong> Create dedicated specification classes for each business concept
+        </p>
+
+        <pre><code id="2473553e-b83d-4722-8ee7-782235b7175f" class="language-csharp">public class PremiumProductSpecification : Specification&lt;Product&gt;
+{
+    // Clear business meaning
+    protected override Expression&lt;Func&lt;Product, bool&gt;&gt; ToExpression() { }
+}</code></pre>
+
+        <p>
+            ❌ <strong>Don't:</strong> Use generic specifications with external configuration
+        </p>
+
+        <pre><code id="c4c3f990-0620-48b5-9894-1aa19c5efbdc" class="language-csharp">// Loses business meaning
+var spec = new GenericSpecification&lt;Product&gt;(p =&gt; p.Price &gt; 100);</code></pre>
+
+        <h4 class="[ font-semibold text-base ]">2. Focus: Single Responsibility</h4>
+
+        <p>
+            Keep specifications focused on one business concept:
+        </p>
+
+        <pre><code id="e3e7067c-3741-4e73-a18d-b4363461e486" class="language-csharp">// ✅ Good - clear purpose
+public class ClearanceSaleSpecification : Specification&lt;Product&gt; { }
+
+// ❌ Bad - too flexible
+public class ConfigurableProductSpecification : Specification&lt;Product&gt;
+{
+    public ConfigurableProductSpecification(
+        decimal? minPrice, 
+        decimal? maxPrice, 
+        int? minStock,
+        string[] categories) { }
+}</code></pre>
+
+        <h4 class="[ font-semibold text-base ]">3. Immutability: Thread-Safe Specifications</h4>
+
+        <pre><code id="481ec1dc-72c9-44e2-b4a9-b83c6f40ce84" class="language-csharp">public class InStockSpecification : Specification&lt;Product&gt;
+{
+    private readonly int _minimumStock;  // ✅ readonly field
+
+    public InStockSpecification(int minimumStock)
+    {
+        _minimumStock = minimumStock;
+    }
+    
+    // Immutable - safe for concurrent use
+}</code></pre>
+
+        <h4 class="[ font-semibold text-base ]">4. Performance: Monitor Generated SQL</h4>
+
+        <p>
+            Always verify that specifications generate efficient queries:
+        </p>
+
+        <pre><code id="f3b47f05-f6e2-423d-bd0f-0de4725aa606" class="language-csharp">// Enable EF Core logging
+services.AddDbContext&lt;AppDbContext&gt;(options =&gt;
+    options.UseSqlServer(connectionString)
+           .LogTo(Console.WriteLine, LogLevel.Information));
+
+// Check generated SQL
+var spec = new PremiumProductSpecification();
+var products = await _repository.FindAsync(spec);
+
+// Console output:
+// SELECT * FROM Products 
+// WHERE Price &gt;= 100 AND Stock &gt; 5 AND ...</code></pre>
+
+        <h4 class="[ font-semibold text-base ]">5. Repository: Specification-Aware Methods</h4>
+
+        <pre><code id="4c54dd42-193a-414d-9f3a-02b94b16ec9d" class="language-csharp">// ✅ Good - uses specifications
+public Task&lt;List&lt;T&gt;&gt; FindAsync(Specification&lt;T&gt; spec) { }
+public Task&lt;int&gt; CountAsync(Specification&lt;T&gt; spec) { }
+
+// ❌ Bad - specific methods for each rule
+public Task&lt;List&lt;Product&gt;&gt; GetPremiumProducts() { }
+public Task&lt;List&lt;Product&gt;&gt; GetPremiumInStockProducts() { }
+public Task&lt;List&lt;Product&gt;&gt; GetPremiumBusinessProducts() { }
+// ... hundreds more</code></pre>
+
+        <h4 class="[ font-semibold text-base ]">6. Composition: Use Logical Operators</h4>
+
+        <p>
+            Prefer composition over inheritance:
+        </p>
+
+        <pre><code id="dd32b6a4-308b-4dfb-a71d-1b0134d8e984" class="language-csharp">// ✅ Good - composable
+var spec = new PremiumProductSpecification()
+    .And(new InStockSpecification(10))
+    .Or(new ClearanceSaleSpecification());
+
+// ❌ Bad - inheritance hierarchy
+public class PremiumInStockSpecification : PremiumProductSpecification { }
+public class PremiumBusinessSpecification : PremiumProductSpecification { }</code></pre>
+
+        <h4 class="[ font-semibold text-base ]">7. Testing: Independent Verification</h4>
+
+        <pre><code id="bda39d22-3d37-4f77-be27-c7ef23156f64" class="language-csharp">[Fact]
+public void PremiumProductSpecification_Should_Match_Qualified_Products()
+{
+    // Arrange
+    var spec = new PremiumProductSpecification();
+    var qualifiedProduct = new Product 
+    { 
+        Price = 150, 
+        Stock = 10, 
+        Category = "Electronics" 
+    };
+    var unqualifiedProduct = new Product 
+    { 
+        Price = 50, 
+        Stock = 10, 
+        Category = "Electronics" 
+    };
+
+    // Act &amp; Assert
+    Assert.True(spec.IsSatisfiedBy(qualifiedProduct));
+    Assert.False(spec.IsSatisfiedBy(unqualifiedProduct));
+}</code></pre>
+
+        <h4 class="[ font-semibold text-base ]">When to Use Specifications</h4>
+
+        <p>
+            Three key questions to guide your decision:
+        </p>
+
+        <table class="[ table-fixed border-collapse ] [ bg-white ] [ border-2 border-gray-200 ] [ dark:bg-black dark:border-slate-500 ] [ w-full ]"><thead><tr class="[ bg-gray-100 ] [ dark:bg-slate-500 ]"><th class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Question</th>
+                    <th class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Yes = Use Specifications</th>
+                    <th class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">No = Simple Code</th></tr></thead>
+            <tbody><tr><td class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Does logic appear in multiple places?</td>
+                    <td class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Specifications eliminate duplication</td>
+                    <td class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Direct implementation is fine</td></tr>
+                <tr><td class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Is this an enterprise application?</td>
+                    <td class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Specifications provide structure</td>
+                    <td class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Simple solutions work well</td></tr>
+                <tr><td class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Will business rules change frequently?</td>
+                    <td class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Single source of truth</td>
+                    <td class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Scattered logic acceptable</td></tr></tbody></table>
+
+        <p><strong>Perfect for:</strong></p>
+
+        <ul class="[ list-disc ] [ ml-4 ]"><li>Enterprise applications with complex business rules</li>
+            <li>E-commerce platforms with product filtering and eligibility</li>
+            <li>Financial systems with regulatory compliance rules</li>
+            <li>Multi-team codebases needing consistency</li></ul>
+
+        <p><strong>Not recommended for:</strong></p>
+
+        <ul class="[ list-disc ] [ ml-4 ]"><li>Simple CRUD applications</li>
+            <li>One-time data migrations</li>
+            <li>Prototype or proof-of-concept projects</li>
+            <li>Ultra-high-performance systems where microseconds matter</li></ul>
+
+        <h3 id="summary">Summary</h3>
+
+<p>
+            In this article, we explored how the <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Specification Pattern</span> from 
+            <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Domain-Driven Design</span> eliminates scattered and duplicated business logic in enterprise applications.
+        </p>
+
+        <p><strong>Key Takeaways:</strong></p>
+
+        <ul class="[ list-disc ] [ ml-4 ]"><li><strong>Problem Solved:</strong> Scattered business logic leads to duplication, inconsistency, and maintenance nightmares. 
+                The Specification Pattern provides a <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">single source of truth</span>.
+            </li>
+            <li><strong>Core Concept:</strong> Specifications encapsulate business rules into reusable objects that work for both 
+                <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">database queries and in-memory validation</span>.
+            </li>
+            <li><strong>Expression Trees:</strong> Understanding the difference between delegates and expression trees is crucial. 
+                Entity Framework Core needs expression trees to generate SQL.
+            </li>
+            <li><strong>Base Class:</strong> A robust base specification class handles compilation caching, null checks, and 
+                provides a clean API for consumers.
+            </li>
+            <li><strong>Strongly-Typed:</strong> Each business concept gets its own specification class, maintaining clear business meaning.
+            </li>
+            <li><strong>Composition:</strong> Logical operators (AND, OR, NOT) enable building complex rules from simple specifications.
+            </li>
+            <li><strong>Identity Pattern:</strong> The identity specification enables clean dynamic query building with optional filters.
+            </li>
+            <li><strong>Best Practices:</strong> Keep specifications focused, immutable, and testable. Monitor generated SQL for performance.
+            </li></ul>
+
+        <p>
+            The Specification Pattern transforms maintenance nightmares into elegant, maintainable code. When business requirements change, 
+            you update <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">exactly one place</span>, and the change propagates automatically to all consumers. 
+            This is the power of proper domain-driven design.
+        </p>
+            <section class="[ font-bold ] [ p-5 ] [ flex flex-col items-center justify-center ]"><a href="https://whatsapp.com/channel/0029VaAGMV2LtOj5S5MHd23h" target="_blank"><span>👉🏼 Click here to Join I ❤️ .NET </span>
+        <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-brand-whatsapp ] [ fill-green-500 ] [ inline ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <path d="M3 21l1.65 -3.8a9 9 0 1 1 3.4 2.9l-5.05 .9"></path>
+            <path d="M9 10a.5 .5 0 0 0 1 0v-1a.5 .5 0 0 0 -1 0v1a5 5 0 0 0 5 5h1a.5 .5 0 0 0 0 -1h-1a.5 .5 0 0 0 0 1"></path></svg>
+        <span>WhatsApp Channel to get 🔔 notified about new articles and other updates.</span></a></section>
+            </section>
+        <footer class="[ grid justify-items-start ] [ overflow-x-scroll ]"><ul class="[ list-none ] [ flex items-center justify-start md:justify-center ] [ space-x-3 ] [ overflow-hidden ]"><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ]">DDD</li><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ] [ whitespace-nowrap ]">Specification Pattern</li><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ] [ whitespace-nowrap ]">Domain-Driven Design</li><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ] [ whitespace-nowrap ]">DDD</li><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ] [ whitespace-nowrap ]">Business Logic</li><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ] [ whitespace-nowrap ]">Entity Framework Core</li><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ] [ whitespace-nowrap ]">Expression Trees</li><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ] [ whitespace-nowrap ]">LINQ</li><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ] [ whitespace-nowrap ]">Design Patterns</li></ul></footer>
+        <hr class="[ dark:text-white my-1.5 ]"/></article>
+    <aside class="[ flex flex-col lg:basis-1/4 ] [ space-y-2 ]"><div><figure><a href="https://linkedin.com/in/thebhai" target="_blank"><img src="./image/authors/abdul rahman.webp" alt="Abdul Rahman" class="[ w-full ]"/></a>
+            <a href="https://mvp.microsoft.com/en-US/MVP/profile/b177819f-95fb-ed11-8f6d-000d3a560942" target="_blank"><img src="./image/authors/mvp-badge-horizontal.png" alt="MVP Badge Horizontal" class="[ w-full ]"/></a></figure></div>
+    <div class="[ lg:sticky lg:top-14 ]"></div><section class="[ flex flex-col justify-between ] [ transition duration-300 ] [ md:hover:scale-110 ] [ dark:bg-stone-900 ] [ bg-gray-100 ]"><header><a href="blogs/automate-nuget-upgrades-with-github-copilot-ai-skills"><figure><img src="image/blogs/ai/automate-nuget-upgrades-with-github-copilot-ai-skills.webp" class="[ w-full ] [ rounded-md ]" alt="Automate NuGet Upgrades with GitHub Copilot AI Skills and Live Documentation Lookup" loading="lazy"/></figure></a></header>
+    <main class="[ grow flex space-x-2 ]"><aside class="[ basis-1/6 flex items-center ]"><a href="channels/ai"><figure class="mt-2"><img src="image/icons/ai.webp" alt="AI" loading="lazy" height="48" width="48" class="[ rounded-full ]"/></figure></a></aside>
+        <article class="[ grow flex flex-col justify-between basis-5/6 ] [ dark:text-white ] [ mt-2 ]"><a href="blogs/automate-nuget-upgrades-with-github-copilot-ai-skills"><h2 class="[ font-medium break-words hover:underline ]">Automate NuGet Upgrades with GitHub Copilot AI Skills and Live Documentation Lookup</h2></a>
+            <section class="[ flex justify-between ]"><p>Abdul Rahman</p>
+                <time datetime="2026-02-15 22-30-00">4 hours from now</time></section></article></main></section><section class="[ flex flex-col justify-between ] [ transition duration-300 ] [ md:hover:scale-110 ] [ dark:bg-stone-900 ] [ bg-gray-100 ]"><header><a href="blogs/automate-dotnet-framework-upgrades-with-github-copilot-ai-agents"><figure><img src="image/blogs/ai/automate-dotnet-framework-upgrades-with-github-copilot-ai-agents.webp" class="[ w-full ] [ rounded-md ]" alt="Automate .NET Framework Upgrades with GitHub Copilot AI Agents" loading="lazy"/></figure></a></header>
+    <main class="[ grow flex space-x-2 ]"><aside class="[ basis-1/6 flex items-center ]"><a href="channels/ai"><figure class="mt-2"><img src="image/icons/ai.webp" alt="AI" loading="lazy" height="48" width="48" class="[ rounded-full ]"/></figure></a></aside>
+        <article class="[ grow flex flex-col justify-between basis-5/6 ] [ dark:text-white ] [ mt-2 ]"><a href="blogs/automate-dotnet-framework-upgrades-with-github-copilot-ai-agents"><h2 class="[ font-medium break-words hover:underline ]">Automate .NET Framework Upgrades with GitHub Copilot AI Agents</h2></a>
+            <section class="[ flex justify-between ]"><p>Abdul Rahman</p>
+                <time datetime="2026-02-08 22-30-00">6 days ago</time></section></article></main></section><section class="[ flex flex-col justify-between ] [ transition duration-300 ] [ md:hover:scale-110 ] [ dark:bg-stone-900 ] [ bg-gray-100 ]"><header><a href="blogs/blazor-wasm-two-factor-authentication-with-qr-codes-and-asp-net-identity"><figure><img src="image/blogs/blazor/wasm/blazor-wasm-two-factor-authentication-with-qr-codes-and-asp-net-identity.webp" class="[ w-full ] [ rounded-md ]" alt="Blazor WASM Two-Factor Authentication with QR Codes and ASP.NET Identity" loading="lazy"/></figure></a></header>
+    <main class="[ grow flex space-x-2 ]"><aside class="[ basis-1/6 flex items-center ]"><a href="channels/blazor"><figure class="mt-2"><img src="image/icons/blazor.webp" alt="Blazor" loading="lazy" height="48" width="48" class="[ rounded-full ]"/></figure></a></aside>
+        <article class="[ grow flex flex-col justify-between basis-5/6 ] [ dark:text-white ] [ mt-2 ]"><a href="blogs/blazor-wasm-two-factor-authentication-with-qr-codes-and-asp-net-identity"><h2 class="[ font-medium break-words hover:underline ]">Blazor WASM Two-Factor Authentication with QR Codes and ASP.NET Identity</h2></a>
+            <section class="[ flex justify-between ]"><p>Abdul Rahman</p>
+                <time datetime="2026-02-01 22-30-00">13 days ago</time></section></article></main></section><section class="[ flex flex-col justify-between ] [ transition duration-300 ] [ md:hover:scale-110 ] [ dark:bg-stone-900 ] [ bg-gray-100 ]"><header><a href="blogs/blazor-wasm-standalone-cookie-authentication-with-asp-net-identity"><figure><img src="image/blogs/blazor/wasm/blazor-wasm-standalone-cookie-authentication-with-asp-net-identity.webp" class="[ w-full ] [ rounded-md ]" alt="Blazor WASM Standalone Cookie Authentication with ASP.NET Identity" loading="lazy"/></figure></a></header>
+    <main class="[ grow flex space-x-2 ]"><aside class="[ basis-1/6 flex items-center ]"><a href="channels/blazor"><figure class="mt-2"><img src="image/icons/blazor.webp" alt="Blazor" loading="lazy" height="48" width="48" class="[ rounded-full ]"/></figure></a></aside>
+        <article class="[ grow flex flex-col justify-between basis-5/6 ] [ dark:text-white ] [ mt-2 ]"><a href="blogs/blazor-wasm-standalone-cookie-authentication-with-asp-net-identity"><h2 class="[ font-medium break-words hover:underline ]">Blazor WASM Standalone Cookie Authentication with ASP.NET Identity</h2></a>
+            <section class="[ flex justify-between ]"><p>Abdul Rahman</p>
+                <time datetime="2026-01-25 22-30-00">20 days ago</time></section></article></main></section><section class="[ flex flex-col justify-between ] [ transition duration-300 ] [ md:hover:scale-110 ] [ dark:bg-stone-900 ] [ bg-gray-100 ]"><header><a href="blogs/building-ai-chat-applications-in-dotnet-with-microsoft-extensions-ai"><figure><img src="image/blogs/ai/building-ai-chat-applications-in-dotnet-with-microsoft-extensions-ai.webp" class="[ w-full ] [ rounded-md ]" alt="Building AI Chat Applications in .NET with Microsoft.Extensions.AI" loading="lazy"/></figure></a></header>
+    <main class="[ grow flex space-x-2 ]"><aside class="[ basis-1/6 flex items-center ]"><a href="channels/ai"><figure class="mt-2"><img src="image/icons/ai.webp" alt="AI" loading="lazy" height="48" width="48" class="[ rounded-full ]"/></figure></a></aside>
+        <article class="[ grow flex flex-col justify-between basis-5/6 ] [ dark:text-white ] [ mt-2 ]"><a href="blogs/building-ai-chat-applications-in-dotnet-with-microsoft-extensions-ai"><h2 class="[ font-medium break-words hover:underline ]">Building AI Chat Applications in .NET with Microsoft.Extensions.AI</h2></a>
+            <section class="[ flex justify-between ]"><p>Abdul Rahman</p>
+                <time datetime="2026-01-18 22-30-00">27 days ago</time></section></article></main></section><section class="[ flex flex-col justify-between ] [ transition duration-300 ] [ md:hover:scale-110 ] [ dark:bg-stone-900 ] [ bg-gray-100 ]"><header><a href="blogs/avoiding-cache-stampede-and-handling-nulls-in-dotnet"><figure><img src="image/blogs/caching/avoiding-cache-stampede-and-handling-nulls-in-dotnet.webp" class="[ w-full ] [ rounded-md ]" alt="Avoiding Cache Stampede and Handling Nulls in .NET" loading="lazy"/></figure></a></header>
+    <main class="[ grow flex space-x-2 ]"><aside class="[ basis-1/6 flex items-center ]"><a href="channels/caching"><figure class="mt-2"><img src="image/icons/caching.webp" alt="Caching" loading="lazy" height="48" width="48" class="[ rounded-full ]"/></figure></a></aside>
+        <article class="[ grow flex flex-col justify-between basis-5/6 ] [ dark:text-white ] [ mt-2 ]"><a href="blogs/avoiding-cache-stampede-and-handling-nulls-in-dotnet"><h2 class="[ font-medium break-words hover:underline ]">Avoiding Cache Stampede and Handling Nulls in .NET</h2></a>
+            <section class="[ flex justify-between ]"><p>Abdul Rahman</p>
+                <time datetime="2026-01-11 22-30-00">one month ago</time></section></article></main></section><div class="[ flex items-center justify-center ]"><button type="button" class="[ cursor-pointer ] [ px-3 py-1 ] [ rounded-md ] [ whitespace-nowrap ] [ flex items-center justify-center ] [ disabled:opacity-75 disabled:cursor-not-allowed ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-caret-down ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                <path d="M6 10l6 6l6 -6h-12"></path></svg>
+            <p>Show more</p></button></div>
+    </aside></section></main><nav class="[ fixed bottom-0 h-14 w-full md:top-14 md:left-0 md:h-full md:w-16 ] 
+            [ bg-white ] [ dark:bg-gray-800 dark:bg-gray-800/80 ] [ backdrop-blur-xs bg-white/80 ] [ md:pt-2 ]
+            [ flex justify-around items-center md:flex-col md:justify-start md:space-y-4 ]"><a href="/" class="[ flex flex-col items-center ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-home ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <polyline points="5 12 3 12 12 3 21 12 19 12"></polyline>
+            <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7"></path>
+            <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6"></path></svg>
+        <span class="[ text-xs text-center ]">Home</span></a>
+    <a href="/learningpath" class="[ flex flex-col items-center ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-compass ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <polyline points="8 16 10 10 16 8 14 14 8 16"></polyline>
+            <circle cx="12" cy="12" r="9"></circle>
+            <line x1="12" y1="3" x2="12" y2="5"></line>
+            <line x1="12" y1="19" x2="12" y2="21"></line>
+            <line x1="3" y1="12" x2="5" y2="12"></line>
+            <line x1="19" y1="12" x2="21" y2="12"></line></svg>
+        <span class="[ text-xs text-center ]">Learning Path</span></a>
+    <a href="/career" class="[ flex flex-col items-center ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icons-tabler-outline icon-tabler-briefcase ]" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <path d="M3 7m0 2a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v9a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2z"></path>
+            <path d="M8 7v-2a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v2"></path>
+            <path d="M12 12l0 .01"></path>
+            <path d="M3 13a20 20 0 0 0 18 0"></path></svg>
+        <span class="[ text-xs text-center ]">Career</span></a>
+    <a href="/analytics" class="[ flex flex-col items-center ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-graph ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <path d="M4 18v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z"></path>
+            <path d="M7 14l3 -3l2 2l3 -3l2 2"></path></svg>
+        <span class="[ text-xs text-center ]">Analytics</span></a>
+    <a href="/about" class="[ flex flex-col items-center ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-info-circle ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <circle cx="12" cy="12" r="9"></circle>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            <polyline points="11 12 12 12 12 16 13 16"></polyline></svg>
+        <span class="[ text-xs text-center ]">About</span></a></nav><aside class="[ fixed bottom-14 md:bottom-0 right-2 ]"><button type="button" aria-label="Scroll to Top"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-square-rounded-chevron-up-filled ]" width="40" height="40" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <path d="M12 2c-.218 0 -.432 .002 -.642 .005l-.616 .017l-.299 .013l-.579 .034l-.553 .046c-4.785 .464 -6.732 2.411 -7.196 7.196l-.046 .553l-.034 .579c-.005 .098 -.01 .198 -.013 .299l-.017 .616l-.004 .318l-.001 .324c0 .218 .002 .432 .005 .642l.017 .616l.013 .299l.034 .579l.046 .553c.464 4.785 2.411 6.732 7.196 7.196l.553 .046l.579 .034c.098 .005 .198 .01 .299 .013l.616 .017l.642 .005l.642 -.005l.616 -.017l.299 -.013l.579 -.034l.553 -.046c4.785 -.464 6.732 -2.411 7.196 -7.196l.046 -.553l.034 -.579c.005 -.098 .01 -.198 .013 -.299l.017 -.616l.005 -.642l-.005 -.642l-.017 -.616l-.013 -.299l-.034 -.579l-.046 -.553c-.464 -4.785 -2.411 -6.732 -7.196 -7.196l-.553 -.046l-.579 -.034a28.058 28.058 0 0 0 -.299 -.013l-.616 -.017l-.318 -.004l-.324 -.001zm-.707 7.293a1 1 0 0 1 1.32 -.083l.094 .083l3 3a1 1 0 0 1 -1.32 1.497l-.094 -.083l-2.293 -2.292l-2.293 2.292a1 1 0 0 1 -1.32 .083l-.094 -.083a1 1 0 0 1 -.083 -1.32l.083 -.094l3 -3z" fill="currentColor" stroke-width="0"></path></svg></button></aside>
+            <!--Blazor:{"prerenderId":"8951bab1acf6456290f02b5469d4f18b"}-->
+<!-- %%-PRERENDERING-END-%% -->
+<!--Blazor-WebAssembly-Component-State:eyJzdGFycyI6Ik1BPT0iLCJNaWNyb3NvZnQuQXNwTmV0Q29yZS5Db21wb25lbnRzLkluZnJhc3RydWN0dXJlLlBlcnNpc3RlbnRTZXJ2aWNlc1JlZ2lzdHJ5IjoiVzNzaVlYTnpaVzFpYkhraU9pSk5hV055YjNOdlpuUXVRWE53VG1WMFEyOXlaUzVEYjIxd2IyNWxiblJ6TGtWdVpIQnZhVzUwY3lJc0ltWjFiR3hVZVhCbFRtRnRaU0k2SWsxcFkzSnZjMjltZEM1QmMzQk9aWFJEYjNKbExrTnZiWEJ2Ym1WdWRITXVVbVZ6YjNWeVkyVkRiMnhzWldOMGFXOXVVSEp2ZG1sa1pYSWlmU3g3SW1GemMyVnRZbXg1SWpvaVRXbGpjbTl6YjJaMExrRnpjRTVsZEVOdmNtVXVRMjl0Y0c5dVpXNTBjeTVYWldJaUxDSm1kV3hzVkhsd1pVNWhiV1VpT2lKTmFXTnliM052Wm5RdVFYTndUbVYwUTI5eVpTNURiMjF3YjI1bGJuUnpMa1p2Y20xekxrRnVkR2xtYjNKblpYSjVVM1JoZEdWUWNtOTJhV1JsY2lKOVhRPT0iLCJLU3p0VDg0Z0FpVjBJTy9VQlJScE9tOEs0anFFZlx1MDAyQjFKenZWT0NNQmxzaVU9IjoiZXlKMllXeDFaU0k2SWtObVJFbzRRVmRXTjBoeU5HVmhiRVpvV214bFJtVTBka1JHZUcxWlVXdGtVMU5QZW5GcE1VUXdaMHRmU1d4d1pFZFpVSFpXVTB4WldUaHVaelJZYlZKdVJURTFOWGhMVVdjdFprWjFVRk5LYm1zMlNtMUdWbGxFT0VKbldFZFZXSEo2WlhkNE1Wb3hXRWs1U21ReFVsQkJRVGxPZEd0TmVYSk5iV0ZrUWtFd1RtaGFhVUpyWXpVNVZXeEVlVFpvYzNaNmVXMDROVkl0U1V3MElpd2labTl5YlVacFpXeGtUbUZ0WlNJNklsOWZVbVZ4ZFdWemRGWmxjbWxtYVdOaGRHbHZibFJ2YTJWdUluMD0ifQ==--></div>
+
+    <div id="blazor-error-ui" class="[ bg-red-500 ] [ text-white ] [ fixed bottom-0 ] [ w-full ] [ p-2 ]" style="display: none;">
+        An unhandled error has occurred. Please click on
+        <a href="javascript: void(0)" class="[ inline-block ] [ underline ] [ hover\:text-white ]" onclick="location.reload()">Reload</a>
+        to proceed.
+        <button class="[ dismiss ] [ fixed right-5 bottom-2 ]">
+            <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-x ] [ text-white ]" width="25" height="25" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
+    </div>
+
+    <script src="_content/Microsoft.AspNetCore.Components.WebAssembly.Authentication/AuthenticationService.js"></script>
+    <script src="_framework/blazor.webassembly.66stpp682q.js" autostart="false"></script>
+    <script src="_content/Blazor-Analytics/blazor-analytics.js"></script>
+    <script src="highlight.min.js"></script>
+    <script src="csharp.min.js"></script>
+    <!--<script>navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' } );</script>-->
+    <script src="brotliloader.min.js" type="module"></script>
+
+
+
+</resourcepreloader></body></html>
