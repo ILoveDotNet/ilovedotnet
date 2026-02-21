@@ -93,6 +93,12 @@ public class LazyLoaderService(
           AdditionalAssemblies.AddRange(assemblies);
         }
 
+        if (path.Contains("logging", StringComparison.OrdinalIgnoreCase))
+        {
+          var assemblies = await lazyAssemblyLoader.LoadAssembliesAsync(["LoggingDemoComponents.wasm"]);
+          AdditionalAssemblies.AddRange(assemblies);
+        }
+
         if (path.Contains("mlnet", StringComparison.OrdinalIgnoreCase))
         {
           var assemblies = await lazyAssemblyLoader.LoadAssembliesAsync(["MLNETDemoComponents.wasm"]);

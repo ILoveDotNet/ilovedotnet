@@ -1,0 +1,727 @@
+@page "/blogs/introduction-to-logging-in-dotnet-from-basics-to-best-practices"
+@using SharedModels
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(LoggingIntroduction) UseNewTableOfContentsMenu=true>
+    <ContentBody>
+        <What>
+            <p>
+                Every production application eventually faces the dreaded question: "What went wrong?" Without proper logging, you're flying blind. 
+                <ContentHighlight>Logging in .NET</ContentHighlight> is your application's flight recorder - capturing critical events, errors, and diagnostic 
+                information that help you understand what's happening inside your running systems.
+            </p>
+            <p>
+                In this comprehensive guide, we'll explore the modern <ContentHighlight>.NET logging infrastructure</ContentHighlight> from the ground up. 
+                You'll learn how to implement structured logging using the <ContentHighlight>ILogger&lt;T&gt;</ContentHighlight> interface, understand 
+                <ContentHighlight>log levels and categories</ContentHighlight>, configure multiple <ContentHighlight>log providers</ContentHighlight> (destinations), 
+                and apply best practices that will save you countless debugging hours.
+            </p>
+            <p>
+                Whether you're building APIs, web applications, microservices, or background workers, logging is a fundamental cross-cutting concern that 
+                deserves your attention from day one. Let's dive in and master the art of effective logging in .NET.
+            </p>
+        </What>
+
+        <Why>
+            <h4>The Hidden Cost of Poor Logging</h4>
+            <p>
+                Imagine deploying your application to production, and users start reporting intermittent failures. Without proper logging, you're left 
+                guessing - checking code, reviewing recent changes, trying to reproduce the issue. Hours or days pass before you identify the root cause. 
+                The business loses revenue, customers lose trust, and your team loses sleep.
+            </p>
+            <p>
+                Now consider an alternative scenario: Your monitoring dashboard alerts you to increased error rates. You quickly query your centralized 
+                logs, filter by error level, and within minutes identify the exact request that failed, the exception thrown, the user affected, and the 
+                conditions that triggered it. You deploy a fix before most users even notice the problem.
+            </p>
+            <p>
+                This is the power of <ContentHighlight>effective logging</ContentHighlight>. Here's why it matters:
+            </p>
+
+            <h4>Debugging and Troubleshooting</h4>
+            <p>
+                Production issues are inevitable. <ContentHighlight>Structured logs</ContentHighlight> act as breadcrumbs leading you directly to the 
+                problem. When exceptions occur, you need context - what was the user doing? What data was being processed? What state was the system in? 
+                Logs provide this crucial context.
+            </p>
+
+            <h4>Monitoring and Observability</h4>
+            <p>
+                Logs aren't just for when things go wrong. They help you understand normal application behavior, track performance patterns, identify 
+                bottlenecks, and detect anomalies before they become critical issues. Combined with metrics and traces, logs form the foundation of 
+                <ContentHighlight>observability</ContentHighlight>.
+            </p>
+
+            <h4>Audit Trails and Compliance</h4>
+            <p>
+                Many industries require audit trails of user actions, data modifications, and system access. Logging provides an immutable record of who 
+                did what and when - essential for compliance with regulations like GDPR, HIPAA, SOX, and PCI-DSS.
+            </p>
+
+            <h4>Performance Analysis</h4>
+            <p>
+                Strategic logging at key points in your application helps identify slow operations, resource-intensive processes, and opportunities for 
+                optimization. Timing logs can reveal that a database query takes 2 seconds when it should take 50ms.
+            </p>
+
+            <h4>Understanding User Behavior</h4>
+            <p>
+                Application logs reveal how users actually interact with your system - not how you think they do. This insight drives product decisions 
+                and helps prioritize features based on real usage patterns.
+            </p>
+
+            <h4>The Problem with Ad-Hoc Logging</h4>
+            <p>
+                Without a consistent logging strategy, developers scatter <code>Console.WriteLine</code> or <code>Debug.WriteLine</code> statements 
+                throughout the code. This creates several problems:
+            </p>
+            <ul>
+                <li><strong>No standardization:</strong> Each developer logs differently, making logs hard to search and analyze</li>
+                <li><strong>No filtering:</strong> Everything is logged at the same level, creating noise</li>
+                <li><strong>No destinations:</strong> Logs disappear after the console closes or get lost in container orchestrators</li>
+                <li><strong>Poor performance:</strong> String concatenation and formatting happen even when logs aren't needed</li>
+                <li><strong>No structure:</strong> Free-form text messages are hard to query programmatically</li>
+            </ul>
+            <p>
+                The <ContentHighlight>Microsoft.Extensions.Logging</ContentHighlight> framework solves all these problems with a unified, performant, 
+                extensible logging infrastructure that works across all .NET application types.
+            </p>
+        </Why>
+
+        <How>
+            <h4>Understanding the .NET Logging Architecture</h4>
+            <p>
+                The .NET logging infrastructure consists of four key components:
+            </p>
+            <ul>
+                <li><strong>ILogger&lt;T&gt;:</strong> The interface you use to write log messages from your code</li>
+                <li><strong>Log Levels:</strong> The severity classification system (Trace, Debug, Information, Warning, Error, Critical)</li>
+                <li><strong>Log Categories:</strong> Logical groupings that help organize and filter logs</li>
+                <li><strong>Log Providers:</strong> The destinations where logs are written (console, files, databases, external services)</li>
+            </ul>
+            <p>
+                Let's explore each of these in detail with practical examples.
+            </p>
+
+            <h4>Your First Log Entry - Hello World</h4>
+            <p>
+                Start with a simple console application to understand the basics. Create a new .NET console app and add the necessary packages:
+            </p>
+
+            <CodeSnippet CssClass="language-bash">dotnet new console -n LoggingDemo
+cd LoggingDemo
+dotnet add package Microsoft.Extensions.Logging
+dotnet add package Microsoft.Extensions.Logging.Console
+dotnet add package Microsoft.Extensions.DependencyInjection</CodeSnippet>
+
+            <p>
+                Here's your first logging example:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+// Configure dependency injection and logging
+var services = new ServiceCollection();
+
+services.AddLogging(builder =&gt;
+{
+    builder.AddConsole();  // Add console as a log provider
+    builder.SetMinimumLevel(LogLevel.Information);
+});
+
+var serviceProvider = services.BuildServiceProvider();
+
+// Get a logger instance
+var logger = serviceProvider
+    .GetRequiredService&lt;ILogger&lt;Program&gt;&gt;();
+
+// Write your first log message
+logger.LogInformation("Hello, World! Logging is working.");
+
+// Output:
+// info: Program[0]
+//       Hello, World! Logging is working.</CodeSnippet>
+
+            <p>
+                When you run this, you'll see more than just your message. The output includes:
+            </p>
+            <ul>
+                <li><strong>Log Level:</strong> "info" indicates this is an Information-level log</li>
+                <li><strong>Category:</strong> "Program" - derived from the generic type parameter <code>ILogger&lt;Program&gt;</code></li>
+                <li><strong>Event ID:</strong> [0] - an optional numeric identifier for the log event</li>
+                <li><strong>Message:</strong> Your actual log message</li>
+            </ul>
+
+            <h4>Understanding Log Levels - The Severity Hierarchy</h4>
+            <p>
+                <ContentHighlight>Log levels</ContentHighlight> represent the severity or importance of a log message. .NET provides six standard levels, 
+                ordered from most to least verbose:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">// 0 - Trace: Extremely detailed diagnostic information
+logger.LogTrace("Entering method ProcessOrder with orderId: {OrderId}", 
+    orderId);
+
+// 1 - Debug: Information useful during development and debugging
+logger.LogDebug("Cache hit for key: {CacheKey}. Retrieved in {Duration}ms", 
+    cacheKey, duration);
+
+// 2 - Information: General application flow tracking
+logger.LogInformation("User {UserId} successfully logged in from {IpAddress}", 
+    userId, ipAddress);
+
+// 3 - Warning: Unexpected situations that don't stop the application
+logger.LogWarning("API rate limit at 80% for user {UserId}. Current: {Count}/{Limit}", 
+    userId, currentCount, rateLimit);
+
+// 4 - Error: Failures and exceptions that need attention
+logger.LogError(exception, 
+    "Failed to process payment for order {OrderId}. Reason: {Reason}", 
+    orderId, exception.Message);
+
+// 5 - Critical: Catastrophic failures requiring immediate action
+logger.LogCritical("Database connection pool exhausted. Application cannot continue.");
+
+// 6 - None: Not used for writing logs; used to disable logging</CodeSnippet>
+
+            <p>
+                Here's a practical decision tree for choosing log levels:
+            </p>
+
+            <CodeSnippet CssClass="language-plaintext">┌─────────────────────────────────────────────────────────────┐
+│                    Log Level Decision Tree                  │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  Is the application crashing or in unrecoverable state?     │
+│  ├─ YES → CRITICAL                                          │
+│  └─ NO ↓                                                    │
+│                                                             │
+│  Did an operation fail with an exception?                   │
+│  ├─ YES → ERROR                                             │
+│  └─ NO ↓                                                    │
+│                                                             │
+│  Is something unusual but the app continues normally?       │
+│  ├─ YES → WARNING                                           │
+│  └─ NO ↓                                                    │
+│                                                             │
+│  Is this tracking normal business flow?                     │
+│  ├─ YES → INFORMATION                                       │
+│  └─ NO ↓                                                    │
+│                                                             │
+│  Is this technical detail useful for debugging?             │
+│  ├─ YES → DEBUG                                             │
+│  └─ NO ↓                                                    │
+│                                                             │
+│  Is this extremely detailed runtime information?            │
+│  └─ YES → TRACE                                             │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘</CodeSnippet>
+
+            <h4>Important Log Level Guidelines</h4>
+            <ul>
+                <li><strong>Trace and Debug:</strong> Disabled by default in production. May contain sensitive data. Never enable in production unless actively debugging.</li>
+                <li><strong>Information:</strong> Safe for production. Tracks business events and application flow. Should be meaningful and searchable.</li>
+                <li><strong>Warning:</strong> Indicates potential problems. Monitor these - too many warnings often predict upcoming errors.</li>
+                <li><strong>Error:</strong> Requires investigation. Set up alerts for error spikes.</li>
+                <li><strong>Critical:</strong> Wake someone up. These require immediate action.</li>
+            </ul>
+
+            <h4>Log Categories - Organizing Your Logs</h4>
+            <p>
+                <ContentHighlight>Log categories</ContentHighlight> help you organize and filter logs from different parts of your application. The category 
+                is typically the fully qualified type name of the class doing the logging.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">// Using ILogger&lt;T&gt; automatically sets the category to the full type name
+public class OrderService
+{
+    private readonly ILogger&lt;OrderService&gt; _logger;
+
+    public OrderService(ILogger&lt;OrderService&gt; logger)
+    {
+        _logger = logger;
+    }
+
+    public async Task&lt;Order&gt; CreateOrderAsync(CreateOrderRequest request)
+    {
+        // Category will be "MyApp.Services.OrderService"
+        _logger.LogInformation(
+            "Creating order for customer {CustomerId} with {ItemCount} items", 
+            request.CustomerId, 
+            request.Items.Count);
+
+        // ... order creation logic ...
+    }
+}
+
+// You can also use ILoggerFactory for custom categories
+public class PaymentProcessor
+{
+    private readonly ILogger _logger;
+
+    public PaymentProcessor(ILoggerFactory loggerFactory)
+    {
+        // Custom category name
+        _logger = loggerFactory.CreateLogger("Payments.Processing");
+    }
+}</CodeSnippet>
+
+            <p>
+                Categories enable powerful filtering scenarios:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">// In appsettings.json - configure different levels for different categories
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft": "Warning",                    // Reduce Microsoft framework logs
+      "Microsoft.AspNetCore": "Warning",         // Reduce ASP.NET Core logs
+      "Microsoft.EntityFrameworkCore": "Information", // Show EF Core queries
+      "MyApp.Services": "Debug",                 // Verbose logging for your services
+      "MyApp.Services.PaymentService": "Trace"   // Maximum detail for payments
+    }
+  }
+}</CodeSnippet>
+
+            <h4>Structured Logging - Beyond Simple Strings</h4>
+            <p>
+                One of the most powerful features of .NET logging is <ContentHighlight>structured logging</ContentHighlight>. Instead of concatenating 
+                strings, you pass parameters that are preserved as structured data.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">// ❌ BAD: String concatenation - not searchable, poor performance
+logger.LogInformation("Order " + orderId + " for customer " + customerId + 
+    " total: $" + total);
+
+// ❌ BAD: String interpolation - also not structured
+logger.LogInformation($"Order {orderId} for customer {customerId} total: ${total}");
+
+// ✅ GOOD: Structured logging with named placeholders
+logger.LogInformation(
+    "Order {OrderId} for customer {CustomerId} total: ${Total}", 
+    orderId, 
+    customerId, 
+    total);
+
+// The placeholders become searchable properties in log aggregation systems:
+// {
+//   "timestamp": "2026-04-05T10:30:00Z",
+//   "level": "Information",
+//   "category": "OrderService",
+//   "message": "Order 12345 for customer C-789 total: $299.99",
+//   "properties": {
+//     "OrderId": "12345",
+//     "CustomerId": "C-789",
+//     "Total": 299.99
+//   }
+// }</CodeSnippet>
+
+            <p>
+                Structured logging enables powerful queries in log management systems:
+            </p>
+            <ul>
+                <li>Find all orders for a specific customer: <code>CustomerId = "C-789"</code></li>
+                <li>Find large orders: <code>Total &gt; 1000</code></li>
+                <li>Analyze order patterns: <code>GROUP BY CustomerId</code></li>
+            </ul>
+
+            <h4>Log Providers - Where Logs Go</h4>
+            <p>
+                <ContentHighlight>Log providers</ContentHighlight> (also called sinks or destinations) determine where your logs are written. Out of the box, 
+                .NET includes several providers:
+            </p>
+
+            <ul>
+                <li><strong>Console:</strong> Writes to console output (stdout/stderr)</li>
+                <li><strong>Debug:</strong> Writes to debug output (Visual Studio Output window)</li>
+                <li><strong>EventSource:</strong> Writes to Windows Event Tracing for Windows (ETW)</li>
+                <li><strong>EventLog:</strong> Writes to Windows Event Log (Windows only)</li>
+                <li><strong>ApplicationInsights:</strong> Sends telemetry to Azure Application Insights</li>
+            </ul>
+
+            <p>
+                You can configure multiple providers simultaneously - logs will be written to all of them:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">// In Program.cs for minimal API or web app
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Logging.ClearProviders();  // Remove default providers
+builder.Logging.AddConsole();       // Add console provider
+builder.Logging.AddDebug();         // Add debug provider
+builder.Logging.AddEventLog();      // Add Windows Event Log (Windows only)
+
+// Configure minimum levels per provider
+builder.Logging.AddConsole(options =&gt;
+{
+    options.LogToStandardErrorThreshold = LogLevel.Error;
+});
+
+var app = builder.Build();</CodeSnippet>
+
+            <p>
+                For production applications, you'll typically use third-party providers that offer advanced features:
+            </p>
+
+            <h4>Popular Third-Party Logging Providers</h4>
+
+            <table class="[ table table-bordered ]">
+                <thead>
+                    <tr>
+                        <th>Provider</th>
+                        <th>Type</th>
+                        <th>Best For</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Serilog</strong></td>
+                        <td>Framework + Sinks</td>
+                        <td>Structured logging, file rotation, multiple destinations</td>
+                    </tr>
+                    <tr>
+                        <td><strong>NLog</strong></td>
+                        <td>Framework + Targets</td>
+                        <td>Flexible configuration, extensive target support</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Seq</strong></td>
+                        <td>Centralized Server</td>
+                        <td>Development team log aggregation and search</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Elasticsearch</strong></td>
+                        <td>Centralized Server</td>
+                        <td>Large-scale log aggregation (ELK stack)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Datadog</strong></td>
+                        <td>Cloud SaaS</td>
+                        <td>Enterprise monitoring and observability</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Splunk</strong></td>
+                        <td>Cloud/On-Prem</td>
+                        <td>Enterprise log management and analytics</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h4>Example: Adding Serilog for File and Console Logging</h4>
+            
+            <CodeSnippet CssClass="language-bash">dotnet add package Serilog.AspNetCore
+dotnet add package Serilog.Sinks.Console
+dotnet add package Serilog.Sinks.File</CodeSnippet>
+
+            <CodeSnippet CssClass="language-csharp">using Serilog;
+
+// Configure Serilog before building the host
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Debug()
+    .WriteTo.Console(
+        outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
+    .WriteTo.File(
+        path: "logs/app-.txt",
+        rollingInterval: RollingInterval.Day,
+        retainedFileCountLimit: 7,
+        fileSizeLimitBytes: 10_000_000,
+        rollOnFileSizeLimit: true)
+    .CreateLogger();
+
+try
+{
+    var builder = WebApplication.CreateBuilder(args);
+    
+    builder.Host.UseSerilog();  // Replace default logging with Serilog
+    
+    var app = builder.Build();
+    
+    app.MapGet("/", (ILogger&lt;Program&gt; logger) =&gt;
+    {
+        logger.LogInformation("Root endpoint accessed at {AccessTime}", 
+            DateTime.UtcNow);
+        return "Hello World";
+    });
+    
+    app.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "Application terminated unexpectedly");
+}
+finally
+{
+    Log.CloseAndFlush();
+}</CodeSnippet>
+
+            <h4>Best Practices for Effective Logging</h4>
+
+            <h5>1. Use Dependency Injection</h5>
+            <CodeSnippet CssClass="language-csharp">// ✅ GOOD: Use constructor injection
+public class OrderService
+{
+    private readonly ILogger&lt;OrderService&gt; _logger;
+    
+    public OrderService(ILogger&lt;OrderService&gt; logger)
+    {
+        _logger = logger;
+    }
+}
+
+// ❌ BAD: Don't create loggers directly
+public class BadService
+{
+    public void DoWork()
+    {
+        var loggerFactory = LoggerFactory.Create(builder =&gt; 
+            builder.AddConsole());
+        var logger = loggerFactory.CreateLogger&lt;BadService&gt;();
+    }
+}</CodeSnippet>
+
+            <h5>2. Log Exceptions Properly</h5>
+            <CodeSnippet CssClass="language-csharp">try
+{
+    await ProcessPaymentAsync(orderId);
+}
+catch (PaymentException ex)
+{
+    // ✅ GOOD: Pass exception as first parameter, include context
+    _logger.LogError(ex, 
+        "Payment processing failed for order {OrderId}. Gateway: {Gateway}", 
+        orderId, 
+        ex.GatewayName);
+    
+    // ❌ BAD: Don't convert exception to string
+    // _logger.LogError("Error: " + ex.ToString());
+}</CodeSnippet>
+
+            <h5>3. Use Log Scopes for Context</h5>
+            <CodeSnippet CssClass="language-csharp">public async Task ProcessOrderAsync(string orderId, string customerId)
+{
+    // Create a scope that adds context to all logs within
+    using (_logger.BeginScope(new Dictionary&lt;string, object&gt;
+    {
+        ["OrderId"] = orderId,
+        ["CustomerId"] = customerId
+    }))
+    {
+        _logger.LogInformation("Starting order processing");
+        
+        await ValidateOrderAsync();  // Logs will include OrderId and CustomerId
+        await ChargePaymentAsync();  // Logs will include OrderId and CustomerId
+        await FulfillOrderAsync();   // Logs will include OrderId and CustomerId
+        
+        _logger.LogInformation("Order processing completed");
+    }
+}</CodeSnippet>
+
+            <h5>4. Avoid Logging Sensitive Data</h5>
+            <CodeSnippet CssClass="language-csharp">// ❌ BAD: Never log passwords, tokens, or PII without redaction
+_logger.LogInformation("User {Email} logged in with password {Password}", 
+    email, password);
+
+// ❌ BAD: Don't log credit card numbers
+_logger.LogDebug("Processing card {CardNumber}", cardNumber);
+
+// ✅ GOOD: Log safely masked identifiers
+_logger.LogInformation("User {Email} logged in successfully", 
+    MaskEmail(email));
+
+_logger.LogDebug("Processing card ending in {Last4Digits}", 
+    cardNumber.Substring(cardNumber.Length - 4));</CodeSnippet>
+
+            <h5>5. Use High-Performance Logging for Hot Paths</h5>
+            <CodeSnippet CssClass="language-csharp">// For frequently called methods, use LoggerMessage source generators
+public partial class OrderService
+{
+    private readonly ILogger&lt;OrderService&gt; _logger;
+
+    [LoggerMessage(
+        EventId = 1001,
+        Level = LogLevel.Information,
+        Message = "Processing order {OrderId} for customer {CustomerId}")]
+    private partial void LogOrderProcessing(string orderId, string customerId);
+
+    public async Task ProcessAsync(string orderId, string customerId)
+    {
+        // This generates compile-time optimized logging code
+        LogOrderProcessing(orderId, customerId);
+        
+        // ... processing logic ...
+    }
+}</CodeSnippet>
+
+            <h4>Complete Working Example - ASP.NET Core API</h4>
+            <p>
+                Here's a complete example showing logging in a real ASP.NET Core API with best practices:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">// Program.cs
+using Serilog;
+
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .WriteTo.File("logs/api-.log", rollingInterval: RollingInterval.Day)
+    .CreateLogger();
+
+try
+{
+    var builder = WebApplication.CreateBuilder(args);
+    
+    builder.Host.UseSerilog();
+    builder.Services.AddControllers();
+    builder.Services.AddScoped&lt;IOrderService, OrderService&gt;();
+    
+    var app = builder.Build();
+    
+    app.UseSerilogRequestLogging();  // Log HTTP requests
+    app.MapControllers();
+    
+    app.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "Application failed to start");
+}
+finally
+{
+    Log.CloseAndFlush();
+}
+
+// Controllers/OrdersController.cs
+[ApiController]
+[Route("api/[controller]")]
+public class OrdersController : ControllerBase
+{
+    private readonly IOrderService _orderService;
+    private readonly ILogger&lt;OrdersController&gt; _logger;
+
+    public OrdersController(
+        IOrderService orderService,
+        ILogger&lt;OrdersController&gt; logger)
+    {
+        _orderService = orderService;
+        _logger = logger;
+    }
+
+    [HttpPost]
+    public async Task&lt;IActionResult&gt; CreateOrder(
+        [FromBody] CreateOrderRequest request)
+    {
+        using (_logger.BeginScope(new Dictionary&lt;string, object&gt;
+        {
+            ["CustomerId"] = request.CustomerId,
+            ["ItemCount"] = request.Items.Count
+        }))
+        {
+            _logger.LogInformation(
+                "Received order creation request");
+
+            try
+            {
+                var order = await _orderService.CreateAsync(request);
+                
+                _logger.LogInformation(
+                    "Order {OrderId} created successfully with total {Total:C}", 
+                    order.Id, 
+                    order.Total);
+                
+                return CreatedAtAction(
+                    nameof(GetOrder), 
+                    new { id = order.Id }, 
+                    order);
+            }
+            catch (ValidationException ex)
+            {
+                _logger.LogWarning(ex, 
+                    "Order validation failed: {Errors}", 
+                    string.Join(", ", ex.Errors));
+                return BadRequest(ex.Errors);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, 
+                    "Unexpected error creating order");
+                return StatusCode(500, "An error occurred");
+            }
+        }
+    }
+
+    [HttpGet("{id}")]
+    public async Task&lt;IActionResult&gt; GetOrder(string id)
+    {
+        _logger.LogDebug("Fetching order {OrderId}", id);
+        
+        var order = await _orderService.GetByIdAsync(id);
+        
+        if (order == null)
+        {
+            _logger.LogWarning("Order {OrderId} not found", id);
+            return NotFound();
+        }
+        
+        return Ok(order);
+    }
+}</CodeSnippet>
+
+            <h4>Troubleshooting Common Logging Issues</h4>
+
+            <h5>Logs Not Appearing?</h5>
+            <ul>
+                <li>Check minimum log level configuration - your logs might be filtered out</li>
+                <li>Verify providers are registered in dependency injection</li>
+                <li>Ensure the category matches your filter configuration</li>
+                <li>For file providers, check file permissions and disk space</li>
+            </ul>
+
+            <h5>Too Many Logs?</h5>
+            <ul>
+                <li>Increase minimum log levels (Information instead of Debug)</li>
+                <li>Use category filters to reduce framework logs: <code>"Microsoft": "Warning"</code></li>
+                <li>Disable request logging for health check endpoints</li>
+                <li>Use log level overrides for specific namespaces</li>
+            </ul>
+
+            <h5>Performance Impact?</h5>
+            <ul>
+                <li>Use structured logging (parameters) instead of string interpolation</li>
+                <li>Leverage <code>LoggerMessage</code> source generators for hot paths</li>
+                <li>Avoid logging in tight loops unless absolutely necessary</li>
+                <li>Use async file writers to prevent I/O blocking</li>
+                <li>Configure appropriate log retention and rotation</li>
+            </ul>
+        </How>
+
+        <Summary>
+            <p>
+                Logging is a fundamental pillar of production-ready .NET applications. In this comprehensive guide, we've covered:
+            </p>
+            <ul>
+                <li>The <ContentHighlight>ILogger&lt;T&gt;</ContentHighlight> interface as the standard way to write logs in .NET</li>
+                <li><ContentHighlight>Six log levels</ContentHighlight> (Trace, Debug, Information, Warning, Error, Critical) and when to use each</li>
+                <li><ContentHighlight>Log categories</ContentHighlight> for organizing and filtering logs by component or namespace</li>
+                <li><ContentHighlight>Structured logging</ContentHighlight> with named parameters for searchable, queryable log data</li>
+                <li><ContentHighlight>Log providers</ContentHighlight> for writing logs to multiple destinations (console, files, databases, cloud services)</li>
+                <li><strong>Best practices</strong> including dependency injection, exception logging, scopes, and performance optimization</li>
+            </ul>
+            <p>
+                Start with the built-in console provider for development, then add <ContentHighlight>Serilog</ContentHighlight> or 
+                <ContentHighlight>NLog</ContentHighlight> for production applications with file rotation and centralized log aggregation. Configure 
+                appropriate log levels for different environments - verbose in development, selective in production.
+            </p>
+            <p>
+                Remember: <ContentHighlight>Good logging is an investment</ContentHighlight>, not an expense. The time you spend implementing proper 
+                logging today will save you countless hours of debugging, troubleshooting, and production incident response tomorrow. Your future self 
+                (and your team) will thank you.
+            </p>
+            <p>
+                In upcoming articles, we'll dive deeper into advanced logging topics including Serilog enrichers, structured logging at scale, 
+                distributed tracing correlation, and integrating logs with modern observability platforms. Stay tuned!
+            </p>
+        </Summary>
+    </ContentBody>
+</Content>
