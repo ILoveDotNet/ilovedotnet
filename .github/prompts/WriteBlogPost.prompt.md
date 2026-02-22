@@ -1,6 +1,5 @@
 ---
 agent: 'agent'
-model: Claude Sonnet 4.5
 description: 'Write a new blog post following iLoveDotNet guidelines'
 ---
 
@@ -53,7 +52,7 @@ Follow these steps in order:
    @using BaseComponents
    @inherits BasePage
 
-   <Content FileName=@nameof(FileName) UseNewTableOfContentsMenu=true>
+   <Content FileName=@nameof(ComponentClassName) UseNewTableOfContentsMenu=true>
        <ContentBody>
            <What>
                <!-- Introduction and what the article covers -->
@@ -74,6 +73,14 @@ Follow these steps in order:
    </Content>
    ```
    
+   **IMPORTANT - FileName Attribute:**
+   - `FileName=@nameof(ComponentClassName)` where `ComponentClassName` is the Razor component class name
+   - The component class name is derived from the file name (e.g., `LoggingIntroduction.razor` → `LoggingIntroduction`)
+   - Example: For file `MasteringModernDotnetLogger.razor`, use `FileName=@nameof(MasteringModernDotnetLogger)`
+   - **DO NOT** add a `@code` block with a `FileName` property - `@nameof()` uses the component class itself
+   - ❌ Wrong: Adding `@code { private string FileName = "..."; }`
+   - ✅ Correct: Using `@nameof(ComponentClassName)` directly without any @code block
+   
    **Each section is REQUIRED:**
    - `<What>` - **Introduction only**: Define the pattern/concept, its origins, and what the article will teach. NO problem examples or implementation details here.
    - `<Why>` - **Problems and benefits only**: Concrete problem examples with code showing what goes wrong, consequences, why traditional approaches fail, and the advantages of the solution. NO implementation details here.
@@ -87,7 +94,12 @@ Follow these steps in order:
    - Each section should have distinct, non-overlapping content
    
    **Additional requirements:**
-   - Use `<ContentHighlight>` for key terms
+   - Use `<ContentHighlight>` for key terms and inline code references
+   - **CRITICAL - Inline Code Styling**: 
+     - Wrap inline code (technical terms, method names, class names, variable names) with `<ContentHighlight>` directly
+     - DO NOT nest `<code>` tags inside `<ContentHighlight>` 
+     - ✅ Correct: `<ContentHighlight>ILogger&lt;T&gt;</ContentHighlight>`
+     - ❌ Wrong: `<ContentHighlight><code>ILogger&lt;T&gt;</code></ContentHighlight>`
    - Include practical code examples with proper escaping (use `&lt;` for `<`, `&gt;` for `>`, `@@` for `@`)
    - Add table outputs in code snippets to visualize data transformations where applicable
    - Use ASCII diagrams or mermaid diagrams inside `<CodeSnippet>` for complex concepts
@@ -112,11 +124,14 @@ Follow these steps in order:
    - [ ] `@using BaseComponents` directive is present at top
    - [ ] All four sections are properly closed
    - [ ] NO duplication of content between What, Why, and How sections
+   - [ ] `FileName=@nameof(ComponentClassName)` uses component class name (no @code block needed)
    
    ✅ **Code Quality:**
    - [ ] All `<CodeSnippet>` tags have `CssClass` attribute
    - [ ] HTML entities properly escaped (`<` → `&lt;`, `>` → `&gt;`, `@` → `@@`)
    - [ ] Long code lines are broken for readability
+   - [ ] Inline code wrapped with `<ContentHighlight>` (NOT nested inside `<code>` tags)
+   - [ ] Key technical terms highlighted with `<ContentHighlight>`
    
    ✅ **Metadata:**
    - [ ] Entry added to `{Category}LearningPath.cs`
@@ -142,18 +157,19 @@ Follow these steps in order:
   - Title should naturally include the topic/category keyword
   - Example: Title "Introduction to Logging in .NET - From Basics to Best Practices" → Slug `introduction-to-logging-in-dotnet-from-basics-to-best-practices`
 * **Test the solution builds** successfully before considering the task complete
-**Slug Mismatch**: Always derive the slug directly from the title. Don't create a different slug independently. 
+
+## Common Pitfalls to Avoid
+
+1. **Slug Mismatch**: Always derive the slug directly from the title. Don't create a different slug independently. 
    - ❌ Wrong: Title "Introduction to X" → Slug `x-introduction-guide`
    - ✅ Correct: Title "Introduction to X" → Slug `introduction-to-x`
-3. Don't forget to add the `Channel` property in `ContentMetaData` (required field)
-4. Don't forget to update `TableOfContents.cs` capacity
-5. Maintain alphabetical order when adding project references
-6. Always use Sunday 22:30 UTC for publish dates
-7. Escape HTML entities in code snippets (`<` → `&lt;`, `>` → `&gt;`, `@` → `@@`)
-8. Don't forget to update `TableOfContents.cs` capacity
+2. Don't forget to add the `Channel` property in `ContentMetaData` (required field)
+3. Don't forget to update `TableOfContents.cs` capacity
 4. Maintain alphabetical order when adding project references
 5. Always use Sunday 22:30 UTC for publish dates
 6. Escape HTML entities in code snippets (`<` → `&lt;`, `>` → `&gt;`, `@` → `@@`)
 7. Keep each section focused on its purpose - no overlap between What, Why, and How
+9. Don't add unnecessary `@code` blocks - `@nameof()` uses the component class name directly
+8. Use `<ContentHighlight>` directly without nesting `<code>` tags inside
 
 If you're unsure about any step, consult the guidelines or ask the user for clarification.
