@@ -73,7 +73,7 @@
 
             <h4>The Problem with Ad-Hoc Logging</h4>
             <p>
-                Without a consistent logging strategy, developers scatter <code>Console.WriteLine</code> or <code>Debug.WriteLine</code> statements 
+                Without a consistent logging strategy, developers scatter <ContentHighlight>Console.WriteLine</ContentHighlight> or <ContentHighlight>Debug.WriteLine</ContentHighlight> statements 
                 throughout the code. This creates several problems:
             </p>
             <ul>
@@ -101,7 +101,46 @@
                 <li><strong>Log Providers:</strong> The destinations where logs are written (console, files, databases, external services)</li>
             </ul>
             <p>
-                Let's explore each of these in detail with practical examples.
+                Here's how these components work together:
+            </p>
+
+            <CodeSnippet CssClass="language-plaintext">
+┌─────────────────────────────────────────────────────────────┐
+│              .NET Logging Architecture                      │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  Your Application Code                                      │
+│  ┌─────────────────────────────────┐                        │
+│  │  private readonly ILogger       │                        │
+│  │     &lt;MyService&gt; _logger;  │                        │
+│  │                                 │                        │
+│  │  _logger.LogInformation(...)    │                        │
+│  └──────────────┬──────────────────┘                        │
+│                 │                                           │
+│                 ▼                                           │
+│  ┌─────────────────────────────────────┐                    │
+│  │        ILogger&lt;T&gt; Interface   │                    │
+│  │                                     │                    │
+│  │  • Applies Log Level Filtering      │                    │
+│  │  • Extracts Category from Type      │                    │
+│  │  • Structures Log Parameters        │                    │
+│  └──────────────┬──────────────────────┘                    │
+│                 │                                           │
+│                 ├──────────────┬──────────────┐             │
+│                 ▼              ▼              ▼             │
+│  ┌─────────────────┐  ┌─────────────┐  ┌──────────────┐     │
+│  │  Console        │  │    File     │  │  App Insights│     │
+│  │  Provider       │  │  Provider   │  │  Provider    │     │
+│  └─────────────────┘  └─────────────┘  └──────────────┘     │
+│         │                    │                 │            │
+│         ▼                    ▼                 ▼            │
+│    stdout/stderr         log files         Azure Cloud      │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+            </CodeSnippet>
+
+            <p>
+                Let's explore each of these components in detail with practical examples.
             </p>
 
             <h4>Your First Log Entry - Hello World</h4>
@@ -149,7 +188,7 @@ logger.LogInformation("Hello, World! Logging is working.");
             </p>
             <ul>
                 <li><strong>Log Level:</strong> "info" indicates this is an Information-level log</li>
-                <li><strong>Category:</strong> "Program" - derived from the generic type parameter <code>ILogger&lt;Program&gt;</code></li>
+                <li><strong>Category:</strong> "Program" - derived from the generic type parameter <ContentHighlight>ILogger&lt;Program&gt;</ContentHighlight></li>
                 <li><strong>Event ID:</strong> [0] - an optional numeric identifier for the log event</li>
                 <li><strong>Message:</strong> Your actual log message</li>
             </ul>
@@ -190,7 +229,8 @@ logger.LogCritical("Database connection pool exhausted. Application cannot conti
                 Here's a practical decision tree for choosing log levels:
             </p>
 
-            <CodeSnippet CssClass="language-plaintext">┌─────────────────────────────────────────────────────────────┐
+            <CodeSnippet CssClass="language-plaintext">
+┌─────────────────────────────────────────────────────────────┐
 │                    Log Level Decision Tree                  │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
@@ -217,7 +257,8 @@ logger.LogCritical("Database connection pool exhausted. Application cannot conti
 │  Is this extremely detailed runtime information?            │
 │  └─ YES → TRACE                                             │
 │                                                             │
-└─────────────────────────────────────────────────────────────┘</CodeSnippet>
+└─────────────────────────────────────────────────────────────┘
+            </CodeSnippet>
 
             <h4>Important Log Level Guidelines</h4>
             <ul>
@@ -291,6 +332,14 @@ public class PaymentProcessor
                 One of the most powerful features of .NET logging is <ContentHighlight>structured logging</ContentHighlight>. Instead of concatenating 
                 strings, you pass parameters that are preserved as structured data.
             </p>
+            <blockquote>
+                <p>
+                    <strong>📚 Deep Dive:</strong> For a comprehensive exploration of structured logging, message templates, and why string 
+                    interpolation breaks production observability, see our advanced guide: 
+                    <a href="/blogs/mastering-the-modern-dotnet-logger-structured-logging-and-advanced-concepts">
+                    Mastering the Modern .NET Logger - Structured Logging and Advanced Concepts</a>.
+                </p>
+            </blockquote>
 
             <CodeSnippet CssClass="language-csharp">// ❌ BAD: String concatenation - not searchable, poor performance
 logger.LogInformation("Order " + orderId + " for customer " + customerId + 
@@ -323,9 +372,9 @@ logger.LogInformation(
                 Structured logging enables powerful queries in log management systems:
             </p>
             <ul>
-                <li>Find all orders for a specific customer: <code>CustomerId = "C-789"</code></li>
-                <li>Find large orders: <code>Total &gt; 1000</code></li>
-                <li>Analyze order patterns: <code>GROUP BY CustomerId</code></li>
+                <li>Find all orders for a specific customer: <ContentHighlight>CustomerId = "C-789"</ContentHighlight></li>
+                <li>Find large orders: <ContentHighlight>Total &gt; 1000</ContentHighlight></li>
+                <li>Analyze order patterns: <ContentHighlight>GROUP BY CustomerId</ContentHighlight></li>
             </ul>
 
             <h4>Log Providers - Where Logs Go</h4>
@@ -612,14 +661,14 @@ public class OrdersController : ControllerBase
     public async Task&lt;IActionResult&gt; CreateOrder(
         [FromBody] CreateOrderRequest request)
     {
+        // Use scopes to add context to all logs within this method
         using (_logger.BeginScope(new Dictionary&lt;string, object&gt;
         {
             ["CustomerId"] = request.CustomerId,
             ["ItemCount"] = request.Items.Count
         }))
         {
-            _logger.LogInformation(
-                "Received order creation request");
+            _logger.LogInformation("Received order creation request");
 
             try
             {
@@ -630,10 +679,8 @@ public class OrdersController : ControllerBase
                     order.Id, 
                     order.Total);
                 
-                return CreatedAtAction(
-                    nameof(GetOrder), 
-                    new { id = order.Id }, 
-                    order);
+                return CreatedAtAction(nameof(GetOrder), 
+                    new { id = order.Id }, order);
             }
             catch (ValidationException ex)
             {
@@ -644,8 +691,7 @@ public class OrdersController : ControllerBase
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, 
-                    "Unexpected error creating order");
+                _logger.LogError(ex, "Unexpected error creating order");
                 return StatusCode(500, "An error occurred");
             }
         }
@@ -681,7 +727,7 @@ public class OrdersController : ControllerBase
             <h5>Too Many Logs?</h5>
             <ul>
                 <li>Increase minimum log levels (Information instead of Debug)</li>
-                <li>Use category filters to reduce framework logs: <code>"Microsoft": "Warning"</code></li>
+                <li>Use category filters to reduce framework logs: <ContentHighlight>"Microsoft": "Warning"</ContentHighlight></li>
                 <li>Disable request logging for health check endpoints</li>
                 <li>Use log level overrides for specific namespaces</li>
             </ul>
@@ -689,7 +735,7 @@ public class OrdersController : ControllerBase
             <h5>Performance Impact?</h5>
             <ul>
                 <li>Use structured logging (parameters) instead of string interpolation</li>
-                <li>Leverage <code>LoggerMessage</code> source generators for hot paths</li>
+                <li>Leverage <ContentHighlight>LoggerMessage</ContentHighlight> source generators for hot paths</li>
                 <li>Avoid logging in tight loops unless absolutely necessary</li>
                 <li>Use async file writers to prevent I/O blocking</li>
                 <li>Configure appropriate log retention and rotation</li>
@@ -719,8 +765,11 @@ public class OrdersController : ControllerBase
                 (and your team) will thank you.
             </p>
             <p>
-                In upcoming articles, we'll dive deeper into advanced logging topics including Serilog enrichers, structured logging at scale, 
-                distributed tracing correlation, and integrating logs with modern observability platforms. Stay tuned!
+                <strong>Ready to go deeper?</strong> Continue your learning journey with 
+                <a href="/blogs/mastering-the-modern-dotnet-logger-structured-logging-and-advanced-concepts">
+                Mastering the Modern .NET Logger</a>, where we explore advanced structured logging techniques, message templates, 
+                event IDs, and production best practices. In upcoming articles, we'll also cover Serilog enrichers, distributed tracing 
+                correlation, and integrating logs with modern observability platforms. Stay tuned!
             </p>
         </Summary>
     </ContentBody>

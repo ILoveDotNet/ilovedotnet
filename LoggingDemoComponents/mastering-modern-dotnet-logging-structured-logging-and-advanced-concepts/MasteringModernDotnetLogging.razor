@@ -1,0 +1,1027 @@
+@page "/blogs/mastering-modern-dotnet-logging-structured-logging-and-advanced-concepts"
+@using SharedModels
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(MasteringModernDotnetLogging) UseNewTableOfContentsMenu=true>
+    <ContentBody>
+        <What>
+            <blockquote>
+                <p>
+                    <strong>📚 Prerequisites:</strong> This is an advanced guide. If you're new to .NET logging, start with 
+                    <a href="/blogs/introduction-to-logging-in-dotnet-from-basics-to-best-practices">
+                    Introduction to Logging in .NET - From Basics to Best Practices</a> to learn the fundamentals first.
+                </p>
+            </blockquote>
+            <p>
+                You've learned the basics of logging in .NET, but there's a whole world of power hidden beneath the surface. The 
+                <ContentHighlight>modern .NET logger</ContentHighlight> isn't just about writing messages to a console - it's a sophisticated 
+                system designed for <ContentHighlight>structured logging</ContentHighlight>, flexible filtering, and enterprise-grade observability.
+            </p>
+            <p>
+                In this deep-dive article, we'll explore the inner workings of <ContentHighlight>ILogger</ContentHighlight> and discover why the 
+                logging approach you've been using might be fundamentally wrong. We'll master <ContentHighlight>structured logging principles</ContentHighlight>, 
+                understand the distinction between <ContentHighlight>message templates and parameters</ContentHighlight>, and learn how to properly 
+                configure <ContentHighlight>log levels</ContentHighlight>, <ContentHighlight>categories</ContentHighlight>, and 
+                <ContentHighlight>event IDs</ContentHighlight> for production-ready .NET applications.
+            </p>
+            <p>
+                Whether you're building console apps, APIs, Blazor applications, or microservices, this guide will transform how you think about 
+                logging - moving from simple text output to rich, queryable, structured data that becomes invaluable when troubleshooting 
+                production issues.
+            </p>
+        </What>
+
+        <Why>
+            <h4>The Critical Flaw in Traditional Logging</h4>
+            <p>
+                Many developers write logs like this, thinking they're doing the right thing:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">var name = "John";
+var age = 30;
+
+// ❌ WRONG - String interpolation
+logger.LogInformation($"User {name} is {age} years old");
+
+// ❌ WRONG - String concatenation
+logger.LogInformation("User " + name + " is " + age + " years old");</CodeSnippet>
+
+            <p>
+                This looks harmless - the message appears correctly in the console. But here's the problem: when you use 
+                <ContentHighlight>string interpolation</ContentHighlight> or <ContentHighlight>concatenation</ContentHighlight>, you're creating 
+                a finalized string <strong>before</strong> it reaches the logger. The logger receives this:
+            </p>
+
+            <CodeSnippet CssClass="language-plaintext">info: Program[0]
+      User John is 30 years old</CodeSnippet>
+
+            <h4>Why This Breaks Structured Logging</h4>
+            <p>
+                Now let's see what happens in production with a <ContentHighlight>JSON logging provider</ContentHighlight> (which you'd use with 
+                modern observability platforms like Application Insights, Seq, Elasticsearch, or Datadog):
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">// Configure JSON console logging
+services.AddLogging(builder =&gt;
+{
+    builder.AddJsonConsole();
+});</CodeSnippet>
+
+            <p>
+                The output shows the fundamental problem:
+            </p>
+
+            <CodeSnippet CssClass="language-json">{
+  "Timestamp": "2026-05-24T10:30:45.123Z",
+  "Level": "Information",
+  "Category": "Program",
+  "Message": "User John is 30 years old",
+  "State": {
+    "Message": "User John is 30 years old",
+    "{OriginalFormat}": "User John is 30 years old"
+  }
+}</CodeSnippet>
+
+            <p>
+                The critical data you need - <ContentHighlight>name</ContentHighlight> and <ContentHighlight>age</ContentHighlight> - are <strong>baked into the message string</strong>. 
+                They're not separate, queryable fields. This creates serious problems:
+            </p>
+
+            <ul>
+                <li><strong>No filtering capability:</strong> You can't search for "all logs where age &gt; 25" or "all logs for user John"</li>
+                <li><strong>No structured queries:</strong> Observability platforms can't index the values as distinct fields</li>
+                <li><strong>Performance overhead:</strong> String operations execute even when the log level is disabled</li>
+                <li><strong>Analysis nightmare:</strong> Parsing thousands of log messages with regex to extract values is brittle and slow</li>
+                <li><strong>Lost context:</strong> You've converted typed data (int age = 30) into untyped strings</li>
+            </ul>
+
+            <p>
+                Imagine searching through 100,000 log entries trying to find all instances where a specific user encountered an error. With string 
+                interpolation, you're forced to do full-text searches on message strings - slow, imprecise, and expensive in cloud logging services 
+                where you pay per query.
+            </p>
+
+            <h4>The Power of Structured Logging</h4>
+            <p>
+                <ContentHighlight>Structured logging</ContentHighlight> (also called <ContentHighlight>semantic logging</ContentHighlight>) solves 
+                this by treating log messages as <strong>templates with parameters</strong> rather than finalized strings. When done correctly, 
+                your logging provider can:
+            </p>
+
+            <ul>
+                <li>Store parameter values as <strong>separate, indexed fields</strong> in the log entry</li>
+                <li>Preserve <strong>data types</strong> (age stays an integer, not a string)</li>
+                <li>Enable <strong>powerful queries</strong> like "show all logs where userId = '12345' and responseTime &gt; 1000"</li>
+                <li>Create <strong>automatic dashboards and alerts</strong> based on parameter values</li>
+                <li>Reduce <strong>storage costs</strong> by efficiently indexing repeated templates</li>
+            </ul>
+
+            <p>
+                This isn't just a "nice to have" feature - it's the foundation of modern application observability. When production goes down at 
+                3 AM, structured logging is the difference between finding the issue in 5 minutes vs. 5 hours.
+            </p>
+
+            <h4>Why Logs Must Be Consistent</h4>
+            <p>
+                Another critical principle: <strong>log message templates should never vary</strong>. Modern logging systems group and aggregate 
+                logs by their template pattern. If you hover over the logging methods in Visual Studio, you'll see a warning:
+            </p>
+
+            <blockquote>
+                <p>
+                    <em>"The logging message template should not vary between calls"</em>
+                </p>
+            </blockquote>
+
+            <p>
+                This means the template structure should be consistent across all invocations, with only the <strong>parameter values</strong> 
+                changing - not the template itself. This enables log aggregation, pattern detection, and anomaly identification.
+            </p>
+        </Why>
+
+        <How>
+            <h4>The Modern .NET Logger Across Application Types</h4>
+            <p>
+                One of the beautiful aspects of the .NET logging abstraction is its <ContentHighlight>universal availability</ContentHighlight>. 
+                The <ContentHighlight>ILogger&lt;T&gt;</ContentHighlight> interface works identically across all .NET application types. Let's 
+                see how it appears in different contexts.
+            </p>
+
+            <h4>Console Application</h4>
+            <p>
+                In a console app, you configure logging explicitly using dependency injection:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+var services = new ServiceCollection();
+
+services.AddLogging(builder =&gt;
+{
+    builder.AddConsole();
+    builder.SetMinimumLevel(LogLevel.Debug);
+});
+
+var serviceProvider = services.BuildServiceProvider();
+var logger = serviceProvider.GetRequiredService&lt;ILogger&lt;Program&gt;&gt;();
+
+logger.LogInformation("Console application started");
+logger.LogDebug("Debug information available");
+
+// Output:
+// info: Program[0]
+//       Console application started
+// dbug: Program[0]
+//       Debug information available</CodeSnippet>
+
+            <p>
+                The <ContentHighlight>category name</ContentHighlight> (shown as "Program[0]") comes from the generic type parameter 
+                <ContentHighlight>ILogger&lt;Program&gt;</ContentHighlight>. This helps identify which part of your application generated each log entry.
+            </p>
+
+            <h4>Minimal API</h4>
+            <p>
+                In ASP.NET Core Minimal APIs, the logger is automatically configured and available for injection:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">var builder = WebApplication.CreateBuilder(args);
+var app = builder.Build();
+
+app.MapGet("/weather", (ILogger&lt;Program&gt; logger) =&gt;
+{
+    logger.LogInformation("Weather endpoint accessed");
+    
+    var forecast = new[] { "Sunny", "Rainy", "Cloudy" };
+    var weather = forecast[Random.Shared.Next(forecast.Length)];
+    
+    logger.LogInformation("Returning weather: {Weather}", weather);
+    
+    return new { weather };
+});
+
+app.Run();</CodeSnippet>
+
+            <p>
+                Notice how you simply add <ContentHighlight>ILogger&lt;Program&gt;</ContentHighlight> as a parameter to your endpoint lambda - the framework 
+                automatically injects the logger instance.
+            </p>
+
+            <h4>Web API Controller</h4>
+            <p>
+                In traditional controller-based APIs, logging is typically injected via constructor:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">[ApiController]
+[Route("[controller]")]
+public class WeatherForecastController : ControllerBase
+{
+    private readonly ILogger&lt;WeatherForecastController&gt; _logger;
+
+    public WeatherForecastController(
+        ILogger&lt;WeatherForecastController&gt; logger)
+    {
+        _logger = logger;
+    }
+
+    [HttpGet(Name = "GetWeatherForecast")]
+    public IEnumerable&lt;WeatherForecast&gt; Get()
+    {
+        _logger.LogInformation("Retrieving weather forecast");
+        
+        // Implementation
+        var forecasts = GenerateForecasts();
+        
+        _logger.LogInformation(
+            "Generated {Count} weather forecasts", 
+            forecasts.Count());
+        
+        return forecasts;
+    }
+}</CodeSnippet>
+
+            <p>
+                The logger is injected automatically by ASP.NET Core's dependency injection container. Notice the 
+                <ContentHighlight>category name</ContentHighlight> now reflects the controller type: 
+                <ContentHighlight>WeatherForecastController</ContentHighlight>.
+            </p>
+
+            <h4>Blazor Component</h4>
+            <p>
+                In Blazor applications, you can inject the logger directly into components:
+            </p>
+
+            <CodeSnippet CssClass="language-razor">@@page "/counter"
+@@inject ILogger&lt;Counter&gt; Logger
+
+&lt;h3&gt;Counter: @@currentCount&lt;/h3&gt;
+
+&lt;button @@onclick="IncrementCount"&gt;Increment&lt;/button&gt;
+
+@@code {
+    private int currentCount = 0;
+
+    private void IncrementCount()
+    {
+        currentCount++;
+        Logger.LogInformation(
+            "Counter incremented to {Count}", 
+            currentCount);
+    }
+}</CodeSnippet>
+
+            <p>
+                The pattern is consistent: <ContentHighlight>@@inject ILogger&lt;ComponentType&gt;</ContentHighlight> and then use it anywhere in your component logic.
+            </p>
+
+            <h4>Important: ILogger vs ILogger&lt;T&gt;</h4>
+            <p>
+                Starting from <ContentHighlight>.NET 6</ContentHighlight>, the <strong>non-generic</strong> <ContentHighlight>ILogger</ContentHighlight> interface is 
+                <strong>not automatically registered</strong> in dependency injection. You can only inject <ContentHighlight>ILogger&lt;T&gt;</ContentHighlight> with a 
+                specific type parameter.
+            </p>
+
+            <p>
+                If you need the non-generic version, you must register it explicitly:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">services.AddSingleton(sp =&gt; 
+    sp.GetRequiredService&lt;ILoggerFactory&gt;()
+      .CreateLogger("CustomCategory"));</CodeSnippet>
+
+            <p>
+                However, the recommended pattern is to always use <ContentHighlight>ILogger&lt;T&gt;</ContentHighlight> where <ContentHighlight>T</ContentHighlight> is the class or component 
+                using the logger. This automatically sets the <ContentHighlight>category name</ContentHighlight> to the fully qualified type name, 
+                making it easier to filter and organize logs.
+            </p>
+
+            <h4>Understanding the Log Methods</h4>
+            <p>
+                When you write <ContentHighlight>logger.LogInformation("message")</ContentHighlight>, you're actually calling an 
+                <ContentHighlight>extension method</ContentHighlight>. If you examine the <ContentHighlight>ILogger</ContentHighlight> interface definition, you'll find 
+                it has surprisingly few members:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">public interface ILogger
+{
+    void Log&lt;TState&gt;(
+        LogLevel logLevel, 
+        EventId eventId, 
+        TState state, 
+        Exception? exception, 
+        Func&lt;TState, Exception?, string&gt; formatter);
+    
+    bool IsEnabled(LogLevel logLevel);
+    
+    IDisposable? BeginScope&lt;TState&gt;(TState state) 
+        where TState : notnull;
+}</CodeSnippet>
+
+            <p>
+                The <ContentHighlight>Log</ContentHighlight> method is the <strong>core logging method</strong> - all convenience methods like 
+                <ContentHighlight>LogInformation</ContentHighlight>, <ContentHighlight>LogError</ContentHighlight>, and <ContentHighlight>LogDebug</ContentHighlight> eventually call this.
+            </p>
+
+            <h4>The Core Log Method</h4>
+            <p>
+                Let's deconstruct the <ContentHighlight>Log</ContentHighlight> method to understand what's happening under the hood:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">// Using LogInformation (extension method)
+logger.LogInformation("Application started");
+
+// Is actually equivalent to:
+logger.Log(
+    logLevel: LogLevel.Information,
+    eventId: new EventId(0),
+    state: "Application started",
+    exception: null,
+    formatter: (state, ex) =&gt; state.ToString());</CodeSnippet>
+
+            <p>
+                You <em>can</em> use the <ContentHighlight>Log</ContentHighlight> method directly, but it's verbose and unnecessary in most cases. The extension methods 
+                provide a much cleaner API while giving you the same power.
+            </p>
+
+            <h4>Log Levels Explained</h4>
+            <p>
+                The <ContentHighlight>LogLevel enum</ContentHighlight> defines six levels of severity, plus two special values:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">public enum LogLevel
+{
+    Trace = 0,      // Most detailed messages
+    Debug = 1,      // Diagnostic information
+    Information = 2, // General informational messages
+    Warning = 3,     // Something unexpected happened
+    Error = 4,       // An error occurred but app continues
+    Critical = 5,    // Critical failure, app may terminate
+    None = 6         // No logging threshold (disable all)
+}</CodeSnippet>
+
+            <p>
+                Each level has a corresponding convenience method:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">logger.LogTrace("Trace-level diagnostic message");
+logger.LogDebug("Debug information for development");
+logger.LogInformation("General informational message");
+logger.LogWarning("Warning: something unexpected occurred");
+logger.LogError("Error: operation failed but app continues");
+logger.LogCritical("Critical failure: immediate attention needed");</CodeSnippet>
+
+            <p>
+                When you set a <ContentHighlight>minimum log level</ContentHighlight>, any logs below that threshold are suppressed. For example, 
+                if the minimum level is set to <ContentHighlight>Information</ContentHighlight>, then <ContentHighlight>Trace</ContentHighlight> and <ContentHighlight>Debug</ContentHighlight> logs won't appear.
+            </p>
+
+            <h4>Structured Logging with Message Templates</h4>
+            <p>
+                Now we arrive at the most important concept: <ContentHighlight>message templates</ContentHighlight>. This is where structured 
+                logging comes to life.
+            </p>
+
+            <p>
+                Instead of using string interpolation, you define a template with <strong>named placeholders</strong> in curly braces:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">var userName = "John";
+var userAge = 30;
+
+// ✅ CORRECT - Structured logging with message template
+logger.LogInformation(
+    "User {UserName} is {Age} years old", 
+    userName, 
+    userAge);
+
+// Console output:
+// info: Program[0]
+//       User John is 30 years old</CodeSnippet>
+
+            <p>
+                Notice the <strong>curly braces</strong> in the message string? Those are <ContentHighlight>template placeholders</ContentHighlight>, 
+                not string interpolation. The string is called the <strong>message template</strong> or <strong>format string</strong>.
+            </p>
+
+            <p>
+                Here's how message templates transform into structured logs:
+            </p>
+
+            <CodeSnippet CssClass="language-plaintext">
+┌───────────────────────────────────────────────────────────────┐
+│         Message Template Flow - How It Works                  │
+├───────────────────────────────────────────────────────────────┤
+│                                                               │
+│ Step 1: Your Code                                             │
+│ ┌─────────────────────────────────────────────────────┐       │
+│ │ logger.LogInformation(                              │       │
+│ │   "User {UserName} is {Age} years old",             │       │
+│ │   "John",    // userName value                      │       │
+│ │   30);       // userAge value                       │       │
+│ └─────────────────────────────────────────────────────┘       │
+│                           │                                   │
+│                           ▼                                   │
+│ Step 2: Logger Parses Template                                │
+│ ┌─────────────────────────────────────────────────────┐       │
+│ │ Template: "User {UserName} is {Age} years old"      │       │
+│ │                                                     │       │
+│ │ Parameters:                                         │       │
+│ │   Position 0: "John"   → maps to {UserName}         │       │
+│ │   Position 1: 30       → maps to {Age}              │       │
+│ └─────────────────────────────────────────────────────┘       │
+│                           │                                   │
+│                           ▼                                   │
+│ Step 3: Provider Creates Structured Output                    │
+│ ┌─────────────────────────────────────────────────────┐       │
+│ │ {                                                   │       │
+│ │   "Message": "User John is 30 years old",           │       │
+│ │   "State": {                                        │       │
+│ │     "UserName": "John",     ← Searchable field!     │       │
+│ │     "Age": 30,              ← Typed integer!        │       │
+│ │     "{OriginalFormat}": "User {UserName} is..."     │       │
+│ │   }                                                 │       │
+│ │ }                                                   │       │
+│ └─────────────────────────────────────────────────────┘       │
+│                                                               │
+│ Result: Parameters become indexed, queryable fields!          │
+│   • Query by UserName: State.UserName == "John"               │
+│   • Query by Age range: State.Age &gt; 25                     │
+│   • Aggregate by template pattern for trend analysis          │
+│                                                               │
+└───────────────────────────────────────────────────────────────┘
+            </CodeSnippet>
+
+            <p>
+                After the template, you pass the actual values as additional parameters. The logger matches them by position to the placeholders 
+                in the template.
+            </p>
+
+            <h4>Why Templates Don't Need to Match Variable Names</h4>
+            <p>
+                Here's something important: the placeholder names don't have to match your variable names:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">var userName = "John";
+var userAge = 30;
+
+// Placeholder names differ from variable names
+logger.LogInformation(
+    "User {FirstName} is {YearsOld} years old", 
+    userName,  // Maps to {FirstName}
+    userAge);  // Maps to {YearsOld}
+
+// Output is the same:
+// info: Program[0]
+//       User John is 30 years old</CodeSnippet>
+
+            <p>
+                Parameters are matched by <strong>position</strong>, not by name. However, using meaningful placeholder names is crucial because 
+                they become the <strong>property names</strong> in structured log output.
+            </p>
+
+            <h4>Structured Logging Output</h4>
+            <p>
+                With a JSON console provider, the magic becomes visible:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">// Configure JSON console provider
+services.AddLogging(builder =&gt;
+{
+    builder.AddJsonConsole();
+});
+
+var logger = serviceProvider.GetRequiredService&lt;ILogger&lt;Program&gt;&gt;();
+
+logger.LogInformation(
+    "User {UserName} logged in with role {Role}", 
+    "John", 
+    "Administrator");
+
+// JSON output:
+// {
+//   "Timestamp": "2026-05-24T10:30:45.123Z",
+//   "Level": "Information",
+//   "Category": "Program",
+//   "Message": "User John logged in with role Administrator",
+//   "State": {
+//     "Message": "User John logged in with role Administrator",
+//     "UserName": "John",
+//     "Role": "Administrator",
+//     "{OriginalFormat}": "User {UserName} logged in with role {Role}"
+//   }
+// }</CodeSnippet>
+
+            <p>
+                Look at the <ContentHighlight>State</ContentHighlight> object - the individual parameters are preserved as <strong>separate properties</strong>:
+            </p>
+
+            <ul>
+                <li><ContentHighlight>UserName</ContentHighlight>: "John"</li>
+                <li><ContentHighlight>Role</ContentHighlight>: "Administrator"</li>
+                <li><ContentHighlight>{OriginalFormat}</ContentHighlight>: The original template for grouping/aggregation</li>
+            </ul>
+
+            <p>
+                Now you can query logs with precision:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">// Query examples in logging platforms:
+// Find all logs for a specific user
+State.UserName == "John"
+
+// Find all administrator logins
+State.Role == "Administrator" AND Message CONTAINS "logged in"
+
+// Count login events by role
+GROUP BY State.Role WHERE Message CONTAINS "logged in"</CodeSnippet>
+
+            <p>
+                This is the power of <ContentHighlight>structured logging</ContentHighlight> - transforming logs from unstructured text into 
+                queryable, analyzable data.
+            </p>
+
+            <h4>Data Type Preservation</h4>
+            <p>
+                Structured logging preserves the original data types of your parameters:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">var userId = 12345;
+var responseTime = 250.75;
+var isSuccessful = true;
+
+logger.LogInformation(
+    "Request {UserId} completed in {ResponseTimeMs}ms - Success: {IsSuccess}",
+    userId,
+    responseTime,
+    isSuccessful);
+
+// JSON output preserves types:
+// {
+//   "State": {
+//     "UserId": 12345,              // integer, not "12345"
+//     "ResponseTimeMs": 250.75,     // double, not "250.75"
+//     "IsSuccess": true             // boolean, not "true"
+//   }
+// }</CodeSnippet>
+
+            <p>
+                This enables numeric comparisons, range queries, and aggregations in your logging platform - something impossible with 
+                string-interpolated logs.
+            </p>
+
+            <p>
+                Here's a visual representation of how parameters become indexed fields:
+            </p>
+
+            <CodeSnippet CssClass="language-plaintext">
+┌───────────────────────────────────────────────────────────────┐
+│      From Code Parameters to Indexed Log Fields               │
+├───────────────────────────────────────────────────────────────┤
+│                                                               │
+│ Your Application Code:                                        │
+│                                                               │
+│   var userId = 12345;           (integer)                     │
+│   var responseTime = 250.75;    (double)                      │
+│   var isSuccessful = true;      (boolean)                     │
+│                                                               │
+│   logger.LogInformation(                                      │
+│     "Request {UserId} completed in {ResponseTimeMs}ms...",    │
+│     userId,         │                                         │
+│     responseTime,   │─── Position-based mapping               │
+│     isSuccessful);  │                                         │
+│                     │                                         │
+│                     ▼                                         │
+│ ┌────────────────────────────────────────────────────┐        │
+│ │ Logging Platform Storage (e.g., Elasticsearch, Seq)│        │
+│ ├────────────────────────────────────────────────────┤        │
+│ │                                                    │        │
+│ │ 🔍 Indexed Fields (Fast Queries):                  │        │
+│ │                                                    │        │
+│ │   UserId: 12345                  [Integer Index]   │        │
+│ │   └─ Query: UserId &gt; 10000                      │        │
+│ │   └─ Aggregate: COUNT(DISTINCT UserId)             │        │
+│ │                                                    │        │
+│ │   ResponseTimeMs: 250.75         [Numeric Index]   │        │
+│ │   └─ Query: ResponseTimeMs &gt; 200                │        │
+│ │   └─ Aggregate: AVG(ResponseTimeMs)                │        │
+│ │                                                    │        │
+│ │   IsSuccess: true                [Boolean Index]   │        │
+│ │   └─ Query: IsSuccess = false                      │        │
+│ │   └─ Aggregate: COUNT WHERE IsSuccess = true       │        │
+│ │                                                    │        │
+│ └────────────────────────────────────────────────────┘        │
+│                                                               │
+│ 🚀 Power of Structured Logging:                               │
+│   • Fast filtering by specific user IDs                       │
+│   • Performance analysis with numeric ranges                  │
+│   • Success rate calculations with boolean fields             │
+│   • All without parsing text strings!                         │
+│                                                               │
+└───────────────────────────────────────────────────────────────┘
+            </CodeSnippet>
+
+            <h4>Understanding Log Categories</h4>
+            <p>
+                The <ContentHighlight>category</ContentHighlight> is an arbitrary string that helps organize and filter logs. When you use 
+                <ContentHighlight>ILogger&lt;T&gt;</ContentHighlight>, the category is automatically set to the fully qualified name of type <ContentHighlight>T</ContentHighlight>:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">// In a class called UserService in namespace MyApp.Services:
+private readonly ILogger&lt;UserService&gt; _logger;
+
+public UserService(ILogger&lt;UserService&gt; logger)
+{
+    _logger = logger;
+}
+
+// Category will be: "MyApp.Services.UserService"</CodeSnippet>
+
+            <p>
+                You can also create a logger with a custom category using <ContentHighlight>ILoggerFactory</ContentHighlight>:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">public class UserService
+{
+    private readonly ILogger _logger;
+
+    public UserService(ILoggerFactory loggerFactory)
+    {
+        // Custom category name
+        _logger = loggerFactory.CreateLogger("CustomCategory");
+    }
+}</CodeSnippet>
+
+            <p>
+                However, the convention is to use the type name because it provides automatic context about where the log originated.
+            </p>
+
+            <h4>Category-Based Filtering</h4>
+            <p>
+                Categories become powerful when combined with filtering. You can set different minimum log levels for different categories:
+            </p>
+
+            <CodeSnippet CssClass="language-json">// appsettings.json
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft": "Warning",
+      "Microsoft.EntityFrameworkCore": "Information",
+      "MyApp.Services.UserService": "Debug"
+    }
+  }
+}</CodeSnippet>
+
+            <p>
+                This configuration means:
+            </p>
+
+            <ul>
+                <li>Most of the app logs at <ContentHighlight>Information</ContentHighlight> level and above</li>
+                <li>Microsoft's internal logs are filtered to <ContentHighlight>Warning</ContentHighlight> and above (reduces noise)</li>
+                <li>Entity Framework logs at <ContentHighlight>Information</ContentHighlight> (to see SQL queries)</li>
+                <li><ContentHighlight>UserService</ContentHighlight> logs at <ContentHighlight>Debug</ContentHighlight> level for detailed diagnostics</li>
+            </ul>
+
+            <p>
+                You can also configure this in code:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">services.AddLogging(builder =&gt;
+{
+    builder.AddConsole();
+    
+    // Set default minimum level
+    builder.SetMinimumLevel(LogLevel.Information);
+    
+    // Override for specific categories
+    builder.AddFilter("Microsoft", LogLevel.Warning);
+    builder.AddFilter("Microsoft.EntityFrameworkCore", LogLevel.Information);
+    builder.AddFilter(
+        "MyApp.Services.UserService", 
+        LogLevel.Debug);
+});</CodeSnippet>
+
+            <h4>Working with Minimum Log Levels</h4>
+            <p>
+                The <ContentHighlight>minimum log level</ContentHighlight> acts as a threshold - any logs below it are suppressed. This is crucial 
+                for performance and managing log volume in production.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">services.AddLogging(builder =&gt;
+{
+    builder.AddConsole();
+    builder.SetMinimumLevel(LogLevel.Information);
+});
+
+var logger = serviceProvider.GetRequiredService&lt;ILogger&lt;Program&gt;&gt;();
+
+// These will NOT appear (below threshold):
+logger.LogTrace("This trace won't show");
+logger.LogDebug("This debug won't show");
+
+// These WILL appear (at or above threshold):
+logger.LogInformation("This information will show");
+logger.LogWarning("This warning will show");
+logger.LogError("This error will show");
+logger.LogCritical("This critical will show");</CodeSnippet>
+
+            <p>
+                In ASP.NET Core applications, the minimum log level is typically configured in <ContentHighlight>appsettings.json</ContentHighlight>:
+            </p>
+
+            <CodeSnippet CssClass="language-json">{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information"
+    }
+  }
+}</CodeSnippet>
+
+            <p>
+                You can override this for different environments:
+            </p>
+
+            <CodeSnippet CssClass="language-json">// appsettings.Development.json
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Debug"  // More verbose in development
+    }
+  }
+}
+
+// appsettings.Production.json
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Warning"  // Less verbose in production
+    }
+  }
+}</CodeSnippet>
+
+            <h4>Understanding Event IDs</h4>
+            <p>
+                The <ContentHighlight>EventId</ContentHighlight> is an optional identifier you can assign to log entries to categorize and track 
+                specific events:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">logger.LogInformation(
+    eventId: new EventId(1001, "UserLogin"),
+    message: "User {UserName} logged in",
+    userName);
+
+logger.LogWarning(
+    eventId: new EventId(2001, "InvalidCredentials"),
+    message: "Invalid login attempt for user {UserName}",
+    userName);
+
+logger.LogError(
+    eventId: new EventId(3001, "DatabaseConnectionFailed"),
+    message: "Failed to connect to database {DatabaseName}",
+    databaseName);</CodeSnippet>
+
+            <p>
+                The <ContentHighlight>EventId</ContentHighlight> struct has two parts:
+            </p>
+
+            <ul>
+                <li><strong>Id</strong> (integer): A numeric identifier for the event</li>
+                <li><strong>Name</strong> (string, optional): A descriptive name for the event</li>
+            </ul>
+
+            <p>
+                Event IDs allow you to:
+            </p>
+
+            <ul>
+                <li>Quickly filter logs by specific event types</li>
+                <li>Create alerts based on event IDs (e.g., alert when event 3001 occurs)</li>
+                <li>Track patterns and trends for specific operations</li>
+                <li>Document your logging strategy with well-defined event catalogs</li>
+            </ul>
+
+            <h4>Organizing Event IDs</h4>
+            <p>
+                A common pattern is to define event IDs as constants in a dedicated class:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">public static class LogEvents
+{
+    // User-related events (1000-1999)
+    public const int UserLogin = 1001;
+    public const int UserLogout = 1002;
+    public const int UserRegistration = 1003;
+    public const int PasswordReset = 1004;
+
+    // Data access events (2000-2999)
+    public const int DatabaseQuery = 2001;
+    public const int DatabaseQuerySlow = 2002;
+    public const int DatabaseConnectionFailed = 2003;
+
+    // External service events (3000-3999)
+    public const int ApiCallStarted = 3001;
+    public const int ApiCallSucceeded = 3002;
+    public const int ApiCallFailed = 3003;
+    public const int ApiCallTimeout = 3004;
+
+    // Business logic events (4000-4999)
+    public const int OrderCreated = 4001;
+    public const int OrderCancelled = 4002;
+    public const int PaymentProcessed = 4003;
+    public const int PaymentFailed = 4004;
+}
+
+// Usage:
+logger.LogInformation(
+    LogEvents.UserLogin, 
+    "User {UserName} logged in successfully", 
+    userName);
+
+logger.LogError(
+    LogEvents.DatabaseConnectionFailed,
+    "Failed to connect to database after {RetryCount} attempts",
+    retryCount);</CodeSnippet>
+
+            <p>
+                This approach makes your logging consistent, discoverable, and maintainable across large applications.
+            </p>
+
+            <h4>Event IDs in Console Output</h4>
+            <p>
+                When using the console provider, event IDs appear in the log output:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">logger.LogInformation(LogEvents.UserLogin, "User {UserName} logged in", "John");
+
+// Console output:
+// info: MyApp.Services.UserService[1001]
+//       User John logged in
+//       ^^^^                    ^^^^
+//       category               event ID</CodeSnippet>
+
+            <p>
+                The number in square brackets <ContentHighlight>[1001]</ContentHighlight> is the event ID, making it easy to spot specific event types in console output.
+            </p>
+
+            <h4>Best Practices for Production Logging</h4>
+            <p>
+                Let's wrap up with key best practices that will serve you well in production:
+            </p>
+
+            <h4>1. Always Use Structured Logging</h4>
+            <CodeSnippet CssClass="language-csharp">// ❌ NEVER do this:
+logger.LogInformation($"Processing order {orderId} for user {userId}");
+
+// ✅ ALWAYS do this:
+logger.LogInformation(
+    "Processing order {OrderId} for user {UserId}", 
+    orderId, 
+    userId);</CodeSnippet>
+
+            <h4>2. Use Meaningful Placeholder Names</h4>
+            <CodeSnippet CssClass="language-csharp">// ❌ Poor placeholder names:
+logger.LogInformation("User {A} created order {B}", userId, orderId);
+
+// ✅ Descriptive placeholder names:
+logger.LogInformation(
+    "User {UserId} created order {OrderId}", 
+    userId, 
+    orderId);</CodeSnippet>
+
+            <h4>3. Keep Message Templates Consistent</h4>
+            <CodeSnippet CssClass="language-csharp">// ❌ Varying templates break log aggregation:
+logger.LogInformation("User {UserId} logged in");
+logger.LogInformation("User {UserId} has logged in");
+logger.LogInformation("{UserId} logged in");
+
+// ✅ Use ONE consistent template:
+logger.LogInformation("User {UserId} logged in", userId);</CodeSnippet>
+
+            <h4>4. Choose Appropriate Log Levels</h4>
+            <ul>
+                <li><strong>Trace:</strong> Very detailed diagnostic info, typically only in development</li>
+                <li><strong>Debug:</strong> Diagnostic info useful for debugging, disabled in production</li>
+                <li><strong>Information:</strong> General flow of the application (startup, shutdown, major operations)</li>
+                <li><strong>Warning:</strong> Unexpected events that don't stop execution (deprecated features, poor API usage)</li>
+                <li><strong>Error:</strong> Errors and exceptions that prevent specific operations from completing</li>
+                <li><strong>Critical:</strong> Critical failures requiring immediate attention (data corruption, disk full)</li>
+            </ul>
+
+            <h4>5. Include Context in Error Logs</h4>
+            <CodeSnippet CssClass="language-csharp">// ❌ Insufficient context:
+logger.LogError("Database query failed");
+
+// ✅ Rich context for troubleshooting:
+logger.LogError(
+    exception,
+    "Database query failed for user {UserId} when accessing {TableName} " +
+    "with query {QueryText}. Execution time: {ExecutionTimeMs}ms",
+    userId,
+    tableName,
+    queryText,
+    executionTime);</CodeSnippet>
+
+            <h4>6. Don't Log Sensitive Information</h4>
+            <CodeSnippet CssClass="language-csharp">// ❌ NEVER log passwords, tokens, or PII:
+logger.LogInformation(
+    "User {Email} authenticated with password {Password}", 
+    email, 
+    password);
+
+// ✅ Log only non-sensitive identifiers:
+logger.LogInformation(
+    "User {UserId} authenticated successfully", 
+    userId);</CodeSnippet>
+
+            <h4>7. Use Categories for Organization</h4>
+            <CodeSnippet CssClass="language-csharp">// ✅ Inject ILogger&lt;T&gt; where T is your class:
+public class UserService
+{
+    private readonly ILogger&lt;UserService&gt; _logger;
+    
+    public UserService(ILogger&lt;UserService&gt; logger)
+    {
+        _logger = logger;
+    }
+    
+    // Category will be "MyApp.Services.UserService"
+}</CodeSnippet>
+
+            <h4>8. Configure Appropriate Levels for Production</h4>
+            <CodeSnippet CssClass="language-json">{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft": "Warning",
+      "Microsoft.Hosting.Lifetime": "Information",
+      "System": "Warning"
+    }
+  }
+}</CodeSnippet>
+
+            <p>
+                This reduces noise from framework code while keeping your application logs visible.
+            </p>
+        </How>
+
+        <Summary>
+            <p>
+                In this deep-dive exploration of the modern .NET logger, we've uncovered the fundamental principles that separate amateur logging 
+                from production-grade observability:
+            </p>
+
+            <ul>
+                <li>
+                    <ContentHighlight>Structured logging is mandatory</ContentHighlight> - Never use string interpolation or concatenation. 
+                    Always use message templates with parameters to preserve data types and enable powerful queries.
+                </li>
+                <li>
+                    <ContentHighlight>ILogger&lt;T&gt; works everywhere</ContentHighlight> - The same logging interface and patterns work across 
+                    console apps, APIs, Blazor components, and all other .NET application types.
+                </li>
+                <li>
+                    <ContentHighlight>Message templates are the foundation</ContentHighlight> - Use curly-brace placeholders in your log messages 
+                    and pass values as separate parameters. This enables proper structured logging output.
+                </li>
+                <li>
+                    <ContentHighlight>Categories organize your logs</ContentHighlight> - Use <ContentHighlight>ILogger&lt;T&gt;</ContentHighlight> where T is your class 
+                    name to automatically set meaningful categories, enabling precise filtering and analysis.
+                </li>
+                <li>
+                    <ContentHighlight>Log levels control verbosity</ContentHighlight> - Set appropriate minimum log levels for different environments 
+                    and categories to manage performance and log volume while maintaining visibility.
+                </li>
+                <li>
+                    <ContentHighlight>Event IDs enable tracking</ContentHighlight> - Assign consistent event IDs to categorize and track specific 
+                    operations, enabling alerts and pattern analysis.
+                </li>
+                <li>
+                    <ContentHighlight>Templates must be consistent</ContentHighlight> - Keep message template structure identical across calls to 
+                    enable log aggregation, pattern detection, and meaningful analytics.
+                </li>
+            </ul>
+
+            <p>
+                Mastering these concepts transforms logging from an afterthought into a powerful debugging and observability tool. When production 
+                issues arise, structured logs with proper categories, levels, and event IDs become your most valuable asset - enabling you to quickly 
+                identify root causes, understand system behavior, and resolve problems before they impact users.
+            </p>
+
+            <p>
+                The investment you make in proper logging practices today will pay dividends every time you need to troubleshoot a production issue, 
+                analyze system performance, or satisfy audit requirements. Start applying structured logging consistently across your applications - 
+                your future self will thank you.
+            </p>
+
+            <p>
+                <strong>Continue learning:</strong> Now that you've mastered structured logging, explore advanced topics in our upcoming articles 
+                on Serilog enrichers, log correlation across distributed systems, OpenTelemetry integration, and building custom log providers 
+                for specialized scenarios. Want to learn more about the fundamentals? Check out our introductory guide: 
+                <a href="/blogs/introduction-to-logging-in-dotnet-from-basics-to-best-practices">
+                Introduction to Logging in .NET - From Basics to Best Practices</a>.
+            </p>
+        </Summary>
+    </ContentBody>
+</Content>

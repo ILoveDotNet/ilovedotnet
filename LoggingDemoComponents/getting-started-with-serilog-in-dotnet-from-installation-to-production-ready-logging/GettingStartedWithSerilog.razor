@@ -1,0 +1,599 @@
+@page "/blogs/getting-started-with-serilog-in-dotnet-from-installation-to-production-ready-logging"
+@using SharedModels
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(GettingStartedWithSerilog) UseNewTableOfContentsMenu=true>
+    <ContentBody>
+        <What>
+            <p>
+                If there is one logging library every .NET developer should know, it is <ContentHighlight>Serilog</ContentHighlight>.
+                With nearly a billion NuGet downloads and widespread adoption across companies of every size, Serilog has earned
+                its reputation as the gold standard for application logging in .NET. In this article, you will learn what Serilog
+                is, how to integrate it into both console and ASP.NET Core applications, and how to use its most powerful
+                features to build production-ready observability.
+            </p>
+
+            <p>
+                Serilog is an <ContentHighlight>open-source, structured logging library</ContentHighlight> for .NET. It was the
+                library that popularised <ContentHighlight>message templates</ContentHighlight> and <ContentHighlight>semantic
+                logging</ContentHighlight> — concepts that Microsoft later adopted into its own
+                <ContentHighlight>ILogger</ContentHighlight> abstraction. Even today, Serilog's feature set goes further than
+                the built-in provider: richer structured data handling, a vast ecosystem of sinks, log enrichment, timed
+                operations, and surgical control over sensitive data masking.
+            </p>
+
+            <p>
+                By the end of this article you will be able to:
+            </p>
+
+            <ul>
+                <li>Create a Serilog logger and write to multiple sinks simultaneously</li>
+                <li>Replace the built-in <ContentHighlight>Microsoft.Extensions.Logging</ContentHighlight> provider with Serilog in ASP.NET Core</li>
+                <li>Drive all configuration from <ContentHighlight>appsettings.json</ContentHighlight></li>
+                <li>Enrich logs with machine name, thread ID, environment, and custom properties</li>
+                <li>Handle structured and complex objects with the destructuring operator</li>
+                <li>Time operations and automatically detect slow paths</li>
+            </ul>
+        </What>
+
+        <Why>
+            <p>
+                The built-in <ContentHighlight>ILogger</ContentHighlight> in .NET is a solid abstraction, but its concrete
+                providers have real gaps that hurt production observability. Here is where those gaps show up.
+            </p>
+
+            <h3 class="[ font-semibold text-lg ]">Lost logs in containerised environments</h3>
+
+            <p>
+                The default console provider writes plain text. In a Kubernetes cluster that recycles pods frequently,
+                plain-text console output disappears the moment the container is replaced. There is no built-in way to
+                flush in-flight buffered logs before the process exits.
+            </p>
+
+            <p>
+                Serilog solves this with <ContentHighlight>Log.CloseAndFlushAsync()</ContentHighlight>. Every sink that
+                buffers in memory for performance — such as the Application Insights or Elasticsearch sinks — is guaranteed
+                to drain its buffer before the process closes. No logs are silently swallowed.
+            </p>
+
+            <h3 class="[ font-semibold text-lg ]">Object serialisation in log messages</h3>
+
+            <p>
+                With the built-in provider, logging a complex object produces its <ContentHighlight>ToString()</ContentHighlight>
+                representation — typically just a type name:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// Built-in logger — unhelpful output
+logger.LogInformation("Payment received: {Payment}", payment);
+// Output: Payment received: MyApp.Models.Payment
+            </CodeSnippet>
+
+            <p>
+                Serilog's <ContentHighlight>@@ destructuring operator</ContentHighlight> serialises the object into structured
+                key-value pairs automatically, making every property searchable in downstream log stores:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// Serilog — full structured output
+logger.Information("Payment received: {@@Payment}", payment);
+// Output: Payment received: { PaymentId: 1, UserId: "abc", OccurredAt: "2026-01-15T10:00:00Z" }
+            </CodeSnippet>
+
+            <h3 class="[ font-semibold text-lg ]">Configuration spread across multiple places</h3>
+
+            <p>
+                The built-in logging system uses the <ContentHighlight>Logging</ContentHighlight> section of
+                <ContentHighlight>appsettings.json</ContentHighlight>. Serilog replaces it with its own
+                <ContentHighlight>Serilog</ContentHighlight> section that covers minimum levels, sink configuration,
+                enrichers, and output templates — all in one place. Changing log levels at runtime requires touching
+                only one file, not hunting down provider-specific settings scattered across environments.
+            </p>
+
+            <h3 class="[ font-semibold text-lg ]">No easy timing for slow operations</h3>
+
+            <p>
+                Measuring how long a code path takes requires manually capturing a <ContentHighlight>Stopwatch</ContentHighlight>,
+                writing two log statements, and remembering to log even when an exception is thrown midway. The
+                <ContentHighlight>SerilogTimings</ContentHighlight> package collapses all of that into a single
+                <ContentHighlight>using</ContentHighlight> block and automatically promotes slow operations to warnings.
+            </p>
+        </Why>
+
+        <How>
+            <h3 class="[ font-semibold text-lg ]">Step 1: Install Serilog</h3>
+
+            <p>
+                Add the core package and the sinks you need. For most applications, start with the console and file sinks:
+            </p>
+
+            <CodeSnippet CssClass="language-shell">
+dotnet add package Serilog
+dotnet add package Serilog.Sinks.Console
+dotnet add package Serilog.Sinks.File
+            </CodeSnippet>
+
+            <h3 class="[ font-semibold text-lg ]">Step 2: Create a logger in a console application</h3>
+
+            <p>
+                Creating a Serilog logger requires no factory or builder ceremony. Configure it with
+                <ContentHighlight>LoggerConfiguration</ContentHighlight>, add sinks, and call
+                <ContentHighlight>CreateLogger()</ContentHighlight>:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+using Serilog;
+
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console(theme: Serilog.Sinks.SystemConsole.Themes.AnsiConsoleTheme.Code)
+    .WriteTo.File(
+        "logs/app.txt",
+        rollingInterval: RollingInterval.Day,
+        rollOnFileSizeLimit: true)
+    .CreateLogger();
+
+Log.Information("Hello from Serilog!");
+Log.Warning("This is a warning");
+Log.Error("Something went wrong");
+
+await Log.CloseAndFlushAsync();
+            </CodeSnippet>
+
+            <p>
+                The <ContentHighlight>Log.Logger</ContentHighlight> static property is the central logger instance.
+                Assigning to it registers your configured logger globally, which Serilog uses internally for buffered
+                sink operations. Always call <ContentHighlight>CloseAndFlushAsync</ContentHighlight> before the process
+                exits so that in-flight buffered messages are not lost.
+            </p>
+
+            <p>
+                Serilog's log levels map to the .NET equivalents like so:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// Serilog level  →  Microsoft equivalent
+Log.Verbose(...);   // Trace
+Log.Debug(...);     // Debug
+Log.Information(..);// Information
+Log.Warning(...);   // Warning
+Log.Error(...);     // Error
+Log.Fatal(...);     // Critical
+            </CodeSnippet>
+
+            <h3 class="[ font-semibold text-lg ]">Step 3: Understand sinks</h3>
+
+            <p>
+                A <ContentHighlight>sink</ContentHighlight> is Serilog's term for a log provider — the destination where
+                log entries are written. The ecosystem has hundreds of community-maintained sinks. A few popular ones:
+            </p>
+
+            <ul>
+                <li><ContentHighlight>Serilog.Sinks.Console</ContentHighlight> — terminal output with optional ANSI colour themes</li>
+                <li><ContentHighlight>Serilog.Sinks.File</ContentHighlight> — file output with daily or size-based rolling</li>
+                <li><ContentHighlight>Serilog.Sinks.ApplicationInsights</ContentHighlight> — Azure Application Insights</li>
+                <li><ContentHighlight>Serilog.Sinks.Elasticsearch</ContentHighlight> — Elasticsearch / OpenSearch</li>
+                <li><ContentHighlight>Serilog.Sinks.Seq</ContentHighlight> — Seq structured log server</li>
+                <li><ContentHighlight>Serilog.Sinks.MSSqlServer</ContentHighlight> — SQL Server</li>
+            </ul>
+
+            <p>
+                Multiple sinks can be chained in a single configuration. Serilog writes to each one independently:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .WriteTo.File("logs/app.txt", rollingInterval: RollingInterval.Day)
+    .CreateLogger();
+            </CodeSnippet>
+
+            <h3 class="[ font-semibold text-lg ]">Step 4: Integrate Serilog into ASP.NET Core</h3>
+
+            <p>
+                For ASP.NET Core, install the hosting integration package:
+            </p>
+
+            <CodeSnippet CssClass="language-shell">
+dotnet add package Serilog.AspNetCore
+            </CodeSnippet>
+
+            <p>
+                Then replace the built-in logging pipeline in <ContentHighlight>Program.cs</ContentHighlight> using
+                <ContentHighlight>UseSerilog()</ContentHighlight>. This single call replaces every provider that was
+                registered by the default host — console, debug, event source, and event log — with Serilog:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+using Serilog;
+
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .CreateLogger();
+
+var builder = WebApplication.CreateBuilder(args);
+builder.Host.UseSerilog();
+
+var app = builder.Build();
+// ...
+            </CodeSnippet>
+
+            <p>
+                After this, every call to the <ContentHighlight>Microsoft.Extensions.Logging.ILogger&lt;T&gt;</ContentHighlight>
+                interface — whether in controllers, minimal API handlers, or injected services — is routed through Serilog.
+                Your existing code does not need to change.
+            </p>
+
+            <h3 class="[ font-semibold text-lg ]">Step 5: Drive configuration from appsettings.json</h3>
+
+            <p>
+                Hard-coding log levels in <ContentHighlight>Program.cs</ContentHighlight> makes them impossible to change
+                without a redeployment. Serilog can read its entire configuration — levels, sinks, enrichers — from
+                <ContentHighlight>appsettings.json</ContentHighlight>.
+            </p>
+
+            <p>
+                Install the configuration package:
+            </p>
+
+            <CodeSnippet CssClass="language-shell">
+dotnet add package Serilog.Settings.Configuration
+            </CodeSnippet>
+
+            <p>
+                Update <ContentHighlight>Program.cs</ContentHighlight> to load from configuration:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(builder.Configuration)
+    .CreateLogger();
+
+builder.Host.UseSerilog();
+            </CodeSnippet>
+
+            <p>
+                Add a <ContentHighlight>Serilog</ContentHighlight> section to <ContentHighlight>appsettings.json</ContentHighlight>
+                (remove the built-in <ContentHighlight>Logging</ContentHighlight> section — it is no longer used):
+            </p>
+
+            <CodeSnippet CssClass="language-json">
+{
+  "Serilog": {
+    "MinimumLevel": {
+      "Default": "Information",
+      "Override": {
+        "Microsoft.AspNetCore": "Warning",
+        "System": "Warning"
+      }
+    },
+    "WriteTo": [
+      { "Name": "Console" }
+    ]
+  }
+}
+            </CodeSnippet>
+
+            <p>
+                Environment-specific overrides work exactly as you expect via <ContentHighlight>appsettings.Production.json</ContentHighlight>,
+                allowing you to increase verbosity in staging or switch sinks without touching code.
+            </p>
+
+            <h3 class="[ font-semibold text-lg ]">Step 6: Enrich logs with metadata</h3>
+
+            <p>
+                <ContentHighlight>Enrichers</ContentHighlight> attach additional properties to every log event. Install the
+                standard enricher packages:
+            </p>
+
+            <CodeSnippet CssClass="language-shell">
+dotnet add package Serilog.Enrichers.Environment
+dotnet add package Serilog.Enrichers.Thread
+dotnet add package Serilog.Enrichers.Process
+            </CodeSnippet>
+
+            <p>
+                Register them with <ContentHighlight>.Enrich</ContentHighlight> calls in
+                <ContentHighlight>LoggerConfiguration</ContentHighlight>:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(builder.Configuration)
+    .Enrich.FromLogContext()
+    .Enrich.WithMachineName()
+    .Enrich.WithThreadId()
+    .Enrich.WithProperty("Application", "MyApp")
+    .WriteTo.Console(new JsonFormatter())
+    .CreateLogger();
+            </CodeSnippet>
+
+            <p>
+                With the <ContentHighlight>JsonFormatter</ContentHighlight>, each log line is a JSON object. The output
+                includes the enriched properties alongside the message:
+            </p>
+
+            <CodeSnippet CssClass="language-json">
+{
+  "Timestamp": "2026-06-07T10:23:45.123Z",
+  "Level": "Information",
+  "MessageTemplate": "User {UserId} logged in",
+  "Properties": {
+    "UserId": "abc123",
+    "MachineName": "web-01",
+    "ThreadId": 12,
+    "Application": "MyApp"
+  }
+}
+            </CodeSnippet>
+
+            <p>
+                These properties are indexed by every sink that supports structured storage, making them instantly
+                filterable in dashboards such as Application Insights, Seq, or Kibana.
+            </p>
+
+            <h3 class="[ font-semibold text-lg ]">Step 7: Handle structured data with the destructuring operator</h3>
+
+            <p>
+                When you pass an object to a Serilog message template, the default behaviour calls
+                <ContentHighlight>ToString()</ContentHighlight> on it — exactly the same as the built-in logger.
+                Use the <ContentHighlight>@@</ContentHighlight> prefix to instruct Serilog to
+                <ContentHighlight>destructure</ContentHighlight> (serialize) the object instead:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+var payment = new Payment
+{
+    PaymentId = 1,
+    UserId = Guid.NewGuid(),
+    OccurredAt = DateTime.UtcNow
+};
+
+// Plain string representation:
+Log.Information("Payment: {Payment}", payment);
+// → Payment: MyApp.Models.Payment
+
+// Full structured serialisation:
+Log.Information("Payment: {@@Payment}", payment);
+// → Payment: { PaymentId: 1, UserId: "...", OccurredAt: "2026-06-07T10:00:00Z" }
+            </CodeSnippet>
+
+            <p>
+                Use <ContentHighlight>$</ContentHighlight> prefix to force the string representation explicitly, and
+                pass a dictionary directly to get automatic key-value destructuring:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// Force string representation
+Log.Information("Payment: {$Payment}", payment);
+// → Payment: MyApp.Models.Payment
+
+// Dictionary is auto-destructured
+var dict = new Dictionary&lt;string, object&gt;
+{
+    ["PaymentId"] = 1,
+    ["UserId"] = "abc"
+};
+Log.Information("Payment: {Payment}", dict);
+// → Payment: [("PaymentId": 1), ("UserId": "abc")]
+            </CodeSnippet>
+
+            <h3 class="[ font-semibold text-lg ]">Step 8: Transform structured data with destructuring policies</h3>
+
+            <p>
+                Sometimes you want to log only specific properties of an object — for example, you have a
+                <ContentHighlight>Payment</ContentHighlight> type but must never log the full card number. Serilog's
+                <ContentHighlight>Destructure.ByTransforming&lt;T&gt;</ContentHighlight> lets you project to a safe
+                anonymous shape before the log entry is written:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+Log.Logger = new LoggerConfiguration()
+    .Destructure.ByTransforming&lt;Payment&gt;(
+        p =&gt; new { p.PaymentId, p.UserId })  // OccurredAt and card number excluded
+    .WriteTo.Console()
+    .CreateLogger();
+
+Log.Information("Payment: {@@Payment}", payment);
+// → Payment: { PaymentId: 1, UserId: "abc" }
+            </CodeSnippet>
+
+            <p>
+                Additional scalar transformations are available: <ContentHighlight>Destructure.ToMaximumStringLength(100)</ContentHighlight>
+                truncates long strings and <ContentHighlight>Destructure.ToMaximumCollectionCount(10)</ContentHighlight>
+                limits large collection output.
+            </p>
+
+            <h3 class="[ font-semibold text-lg ]">Step 9: Manually enrich individual log events</h3>
+
+            <p>
+                Sometimes you need to attach a property for a limited scope — like the current
+                <ContentHighlight>PaymentId</ContentHighlight> for the duration of a payment processing method.
+                Use <ContentHighlight>LogContext.PushProperty</ContentHighlight> from
+                <ContentHighlight>Serilog.Context</ContentHighlight>:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+using Serilog.Context;
+
+public async Task ProcessPaymentAsync(Payment payment)
+{
+    using (LogContext.PushProperty("PaymentId", payment.PaymentId))
+    {
+        Log.Information("Received payment from user {UserId}", payment.UserId);
+        await ChargeAsync(payment);
+        Log.Information("Payment charged successfully");
+    }
+    // PaymentId property is removed from context here
+}
+            </CodeSnippet>
+
+            <p>
+                Both log statements inside the <ContentHighlight>using</ContentHighlight> block will carry
+                <ContentHighlight>PaymentId</ContentHighlight> as a structured property without it appearing in
+                the message template. This is the structured-logging equivalent of
+                <ContentHighlight>ILogger</ContentHighlight> scopes — and it works with
+                <ContentHighlight>.Enrich.FromLogContext()</ContentHighlight> configured in the logger.
+            </p>
+
+            <p>
+                To push multiple properties at once, use the overload that accepts
+                <ContentHighlight>IEnumerable&lt;LogEventProperty&gt;</ContentHighlight>, or nest multiple
+                <ContentHighlight>using</ContentHighlight> blocks.
+            </p>
+
+            <h3 class="[ font-semibold text-lg ]">Step 10: Time operations with SerilogTimings</h3>
+
+            <p>
+                Install the timings package:
+            </p>
+
+            <CodeSnippet CssClass="language-shell">
+dotnet add package SerilogTimings
+            </CodeSnippet>
+
+            <p>
+                Wrap any operation in a <ContentHighlight>using</ContentHighlight> block created by
+                <ContentHighlight>Operation.Time</ContentHighlight> to automatically log a completion entry with the
+                elapsed milliseconds:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+using SerilogTimings;
+
+public async Task ProcessPaymentAsync(Payment payment)
+{
+    using var op = Operation.Time(
+        "Processing payment {PaymentId}", payment.PaymentId);
+
+    await Task.Delay(50); // simulate work
+    Log.Information("Payment processed for user {UserId}", payment.UserId);
+
+    // Completion is logged automatically when the using block exits:
+    // Completed "Processing payment 1" in 52.3 ms
+}
+            </CodeSnippet>
+
+            <p>
+                If the operation takes longer than a threshold, promote it to a warning automatically:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+using var op = Operation.At(LogEventLevel.Warning).Time(
+    "Processing payment {PaymentId}", payment.PaymentId);
+            </CodeSnippet>
+
+            <p>
+                For operations that can fail, call <ContentHighlight>op.Abandon()</ContentHighlight> to log an
+                abandonment entry at warning level rather than a normal completion:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+using var op = Operation.Time(
+    "Processing payment {PaymentId}", payment.PaymentId);
+try
+{
+    await ChargeAsync(payment);
+    // op completes normally on dispose
+}
+catch (Exception ex)
+{
+    op.Abandon();   // logs "Abandoned Processing payment 1 after 15.2 ms"
+    Log.Error(ex, "Payment failed");
+    throw;
+}
+            </CodeSnippet>
+
+            <h3 class="[ font-semibold text-lg ]">Step 11: Integrate with Application Insights</h3>
+
+            <p>
+                Install the Application Insights sink:
+            </p>
+
+            <CodeSnippet CssClass="language-shell">
+dotnet add package Serilog.Sinks.ApplicationInsights
+            </CodeSnippet>
+
+            <p>
+                Add it alongside the console sink in <ContentHighlight>appsettings.json</ContentHighlight>:
+            </p>
+
+            <CodeSnippet CssClass="language-json">
+{
+  "Serilog": {
+    "MinimumLevel": {
+      "Default": "Information",
+      "Override": {
+        "Microsoft.AspNetCore": "Warning"
+      }
+    },
+    "WriteTo": [
+      { "Name": "Console" },
+      {
+        "Name": "ApplicationInsights",
+        "Args": {
+          "connectionString": "&lt;YOUR_AI_CONNECTION_STRING&gt;",
+          "telemetryConverter":
+            "Serilog.Sinks.ApplicationInsights.TelemetryConverters.TraceTelemetryConverter, Serilog.Sinks.ApplicationInsights"
+        }
+      }
+    ]
+  }
+}
+            </CodeSnippet>
+
+            <p>
+                Every log entry now flows to both destinations simultaneously. Enriched properties — machine name,
+                thread ID, application name — appear as <ContentHighlight>Custom Dimensions</ContentHighlight> in
+                Application Insights, making them filterable in Kusto queries and dashboards.
+            </p>
+        </How>
+
+        <Summary>
+            <p>
+                In this article, we covered <ContentHighlight>Serilog</ContentHighlight> from the ground up — the library
+                that pioneered structured logging in .NET and still leads the ecosystem today. Here is what you should
+                take away:
+            </p>
+
+            <ul>
+                <li>
+                    <ContentHighlight>Serilog</ContentHighlight> replaces the built-in console and other providers with a
+                    single call to <ContentHighlight>builder.Host.UseSerilog()</ContentHighlight>. Existing
+                    <ContentHighlight>ILogger&lt;T&gt;</ContentHighlight> injections continue to work unchanged.
+                </li>
+                <li>
+                    <ContentHighlight>Sinks</ContentHighlight> are destinations for log output. You can attach as many as
+                    you need — console, file, Application Insights, Elasticsearch — and Serilog writes to all of them.
+                </li>
+                <li>
+                    <ContentHighlight>ReadFrom.Configuration()</ContentHighlight> loads the entire Serilog setup from
+                    <ContentHighlight>appsettings.json</ContentHighlight>, enabling environment-specific tuning without
+                    code changes.
+                </li>
+                <li>
+                    <ContentHighlight>Enrichers</ContentHighlight> attach structured properties — machine name, thread ID,
+                    application name — to every log entry, making them filterable in downstream stores.
+                </li>
+                <li>
+                    The <ContentHighlight>@@</ContentHighlight> destructuring operator serialises complex objects into
+                    structured key-value pairs. <ContentHighlight>Destructure.ByTransforming&lt;T&gt;</ContentHighlight>
+                    lets you shape that output precisely, excluding sensitive fields.
+                </li>
+                <li>
+                    <ContentHighlight>LogContext.PushProperty</ContentHighlight> attaches scoped properties to log events
+                    within a <ContentHighlight>using</ContentHighlight> block — the structured equivalent of
+                    <ContentHighlight>ILogger</ContentHighlight> scopes.
+                </li>
+                <li>
+                    <ContentHighlight>SerilogTimings</ContentHighlight> measures operation duration automatically and
+                    promotes slow paths to warnings without any hand-rolled stopwatch code.
+                </li>
+                <li>
+                    Always call <ContentHighlight>Log.CloseAndFlushAsync()</ContentHighlight> on shutdown to guarantee
+                    buffered log entries are not lost when the process exits.
+                </li>
+            </ul>
+        </Summary>
+    </ContentBody>
+</Content>

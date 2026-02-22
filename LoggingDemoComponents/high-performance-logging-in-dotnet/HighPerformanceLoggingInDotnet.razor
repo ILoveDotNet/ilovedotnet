@@ -1,0 +1,299 @@
+@page "/blogs/high-performance-logging-in-dotnet"
+@using SharedModels
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(HighPerformanceLoggingInDotnet) UseNewTableOfContentsMenu=true>
+    <ContentBody>
+        <What>
+            <p>
+                Logging is a cross-cutting concern. It can appear in every layer of your application. And if you do it
+                wrong, you will do it consistently wrong — everywhere, all at once. That is a recipe for both bad logs
+                and bad performance.
+            </p>
+
+            <p>
+                In this article, you will learn two powerful .NET techniques designed for <ContentHighlight>
+                high-performance logging</ContentHighlight> in hot paths: the <ContentHighlight>
+                LoggerMessage.Define</ContentHighlight> method and the <ContentHighlight>logging source
+                generator</ContentHighlight>. Both are built into <ContentHighlight>
+                Microsoft.Extensions.Logging</ContentHighlight> and produce the fastest, most memory-efficient logs
+                possible in .NET.
+            </p>
+
+            <p>
+                By the end of this article you will understand:
+            </p>
+
+            <ul>
+                <li>Why standard <ContentHighlight>logger.LogInformation</ContentHighlight> calls can be costly in hot paths</li>
+                <li>How <ContentHighlight>LoggerMessage.Define</ContentHighlight> eliminates those costs</li>
+                <li>How the <ContentHighlight>[LoggerMessage]</ContentHighlight> source generator gives you the same performance with a clean, maintainable API</li>
+            </ul>
+        </What>
+
+        <Why>
+            <p>
+                Why think about performance in logging at all? Logs are just side effects, right? Not quite.
+                Logging is a cross-cutting concern — and in high-throughput services, each log call on a hot path
+                adds up fast.
+            </p>
+
+            <h4>The hidden cost of standard logging</h4>
+
+            <p>
+                Consider the most natural way to log in .NET:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// Standard approach
+_logger.LogInformation(
+    "Customer {Email} created a payment of {Amount} for product {ProductId}",
+    email, amount, productId);
+            </CodeSnippet>
+
+            <p>
+                This looks fine. But under the hood, every call to this method:
+            </p>
+
+            <ul>
+                <li>The <ContentHighlight>params object[]</ContentHighlight> overload — the one used by every plain
+                    <ContentHighlight>LogInformation(template, args...)</ContentHighlight> call — boxes value types
+                    like <ContentHighlight>decimal</ContentHighlight> and <ContentHighlight>int</ContentHighlight>
+                    into <ContentHighlight>object</ContentHighlight> on every invocation</li>
+                <li>Allocates a new array on the heap to hold those boxed arguments</li>
+                <li>Performs these allocations <strong>even when the log level is disabled</strong></li>
+            </ul>
+
+            <p>
+                On a cold path this is inconsequential. On a hot path — a loop, an event handler, a
+                high-frequency request pipeline — it becomes a continuous source of allocations and GC pressure.
+            </p>
+
+            <h4>Recognising a hot path</h4>
+
+            <p>
+                A hot path is any code that executes very frequently: tight loops, message processing loops,
+                middleware that fires on every request, or event-driven handlers that fire thousands of times per
+                second. In these contexts, even micro-allocations compound rapidly into measurable latency and
+                throughput degradation.
+            </p>
+
+            <p>
+                These two techniques solve the problem at its root by moving the expensive work to compile time, and
+                by short-circuiting the allocation entirely when the target log level is not enabled.
+            </p>
+        </Why>
+
+        <How>
+            <h4>Step 1 — LoggerMessage.Define</h4>
+
+            <p>
+                <ContentHighlight>LoggerMessage.Define</ContentHighlight> is a factory method that creates a strongly
+                typed, cached <ContentHighlight>Action</ContentHighlight> delegate for a specific log message at
+                <ContentHighlight>application startup</ContentHighlight>. The formatter is compiled once and reused
+                for every subsequent call. There is no boxing, no array allocation.
+            </p>
+
+            <p>
+                Here is how to define and use it in a service class:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+using Microsoft.Extensions.Logging;
+
+public class PaymentService
+{
+    // Define the log action once — compiled at startup, reused forever
+    private static readonly Action&lt;ILogger, string, decimal, int, Exception?&gt;
+        _logPaymentCreated =
+            LoggerMessage.Define&lt;string, decimal, int&gt;(
+                LogLevel.Information,
+                new EventId(1, "PaymentCreated"),
+                "Customer {Email} created a payment of {Amount} for product {ProductId}");
+
+    private readonly ILogger&lt;PaymentService&gt; _logger;
+
+    public PaymentService(ILogger&lt;PaymentService&gt; logger)
+    {
+        _logger = logger;
+    }
+
+    public void CreatePayment(string email, decimal amount, int productId)
+    {
+        // Perform payment logic here...
+
+        // Invoke the pre-compiled delegate — zero boxing, zero array allocation
+        _logPaymentCreated(_logger, email, amount, productId, null);
+    }
+}
+            </CodeSnippet>
+
+            <p>
+                The generic type parameters on <ContentHighlight>Define&lt;string, decimal, int&gt;</ContentHighlight>
+                match the three message template placeholders. The last argument in the generated
+                <ContentHighlight>Action</ContentHighlight> is always an <ContentHighlight>Exception?</ContentHighlight>
+                — pass <ContentHighlight>null</ContentHighlight> when there is no exception to attach.
+            </p>
+
+            <p>
+                When you do have an exception — for example, inside a <ContentHighlight>catch</ContentHighlight>
+                block — pass it as the final argument instead of <ContentHighlight>null</ContentHighlight>. It
+                will be attached to the structured log entry and surfaced automatically by any log store:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+try
+{
+    // payment logic...
+}
+catch (Exception ex)
+{
+    // Attach the exception to the structured log entry
+    _logPaymentCreated(_logger, email, amount, productId, ex);
+}
+            </CodeSnippet>
+
+            <p>
+                This works and is maximally fast. But the developer experience has some rough edges: you must manage
+                a private static field, and you must pass the injected <ContentHighlight>_logger</ContentHighlight>
+                as a parameter into the delegate even though it was injected. It is awkward, and nullable
+                exceptions add noise. There is a better way.
+            </p>
+
+            <h4>Step 2 — The [LoggerMessage] source generator</h4>
+
+            <p>
+                The <ContentHighlight>[LoggerMessage]</ContentHighlight> source generator, introduced in .NET 6,
+                gives you the <em>exact same performance</em> as <ContentHighlight>LoggerMessage.Define</ContentHighlight>
+                but with a clean, idiomatic API. You declare your intent; the compiler generates the optimised code.
+            </p>
+
+            <p>
+                Make the class <ContentHighlight>partial</ContentHighlight> and annotate methods with
+                <ContentHighlight>[LoggerMessage]</ContentHighlight>:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+using Microsoft.Extensions.Logging;
+
+public partial class PaymentService(ILogger&lt;PaymentService&gt; logger)
+{
+    private readonly ILogger&lt;PaymentService&gt; _logger = logger;
+
+    [LoggerMessage(
+        EventId = 1,
+        Level = LogLevel.Information,
+        Message = "Customer {Email} created a payment of {Amount} for product {ProductId}")]
+    partial void LogPaymentCreation(
+        string email,
+        decimal amount,
+        int productId);
+
+    public void CreatePayment(string email, decimal amount, int productId)
+    {
+        // Perform payment logic here...
+
+        // Clean, readable, and maximally efficient
+        LogPaymentCreation(email, amount, productId);
+    }
+}
+            </CodeSnippet>
+
+            <p>
+                Two things are required: the class must be <ContentHighlight>partial</ContentHighlight>, and
+                the method must be <ContentHighlight>partial</ContentHighlight> as well. The
+                <ContentHighlight>partial</ContentHighlight> keyword is how you tell the compiler that another file
+                will contribute part of the definition — in this case, the source generator writes the method body
+                into a separate generated file at compile time, and you never write the implementation yourself.
+            </p>
+
+            <p>
+                The <ContentHighlight>static</ContentHighlight> modifier is only needed when you want to define
+                log methods as <ContentHighlight>ILogger</ContentHighlight> extension methods in a dedicated
+                helper class. When the logger is already injected into the class, instance
+                <ContentHighlight>partial</ContentHighlight> methods are cleaner and avoid passing
+                <ContentHighlight>this ILogger</ContentHighlight> explicitly.
+            </p>
+
+            <p>
+                The generated code automatically checks whether the target log level is enabled before doing
+                anything else. If <ContentHighlight>Information</ContentHighlight> is not enabled for this logger,
+                the method returns immediately — no boxing, no allocation, no string formatting. Zero cost.
+            </p>
+
+            <h4>Comparison at a glance</h4>
+
+            <CodeSnippet CssClass="language-csharp">
+// ❌ Standard logging — boxing + array allocation on every call
+_logger.LogInformation(
+    "Customer {Email} created a payment of {Amount} for product {ProductId}",
+    email, amount, productId);
+
+// ✅ LoggerMessage.Define — no allocation, but verbose to maintain
+_logPaymentCreated(_logger, email, amount, productId, null);
+
+// ✅ [LoggerMessage] source generator — no allocation, clean API
+LogPaymentCreation(email, amount, productId);
+            </CodeSnippet>
+
+            <CodeSnippet CssClass="language-plaintext">
+| Approach                       | Level disabled?  | Heap allocation? |
+|--------------------------------|------------------|------------------|
+| LogInformation (standard)      | Still executes   | Yes — always     |
+| LoggerMessage.Define           | Returns early    | No               |
+| [LoggerMessage] source gen     | Returns early    | No               |
+            </CodeSnippet>
+
+            <h4>When to use these techniques</h4>
+
+            <p>
+                These techniques are not for everywhere — they require more setup than a plain
+                <ContentHighlight>LogInformation</ContentHighlight> call. Apply them in:
+            </p>
+
+            <ul>
+                <li>Tight loops that fire thousands of times per second</li>
+                <li>Middleware that executes on every request</li>
+                <li>Message consumers in event-driven systems</li>
+                <li>Any code path identified as hot by a profiler</li>
+            </ul>
+
+            <p>
+                If you can afford the slightly higher maintenance burden, the <ContentHighlight>
+                [LoggerMessage]</ContentHighlight> source generator is the recommended approach for all logging —
+                not just hot paths. It is the highest-performance logging option available in .NET today, and it
+                is not significantly harder to write once you are familiar with the pattern.
+            </p>
+        </How>
+
+        <Summary>
+            <p>
+                In this article, we explored two .NET techniques that take logging performance to its absolute
+                maximum:
+            </p>
+
+            <ul>
+                <li>
+                    <ContentHighlight>LoggerMessage.Define</ContentHighlight> creates a pre-compiled, cached
+                    delegate at startup. It eliminates boxing and heap allocation on every log call, making it
+                    ideal for hot paths.
+                </li>
+                <li>
+                    The <ContentHighlight>[LoggerMessage]</ContentHighlight> source generator delivers the same
+                    zero-allocation performance with a clean, maintainable extension-method API. The compiler
+                    generates the implementation — you only declare the intent.
+                </li>
+                <li>
+                    Both techniques check whether the target log level is enabled before doing any work, ensuring
+                    <ContentHighlight>zero-cost logging</ContentHighlight> when the level is disabled.
+                </li>
+                <li>
+                    For general use, prefer the <ContentHighlight>[LoggerMessage]</ContentHighlight> source
+                    generator. It is the best balance of performance, readability, and maintainability
+                    available in .NET today.
+                </li>
+            </ul>
+        </Summary>
+    </ContentBody>
+</Content>
