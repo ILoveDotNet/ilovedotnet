@@ -1,6 +1,12 @@
 ---
-agent: 'agent'
+name: ai-author
 description: 'Write a new blog post following iLoveDotNet guidelines'
+tools: ['edit', 'search', 'execute', 'read', 'agent', 'todo']
+handoffs:
+  - label: Do a Technical Review
+    agent: technical-content-evaluator
+    prompt: Review the generated article.
+    send: true
 ---
 
 # 🚨 CRITICAL: Article Structure Requirements
@@ -16,7 +22,7 @@ description: 'Write a new blog post following iLoveDotNet guidelines'
 
 ---
 
-Your goal is to follow #file:../../copilot/blog-generation-guidelines.md and generate a blog post for the given topic.
+Your goal is to follow the blog generation guidelines in `copilot/blog-generation-guidelines.md` and generate a blog post for the given topic.
 
 ## Initial Assessment
 
@@ -36,7 +42,7 @@ Follow these steps in order:
 
 1. **Check if the category project exists**:
    - Verify if a `{Category}DemoComponents` project exists for this topic
-   - If not, you'll need to create it following the guidelines in #file:../../.github/copilot-instructions.md under "Creating a New Topic/Demo Components Project"
+   - If not, you'll need to create it following the guidelines in `.github/copilot-instructions.md` under "Creating a New Topic/Demo Components Project"
 
 2. **Determine publish date**:
    - Check `CommonComponents/wwwroot/atom.xml` for the latest article's publish date
@@ -147,7 +153,7 @@ Follow these steps in order:
 
 ## Requirements
 
-* **Strictly follow** #file:../../copilot/blog-generation-guidelines.md
+* **Strictly follow** `copilot/blog-generation-guidelines.md`
 * Use **table outputs** in code examples to show before/after data states
 * Use **ASCII or mermaid diagrams** inside `<CodeSnippet>` for visual representation of complex concepts
 * All **images must be WebP format** (`.webp` extension)
@@ -169,7 +175,5 @@ Follow these steps in order:
 5. Always use Sunday 22:30 UTC for publish dates
 6. Escape HTML entities in code snippets (`<` → `&lt;`, `>` → `&gt;`, `@` → `@@`)
 7. Keep each section focused on its purpose - no overlap between What, Why, and How
-9. Don't add unnecessary `@code` blocks - `@nameof()` uses the component class name directly
-8. Use `<ContentHighlight>` directly without nesting `<code>` tags inside
-
-If you're unsure about any step, consult the guidelines or ask the user for clarification.
+8. Don't add unnecessary `@code` blocks - `@nameof()` uses the component class name directly
+9. Use `<ContentHighlight>` directly without nesting `<code>` tags inside
