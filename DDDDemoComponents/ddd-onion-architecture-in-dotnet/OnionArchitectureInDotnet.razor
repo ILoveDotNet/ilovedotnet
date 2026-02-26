@@ -1,0 +1,405 @@
+@page "/blogs/ddd-onion-architecture-in-dotnet"
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(OnionArchitectureInDotnet) UseNewTableOfContentsMenu=true>
+  <ContentBody>
+    <What>
+      <p>
+        Anti-Corruption Layers protect individual external integrations. Bounded Contexts define 
+        team boundaries. But there is still a bigger question: how should you structure the 
+        <em>entire application</em> so that the domain stays pure, tests remain fast, and 
+        infrastructure can be swapped freely?
+      </p>
+
+      <p>
+        The answer is <ContentHighlight>Onion Architecture</ContentHighlight> — also known as 
+        Clean Architecture or Hexagonal Architecture. It organises an application into concentric 
+        rings where the innermost ring is the domain, and every dependency arrow points inward. 
+        The domain depends on nothing. Everything else depends on the domain.
+      </p>
+
+      <p>
+        In this article you will learn what Onion Architecture is, the problems it solves, 
+        exactly what belongs in each layer, how a real request flows through those layers, 
+        and the most common mistakes teams make when implementing it.
+      </p>
+    </What>
+
+    <Why>
+      <h4>Traditional Layering and Its Problems</h4>
+
+      <p>
+        The traditional N-tier approach puts the database at the bottom and has every layer 
+        depend on the layer below. Over time this creates three predictable problems:
+      </p>
+
+      <CodeSnippet CssClass="language-plaintext">
+Problem                              | Consequence
+──────────────────────────────────────────────────────────────────────────────────
+Business logic depends on database   | Rules cannot exist without a running database
+Framework types leak into domain     | Annotations, HTTP types, and EF attributes appear
+                                     | inside business classes
+Everything couples to everything     | A minor schema change ripples through the whole app
+──────────────────────────────────────────────────────────────────────────────────
+</CodeSnippet>
+
+      <p>
+        Here is what polluted domain code looks like in practice:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// BAD: Domain aggregate with infrastructure leaking in
+[Table("licenses")]          // EF Core annotation
+[JsonObject]                  // JSON serialiser attribute
+public class License
+{
+    [Key]
+    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    public int Id { get; set; }   // int surrogate key, not a domain concept
+
+    [Column("hardware")]
+    public string? Hardware { get; set; }  // nullable string, not a domain value object
+
+    // Business rule buried with framework noise
+    public bool Activate(string hardware)
+    {
+        if (ActivationCount &gt;= MaxActivations) return false;
+        Hardware = hardware;
+        ActivationCount++;
+        return true;
+    }
+}
+</CodeSnippet>
+
+      <p>
+        Testing this class requires a running database, an EF Core context, and a migration. 
+        A fast unit test is impossible. And when you want to switch from SQL Server to Postgres, 
+        you touch the domain.
+      </p>
+    </Why>
+
+    <How>
+      <h4>The Three Layers of Onion Architecture</h4>
+
+      <p>
+        Onion Architecture solves this by reversing the dependencies. Instead of infrastructure 
+        owning the rules, the domain owns the rules and infrastructure implements the domain's 
+        interfaces:
+      </p>
+
+      <CodeSnippet CssClass="language-plaintext">
+┌────────────────────────────────────────────────────────────────┐
+│  Infrastructure Layer                                          │
+│  (Controllers, Repositories, ACL, Database, External APIs)     │
+│                                                                │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │  Application Layer                                       │  │
+│  │  (Use Cases, Application Services, DTOs, Orchestration)  │  │
+│  │                                                          │  │
+│  │  ┌────────────────────────────────────────────────────┐  │  │
+│  │  │  Domain Layer                         ← core       │  │  │
+│  │  │  (Entities, Value Objects, Aggregates,             │  │  │
+│  │  │   Domain Events, Domain Services, Interfaces)      │  │  │
+│  │  └────────────────────────────────────────────────────┘  │  │
+│  └──────────────────────────────────────────────────────────┘  │
+└────────────────────────────────────────────────────────────────┘
+
+Key rule: dependencies always point INWARD.
+Domain depends on nothing. Infrastructure depends on everything.
+</CodeSnippet>
+
+      <h4>Layer 1: The Domain Layer</h4>
+
+      <p>
+        This is the innermost ring. It contains pure business concepts — no frameworks, 
+        no annotations, no infrastructure. It defines interfaces that it needs, but never 
+        implements them:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// File: LicenseContext/Domain/License.cs
+namespace LicenseContext.Domain;
+
+public sealed class License
+{
+    public LicenseId Id { get; private set; }
+    public CustomerId CustomerId { get; private set; }
+    public int ActivationCount { get; private set; }
+    public int MaxActivations { get; private set; }
+    public DateOnly ExpiresAt { get; private set; }
+
+    private readonly List&lt;IDomainEvent&gt; _events = [];
+    public IReadOnlyList&lt;IDomainEvent&gt; DomainEvents =&gt; _events.AsReadOnly();
+
+    private License() { }
+
+    public static License Create(
+        LicenseId id,
+        CustomerId customerId,
+        int maxActivations,
+        DateOnly expiresAt)
+    {
+        var license = new License
+        {
+            Id = id,
+            CustomerId = customerId,
+            MaxActivations = maxActivations,
+            ExpiresAt = expiresAt,
+            ActivationCount = 0
+        };
+        return license;
+    }
+
+    public void Activate(HardwareFingerprint fingerprint)
+    {
+        if (ExpiresAt &lt; DateOnly.FromDateTime(DateTime.UtcNow))
+            throw new DomainException("Cannot activate an expired license.");
+
+        if (ActivationCount &gt;= MaxActivations)
+            throw new DomainException(
+                $"Activation limit of {MaxActivations} reached.");
+
+        ActivationCount++;
+        _events.Add(new LicenseActivated(Id, CustomerId, fingerprint,
+                                         DateTimeOffset.UtcNow));
+    }
+}
+</CodeSnippet>
+
+      <CodeSnippet CssClass="language-csharp">
+// File: LicenseContext/Domain/Ports/ILicenseRepository.cs
+namespace LicenseContext.Domain.Ports;
+
+// Interface lives in the domain — implementation lives in infrastructure
+public interface ILicenseRepository
+{
+    Task&lt;License?&gt; FindByIdAsync(LicenseId id, CancellationToken ct = default);
+    Task SaveAsync(License license, CancellationToken ct = default);
+    Task DeleteAsync(LicenseId id, CancellationToken ct = default);
+    Task&lt;IReadOnlyList&lt;License&gt;&gt; FindByCustomerAsync(CustomerId customerId,
+                                                       CancellationToken ct = default);
+    Task&lt;IReadOnlyList&lt;License&gt;&gt; FindActiveAsync(CancellationToken ct = default);
+}
+</CodeSnippet>
+
+      <h4>Layer 2: The Application Layer</h4>
+
+      <p>
+        The application layer coordinates use cases. It calls domain methods, uses the repository 
+        interface, and publishes events. It does <strong>not</strong> contain business rules:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// File: LicenseContext/Application/LicenseApplicationService.cs
+namespace LicenseContext.Application;
+
+public sealed class LicenseApplicationService
+{
+    private readonly ILicenseRepository _licenses;
+    private readonly IDomainEventPublisher _publisher;
+
+    public LicenseApplicationService(
+        ILicenseRepository licenses,
+        IDomainEventPublisher publisher)
+    {
+        _licenses = licenses;
+        _publisher = publisher;
+    }
+
+    // Use case: activate a license
+    public async Task ActivateLicenseAsync(
+        Guid licenseId,
+        string hardwareFingerprint,
+        CancellationToken ct = default)
+    {
+        // 1. Load the aggregate
+        var id = new LicenseId(licenseId);
+        var license = await _licenses.FindByIdAsync(id, ct)
+                   ?? throw new NotFoundException($"License {licenseId} not found.");
+
+        // 2. Let the domain handle the business rule
+        var fingerprint = HardwareFingerprint.Of(hardwareFingerprint);
+        license.Activate(fingerprint);   // throws DomainException on rule violations
+
+        // 3. Save the updated aggregate
+        await _licenses.SaveAsync(license, ct);
+
+        // 4. Publish domain events
+        foreach (var domainEvent in license.DomainEvents)
+            await _publisher.PublishAsync(domainEvent, ct);
+    }
+}
+</CodeSnippet>
+
+      <h4>Layer 3: The Infrastructure Layer</h4>
+
+      <p>
+        Infrastructure implements the domain interfaces. Mapping logic lives here. 
+        The domain never sees persistence entities, connection strings, or ORM attributes:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// File: LicenseContext/Infrastructure/Persistence/EfLicenseRepository.cs
+using LicenseContext.Domain;
+using LicenseContext.Domain.Ports;
+using Microsoft.EntityFrameworkCore;
+
+namespace LicenseContext.Infrastructure.Persistence;
+
+public sealed class EfLicenseRepository : ILicenseRepository
+{
+    private readonly LicenseDbContext _db;
+    private readonly LicenseMapper _mapper;
+
+    public EfLicenseRepository(LicenseDbContext db, LicenseMapper mapper)
+    {
+        _db = db;
+        _mapper = mapper;
+    }
+
+    public async Task&lt;License?&gt; FindByIdAsync(
+        LicenseId id,
+        CancellationToken ct = default)
+    {
+        var entity = await _db.Licenses
+            .AsNoTracking()
+            .FirstOrDefaultAsync(l =&gt; l.Id == id.Value, ct);
+
+        return entity is null ? null : _mapper.ToDomain(entity);
+    }
+
+    public async Task SaveAsync(License license, CancellationToken ct = default)
+    {
+        var entity = _mapper.ToEntity(license);
+
+        var exists = await _db.Licenses
+            .AnyAsync(l =&gt; l.Id == entity.Id, ct);
+
+        if (!exists)
+            _db.Licenses.Add(entity);
+        else
+            _db.Licenses.Update(entity);
+
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task DeleteAsync(LicenseId id, CancellationToken ct = default)
+    {
+        var entity = await _db.Licenses
+            .FirstOrDefaultAsync(l =&gt; l.Id == id.Value, ct);
+
+        if (entity is not null)
+        {
+            _db.Licenses.Remove(entity);
+            await _db.SaveChangesAsync(ct);
+        }
+    }
+
+    public async Task&lt;IReadOnlyList&lt;License&gt;&gt; FindByCustomerAsync(
+        CustomerId customerId,
+        CancellationToken ct = default)
+    {
+        var entities = await _db.Licenses
+            .AsNoTracking()
+            .Where(l =&gt; l.CustomerId == customerId.Value)
+            .ToListAsync(ct);
+
+        return entities.Select(_mapper.ToDomain).ToList();
+    }
+
+    public async Task&lt;IReadOnlyList&lt;License&gt;&gt; FindActiveAsync(
+        CancellationToken ct = default)
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var entities = await _db.Licenses
+            .AsNoTracking()
+            .Where(l =&gt; l.ExpiresAt &gt;= today)
+            .ToListAsync(ct);
+
+        return entities.Select(_mapper.ToDomain).ToList();
+    }
+}
+</CodeSnippet>
+
+      <h4>How a Real Request Flows Through the Layers</h4>
+
+      <CodeSnippet CssClass="language-plaintext">
+Request: POST /licenses/{id}/activate
+│
+▼
+Controller (Infrastructure)
+  - Parses JSON body
+  - Extracts licenseId and hardwareFingerprint
+  - Calls LicenseApplicationService.ActivateLicenseAsync(...)
+│
+▼
+Application Service (Application)
+  - Loads License from ILicenseRepository
+  - Calls License.Activate(fingerprint)   ← domain handles the rule
+  - Saves updated License via ILicenseRepository
+  - Publishes LicenseActivated event
+│
+▼
+Domain Aggregate (Domain)
+  - Checks expiry date
+  - Checks activation limit
+  - Increments ActivationCount
+  - Adds LicenseActivated to DomainEvents
+│
+▼
+Repository Implementation (Infrastructure)
+  - Maps domain License to LicenseEntity
+  - Calls EF Core SaveChangesAsync
+</CodeSnippet>
+
+      <h4>Benefits of This Approach</h4>
+
+      <CodeSnippet CssClass="language-plaintext">
+Concern        | Benefit
+──────────────────────────────────────────────────────────────────────────
+Domain         | Pure business code. No framework noise. Easy to read and share.
+Tests          | Domain tests need no database. Fast feedback. Clear test pyramid.
+Evolution      | Swap SQL Server for Postgres by replacing one infrastructure class.
+               | Add GraphQL alongside REST with zero domain changes.
+               | Integrate new APIs without rewriting any core logic.
+──────────────────────────────────────────────────────────────────────────
+</CodeSnippet>
+
+      <h4>Most Common Architecture Mistakes</h4>
+
+      <CodeSnippet CssClass="language-plaintext">
+Mistake                                     | Fix
+──────────────────────────────────────────────────────────────────────────────────
+Domain classes importing EF / HttpClient    | Domain can only import its own types
+Business rules inside application services  | Rules belong in aggregates
+Repository interface in infrastructure      | Interface belongs in domain layer
+Controllers calling repositories directly   | Always go through the application service
+──────────────────────────────────────────────────────────────────────────────────
+</CodeSnippet>
+    </How>
+
+    <Summary>
+      <p>
+        In this article, you learned how Onion Architecture keeps your domain clean, testable, 
+        and infrastructure-independent:
+      </p>
+
+      <ul>
+        <li><ContentHighlight>Onion Architecture</ContentHighlight> organises code into Domain, Application, and Infrastructure rings. Dependencies always point inward.</li>
+        <li>The <ContentHighlight>domain layer</ContentHighlight> contains pure business concepts — no annotations, no ORM, no framework.</li>
+        <li>The <ContentHighlight>application layer</ContentHighlight> coordinates use cases. It orchestrates. It never decides.</li>
+        <li>The <ContentHighlight>infrastructure layer</ContentHighlight> implements domain interfaces, holds persistence entities, and maps between them.</li>
+        <li><ContentHighlight>Repository interfaces</ContentHighlight> belong in the domain. Implementations belong in infrastructure.</li>
+        <li>Domain tests do not require a database. If they do, a boundary is leaking.</li>
+        <li>Switching persistence technology requires changing only the infrastructure layer.</li>
+      </ul>
+
+      <p>
+        Onion Architecture tells you which layer owns what. The 
+        <ContentHighlight>Ports and Adapters</ContentHighlight> pattern tells you exactly how 
+        to implement the connection between those layers — which is the topic of the next article.
+      </p>
+    </Summary>
+  </ContentBody>
+</Content>

@@ -1,0 +1,277 @@
+@page "/blogs/ddd-context-maps-and-relationships-in-dotnet"
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(ContextMapsAndRelationships) UseNewTableOfContentsMenu=true>
+  <ContentBody>
+    <What>
+      <p>
+        You have defined your Bounded Contexts. Sales owns its model. Billing owns its model. 
+        Support owns its model. Now comes the next question that every team eventually asks: 
+        <em>how do we document how these contexts relate to each other?</em>
+      </p>
+
+      <p>
+        The answer is the <ContentHighlight>Context Map</ContentHighlight> — a diagram and shared 
+        understanding that shows all your Bounded Contexts, how they communicate, which integration 
+        pattern is in use, and who owns what. Think of it not as an architecture document that 
+        gathers dust, but as a <ContentHighlight>team communication tool</ContentHighlight>.
+      </p>
+
+      <p>
+        In this article you will learn what a Context Map is, the key relationship patterns 
+        (<ContentHighlight>Customer-Supplier</ContentHighlight>, 
+        <ContentHighlight>Partnership</ContentHighlight>, 
+        <ContentHighlight>Anti-Corruption Layer</ContentHighlight>), and how to apply them to 
+        a real licensing platform.
+      </p>
+    </What>
+
+    <Why>
+      <h4>Integration Without a Context Map</h4>
+
+      <p>
+        Teams often skip the Context Map because it feels like extra documentation overhead. 
+        The cost of skipping it only becomes clear when things break. Here is what the two 
+        worlds look like:
+      </p>
+
+      <CodeSnippet CssClass="language-plaintext">
+Without Context Map               | With Context Map
+──────────────────────────────────────────────────────────────────────
+Integration is implicit           | Integration is explicit
+Dependencies are unclear          | All dependencies are documented
+Power dynamics are hidden         | Relationships are clear and visible
+Changes break unexpectedly        | Changes are planned
+Coordination is ad-hoc            | Coordination is structured
+──────────────────────────────────────────────────────────────────────
+</CodeSnippet>
+
+      <h4>Three Groups of Relationships</h4>
+
+      <p>
+        Context Maps organise relationships into three broad categories. Understanding the category 
+        tells you how much coordination is needed and who has the power to break things:
+      </p>
+
+      <CodeSnippet CssClass="language-plaintext">
+Group        | Meaning
+──────────────────────────────────────────────────────────────────────
+Cooperative  | Teams work closely together and evolve models jointly
+Directed     | One context depends on another — direction matters
+Separate     | Contexts deliberately avoid tight coupling
+──────────────────────────────────────────────────────────────────────
+</CodeSnippet>
+    </Why>
+
+    <How>
+      <h4>The Key Relationship Patterns</h4>
+
+      <p>
+        Within those three groups, DDD defines several named patterns. The three most common ones 
+        in practice are:
+      </p>
+
+      <CodeSnippet CssClass="language-plaintext">
+Pattern                  | Short description
+──────────────────────────────────────────────────────────────────────────────────────
+Customer-Supplier        | One context (supplier) provides, the other (customer) consumes.
+                         | The consumer depends on the supplier, not the other way around.
+
+Partnership              | Two contexts evolve together. Any change to the integration
+                         | must be coordinated by both teams simultaneously.
+
+Anti-Corruption Layer    | One context integrates with an external system via a translation
+                         | layer that prevents external concepts from leaking into the domain.
+──────────────────────────────────────────────────────────────────────────────────────
+</CodeSnippet>
+
+      <h4>Building the Context Map for a Licensing Platform</h4>
+
+      <p>
+        Consider a licensing platform with four internal contexts and one external payment processor. 
+        Start by assigning each context to a team:
+      </p>
+
+      <CodeSnippet CssClass="language-plaintext">
+Context       | Team        | Role
+────────────────────────────────────────────────────
+Sales         | Team A      | Creates customers, raises events
+Activation    | Team B      | Activates licenses
+Support       | Team C      | Manages support tickets
+Billing       | Team D      | Invoices and payments
+Stripe        | External    | Third-party payment processor
+────────────────────────────────────────────────────
+</CodeSnippet>
+
+      <p>
+        Now map the relationships. The full integration diagram looks like this:
+      </p>
+
+      <CodeSnippet CssClass="language-plaintext">
+┌──────────────────────────────────────────────────────────────────┐
+│  Context Map - Licensing Platform                                │
+│                                                                  │
+│                 ┌──────────┐                                     │
+│       ┌────────▶│ Billing  │ (Customer-Supplier)                 │
+│       │         └────┬─────┘                                     │
+│       │              │ Anti-Corruption Layer                     │
+│       │              ▼                                           │
+│  ┌────┴─────┐    ┌──────────┐                                    │
+│  │  Sales   │    │  Stripe  │ (External System)                  │
+│  └────┬─────┘    └──────────┘                                    │
+│       │                                                          │
+│       │(Customer-Supplier)                                       │
+│       │                                                          │
+│  ┌────▼──────┐ Partnership ┌──────────┐                          │
+│  │Activation │◀───────────▶│ Support  │                          │
+│  └───────────┘             └──────────┘                          │
+│       ▲                         ▲                                │
+│       └────────────┬────────────┘                                │
+│                    │ (both depend on Sales)                      │
+└──────────────────────────────────────────────────────────────────┘
+</CodeSnippet>
+
+      <h4>Expressing the Context Map in Code</h4>
+
+      <p>
+        A Context Map is not just a diagram. It drives actual code structure. The 
+        <ContentHighlight>Customer-Supplier</ContentHighlight> relationship means the supplier 
+        publishes an event contract that consumers implement against. Here is how that looks 
+        in C#:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// Sales context (the supplier) publishes a stable event contract
+// File: SalesContext/Events/CustomerRegistered.cs
+namespace SalesContext.Events;
+
+/// &lt;summary&gt;
+/// Published by Sales when a new customer is registered.
+/// Consumed by Billing and Activation (Customer-Supplier).
+/// &lt;/summary&gt;
+public sealed record CustomerRegistered(
+    Guid CustomerId,
+    string Segment,
+    DateTimeOffset OccurredAt);
+</CodeSnippet>
+
+      <CodeSnippet CssClass="language-csharp">
+// Activation context (a customer) subscribes to Sales events
+// File: ActivationContext/Handlers/ActivationCustomerHandler.cs
+namespace ActivationContext.Handlers;
+
+public sealed class ActivationCustomerHandler
+{
+    private readonly IActivationCustomerRepository _repo;
+
+    public ActivationCustomerHandler(IActivationCustomerRepository repo)
+        =&gt; _repo = repo;
+
+    public async Task HandleAsync(
+        SalesContext.Events.CustomerRegistered evt,
+        CancellationToken ct = default)
+    {
+        var customer = ActivationCustomer.Create(
+            new CustomerId(evt.CustomerId));
+
+        await _repo.SaveAsync(customer, ct);
+    }
+}
+</CodeSnippet>
+
+      <p>
+        The <ContentHighlight>Partnership</ContentHighlight> between Activation and Support requires 
+        a shared, versioned contract that both teams must agree on before either side can change it:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// Shared contract between Activation and Support (partnership)
+// File: Shared/Contracts/LicenseActivatedEvent.cs
+namespace Shared.Contracts;
+
+/// &lt;summary&gt;
+/// Raised by Activation, consumed by Support.
+/// Both teams must agree on and version this contract — it is a partnership.
+/// &lt;/summary&gt;
+public sealed record LicenseActivated(
+    Guid LicenseId,
+    Guid CustomerId,
+    string HardwareFingerprint,
+    DateTimeOffset ActivatedAt);
+</CodeSnippet>
+
+      <CodeSnippet CssClass="language-csharp">
+// Support context reacts to license activations
+// File: SupportContext/Handlers/LinkActivationToTicketHandler.cs
+namespace SupportContext.Handlers;
+
+public sealed class LinkActivationToTicketHandler
+{
+    private readonly IOpenTicketRepository _tickets;
+
+    public LinkActivationToTicketHandler(IOpenTicketRepository tickets)
+        =&gt; _tickets = tickets;
+
+    public async Task HandleAsync(
+        Shared.Contracts.LicenseActivated evt,
+        CancellationToken ct = default)
+    {
+        // If a ticket exists for this customer's activation issue, auto-resolve it
+        var openTickets = await _tickets.FindByCustomerAsync(
+            new CustomerId(evt.CustomerId), ct);
+
+        foreach (var ticket in openTickets.Where(t =&gt; t.IsActivationIssue()))
+            ticket.AutoResolve($"License activated on {evt.HardwareFingerprint}");
+
+        await _tickets.SaveAllAsync(openTickets, ct);
+    }
+}
+</CodeSnippet>
+
+      <h4>Summarising the Relationship Table</h4>
+
+      <p>
+        A concise relationship table keeps the Context Map consumable at a glance. Keep one of 
+        these in your team wiki and update it whenever a new integration is added:
+      </p>
+
+      <CodeSnippet CssClass="language-plaintext">
+Source      | Target      | Relationship            | Ownership Note
+────────────────────────────────────────────────────────────────────────────────
+Sales       | Billing     | Customer-Supplier       | Billing depends on Sales events
+Sales       | Activation  | Customer-Supplier       | Activation depends on Sales events
+Sales       | Support     | Customer-Supplier       | Support depends on Sales events
+Activation  | Support     | Partnership             | Must coordinate changes together
+Billing     | Stripe      | Anti-Corruption Layer   | Billing protects domain from Stripe
+────────────────────────────────────────────────────────────────────────────────
+</CodeSnippet>
+
+      <p>
+        Reading this table tells you immediately who to call when something breaks, who approves 
+        schema changes to an event, and where careful coordination is required.
+      </p>
+    </How>
+
+    <Summary>
+      <p>
+        In this article, you learned how to document and implement Bounded Context relationships 
+        using a Context Map:
+      </p>
+
+      <ul>
+        <li>A <ContentHighlight>Context Map</ContentHighlight> is a team communication tool that shows all contexts, integrations, and ownership.</li>
+        <li><ContentHighlight>Customer-Supplier</ContentHighlight>: the consumer depends on the supplier's stable event contract.</li>
+        <li><ContentHighlight>Partnership</ContentHighlight>: both sides must coordinate changes — useful when contexts co-evolve tightly.</li>
+        <li><ContentHighlight>Anti-Corruption Layer</ContentHighlight>: isolates your domain from an external system's model.</li>
+        <li>The relationship table is the most actionable artefact — it immediately answers who to contact when things break.</li>
+        <li>Relationships drive code structure: event contracts, handler namespaces, and versioning strategies all follow from the map.</li>
+      </ul>
+
+      <p>
+        The Anti-Corruption Layer deserves a full treatment of its own because it is one of 
+        the most powerful protective patterns in DDD. That is the topic of the next article.
+      </p>
+    </Summary>
+  </ContentBody>
+</Content>

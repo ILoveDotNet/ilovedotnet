@@ -1,0 +1,680 @@
+@page "/blogs/ddd-implementing-order-aggregate-pattern-in-dotnet"
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(OrderAggregatePattern) UseNewTableOfContentsMenu=true>
+  <ContentBody>
+    <What>
+      <p>
+        In this article, we'll implement a complete <ContentHighlight>Order Aggregate</ContentHighlight> pattern in .NET, demonstrating 
+        how to apply Domain-Driven Design tactical patterns to a real-world e-commerce scenario. We'll build an order processing system 
+        that enforces business rules, maintains consistency, and provides a clear domain model.
+      </p>
+
+      <p>
+        Our Order aggregate will encapsulate order lines, handle discount coupons, track lifecycle states (draft, confirmed, shipped, delivered), 
+        and enforce invariants like "orders can't be modified after confirmation" and "quantities must be positive." This hands-on example 
+        will show you how all the DDD tactical patterns work together in practice.
+      </p>
+
+      <p>
+        By the end, you'll have a complete working example that demonstrates entities, value objects, aggregates, lifecycle management, 
+        and business rule enforcement—all implemented with clean, testable C# code following DDD best practices.
+      </p>
+    </What>
+
+    <Why>
+      <h4>The Scattered Order Logic Problem</h4>
+
+      <p>
+        Most e-commerce systems have order processing logic scattered across multiple services and database tables. This leads to 
+        inconsistent states and bugs:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// Problem: Order logic spread across multiple places
+public class OrderService
+{
+    public void AddItemToOrder(Guid orderId, Guid productId, int quantity)
+    {
+        var order = _db.Orders.Find(orderId);
+        
+        // Rule 1: Quantity must be positive (checked here)
+        if (quantity &lt;= 0) throw new Exception("Invalid quantity");
+        
+        // Rule 2: Can't modify confirmed orders (sometimes forgot!)
+        // Oops, developer forgot to check status...
+        
+        var line = new OrderLine 
+        { 
+            OrderId = orderId, 
+            ProductId = productId, 
+            Quantity = quantity 
+        };
+        
+        _db.OrderLines.Add(line);
+        _db.SaveChanges();
+        
+        // Rule 3: Update order total (completely separate operation)
+        UpdateOrderTotal(orderId);  // In a different method!
+    }
+    
+    public void UpdateOrderTotal(Guid orderId)
+    {
+        var lines = _db.OrderLines.Where(l =&gt; l.OrderId == orderId).ToList();
+        var total = lines.Sum(l =&gt; l.UnitPrice * l.Quantity);
+        
+        var order = _db.Orders.Find(orderId);
+        order.TotalAmount = total;
+        _db.SaveChanges();
+    }
+    
+    public void ConfirmOrder(Guid orderId)
+    {
+        var order = _db.Orders.Find(orderId);
+        
+        // Rule 4: Can't confirm empty orders (checked in different place)
+        var lineCount = _db.OrderLines.Count(l =&gt; l.OrderId == orderId);
+        if (lineCount == 0) throw new Exception("Empty order");
+        
+        // Rule 5: Can't confirm already confirmed orders
+        if (order.Status == "Confirmed") throw new Exception("Already confirmed");
+        
+        order.Status = "Confirmed";
+        order.ConfirmedAt = DateTime.UtcNow;
+        _db.SaveChanges();
+    }
+}
+
+// Problems:
+// ❌ Rules scattered across different methods
+// ❌ Easy to forget checks (status validation missing in Add Item)
+// ❌ Total can get out of sync with lines
+// ❌ Multiple database round-trips
+// ❌ No compile-time safety
+// ❌ Business rules unclear from code structure
+      </CodeSnippet>
+
+      <p>
+        <strong>Real-world consequences:</strong>
+      </p>
+
+      <ul>
+        <li>Orders get modified after confirmation (inventory already reserved!)</li>
+        <li>Order totals don't match line item sums</li>
+        <li>Empty orders get confirmed and sent to fulfillment</li>
+        <li>Duplicate products appear in same order</li>
+        <li>Racing conditions when multiple operations happen simultaneously</li>
+      </ul>
+
+      <h4>Why an Aggregate Solution Works</h4>
+
+      <p>
+        An Order aggregate solves these problems by:
+      </p>
+
+      <ul>
+        <li><strong>Centralizing logic:</strong> All order rules in one place</li>
+        <li><strong>Enforcing invariants:</strong> Invalid states are impossible to create</li>
+        <li><strong>Clear lifecycle:</strong> State transitions are explicit and controlled</li>
+        <li><strong>Consistency guarantee:</strong> Lines and totals always match</li>
+        <li><strong>Single transaction:</strong> All changes save together or roll back together</li>
+      </ul>
+    </Why>
+
+    <How>
+      <h4>Step 1: Define Business Requirements</h4>
+
+      <p>
+        Start by clearly stating the business rules:
+      </p>
+
+      <CodeSnippet CssClass="language-plaintext">
+Business Requirements:
+
+1. Orders contain multiple line items
+2. Each line has product name, unit price (captured at order time), and quantity
+3. Quantity must be positive integers
+4. Once confirmed, orders cannot be modified
+5. Can apply one discount coupon per order (percentage off)
+6. Cannot have duplicate products in an order
+7. Order lifecycle: Draft → Confirmed → Shipped → Delivered
+8. Can cancel orders before shipping
+9. Total price = sum(line totals) - discount
+      </CodeSnippet>
+
+      <h4>Step 2: Create Value Objects</h4>
+
+      <p>
+        Build value objects for domain concepts:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// OrderStatus - Prevents invalid status strings
+public sealed record OrderStatus
+{
+    public string Value { get; }
+    
+    private OrderStatus(string value) =&gt; Value = value;
+    
+    public static readonly OrderStatus Draft = new("Draft");
+    public static readonly OrderStatus Confirmed = new("Confirmed");
+    public static readonly OrderStatus Shipped = new("Shipped");
+    public static readonly OrderStatus Delivered = new("Delivered");
+    public static readonly OrderStatus Cancelled = new("Cancelled");
+    
+    public bool IsDraft =&gt; Value == "Draft";
+    public bool IsConfirmed =&gt; Value == "Confirmed";
+    public bool IsShipped =&gt; Value == "Shipped";
+    public bool CanBeModified =&gt; IsDraft;
+    public bool CanBeCancelled =&gt; IsDraft || IsConfirmed;
+}
+
+// Discount - Encapsulates discount logic
+public sealed record Discount
+{
+    public decimal Percentage { get; }
+    public string CouponCode { get; }
+    
+    private Discount(string couponCode, decimal percentage)
+    {
+        if (string.IsNullOrWhiteSpace(couponCode))
+            throw new ArgumentException("Coupon code required");
+        
+        if (percentage &lt; 0 || percentage &gt; 100)
+            throw new ArgumentException("Percentage must be between 0 and 100");
+        
+        CouponCode = couponCode.ToUpperInvariant();
+        Percentage = percentage;
+    }
+    
+    public static Discount Create(string couponCode, decimal percentage) 
+        =&gt; new(couponCode, percentage);
+    
+    public Money Apply(Money amount) =&gt; amount * (1 - Percentage / 100);
+}
+      </CodeSnippet>
+
+      <h4>Step 3: Create OrderLine Entity</h4>
+
+      <p>
+        OrderLine is an internal entity within the Order aggregate:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+public class OrderLine
+{
+    public Guid Id { get; private set; }
+    public string ProductName { get; private set; }
+    public Money UnitPrice { get; private set; }
+    public int Quantity { get; private set; }
+    
+    // Computed property
+    public Money LineTotal =&gt; UnitPrice * Quantity;
+    
+    // Internal constructor - only Order can create lines
+    internal OrderLine(Guid id, string productName, Money unitPrice, int quantity)
+    {
+        // Validate inputs
+        if (string.IsNullOrWhiteSpace(productName))
+            throw new ArgumentException("Product name required", nameof(productName));
+        
+        if (unitPrice == null || unitPrice.Amount &lt;= 0)
+            throw new ArgumentException("Unit price must be positive", nameof(unitPrice));
+        
+        if (quantity &lt;= 0)
+            throw new ArgumentException("Quantity must be positive", nameof(quantity));
+        
+        Id = id;
+        ProductName = productName;
+        UnitPrice = unitPrice;
+        Quantity = quantity;
+    }
+    
+    // Update quantity (called by Order aggregate only)
+    internal void UpdateQuantity(int newQuantity)
+    {
+        if (newQuantity &lt;= 0)
+            throw new ArgumentException("Quantity must be positive", nameof(newQuantity));
+        
+        Quantity = newQuantity;
+    }
+}
+      </CodeSnippet>
+
+      <h4>Step 4: Implement Order Aggregate Root</h4>
+
+      <p>
+        Now build the Order aggregate root that manages all order logic:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+public class Order
+{
+    // Identity
+    public Guid Id { get; private set; }
+    public Guid CustomerId { get; private set; }
+    
+    // Status tracking
+    public OrderStatus Status { get; private set; }
+    public DateTime CreatedAt { get; private set; }
+    public DateTime? ConfirmedAt { get; private set; }
+    
+    // Discount
+    private Discount? _discount;
+    
+    // Lines - encapsulated collection
+    private readonly List&lt;OrderLine&gt; _lines = new();
+    public IReadOnlyCollection&lt;OrderLine&gt; Lines =&gt; _lines.AsReadOnly();
+    
+    // Computed total
+    public Money TotalPrice { get; private set; }
+    
+    // Private constructor
+    private Order(Guid id, Guid customerId)
+    {
+        Id = id;
+        CustomerId = customerId;
+        Status = OrderStatus.Draft;
+        CreatedAt = DateTime.UtcNow;
+        TotalPrice = Money.Usd(0);  // Assume USD for example
+    }
+    
+    // Factory method
+    public static Order Create(Guid customerId)
+    {
+        if (customerId == Guid.Empty)
+            throw new ArgumentException("Customer ID required");
+        
+        return new Order(Guid.NewGuid(), customerId);
+    }
+    
+    // Behavior: Add line to order
+    public void AddLine(string productName, Money unitPrice, int quantity)
+    {
+        EnsureDraft();  // Can only modify drafts
+        
+        // Business rule: No duplicate products
+        if (_lines.Any(l =&gt; l.ProductName.Equals(productName, 
+            StringComparison.OrdinalIgnoreCase)))
+        {
+            throw new InvalidOperationException(
+                $"Product '{productName}' already in order. Update quantity instead.");
+        }
+        
+        var line = new OrderLine(Guid.NewGuid(), productName, unitPrice, quantity);
+        _lines.Add(line);
+        
+        RecalculateTotal();
+    }
+    
+    // Behavior: Remove line from order
+    public void RemoveLine(Guid lineId)
+    {
+        EnsureDraft();
+        
+        var line = _lines.FirstOrDefault(l =&gt; l.Id == lineId);
+        if (line == null)
+            throw new InvalidOperationException("Line not found");
+        
+        _lines.Remove(line);
+        RecalculateTotal();
+    }
+    
+    // Behavior: Update line quantity
+    public void UpdateLineQuantity(Guid lineId, int newQuantity)
+    {
+        EnsureDraft();
+        
+        var line = _lines.FirstOrDefault(l =&gt; l.Id == lineId);
+        if (line == null)
+            throw new InvalidOperationException("Line not found");
+        
+        line.UpdateQuantity(newQuantity);
+        RecalculateTotal();
+    }
+    
+    // Behavior: Apply discount coupon
+    public void ApplyDiscount(Discount discount)
+    {
+        EnsureDraft();
+        
+        if (discount == null)
+            throw new ArgumentNullException(nameof(discount));
+        
+        // Business rule: Only one coupon per order
+        if (_discount != null)
+            throw new InvalidOperationException(
+                $"Order already has discount '{_discount.CouponCode}' applied");
+        
+        _discount = discount;
+        RecalculateTotal();
+    }
+    
+    // Behavior: Remove discount
+    public void RemoveDiscount()
+    {
+        EnsureDraft();
+        _discount = null;
+        RecalculateTotal();
+    }
+    
+    // Behavior: Confirm order
+    public void Confirm()
+    {
+        EnsureDraft();
+        
+        // Business rule: Must have at least one line
+        if (_lines.Count == 0)
+            throw new InvalidOperationException("Cannot confirm empty order");
+        
+        Status = OrderStatus.Confirmed;
+        ConfirmedAt = DateTime.UtcNow;
+    }
+    
+    // Behavior: Ship order
+    public void Ship()
+    {
+        if (Status != OrderStatus.Confirmed)
+            throw new InvalidOperationException(
+                "Only confirmed orders can be shipped");
+        
+        Status = OrderStatus.Shipped;
+    }
+    
+    // Behavior: Mark as delivered
+    public void MarkDelivered()
+    {
+        if (Status != OrderStatus.Shipped)
+            throw new InvalidOperationException(
+                "Only shipped orders can be delivered");
+        
+        Status = OrderStatus.Delivered;
+    }
+    
+    // Behavior: Cancel order
+    public void Cancel()
+    {
+        if (!Status.CanBeCancelled)
+            throw new InvalidOperationException(
+                $"Cannot cancel order in status '{Status}'");
+        
+        Status = OrderStatus.Cancelled;
+    }
+    
+    // Private helper: Ensure order is in draft state
+    private void EnsureDraft()
+    {
+        if (!Status.CanBeModified)
+            throw new InvalidOperationException(
+                $"Cannot modify order in status '{Status}'");
+    }
+    
+    // Private helper: Recalculate total
+    private void RecalculateTotal()
+    {
+        var subtotal = _lines.Sum(l =&gt; l.LineTotal.Amount);
+        var amount = Money.Usd(subtotal);
+        
+        TotalPrice = _discount == null 
+            ? amount 
+            : _discount.Apply(amount);
+    }
+}
+      </CodeSnippet>
+
+      <h4>Step 5: Create Repository Interface</h4>
+
+      <p>
+        The repository works with the aggregate root:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+public interface IOrderRepository
+{
+    Order? GetById(Guid orderId);
+    void Save(Order order);
+    void Delete(Order order);
+    IReadOnlyCollection&lt;Order&gt; GetByCustomerId(Guid customerId);
+}
+
+// Implementation with Entity Framework Core
+public class OrderRepository : IOrderRepository
+{
+    private readonly ApplicationDbContext _context;
+    
+    public OrderRepository(ApplicationDbContext context)
+    {
+        _context = context;
+    }
+    
+    public Order? GetById(Guid orderId)
+    {
+        // Load aggregate with all internal entities
+        return _context.Orders
+            .Include(o =&gt; o.Lines)  // Load lines with order
+            .FirstOrDefault(o =&gt; o.Id == orderId);
+    }
+    
+    public void Save(Order order)
+    {
+        // EF Core tracks changes and saves entire aggregate
+        if (_context.Entry(order).State == EntityState.Detached)
+            _context.Orders.Add(order);
+        else
+            _context.Orders.Update(order);
+        
+        _context.SaveChanges();
+    }
+    
+    public void Delete(Order order)
+    {
+        _context.Orders.Remove(order);  // Cascade deletes lines
+        _context.SaveChanges();
+    }
+    
+    public IReadOnlyCollection&lt;Order&gt; GetByCustomerId(Guid customerId)
+    {
+        return _context.Orders
+            .Include(o =&gt; o.Lines)
+            .Where(o =&gt; o.CustomerId == customerId)
+            .ToList();
+    }
+}
+      </CodeSnippet>
+
+      <h4>Step 6: Use the Aggregate in Application Services</h4>
+
+      <p>
+        Application services orchestrate domain operations:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+public class OrderApplicationService
+{
+    private readonly IOrderRepository _orderRepo;
+    
+    public OrderApplicationService(IOrderRepository orderRepo)
+    {
+        _orderRepo = orderRepo;
+    }
+    
+    public Guid CreateOrder(Guid customerId)
+    {
+        var order = Order.Create(customerId);
+        _orderRepo.Save(order);
+        return order.Id;
+    }
+    
+    public void AddItemToOrder(Guid orderId, string productName, 
+        decimal unitPrice, int quantity)
+    {
+        var order = _orderRepo.GetById(orderId);
+        if (order == null)
+            throw new OrderNotFoundException(orderId);
+        
+        // Tell aggregate to add line - business logic inside aggregate
+        order.AddLine(productName, Money.Usd(unitPrice), quantity);
+        
+        _orderRepo.Save(order);
+    }
+    
+    public void UpdateItemQuantity(Guid orderId, Guid lineId, int newQuantity)
+    {
+        var order = _orderRepo.GetById(orderId);
+        if (order == null)
+            throw new OrderNotFoundException(orderId);
+        
+        order.UpdateLineQuantity(lineId, newQuantity);
+        _orderRepo.Save(order);
+    }
+    
+    public void ApplyCoupon(Guid orderId, string couponCode, decimal percentage)
+    {
+        var order = _orderRepo.GetById(orderId);
+        if (order == null)
+            throw new OrderNotFoundException(orderId);
+        
+        var discount = Discount.Create(couponCode, percentage);
+        order.ApplyDiscount(discount);
+        
+        _orderRepo.Save(order);
+    }
+    
+    public void ConfirmOrder(Guid orderId)
+    {
+        var order = _orderRepo.GetById(orderId);
+        if (order == null)
+            throw new OrderNotFoundException(orderId);
+        
+        order.Confirm();
+        _orderRepo.Save(order);
+    }
+}
+      </CodeSnippet>
+
+      <h4>Step 7: Write Tests</h4>
+
+      <p>
+        Test domain logic without infrastructure:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+public class OrderTests
+{
+    [Fact]
+    public void AddLine_WhenOrderIsDraft_ShouldSucceed()
+    {
+        // Arrange
+        var order = Order.Create(Guid.NewGuid());
+        
+        // Act
+        order.AddLine("Product A", Money.Usd(50), 2);
+        
+        // Assert
+        Assert.Single(order.Lines);
+        Assert.Equal(Money.Usd(100), order.TotalPrice);
+    }
+    
+    [Fact]
+    public void AddLine_WhenDuplicateProduct_ShouldThrowException()
+    {
+        // Arrange
+        var order = Order.Create(Guid.NewGuid());
+        order.AddLine("Product A", Money.Usd(50), 1);
+        
+        // Act &amp; Assert
+        var ex = Assert.Throws&lt;InvalidOperationException&gt;(() =&gt; 
+            order.AddLine("Product A", Money.Usd(50), 1));
+        
+        Assert.Contains("already in order", ex.Message);
+    }
+    
+    [Fact]
+    public void Confirm_WhenOrderIsEmpty_ShouldThrowException()
+    {
+        // Arrange
+        var order = Order.Create(Guid.NewGuid());
+        
+        // Act &amp; Assert
+        var ex = Assert.Throws&lt;InvalidOperationException&gt;(() =&gt; 
+            order.Confirm());
+        
+        Assert.Contains("empty order", ex.Message);
+    }
+    
+    [Fact]
+    public void AddLine_AfterConfirmation_ShouldThrowException()
+    {
+        // Arrange
+        var order = Order.Create(Guid.NewGuid());
+        order.AddLine("Product A", Money.Usd(100), 1);
+        order.Confirm();
+        
+        // Act &amp; Assert
+        var ex = Assert.Throws&lt;InvalidOperationException&gt;(() =&gt; 
+            order.AddLine("Product B", Money.Usd(50), 1));
+        
+        Assert.Contains("Cannot modify", ex.Message);
+    }
+    
+    [Fact]
+    public void ApplyDiscount_ShouldReduceTotal()
+    {
+        // Arrange
+        var order = Order.Create(Guid.NewGuid());
+        order.AddLine("Product A", Money.Usd(100), 1);
+        
+        // Act
+        order.ApplyDiscount(Discount.Create("SAVE10", 10));
+        
+        // Assert
+        Assert.Equal(Money.Usd(90), order.TotalPrice);
+    }
+    
+    // No database needed! Pure domain logic testing
+}
+      </CodeSnippet>
+
+      <h4>Complete Usage Flow</h4>
+
+      <CodeSnippet CssClass="language-csharp">
+// Create order
+var orderId = _orderService.CreateOrder(customerId);
+
+// Add items
+_orderService.AddItemToOrder(orderId, "Software License Pro", 299.99m, 1);
+_orderService.AddItemToOrder(orderId, "Support Plan", 99.99m, 1);
+
+// Apply discount
+_orderService.ApplyCoupon(orderId, "WELCOME20", 20);
+
+// Confirm order
+_orderService.ConfirmOrder(orderId);
+
+// Later: Ship and deliver
+_orderService.ShipOrder(orderId);
+_orderService.MarkOrderDelivered(orderId);
+
+// All business rules enforced automatically!
+// Invalid operations throw meaningful exceptions
+// State is always consistent
+      </CodeSnippet>
+    </How>
+
+    <Summary>
+      <ul>
+        <li>Order aggregate encapsulates order lines and enforces business rules as a single unit</li>
+        <li>Value objects like <code>OrderStatus</code> and <code>Discount</code> prevent invalid states</li>
+        <li><code>OrderLine</code> is an internal entity with internal constructor—only Order can create lines</li>
+        <li>Private setters and <code>EnsureDraft()</code> method prevent modifications after confirmation</li>
+        <li>Total price is always consistent with line items because <code>RecalculateTotal()</code> runs after every change</li>
+        <li>Repository loads and saves the entire aggregate (Order + Lines) in a single transaction</li>
+        <li>Application services orchestrate operations but delegate business logic to the aggregate</li>
+        <li>Domain logic is testable without databases, mocks, or infrastructure dependencies</li>
+        <li>State transitions (Draft → Confirmed → Shipped → Delivered) are explicit and validated</li>
+        <li>Business rules like "no duplicate products" and "can't modify confirmed orders" are enforced at the domain level</li>
+      </ul>
+    </Summary>
+  </ContentBody>
+</Content>

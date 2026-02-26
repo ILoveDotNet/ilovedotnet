@@ -1,0 +1,451 @@
+@page "/blogs/ddd-publishing-and-handling-domain-events-in-dotnet"
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(PublishingAndHandlingDomainEvents) UseNewTableOfContentsMenu=true>
+  <ContentBody>
+    <What>
+      <p>
+        You've modeled the business correctly—rich entities, value objects, aggregates, domain events. Now something 
+        important happens inside the domain. The real question is: <strong>how do you react to it without unraveling 
+        everything you just built?</strong>
+      </p>
+
+      <p>
+        In this article, we'll explore how to raise, publish, and handle <ContentHighlight>Domain Events</ContentHighlight> 
+        safely across the layers of a DDD application in .NET. We'll learn the critical distinction between 
+        <ContentHighlight>recording</ContentHighlight> an event inside the domain and 
+        <ContentHighlight>publishing</ContentHighlight> it from the application layer—and why that distinction matters 
+        enormously for testability, correctness, and clean architecture.
+      </p>
+
+      <p>
+        By the end, you'll understand the <ContentHighlight>Event Collection Pattern</ContentHighlight>, how to wire 
+        up event handlers with clear responsibility separation, and what strategies to use when handlers fail.
+      </p>
+    </What>
+
+    <Why>
+      <h4>The Infrastructure-in-the-Domain Problem</h4>
+
+      <p>
+        Here's an anti-pattern you'll recognise immediately once you see it. The domain entity sends emails, calls 
+        repositories, and coordinates infrastructure—all from inside business logic:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// ❌ Bad: Domain entity doing infrastructure work
+public class License
+{
+    // Injecting infrastructure directly into the domain — a red flag
+    private readonly IEmailService _emailService;
+    private readonly ICustomerRepository _customerRepository;
+
+    public License(IEmailService emailService, ICustomerRepository customerRepository)
+    {
+        _emailService = emailService;
+        _customerRepository = customerRepository;
+    }
+
+    public void Activate(HardwareFingerprint hardware)
+    {
+        EnsureNotExpired();
+        _activationCount++;
+
+        var customer = _customerRepository.FindById(_customerId);
+
+        // Domain sends email — completely wrong!
+        _emailService.SendActivationEmail(customer.Email, hardware);
+    }
+}
+</CodeSnippet>
+
+      <p>
+        This approach causes four serious problems. The domain depends on infrastructure, making it impossible to test 
+        business rules in isolation. Adding a new reaction—say, a push notification or an analytics event—forces you 
+        to change the domain class. The domain is no longer pure business logic; it has become a service facade. And 
+        the coupling makes every refactor dangerous.
+      </p>
+
+      <h4>Why This Architecture Breaks Down</h4>
+
+      <p>
+        Consider the consequences of the bad approach versus the correct approach side by side:
+      </p>
+
+      <CodeSnippet CssClass="language-plaintext">
+❌ Bad Approach                         | ✅ Better Approach
+─────────────────────────────────────────────────────────────────
+Domain depends on infrastructure        | Domain is pure business logic
+Hard to test (needs mocks everywhere)   | Easy to test in isolation
+Domain is no longer just business logic | Infrastructure subscribes to events
+Adding reactions = changing domain      | Add reactions without touching domain
+No separation of concerns               | Clear separation of concerns
+</CodeSnippet>
+
+      <p>
+        The domain should only do one thing: express and enforce business truth. Everything else—sending emails, 
+        updating read models, triggering external systems—should react to facts the domain records, not act on orders 
+        the domain barks out.
+      </p>
+    </Why>
+
+    <How>
+      <h4>Step 1: The Domain Records Facts, Not Commands</h4>
+
+      <p>
+        The correct design is for the domain to maintain a simple list of events. No frameworks, no message buses, 
+        no infrastructure—just a collection of facts about what happened:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// ✅ Domain entity keeps a list of events — no infrastructure
+public class License
+{
+    private readonly List&lt;IDomainEvent&gt; _domainEvents = [];
+
+    public IReadOnlyList&lt;IDomainEvent&gt; DomainEvents =&gt; _domainEvents.AsReadOnly();
+
+    public LicenseId Id { get; private set; }
+    public CustomerId CustomerId { get; private set; }
+    private int _activationCount;
+    private readonly DateOnly _expiresAt;
+
+    public void Activate(HardwareFingerprint hardware)
+    {
+        EnsureNotExpired();
+
+        _activationCount++;
+
+        // Record what happened — this is the key difference
+        RaiseEvent(new LicenseActivated(Id, CustomerId, hardware, _activationCount));
+    }
+
+    public void ClearDomainEvents() =&gt; _domainEvents.Clear();
+
+    private void RaiseEvent(IDomainEvent domainEvent)
+        =&gt; _domainEvents.Add(domainEvent);
+
+    private void EnsureNotExpired()
+    {
+        if (DateOnly.FromDateTime(DateTime.UtcNow) &gt; _expiresAt)
+            throw new LicenseExpiredException(Id);
+    }
+}
+</CodeSnippet>
+
+      <p>
+        Notice what is absent. There is no <ContentHighlight>IEmailService</ContentHighlight>, no repository, no 
+        external dependency. The domain simply activates the license and records what happened. That is all it does.
+      </p>
+
+      <h4>Step 2: The Event Collection Pattern</h4>
+
+      <p>
+        The <ContentHighlight>Event Collection Pattern</ContentHighlight> solves exactly this challenge. It lets the 
+        aggregate stay pure while giving the application layer full control over when to publish events:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// The domain event interface — a marker with an ID and timestamp
+public interface IDomainEvent
+{
+    Guid EventId { get; }
+    DateTime OccurredOn { get; }
+}
+
+// A concrete domain event
+public sealed record LicenseActivated(
+    LicenseId LicenseId,
+    CustomerId CustomerId,
+    HardwareFingerprint Hardware,
+    int ActivationCount) : IDomainEvent
+{
+    public Guid EventId { get; } = Guid.NewGuid();
+    public DateTime OccurredOn { get; } = DateTime.UtcNow;
+}
+</CodeSnippet>
+
+      <p>
+        The pattern solves four problems at once. The aggregate stays pure with no framework dependencies. Events are 
+        collected during domain operations as the aggregate records what happened. Publishing happens <em>after</em> a 
+        successful transaction—the application service controls this. And each layer has a single, clear responsibility.
+      </p>
+
+      <h4>Step 3: The Layer Responsibilities</h4>
+
+      <p>
+        Understanding which layer does what is critical. Here is the complete picture:
+      </p>
+
+      <CodeSnippet CssClass="language-plaintext">
+┌──────────────────────────────────────────────────────┐
+│  Presentation Layer                                   │
+│  Controllers, API endpoints — handle HTTP requests    │
+├──────────────────────────────────────────────────────┤
+│  Application Layer (Coordination)                     │
+│  Loads aggregates, calls domain methods,              │
+│  publishes events after the transaction               │
+├──────────────────────────────────────────────────────┤
+│  Domain Layer                                         │
+│  Raises events as facts — no publishing,              │
+│  no handlers, just business truth                     │
+├──────────────────────────────────────────────────────┤
+│  Infrastructure Layer                                  │
+│  Handles emails, messaging, persistence,              │
+│  external APIs — reacts to events                     │
+└──────────────────────────────────────────────────────┘
+</CodeSnippet>
+
+      <h4>Step 4: The Application Service Publishes Events</h4>
+
+      <p>
+        The application service is where publishing happens. It loads the aggregate, drives domain logic, saves the 
+        result, and then dispatches the recorded events—in that order:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// ✅ Application service orchestrates — domain decides
+public class LicenseApplicationService
+{
+    private readonly ILicenseRepository _licenseRepository;
+    private readonly IDomainEventPublisher _eventPublisher;
+
+    public LicenseApplicationService(
+        ILicenseRepository licenseRepository,
+        IDomainEventPublisher eventPublisher)
+    {
+        _licenseRepository = licenseRepository;
+        _eventPublisher = eventPublisher;
+    }
+
+    public async Task ActivateLicenseAsync(
+        LicenseId licenseId,
+        HardwareFingerprint hardware)
+    {
+        // Step 1: Load the aggregate
+        var license = await _licenseRepository.FindByIdAsync(licenseId)
+            ?? throw new LicenseNotFoundException(licenseId);
+
+        // Step 2: Execute domain logic
+        license.Activate(hardware);
+
+        // Step 3: Save the aggregate
+        await _licenseRepository.SaveAsync(license);
+
+        // Step 4: Publish the events
+        await _eventPublisher.PublishAllAsync(license.DomainEvents);
+
+        // Step 5: Clear events to prevent accidental re-publication
+        license.ClearDomainEvents();
+    }
+}
+</CodeSnippet>
+
+      <p>
+        The service does not decide anything. It does not know what <ContentHighlight>LicenseActivated</ContentHighlight> 
+        means in terms of side effects. It simply coordinates. All decisions live in the domain.
+      </p>
+
+      <h4>Step 5: Handling Domain Events</h4>
+
+      <p>
+        Handlers live in the infrastructure layer and subscribe to events. Each handler has a narrow, single 
+        responsibility:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// Infrastructure handler — reacts to the domain fact
+public class SendActivationEmailOnLicenseActivated
+    : IDomainEventHandler&lt;LicenseActivated&gt;
+{
+    private readonly IEmailService _emailService;
+    private readonly ICustomerRepository _customerRepository;
+
+    public SendActivationEmailOnLicenseActivated(
+        IEmailService emailService,
+        ICustomerRepository customerRepository)
+    {
+        _emailService = emailService;
+        _customerRepository = customerRepository;
+    }
+
+    public async Task HandleAsync(LicenseActivated domainEvent)
+    {
+        var customer = await _customerRepository
+            .FindByIdAsync(domainEvent.CustomerId);
+
+        await _emailService.SendActivationConfirmationAsync(
+            customer.Email,
+            domainEvent.LicenseId,
+            domainEvent.Hardware);
+    }
+}
+
+// Another handler — no changes to the domain needed
+public class RecordActivationAnalyticsOnLicenseActivated
+    : IDomainEventHandler&lt;LicenseActivated&gt;
+{
+    private readonly IAnalyticsService _analytics;
+
+    public RecordActivationAnalyticsOnLicenseActivated(IAnalyticsService analytics)
+        =&gt; _analytics = analytics;
+
+    public async Task HandleAsync(LicenseActivated domainEvent)
+    {
+        await _analytics.TrackEventAsync("license_activated", new
+        {
+            LicenseId = domainEvent.LicenseId.Value,
+            CustomerId = domainEvent.CustomerId.Value,
+            ActivationCount = domainEvent.ActivationCount
+        });
+    }
+}
+</CodeSnippet>
+
+      <p>
+        Adding new reactions never requires touching the domain. You simply add a new handler. This is the 
+        <ContentHighlight>Open/Closed Principle</ContentHighlight> in action.
+      </p>
+
+      <h4>Event Handler Characteristics</h4>
+
+      <p>
+        Every domain event handler must follow these characteristics to remain robust in production:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// Handler characteristics to enforce
+public class RobustEventHandler&lt;TEvent&gt; : IDomainEventHandler&lt;TEvent&gt;
+    where TEvent : IDomainEvent
+{
+    // ✅ Independent transactions — failure in one handler must NOT break others
+    // ✅ Supports both sync and async — use async for I/O operations
+    // ✅ No return values — fire and forget (or task-based)
+    // ✅ Idempotent — safe to run more than once
+
+    // Example: Idempotent handler using processed event tracking
+    private readonly IProcessedEventStore _processedEvents;
+
+    public async Task HandleAsync(TEvent domainEvent)
+    {
+        // Guard against duplicate processing
+        if (await _processedEvents.HasBeenProcessedAsync(domainEvent.EventId))
+            return;
+
+        await ProcessInternalAsync(domainEvent);
+
+        await _processedEvents.MarkAsProcessedAsync(domainEvent.EventId);
+    }
+
+    private Task ProcessInternalAsync(TEvent domainEvent) =&gt; Task.CompletedTask;
+}
+</CodeSnippet>
+
+      <h4>Error Handling Strategies</h4>
+
+      <p>
+        Not all handler failures are equal. Choose the right strategy based on how critical the reaction is:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+public class EventHandlerErrorStrategy
+{
+    // Strategy 1: Fail fast — correctness matters more than availability
+    public async Task FailFastAsync(IDomainEvent domainEvent)
+    {
+        // Let the exception propagate — rollback the transaction
+        await HandleEventAsync(domainEvent);
+    }
+
+    // Strategy 2: Log and continue — reaction is not critical
+    public async Task LogAndContinueAsync(IDomainEvent domainEvent)
+    {
+        try
+        {
+            await HandleEventAsync(domainEvent);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex,
+                "Non-critical handler failed for event {EventId}. Continuing.",
+                domainEvent.EventId);
+        }
+    }
+
+    // Strategy 3: Retry — transient failures (network, timeouts)
+    public async Task RetryAsync(IDomainEvent domainEvent, int maxRetries = 3)
+    {
+        for (var attempt = 1; attempt &lt;= maxRetries; attempt++)
+        {
+            try
+            {
+                await HandleEventAsync(domainEvent);
+                return;
+            }
+            catch when (attempt &lt; maxRetries)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(Math.Pow(2, attempt)));
+            }
+        }
+    }
+
+    // Strategy 4: Dead-letter queue — manual intervention required
+    public async Task DeadLetterAsync(IDomainEvent domainEvent, Exception ex)
+    {
+        await _deadLetterStore.EnqueueAsync(domainEvent, ex.Message);
+        _logger.LogError(ex,
+            "Event {EventId} moved to dead-letter queue after all retries failed.",
+            domainEvent.EventId);
+    }
+
+    // Strategy 5: Compensating action — undo a previous step
+    public async Task CompensateAsync(LicenseActivated activatedEvent)
+    {
+        // Example: Reverse the activation if email sending fails critically
+        await _licenseRepository.DecrementActivationCountAsync(
+            activatedEvent.LicenseId);
+    }
+
+    private Task HandleEventAsync(IDomainEvent domainEvent) =&gt; Task.CompletedTask;
+}
+</CodeSnippet>
+
+      <p>
+        The right strategy depends on your business context. Email confirmation failing is usually Log and Continue. 
+        Payment processing failing is usually Compensating Action.
+      </p>
+    </How>
+
+    <Summary>
+      <p>
+        In this article, we explored how to publish and handle <ContentHighlight>Domain Events</ContentHighlight> 
+        correctly in a DDD application built with .NET. Here's what matters:
+      </p>
+
+      <ul>
+        <li>
+          <strong>Domain records, application publishes.</strong> The domain raises events as facts using the 
+          <ContentHighlight>Event Collection Pattern</ContentHighlight>. The application service publishes them after 
+          a successful transaction.
+        </li>
+        <li>
+          <strong>Infrastructure subscribes.</strong> Handlers live in the infrastructure layer, keeping the domain 
+          free of side-effect logic. Adding new reactions never requires touching domain code.
+        </li>
+        <li>
+          <strong>Handlers must be idempotent.</strong> Network retries and message queue redelivery make duplicate 
+          events inevitable. Handlers must produce the same result whether run once or multiple times.
+        </li>
+        <li>
+          <strong>Match error strategies to criticality.</strong> Fail fast for correctness-critical reactions. 
+          Log and continue for non-critical ones. Use dead-letter queues for manual intervention scenarios.
+        </li>
+        <li>
+          <strong>Five-step application service pattern:</strong> Load aggregate → Execute domain logic → Save 
+          aggregate → Publish events → Clear events.
+        </li>
+      </ul>
+    </Summary>
+  </ContentBody>
+</Content>

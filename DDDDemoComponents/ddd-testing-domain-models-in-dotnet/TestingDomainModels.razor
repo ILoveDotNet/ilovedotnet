@@ -1,0 +1,536 @@
+@page "/blogs/ddd-testing-domain-models-in-dotnet"
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(TestingDomainModels) UseNewTableOfContentsMenu=true>
+  <ContentBody>
+    <What>
+      <p>
+        Here is one of the biggest advantages of doing DDD properly that most developers only discover once they 
+        have already built their domain correctly: <strong>testing it is almost effortless</strong>. No databases, 
+        no HTTP clients, no mocks for a dozen services. Just plain C# objects and business rules.
+      </p>
+
+      <p>
+        In this article, we'll explore how to test a DDD domain model in .NET - from unit tests using the 
+        <ContentHighlight>Given-When-Then</ContentHighlight> pattern, to verifying domain events, to writing 
+        readable tests with <ContentHighlight>test builders</ContentHighlight>, handling 
+        <ContentHighlight>idempotency</ContentHighlight>, and setting up 
+        <ContentHighlight>fixtures</ContentHighlight> for integration tests. We'll use xUnit throughout.
+      </p>
+    </What>
+
+    <Why>
+      <h4>Why Testing Domain Logic in Isolation Matters</h4>
+
+      <p>
+        When your domain is pure - no infrastructure, no framework dependencies, no database calls - testing 
+        becomes a superpower. Here's what you gain:
+      </p>
+
+      <CodeSnippet CssClass="language-plaintext">
+Benefit               Detail
+──────────────────────────────────────────────────────────────
+Very fast feedback    Tests run in milliseconds - no I/O
+No mocks needed       Domain has no infrastructure dependencies
+One rule per test     Each test verifies exactly one business rule
+Easy to debug         When a test fails, you know exactly which rule broke
+Run while coding      Tests are fast enough to run continuously
+</CodeSnippet>
+
+      <p>
+        Contrast this with services that mix business logic with infrastructure. Those tests need mock repositories, 
+        mock email services, mock databases—and when they fail, you have no idea whether the business rule or the 
+        infrastructure wiring broke.
+      </p>
+
+      <h4>What Goes Wrong Without Careful Domain Testing</h4>
+
+      <p>
+        Before looking at good tests, it is worth understanding what production bugs arise when tests are absent 
+        or poorly structured. Four things go wrong most often:
+      </p>
+
+      <CodeSnippet CssClass="language-plaintext">
+Problem                              Production Consequence
+──────────────────────────────────────────────────────────────────────────────
+Event never raised                   Downstream systems never react
+Event raised with wrong data         Every consumer gets incorrect data
+Event raised at the wrong time       Race conditions or out-of-order processing
+Handler not idempotent               Duplicate processing creates wrong state
+</CodeSnippet>
+
+      <p>
+        All four of these create production bugs that are very hard to trace to their source. Careful domain 
+        testing eliminates them before they reach production.
+      </p>
+    </Why>
+
+    <How>
+      <h4>Step 1: The Given-When-Then Structure</h4>
+
+      <p>
+        Every domain test should follow the <ContentHighlight>Given-When-Then</ContentHighlight> structure. It 
+        maps directly to business language and makes tests readable to domain experts:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// File: LicenseTests.cs
+public class LicenseTests
+{
+    [Fact]
+    public void ActivatingValidLicenseIncreasesActivationCount()
+    {
+        // GIVEN a valid license with zero activations
+        var license = License.Create(
+            id: new LicenseId(Guid.NewGuid()),
+            customerId: new CustomerId(Guid.NewGuid()),
+            productId: new ProductId(Guid.NewGuid()),
+            expiresAt: DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)),
+            maxActivations: 5);
+
+        // WHEN the license is activated
+        var hardware = HardwareFingerprint.Of("DEVICE-ABC-001");
+        license.Activate(hardware);
+
+        // THEN the activation count increases
+        Assert.Equal(1, license.ActivationCount);
+    }
+}
+</CodeSnippet>
+
+      <p>
+        Note what is absent: no database, no HTTP call, no mock. Just a plain object and a business assertion. 
+        This test runs in microseconds and tells you exactly what it is testing.
+      </p>
+
+      <h4>Step 2: Naming Tests with Ubiquitous Language</h4>
+
+      <p>
+        A good test name reads like a business rule spoken in a conversation with a domain expert. Compare these:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// ❌ Weak test names — describe implementation, not business meaning
+public void TestActivate() { }
+public void ActivateShouldIncrementCounter() { }
+
+// ✅ Strong test names — read like business rules
+public void ActivatingValidLicenseIncreasesActivationCount() { }
+public void ExpiredLicenseCannotBeActivated() { }
+public void ActivationLicenseRaisesLicenseActivatedEvent() { }
+public void SuspendedLicenseCannotBeActivated() { }
+public void LicenseCannotExceedMaxActivations() { }
+</CodeSnippet>
+
+      <p>
+        If a non-technical stakeholder can read your test names and understand what rules your system enforces, 
+        your naming is correct.
+      </p>
+
+      <h4>Step 3: Testing Business Rules That Throw Exceptions</h4>
+
+      <p>
+        Domain rules that reject invalid operations should throw domain-specific exceptions. Test them explicitly:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+[Fact]
+public void ExpiredLicenseCannotBeActivated()
+{
+    // GIVEN an expired license
+    var license = License.Create(
+        id: new LicenseId(Guid.NewGuid()),
+        customerId: new CustomerId(Guid.NewGuid()),
+        productId: new ProductId(Guid.NewGuid()),
+        expiresAt: DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)),  // Yesterday
+        maxActivations: 5);
+
+    // WHEN activating
+    var hardware = HardwareFingerprint.Of("DEVICE-ABC-001");
+
+    // THEN a domain-specific exception is thrown
+    Assert.Throws&lt;LicenseExpiredException&gt;(
+        () =&gt; license.Activate(hardware));
+}
+
+[Fact]
+public void LicenseCannotExceedMaxActivations()
+{
+    // GIVEN a license already at its activation limit
+    var license = License.Create(
+        id: new LicenseId(Guid.NewGuid()),
+        customerId: new CustomerId(Guid.NewGuid()),
+        productId: new ProductId(Guid.NewGuid()),
+        expiresAt: DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)),
+        maxActivations: 1);
+
+    var hardware = HardwareFingerprint.Of("DEVICE-ABC-001");
+    license.Activate(hardware);  // First activation — OK
+
+    // WHEN activating again
+    var anotherDevice = HardwareFingerprint.Of("DEVICE-XYZ-999");
+
+    // THEN the limit is enforced
+    Assert.Throws&lt;ActivationLimitReachedException&gt;(
+        () =&gt; license.Activate(anotherDevice));
+}
+</CodeSnippet>
+
+      <h4>Step 4: Testing Domain Events</h4>
+
+      <p>
+        Domain events carry data that downstream systems rely on. Test that the right event is raised with the 
+        correct data—not just that an event was raised:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+public class LicenseEventTests
+{
+    [Fact]
+    public void ActivatingLicenseRaisesLicenseActivatedEvent()
+    {
+        // GIVEN a valid license
+        var licenseId = new LicenseId(Guid.NewGuid());
+        var customerId = new CustomerId(Guid.NewGuid());
+
+        var license = License.Create(
+            id: licenseId,
+            customerId: customerId,
+            productId: new ProductId(Guid.NewGuid()),
+            expiresAt: DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)),
+            maxActivations: 5);
+
+        // WHEN activated
+        var hardware = HardwareFingerprint.Of("DEVICE-ABC-001");
+        license.Activate(hardware);
+
+        // THEN exactly one event is recorded
+        Assert.Single(license.DomainEvents);
+
+        // AND it is the correct event type
+        var domainEvent = Assert.IsType&lt;LicenseActivated&gt;(
+            license.DomainEvents[0]);
+
+        // AND it carries the correct data
+        Assert.Equal(licenseId, domainEvent.LicenseId);
+        Assert.Equal(customerId, domainEvent.CustomerId);
+        Assert.Equal(hardware, domainEvent.Hardware);
+    }
+
+    [Fact]
+    public void FailedActivationDoesNotRaiseEvent()
+    {
+        // GIVEN an expired license
+        var license = License.Create(
+            id: new LicenseId(Guid.NewGuid()),
+            customerId: new CustomerId(Guid.NewGuid()),
+            productId: new ProductId(Guid.NewGuid()),
+            expiresAt: DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)),
+            maxActivations: 5);
+
+        var hardware = HardwareFingerprint.Of("DEVICE-ABC-001");
+
+        // WHEN activation fails
+        Assert.Throws&lt;LicenseExpiredException&gt;(
+            () =&gt; license.Activate(hardware));
+
+        // THEN no event was recorded
+        Assert.Empty(license.DomainEvents);
+    }
+}
+</CodeSnippet>
+
+      <p>
+        We are not testing publishing here—we are testing that the <ContentHighlight>aggregate recorded the 
+        correct facts</ContentHighlight>. Publishing is tested at the application service layer.
+      </p>
+
+      <h4>Step 5: Test Builders for Readable Tests</h4>
+
+      <p>
+        When your tests require complex setup, the <ContentHighlight>Test Builder</ContentHighlight> pattern removes 
+        noise and makes tests read like specifications. Compare these two approaches:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// ❌ Without a builder — noisy, hard to see what matters
+[Fact]
+public void ExpiredLicenseCannotBeActivated()
+{
+    // 6 lines just to set up one object — most fields irrelevant to the test
+    var license = License.Create(
+        id: new LicenseId(Guid.NewGuid()),
+        customerId: new CustomerId(Guid.NewGuid()),
+        productId: new ProductId(Guid.NewGuid()),
+        expiresAt: DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)),
+        maxActivations: 5);
+
+    Assert.Throws&lt;LicenseExpiredException&gt;(
+        () =&gt; license.Activate(HardwareFingerprint.Of("DEVICE")));
+}
+
+// ✅ With a builder — the intent is clear in one line
+[Fact]
+public void ExpiredLicenseCannotBeActivated_WithBuilder()
+{
+    var license = LicenseBuilder.ALicense().Expired().Build();
+
+    Assert.Throws&lt;LicenseExpiredException&gt;(
+        () =&gt; license.Activate(HardwareFingerprint.Of("DEVICE")));
+}
+</CodeSnippet>
+
+      <p>
+        The builder version reads like plain English. Here's how to build it:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+public class LicenseBuilder
+{
+    private LicenseId _id = new LicenseId(Guid.NewGuid());
+    private CustomerId _customerId = new CustomerId(Guid.NewGuid());
+    private ProductId _productId = new ProductId(Guid.NewGuid());
+    private DateOnly _expiresAt = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1));
+    private int _maxActivations = 5;
+
+    // Factory method — fluent entry point
+    public static LicenseBuilder ALicense() =&gt; new();
+
+    // Override only what matters for the test
+    public LicenseBuilder Expired()
+    {
+        _expiresAt = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1));
+        return this;
+    }
+
+    public LicenseBuilder WithCustomer(CustomerId customerId)
+    {
+        _customerId = customerId;
+        return this;
+    }
+
+    public LicenseBuilder WithMaxActivations(int max)
+    {
+        _maxActivations = max;
+        return this;
+    }
+
+    public LicenseBuilder WithId(LicenseId id)
+    {
+        _id = id;
+        return this;
+    }
+
+    public License Build() =&gt; License.Create(
+        id: _id,
+        customerId: _customerId,
+        productId: _productId,
+        expiresAt: _expiresAt,
+        maxActivations: _maxActivations);
+}
+</CodeSnippet>
+
+      <p>
+        The builder follows three rules. It starts in a valid state with sensible defaults. Only what matters for 
+        the test is overridden. And methods name the business concept, not the field - 
+        <ContentHighlight>Expired()</ContentHighlight> instead of 
+        <ContentHighlight>WithExpiresAt(DateTime.UtcNow.AddDays(-1))</ContentHighlight>.
+      </p>
+
+      <h4>Step 6: Testing Idempotency</h4>
+
+      <p>
+        Event handlers must be idempotent—safe to run more than once. This happens because message queues use 
+        at-least-once delivery. Here is how to test for it:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+public class ActivationEmailHandlerTests
+{
+    [Fact]
+    public async Task ProcessingSameEventTwiceDoesNotSendDuplicateEmail()
+    {
+        // GIVEN an event and a handler with idempotency tracking
+        var domainEvent = new LicenseActivated(
+            LicenseId: new LicenseId(Guid.NewGuid()),
+            CustomerId: new CustomerId(Guid.NewGuid()),
+            Hardware: HardwareFingerprint.Of("DEVICE-ABC"),
+            ActivationCount: 1);
+
+        var emailService = new FakeEmailService();
+        var processedEvents = new InMemoryProcessedEventStore();
+        var handler = new SendActivationEmailOnLicenseActivated(
+            emailService, processedEvents);
+
+        // WHEN the same event is processed twice
+        await handler.HandleAsync(domainEvent);
+        await handler.HandleAsync(domainEvent);  // Simulating a retry
+
+        // THEN the email was sent only once
+        Assert.Equal(1, emailService.SentCount);
+    }
+
+    [Fact]
+    public async Task DifferentEventsAreEachProcessedOnce()
+    {
+        // GIVEN two different events
+        var event1 = new LicenseActivated(
+            new LicenseId(Guid.NewGuid()),
+            new CustomerId(Guid.NewGuid()),
+            HardwareFingerprint.Of("DEVICE-A"),
+            ActivationCount: 1);
+
+        var event2 = new LicenseActivated(
+            new LicenseId(Guid.NewGuid()),
+            new CustomerId(Guid.NewGuid()),
+            HardwareFingerprint.Of("DEVICE-B"),
+            ActivationCount: 1);
+
+        var emailService = new FakeEmailService();
+        var processedEvents = new InMemoryProcessedEventStore();
+        var handler = new SendActivationEmailOnLicenseActivated(
+            emailService, processedEvents);
+
+        // WHEN each event is processed once
+        await handler.HandleAsync(event1);
+        await handler.HandleAsync(event2);
+
+        // THEN two emails were sent
+        Assert.Equal(2, emailService.SentCount);
+    }
+}
+
+// Test double for email service
+public class FakeEmailService : IEmailService
+{
+    public int SentCount { get; private set; }
+
+    public Task SendActivationConfirmationAsync(
+        string email, LicenseId licenseId, HardwareFingerprint hardware)
+    {
+        SentCount++;
+        return Task.CompletedTask;
+    }
+}
+</CodeSnippet>
+
+      <h4>Step 7: Fixtures for Integration Tests</h4>
+
+      <p>
+        While domain unit tests use builders and in-memory objects, integration tests need real database state. 
+        <ContentHighlight>Test Fixtures</ContentHighlight> handle this by setting up and tearing down known data 
+        for integration scenarios:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// Fixture class — sets up known database state for integration tests
+public class LicenseFixtures
+{
+    private readonly ILicenseRepository _licenseRepository;
+    private readonly ICustomerRepository _customerRepository;
+
+    public LicenseFixtures(
+        ILicenseRepository licenseRepository,
+        ICustomerRepository customerRepository)
+    {
+        _licenseRepository = licenseRepository;
+        _customerRepository = customerRepository;
+    }
+
+    // Creates a known, consistent data set in the database
+    public async Task&lt;LicenseTestData&gt; CreateStandardDataAsync()
+    {
+        // Create and save a customer
+        var customerId = new CustomerId(Guid.NewGuid());
+        var customer = Customer.Create(
+            customerId,
+            Email.Of("test.customer@@example.com"));
+        await _customerRepository.AddAsync(customer);
+
+        // Create a valid license
+        var validLicenseId = new LicenseId(Guid.NewGuid());
+        var validLicense = License.Create(
+            id: validLicenseId,
+            customerId: customerId,
+            productId: new ProductId(Guid.NewGuid()),
+            expiresAt: DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)),
+            maxActivations: 5);
+        await _licenseRepository.AddAsync(validLicense);
+
+        // Create an expired license
+        var expiredLicenseId = new LicenseId(Guid.NewGuid());
+        var expiredLicense = License.Create(
+            id: expiredLicenseId,
+            customerId: customerId,
+            productId: new ProductId(Guid.NewGuid()),
+            expiresAt: DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)),
+            maxActivations: 5);
+        await _licenseRepository.AddAsync(expiredLicense);
+
+        // Return only IDs — let tests fetch the full objects if needed
+        return new LicenseTestData(customerId, validLicenseId, expiredLicenseId);
+    }
+}
+
+public sealed record LicenseTestData(
+    CustomerId CustomerId,
+    LicenseId ValidLicenseId,
+    LicenseId ExpiredLicenseId);
+</CodeSnippet>
+
+      <p>
+        The key distinction between builders and fixtures: builders are for unit tests (in-memory, fast, isolated), 
+        fixtures are for integration tests (persistent, shared, require database setup and teardown).
+      </p>
+
+      <CodeSnippet CssClass="language-plaintext">
+Strategy     When To Use            Speed     Database    Setup/Teardown
+─────────────────────────────────────────────────────────────────────────
+Builders     Unit tests             Fast      No          None
+Fixtures     Integration tests      Slower    Yes         Required
+</CodeSnippet>
+
+    </How>
+
+    <Summary>
+      <p>
+        In this article, we explored how to test a <ContentHighlight>DDD domain model</ContentHighlight> in .NET 
+        using practical strategies that result in fast, readable, and reliable tests. Here's what matters:
+      </p>
+
+      <ul>
+        <li>
+          <strong>Pure domains are trivially testable.</strong> When your domain has no infrastructure dependencies, 
+          tests are simple, fast, and focused. This is one of the greatest payoffs of DDD done correctly.
+        </li>
+        <li>
+          <strong>Given-When-Then structures tests around business scenarios.</strong> Set up the scenario, call 
+          exactly one domain method, assert the outcome. One rule per test.
+        </li>
+        <li>
+          <strong>Test names should read like business rules.</strong> 
+          <ContentHighlight>ExpiredLicenseCannotBeActivated</ContentHighlight> is a business rule expressed in code. 
+          <ContentHighlight>TestActivate</ContentHighlight> is not.
+        </li>
+        <li>
+          <strong>Test domain events, not just state.</strong> Verify the right event was raised, at the right time, 
+          with the correct data. Downstream systems depend on event data being correct.
+        </li>
+        <li>
+          <strong>Test builders eliminate noise.</strong> 
+          <ContentHighlight>LicenseBuilder.ALicense().Expired().Build()</ContentHighlight> expresses intent in one line. 
+          Six lines of constructor calls do not.
+        </li>
+        <li>
+          <strong>Handlers must be idempotent.</strong> Test that processing the same event twice produces the same 
+          result as processing it once. At-least-once delivery guarantees make this critical.
+        </li>
+        <li>
+          <strong>Use fixtures for integration tests, builders for unit tests.</strong> Each tool has its place — 
+          choose based on whether the test touches a real database.
+        </li>
+      </ul>
+    </Summary>
+  </ContentBody>
+</Content>

@@ -1,0 +1,550 @@
+@page "/blogs/ddd-core-supporting-generic-domains"
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(CoreSupportingGenericDomains) UseNewTableOfContentsMenu=true>
+  <ContentBody>
+    <What>
+      <p>
+        Not all parts of your system deserve equal investment. Some features define your competitive advantage, while others simply keep the lights on. 
+        In this article, we'll explore how to classify your system into <ContentHighlight>Core Domains</ContentHighlight>, 
+        <ContentHighlight>Supporting Domains</ContentHighlight>, and <ContentHighlight>Generic Domains</ContentHighlight>—and why this classification 
+        is critical for making smart architectural decisions.
+      </p>
+
+      <p>
+        Understanding this distinction helps you answer crucial questions: Where should you invest your best developers? Which areas deserve deep domain 
+        modeling with full DDD? Which features can you buy off-the-shelf instead of building from scratch? Making these decisions correctly can mean the 
+        difference between building a sustainable competitive advantage and wasting resources on commoditized functionality.
+      </p>
+
+      <p>
+        We'll examine a practical decision framework that helps you classify each subdomain in your system, along with specific recommendations for 
+        investment levels, staffing, quality expectations, and architectural approaches for each category.
+      </p>
+    </What>
+
+    <Why>
+      <h4>The Investment Problem</h4>
+
+      <p>
+        Every software project has multiple competing concerns. Consider a typical digital license management system that needs:
+      </p>
+
+      <ul>
+        <li>License activation logic</li>
+        <li>Payment processing via Stripe</li>
+        <li>Email notifications</li>
+        <li>User authentication via Single Sign-On</li>
+        <li>Audit logging</li>
+        <li>File storage using cloud infrastructure</li>
+        <li>Analytics dashboards</li>
+      </ul>
+
+      <p>
+        Teams face a critical challenge: they can't invest equally in all these areas. Resources are limited—budget, time, and skilled developers are 
+        finite. The key question becomes: <strong>How do we decide where to focus our best talent and deepest effort?</strong>
+      </p>
+
+      <p>
+        Making this decision poorly has serious consequences:
+      </p>
+
+      <ul>
+        <li><strong>Misallocated Resources:</strong> Spending senior developers' time on commodity features like email notifications wastes expertise</li>
+        <li><strong>Weak Core:</strong> Under-investing in your competitive differentiator allows competitors to surpass you</li>
+        <li><strong>Over-Engineering:</strong> Applying complex DDD patterns to simple generic features creates unnecessary maintenance burden</li>
+        <li><strong>Build vs. Buy Mistakes:</strong> Building features from scratch that you could integrate for a fraction of the cost</li>
+      </ul>
+
+      <h4>Why Classification Matters</h4>
+
+      <p>
+        Classifying your system into Core, Supporting, and Generic domains provides a clear framework for making these investment decisions. This 
+        classification helps you:
+      </p>
+
+      <p>
+        <strong>Align Investment with Value:</strong> Your most valuable features get your best resources. Your competitive edge receives maximum 
+        investment, while commodity features receive minimal effort.
+      </p>
+
+      <p>
+        <strong>Guide Architectural Decisions:</strong> Core domains deserve full DDD with rich modeling. Supporting domains use pragmatic patterns. 
+        Generic domains get integrated third-party solutions.
+      </p>
+
+      <p>
+        <strong>Optimize Team Structure:</strong> Senior developers work on core domains where their expertise matters most. Junior developers handle 
+        integration of generic features where complexity is lower.
+      </p>
+
+      <p>
+        <strong>Set Quality Expectations:</strong> Operational excellence for core domains, "good enough" for supporting domains, and reliable 
+        integration for generic domains.
+      </p>
+
+      <p>
+        <strong>Inform Build vs. Buy:</strong> Generic domains are prime candidates for third-party services or open-source solutions, freeing your 
+        team to focus on what makes you unique.
+      </p>
+    </Why>
+
+    <How>
+      <h4>Step 1: Understand the Three Domain Types</h4>
+
+      <p>
+        Let's examine each domain classification in detail, including characteristics, investment strategy, and practical examples.
+      </p>
+
+      <h4>Core Domain - Your Competitive Advantage</h4>
+
+      <p>
+        The <ContentHighlight>Core Domain</ContentHighlight> is the heart of your business—what makes you special and differentiates you from competitors. 
+        This is where innovation happens and where your business wins or loses.
+      </p>
+
+      <p>
+        <strong>Characteristics:</strong>
+      </p>
+
+      <ul>
+        <li><strong>Competitive Advantage:</strong> This is what makes you unique in the market</li>
+        <li><strong>Constantly Evolving:</strong> Frequent changes based on market demands and innovation</li>
+        <li><strong>Complex Business Rules:</strong> Intricate logic that embodies domain expertise</li>
+        <li><strong>High Business Value:</strong> Direct impact on revenue, customer satisfaction, or market position</li>
+      </ul>
+
+      <p>
+        <strong>Investment Strategy:</strong>
+      </p>
+
+      <ul>
+        <li><strong>Investment Level:</strong> Maximum—this is your main focus</li>
+        <li><strong>Staffing:</strong> Assign your best, most experienced developers</li>
+        <li><strong>Quality:</strong> Aim for operational excellence with comprehensive testing and monitoring</li>
+        <li><strong>Approach:</strong> Apply full Domain-Driven Design with strategic and tactical patterns</li>
+      </ul>
+
+      <p>
+        <strong>Examples in a Digital Licensing System:</strong>
+      </p>
+
+      <ul>
+        <li>License activation and compliance verification logic</li>
+        <li>Flexible licensing models (subscription, perpetual, usage-based)</li>
+        <li>Hardware fingerprinting and device management</li>
+        <li>License transfer and deactivation workflows</li>
+      </ul>
+
+      <CodeSnippet CssClass="language-csharp">
+// Core Domain: Rich model with complex business rules
+public class License
+{
+    private readonly List&lt;Activation&gt; _activations = new();
+    private readonly LicensePolicy _policy;
+    private LicenseStatus _status;
+
+    public void Activate(HardwareFingerprint fingerprint)
+    {
+        // Complex business rules that define competitive advantage
+        if (_status == LicenseStatus.Expired)
+        {
+            throw new LicenseExpiredException(
+                "Cannot activate expired license");
+        }
+
+        if (_status == LicenseStatus.Suspended)
+        {
+            throw new LicenseSuspendedException(
+                "Cannot activate suspended license");
+        }
+
+        if (!_policy.AllowsAdditionalActivation(_activations.Count))
+        {
+            throw new ActivationLimitExceededException(
+                $"License allows maximum {_policy.MaxActivations} activations");
+        }
+
+        if (_activations.Any(a =&gt; a.Fingerprint == fingerprint))
+        {
+            throw new DuplicateActivationException(
+                "Device already activated");
+        }
+
+        var activation = new Activation(fingerprint, DateTime.UtcNow);
+        _activations.Add(activation);
+        _status = LicenseStatus.Active;
+
+        // Raise domain event
+        RaiseDomainEvent(new LicenseActivated(Id, fingerprint, DateTime.UtcNow));
+    }
+
+    public void Transfer(CustomerId newCustomer)
+    {
+        // Sophisticated transfer logic with compliance checks
+        if (_policy.RestrictsTransfer)
+        {
+            throw new TransferNotAllowedException(
+                "License policy does not allow transfer");
+        }
+
+        _activations.Clear();
+        _status = LicenseStatus.PendingActivation;
+        CustomerId = newCustomer;
+
+        RaiseDomainEvent(new LicenseTransferred(Id, newCustomer, DateTime.UtcNow));
+    }
+}
+      </CodeSnippet>
+
+      <h4>Supporting Domain - Necessary but Not Differentiating</h4>
+
+      <p>
+        <ContentHighlight>Supporting Domains</ContentHighlight> enable your Core Domain to function but don't provide competitive advantage. They're 
+        important for your system's operation but aren't what makes you special.
+      </p>
+
+      <p>
+        <strong>Characteristics:</strong>
+      </p>
+
+      <ul>
+        <li><strong>Necessary:</strong> Required for the system to work, but not a differentiator</li>
+        <li><strong>Simpler than Core:</strong> Less complex business rules</li>
+        <li><strong>Some Custom Requirements:</strong> Can't use pure generic solutions due to specific needs</li>
+        <li><strong>Moderate Change Rate:</strong> Evolves occasionally but not constantly</li>
+      </ul>
+
+      <p>
+        <strong>Investment Strategy:</strong>
+      </p>
+
+      <ul>
+        <li><strong>Investment Level:</strong> Moderate—important but not the main focus</li>
+        <li><strong>Staffing:</strong> Assign competent developers who can handle the requirements</li>
+        <li><strong>Quality:</strong> Aim for "good enough"—reliable and functional without over-engineering</li>
+        <li><strong>Approach:</strong> Use simple, pragmatic patterns; selective tactical DDD where it helps</li>
+      </ul>
+
+      <p>
+        <strong>Examples in a Digital Licensing System:</strong>
+      </p>
+
+      <ul>
+        <li>Customer portal for viewing license status</li>
+        <li>License usage reporting and analytics</li>
+        <li>Customer support ticketing</li>
+        <li>Basic invoicing and receipt generation</li>
+      </ul>
+
+      <CodeSnippet CssClass="language-csharp">
+// Supporting Domain: Simple pragmatic patterns
+public class LicenseReportingService
+{
+    private readonly ILicenseRepository _licenseRepository;
+    private readonly IReportGenerator _reportGenerator;
+
+    public async Task&lt;LicenseUsageReport&gt; GenerateUsageReport(
+        CustomerId customerId, 
+        DateRange dateRange)
+    {
+        // Straightforward query and reporting logic
+        var licenses = await _licenseRepository
+            .GetByCustomerAsync(customerId);
+
+        var activations = licenses
+            .SelectMany(l =&gt; l.GetActivations())
+            .Where(a =&gt; dateRange.Contains(a.ActivatedAt))
+            .ToList();
+
+        return new LicenseUsageReport
+        {
+            CustomerId = customerId,
+            Period = dateRange,
+            TotalLicenses = licenses.Count,
+            ActiveLicenses = licenses.Count(l =&gt; l.IsActive),
+            TotalActivations = activations.Count,
+            UniqueDevices = activations
+                .Select(a =&gt; a.HardwareFingerprint)
+                .Distinct()
+                .Count()
+        };
+    }
+
+    public async Task&lt;byte[]&gt; ExportToPdf(LicenseUsageReport report)
+    {
+        // Delegate to third-party PDF library
+        return await _reportGenerator.GeneratePdfAsync(report);
+    }
+}
+      </CodeSnippet>
+
+      <h4>Generic Domain - Commodity Functionality</h4>
+
+      <p>
+        <ContentHighlight>Generic Domains</ContentHighlight> are common across industries—features that everyone needs but no one wins by implementing. 
+        These are prime candidates for integration rather than custom development.
+      </p>
+
+      <p>
+        <strong>Characteristics:</strong>
+      </p>
+
+      <ul>
+        <li><strong>No Competitive Edge:</strong> Everyone has these features; they're table stakes</li>
+        <li><strong>Commodity Functionality:</strong> Well-understood problems with established solutions</li>
+        <li><strong>Stable:</strong> Requirements don't change frequently</li>
+        <li><strong>Interchangeable:</strong> Multiple vendors offer equivalent solutions</li>
+      </ul>
+
+      <p>
+        <strong>Investment Strategy:</strong>
+      </p>
+
+      <ul>
+        <li><strong>Investment Level:</strong> Minimal—just enough to integrate successfully</li>
+        <li><strong>Staffing:</strong> Team members who can handle configuration and API integration</li>
+        <li><strong>Quality:</strong> Reliable integration with established third-party services</li>
+        <li><strong>Approach:</strong> Integrate Software-as-a-Service or use open-source libraries</li>
+      </ul>
+
+      <p>
+        <strong>Examples in a Digital Licensing System:</strong>
+      </p>
+
+      <ul>
+        <li>Email notifications (SendGrid, Mailgun)</li>
+        <li>Audit logging (Elasticsearch, Splunk)</li>
+        <li>File storage (AWS S3, Azure Blob Storage)</li>
+        <li>User authentication (Auth0, Azure AD)</li>
+        <li>Payment processing (Stripe, PayPal)</li>
+        <li>Analytics dashboards (Power BI, Tableau)</li>
+      </ul>
+
+      <CodeSnippet CssClass="language-csharp">
+// Generic Domain: Thin wrapper around third-party service
+public class EmailNotificationService
+{
+    private readonly ISendGridClient _sendGridClient;
+    private readonly IConfiguration _configuration;
+
+    public EmailNotificationService(
+        ISendGridClient sendGridClient, 
+        IConfiguration configuration)
+    {
+        _sendGridClient = sendGridClient;
+        _configuration = configuration;
+    }
+
+    public async Task SendLicenseActivatedEmailAsync(
+        string recipientEmail, 
+        string licenseKey)
+    {
+        var msg = new SendGridMessage
+        {
+            From = new EmailAddress(
+                _configuration["Email:FromAddress"], 
+                "License Management"),
+            Subject = "License Activated Successfully",
+            PlainTextContent = $"Your license {licenseKey} has been activated.",
+            HtmlContent = $"&lt;p&gt;Your license &lt;strong&gt;{licenseKey}&lt;/strong&gt; has been activated.&lt;/p&gt;"
+        };
+
+        msg.AddTo(new EmailAddress(recipientEmail));
+
+        // Delegate to third-party service
+        await _sendGridClient.SendEmailAsync(msg);
+    }
+}
+
+// Generic Domain: Configuration wrapper for cloud storage
+public class LicenseFileStorageService
+{
+    private readonly BlobContainerClient _containerClient;
+
+    public LicenseFileStorageService(BlobServiceClient blobServiceClient)
+    {
+        _containerClient = blobServiceClient
+            .GetBlobContainerClient("license-files");
+    }
+
+    public async Task&lt;string&gt; UploadLicenseDocumentAsync(
+        Guid licenseId, 
+        Stream fileStream, 
+        string fileName)
+    {
+        var blobClient = _containerClient.GetBlobClient(
+            $"{licenseId}/{fileName}");
+
+        await blobClient.UploadAsync(fileStream, overwrite: true);
+
+        return blobClient.Uri.ToString();
+    }
+}
+      </CodeSnippet>
+
+      <h4>Step 2: Apply the Classification Decision Tree</h4>
+
+      <p>
+        Use this framework to classify each feature or subdomain:
+      </p>
+
+      <p>
+        <strong>Question 1: Does this feature differentiate your business from competitors?</strong>
+      </p>
+
+      <ul>
+        <li><strong>Yes:</strong> This is a <ContentHighlight>Core Domain</ContentHighlight>. Apply maximum investment and full DDD.</li>
+        <li><strong>No:</strong> Continue to Question 2.</li>
+      </ul>
+
+      <p>
+        <strong>Question 2: Does this solve a problem that's somewhat unique to your business?</strong>
+      </p>
+
+      <ul>
+        <li><strong>Yes:</strong> This is a <ContentHighlight>Supporting Domain</ContentHighlight>. Apply moderate investment and pragmatic patterns.</li>
+        <li><strong>No:</strong> This is a <ContentHighlight>Generic Domain</ContentHighlight>. Integrate third-party solutions.</li>
+      </ul>
+
+      <h4>Step 3: Map Your System</h4>
+
+      <p>
+        Let's apply this framework to a complete digital licensing system:
+      </p>
+
+      <table class="table table-bordered">
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th>Classification</th>
+            <th>Justification</th>
+            <th>Approach</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>License activation &amp; compliance</td>
+            <td><strong>Core</strong></td>
+            <td>Competitive differentiator</td>
+            <td>Full DDD, senior developers</td>
+          </tr>
+          <tr>
+            <td>Flexible licensing models</td>
+            <td><strong>Core</strong></td>
+            <td>Unique business capability</td>
+            <td>Rich domain models</td>
+          </tr>
+          <tr>
+            <td>Customer portal</td>
+            <td><strong>Supporting</strong></td>
+            <td>Necessary but not unique</td>
+            <td>Simple CRUD, pragmatic patterns</td>
+          </tr>
+          <tr>
+            <td>Usage reporting</td>
+            <td><strong>Supporting</strong></td>
+            <td>Important but standard</td>
+            <td>Simple queries, standard reporting</td>
+          </tr>
+          <tr>
+            <td>Email notifications</td>
+            <td><strong>Generic</strong></td>
+            <td>Commodity feature</td>
+            <td>Integrate SendGrid/Mailgun</td>
+          </tr>
+          <tr>
+            <td>User authentication</td>
+            <td><strong>Generic</strong></td>
+            <td>Standard requirement</td>
+            <td>Integrate Auth0/Azure AD</td>
+          </tr>
+          <tr>
+            <td>Payment processing</td>
+            <td><strong>Generic</strong></td>
+            <td>Well-solved problem</td>
+            <td>Integrate Stripe/PayPal</td>
+          </tr>
+          <tr>
+            <td>Audit logging</td>
+            <td><strong>Generic</strong></td>
+            <td>Common across systems</td>
+            <td>Integrate Elasticsearch/Splunk</td>
+          </tr>
+          <tr>
+            <td>File storage</td>
+            <td><strong>Generic</strong></td>
+            <td>Infrastructure concern</td>
+            <td>Use AWS S3/Azure Blob</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h4>Step 4: Avoid Common Mistakes</h4>
+
+      <p>
+        Watch out for these classification pitfalls:
+      </p>
+
+      <p>
+        <strong>Mistake 1: Treating Everything as Core</strong>
+      </p>
+
+      <p>
+        Some teams apply complex DDD patterns to every feature, wasting effort on commodity functionality. Be honest about what truly differentiates 
+        your business.
+      </p>
+
+      <p>
+        <strong>Mistake 2: Under-Investing in Core</strong>
+      </p>
+
+      <p>
+        Conversely, some teams under-invest in their core domain, allowing competitors to surpass them. Your core deserves your best resources.
+      </p>
+
+      <p>
+        <strong>Mistake 3: Building Instead of Buying Generic</strong>
+      </p>
+
+      <p>
+        Building email notification systems from scratch wastes valuable development time. Use established services for generic domains.
+      </p>
+
+      <p>
+        <strong>Mistake 4: Misclassifying Supporting as Core</strong>
+      </p>
+
+      <p>
+        Just because something is important doesn't make it core. Ask whether it differentiates you—if not, it's supporting or generic.
+      </p>
+    </How>
+
+    <Summary>
+      <p>
+        Classifying your system into <ContentHighlight>Core</ContentHighlight>, <ContentHighlight>Supporting</ContentHighlight>, and 
+        <ContentHighlight>Generic</ContentHighlight> domains is essential for making smart investment decisions. Your Core Domain—where competitive 
+        advantage lives—deserves maximum investment, your best developers, and full Domain-Driven Design treatment.
+      </p>
+
+      <p>
+        Supporting Domains enable your core to function but don't differentiate you. They warrant moderate investment and pragmatic patterns that 
+        deliver reliable functionality without over-engineering. Generic Domains represent commodity features that every system needs but no one wins 
+        by building. These are prime candidates for third-party integration, freeing your team to focus on what makes you unique.
+      </p>
+
+      <p>
+        Use the classification decision tree—asking whether features differentiate your business and whether they're unique to your context—to 
+        systematically evaluate every subdomain. This framework aligns your architectural investments with business value, ensuring you build 
+        sustainable competitive advantage rather than reinventing commodity features.
+      </p>
+
+      <p>
+        Map your own system using this approach. Identify your core domain, protect it with your best resources, and simplify everything else through 
+        pragmatic patterns or integration. This discipline is what separates successful systems from over-engineered ones that waste resources on the 
+        wrong things.
+      </p>
+    </Summary>
+  </ContentBody>
+</Content>

@@ -1,0 +1,365 @@
+@page "/blogs/ddd-thin-application-services-in-dotnet"
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(ThinApplicationServices) UseNewTableOfContentsMenu=true>
+  <ContentBody>
+    <What>
+      <p>
+        Here's a pattern that kills DDD projects quietly and slowly: the <ContentHighlight>fat service</ContentHighlight>.
+        Business logic piling up in service methods. Validation scattered everywhere. Domain rules duplicated across 
+        a dozen handlers. Tests that require fifteen mocks to run a single assertion.
+      </p>
+
+      <p>
+        In this article, we'll explore <ContentHighlight>Thin Application Services</ContentHighlight> in Domain-Driven 
+        Design - the coordination layer that orchestrates domain work without making any decisions itself. We'll look at 
+        exactly what an application service does, what it absolutely must not do, and how to enforce a clean boundary 
+        between orchestration and business logic.
+      </p>
+    </What>
+
+    <Why>
+      <h4>The Fat Service Problem</h4>
+
+      <p>
+        Fat application services start small and grow until they become the actual domain. Here is what that looks like:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// ❌ Fat service — doing way too much
+public class LicenseService
+{
+    private readonly ILicenseRepository _licenseRepo;
+    private readonly ICustomerRepository _customerRepo;
+    private readonly IEmailService _emailService;
+
+    public async Task ActivateLicenseAsync(Guid rawLicenseId, string hardwareId)
+    {
+        // ❌ Validation logic duplicated across many methods
+        if (string.IsNullOrWhiteSpace(hardwareId))
+            throw new ArgumentException("Hardware ID is required.");
+
+        var licenseId = new LicenseId(rawLicenseId);
+        var license = await _licenseRepo.FindByIdAsync(licenseId)
+            ?? throw new NotFoundException("License not found.");
+
+        // ❌ Business rules living in the service
+        if (license.ExpiresAt &lt; DateOnly.FromDateTime(DateTime.UtcNow))
+            throw new InvalidOperationException("License is expired.");
+
+        if (license.ActivationCount &gt;= license.MaxActivations)
+            throw new InvalidOperationException("Activation limit reached.");
+
+        // ❌ Mutation of internals from outside the aggregate
+        license.ActivationCount++;
+        await _licenseRepo.SaveAsync(license);
+
+        // ❌ Infrastructure wired directly in
+        var customer = await _customerRepo.FindByIdAsync(license.CustomerId)
+            ?? throw new NotFoundException("Customer not found.");
+
+        await _emailService.SendActivationEmailAsync(customer.Email);
+    }
+}
+</CodeSnippet>
+
+      <p>
+        This service has crippling problems. Business logic is scattered across service methods instead of living in 
+        the domain. The service knows too much about domain internals. Any domain change forces service changes. And 
+        tests need mocks for every single dependency.
+      </p>
+
+      <h4>The Separation of Concerns Table</h4>
+
+      <p>
+        Before writing any code, it helps to have a clear mental model of what belongs where. Keep coming back to 
+        this table whenever you are unsure:
+      </p>
+
+      <CodeSnippet CssClass="language-plaintext">
+Layer                   Responsibility
+─────────────────────────────────────────────────────────────
+Application Service     Orchestration, load aggregates,
+                        save aggregates, publish domain events
+
+Domain                  Business rules, validation and invariants,
+                        calculations, state changes
+
+Infrastructure          Database and ORM, email and SMS,
+                        external APIs, message brokers
+─────────────────────────────────────────────────────────────
+</CodeSnippet>
+
+      <p>
+        If you find business logic in your application service, it belongs in the domain. If you find infrastructure 
+        calls directly in your application service (other than publishing events), they belong in event handlers.
+      </p>
+    </Why>
+
+    <How>
+      <h4>Step 1: The Five-Step Application Service Pattern</h4>
+
+      <p>
+        Every application service method follows the same five steps. Memorise this pattern and let it govern every 
+        method you write at this layer:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// ✅ Thin application service — orchestrates only
+public class LicenseApplicationService
+{
+    private readonly ILicenseRepository _licenseRepository;
+    private readonly IDomainEventPublisher _eventPublisher;
+
+    public LicenseApplicationService(
+        ILicenseRepository licenseRepository,
+        IDomainEventPublisher eventPublisher)
+    {
+        _licenseRepository = licenseRepository;
+        _eventPublisher = eventPublisher;
+    }
+
+    public async Task ActivateLicenseAsync(
+        LicenseId licenseId,
+        HardwareFingerprint hardware,
+        CancellationToken cancellationToken = default)
+    {
+        // Step 1: Load the aggregate
+        var license = await _licenseRepository.FindByIdAsync(
+            licenseId, cancellationToken)
+            ?? throw new LicenseNotFoundException(licenseId);
+
+        // Step 2: Execute domain logic — the domain decides everything
+        license.Activate(hardware);
+
+        // Step 3: Save the aggregate
+        await _licenseRepository.SaveAsync(license, cancellationToken);
+
+        // Step 4: Publish domain events
+        await _eventPublisher.PublishAllAsync(
+            license.DomainEvents, cancellationToken);
+
+        // Step 5: Clear events to prevent accidental re-publication
+        license.ClearDomainEvents();
+    }
+}
+</CodeSnippet>
+
+      <p>
+        The service does not validate hardware IDs, does not check expiry dates, does not send emails. All of that 
+        is handled by the domain and by infrastructure event handlers. The service only coordinates.
+      </p>
+
+      <h4>Step 2: One Method Per Transaction</h4>
+
+      <p>
+        Each application service method should define a single <ContentHighlight>transaction boundary</ContentHighlight>. 
+        This keeps transactions small, focused, and easy to reason about:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+public class LicenseApplicationService
+{
+    private readonly ILicenseRepository _licenseRepository;
+    private readonly IDomainEventPublisher _eventPublisher;
+
+    public LicenseApplicationService(
+        ILicenseRepository licenseRepository,
+        IDomainEventPublisher eventPublisher)
+    {
+        _licenseRepository = licenseRepository;
+        _eventPublisher = eventPublisher;
+    }
+
+    // Each method = one transaction boundary
+    public async Task ActivateLicenseAsync(
+        LicenseId licenseId,
+        HardwareFingerprint hardware,
+        CancellationToken cancellationToken = default)
+    {
+        var license = await _licenseRepository.FindByIdAsync(
+            licenseId, cancellationToken)
+            ?? throw new LicenseNotFoundException(licenseId);
+
+        license.Activate(hardware);
+
+        await _licenseRepository.SaveAsync(license, cancellationToken);
+        await _eventPublisher.PublishAllAsync(license.DomainEvents, cancellationToken);
+        license.ClearDomainEvents();
+    }
+
+    // Another transaction — one responsibility, one boundary
+    public async Task SuspendLicenseAsync(
+        LicenseId licenseId,
+        string reason,
+        CancellationToken cancellationToken = default)
+    {
+        var license = await _licenseRepository.FindByIdAsync(
+            licenseId, cancellationToken)
+            ?? throw new LicenseNotFoundException(licenseId);
+
+        license.Suspend(reason);
+
+        await _licenseRepository.SaveAsync(license, cancellationToken);
+        await _eventPublisher.PublishAllAsync(license.DomainEvents, cancellationToken);
+        license.ClearDomainEvents();
+    }
+
+    // Another transaction — transfers are their own atomic operation
+    public async Task TransferLicenseAsync(
+        LicenseId licenseId,
+        CustomerId newCustomerId,
+        CancellationToken cancellationToken = default)
+    {
+        var license = await _licenseRepository.FindByIdAsync(
+            licenseId, cancellationToken)
+            ?? throw new LicenseNotFoundException(licenseId);
+
+        license.TransferTo(newCustomerId);
+
+        await _licenseRepository.SaveAsync(license, cancellationToken);
+        await _eventPublisher.PublishAllAsync(license.DomainEvents, cancellationToken);
+        license.ClearDomainEvents();
+    }
+}
+</CodeSnippet>
+
+      <h4>Step 3: Integrating Transaction Management</h4>
+
+      <p>
+        In ASP.NET Core, you can use a unit of work pattern or a scoped <ContentHighlight>DbContext</ContentHighlight> 
+        to manage transactions cleanly. The application service drives the transaction; infrastructure handles the 
+        mechanics:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// Using a simple unit of work for transaction management
+public interface IUnitOfWork
+{
+    Task CommitAsync(CancellationToken cancellationToken = default);
+}
+
+public class LicenseApplicationService
+{
+    private readonly ILicenseRepository _licenseRepository;
+    private readonly IDomainEventPublisher _eventPublisher;
+    private readonly IUnitOfWork _unitOfWork;
+
+    public LicenseApplicationService(
+        ILicenseRepository licenseRepository,
+        IDomainEventPublisher eventPublisher,
+        IUnitOfWork unitOfWork)
+    {
+        _licenseRepository = licenseRepository;
+        _eventPublisher = eventPublisher;
+        _unitOfWork = unitOfWork;
+    }
+
+    public async Task ActivateLicenseAsync(
+        LicenseId licenseId,
+        HardwareFingerprint hardware,
+        CancellationToken cancellationToken = default)
+    {
+        var license = await _licenseRepository.FindByIdAsync(
+            licenseId, cancellationToken)
+            ?? throw new LicenseNotFoundException(licenseId);
+
+        license.Activate(hardware);
+
+        await _licenseRepository.SaveAsync(license, cancellationToken);
+
+        // Commit before publishing — events fire only on success
+        await _unitOfWork.CommitAsync(cancellationToken);
+
+        await _eventPublisher.PublishAllAsync(license.DomainEvents, cancellationToken);
+        license.ClearDomainEvents();
+    }
+}</CodeSnippet>
+
+      <h4>Step 4: Registering Services in ASP.NET Core</h4>
+
+      <p>
+        Wire up the application service and its dependencies using .NET's built-in dependency injection. The domain 
+        interface is resolved to the infrastructure implementation:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// Program.cs — register interfaces against concrete implementations
+builder.Services.AddScoped&lt;ILicenseRepository, EfCoreLicenseRepository&gt;();
+builder.Services.AddScoped&lt;IDomainEventPublisher, InProcessDomainEventPublisher&gt;();
+builder.Services.AddScoped&lt;IUnitOfWork, EfCoreUnitOfWork&gt;();
+builder.Services.AddScoped&lt;LicenseApplicationService&gt;();
+</CodeSnippet>
+
+      <p>
+        The presentation layer receives <ContentHighlight>LicenseApplicationService</ContentHighlight> via constructor 
+        injection and calls its methods directly. It never reaches into the domain or calls repositories.
+      </p>
+
+      <h4>What Application Services Must Never Do</h4>
+
+      <p>
+        Every time you are tempted to write logic in an application service, ask yourself: is this a business rule or 
+        is this coordination? Here is a concrete checklist:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// ❌ Business rules — these belong in the domain
+if (license.ActivationCount &gt;= license.MaxActivations)
+    throw new ActivationLimitReachedException(license.Id);
+
+// ❌ Calculations — belong in the domain
+var tax = license.BasePrice * 0.2m;
+
+// ❌ Validation logic — belongs in the domain or a dedicated validator
+if (hardware.Value.Length &lt; 8 || hardware.Value.Length &gt; 64)
+    throw new InvalidHardwareFingerprintException(hardware);
+
+// ❌ Direct infrastructure calls (bypassing the event system)
+await _emailService.SendEmailAsync(customer.Email);  // Use an event handler instead
+
+// ✅ What application services DO — pure coordination
+var license = await _licenseRepository.FindByIdAsync(
+    licenseId, cancellationToken)
+    ?? throw new LicenseNotFoundException(licenseId);
+license.Activate(hardware);
+await _licenseRepository.SaveAsync(license, cancellationToken);
+await _unitOfWork.CommitAsync(cancellationToken);
+await _eventPublisher.PublishAllAsync(license.DomainEvents, cancellationToken);
+license.ClearDomainEvents();
+</CodeSnippet>
+
+    </How>
+
+    <Summary>
+      <p>
+        In this article, we explored <ContentHighlight>Thin Application Services</ContentHighlight> in DDD and how 
+        to keep the coordination layer clean in .NET. Here's what matters:
+      </p>
+
+      <ul>
+        <li>
+          <strong>Application services coordinate — they do not decide.</strong> All business rules, validations, 
+          and calculations live in the domain. The application service is an orchestrator, not a decision-maker.
+        </li>
+        <li>
+          <strong>Five-step pattern:</strong> Load aggregate → Execute domain logic → Save aggregate → Publish 
+          events → Clear events. Apply this consistently to every application service method.
+        </li>
+        <li>
+          <strong>One method per transaction.</strong> Each application service method defines a single transaction 
+          boundary, keeping operations focused and easy to reason about.
+        </li>
+        <li>
+          <strong>Use the separation of concerns table as a guide.</strong> Application services orchestrate. Domain 
+          enforces. Infrastructure reacts. When you are unsure where logic belongs, this table has your answer.
+        </li>
+        <li>
+          <strong>Thin services make testing effortless.</strong> Business logic in the domain can be tested 
+          without mocks. Orchestration logic in the service can be tested with simple stub repositories.
+        </li>
+      </ul>
+    </Summary>
+  </ContentBody>
+</Content>

@@ -1,0 +1,339 @@
+@page "/blogs/ddd-when-to-use-and-when-to-avoid"
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(WhenToUseDomainDrivenDesign) UseNewTableOfContentsMenu=true>
+  <ContentBody>
+    <What>
+      <p>
+        Not every project needs Domain-Driven Design. While DDD is a powerful approach for managing complex business domains, applying it to simple 
+        projects can introduce unnecessary overhead and complexity. In this article, we'll explore when <ContentHighlight>Domain-Driven Design</ContentHighlight> 
+        makes sense for your project and when simpler approaches are more appropriate.
+      </p>
+
+      <p>
+        We'll examine two fundamental software development principles—<ContentHighlight>YAGNI (You Aren't Gonna Need It)</ContentHighlight> and 
+        <ContentHighlight>KISS (Keep It Simple, Stupid)</ContentHighlight>—and see how they guide our decision-making process. We'll also explore a 
+        practical framework for evaluating whether your project sits on the simple, moderate, or complex end of the spectrum, helping you make informed 
+        architectural decisions.
+      </p>
+
+      <p>
+        Understanding when to apply DDD and when to skip it will save you weeks of unnecessary work while ensuring you invest your effort where it truly matters.
+      </p>
+    </What>
+
+    <Why>
+      <h4>Why Not Every Project Needs DDD</h4>
+
+      <p>
+        The software industry has seen countless examples of over-engineered solutions where developers applied sophisticated patterns to problems that 
+        didn't warrant them. Domain-Driven Design, despite its benefits, can become a burden when applied inappropriately. The overhead of maintaining 
+        rich domain models, bounded contexts, and ubiquitous language only pays off when your problem domain has sufficient complexity.
+      </p>
+
+      <h4>Two Guiding Principles</h4>
+
+      <p>
+        Before diving into DDD, keep these two principles in mind:
+      </p>
+
+      <p>
+        <strong>YAGNI (You Aren't Gonna Need It):</strong> This principle reminds us not to build for imagined future requirements. Only add complexity 
+        when it's actually needed, not when you think you might need it someday. Start simple and evolve your design as real requirements emerge. Adding 
+        unnecessary abstraction layers "just in case" creates maintenance burden without delivering value.
+      </p>
+
+      <p>
+        <strong>KISS (Keep It Simple, Stupid):</strong> This principle encourages us to favor the simplest solution that works. Complexity should justify 
+        itself by solving real problems. If a straightforward CRUD application meets your needs, don't force DDD patterns onto it. Simple problems deserve 
+        simple solutions.
+      </p>
+
+      <h4>The Cost of Over-Engineering</h4>
+
+      <p>
+        Applying DDD to simple projects introduces several costs:
+      </p>
+
+      <ul>
+        <li><strong>Development Time:</strong> Creating aggregates, value objects, and bounded contexts takes longer than simple CRUD operations</li>
+        <li><strong>Learning Curve:</strong> Team members need to understand DDD concepts, patterns, and principles</li>
+        <li><strong>Maintenance Overhead:</strong> More sophisticated patterns mean more code to maintain and understand</li>
+        <li><strong>Premature Optimization:</strong> You might create abstractions for complexity that never materializes</li>
+      </ul>
+
+      <h4>When Complexity Justifies DDD</h4>
+
+      <p>
+        On the other hand, trying to manage genuinely complex domains without proper modeling creates different problems:
+      </p>
+
+      <ul>
+        <li><strong>Scattered Logic:</strong> Business rules end up duplicated across controllers, services, and data access layers</li>
+        <li><strong>Anemic Models:</strong> Your classes become mere data containers while logic lives in procedural service methods</li>
+        <li><strong>Communication Gaps:</strong> Developers and domain experts speak different languages, leading to misunderstandings</li>
+        <li><strong>Brittle Code:</strong> Changes in one area unexpectedly break functionality in others due to tight coupling</li>
+      </ul>
+    </Why>
+
+    <How>
+      <h4>Step 1: Assess Your Complexity Spectrum</h4>
+
+      <p>
+        Projects fall along a complexity spectrum from simple to moderate to complex. Understanding where your project sits helps you choose the appropriate level of modeling.
+      </p>
+
+      <h4>Simple Projects - Skip DDD</h4>
+
+      <p>
+        Simple projects have straightforward requirements with minimal business logic. They're perfect candidates for traditional CRUD approaches.
+      </p>
+
+      <p>
+        <strong>Characteristics:</strong>
+      </p>
+      <ul>
+        <li>Primarily data entry and retrieval operations</li>
+        <li>Few or no interrelated business rules</li>
+        <li>Requirements are stable and well-understood</li>
+        <li>Single team or developer</li>
+      </ul>
+
+      <p>
+        <strong>Examples:</strong>
+      </p>
+      <ul>
+        <li>Personal to-do list application</li>
+        <li>Simple blog platform</li>
+        <li>Basic content management for small websites</li>
+        <li>Internal tools with straightforward workflows</li>
+      </ul>
+
+      <p>
+        <strong>Recommended Approach:</strong> Use a simple layered architecture with basic CRUD operations. Entity Framework Core with repositories 
+        or direct DbContext usage works perfectly fine.
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// Simple CRUD approach is sufficient
+public class BlogPostService
+{
+    private readonly ApplicationDbContext _context;
+
+    public BlogPostService(ApplicationDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task&lt;BlogPost&gt; GetByIdAsync(int id)
+    {
+        return await _context.BlogPosts.FindAsync(id);
+    }
+
+    public async Task CreateAsync(BlogPost post)
+    {
+        _context.BlogPosts.Add(post);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task UpdateAsync(BlogPost post)
+    {
+        _context.BlogPosts.Update(post);
+        await _context.SaveChangesAsync();
+    }
+}
+      </CodeSnippet>
+
+      <h4>Moderate Projects - Consider Tactical DDD</h4>
+
+      <p>
+        Moderate complexity projects have some interrelated business rules and experience occasional requirement changes. They benefit from 
+        selective DDD patterns without full strategic design.
+      </p>
+
+      <p>
+        <strong>Characteristics:</strong>
+      </p>
+      <ul>
+        <li>Several interconnected business rules</li>
+        <li>Requirements change semi-frequently</li>
+        <li>Some domain expertise required</li>
+        <li>Logic starting to leak across layers</li>
+      </ul>
+
+      <p>
+        <strong>Examples:</strong>
+      </p>
+      <ul>
+        <li>E-commerce checkout process</li>
+        <li>Hotel or flight booking system</li>
+        <li>Subscription billing platform</li>
+        <li>Task management system with workflows</li>
+      </ul>
+
+      <p>
+        <strong>Recommended Approach:</strong> Use tactical DDD patterns like <ContentHighlight>entities</ContentHighlight>, 
+        <ContentHighlight>value objects</ContentHighlight>, and <ContentHighlight>domain events</ContentHighlight> without the full strategic 
+        design overhead.
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// Tactical DDD - Rich domain model with encapsulated logic
+public class Order
+{
+    private readonly List&lt;OrderLine&gt; _lines = new();
+    private OrderStatus _status;
+
+    public void AddItem(Product product, int quantity)
+    {
+        if (_status != OrderStatus.Draft)
+        {
+            throw new InvalidOperationException(
+                "Cannot add items to a submitted order");
+        }
+
+        if (quantity &lt;= 0)
+        {
+            throw new ArgumentException(
+                "Quantity must be positive", nameof(quantity));
+        }
+
+        var existingLine = _lines.FirstOrDefault(l =&gt; l.ProductId == product.Id);
+        
+        if (existingLine != null)
+        {
+            existingLine.IncreaseQuantity(quantity);
+        }
+        else
+        {
+            _lines.Add(new OrderLine(product.Id, product.Price, quantity));
+        }
+    }
+
+    public decimal CalculateTotal()
+    {
+        return _lines.Sum(line =&gt; line.Subtotal);
+    }
+
+    public void Submit()
+    {
+        if (!_lines.Any())
+        {
+            throw new InvalidOperationException("Cannot submit empty order");
+        }
+
+        _status = OrderStatus.Submitted;
+    }
+}
+      </CodeSnippet>
+
+      <h4>Complex Projects - Apply Full DDD</h4>
+
+      <p>
+        Complex projects have intricate, intertwined business rules that constantly evolve. They require collaboration across multiple teams or 
+        domains and benefit from comprehensive DDD including strategic patterns.
+      </p>
+
+      <p>
+        <strong>Characteristics:</strong>
+      </p>
+      <ul>
+        <li>Highly complex and interconnected business rules</li>
+        <li>Constant evolution and changing requirements</li>
+        <li>Multiple teams working on different aspects</li>
+        <li>Domain expertise is critical</li>
+        <li>Integration with multiple external systems</li>
+      </ul>
+
+      <p>
+        <strong>Examples:</strong>
+      </p>
+      <ul>
+        <li>Financial trading platforms</li>
+        <li>Healthcare workflow management systems</li>
+        <li>Supply chain coordination across organizations</li>
+        <li>Insurance policy management systems</li>
+      </ul>
+
+      <p>
+        <strong>Recommended Approach:</strong> Apply full strategic and tactical DDD with <ContentHighlight>bounded contexts</ContentHighlight>, 
+        <ContentHighlight>context mapping</ContentHighlight>, and <ContentHighlight>integration patterns</ContentHighlight>.
+      </p>
+
+      <h4>Step 2: Apply the Decision Framework</h4>
+
+      <p>
+        Use this simple decision tree to determine your approach:
+      </p>
+
+      <p>
+        <strong>Question 1: Are the business rules complex and changing frequently?</strong>
+      </p>
+      <ul>
+        <li><strong>No:</strong> Use simple CRUD. You don't need DDD.</li>
+        <li><strong>Yes:</strong> Continue to Question 2.</li>
+      </ul>
+
+      <p>
+        <strong>Question 2: Do multiple teams or departments need to agree on shared concepts?</strong>
+      </p>
+      <ul>
+        <li><strong>No:</strong> Use tactical DDD patterns (entities, value objects, domain events).</li>
+        <li><strong>Yes:</strong> Apply full strategic DDD with bounded contexts and integration patterns.</li>
+      </ul>
+
+      <h4>Step 3: Recognize Anti-Patterns</h4>
+
+      <p>
+        Definitively skip DDD when you encounter these scenarios:
+      </p>
+
+      <ul>
+        <li><strong>Pure CRUD Operations:</strong> If you're just saving, updating, and retrieving user profiles with no business logic</li>
+        <li><strong>Stable Requirements:</strong> If requirements haven't changed in years and won't change soon</li>
+        <li><strong>Proof of Concept:</strong> When you're building a quick prototype or MVP to validate an idea</li>
+        <li><strong>Single-Purpose Utilities:</strong> Internal tools or scripts with straightforward, well-defined tasks</li>
+        <li><strong>Data Migration Projects:</strong> When you're simply moving data from one system to another</li>
+      </ul>
+
+      <h4>Step 4: Watch for Warning Signs That DDD is Needed</h4>
+
+      <p>
+        Even if your project started simple, watch for these symptoms that indicate it's time to introduce DDD:
+      </p>
+
+      <ul>
+        <li><strong>Unpredictable Rule Interactions:</strong> Multiple business rules affect each other in complex ways</li>
+        <li><strong>Frequent Changes:</strong> Requirements change weekly or monthly, forcing constant code updates</li>
+        <li><strong>Code Doesn't Explain Itself:</strong> You can't understand the rules just by reading the code—you need domain expert conversations</li>
+        <li><strong>Terminology Confusion:</strong> The same word means different things to different teams</li>
+        <li><strong>Integration Complexity:</strong> Misunderstandings in how systems integrate cause ripple effects</li>
+      </ul>
+
+      <p>
+        When these symptoms appear, it's time to refactor toward DDD patterns, bringing structure and shared language to eliminate chaos.
+      </p>
+    </How>
+
+    <Summary>
+      <p>
+        Domain-Driven Design is not a universal solution for every software project. The key is matching your architectural approach to your project's 
+        actual complexity level. Simple projects with stable requirements and minimal business logic are better served by straightforward CRUD 
+        implementations that respect <ContentHighlight>YAGNI</ContentHighlight> and <ContentHighlight>KISS</ContentHighlight> principles.
+      </p>
+
+      <p>
+        As complexity increases—through interconnected business rules, frequent requirement changes, and multi-team collaboration—the benefits of DDD 
+        begin to outweigh its costs. For moderate complexity, tactical DDD patterns like entities and value objects provide structure without overwhelming 
+        overhead. For high complexity domains, full strategic DDD with bounded contexts becomes essential for managing the system effectively.
+      </p>
+
+      <p>
+        Use the decision framework provided in this article to evaluate your project honestly. Ask whether business rules are complex and changing, 
+        whether multiple teams need alignment, and whether the symptoms of complexity are present. This assessment will guide you toward the right 
+        level of investment in domain modeling, ensuring you neither under-engineer critical systems nor over-engineer simple ones.
+      </p>
+    </Summary>
+  </ContentBody>
+</Content>

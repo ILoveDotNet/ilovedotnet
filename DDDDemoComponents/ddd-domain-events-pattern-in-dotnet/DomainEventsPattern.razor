@@ -1,0 +1,644 @@
+@page "/blogs/ddd-domain-events-pattern-in-dotnet"
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(DomainEventsPattern) UseNewTableOfContentsMenu=true>
+  <ContentBody>
+    <What>
+      <p>
+        In this article, we'll explore <ContentHighlight>Domain Events</ContentHighlight> in Domain-Driven Design and learn how to 
+        implement them in .NET applications. Domain events are records of significant business occurrences that other parts of the 
+        system need to know about—they enable loose coupling between aggregates while maintaining business consistency.
+      </p>
+
+      <p>
+        We'll discover how domain events facilitate communication between aggregates without creating tight dependencies, provide 
+        natural audit trails, enable integration with external systems, and align perfectly with how domain experts think about 
+        business processes. Events capture the language of the business in code.
+      </p>
+
+      <p>
+        Through practical examples, you'll learn how to design, publish, and handle domain events in C#, implement event-driven 
+        workflows, and build systems that react to business occurrences asynchronously while maintaining data consistency.
+      </p>
+    </What>
+
+    <Why>
+      <h4>The Tightly Coupled Aggregate Problem</h4>
+
+      <p>
+        When aggregates need to coordinate actions, developers often create direct dependencies between them. This leads to 
+        tight coupling and violation of aggregate boundaries:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// Problem: Order directly depends on Inventory
+public class Order
+{
+    private readonly IInventoryService _inventoryService;  // ❌ Tight coupling
+    
+    public void Confirm()
+    {
+        // Order modifies another aggregate directly
+        foreach (var line in _lines)
+        {
+            _inventoryService.ReserveStock(line.ProductId, line.Quantity);  // ❌ Wrong!
+        }
+        
+        Status = OrderStatus.Confirmed;
+    }
+}
+
+// Problems:
+// ❌ Order aggregate depends on inventory infrastructure
+// ❌ Two aggregates modified in same transaction (violates DDD rules)
+// ❌ If inventory reservation fails, order is partially confirmed
+// ❌ Can't test Order without mocking InventoryService
+// ❌ Adding new reactions (email, analytics) requires changing Order
+</CodeSnippet>
+
+      <p>
+        <strong>Consequences:</strong>
+      </p>
+
+      <ul>
+        <li>Aggregates become tightly coupled—changing one breaks others</li>
+        <li>Violates single responsibility—Order shouldn't know about inventory mechanics</li>
+        <li>Testing becomes difficult—must mock all dependencies</li>
+        <li>Transaction boundaries unclear—what happens if reservation fails?</li>
+        <li>Adding new business reactions requires modifying existing aggregates</li>
+      </ul>
+
+      <h4>The Invisible Audit Trail Problem</h4>
+
+      <p>
+        Business stakeholders often ask questions like "When was this order confirmed?" or "Who activated this license?" 
+        Without domain events, this information is scattered or missing:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// Problem: No record of what happened
+public class License
+{
+    public LicenseStatus Status { get; private set; }
+    public DateTime? LastModified { get; private set; }  // ❌ Vague
+    
+    public void Activate(string machineName, HardwareId hardwareId)
+    {
+        // Validates and activates...
+        Status = LicenseStatus.Active;
+        LastModified = DateTime.UtcNow;  // ❌ What changed? Who did it?
+        
+        // ❌ No record of the activation event itself
+        // ❌ Can't answer: "When was this license activated?"
+        // ❌ Can't answer: "What machine was it activated on?"
+    }
+}
+
+// Questions we can't answer:
+// - What happened at 2:30 PM yesterday?
+// - Which licenses were activated in the last hour?
+// - What triggered the status change?
+</CodeSnippet>
+
+      <p>
+        <strong>Consequences:</strong>
+      </p>
+
+      <ul>
+        <li>No audit trail of business events</li>
+        <li>Can't answer "what happened and when" questions</li>
+        <li>Compliance and regulatory reporting is difficult</li>
+        <li>Business analytics require reverse-engineering from current state</li>
+        <li>Debugging issues requires guesswork about past events</li>
+      </ul>
+
+      <h4>Why Domain Events Solve These Problems</h4>
+
+      <p>
+        Domain events provide decoupled communication and complete audit trails:
+      </p>
+
+      <ul>
+        <li><strong>Loose Coupling:</strong> Aggregates don't know about each other—they just publish events</li>
+        <li><strong>Single Responsibility:</strong> Each aggregate focuses on its own rules</li>
+        <li><strong>Audit Trail:</strong> Events provide a complete history of what happened</li>
+        <li><strong>Easy Extension:</strong> Add new event handlers without changing existing aggregates</li>
+        <li><strong>Business Alignment:</strong> Events use the ubiquitous language</li>
+        <li><strong>Integration Points:</strong> External systems subscribe to events</li>
+      </ul>
+    </Why>
+
+    <How>
+      <h4>Step 1: Define Domain Event Base Class</h4>
+
+      <p>
+        Create a base class for all domain events with common metadata:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+public abstract class DomainEvent
+{
+    public Guid EventId { get; }
+    public DateTime OccurredAt { get; }
+    
+    protected DomainEvent()
+    {
+        EventId = Guid.NewGuid();
+        OccurredAt = DateTime.UtcNow;
+    }
+}
+</CodeSnippet>
+
+      <h4>Step 2: Create Concrete Domain Events</h4>
+
+      <p>
+        Name events in past tense—they record things that already happened:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// License domain events
+public class LicenseActivatedEvent : DomainEvent
+{
+    public Guid LicenseId { get; }
+    public Guid CustomerId { get; }
+    public HardwareId HardwareId { get; }
+    public string MachineName { get; }
+    public int ActivationCount { get; }
+    
+    public LicenseActivatedEvent(Guid licenseId, Guid customerId, 
+        HardwareId hardwareId, string machineName, int activationCount)
+    {
+        LicenseId = licenseId;
+        CustomerId = customerId;
+        HardwareId = hardwareId;
+        MachineName = machineName;
+        ActivationCount = activationCount;
+    }
+}
+
+public class LicenseSuspendedEvent : DomainEvent
+{
+    public Guid LicenseId { get; }
+    public string Reason { get; }
+    
+    public LicenseSuspendedEvent(Guid licenseId, string reason)
+    {
+        LicenseId = licenseId;
+        Reason = reason;
+    }
+}
+
+// Order domain events
+public class OrderConfirmedEvent : DomainEvent
+{
+    public Guid OrderId { get; }
+    public Guid CustomerId { get; }
+    public Money TotalPrice { get; }
+    public IReadOnlyCollection&lt;OrderLineData&gt; Lines { get; }
+    
+    public OrderConfirmedEvent(Guid orderId, Guid customerId, 
+        Money totalPrice, IReadOnlyCollection&lt;OrderLineData&gt; lines)
+    {
+        OrderId = orderId;
+        CustomerId = customerId;
+        TotalPrice = totalPrice;
+        Lines = lines;
+    }
+}
+
+// Simple DTO for event data
+public record OrderLineData(Guid ProductId, string ProductName, int Quantity);
+
+public class PaymentProcessedEvent : DomainEvent
+{
+    public Guid PaymentId { get; }
+    public Guid OrderId { get; }
+    public Money Amount { get; }
+    public string PaymentMethod { get; }
+    
+    public PaymentProcessedEvent(Guid paymentId, Guid orderId, 
+        Money amount, string paymentMethod)
+    {
+        PaymentId = paymentId;
+        OrderId = orderId;
+        Amount = amount;
+        PaymentMethod = paymentMethod;
+    }
+}
+</CodeSnippet>
+
+      <p>
+        <strong>Naming conventions:</strong>
+      </p>
+
+      <ul>
+        <li>Use past tense: <ContentHighlight>OrderConfirmed</ContentHighlight>, not <ContentHighlight>ConfirmOrder</ContentHighlight></li>
+        <li>Entity + Action pattern: <ContentHighlight>LicenseActivated</ContentHighlight>, <ContentHighlight>PaymentProcessed</ContentHighlight></li>
+        <li>Include only data consumers need—not entire object graphs</li>
+        <li>Make events immutable—they're historical records</li>
+      </ul>
+
+      <h4>Step 3: Add Event Collection to Aggregate</h4>
+
+      <p>
+        Aggregates collect events as they perform operations:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+public class License
+{
+    public Guid Id { get; private set; }
+    public Guid CustomerId { get; private set; }
+    public LicenseStatus Status { get; private set; }
+    
+    private readonly List&lt;Activation&gt; _activations = new();
+    
+    // Event collection
+    private readonly List&lt;DomainEvent&gt; _domainEvents = new();
+    public IReadOnlyCollection&lt;DomainEvent&gt; DomainEvents =&gt; _domainEvents.AsReadOnly();
+    
+    public void Activate(string machineName, HardwareId hardwareId)
+    {
+        // Validate business rules
+        EnsureCanBeActivated();
+        EnsureNotExpired();
+        EnsureActivationLimitNotReached();
+        
+        // Perform state change
+        var activation = new Activation(Guid.NewGuid(), machineName, hardwareId);
+        _activations.Add(activation);
+        
+        // Record domain event
+        var @@event = new LicenseActivatedEvent(
+            Id,
+            CustomerId,
+            hardwareId,
+            machineName,
+            _activations.Count
+        );
+        
+        _domainEvents.Add(@@event);
+    }
+    
+    public void Suspend(string reason)
+    {
+        if (Status == LicenseStatus.Suspended)
+            throw new InvalidOperationException("Already suspended");
+        
+        Status = LicenseStatus.Suspended;
+        
+        // Record event
+        _domainEvents.Add(new LicenseSuspendedEvent(Id, reason));
+    }
+    
+    // Clear events after processing (called by infrastructure)
+    public void ClearDomainEvents()
+    {
+        _domainEvents.Clear();
+    }
+}
+</CodeSnippet>
+
+      <h4>Step 4: Create Event Handler Interface</h4>
+
+      <p>
+        Define how event handlers are structured:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+public interface IEventHandler&lt;in TEvent&gt; where TEvent : DomainEvent
+{
+    Task Handle(TEvent @@event);
+}
+</CodeSnippet>
+
+      <h4>Step 5: Implement Concrete Event Handlers</h4>
+
+      <p>
+        Each handler reacts to specific events:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// Handler 1: Update inventory when order confirmed
+public class OrderConfirmedInventoryHandler : IEventHandler&lt;OrderConfirmedEvent&gt;
+{
+    private readonly IInventoryService _inventoryService;
+    
+    public OrderConfirmedInventoryHandler(IInventoryService inventoryService)
+    {
+        _inventoryService = inventoryService;
+    }
+    
+    public async Task Handle(OrderConfirmedEvent @@event)
+    {
+        // React to order confirmation by reserving inventory
+        foreach (var line in @@event.Lines)
+        {
+            await _inventoryService.ReserveStock(line.ProductId, line.Quantity);
+        }
+    }
+}
+
+// Handler 2: Send confirmation email
+public class OrderConfirmedEmailHandler : IEventHandler&lt;OrderConfirmedEvent&gt;
+{
+    private readonly IEmailService _emailService;
+    private readonly ICustomerRepository _customerRepo;
+    
+    public OrderConfirmedEmailHandler(IEmailService emailService, 
+        ICustomerRepository customerRepo)
+    {
+        _emailService = emailService;
+        _customerRepo = customerRepo;
+    }
+    
+    public async Task Handle(OrderConfirmedEvent @@event)
+    {
+        var customer = await _customerRepo.GetByIdAsync(@@event.CustomerId);
+        
+        await _emailService.SendOrderConfirmation(
+            customer.Email,
+            @@event.OrderId,
+            @@event.TotalPrice
+        );
+    }
+}
+
+// Handler 3: Update analytics
+public class OrderConfirmedAnalyticsHandler : IEventHandler&lt;OrderConfirmedEvent&gt;
+{
+    private readonly IAnalyticsService _analyticsService;
+    
+    public OrderConfirmedAnalyticsHandler(IAnalyticsService analyticsService)
+    {
+        _analyticsService = analyticsService;
+    }
+    
+    public async Task Handle(OrderConfirmedEvent @@event)
+    {
+        await _analyticsService.TrackOrderConfirmed(
+            @@event.OrderId,
+            @@event.TotalPrice.Amount,
+            @@event.Lines.Count
+        );
+    }
+}
+
+// Handler 4: Create audit log entry
+public class LicenseActivatedAuditHandler : IEventHandler&lt;LicenseActivatedEvent&gt;
+{
+    private readonly IAuditLogRepository _auditRepo;
+    
+    public LicenseActivatedAuditHandler(IAuditLogRepository auditRepo)
+    {
+        _auditRepo = auditRepo;
+    }
+    
+    public async Task Handle(LicenseActivatedEvent @@event)
+    {
+        var auditEntry = new AuditLog
+        {
+            EventType = "LicenseActivated",
+            EntityId = @@event.LicenseId,
+            OccurredAt = @@event.OccurredAt,
+            Data = new
+            {
+                @@event.MachineName,
+                @@event.HardwareId,
+                @@event.ActivationCount
+            }
+        };
+        
+        await _auditRepo.AddAsync(auditEntry);
+    }
+}
+</CodeSnippet>
+
+      <p>
+        <strong>Benefits:</strong>
+      </p>
+
+      <ul>
+        <li>Each handler has single responsibility</li>
+        <li>Easy to add new handlers without changing aggregates</li>
+        <li>Handlers can be tested independently</li>
+        <li>Different concerns (inventory, email, analytics) are separated</li>
+      </ul>
+
+      <h4>Step 6: Create Event Dispatcher</h4>
+
+      <p>
+        Implement infrastructure to dispatch events to handlers:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+public interface IEventDispatcher
+{
+    Task DispatchAsync(DomainEvent @@event);
+    Task DispatchAsync(IEnumerable&lt;DomainEvent&gt; events);
+}
+
+public class EventDispatcher : IEventDispatcher
+{
+    private readonly IServiceProvider _serviceProvider;
+    
+    public EventDispatcher(IServiceProvider serviceProvider)
+    {
+        _serviceProvider = serviceProvider;
+    }
+    
+    public async Task DispatchAsync(DomainEvent @@event)
+    {
+        // Get all handlers for this event type
+        var eventType = @@event.GetType();
+        var handlerType = typeof(IEventHandler&lt;&gt;).MakeGenericType(eventType);
+        
+        var handlers = _serviceProvider.GetServices(handlerType);
+        
+        // Invoke each handler
+        foreach (var handler in handlers)
+        {
+            var handleMethod = handlerType.GetMethod("Handle");
+            var task = (Task)handleMethod.Invoke(handler, new object[] { @@event });
+            await task;
+        }
+    }
+    
+    public async Task DispatchAsync(IEnumerable&lt;DomainEvent&gt; events)
+    {
+        foreach (var @@event in events)
+        {
+            await DispatchAsync(@@event);
+        }
+    }
+}
+</CodeSnippet>
+
+      <h4>Step 7: Dispatch Events After Saving Aggregate</h4>
+
+      <p>
+        Events should be dispatched <strong>after</strong> the aggregate is successfully saved:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+public class OrderApplicationService
+{
+    private readonly IOrderRepository _orderRepo;
+    private readonly IEventDispatcher _eventDispatcher;
+    
+    public OrderApplicationService(IOrderRepository orderRepo, 
+        IEventDispatcher eventDispatcher)
+    {
+        _orderRepo = orderRepo;
+        _eventDispatcher = eventDispatcher;
+    }
+    
+    public async Task ConfirmOrderAsync(Guid orderId)
+    {
+        // 1. Load aggregate
+        var order = await _orderRepo.GetByIdAsync(orderId);
+        if (order == null)
+            throw new OrderNotFoundException(orderId);
+        
+        // 2. Execute domain logic (collects events)
+        order.Confirm();
+        
+        // 3. Save aggregate (transactional)
+        await _orderRepo.SaveAsync(order);
+        
+        // 4. Dispatch events AFTER successful save
+        await _eventDispatcher.DispatchAsync(order.DomainEvents);
+        
+        // 5. Clear events from aggregate
+        order.ClearDomainEvents();
+    }
+}
+</CodeSnippet>
+
+      <p>
+        <strong>Important:</strong> Dispatch events <strong>after</strong> saving to ensure consistency. If the save fails, 
+        events won't be dispatched.
+      </p>
+
+      <h4>Step 8: Register Handlers in Dependency Injection</h4>
+
+      <p>
+        Configure DI to wire up handlers:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// In Program.cs or Startup.cs
+services.AddScoped&lt;IEventDispatcher, EventDispatcher&gt;();
+
+// Register all event handlers
+services.AddScoped&lt;IEventHandler&lt;OrderConfirmedEvent&gt;, 
+    OrderConfirmedInventoryHandler&gt;();
+services.AddScoped&lt;IEventHandler&lt;OrderConfirmedEvent&gt;, 
+    OrderConfirmedEmailHandler&gt;();
+services.AddScoped&lt;IEventHandler&lt;OrderConfirmedEvent&gt;, 
+    OrderConfirmedAnalyticsHandler&gt;();
+
+services.AddScoped&lt;IEventHandler&lt;LicenseActivatedEvent&gt;, 
+    LicenseActivatedAuditHandler&gt;();
+services.AddScoped&lt;IEventHandler&lt;LicenseSuspendedEvent&gt;, 
+    LicenseSuspendedNotificationHandler&gt;();
+
+// Or use assembly scanning
+services.Scan(scan =&gt; scan
+    .FromAssemblyOf&lt;OrderConfirmedEvent&gt;()
+    .AddClasses(classes =&gt; classes.AssignableTo(typeof(IEventHandler&lt;&gt;)))
+    .AsImplementedInterfaces()
+    .WithScopedLifetime());
+</CodeSnippet>
+
+      <h4>Complete Flow Example</h4>
+
+      <CodeSnippet CssClass="language-csharp">
+// 1. User confirms an order
+await _orderService.ConfirmOrderAsync(orderId);
+
+// Behind the scenes:
+// ↓
+// 2. Order.Confirm() is called
+//    - Status changes to Confirmed
+//    - OrderConfirmedEvent is added to _domainEvents
+// ↓
+// 3. Repository saves Order to database (transaction commits)
+// ↓
+// 4. EventDispatcher dispatches OrderConfirmedEvent
+// ↓
+// 5. Multiple handlers react:
+//    - OrderConfirmedInventoryHandler reserves stock
+//    - OrderConfirmedEmailHandler sends confirmation email
+//    - OrderConfirmedAnalyticsHandler tracks metrics
+// ↓
+// 6. Events are cleared from aggregate
+
+// Result:
+// ✅ Order is confirmed
+// ✅ Inventory is reserved
+// ✅ Email is sent
+// ✅ Analytics are updated
+// ✅ All without Order knowing about inventory, email, or analytics!
+</CodeSnippet>
+
+      <h4>Querying Event History</h4>
+
+      <p>
+        Store events in a dedicated table for audit trails:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+public class EventStore
+{
+    private readonly DbContext _context;
+    
+    public async Task SaveEventAsync(DomainEvent @@event)
+    {
+        var eventRecord = new EventRecord
+        {
+            EventId = @@event.EventId,
+            EventType = @@event.GetType().Name,
+            OccurredAt = @@event.OccurredAt,
+            Data = JsonSerializer.Serialize(@@event)
+        };
+        
+        _context.EventRecords.Add(eventRecord);
+        await _context.SaveChangesAsync();
+    }
+    
+    public async Task&lt;IEnumerable&lt;DomainEvent&gt;&gt; GetEventsForEntityAsync(Guid entityId)
+    {
+        return await _context.EventRecords
+            .Where(e =&gt; e.EntityId == entityId)
+            .OrderBy(e =&gt; e.OccurredAt)
+            .Select(e =&gt; JsonSerializer.Deserialize&lt;DomainEvent&gt;(e.Data))
+            .ToListAsync();
+    }
+}
+
+// Now you can answer business questions:
+var events = await _eventStore.GetEventsForEntityAsync(licenseId);
+// "When was this license activated?"
+// "How many times has it been suspended?"
+// "What happened yesterday?"
+</CodeSnippet>
+    </How>
+
+    <Summary>
+      <ul>
+        <li><ContentHighlight>Domain events</ContentHighlight> are records of significant business occurrences named in past tense</li>
+        <li>Events enable loose coupling between aggregates—they don't reference each other directly</li>
+        <li>Follow naming pattern: Entity + Action in past tense (OrderConfirmed, LicenseActivated, PaymentProcessed)</li>
+        <li>Aggregates collect events during operations and expose them via <ContentHighlight>DomainEvents</ContentHighlight> collection</li>
+        <li>Events should be dispatched <strong>after</strong> the aggregate is successfully saved to ensure consistency</li>
+        <li>Event handlers react to events independently—each handler has single responsibility</li>
+        <li>Easy to extend system by adding new handlers without modifying existing aggregates</li>
+        <li>Events provide natural audit trail and enable answering "what happened" questions</li>
+        <li>Use events for cross-aggregate coordination (Order → Inventory) instead of direct dependencies</li>
+        <li>Store events in event store for complete business history and regulatory compliance</li>
+      </ul>
+    </Summary>
+  </ContentBody>
+</Content>

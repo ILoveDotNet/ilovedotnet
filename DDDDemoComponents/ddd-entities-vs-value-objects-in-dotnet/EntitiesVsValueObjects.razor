@@ -1,0 +1,518 @@
+@page "/blogs/ddd-entities-vs-value-objects-in-dotnet"
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(EntitiesVsValueObjects) UseNewTableOfContentsMenu=true>
+  <ContentBody>
+    <What>
+      <p>
+        In this article, we'll explore two fundamental building blocks of <ContentHighlight>Domain-Driven Design (DDD)</ContentHighlight>: 
+        <ContentHighlight>Entities</ContentHighlight> and <ContentHighlight>Value Objects</ContentHighlight>. These tactical patterns help us model 
+        our domain with clarity and precision, ensuring our code accurately represents real-world business concepts in .NET applications.
+      </p>
+
+      <p>
+        Understanding the distinction between entities and value objects is crucial for building maintainable domain models. While entities 
+        have a unique identity that persists over time, value objects are defined entirely by their attributes. This difference fundamentally 
+        affects how we design, compare, and manage these objects in our .NET applications.
+      </p>
+
+      <p>
+        We'll examine practical scenarios from a software licensing system to illustrate when to use each pattern, how to implement them correctly 
+        in C#, and the benefits they bring to your domain model's expressiveness and reliability.
+      </p>
+    </What>
+
+    <Why>
+      <h4>The Identity Crisis</h4>
+
+      <p>
+        Consider this scenario: You're building a customer management system, and you have two customer records in your database. Both have 
+        the name "Abdul Rahman", both work in the "Engineering" department, and both have the email "abdul.rahman@@company.com". Are these 
+        the same customer?
+      </p>
+
+      <p>
+        Without understanding entities, you might be tempted to compare all their attributes. But this leads to a critical problem—what happens 
+        when a customer changes their email or department? Suddenly, your system thinks they're a different person, breaking referential integrity 
+        and creating confusion throughout your application.
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// Problem: Comparing customers by their data only
+public class Customer
+{
+    public string FirstName { get; set; }
+    public string LastName { get; set; }
+    public string Department { get; set; }
+    public string Email { get; set; }
+}
+
+var customer1 = new Customer 
+{ 
+    FirstName = "Abdul", 
+    LastName = "Rahman", 
+    Department = "Engineering",
+    Email = "abdul.rahman@@company.com"
+};
+
+var customer2 = new Customer 
+{ 
+    FirstName = "Abdul", 
+    LastName = "Rahman", 
+    Department = "Engineering",
+    Email = "abdul.rahman@@company.com"
+};
+
+// Are these the same customer? How do we know?
+// This approach fails when Abdul changes his email!
+      </CodeSnippet>
+
+      <p>
+        <strong>Consequences:</strong> Without proper identity management, your system can't track entity lifecycles, maintain relationships, 
+        or ensure data consistency. Database foreign keys become meaningless, audit trails break down, and your domain model loses its ability 
+        to represent reality.
+      </p>
+
+      <h4>The Value Measurement Problem</h4>
+
+      <p>
+        Now consider a different scenario: You're processing a payment of ₹100 INR. Should this be treated as a unique entity with its own 
+        identity, or should it be treated as a pure value that describes an amount?
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// Problem: Treating values as if they have identity
+public class Money
+{
+    public Guid Id { get; set; }  // Why does money need an ID?
+    public decimal Amount { get; set; }
+    public string Currency { get; set; }
+}
+
+var payment1 = new Money { Id = Guid.NewGuid(), Amount = 100, Currency = "INR" };
+var payment2 = new Money { Id = Guid.NewGuid(), Amount = 100, Currency = "INR" };
+
+// These have different IDs, so are they different?
+// But ₹100 INR is always ₹100 INR, regardless of when it was created!
+      </CodeSnippet>
+
+      <p>
+        <strong>Consequences:</strong> Treating values as entities adds unnecessary complexity. You track IDs for concepts that don't need them, 
+        your database grows with redundant records, and comparison logic becomes convoluted. Worse, business rules that should be simple 
+        (like "add ₹50 to ₹100") become database operations instead of straightforward calculations.
+      </p>
+
+      <h4>Why These Patterns Matter</h4>
+
+      <p>
+        Correctly distinguishing between entities and value objects leads to:
+      </p>
+
+      <ul>
+        <li><strong>Clearer Domain Models:</strong> Your code directly expresses business concepts with appropriate semantics</li>
+        <li><strong>Simpler Comparisons:</strong> Identity-based equality for entities, value-based equality for value objects</li>
+        <li><strong>Better Performance:</strong> Value objects can be immutable and cached, reducing database round-trips</li>
+        <li><strong>Stronger Type Safety:</strong> Domain concepts get their own types instead of being represented as primitives</li>
+        <li><strong>Easier Testing:</strong> Value objects are pure and predictable, entities have clear identity boundaries</li>
+      </ul>
+    </Why>
+
+    <How>
+      <h4>Implementing Entities in .NET</h4>
+
+      <p>
+        An <ContentHighlight>Entity</ContentHighlight> has a unique identity that remains constant throughout its lifecycle, even when 
+        its attributes change. A good practice is to extract the common cross-cutting concerns—identity, audit fields, domain events, and 
+        equality logic—into a reusable <ContentHighlight>BaseEntity</ContentHighlight> abstract class. Concrete entities like 
+        <ContentHighlight>Customer</ContentHighlight> then inherit from it and focus purely on domain-specific behaviour:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// Base class: handles identity, audit, domain events, and equality once for all entities
+public abstract class BaseEntity : IEquatable&lt;BaseEntity&gt;
+{
+    private readonly List&lt;INotification&gt; _domainEvents = [];
+    public IReadOnlyList&lt;INotification&gt; DomainEvents =&gt; _domainEvents;
+
+    // Generates a new Id automatically - not settable from outside
+    protected BaseEntity() =&gt; Id = Guid.NewGuid();
+
+    // Overload for reconstitution from persistence (existing Id)
+    protected BaseEntity(Guid existingId) =&gt; Id = existingId;
+
+    // Identity - private set ensures only BaseEntity constructors can assign it
+    public Guid Id { get; private set; }
+
+    // Common audit fields
+    public DateTimeOffset CreatedAt { get; protected set; }
+    public string CreatedBy { get; protected set; }
+    public DateTimeOffset? ModifiedAt { get; protected set; }
+    public string ModifiedBy { get; protected set; }
+
+    protected void RaiseDomainEvent(INotification domainEvent) =&gt;
+        _domainEvents.Add(domainEvent);
+
+    public void ClearDomainEvents() =&gt; _domainEvents.Clear();
+
+    public BaseEntity SetCreatedDetails(DateTimeOffset createdAt, string createdBy)
+    {
+        CreatedAt = createdAt;
+        CreatedBy = createdBy;
+        return this;
+    }
+
+    public BaseEntity SetModifiedDetails(DateTimeOffset? modifiedAt, string modifiedBy)
+    {
+        ModifiedAt = modifiedAt;
+        ModifiedBy = modifiedBy;
+        return this;
+    }
+
+    // Identity-based equality - all entities share the same logic
+    public bool Equals(BaseEntity? other)
+    {
+        if (other is null || ReferenceEquals(this, other) is false &amp;&amp; GetType() != other.GetType())
+            return false;
+
+        if (Id == Guid.Empty || other.Id == Guid.Empty)
+            return false;
+
+        return Id == other.Id;
+    }
+
+    public override bool Equals(object? obj) =&gt; Equals(obj as BaseEntity);
+    public override int GetHashCode() =&gt; Id.GetHashCode();
+
+    public static bool operator ==(BaseEntity? left, BaseEntity? right) =&gt;
+        left is null ? right is null : left.Equals(right);
+
+    public static bool operator !=(BaseEntity? left, BaseEntity? right) =&gt;
+        !(left == right);
+}
+      </CodeSnippet>
+
+      <p>
+        With <ContentHighlight>BaseEntity</ContentHighlight> in place, <ContentHighlight>Customer</ContentHighlight> only needs to define its own attributes and domain behaviour:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// Concrete entity: inherits identity, audit, and equality from BaseEntity
+public class Customer : BaseEntity
+{
+    // Domain-specific mutable attributes
+    public string FirstName { get; private set; }
+    public string LastName { get; private set; }
+    public string Email { get; private set; }
+    public string Department { get; private set; }
+
+    // Private constructor to enforce creation through factory method
+    private Customer(Guid id, string firstName, string lastName,
+        string email, string department) : base(id)  // passes existing Id to BaseEntity
+    {
+        FirstName = firstName ?? throw new ArgumentNullException(nameof(firstName));
+        LastName = lastName ?? throw new ArgumentNullException(nameof(lastName));
+        Email = email ?? throw new ArgumentNullException(nameof(email));
+        Department = department ?? throw new ArgumentNullException(nameof(department));
+    }
+
+    // Factory method for creating new customers
+    public static Customer Create(string firstName, string lastName,
+        string email, string department)
+    {
+        return new Customer(Guid.NewGuid(), firstName, lastName, email, department);
+    }
+
+    // Factory method for reconstituting from database
+    public static Customer Reconstitute(Guid id, string firstName, string lastName,
+        string email, string department)
+    {
+        return new Customer(id, firstName, lastName, email, department);
+    }
+
+    // Behavior methods that modify attributes
+    public void UpdateEmail(string newEmail)
+    {
+        if (string.IsNullOrWhiteSpace(newEmail))
+            throw new ArgumentException("Email cannot be empty", nameof(newEmail));
+
+        Email = newEmail;
+    }
+
+    public void TransferToDepartment(string newDepartment)
+    {
+        if (string.IsNullOrWhiteSpace(newDepartment))
+            throw new ArgumentException("Department cannot be empty", nameof(newDepartment));
+
+        Department = newDepartment;
+    }
+}
+      </CodeSnippet>
+
+      <p>
+        <strong>Key characteristics:</strong>
+      </p>
+
+      <ul>
+        <li><ContentHighlight>BaseEntity</ContentHighlight> centralises identity, audit fields, domain events, and equality — write once, reuse everywhere</li>
+        <li><ContentHighlight>Id</ContentHighlight> has <ContentHighlight>private set</ContentHighlight> and is assigned only inside <ContentHighlight>BaseEntity</ContentHighlight> constructors — no caller outside the class hierarchy can set it</li>
+        <li>The parameterless constructor generates a fresh <ContentHighlight>Guid</ContentHighlight>; the overload accepting an existing <ContentHighlight>Guid</ContentHighlight> is used only for reconstitution from persistence</li>
+        <li>Equality is defined in <ContentHighlight>BaseEntity</ContentHighlight> and compares <strong>only by Id</strong>, not attributes</li>
+        <li><ContentHighlight>Customer</ContentHighlight> inherits all of this and focuses purely on domain-specific behaviour</li>
+        <li>Private setters on attributes prevent external code from bypassing business rules</li>
+      </ul>
+
+      <CodeSnippet CssClass="language-csharp">
+// Usage example
+var customer1 = Customer.Create("Abdul", "Rahman", "abdul@@company.com", "Engineering");
+var customer2 = Customer.Reconstitute(customer1.Id, "Abdul", "Rahman", 
+    "abdul@@company.com", "Engineering");
+
+// Even though all attributes are identical, they're the SAME customer
+Console.WriteLine(customer1.Equals(customer2));  // True (same ID)
+
+// Customer changes email but remains the same entity
+customer1.UpdateEmail("abdul.r@@company.com");
+Console.WriteLine(customer1.Equals(customer2));  // Still True!
+      </CodeSnippet>
+
+      <h4>Implementing Value Objects in .NET</h4>
+
+      <p>
+        A <ContentHighlight>Value Object</ContentHighlight> has no identity—it's defined entirely by its attributes. The cleanest way 
+        to implement one in modern C# is to use a <ContentHighlight>record</ContentHighlight>. Records provide structural equality 
+        automatically—no manual <ContentHighlight>Equals</ContentHighlight>, <ContentHighlight>GetHashCode</ContentHighlight>, or 
+        <ContentHighlight>==</ContentHighlight>/<ContentHighlight>!=</ContentHighlight> overloads needed. Let's implement a 
+        <ContentHighlight>Money</ContentHighlight> value object:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// record gives structural equality for free - no manual Equals/GetHashCode needed
+public record Money
+{
+    public static readonly Money None = new(0m, "INR");
+
+    // Protected constructor keeps creation controlled via factory methods
+    protected Money(decimal amount, string currency)
+    {
+        Amount = Math.Round(amount, 2);
+        Currency = currency.ToUpperInvariant();
+    }
+
+    public decimal Amount { get; init; }
+    public string Currency { get; init; }
+
+    // Factory methods enforce validation at creation time
+    public static Money Inr(decimal amount) =&gt; Create(amount, "INR");
+    public static Money Usd(decimal amount) =&gt; Create(amount, "USD");
+    public static Money Eur(decimal amount) =&gt; Create(amount, "EUR");
+
+    public static Money Create(decimal amount, string currency)
+    {
+        if (amount &lt; 0)
+            throw new ArgumentException("Amount cannot be negative", nameof(amount));
+
+        if (string.IsNullOrWhiteSpace(currency))
+            throw new ArgumentException("Currency is required", nameof(currency));
+
+        return new Money(amount, currency);
+    }
+
+    // Implicit conversion to decimal for convenience
+    public static implicit operator decimal(Money money) =&gt; money.Amount;
+
+    // Arithmetic operators - each returns a new Money instance (immutability)
+    public static Money operator +(Money left, Money right)
+    {
+        EnsureSameCurrency(left, right);
+        return new Money(left.Amount + right.Amount, left.Currency);
+    }
+
+    public static Money operator -(Money left, Money right)
+    {
+        EnsureSameCurrency(left, right);
+        return new Money(left.Amount - right.Amount, left.Currency);
+    }
+
+    public static Money operator *(Money left, decimal factor)
+        =&gt; new Money(left.Amount * factor, left.Currency);
+
+    public static Money operator /(Money left, decimal divisor)
+    {
+        if (divisor == 0) throw new DivideByZeroException("Cannot divide by zero");
+        return new Money(left.Amount / divisor, left.Currency);
+    }
+
+    public static Money Abs(Money money) =&gt; new Money(Math.Abs(money.Amount), money.Currency);
+
+    public override string ToString() =&gt; $"{Amount:N2} {Currency}";
+
+    private static void EnsureSameCurrency(Money left, Money right)
+    {
+        if (left.Currency != right.Currency)
+            throw new InvalidOperationException(
+                $"Cannot operate on {left.Currency} and {right.Currency}");
+    }
+}
+      </CodeSnippet>
+
+      <p>
+        <strong>Key characteristics:</strong>
+      </p>
+
+      <ul>
+        <li><strong>Record equality for free:</strong> Two <ContentHighlight>Money</ContentHighlight> records with the same <ContentHighlight>Amount</ContentHighlight> and <ContentHighlight>Currency</ContentHighlight> are automatically equal—no custom <ContentHighlight>Equals</ContentHighlight> or <ContentHighlight>GetHashCode</ContentHighlight> needed</li>
+        <li><strong>Immutable:</strong> <ContentHighlight>init</ContentHighlight> properties and a protected constructor ensure values cannot change after creation; operators always return new instances</li>
+        <li><strong>Self-validating:</strong> Factory methods enforce constraints so invalid money can never exist</li>
+        <li><strong>No identity:</strong> No <ContentHighlight>Id</ContentHighlight> property—two <ContentHighlight>Money</ContentHighlight> values of ₹100 INR are interchangeable</li>
+        <li><strong>Natural syntax:</strong> Implicit conversion and operator overloads make arithmetic readable</li>
+      </ul>
+
+      <CodeSnippet CssClass="language-csharp">
+// Usage examples
+var price1 = Money.Inr(100);
+var price2 = Money.Inr(100);
+
+// Record equality - no custom Equals needed, just works!
+Console.WriteLine(price1 == price2);  // True
+Console.WriteLine(price1.Equals(price2));  // True
+
+// Immutability - operators create new instances
+var total = price1 + Money.Inr(50);
+Console.WriteLine(total);   // 150.00 INR
+Console.WriteLine(price1);  // Still 100.00 INR (unchanged)
+
+// Implicit conversion to decimal
+decimal raw = Money.Inr(299);  // 299
+
+// Type safety prevents mixing currencies
+var dollars = Money.Usd(100);
+// var invalid = price1 + dollars;  // Throws InvalidOperationException!
+
+// Operations are fluent and readable
+var finalPrice = Money.Inr(100) * 3 - Money.Inr(50);  // ₹250
+    </CodeSnippet>
+
+
+      <h4>Decision Guide: Entity vs Value Object</h4>
+
+      <p>
+        Use an <strong>Entity</strong> when:
+      </p>
+
+      <ul>
+        <li>The concept has a lifecycle (created, modified, archived, deleted)</li>
+        <li>You need to track changes over time</li>
+        <li>Two instances with identical attributes still represent different things</li>
+        <li>You need to maintain relationships with other domain objects</li>
+        <li><strong>Examples:</strong> Customer, License, Order, Invoice, User Account</li>
+      </ul>
+
+      <p>
+        Use a <strong>Value Object</strong> when:
+      </p>
+
+      <ul>
+        <li>The concept is a measurement, quantity, or description</li>
+        <li>Two instances with identical attributes are interchangeable</li>
+        <li>The object should be immutable</li>
+        <li>You need to perform operations that produce new values</li>
+        <li><strong>Examples:</strong> Money, Email Address, Date Range, Phone Number, Address</li>
+      </ul>
+
+      <h4>Practical Example: License Domain Model</h4>
+
+      <p>
+        Let's combine entities and value objects in a licensing system:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// Entity: inherits identity, audit, domain events, and equality from BaseEntity
+public class License : BaseEntity
+{
+    public string LicenseKey { get; private set; }  // Mutable attribute
+    public Money Price { get; private set; }  // Value Object property
+    public DateRange ValidityPeriod { get; private set; }  // Value Object property
+    public int ActivationCount { get; private set; }
+
+    private License(Guid id, string licenseKey, Money price, DateRange validityPeriod)
+        : base(id)  // passes existing Id to BaseEntity
+    {
+        LicenseKey = licenseKey;
+        Price = price;
+        ValidityPeriod = validityPeriod;
+        ActivationCount = 0;
+    }
+
+    public static License Create(string licenseKey, Money price, DateRange validityPeriod)
+    {
+        return new License(Guid.NewGuid(), licenseKey, price, validityPeriod);
+    }
+
+    public void Activate()
+    {
+        if (!ValidityPeriod.Contains(DateTime.UtcNow))
+            throw new InvalidOperationException("License is outside validity period");
+
+        ActivationCount++;
+    }
+
+    public void UpdatePrice(Money newPrice)
+    {
+        Price = newPrice ?? throw new ArgumentNullException(nameof(newPrice));
+    }
+}
+
+// Value Object: DateRange — record gives structural equality automatically
+public record DateRange
+{
+    protected DateRange(DateTime start, DateTime end)
+    {
+        Start = start;
+        End = end;
+    }
+
+    public DateTime Start { get; init; }
+    public DateTime End { get; init; }
+
+    public static DateRange Create(DateTime start, DateTime end)
+    {
+        if (end &lt; start)
+            throw new ArgumentException("End date must be after start date");
+
+        return new DateRange(start, end);
+    }
+
+    public bool Contains(DateTime date) =&gt; date &gt;= Start &amp;&amp; date &lt;= End;
+
+    public TimeSpan Duration =&gt; End - Start;
+}
+
+// Usage
+var license = License.Create(
+    "ABC-123-XYZ",
+    Money.Inr(299),
+    DateRange.Create(DateTime.UtcNow, DateTime.UtcNow.AddYears(1))
+);
+
+license.Activate();  // Works - within validity period
+
+// Price is a value object - we replace it entirely
+license.UpdatePrice(Money.Inr(249));
+      </CodeSnippet>
+    </How>
+
+    <Summary>
+      <ul>
+        <li><ContentHighlight>Entities</ContentHighlight> have unique identity that persists over time, use identity-based equality, and are mutable</li>
+        <li><ContentHighlight>Value Objects</ContentHighlight> have no identity, use value-based equality, and should be immutable</li>
+        <li>Entities track lifecycles and relationships; Value Objects measure and describe domain concepts</li>
+        <li>Use entities for concepts like Customer, License, Order; use value objects for Money, Email, DateRange</li>
+        <li>Value objects prevent primitive obsession and provide type-safe domain vocabulary</li>
+        <li>Proper distinction between entities and value objects leads to clearer, more maintainable domain models</li>
+        <li>Implement value objects as immutable <ContentHighlight>record</ContentHighlight> types with factory methods — records provide structural equality for free, eliminating boilerplate <ContentHighlight>Equals</ContentHighlight>, <ContentHighlight>GetHashCode</ContentHighlight>, and <ContentHighlight>==</ContentHighlight> overloads</li>
+        <li>Implement entities with private setters, identity-based equality, and behavior methods that enforce invariants</li>
+      </ul>
+    </Summary>
+  </ContentBody>
+</Content>

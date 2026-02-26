@@ -1,0 +1,453 @@
+@page "/blogs/ddd-ports-and-adapters-pattern-in-dotnet"
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(PortsAndAdaptersPattern) UseNewTableOfContentsMenu=true>
+  <ContentBody>
+    <What>
+      <p>
+        Onion Architecture tells you <em>which layer owns what</em>. But how exactly does the 
+        domain talk to infrastructure without importing any of it? How do you swap a real database 
+        for an in-memory store in tests without touching a single line of business logic?
+      </p>
+
+      <p>
+        The answer is the <ContentHighlight>Ports and Adapters</ContentHighlight> pattern — 
+        also known as Hexagonal Architecture. It is the mechanism that makes Onion Architecture 
+        work in practice.
+      </p>
+
+      <p>
+        A <ContentHighlight>port</ContentHighlight> is an interface defined in the domain or 
+        application layer using domain language. An <ContentHighlight>adapter</ContentHighlight> 
+        is a concrete class in the infrastructure layer that implements the port using real 
+        technology. The domain only ever sees the port. It never touches the adapter.
+      </p>
+
+      <p>
+        In this article you will follow a complete, five-step walkthrough: define the port, 
+        create an in-memory adapter for tests, create an EF Core adapter for production, 
+        swap between them, and protect the contract with shared tests.
+      </p>
+    </What>
+
+    <Why>
+      <h4>Why Swappable Adapters Matter</h4>
+
+      <p>
+        Before looking at the implementation, consider what the absence of this pattern looks like. 
+        Domain objects call EF Core directly:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// BAD: Application service coupled to EF Core
+public sealed class LicenseApplicationService
+{
+    private readonly LicenseDbContext _db;   // EF Core leaking into application layer
+
+    public async Task ActivateLicenseAsync(Guid id, string fingerprint)
+    {
+        var entity = await _db.Licenses.FindAsync(id);   // EF directly
+        if (entity is null) throw new NotFoundException();
+
+        entity.ActivationCount++;
+        entity.Hardware = fingerprint;
+        await _db.SaveChangesAsync();
+    }
+}
+</CodeSnippet>
+
+      <p>
+        Testing this service now requires a real database, a migration, test data seeding, 
+        and transaction cleanup. Every test run adds seconds. Add a hundred tests and 
+        the feedback loop breaks.
+      </p>
+
+      <CodeSnippet CssClass="language-plaintext">
+With direct EF coupling          | With Ports &amp; Adapters
+─────────────────────────────────────────────────────────────────────────
+Tests need a real database       | Tests use in-memory adapter
+100 tests take ~30 seconds       | 100 tests take ~0.1 seconds
+Changing DB = refactoring domain | Changing DB = new adapter, 1 DI line
+Hard to test error paths         | Easy: in-memory adapter fakes any error
+─────────────────────────────────────────────────────────────────────────
+</CodeSnippet>
+    </Why>
+
+    <How>
+      <h4>Step 1: Define the Port in the Domain</h4>
+
+      <p>
+        The port is a plain C# interface. It uses only domain types — no EF entities, 
+        no database IDs, no connection strings:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// File: LicenseContext/Domain/Ports/ILicenseRepository.cs
+namespace LicenseContext.Domain.Ports;
+
+/// &lt;summary&gt;
+/// Port: the domain's view of persistence.
+/// No annotations, no EF, no SQL. Pure domain language.
+/// &lt;/summary&gt;
+public interface ILicenseRepository
+{
+    /// &lt;summary&gt;Returns a domain object, not a persistence entity.&lt;/summary&gt;
+    Task&lt;License?&gt; FindByIdAsync(LicenseId id,
+                                  CancellationToken ct = default);
+
+    Task SaveAsync(License license, CancellationToken ct = default);
+
+    Task DeleteAsync(LicenseId id, CancellationToken ct = default);
+
+    Task&lt;IReadOnlyList&lt;License&gt;&gt; FindByCustomerAsync(
+        CustomerId customerId,
+        CancellationToken ct = default);
+
+    Task&lt;IReadOnlyList&lt;License&gt;&gt; FindActiveAsync(
+        CancellationToken ct = default);
+}
+</CodeSnippet>
+
+      <h4>Step 2: In-Memory Adapter for Tests</h4>
+
+      <p>
+        The in-memory adapter is a simple <ContentHighlight>Dictionary</ContentHighlight>-backed 
+        implementation of the port. It lives in a test project or a testing utilities assembly. 
+        Zero database, zero EF:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// File: LicenseContext.Tests/Fakes/InMemoryLicenseRepository.cs
+using LicenseContext.Domain;
+using LicenseContext.Domain.Ports;
+
+namespace LicenseContext.Tests.Fakes;
+
+public sealed class InMemoryLicenseRepository : ILicenseRepository
+{
+    private readonly Dictionary&lt;LicenseId, License&gt; _store = [];
+
+    public Task&lt;License?&gt; FindByIdAsync(LicenseId id,
+                                         CancellationToken ct = default)
+        =&gt; Task.FromResult(_store.TryGetValue(id, out var l) ? l : null);
+
+    public Task SaveAsync(License license, CancellationToken ct = default)
+    {
+        _store[license.Id] = license;
+        return Task.CompletedTask;
+    }
+
+    public Task DeleteAsync(LicenseId id, CancellationToken ct = default)
+    {
+        _store.Remove(id);
+        return Task.CompletedTask;
+    }
+
+    public Task&lt;IReadOnlyList&lt;License&gt;&gt; FindByCustomerAsync(
+        CustomerId customerId,
+        CancellationToken ct = default)
+    {
+        IReadOnlyList&lt;License&gt; result = _store.Values
+            .Where(l =&gt; l.CustomerId == customerId)
+            .ToList();
+        return Task.FromResult(result);
+    }
+
+    public Task&lt;IReadOnlyList&lt;License&gt;&gt; FindActiveAsync(
+        CancellationToken ct = default)
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        IReadOnlyList&lt;License&gt; result = _store.Values
+            .Where(l =&gt; l.ExpiresAt &gt;= today)
+            .ToList();
+        return Task.FromResult(result);
+    }
+}
+</CodeSnippet>
+
+      <h4>Step 3: EF Core Adapter for Production</h4>
+
+      <p>
+        The EF Core adapter lives in the infrastructure layer. It maps between domain objects 
+        and persistence entities. The domain never sees this class:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// File: LicenseContext/Infrastructure/Persistence/EfLicenseRepository.cs
+using LicenseContext.Domain;
+using LicenseContext.Domain.Ports;
+using Microsoft.EntityFrameworkCore;
+
+namespace LicenseContext.Infrastructure.Persistence;
+
+public sealed class EfLicenseRepository : ILicenseRepository
+{
+    private readonly LicenseDbContext _db;
+    private readonly LicenseMapper _mapper;
+
+    public EfLicenseRepository(LicenseDbContext db, LicenseMapper mapper)
+    {
+        _db = db;
+        _mapper = mapper;
+    }
+
+    public async Task&lt;License?&gt; FindByIdAsync(
+        LicenseId id,
+        CancellationToken ct = default)
+    {
+        var entity = await _db.Licenses
+            .AsNoTracking()
+            .FirstOrDefaultAsync(l =&gt; l.Id == id.Value, ct);
+
+        // map from persistence entity → domain object (in infrastructure, not domain)
+        return entity is null ? null : _mapper.ToDomain(entity);
+    }
+
+    public async Task SaveAsync(License license, CancellationToken ct = default)
+    {
+        var entity = _mapper.ToEntity(license);
+
+        var exists = await _db.Licenses
+            .AnyAsync(l =&gt; l.Id == entity.Id, ct);
+
+        if (!exists)
+            _db.Licenses.Add(entity);
+        else
+            _db.Licenses.Update(entity);
+
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task DeleteAsync(LicenseId id, CancellationToken ct = default)
+    {
+        var entity = await _db.Licenses
+            .FirstOrDefaultAsync(l =&gt; l.Id == id.Value, ct);
+
+        if (entity is not null)
+        {
+            _db.Licenses.Remove(entity);
+            await _db.SaveChangesAsync(ct);
+        }
+    }
+
+    public async Task&lt;IReadOnlyList&lt;License&gt;&gt; FindByCustomerAsync(
+        CustomerId customerId,
+        CancellationToken ct = default)
+    {
+        var entities = await _db.Licenses
+            .AsNoTracking()
+            .Where(l =&gt; l.CustomerId == customerId.Value)
+            .ToListAsync(ct);
+
+        return entities.Select(_mapper.ToDomain).ToList();
+    }
+
+    public async Task&lt;IReadOnlyList&lt;License&gt;&gt; FindActiveAsync(
+        CancellationToken ct = default)
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var entities = await _db.Licenses
+            .AsNoTracking()
+            .Where(l =&gt; l.ExpiresAt &gt;= today)
+            .ToListAsync(ct);
+
+        return entities.Select(_mapper.ToDomain).ToList();
+    }
+}
+</CodeSnippet>
+
+      <h4>Step 4: Swapping Adapters Without Touching the Domain</h4>
+
+      <p>
+        The only change when switching adapters is the DI registration. The domain, application 
+        service, and all business logic remain unchanged:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// File: Web/Program.cs
+
+// Production: use EF Core adapter
+if (builder.Environment.IsProduction() || builder.Environment.IsStaging())
+{
+    builder.Services.AddScoped&lt;ILicenseRepository, EfLicenseRepository&gt;();
+}
+
+// Development/Tests: use in-memory adapter (or configure per test)
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddSingleton&lt;ILicenseRepository,
+                                   InMemoryLicenseRepository&gt;();
+}
+</CodeSnippet>
+
+      <h4>Step 5: Contract Tests That Protect All Adapters</h4>
+
+      <p>
+        Write an abstract base test class that defines the contract. Each concrete adapter 
+        must pass all of these tests. This guarantees that every adapter behaves identically:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// File: LicenseContext.Tests/Contracts/LicenseRepositoryContractTests.cs
+using LicenseContext.Domain;
+using LicenseContext.Domain.Ports;
+using Xunit;
+
+namespace LicenseContext.Tests.Contracts;
+
+/// &lt;summary&gt;
+/// Abstract contract tests. Every ILicenseRepository implementation must pass these.
+/// &lt;/summary&gt;
+public abstract class LicenseRepositoryContractTests
+{
+    /// &lt;summary&gt;Subclasses provide the concrete adapter under test.&lt;/summary&gt;
+    protected abstract ILicenseRepository CreateRepository();
+
+    [Fact]
+    public async Task SaveThenFindById_ReturnsStoredLicense()
+    {
+        // GIVEN
+        var repo = CreateRepository();
+        var license = License.Create(
+            new LicenseId(Guid.NewGuid()),
+            new CustomerId(Guid.NewGuid()),
+            maxActivations: 3,
+            expiresAt: DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)));
+
+        // WHEN
+        await repo.SaveAsync(license);
+        var found = await repo.FindByIdAsync(license.Id);
+
+        // THEN
+        Assert.NotNull(found);
+        Assert.Equal(license.Id, found!.Id);
+        Assert.Equal(license.CustomerId, found.CustomerId);
+        Assert.Equal(0, found.ActivationCount);
+    }
+
+    [Fact]
+    public async Task FindById_WhenNotExists_ReturnsNull()
+    {
+        var repo = CreateRepository();
+        var found = await repo.FindByIdAsync(new LicenseId(Guid.NewGuid()));
+        Assert.Null(found);
+    }
+
+    [Fact]
+    public async Task SaveActivatedLicense_PersistsActivationCount()
+    {
+        // GIVEN
+        var repo = CreateRepository();
+        var license = License.Create(
+            new LicenseId(Guid.NewGuid()),
+            new CustomerId(Guid.NewGuid()),
+            maxActivations: 5,
+            expiresAt: DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)));
+
+        license.Activate(HardwareFingerprint.Of("DEVICE-001"));
+
+        // WHEN
+        await repo.SaveAsync(license);
+        var found = await repo.FindByIdAsync(license.Id);
+
+        // THEN
+        Assert.NotNull(found);
+        Assert.Equal(1, found!.ActivationCount);
+    }
+
+    [Fact]
+    public async Task Delete_RemovesLicense()
+    {
+        // GIVEN
+        var repo = CreateRepository();
+        var license = License.Create(
+            new LicenseId(Guid.NewGuid()),
+            new CustomerId(Guid.NewGuid()),
+            maxActivations: 1,
+            expiresAt: DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1)));
+
+        await repo.SaveAsync(license);
+
+        // WHEN
+        await repo.DeleteAsync(license.Id);
+        var found = await repo.FindByIdAsync(license.Id);
+
+        // THEN
+        Assert.Null(found);
+    }
+}
+</CodeSnippet>
+
+      <p>
+        Now each adapter just needs a tiny subclass to run the entire contract suite:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// File: LicenseContext.Tests/Adapters/InMemoryLicenseRepositoryTests.cs
+namespace LicenseContext.Tests.Adapters;
+
+public sealed class InMemoryLicenseRepositoryTests
+    : LicenseRepositoryContractTests
+{
+    protected override ILicenseRepository CreateRepository()
+        =&gt; new InMemoryLicenseRepository();   // fast, no database
+}
+</CodeSnippet>
+
+      <CodeSnippet CssClass="language-csharp">
+// File: LicenseContext.IntegrationTests/Adapters/EfLicenseRepositoryTests.cs
+namespace LicenseContext.IntegrationTests.Adapters;
+
+public sealed class EfLicenseRepositoryTests
+    : LicenseRepositoryContractTests, IAsyncLifetime
+{
+    private LicenseDbContext _db = default!;
+
+    public async Task InitializeAsync()
+    {
+        var options = new DbContextOptionsBuilder&lt;LicenseDbContext&gt;()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        _db = new LicenseDbContext(options);
+        await _db.Database.EnsureCreatedAsync();
+    }
+
+    protected override ILicenseRepository CreateRepository()
+        =&gt; new EfLicenseRepository(_db, new LicenseMapper());
+
+    public async Task DisposeAsync() =&gt; await _db.DisposeAsync();
+}
+</CodeSnippet>
+
+      <p>
+        Both adapters pass the same contract tests. Swapping the EF adapter for MongoDB or 
+        Dapper in the future is safe: write the new adapter, make it pass the contract tests, 
+        change the DI registration.
+      </p>
+    </How>
+
+    <Summary>
+      <p>
+        In this article, you completed a full Ports and Adapters implementation in .NET:
+      </p>
+
+      <ul>
+        <li>A <ContentHighlight>port</ContentHighlight> is a domain interface using domain types only — no DB IDs, no ORM, no SDK.</li>
+        <li>An <ContentHighlight>in-memory adapter</ContentHighlight> implements the port with a <ContentHighlight>Dictionary</ContentHighlight>. Tests run in milliseconds with zero infrastructure.</li>
+        <li>An <ContentHighlight>EF Core adapter</ContentHighlight> implements the same port using Entity Framework. ORM concerns stay inside the adapter.</li>
+        <li>Swapping adapters requires only a DI registration change — zero domain changes.</li>
+        <li><ContentHighlight>Contract tests</ContentHighlight> defined in an abstract base class ensure all adapters behave identically. They catch regressions instantly.</li>
+        <li>If domain tests need a database, the boundary is leaking. Fix it by moving the dependency behind a port.</li>
+      </ul>
+
+      <p>
+        With Bounded Contexts, Context Maps, Anti-Corruption Layers, Onion Architecture, 
+        and Ports and Adapters all in place, you have a complete strategic and tactical DDD 
+        foundation. The final checklist: keep the domain pure, keep tests fast, 
+        keep infrastructure replaceable, and keep the Context Map up to date.
+      </p>
+    </Summary>
+  </ContentBody>
+</Content>

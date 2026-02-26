@@ -1,0 +1,464 @@
+@page "/blogs/ddd-designing-money-value-object-eliminating-primitive-obsession-in-dotnet"
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(MoneyValueObject) UseNewTableOfContentsMenu=true>
+  <ContentBody>
+    <What>
+      <p>
+        In this article, we'll design a robust <ContentHighlight>Money Value Object</ContentHighlight> for .NET applications using 
+        Domain-Driven Design principles. Money is one of the most common value objects in business applications, yet it's frequently 
+        mishandled by representing it as primitive types like <ContentHighlight>decimal</ContentHighlight> and <ContentHighlight>string</ContentHighlight>.
+      </p>
+
+      <p>
+        We'll explore how to create a Money type that encapsulates amount and currency together, enforces business rules at compile-time, 
+        prevents common financial calculation errors, and provides a rich API for monetary operations. This pattern eliminates an entire 
+        category of bugs related to currency mismatches, precision issues, and invalid monetary states.
+      </p>
+
+      <p>
+        By the end of this article, you'll understand why primitive obsession is problematic for financial domains and how to implement 
+        a Money <ContentHighlight>record</ContentHighlight> with proper equality semantics — without any boilerplate.
+      </p>
+    </What>
+
+    <Why>
+      <h4>The Primitive Obsession Problem</h4>
+
+      <p>
+        Many applications represent money using primitive types, leading to a pattern called <ContentHighlight>primitive obsession</ContentHighlight>. 
+        This anti-pattern causes subtle bugs and forces developers to remember business rules throughout the codebase.
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// Problematic approach: Using primitives
+public class Product
+{
+    public string Name { get; set; }
+    public double Price { get; set; }      // What currency?
+    public string Currency { get; set; }   // Can be null or invalid
+}
+
+// Somewhere in the application
+var product = new Product 
+{ 
+    Name = "Software License",
+    Price = -50.0,          // ❌ Negative price accepted!
+    Currency = "rupees"     // ❌ Non-standard currency code
+};
+
+// Another place in code
+product.Price = 99.999999;  // ❌ Unrealistic precision
+
+// Yet another location
+product.Currency = null;    // ❌ Price without currency!
+      </CodeSnippet>
+
+      <p>
+        <strong>Problems with this approach:</strong>
+      </p>
+
+      <ul>
+        <li><strong>No validation:</strong> Nothing prevents negative amounts or zero-precision edge cases</li>
+        <li><strong>Separated concerns:</strong> Amount and currency live in separate fields—they can get out of sync</li>
+        <li><strong>Floating-point errors:</strong> Using <ContentHighlight>double</ContentHighlight> for money causes rounding issues (0.1 + 0.2 ≠ 0.3)</li>
+        <li><strong>Non-standard currencies:</strong> "INR", "rupees", "₹" all mean the same thing but compare differently</li>
+        <li><strong>Scattered logic:</strong> Every method that handles money must re-implement the same validation rules</li>
+      </ul>
+
+      <h4>Real-World Consequences</h4>
+
+      <p>
+        Let's examine what happens when business logic relies on primitive money representation:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+public class OrderService
+{
+    public void ProcessOrder(double amount1, string currency1, 
+        double amount2, string currency2)
+    {
+        // Developer forgets to check currencies match
+        var total = amount1 + amount2;  // ❌ Mixing INR + EUR!
+        
+        // Floating point precision loss
+        var tax = total * 0.075;  // ❌ May lose precision
+        var grandTotal = total + tax;
+        
+        // What if amounts are negative? Zero? NaN?
+        // Each developer must remember to validate...
+    }
+}
+
+// Usage scattered throughout codebase
+ProcessOrder(100.0, "INR", 50.0, "EUR");  // ❌ No compile-time safety
+ProcessOrder(-100.0, "INR", 50.0, "INR");  // ❌ Negative amount accepted
+ProcessOrder(100.0, null, 50.0, "INR");    // ❌ Null currency crashes at runtime
+      </CodeSnippet>
+
+      <p>
+        <strong>Consequences:</strong>
+      </p>
+
+      <ul>
+        <li>Production bugs from currency mismatches (₹100 + €50 = ₹150? €150?)</li>
+        <li>Financial reports with incorrect totals due to floating-point errors</li>
+        <li>Regulatory compliance issues from imprecise calculations</li>
+        <li>Difficulty testing—every test must set up amount + currency pairs</li>
+        <li>Poor discoverability—new developers don't know currency codes are required</li>
+      </ul>
+
+      <h4>Why a Money Value Object Solves These Problems</h4>
+
+      <p>
+        A well-designed Money value object addresses all these issues by:
+      </p>
+
+      <ul>
+        <li><strong>Encapsulation:</strong> Amount and currency always travel together</li>
+        <li><strong>Validation:</strong> Invalid states are impossible to construct</li>
+        <li><strong>Precision:</strong> Uses <ContentHighlight>decimal</ContentHighlight> instead of <ContentHighlight>double</ContentHighlight> for exact arithmetic</li>
+        <li><strong>Type Safety:</strong> Currency mismatches are caught at runtime — impossible to accidentally skip the check</li>
+        <li><strong>Immutability:</strong> Once created, Money instances can't be corrupted</li>
+        <li><strong>Free equality:</strong> Using a <ContentHighlight>record</ContentHighlight> gives structural equality with zero boilerplate</li>
+        <li><strong>Domain Language:</strong> Code reads like business requirements</li>
+      </ul>
+    </Why>
+
+    <How>
+      <h4>Step 1: Define the Money Record Structure</h4>
+
+      <p>
+        We'll create Money as a <ContentHighlight>record</ContentHighlight> — not a class. Records in C# provide 
+        <ContentHighlight>structural equality</ContentHighlight> automatically, meaning two Money instances with the same 
+        <ContentHighlight>Amount</ContentHighlight> and <ContentHighlight>Currency</ContentHighlight> are equal without 
+        writing a single line of <ContentHighlight>Equals</ContentHighlight> or <ContentHighlight>GetHashCode</ContentHighlight> code.
+        A <ContentHighlight>private</ContentHighlight> constructor keeps creation controlled through factory methods while 
+        <ContentHighlight>init</ContentHighlight> properties guarantee immutability after construction.
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+public record Money
+{
+    public static readonly Money None = new(0m, "INR");
+
+    // Private constructor - validation happens here, factory methods call this
+    private Money(decimal amount, string currency)
+    {
+        if (amount &lt; 0)
+            throw new ArgumentException(
+                "Amount cannot be negative.", nameof(amount));
+
+        if (string.IsNullOrWhiteSpace(currency))
+            throw new ArgumentException(
+                "Currency code is required.", nameof(currency));
+
+        var normalised = currency.Trim().ToUpperInvariant();
+
+        if (normalised.Length != 3 || !normalised.All(char.IsLetter))
+            throw new ArgumentException(
+                $"Invalid currency code '{currency}'. Expected 3-letter ISO 4217 code.",
+                nameof(currency));
+
+        // init properties assigned in constructor body
+        Amount   = Math.Round(amount, 2, MidpointRounding.AwayFromZero);
+        Currency = normalised;
+    }
+
+    // init - set once at construction, immutable thereafter
+    public decimal Amount   { get; init; }
+    public string  Currency { get; init; }
+}
+      </CodeSnippet>
+
+      <p>
+        <strong>Key design decisions:</strong>
+      </p>
+
+      <ul>
+        <li><ContentHighlight>record</ContentHighlight> gives structural equality for free — no <ContentHighlight>Equals</ContentHighlight>, <ContentHighlight>GetHashCode</ContentHighlight>, or <ContentHighlight>==</ContentHighlight>/<ContentHighlight>!=</ContentHighlight> boilerplate</li>
+        <li><ContentHighlight>private</ContentHighlight> constructor prevents external instantiation — all creation goes through factory methods</li>
+        <li>Currency is normalised to uppercase so "inr", "INR", and "Inr" all resolve to the same value</li>
+        <li>Rounding to 2 decimals with <ContentHighlight>AwayFromZero</ContentHighlight> matches standard financial rounding</li>
+      </ul>
+
+      <h4>Step 2: Add Factory Methods</h4>
+
+      <p>
+        Factory methods provide a clean, readable API for creating Money instances and centralise validation.
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+public record Money
+{
+    // ... constructor and properties from Step 1 ...
+
+    // Convenience factories for common currencies
+    public static Money Inr(decimal amount) =&gt; Create(amount, "INR");
+    public static Money Usd(decimal amount) =&gt; Create(amount, "USD");
+    public static Money Eur(decimal amount) =&gt; Create(amount, "EUR");
+    public static Money Gbp(decimal amount) =&gt; Create(amount, "GBP");
+
+    // Generic factory for any ISO 4217 currency
+    public static Money Create(decimal amount, string currency)
+        =&gt; new Money(amount, currency);
+
+    // Zero sentinel for a currency
+    public static Money Zero(string currency) =&gt; new Money(0m, currency);
+
+    // Parse from "100.50 INR" format
+    public static Money Parse(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            throw new ArgumentException("Value cannot be null or whitespace", nameof(value));
+
+        var parts = value.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length != 2)
+            throw new FormatException(
+                $"Invalid money format '{value}'. Expected: '100.50 INR'");
+
+        if (!decimal.TryParse(parts[0], out var amount))
+            throw new FormatException($"Invalid amount: {parts[0]}");
+
+        return new Money(amount, parts[1]);
+    }
+
+    public static bool TryParse(string value, out Money? money)
+    {
+        money = null;
+        try { money = Parse(value); return true; }
+        catch { return false; }
+    }
+}
+      </CodeSnippet>
+
+      <h4>Step 3: Implement Arithmetic Operations</h4>
+
+      <p>
+        All arithmetic operators return <strong>new instances</strong> — Money is immutable. The 
+        <ContentHighlight>EnsureSameCurrency</ContentHighlight> guard is shared by all operators so currency validation 
+        is defined exactly once.
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+public record Money
+{
+    // ... previous code ...
+
+    // Implicit conversion lets you pass Money wherever decimal is expected
+    public static implicit operator decimal(Money money) =&gt; money.Amount;
+
+    public static Money operator +(Money left, Money right)
+    {
+        EnsureSameCurrency(left, right);
+        return new Money(left.Amount + right.Amount, left.Currency);
+    }
+
+    public static Money operator -(Money left, Money right)
+    {
+        EnsureSameCurrency(left, right);
+        return new Money(left.Amount - right.Amount, left.Currency);
+    }
+
+    public static Money operator *(Money left, decimal factor)
+        =&gt; new Money(left.Amount * factor, left.Currency);
+
+    public static Money operator /(Money left, decimal divisor)
+    {
+        if (divisor == 0) throw new DivideByZeroException("Cannot divide by zero");
+        return new Money(left.Amount / divisor, left.Currency);
+    }
+
+    public static Money Abs(Money money)
+        =&gt; new Money(Math.Abs(money.Amount), money.Currency);
+
+    public Money Percentage(decimal percent) =&gt; this * (percent / 100m);
+
+    private static void EnsureSameCurrency(Money left, Money right)
+    {
+        if (left.Currency != right.Currency)
+            throw new InvalidOperationException(
+                $"Cannot operate on {left.Currency} and {right.Currency}");
+    }
+}
+      </CodeSnippet>
+
+      <h4>Step 4: Add Comparison and Utility Members</h4>
+
+      <p>
+        Records handle equality automatically. Add comparison operators to support ordering.
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+public record Money
+{
+    // ... previous code ...
+
+    public bool IsZero     =&gt; Amount == 0m;
+    public bool IsPositive =&gt; Amount &gt; 0m;
+
+    public static bool operator &lt; (Money l, Money r) { EnsureSameCurrency(l, r); return l.Amount &lt;  r.Amount; }
+    public static bool operator &gt; (Money l, Money r) { EnsureSameCurrency(l, r); return l.Amount &gt;  r.Amount; }
+    public static bool operator &lt;=(Money l, Money r) { EnsureSameCurrency(l, r); return l.Amount &lt;= r.Amount; }
+    public static bool operator &gt;=(Money l, Money r) { EnsureSameCurrency(l, r); return l.Amount &gt;= r.Amount; }
+
+    public override string ToString() =&gt; $"{Amount:N2} {Currency}";
+
+}
+      </CodeSnippet>
+
+      <h4>Step 5: Use Money in Domain Entities</h4>
+
+      <p>
+        Now integrate Money into your domain model. Notice how much clearer the intent becomes compared to raw primitives:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+public class Product
+{
+    public Guid   Id    { get; private set; }
+    public string Name  { get; private set; }
+    public Money  Price { get; private set; }   // Type-safe Money, not a bare decimal
+
+    private Product(Guid id, string name, Money price)
+    {
+        Id    = id;
+        Name  = name  ?? throw new ArgumentNullException(nameof(name));
+        Price = price ?? throw new ArgumentNullException(nameof(price));
+    }
+
+    public static Product Create(string name, Money price)
+        =&gt; new Product(Guid.NewGuid(), name, price);
+
+    public void UpdatePrice(Money newPrice)
+        =&gt; Price = newPrice ?? throw new ArgumentNullException(nameof(newPrice));
+
+    public Money CalculatePriceWithTax(decimal taxRate)
+        =&gt; Price + Price.Percentage(taxRate);
+}
+
+// Usage
+var product = Product.Create("Pro License", Money.Inr(299));
+
+var priceWithTax = product.CalculatePriceWithTax(18m);  // GST 18% → ₹352.82
+
+var originalPrice = product.Price;
+product.UpdatePrice(Money.Inr(249));
+Console.WriteLine(originalPrice);   // Still ₹299.00 INR (immutable record)
+Console.WriteLine(product.Price);   // ₹249.00 INR
+      </CodeSnippet>
+
+      <h4>Complete Money Record (All Steps Combined)</h4>
+
+      <CodeSnippet CssClass="language-csharp">
+public record Money
+{
+    public static readonly Money None = new(0m, "INR");
+
+    private Money(decimal amount, string currency)
+    {
+        if (amount &lt; 0)
+            throw new ArgumentException("Amount cannot be negative.", nameof(amount));
+
+        if (string.IsNullOrWhiteSpace(currency))
+            throw new ArgumentException("Currency code is required.", nameof(currency));
+
+        var normalised = currency.Trim().ToUpperInvariant();
+
+        if (normalised.Length != 3 || !normalised.All(char.IsLetter))
+            throw new ArgumentException(
+                $"Invalid currency code '{currency}'.", nameof(currency));
+
+        Amount   = Math.Round(amount, 2, MidpointRounding.AwayFromZero);
+        Currency = normalised;
+    }
+
+    public decimal Amount   { get; init; }
+    public string  Currency { get; init; }
+
+    // Factory methods
+    public static Money Inr(decimal amount) =&gt; Create(amount, "INR");
+    public static Money Usd(decimal amount) =&gt; Create(amount, "USD");
+    public static Money Eur(decimal amount) =&gt; Create(amount, "EUR");
+    public static Money Gbp(decimal amount) =&gt; Create(amount, "GBP");
+    public static Money Create(decimal amount, string currency) =&gt; new Money(amount, currency);
+    public static Money Zero(string currency) =&gt; new Money(0m, currency);
+
+    // Implicit conversion
+    public static implicit operator decimal(Money money) =&gt; money.Amount;
+
+    // Arithmetic operators (all return new instances)
+    public static Money operator +(Money l, Money r) { EnsureSameCurrency(l, r); return new Money(l.Amount + r.Amount, l.Currency); }
+    public static Money operator -(Money l, Money r) { EnsureSameCurrency(l, r); return new Money(l.Amount - r.Amount, l.Currency); }
+    public static Money operator *(Money l, decimal f) =&gt; new Money(l.Amount * f, l.Currency);
+    public static Money operator /(Money l, decimal d) { if (d == 0) throw new DivideByZeroException(); return new Money(l.Amount / d, l.Currency); }
+
+    public static Money Abs(Money m) =&gt; new Money(Math.Abs(m.Amount), m.Currency);
+    public Money Percentage(decimal pct) =&gt; this * (pct / 100m);
+
+    // Utility
+    public bool IsZero     =&gt; Amount == 0m;
+    public bool IsPositive =&gt; Amount &gt;  0m;
+
+    // Comparison operators (records handle equality; ordering operators are manual)
+    public static bool operator &lt; (Money l, Money r) { EnsureSameCurrency(l, r); return l.Amount &lt;  r.Amount; }
+    public static bool operator &gt; (Money l, Money r) { EnsureSameCurrency(l, r); return l.Amount &gt;  r.Amount; }
+    public static bool operator &lt;=(Money l, Money r) { EnsureSameCurrency(l, r); return l.Amount &lt;= r.Amount; }
+    public static bool operator &gt;=(Money l, Money r) { EnsureSameCurrency(l, r); return l.Amount &gt;= r.Amount; }
+
+    public override string ToString() =&gt; $"{Amount:N2} {Currency}";
+
+    private static void EnsureSameCurrency(Money l, Money r)
+    {
+        if (l.Currency != r.Currency)
+            throw new InvalidOperationException($"Cannot operate on {l.Currency} and {r.Currency}");
+    }
+}
+      </CodeSnippet>
+
+      <CodeSnippet CssClass="language-csharp">
+// Usage examples
+var price1 = Money.Inr(100);
+var price2 = Money.Inr(100);
+
+// Record equality - no custom Equals needed, just works!
+Console.WriteLine(price1 == price2);           // True
+Console.WriteLine(price1.Equals(price2));      // True
+
+// Arithmetic creates new instances (immutability)
+var total = price1 + Money.Inr(50);
+Console.WriteLine(total);    // 150.00 INR
+Console.WriteLine(price1);   // Still 100.00 INR
+
+// Implicit conversion to decimal
+decimal raw = Money.Inr(299);   // 299
+
+// Comparison
+Console.WriteLine(Money.Inr(50) &lt; Money.Inr(100));   // True
+
+// Currency mismatch throws at runtime
+var dollars = Money.Usd(100);
+// var invalid = price1 + dollars;  // ❌ Throws InvalidOperationException
+
+// Fluent operations
+var finalPrice = Money.Inr(100) * 3 - Money.Inr(50);  // ₹250.00 INR
+      </CodeSnippet>
+    </How>
+
+    <Summary>
+      <ul>
+        <li><ContentHighlight>Primitive obsession</ContentHighlight> for money leads to bugs, scattered validation, and currency mismatch errors</li>
+        <li>A <ContentHighlight>Money record</ContentHighlight> encapsulates amount and currency as an inseparable, immutable unit</li>
+        <li>Use <ContentHighlight>decimal</ContentHighlight> instead of <ContentHighlight>double</ContentHighlight> for precise financial calculations without floating-point errors</li>
+        <li>Implement Money as a <ContentHighlight>record</ContentHighlight> — C# records provide structural equality for free, eliminating <ContentHighlight>Equals</ContentHighlight>, <ContentHighlight>GetHashCode</ContentHighlight>, and <ContentHighlight>==</ContentHighlight>/<ContentHighlight>!=</ContentHighlight> boilerplate</li>
+        <li>Use a <ContentHighlight>private</ContentHighlight> constructor with <ContentHighlight>init</ContentHighlight> properties to keep instances immutable and creation controlled via factory methods</li>
+        <li>Validate currency codes (ISO 4217) and amounts at construction time to prevent invalid states</li>
+        <li>All arithmetic operators return new Money instances, preserving immutability</li>
+        <li>Add comparison operators manually for ordering — records provide structural equality but not ordering</li>
+        <li>Currency mismatch operations throw at runtime, preventing silent bugs</li>
+        <li>Money value objects eliminate an entire class of financial calculation bugs and provide type-safe domain vocabulary</li>
+      </ul>
+    </Summary>
+  </ContentBody>
+</Content>

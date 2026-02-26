@@ -1,0 +1,344 @@
+@page "/blogs/ddd-bounded-contexts-in-practice-strategic-ddd-in-dotnet"
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(BoundedContextsInPractice) UseNewTableOfContentsMenu=true>
+  <ContentBody>
+    <What>
+      <p>
+        You have built a clean aggregate. Your entities carry behaviour. Your value objects are immutable. 
+        Everything looks good at the micro level - so why does the system still feel like a mess?
+      </p>
+
+      <p>
+        The answer is almost always <ContentHighlight>strategic design</ContentHighlight>. Tactical DDD 
+        (entities, value objects, aggregates) tells you how to model one concept. Strategic DDD tells you 
+        how to organise the whole system. And the most important strategic concept in 
+        <ContentHighlight>Domain-Driven Design</ContentHighlight> is the 
+        <ContentHighlight>Bounded Context</ContentHighlight>.
+      </p>
+
+      <p>
+        In this article you will learn what a Bounded Context is, why a single shared model always breaks 
+        down eventually, how to split one bloated model into intentional contexts, and how those contexts 
+        integrate with one another using domain events.
+      </p>
+    </What>
+
+    <Why>
+      <h4>The Single-Model Trap</h4>
+
+      <p>
+        Imagine a <ContentHighlight>Customer</ContentHighlight> class that every team in the company shares. 
+        Sales adds order history. Marketing adds campaign preferences. Billing adds invoice addresses. 
+        Shipping adds delivery options. Support adds ticket counts. Each team is just trying to move fast, 
+        but the class turns into a sprawling data bag with hundreds of fields.
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// A real codebase horror story - one class serving everyone
+public class Customer
+{
+    // Sales
+    public List&lt;Order&gt; Orders { get; set; } = [];
+    public decimal TotalRevenue { get; set; }
+    public string Segment { get; set; } = string.Empty;
+
+    // Support
+    public List&lt;Ticket&gt; Tickets { get; set; } = [];
+    public int SatisfactionScore { get; set; }
+    public string SupportTier { get; set; } = string.Empty;
+
+    // Billing
+    public List&lt;Invoice&gt; Invoices { get; set; } = [];
+    public List&lt;Payment&gt; Payments { get; set; } = [];
+    public string BillingAddress { get; set; } = string.Empty;
+
+    // Shipping
+    public Address DefaultShippingAddress { get; set; } = default!;
+    public string PreferredCarrier { get; set; } = string.Empty;
+
+    // Marketing
+    public List&lt;CampaignSubscription&gt; Campaigns { get; set; } = [];
+    public bool EmailOptIn { get; set; }
+
+    // ... and growing every sprint
+}
+</CodeSnippet>
+
+      <p>
+        This approach fails for three concrete reasons:
+      </p>
+
+      <CodeSnippet CssClass="language-plaintext">
+Problem                          | Consequence
+─────────────────────────────────────────────────────────────────────
+One class does everything        | Massive, fragile, hard to understand
+Nobody owns the class end-to-end | Each team understands only their slice
+Every change is a negotiation    | Five teams argue about one field
+─────────────────────────────────────────────────────────────────────
+Result: hard-to-test code, conflicting requirements, big-bang deployments
+</CodeSnippet>
+
+      <h4>Same Word, Different Meanings</h4>
+
+      <p>
+        The deeper problem is that the same business term means different things to different teams. 
+        This is not a communication failure - it is reality. Different sub-domains use language differently:
+      </p>
+
+      <CodeSnippet CssClass="language-plaintext">
+Term     | Sales Context         | Support Context
+──────────────────────────────────────────────────────────
+Customer | A buyer               | A person needing help
+Order    | A purchase being made | A source of support tickets
+Active   | Has open orders       | Has open tickets
+──────────────────────────────────────────────────────────
+Same word → different meaning → different rules → different models
+</CodeSnippet>
+
+      <p>
+        When you force one class to represent all of these meanings you end up with 
+        <ContentHighlight>null fields</ContentHighlight>, <ContentHighlight>boolean flags</ContentHighlight>, 
+        and conditional logic that reads like "if sales, then... else if support, then...". That code 
+        is almost impossible to reason about.
+      </p>
+    </Why>
+
+    <How>
+      <h4>Step 1: Define Each Bounded Context</h4>
+
+      <p>
+        A <ContentHighlight>Bounded Context</ContentHighlight> is a clear boundary where the domain model 
+        is defined, terms have a single consistent meaning, and one team owns decisions. Inside that boundary 
+        every word is precise. Outside it, the same word may mean something completely different.
+      </p>
+
+      <p>
+        Split the bloated <ContentHighlight>Customer</ContentHighlight> into focused, intentional models — 
+        one per context:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// Sales Context - only what sales cares about
+namespace SalesContext;
+
+public sealed class Customer
+{
+    public CustomerId Id { get; private set; }
+    public IReadOnlyList&lt;OrderId&gt; Orders =&gt; _orders.AsReadOnly();
+    public decimal TotalRevenue { get; private set; }
+    public CustomerSegment Segment { get; private set; }
+
+    private readonly List&lt;OrderId&gt; _orders = [];
+
+    private Customer() { }
+
+    public static Customer Register(CustomerId id, CustomerSegment segment)
+        =&gt; new() { Id = id, Segment = segment, TotalRevenue = 0 };
+
+    public void RecordOrder(OrderId orderId, decimal amount)
+    {
+        _orders.Add(orderId);
+        TotalRevenue += amount;
+    }
+}
+</CodeSnippet>
+
+      <CodeSnippet CssClass="language-csharp">
+// Support Context - only what support cares about
+namespace SupportContext;
+
+public sealed class Customer
+{
+    public CustomerId Id { get; private set; }
+    public IReadOnlyList&lt;TicketId&gt; Tickets =&gt; _tickets.AsReadOnly();
+    public int SatisfactionScore { get; private set; }
+    public SupportTier Tier { get; private set; }
+
+    private readonly List&lt;TicketId&gt; _tickets = [];
+
+    private Customer() { }
+
+    public static Customer Create(CustomerId id, SupportTier tier)
+        =&gt; new() { Id = id, Tier = tier, SatisfactionScore = 100 };
+
+    public bool IsActive() =&gt; _tickets.Any();
+}
+</CodeSnippet>
+
+      <CodeSnippet CssClass="language-csharp">
+// Billing / License Context - only what billing cares about
+namespace LicenseContext;
+
+public sealed class Account
+{
+    public AccountId Id { get; private set; }
+    public CustomerId CustomerId { get; private set; }   // reference only!
+    public IReadOnlyList&lt;InvoiceId&gt; Invoices =&gt; _invoices.AsReadOnly();
+    public IReadOnlyList&lt;PaymentId&gt; Payments =&gt; _payments.AsReadOnly();
+
+    private readonly List&lt;InvoiceId&gt; _invoices = [];
+    private readonly List&lt;PaymentId&gt; _payments = [];
+
+    private Account() { }
+
+    public static Account Open(AccountId id, CustomerId customerId)
+        =&gt; new() { Id = id, CustomerId = customerId };
+}
+</CodeSnippet>
+
+      <p>
+        Notice that each context keeps only the data it needs. The <ContentHighlight>Sales context</ContentHighlight> 
+        knows nothing about tickets. The <ContentHighlight>Support context</ContentHighlight> knows nothing about 
+        invoices. The <ContentHighlight>Billing context</ContentHighlight> holds a 
+        <ContentHighlight>CustomerId</ContentHighlight> reference — it does not duplicate sales data.
+      </p>
+
+      <h4>Step 2: Design the Integration via Domain Events</h4>
+
+      <p>
+        Bounded Contexts must not share a database table or call each other's aggregates directly. 
+        The safe integration mechanism is <ContentHighlight>domain events</ContentHighlight>. 
+        Here is how the three contexts connect:
+      </p>
+
+      <CodeSnippet CssClass="language-plaintext">
+┌─────────────────────────────────────────────────────────────────┐
+│  Integration Flow                                               │
+│                                                                 │
+│  Sales Context                                                  │
+│    Customer.Register()  ──raises──▶  CustomerRegistered event   │
+│                                              │                  │
+│                          ┌───────────────────┤                  │
+│                          ▼                   ▼                  │
+│             Billing Context          Support Context            │
+│          Account.Open(customerId)  Customer.Create(customerId)  │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+</CodeSnippet>
+
+      <CodeSnippet CssClass="language-csharp">
+// The event raised by the Sales context
+namespace SalesContext.Events;
+
+public sealed record CustomerRegistered(
+    Guid CustomerId,
+    string Segment,
+    DateTimeOffset OccurredAt);
+</CodeSnippet>
+
+      <CodeSnippet CssClass="language-csharp">
+// Billing context handler - reacts to the Sales event
+namespace BillingContext.Handlers;
+
+public sealed class CreateAccountOnCustomerRegistered
+{
+    private readonly IAccountRepository _accounts;
+
+    public CreateAccountOnCustomerRegistered(IAccountRepository accounts)
+        =&gt; _accounts = accounts;
+
+    public async Task HandleAsync(CustomerRegistered evt,
+                                  CancellationToken ct = default)
+    {
+        var accountId = new AccountId(Guid.NewGuid());
+        var customerId = new CustomerId(evt.CustomerId);
+
+        var account = Account.Open(accountId, customerId);
+
+        await _accounts.SaveAsync(account, ct);
+    }
+}
+</CodeSnippet>
+
+      <CodeSnippet CssClass="language-csharp">
+// Support context handler - reacts to the same Sales event
+namespace SupportContext.Handlers;
+
+public sealed class CreateSupportCustomerOnRegistered
+{
+    private readonly ISupportCustomerRepository _customers;
+
+    public CreateSupportCustomerOnRegistered(
+        ISupportCustomerRepository customers)
+        =&gt; _customers = customers;
+
+    public async Task HandleAsync(CustomerRegistered evt,
+                                  CancellationToken ct = default)
+    {
+        var customerId = new CustomerId(evt.CustomerId);
+        var customer = Customer.Create(customerId, SupportTier.Standard);
+
+        await _customers.SaveAsync(customer, ct);
+    }
+}
+</CodeSnippet>
+
+      <h4>Step 3: Enforce the Boundary in Your Project Structure</h4>
+
+      <p>
+        A Bounded Context is not just a conceptual idea — it should be reflected in your project layout. 
+        Each context gets its own namespace and assembly. No cross-context type references are allowed, 
+        only shared <ContentHighlight>identity value objects</ContentHighlight> (like 
+        <ContentHighlight>CustomerId</ContentHighlight>) and event contracts:
+      </p>
+
+      <CodeSnippet CssClass="language-plaintext">
+src/
+  SalesContext/
+    Domain/
+      Customer.cs
+      Events/
+        CustomerRegistered.cs
+    Application/
+      RegisterCustomerCommand.cs
+    Infrastructure/
+      SqlCustomerRepository.cs
+
+  BillingContext/
+    Domain/
+      Account.cs
+    Application/
+      Handlers/
+        CreateAccountOnCustomerRegistered.cs
+    Infrastructure/
+      SqlAccountRepository.cs
+
+  SupportContext/
+    Domain/
+      Customer.cs        ← different Customer than SalesContext!
+    Application/
+      Handlers/
+        CreateSupportCustomerOnRegistered.cs
+</CodeSnippet>
+
+      <p>
+        The key insight: <ContentHighlight>SalesContext.Customer</ContentHighlight> and 
+        <ContentHighlight>SupportContext.Customer</ContentHighlight> are completely separate classes 
+        in separate namespaces. Having the same name is intentional — they model the same real-world 
+        entity but from completely different perspectives.
+      </p>
+    </How>
+
+    <Summary>
+      <p>
+        In this article, you learned the most important strategic concept in Domain-Driven Design:
+      </p>
+
+      <ul>
+        <li>A <ContentHighlight>Bounded Context</ContentHighlight> is a clear boundary where a domain model is defined, terms have one meaning, and one team owns decisions.</li>
+        <li>The single-model anti-pattern produces massive, fragile classes that nobody owns and everyone breaks.</li>
+        <li>The same business word (Customer, Order, Active) means different things in different contexts — that difference belongs in code, not in comments.</li>
+        <li>Each Bounded Context keeps only the data it needs, modelled using the language of that sub-domain.</li>
+        <li>Contexts integrate through <ContentHighlight>domain events</ContentHighlight>, never through direct aggregate references across boundaries.</li>
+        <li>The boundary should be enforced structurally using separate namespaces and assemblies.</li>
+      </ul>
+
+      <p>
+        With Bounded Contexts defined, the next step is to draw the relationships between them — that is 
+        the job of a <ContentHighlight>Context Map</ContentHighlight>, which is the topic of the next article.
+      </p>
+    </Summary>
+  </ContentBody>
+</Content>

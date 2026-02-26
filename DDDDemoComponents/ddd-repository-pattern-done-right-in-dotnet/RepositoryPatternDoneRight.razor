@@ -1,0 +1,442 @@
+@page "/blogs/ddd-repository-pattern-done-right-in-dotnet"
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(RepositoryPatternDoneRight) UseNewTableOfContentsMenu=true>
+  <ContentBody>
+    <What>
+      <p>
+        If your repository looks like a wrapper around Entity Framework with methods like 
+        <ContentHighlight>GetAllLicenses()</ContentHighlight> or <ContentHighlight>ExecuteRawSql()</ContentHighlight>, 
+        you are not using the Repository Pattern—you are using a Data Access Object wearing a disguise.
+      </p>
+
+      <p>
+        In this article, we'll explore the <ContentHighlight>Repository Pattern</ContentHighlight> as intended by 
+        Domain-Driven Design: a <ContentHighlight>collection-like abstraction</ContentHighlight> that hides persistence 
+        completely, lives in the domain layer as an interface, and speaks the language of the business. We'll look at 
+        what repositories are, where they belong in your architecture, and the critical differences between a proper 
+        DDD repository and a DAO.
+      </p>
+    </What>
+
+    <Why>
+      <h4>The Cost of Mixing Domain and Persistence</h4>
+
+      <p>
+        Here is what happens when domain entities are tightly coupled to persistence technology from the very start:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// ❌ Bad: Domain entity polluted with persistence concerns
+// The [Table] and [Key] attributes tie the domain to a specific ORM
+[Table("licenses")]
+public class License
+{
+    [Key]
+    [DatabaseGenerated(DatabaseGeneratedOption.None)]
+    public Guid Id { get; set; }
+
+    [Column("customer_id")]
+    public Guid CustomerId { get; set; }
+
+    [Column("activation_count")]
+    public int ActivationCount { get; set; }
+
+    // Business logic mixed with persistence logic
+    public void Activate(HardwareFingerprint hardware)
+    {
+        EnsureNotExpired();
+        ActivationCount++;
+
+        // Domain entity knows how to save itself — deeply wrong
+        using var context = new AppDbContext();
+        context.Entry(this).State = EntityState.Modified;
+        context.SaveChanges();
+    }
+}
+</CodeSnippet>
+
+      <p>
+        The entity above has three serious problems. It is tied to a specific persistence technology—switching from 
+        EF Core to Dapper or MongoDB requires rewriting the domain. Business logic and saving logic are interleaved, 
+        making it impossible to test business rules without hitting a real database. And the entity has multiple reasons 
+        to change: business rule changes and database schema changes.
+      </p>
+
+      <h4>What a Repository Should Look Like vs. What It Shouldn't</h4>
+
+      <p>
+        The key insight of the Repository Pattern is that from the domain's perspective, repositories should feel like 
+        in-memory collections. The domain should have no idea whether data is stored in SQL Server, PostgreSQL, 
+        MongoDB, or an in-memory dictionary:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// ❌ DAO approach — database thinking leaks into the domain
+public interface ILicenseDao
+{
+    DataTable ExecuteQuery(string sql);                          // Raw SQL exposed
+    void BatchInsert(IEnumerable&lt;LicenseDto&gt; dtos);            // DTOs, not aggregates
+    IEnumerable&lt;License&gt; GetByStatus(string statusColumn,       // Column names exposed
+        string statusValue);
+    int GetCountWhere(string whereClause);                       // SQL fragments
+}
+
+// ✅ Repository approach — domain language, business concepts
+public interface ILicenseRepository
+{
+    Task&lt;License?&gt; FindByIdAsync(LicenseId id);                 // Domain identity
+    Task&lt;IReadOnlyList&lt;License&gt;&gt; FindByCustomerIdAsync(
+        CustomerId customerId);                                  // Business question
+    Task AddAsync(License license);                             // Collection semantics
+    Task SaveAsync(License license);                            // Collection semantics
+    Task RemoveAsync(LicenseId id);                             // Collection semantics
+}
+</CodeSnippet>
+
+      <p>
+        Every method name in a repository should read like a business question. If it reads like an SQL query, 
+        something has gone wrong.
+      </p>
+
+      <h4>Repository vs DAO - A Side-by-Side Comparison</h4>
+
+      <CodeSnippet CssClass="language-plaintext">
+Repository                              | Data Access Object (DAO)
+──────────────────────────────────────────────────────────────────
+Aggregate-focused                       | Table-focused
+Domain language in method names         | Database/column names in methods
+Interface lives in the domain layer     | Interface lives in the data layer
+Hides database completely               | Exposes SQL or ORM concepts
+Returns aggregates                      | Returns DTOs or DataRows
+One repository per aggregate root       | One DAO per table (often)
+</CodeSnippet>
+    </Why>
+
+    <How>
+      <h4>Step 1: Define the Repository Interface in the Domain Layer</h4>
+
+      <p>
+        The interface belongs in the domain layer, next to the aggregate it serves. The domain defines what it needs; 
+        the infrastructure provides it:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// Domain layer — defines the contract
+// File: Domain/Licensing/ILicenseRepository.cs
+namespace LicensingDomain.Licensing;
+
+public interface ILicenseRepository
+{
+    // Retrieve by domain identity — not by database ID
+    Task&lt;License?&gt; FindByIdAsync(LicenseId id,
+        CancellationToken cancellationToken = default);
+
+    // Business question — expressed in domain terms
+    Task&lt;IReadOnlyList&lt;License&gt;&gt; FindActiveByCustomerIdAsync(
+        CustomerId customerId,
+        CancellationToken cancellationToken = default);
+
+    // Another business question
+    Task&lt;bool&gt; ExistsForProductAndCustomerAsync(
+        ProductId productId,
+        CustomerId customerId,
+        CancellationToken cancellationToken = default);
+
+    // Collection-shaped mutations
+    Task AddAsync(License license, CancellationToken cancellationToken = default);
+    Task SaveAsync(License license, CancellationToken cancellationToken = default);
+    Task RemoveAsync(LicenseId id, CancellationToken cancellationToken = default);
+}
+</CodeSnippet>
+
+      <p>
+        Notice there is no mention of <ContentHighlight>DbContext</ContentHighlight>, no SQL, no 
+        <ContentHighlight>IQueryable&lt;T&gt;</ContentHighlight> leaking out. The domain layer has zero knowledge of 
+        how or where data is stored.
+      </p>
+
+      <h4>Step 2: Keep the Domain Entity Clean</h4>
+
+      <p>
+        With the repository abstraction in place, the domain entity focuses purely on business behavior:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// ✅ Domain entity — pure business logic, no persistence concerns
+public class License
+{
+    private readonly List&lt;IDomainEvent&gt; _domainEvents = [];
+
+    public LicenseId Id { get; private set; }
+    public CustomerId CustomerId { get; private set; }
+    public ProductId ProductId { get; private set; }
+    public int ActivationCount { get; private set; }
+    public LicenseStatus Status { get; private set; }
+
+    // Private readonly fields — set only in the constructor
+    private readonly DateOnly _expiresAt;
+    private readonly int _maxActivations;
+
+    // Private constructor — only the factory method may construct instances
+    private License(
+        LicenseId id,
+        CustomerId customerId,
+        ProductId productId,
+        DateOnly expiresAt,
+        int maxActivations)
+    {
+        Id = id;
+        CustomerId = customerId;
+        ProductId = productId;
+        _expiresAt = expiresAt;
+        _maxActivations = maxActivations;
+        Status = LicenseStatus.Inactive;
+    }
+
+    public IReadOnlyList&lt;IDomainEvent&gt; DomainEvents
+        =&gt; _domainEvents.AsReadOnly();
+
+    // Factory method — enforce invariants before creating the instance
+    public static License Create(
+        LicenseId id,
+        CustomerId customerId,
+        ProductId productId,
+        DateOnly expiresAt,
+        int maxActivations)
+    {
+        if (maxActivations &lt;= 0)
+            throw new InvalidOperationException(
+                "Max activations must be greater than zero.");
+
+        return new License(id, customerId, productId, expiresAt, maxActivations);
+    }
+
+    public void Activate(HardwareFingerprint hardware)
+    {
+        EnsureNotExpired();
+        EnsureActivationLimitNotReached();
+
+        ActivationCount++;
+        Status = LicenseStatus.Active;
+
+        // Record the fact — no saving, no emailing
+        _domainEvents.Add(new LicenseActivated(
+            Id, CustomerId, hardware, ActivationCount));
+    }
+
+    public void Suspend(string reason)
+    {
+        if (Status != LicenseStatus.Active)
+            throw new InvalidOperationException(
+                "Only active licenses can be suspended.");
+
+        Status = LicenseStatus.Suspended;
+        _domainEvents.Add(new LicenseSuspended(Id, reason));
+    }
+
+    public void ClearDomainEvents() =&gt; _domainEvents.Clear();
+
+    private void EnsureNotExpired()
+    {
+        if (DateOnly.FromDateTime(DateTime.UtcNow) &gt; _expiresAt)
+            throw new LicenseExpiredException(Id);
+    }
+
+    private void EnsureActivationLimitNotReached()
+    {
+        if (ActivationCount &gt;= _maxActivations)
+            throw new ActivationLimitReachedException(Id, _maxActivations);
+    }
+}
+</CodeSnippet>
+
+      <h4>Step 3: Implement the Repository in the Infrastructure Layer</h4>
+
+      <p>
+        The concrete implementation lives in the infrastructure layer. It translates between domain aggregates and 
+        whatever persistence technology is in use—without letting those details escape:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// Infrastructure layer — EF Core implementation
+// File: Infrastructure/Persistence/EfCoreLicenseRepository.cs
+namespace LicensingInfrastructure.Persistence;
+
+public class EfCoreLicenseRepository : ILicenseRepository
+{
+    private readonly AppDbContext _dbContext;
+
+    public EfCoreLicenseRepository(AppDbContext dbContext)
+        =&gt; _dbContext = dbContext;
+
+    public async Task&lt;License?&gt; FindByIdAsync(
+        LicenseId id,
+        CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.Licenses
+            .FirstOrDefaultAsync(
+                l =&gt; l.Id == id,
+                cancellationToken);
+    }
+
+    public async Task&lt;IReadOnlyList&lt;License&gt;&gt; FindActiveByCustomerIdAsync(
+        CustomerId customerId,
+        CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.Licenses
+            .Where(l =&gt;
+                l.CustomerId == customerId
+                &amp;&amp; l.Status == LicenseStatus.Active)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task&lt;bool&gt; ExistsForProductAndCustomerAsync(
+        ProductId productId,
+        CustomerId customerId,
+        CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.Licenses
+            .AnyAsync(l =&gt;
+                l.ProductId == productId
+                &amp;&amp; l.CustomerId == customerId,
+                cancellationToken);
+    }
+
+    public async Task AddAsync(
+        License license,
+        CancellationToken cancellationToken = default)
+    {
+        await _dbContext.Licenses.AddAsync(license, cancellationToken);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task SaveAsync(
+        License license,
+        CancellationToken cancellationToken = default)
+    {
+        _dbContext.Licenses.Update(license);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task RemoveAsync(
+        LicenseId id,
+        CancellationToken cancellationToken = default)
+    {
+        var license = await FindByIdAsync(id, cancellationToken);
+        if (license is not null)
+        {
+            _dbContext.Licenses.Remove(license);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+    }
+}
+</CodeSnippet>
+
+      <h4>Step 4: Understand What Gets a Repository and What Does Not</h4>
+
+      <p>
+        A repository only exists for <ContentHighlight>aggregate roots</ContentHighlight>. Entities and value objects 
+        that are part of an aggregate are accessed through their root, never directly:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// ✅ Needs a repository — these are aggregate roots
+// ILicenseRepository   → License is an aggregate root
+// ICustomerRepository  → Customer is an aggregate root
+// IOrderRepository     → Order is an aggregate root
+
+// ❌ Does NOT need a repository — accessed through their aggregate root
+// ActivationRecord   → is an entity inside License aggregate
+// OrderLine          → is an entity inside Order aggregate
+// Address            → is a value object inside Customer aggregate
+
+// Example: accessing OrderLine through the Order aggregate root
+public class OrderApplicationService
+{
+    private readonly IOrderRepository _orderRepository;
+
+    public async Task AddLineItemAsync(
+        OrderId orderId,
+        ProductId productId,
+        int quantity)
+    {
+        // Load through the aggregate root — never query OrderLine directly
+        var order = await _orderRepository.FindByIdAsync(orderId)
+            ?? throw new OrderNotFoundException(orderId);
+
+        // Aggregate root manages its own children
+        order.AddLine(productId, quantity);
+
+        await _orderRepository.SaveAsync(order);
+    }
+}
+</CodeSnippet>
+
+      <p>
+        This rule enforces consistency boundaries. If you need to update an <ContentHighlight>OrderLine</ContentHighlight>, 
+        you load the <ContentHighlight>Order</ContentHighlight>, call a method on it, and save the order. The aggregate 
+        root is the gatekeeper for all consistency rules.
+      </p>
+
+      <h4>Step 5: The Architecture Map</h4>
+
+      <p>
+        Here is where each piece lives in your layered architecture:
+      </p>
+
+      <CodeSnippet CssClass="language-plaintext">
+Domain Layer
+├── License.cs                    ← Aggregate root
+├── ILicenseRepository.cs         ← Repository interface (defined here!)
+├── LicenseId.cs                  ← Value object
+└── LicenseActivated.cs           ← Domain event
+
+Application Layer
+└── LicenseApplicationService.cs  ← Uses ILicenseRepository
+
+Infrastructure Layer
+├── EfCoreLicenseRepository.cs    ← Implements ILicenseRepository
+├── DapperLicenseRepository.cs    ← Alternative implementation
+└── InMemoryLicenseRepository.cs  ← For testing
+</CodeSnippet>
+
+      <p>
+        The direction of dependency flows inward. Infrastructure depends on domain. Domain never depends on 
+        infrastructure. This is the <ContentHighlight>Dependency Inversion Principle</ContentHighlight> at work.
+      </p>
+    </How>
+
+    <Summary>
+      <p>
+        In this article, we explored how to implement the <ContentHighlight>Repository Pattern</ContentHighlight> 
+        correctly in a DDD application built with .NET. Here's what matters:
+      </p>
+
+      <ul>
+        <li>
+          <strong>Repositories are collection-like abstractions.</strong> From the domain's perspective, they feel 
+          like in-memory collections. No SQL, no ORM concepts, no DTOs.
+        </li>
+        <li>
+          <strong>Interfaces belong in the domain layer.</strong> The domain defines what it needs. Infrastructure 
+          provides the implementation. Never the other way around.
+        </li>
+        <li>
+          <strong>Method names should read like business questions.</strong> 
+          <ContentHighlight>FindActiveByCustomerIdAsync</ContentHighlight> is good. 
+          <ContentHighlight>ExecuteQuery</ContentHighlight> is a DAO.
+        </li>
+        <li>
+          <strong>One repository per aggregate root only.</strong> Entities and value objects are accessed through 
+          their aggregate root, never directly.
+        </li>
+        <li>
+          <strong>Hide persistence completely.</strong> Switching from EF Core to Dapper should require only 
+          a new infrastructure implementation, with zero changes to the domain.
+        </li>
+      </ul>
+    </Summary>
+  </ContentBody>
+</Content>

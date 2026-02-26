@@ -1,0 +1,353 @@
+@page "/blogs/ddd-anti-corruption-layer-pattern-in-dotnet"
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(AntiCorruptionLayerPattern) UseNewTableOfContentsMenu=true>
+  <ContentBody>
+    <What>
+      <p>
+        Every real-world application eventually connects to something it does not own: a payment 
+        processor, an email gateway, a shipping API, a legacy CRM. And every time, the same danger 
+        appears — the external system's terminology, data shapes, and error conditions bleeding into 
+        your domain.
+      </p>
+
+      <p>
+        The <ContentHighlight>Anti-Corruption Layer</ContentHighlight> (ACL) is the pattern that 
+        stops this. It is not a framework feature or a complicated abstraction. It is simply 
+        a boundary where <strong>translation and protection happen</strong>.
+      </p>
+
+      <p>
+        In this article you will learn what the ACL is, the five jobs it does, exactly where it 
+        lives in the architecture, how to build one in C# with a real email gateway example, 
+        when to use one, and the most common mistakes teams make when they get it wrong.
+      </p>
+    </What>
+
+    <Why>
+      <h4>What Goes Wrong Without an ACL</h4>
+
+      <p>
+        Consider integrating a third-party email provider. Without an ACL, domain code starts 
+        looking like this:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// Domain method polluted with external infrastructure concerns
+public class License
+{
+    public void Activate(HardwareFingerprint fingerprint)
+    {
+        // ... business logic ...
+
+        // BAD: domain importing and using a third-party SDK directly
+        var client = new SendGridClient("API_KEY");
+        var msg = new SendGridMessage();
+        msg.SetFrom(new EmailAddress("noreply@@app.com"));
+        msg.AddTo(new EmailAddress(Owner.Email));
+        msg.SetSubject("License Activated");
+        msg.AddContent(MimeType.Text, $"Activated on {fingerprint.Value}");
+        client.SendEmailAsync(msg).GetAwaiter().GetResult(); // blocking!
+    }
+}
+</CodeSnippet>
+
+      <p>
+        This code has four serious problems:
+      </p>
+
+      <CodeSnippet CssClass="language-plaintext">
+Problem                          | Consequence
+────────────────────────────────────────────────────────────────────────────────
+Domain imports third-party SDK   | Domain must change when you change email provider
+Business rule mixed with I/O     | Impossible to unit-test without sending real email
+Blocking HTTP call inside domain | Silent timeouts kill throughput under load
+External exception types leak in | Domain error handling fills with SDK exception types
+────────────────────────────────────────────────────────────────────────────────
+</CodeSnippet>
+
+      <h4>The Five Jobs of an Anti-Corruption Layer</h4>
+
+      <CodeSnippet CssClass="language-plaintext">
+Job                            | Description
+──────────────────────────────────────────────────────────────────────────────────
+Translate external → domain    | External concepts converted to your domain concepts
+Validate incoming data         | Never blindly trust external payloads
+Hide protocol details          | REST, JSON, headers, retries stay out of the domain
+Protect domain purity          | Core logic stays clean, expressive, framework-free
+Enable provider swapping       | Change the external provider without changing the domain
+──────────────────────────────────────────────────────────────────────────────────
+</CodeSnippet>
+    </Why>
+
+    <How>
+      <h4>Step 1: Define the Port in the Domain</h4>
+
+      <p>
+        The domain defines an interface — a <ContentHighlight>port</ContentHighlight> — using 
+        its own language. No SDK types, no HTTP concepts, no provider names:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// File: LicenseContext/Domain/Ports/IEmailGateway.cs
+namespace LicenseContext.Domain.Ports;
+
+/// &lt;summary&gt;
+/// Domain port: what the domain needs, expressed in domain language.
+/// The domain does not know how emails are sent.
+/// &lt;/summary&gt;
+public interface IEmailGateway
+{
+    Task SendLicenseActivatedAsync(
+        EmailAddress recipient,
+        LicenseId licenseId,
+        HardwareFingerprint fingerprint,
+        CancellationToken ct = default);
+
+    Task SendLicenseExpiredAsync(
+        EmailAddress recipient,
+        LicenseId licenseId,
+        CancellationToken ct = default);
+}
+</CodeSnippet>
+
+      <h4>Step 2: Create the Domain Value Objects Used by the Port</h4>
+
+      <CodeSnippet CssClass="language-csharp">
+// File: LicenseContext/Domain/ValueObjects/EmailAddress.cs
+namespace LicenseContext.Domain;
+
+public sealed record EmailAddress
+{
+    public string Value { get; }
+
+    public EmailAddress(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value) || !value.Contains('@@'))
+            throw new ArgumentException("Invalid email address.", nameof(value));
+
+        Value = value.Trim().ToLowerInvariant();
+    }
+
+    public override string ToString() =&gt; Value;
+}
+</CodeSnippet>
+
+      <h4>Step 3: Build the ACL Adapter in Infrastructure</h4>
+
+      <p>
+        The adapter lives in the <strong>infrastructure layer</strong>. It implements the domain 
+        port, imports the third-party SDK, and contains a 
+        <ContentHighlight>translator</ContentHighlight> that keeps all mapping logic in one place:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// File: LicenseContext/Infrastructure/Email/SendGridEmailAdapter.cs
+using LicenseContext.Domain;
+using LicenseContext.Domain.Ports;
+using SendGrid;                 // only this file knows about SendGrid
+// Note: SendGrid.Helpers.Mail is NOT imported here to avoid EmailAddress name clash.
+// All SendGrid.Helpers.Mail types are used exclusively inside SendGridTranslator.
+
+namespace LicenseContext.Infrastructure.Email;
+
+public sealed class SendGridEmailAdapter : IEmailGateway
+{
+    private readonly ISendGridClient _client;
+    private readonly SendGridOptions _options;
+
+    public SendGridEmailAdapter(ISendGridClient client, SendGridOptions options)
+    {
+        _client = client;
+        _options = options;
+    }
+
+    public async Task SendLicenseActivatedAsync(
+        EmailAddress recipient,
+        LicenseId licenseId,
+        HardwareFingerprint fingerprint,
+        CancellationToken ct = default)
+    {
+        var message = SendGridTranslator.BuildActivationMessage(
+            _options.SenderEmail,
+            recipient,
+            licenseId,
+            fingerprint);
+
+        var response = await _client.SendEmailAsync(message, ct);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            // Translate SendGrid errors into domain exceptions - never leak SDK types
+            var body = await response.Body.ReadAsStringAsync(ct);
+            throw new EmailDeliveryException(
+                $"Failed to send activation email to {recipient}: {response.StatusCode} - {body}");
+        }
+    }
+
+    public async Task SendLicenseExpiredAsync(
+        EmailAddress recipient,
+        LicenseId licenseId,
+        CancellationToken ct = default)
+    {
+        var message = SendGridTranslator.BuildExpiryMessage(
+            _options.SenderEmail,
+            recipient,
+            licenseId);
+
+        var response = await _client.SendEmailAsync(message, ct);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var body = await response.Body.ReadAsStringAsync(ct);
+            throw new EmailDeliveryException(
+                $"Failed to send expiry email to {recipient}: {response.StatusCode} - {body}");
+        }
+    }
+}
+</CodeSnippet>
+
+      <h4>Step 4: Add the Translator</h4>
+
+      <p>
+        Separating the <ContentHighlight>translator</ContentHighlight> from the adapter keeps 
+        each class focused. The translator is where all field mapping, formatting, and 
+        provider-specific logic lives:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// File: LicenseContext/Infrastructure/Email/SendGridTranslator.cs
+using SendGrid.Helpers.Mail;
+// Alias SendGrid's EmailAddress to avoid clash with LicenseContext.Domain.EmailAddress.
+using MailAddress = SendGrid.Helpers.Mail.EmailAddress;
+
+namespace LicenseContext.Infrastructure.Email;
+
+internal static class SendGridTranslator
+{
+    internal static SendGridMessage BuildActivationMessage(
+        string senderEmail,
+        LicenseContext.Domain.EmailAddress recipient,   // fully qualified domain type
+        LicenseId licenseId,
+        HardwareFingerprint fingerprint)
+    {
+        var msg = new SendGridMessage();
+        msg.SetFrom(new MailAddress(senderEmail, "Licensing Team"));
+        msg.AddTo(new MailAddress(recipient.Value));
+        msg.SetSubject("Your license has been activated");
+        msg.AddContent(
+            MimeType.Html,
+            $"&lt;p&gt;License &lt;strong&gt;{licenseId.Value}&lt;/strong&gt; was activated " +
+            $"on device &lt;strong&gt;{fingerprint.Value}&lt;/strong&gt;.&lt;/p&gt;");
+        return msg;
+    }
+
+    internal static SendGridMessage BuildExpiryMessage(
+        string senderEmail,
+        LicenseContext.Domain.EmailAddress recipient,   // fully qualified domain type
+        LicenseId licenseId)
+    {
+        var msg = new SendGridMessage();
+        msg.SetFrom(new MailAddress(senderEmail, "Licensing Team"));
+        msg.AddTo(new MailAddress(recipient.Value));
+        msg.SetSubject("Your license has expired");
+        msg.AddContent(
+            MimeType.Html,
+            $"&lt;p&gt;License &lt;strong&gt;{licenseId.Value}&lt;/strong&gt; has expired. " +
+            $"Please renew to continue using the software.&lt;/p&gt;");
+        return msg;
+    }
+}
+</CodeSnippet>
+
+      <h4>Step 5: Wire It Up in Dependency Injection</h4>
+
+      <CodeSnippet CssClass="language-csharp">
+// File: Web/Program.cs or infrastructure bootstrapper
+builder.Services.Configure&lt;SendGridOptions&gt;(
+    builder.Configuration.GetSection("SendGrid"));
+
+builder.Services.AddSingleton&lt;ISendGridClient&gt;(sp =&gt;
+{
+    var options = sp.GetRequiredService&lt;IOptions&lt;SendGridOptions&gt;&gt;().Value;
+    return new SendGridClient(options.ApiKey);
+});
+
+// Domain depends on IEmailGateway (port), gets SendGridEmailAdapter (adapter)
+builder.Services.AddScoped&lt;IEmailGateway, SendGridEmailAdapter&gt;();
+</CodeSnippet>
+
+      <p>
+        The domain never registers or knows about <ContentHighlight>SendGridEmailAdapter</ContentHighlight>. 
+        It only depends on <ContentHighlight>IEmailGateway</ContentHighlight>. To switch to a different 
+        email provider tomorrow, you write a new adapter and change one DI registration.
+      </p>
+
+      <h4>Where Does the ACL Live in the Architecture?</h4>
+
+      <CodeSnippet CssClass="language-plaintext">
+┌─────────────────────────────────────────────────────┐
+│  Presentation Layer (Controllers, Razor Pages)      │
+├─────────────────────────────────────────────────────┤
+│  Application Layer (Use Cases, Application Services)│
+├─────────────────────────────────────────────────────┤
+│  Domain Layer (Entities, Value Objects, Aggregates) │
+│   → defines IEmailGateway (the port)                │
+├─────────────────────────────────────────────────────┤
+│  Infrastructure Layer  ← ACL lives here             │
+│   → SendGridEmailAdapter  (the adapter/ACL)         │
+│   → SendGridTranslator    (the translator)          │
+│   → SqlLicenseRepository  (persistence adapter)     │
+└─────────────────────────────────────────────────────┘
+</CodeSnippet>
+
+      <h4>When to Use and When to Skip the ACL</h4>
+
+      <CodeSnippet CssClass="language-plaintext">
+Use ACL when...                              | Skip ACL when...
+──────────────────────────────────────────────────────────────────────
+External model is very different             | External protocol is a clean industry standard
+This is a core domain (model purity matters) | This is a generic/supporting subdomain
+You cannot influence the upstream team       | You own both sides and can improve the API
+External API changes frequently              | Integration is short-lived (one-time migration)
+──────────────────────────────────────────────────────────────────────
+</CodeSnippet>
+
+      <h4>Common ACL Mistakes</h4>
+
+      <CodeSnippet CssClass="language-plaintext">
+Mistake                                     | Why It Hurts
+──────────────────────────────────────────────────────────────────────────────────
+Business rules inside the ACL               | Rules belong in the domain, not infrastructure
+Domain classes importing external SDK types | Breaks boundaries, forces domain to change
+Returning external types from domain ports  | External model leaks into domain
+Throwing SDK exceptions into app code       | Callers handle external errors, not domain errors
+Hiding ACL inside domain packages           | ACL belongs in infrastructure
+──────────────────────────────────────────────────────────────────────────────────
+</CodeSnippet>
+    </How>
+
+    <Summary>
+      <p>
+        In this article, you learned how the Anti-Corruption Layer protects your domain from 
+        external system concepts:
+      </p>
+
+      <ul>
+        <li>An <ContentHighlight>Anti-Corruption Layer</ContentHighlight> is a boundary in the infrastructure layer that translates and protects — nothing more, nothing less.</li>
+        <li>The domain defines a <ContentHighlight>port</ContentHighlight> (interface) using domain language. The ACL provides the <ContentHighlight>adapter</ContentHighlight> (implementation) using external SDK types.</li>
+        <li>A <ContentHighlight>translator</ContentHighlight> inside the adapter handles all field mapping, formatting, and protocol details.</li>
+        <li>External exceptions are caught and re-thrown as domain exceptions.</li>
+        <li>Swapping providers requires only a new adapter and one DI registration change — zero domain code changes.</li>
+        <li>The ACL is not always necessary — skip it for generic subdomains, clean standards, or short-lived integrations.</li>
+      </ul>
+
+      <p>
+        With ports, adapters, and the ACL understood, it is time to zoom out and look at the 
+        overall architecture that holds it all together: the 
+        <ContentHighlight>Onion Architecture</ContentHighlight>.
+      </p>
+    </Summary>
+  </ContentBody>
+</Content>

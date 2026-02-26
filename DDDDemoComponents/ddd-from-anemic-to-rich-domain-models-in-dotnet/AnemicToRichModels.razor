@@ -1,0 +1,581 @@
+@page "/blogs/ddd-from-anemic-to-rich-domain-models-in-dotnet"
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(AnemicToRichModels) UseNewTableOfContentsMenu=true>
+  <ContentBody>
+    <What>
+      <p>
+        In this article, we'll explore how to transform <ContentHighlight>anemic domain models</ContentHighlight> into 
+        <ContentHighlight>rich domain models</ContentHighlight> using Domain-Driven Design principles in .NET. An anemic model 
+        is one where domain objects are mere data containers with getters and setters, while all business logic lives in external 
+        service classes.
+      </p>
+
+      <p>
+        We'll discover how to move behavior from service classes into domain entities themselves, creating objects that encapsulate 
+        both data and the operations that make sense for that data. This transformation leads to more maintainable, testable, and 
+        expressive code that better represents your business domain.
+      </p>
+
+      <p>
+        By following the "Tell, Don't Ask" principle and proper encapsulation, you'll learn to build domain models that protect their 
+        invariants, communicate business rules clearly, and reduce the coupling between domain logic and infrastructure code.
+      </p>
+    </What>
+
+    <Why>
+      <h4>The Anemic Model Anti-Pattern</h4>
+
+      <p>
+        An anemic domain model looks like object-oriented design on the surface—you have classes, properties, and methods—but it 
+        violates the fundamental principle of encapsulation. Let's examine a typical anemic model:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// Anemic License entity - just a data bag
+public class License
+{
+    public Guid Id { get; set; }
+    public string LicenseKey { get; set; }
+    public DateTime IssueDate { get; set; }
+    public DateTime? ExpirationDate { get; set; }
+    public int ActivationCount { get; set; }
+    public int MaxActivations { get; set; }
+    public string Status { get; set; }  // "Active", "Suspended", "Expired"
+    public List&lt;Activation&gt; Activations { get; set; }
+}
+
+// Anemic Activation entity
+public class Activation
+{
+    public Guid Id { get; set; }
+    public DateTime ActivatedAt { get; set; }
+    public string MachineName { get; set; }
+    public string HardwareId { get; set; }
+}
+
+// All logic lives in service classes
+public class LicenseService
+{
+    private readonly ILicenseRepository _repository;
+    
+    public LicenseService(ILicenseRepository repository)
+    {
+        _repository = repository;
+    }
+    
+    public void ActivateLicense(Guid licenseId, string machineName, string hardwareId)
+    {
+        // Fetch entity
+        var license = _repository.GetById(licenseId);
+        
+        // Check if license exists
+        if (license == null)
+            throw new Exception("License not found");
+        
+        // Check if license status is valid
+        if (license.Status != "Active")
+            throw new Exception("License is not active");
+        
+        // Check if license is expired
+        if (license.ExpirationDate.HasValue &amp;&amp; 
+            license.ExpirationDate.Value &lt; DateTime.UtcNow)
+            throw new Exception("License has expired");
+        
+        // Check if activation limit reached
+        if (license.ActivationCount &gt;= license.MaxActivations)
+            throw new Exception("Maximum activations reached");
+        
+        // Check if already activated on this machine
+        if (license.Activations.Any(a =&gt; a.HardwareId == hardwareId))
+            throw new Exception("Already activated on this machine");
+        
+        // Create activation
+        var activation = new Activation
+        {
+            Id = Guid.NewGuid(),
+            ActivatedAt = DateTime.UtcNow,
+            MachineName = machineName,
+            HardwareId = hardwareId
+        };
+        
+        // Update license
+        license.Activations.Add(activation);
+        license.ActivationCount++;
+        
+        // Save changes
+        _repository.Save(license);
+    }
+}
+      </CodeSnippet>
+
+      <p>
+        <strong>Problems with this approach:</strong>
+      </p>
+
+      <ul>
+        <li><strong>Broken Encapsulation:</strong> Anyone can modify <ContentHighlight>ActivationCount</ContentHighlight> without adding to <ContentHighlight>Activations</ContentHighlight></li>
+        <li><strong>Scattered Logic:</strong> Activation rules are spread across multiple service methods</li>
+        <li><strong>Duplicated Validation:</strong> Every operation must re-check the same conditions</li>
+        <li><strong>Primitive Obsession:</strong> Status as string allows invalid values like "Actve" (typo) or "Pending"</li>
+        <li><strong>Violated Invariants:</strong> <ContentHighlight>ActivationCount</ContentHighlight> can drift from <ContentHighlight>Activations.Count</ContentHighlight></li>
+        <li><strong>Testing Difficulty:</strong> Must mock repositories and set up database to test business rules</li>
+      </ul>
+
+      <h4>Real-World Consequences</h4>
+
+      <p>
+        Anemic models lead to several practical problems in production systems:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// Problem 1: Business rules can be bypassed
+var license = _repository.GetById(licenseId);
+license.ActivationCount = 100;  // ❌ No validation!
+license.Status = "Invalid Status";  // ❌ No constraints!
+_repository.Save(license);
+
+// Problem 2: Inconsistent state
+license.Activations.Add(new Activation { ... });
+// ❌ Forgot to increment ActivationCount!
+_repository.Save(license);  // Data corruption
+
+// Problem 3: Logic duplication
+// SuspendLicense checks if license is active
+// ActivateLicense checks if license is active  
+// DeactivateLicense checks if license is active
+// Same logic appears in 3+ places!
+
+// Problem 4: Hard to find business rules
+// Where is the "can activate" logic?
+// LicenseService? ActivationService? ValidationService?
+// Must search entire codebase to understand rules
+      </CodeSnippet>
+
+      <p>
+        <strong>Impact on teams:</strong>
+      </p>
+
+      <ul>
+        <li>New developers can't find where business logic lives</li>
+        <li>Changes require updating multiple service classes</li>
+        <li>Bugs from inconsistent state management</li>
+        <li>Unit tests require complex mocking infrastructure</li>
+        <li>Domain experts can't read the code to verify business rules</li>
+      </ul>
+
+      <h4>Benefits of Rich Domain Models</h4>
+
+      <p>
+        Rich domain models solve these problems by moving behavior into entities:
+      </p>
+
+      <ul>
+        <li><strong>Encapsulation:</strong> Business rules are enforced at the object level</li>
+        <li><strong>Testability:</strong> Test domain logic without infrastructure</li>
+        <li><strong>Discoverability:</strong> Open an entity to see its capabilities</li>
+        <li><strong>Consistency:</strong> Invariants are always maintained</li>
+        <li><strong>Domain Language:</strong> Code reads like business requirements</li>
+      </ul>
+    </Why>
+
+    <How>
+      <h4>Step 1: Identify the Domain Object</h4>
+
+      <p>
+        Start by identifying the core domain entity. In our example, it's a <ContentHighlight>License</ContentHighlight> that needs to enforce 
+        business rules around activations.
+      </p>
+
+      <h4>Step 2: Create Value Objects for Concepts</h4>
+
+      <p>
+        Replace primitive types with <ContentHighlight>record</ContentHighlight> value objects to enforce constraints:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// LicenseStatus value object - prevents invalid states
+public sealed record LicenseStatus
+{
+    public string Value { get; }
+    
+    private LicenseStatus(string value) =&gt; Value = value;
+    
+    public static readonly LicenseStatus Active = new("Active");
+    public static readonly LicenseStatus Suspended = new("Suspended");
+    public static readonly LicenseStatus Expired = new("Expired");
+    public static readonly LicenseStatus Revoked = new("Revoked");
+    
+    public bool IsActive =&gt; Value == "Active";
+    public bool CanBeActivated =&gt; IsActive;
+}
+
+// HardwareId value object - encapsulates hardware identifier logic
+public sealed record HardwareId
+{
+    public string Value { get; }
+    
+    private HardwareId(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            throw new ArgumentException("Hardware ID cannot be empty");
+        
+        if (value.Length &lt; 10)
+            throw new ArgumentException("Hardware ID must be at least 10 characters");
+        
+        Value = value.ToUpperInvariant();
+    }
+    
+    public static HardwareId Create(string value) =&gt; new(value);
+}
+      </CodeSnippet>
+
+      <h4>Step 3: Make Entity Properties Private</h4>
+
+      <p>
+        Change public setters to private to prevent external code from bypassing business rules:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+public class License
+{
+    // Identity
+    public Guid Id { get; private set; }
+    
+    // Immutable attributes
+    public string LicenseKey { get; private set; }
+    public DateTime IssueDate { get; private set; }
+    public int MaxActivations { get; private set; }
+    
+    // Mutable attributes (private setters)
+    public DateTime? ExpirationDate { get; private set; }
+    public LicenseStatus Status { get; private set; }
+    
+    // Encapsulated collection - expose as read-only
+    private readonly List&lt;Activation&gt; _activations = new();
+    public IReadOnlyCollection&lt;Activation&gt; Activations =&gt; _activations.AsReadOnly();
+    
+    // Computed property - no longer stored separately
+    public int ActivationCount =&gt; _activations.Count;
+    
+    // Constructor is private - use factory methods
+    private License(Guid id, string licenseKey, int maxActivations, 
+        DateTime issueDate, DateTime? expirationDate)
+    {
+        Id = id;
+        LicenseKey = licenseKey ?? throw new ArgumentNullException(nameof(licenseKey));
+        MaxActivations = maxActivations;
+        IssueDate = issueDate;
+        ExpirationDate = expirationDate;
+        Status = LicenseStatus.Active;
+    }
+    
+    // Factory method for creating new licenses
+    public static License Create(string licenseKey, int maxActivations, 
+        DateTime? expirationDate)
+    {
+        if (maxActivations &lt;= 0)
+            throw new ArgumentException("Max activations must be positive");
+        
+        return new License(Guid.NewGuid(), licenseKey, maxActivations, 
+            DateTime.UtcNow, expirationDate);
+    }
+}
+      </CodeSnippet>
+
+      <h4>Step 4: Move Business Logic into the Entity</h4>
+
+      <p>
+        Add behavior methods that encapsulate business rules. These methods should have names from the 
+        <ContentHighlight>ubiquitous language</ContentHighlight>:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+public class License
+{
+    // ... properties from step 3 ...
+    
+    // Domain behavior: Activate on a machine
+    public void Activate(string machineName, HardwareId hardwareId)
+    {
+        // All business rules enforced in one place
+        EnsureCanBeActivated();
+        EnsureNotExpired();
+        EnsureActivationLimitNotReached();
+        EnsureNotAlreadyActivatedOnMachine(hardwareId);
+        
+        // Create activation (encapsulated)
+        var activation = new Activation(Guid.NewGuid(), machineName, hardwareId);
+        _activations.Add(activation);
+    }
+    
+    // Domain behavior: Deactivate from a machine
+    public void Deactivate(HardwareId hardwareId)
+    {
+        var activation = _activations.FirstOrDefault(a =&gt; a.HardwareId.Equals(hardwareId));
+        if (activation == null)
+            throw new InvalidOperationException(
+                $"License is not activated on machine {hardwareId}");
+        
+        _activations.Remove(activation);
+    }
+    
+    // Domain behavior: Suspend license
+    public void Suspend()
+    {
+        if (Status == LicenseStatus.Suspended)
+            throw new InvalidOperationException("License is already suspended");
+        
+        if (Status == LicenseStatus.Revoked)
+            throw new InvalidOperationException("Cannot suspend a revoked license");
+        
+        Status = LicenseStatus.Suspended;
+    }
+    
+    // Domain behavior: Reactivate license
+    public void Reactivate()
+    {
+        if (Status != LicenseStatus.Suspended)
+            throw new InvalidOperationException("Only suspended licenses can be reactivated");
+        
+        EnsureNotExpired();
+        Status = LicenseStatus.Active;
+    }
+    
+    // Domain behavior: Extend expiration
+    public void Extend(TimeSpan duration)
+    {
+        if (duration &lt;= TimeSpan.Zero)
+            throw new ArgumentException("Duration must be positive");
+        
+        var newExpiration = (ExpirationDate ?? DateTime.UtcNow).Add(duration);
+        ExpirationDate = newExpiration;
+        
+        // If extending an expired license, reactivate it
+        if (Status == LicenseStatus.Expired)
+            Status = LicenseStatus.Active;
+    }
+    
+    // Query methods
+    public bool IsExpired =&gt; 
+        ExpirationDate.HasValue &amp;&amp; ExpirationDate.Value &lt; DateTime.UtcNow;
+    
+    public bool CanActivate =&gt; 
+        Status.CanBeActivated &amp;&amp; !IsExpired &amp;&amp; !HasReachedActivationLimit;
+    
+    public bool HasReachedActivationLimit =&gt; 
+        ActivationCount &gt;= MaxActivations;
+    
+    public bool IsActivatedOnMachine(HardwareId hardwareId) =&gt; 
+        _activations.Any(a =&gt; a.HardwareId.Equals(hardwareId));
+    
+    // Private validation methods
+    private void EnsureCanBeActivated()
+    {
+        if (!Status.CanBeActivated)
+            throw new InvalidOperationException(
+                $"License status is {Status}, cannot activate");
+    }
+    
+    private void EnsureNotExpired()
+    {
+        if (IsExpired)
+        {
+            Status = LicenseStatus.Expired;
+            throw new InvalidOperationException("License has expired");
+        }
+    }
+    
+    private void EnsureActivationLimitNotReached()
+    {
+        if (HasReachedActivationLimit)
+            throw new InvalidOperationException(
+                $"Maximum activations ({MaxActivations}) reached");
+    }
+    
+    private void EnsureNotAlreadyActivatedOnMachine(HardwareId hardwareId)
+    {
+        if (IsActivatedOnMachine(hardwareId))
+            throw new InvalidOperationException(
+                $"License already activated on machine {hardwareId}");
+    }
+}
+
+// Activation entity (also rich)
+public class Activation
+{
+    public Guid Id { get; private set; }
+    public DateTime ActivatedAt { get; private set; }
+    public string MachineName { get; private set; }
+    public HardwareId HardwareId { get; private set; }
+    
+    internal Activation(Guid id, string machineName, HardwareId hardwareId)
+    {
+        Id = id;
+        MachineName = machineName ?? throw new ArgumentNullException(nameof(machineName));
+        HardwareId = hardwareId ?? throw new ArgumentNullException(nameof(hardwareId));
+        ActivatedAt = DateTime.UtcNow;
+    }
+}
+      </CodeSnippet>
+
+      <h4>Step 5: Simplify Service Layer</h4>
+
+      <p>
+        Services become thin orchestrators that delegate to domain objects:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// Rich model approach - service is thin
+public class LicenseService
+{
+    private readonly ILicenseRepository _repository;
+    
+    public LicenseService(ILicenseRepository repository)
+    {
+        _repository = repository;
+    }
+    
+    public void ActivateLicense(Guid licenseId, string machineName, string hardwareIdValue)
+    {
+        // Fetch entity
+        var license = _repository.GetById(licenseId);
+        if (license == null)
+            throw new LicenseNotFoundException(licenseId);
+        
+        // Tell the entity to activate (business logic is inside the entity)
+        var hardwareId = HardwareId.Create(hardwareIdValue);
+        license.Activate(machineName, hardwareId);
+        
+        // Save changes
+        _repository.Save(license);
+    }
+    
+    public void DeactivateLicense(Guid licenseId, string hardwareIdValue)
+    {
+        var license = _repository.GetById(licenseId);
+        if (license == null)
+            throw new LicenseNotFoundException(licenseId);
+        
+        var hardwareId = HardwareId.Create(hardwareIdValue);
+        license.Deactivate(hardwareId);
+        
+        _repository.Save(license);
+    }
+    
+    public void SuspendLicense(Guid licenseId)
+    {
+        var license = _repository.GetById(licenseId);
+        if (license == null)
+            throw new LicenseNotFoundException(licenseId);
+        
+        license.Suspend();
+        _repository.Save(license);
+    }
+}
+      </CodeSnippet>
+
+      <p>
+        <strong>Notice how simple the service becomes:</strong>
+      </p>
+
+      <ul>
+        <li>Fetch entity from repository</li>
+        <li>Tell entity to perform domain operation</li>
+        <li>Save entity back to repository</li>
+      </ul>
+
+      <p>
+        All business logic lives in the domain entity, making it easy to test and maintain.
+      </p>
+
+      <h4>Step 6: Test Domain Logic Independently</h4>
+
+      <p>
+        Rich models are easy to test without infrastructure:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+[Fact]
+public void Activate_WhenLicenseIsValid_ShouldSucceed()
+{
+    // Arrange
+    var license = License.Create("ABC-123", maxActivations: 5, expirationDate: null);
+    var hardwareId = HardwareId.Create("MACHINE-12345");
+    
+    // Act
+    license.Activate("Dev Machine", hardwareId);
+    
+    // Assert
+    Assert.Equal(1, license.ActivationCount);
+    Assert.True(license.IsActivatedOnMachine(hardwareId));
+}
+
+[Fact]
+public void Activate_WhenLimitReached_ShouldThrowException()
+{
+    // Arrange
+    var license = License.Create("ABC-123", maxActivations: 2, expirationDate: null);
+    license.Activate("Machine1", HardwareId.Create("HW-001"));
+    license.Activate("Machine2", HardwareId.Create("HW-002"));
+    
+    // Act &amp; Assert
+    var ex = Assert.Throws&lt;InvalidOperationException&gt;(() =&gt; 
+        license.Activate("Machine3", HardwareId.Create("HW-003")));
+    
+    Assert.Contains("Maximum activations", ex.Message);
+}
+
+[Fact]
+public void Suspend_WhenLicenseIsActive_ShouldChangeTate()
+{
+    // Arrange
+    var license = License.Create("ABC-123", maxActivations: 5, expirationDate: null);
+    
+    // Act
+    license.Suspend();
+    
+    // Assert
+    Assert.Equal(LicenseStatus.Suspended, license.Status);
+}
+
+// No mocking required! No database! Pure domain logic testing.
+      </CodeSnippet>
+
+      <h4>Comparison: Before and After</h4>
+
+      <CodeSnippet CssClass="language-csharp">
+// BEFORE: Anemic Model
+var license = _repository.GetById(licenseId);
+if (license.Status == "Active" &amp;&amp; 
+    license.ActivationCount &lt; license.MaxActivations)
+{
+    license.ActivationCount++;
+    license.Activations.Add(...);
+    _repository.Save(license);
+}
+
+// AFTER: Rich Model
+var license = _repository.GetById(licenseId);
+license.Activate(machineName, hardwareId);  // ✅ Business logic inside entity
+_repository.Save(license);
+      </CodeSnippet>
+    </How>
+
+    <Summary>
+      <ul>
+        <li><ContentHighlight>Anemic domain models</ContentHighlight> are data containers with all logic in service classes, violating encapsulation</li>
+        <li><ContentHighlight>Rich domain models</ContentHighlight> encapsulate both data and behavior within domain entities</li>
+        <li>Move from public setters to private setters and behavior methods that enforce business rules</li>
+        <li>Replace primitive types with value objects to prevent invalid states and add domain meaning</li>
+        <li>Expose collections as <ContentHighlight>IReadOnlyCollection</ContentHighlight> to prevent external manipulation</li>
+        <li>Derive computed properties (like <ContentHighlight>ActivationCount</ContentHighlight>) from actual data rather than storing them separately</li>
+        <li>Use factory methods for entity creation to ensure all instances start in valid states</li>
+        <li>Service classes become thin orchestrators: fetch, tell entity to act, save</li>
+        <li>Rich models are testable without infrastructure—no mocks or databases needed</li>
+        <li>Follow "Tell, Don't Ask" principle: tell entities what to do instead of asking for data and making decisions externally</li>
+      </ul>
+    </Summary>
+  </ContentBody>
+</Content>

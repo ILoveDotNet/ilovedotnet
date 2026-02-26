@@ -1,0 +1,410 @@
+@page "/blogs/ddd-core-principles-in-practice"
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(CoreDomainDrivenDesignPrinciples) UseNewTableOfContentsMenu=true>
+  <ContentBody>
+    <What>
+      <p>
+        Understanding Domain-Driven Design concepts is one thing—applying them in practice is another. In this article, we'll explore the core principles 
+        that transform theoretical DDD knowledge into practical, working code. We'll examine the <ContentHighlight>translation problem</ContentHighlight> 
+        that plagues many development teams and discover three fundamental principles that solve it.
+      </p>
+
+      <p>
+        These principles—using <ContentHighlight>ubiquitous language in code</ContentHighlight>, choosing 
+        <ContentHighlight>intent-revealing names</ContentHighlight>, and favoring <ContentHighlight>behaviors over getters</ContentHighlight>—form 
+        the foundation of domain-driven development. When applied correctly, they transform procedural code into expressive, self-documenting domain models 
+        that both developers and business experts can understand.
+      </p>
+
+      <p>
+        We'll see concrete examples comparing poor implementations with well-designed alternatives, giving you clear patterns to follow in your own projects.
+      </p>
+    </What>
+
+    <Why>
+      <h4>The Translation Problem</h4>
+
+      <p>
+        Every development team faces what we call the <ContentHighlight>translation problem</ContentHighlight>. Here's how it typically manifests: 
+        A domain expert explains, "When a customer activates a license, we need to verify that it hasn't expired." This statement is clear, 
+        straightforward, and captures the business rule perfectly.
+      </p>
+
+      <p>
+        Then the developer implements this as:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+if (license.GetActivationCount() &lt; license.MaxActivations)
+{
+    // activation logic
+}
+      </CodeSnippet>
+
+      <p>
+        Notice what happened? The business language completely disappeared. Nobody in the meeting said "get activation count." Nobody mentioned comparing 
+        counts to maximum values. The developer translated the business concept into technical implementation details, and in doing so, lost the original 
+        meaning. This creates a disconnect where:
+      </p>
+
+      <ul>
+        <li>Domain experts can't recognize their requirements in the code</li>
+        <li>New developers struggle to understand business rules by reading code</li>
+        <li>Conversations require constant translation between business and technical terminology</li>
+        <li>Requirements get lost in translation, leading to bugs and misunderstandings</li>
+      </ul>
+
+      <h4>Why These Principles Matter</h4>
+
+      <p>
+        The three core principles we'll explore solve the translation problem by ensuring your code directly reflects domain language. This alignment 
+        provides several critical benefits:
+      </p>
+
+      <p>
+        <strong>Improved Communication:</strong> When your code uses the exact terms domain experts use, conversations become smoother. You can discuss 
+        a method called <ContentHighlight>ActivateLicense()</ContentHighlight> with a product manager without any translation layer—they instantly 
+        recognize it as the business concept they described.
+      </p>
+
+      <p>
+        <strong>Reduced Misunderstandings:</strong> Clear, intention-revealing names eliminate ambiguity. When a method says what it does in business terms, 
+        there's no room for misinterpretation about its purpose.
+      </p>
+
+      <p>
+        <strong>Self-Documenting Code:</strong> Code that speaks the domain language becomes its own documentation. Reading the method signatures tells 
+        you what the business does, not just how the implementation works technically.
+      </p>
+
+      <p>
+        <strong>Easier Testing:</strong> Tests written in domain language serve as executable specifications. They document business rules in a format 
+        that remains accurate as long as the tests pass.
+      </p>
+    </Why>
+
+    <How>
+      <h4>Principle 1: Use Ubiquitous Language in Code</h4>
+
+      <p>
+        The first principle is straightforward: The terms your domain experts use should appear directly in your code. This creates a bidirectional 
+        mapping where business conversations translate naturally to code and vice versa.
+      </p>
+
+      <p>
+        Let's see this principle in action across various scenarios:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// Domain expert says: "Activate a license"
+// Your code should say:
+public void ActivateLicense()
+{
+    // Implementation
+}
+
+// Domain expert says: "Check if license is expired"
+// Your code should say:
+public bool IsExpired()
+{
+    return ExpirationDate &lt; DateTime.UtcNow;
+}
+
+// Domain expert says: "Customer is eligible for this product"
+// Your code should say:
+public bool IsEligibleForProduct(Product product)
+{
+    // Eligibility logic
+}
+
+// Domain expert says: "Apply discount to order"
+// Your code should say:
+public void ApplyDiscount(Coupon coupon)
+{
+    // Discount application logic
+}
+
+// Domain expert says: "Refund the purchase"
+// Your code should say:
+public void RefundPurchase()
+{
+    // Refund logic
+}
+
+// Domain expert says: "Suspend subscription"
+// Your code should say:
+public void SuspendSubscription()
+{
+    // Suspension logic
+}
+      </CodeSnippet>
+
+      <p>
+        Notice the pattern: If the domain expert says it in a meeting, it should exist in your codebase. This direct mapping eliminates translation 
+        errors and makes your code immediately understandable to non-technical stakeholders.
+      </p>
+
+      <h4>Principle 2: Choose Intent-Revealing Names</h4>
+
+      <p>
+        Names should communicate <strong>what</strong> something does in business terms, never <strong>how</strong> it does it technically. This 
+        principle keeps your code focused on business intent rather than implementation details.
+      </p>
+
+      <p>
+        Let's compare poor naming with intent-revealing alternatives:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// BAD: Names reveal HOW, not WHAT
+public class License
+{
+    public void SetActivatedDate()
+    {
+        ActivatedDate = DateTime.UtcNow;
+    }
+
+    public void AddToActivationHistory()
+    {
+        _activationHistory.Add(new Activation());
+    }
+}
+
+// Usage - procedural steps that require mental assembly:
+license.SetActivatedDate();
+license.AddToActivationHistory();
+
+// GOOD: Names reveal WHAT in business terms
+public class License
+{
+    public void RecordActivation()
+    {
+        ActivatedDate = DateTime.UtcNow;
+        _activationHistory.Add(new Activation(ActivatedDate));
+    }
+}
+
+// Usage - clear business intent:
+license.RecordActivation();
+      </CodeSnippet>
+
+      <p>
+        The improved version has several advantages:
+      </p>
+
+      <ul>
+        <li><strong>Single Purpose:</strong> One method that clearly states what it does—record activation</li>
+        <li><strong>Business Language:</strong> The method name matches what domain experts would say</li>
+        <li><strong>Encapsulation:</strong> Implementation details (setting dates, updating history) are hidden</li>
+        <li><strong>Readability:</strong> Code reads like a business process description</li>
+      </ul>
+
+      <p>
+        Here are more examples demonstrating intent-revealing names:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// BAD: Implementation-focused names
+customer.SetStatusFlag(3);
+order.UpdateTotalAmount();
+subscription.ModifyEndDate(DateTime.UtcNow.AddMonths(1));
+
+// GOOD: Intent-revealing names
+customer.MarkAsPreferred();
+order.RecalculateTotal();
+subscription.ExtendByOneMonth();
+      </CodeSnippet>
+
+      <h4>Principle 3: Favor Behaviors Over Getters</h4>
+
+      <p>
+        Instead of exposing internal data through getters and performing calculations elsewhere, put the behavior directly in your domain objects. 
+        This principle transforms anemic data containers into rich domain models that encapsulate their own logic.
+      </p>
+
+      <p>
+        Let's see the dramatic difference this makes:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// BAD: Anemic model with exposed data
+public class Order
+{
+    private List&lt;OrderLine&gt; _lines = new();
+
+    // Getter exposes internal data
+    public List&lt;OrderLine&gt; GetLines()
+    {
+        return _lines;
+    }
+}
+
+// Somewhere else in the application - scattered logic:
+var order = orderRepository.GetById(orderId);
+var total = 0m;
+
+foreach (var line in order.GetLines())
+{
+    total += line.Price * line.Quantity;
+}
+
+// GOOD: Rich model with encapsulated behavior
+public class Order
+{
+    private readonly List&lt;OrderLine&gt; _lines = new();
+
+    public decimal CalculateTotal()
+    {
+        return _lines.Sum(line =&gt; line.GetSubtotal());
+    }
+}
+
+// Usage - behavior stays with the data:
+var order = orderRepository.GetById(orderId);
+var total = order.CalculateTotal();
+      </CodeSnippet>
+
+      <p>
+        The benefits of the rich model approach include:
+      </p>
+
+      <ul>
+        <li><strong>Encapsulation:</strong> Internal data structure remains hidden and protected</li>
+        <li><strong>Single Source of Truth:</strong> Business logic lives in one place, not scattered across services</li>
+        <li><strong>Testability:</strong> You can test business rules directly on domain objects</li>
+        <li><strong>Maintainability:</strong> Changes to calculation logic happen in one location</li>
+      </ul>
+
+      <p>
+        Here's a more comprehensive example showing multiple behaviors:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// Rich domain model with behaviors
+public class ShoppingCart
+{
+    private readonly List&lt;CartItem&gt; _items = new();
+    private readonly CustomerId _customerId;
+
+    public void AddItem(Product product, int quantity)
+    {
+        if (quantity &lt;= 0)
+        {
+            throw new ArgumentException("Quantity must be positive");
+        }
+
+        var existingItem = _items.FirstOrDefault(i =&gt; i.ProductId == product.Id);
+
+        if (existingItem != null)
+        {
+            existingItem.IncreaseQuantity(quantity);
+        }
+        else
+        {
+            _items.Add(new CartItem(product.Id, product.Price, quantity));
+        }
+    }
+
+    public void RemoveItem(ProductId productId)
+    {
+        var item = _items.FirstOrDefault(i =&gt; i.ProductId == productId);
+        
+        if (item != null)
+        {
+            _items.Remove(item);
+        }
+    }
+
+    public decimal CalculateSubtotal()
+    {
+        return _items.Sum(item =&gt; item.GetLineTotal());
+    }
+
+    public decimal CalculateTotal(TaxRate taxRate)
+    {
+        var subtotal = CalculateSubtotal();
+        var tax = subtotal * taxRate.Percentage;
+        return subtotal + tax;
+    }
+
+    public bool IsEmpty()
+    {
+        return !_items.Any();
+    }
+
+    public bool ContainsProduct(ProductId productId)
+    {
+        return _items.Any(i =&gt; i.ProductId == productId);
+    }
+
+    public void Clear()
+    {
+        _items.Clear();
+    }
+}
+      </CodeSnippet>
+
+      <p>
+        Notice how the <ContentHighlight>ShoppingCart</ContentHighlight> class doesn't expose its internal <ContentHighlight>_items</ContentHighlight> 
+        collection. Instead, it provides meaningful behaviors that represent business operations. This encapsulation protects invariants and ensures 
+        business rules are always enforced.
+      </p>
+
+      <h4>Putting It All Together</h4>
+
+      <p>
+        When you combine these three principles, your code transforms from procedural scripts into expressive domain models:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// Before: Procedural code with poor names and exposed data
+var license = licenseRepo.GetById(id);
+license.SetActivationDate(DateTime.UtcNow);
+license.AddActivation(hardwareId);
+license.IncrementCounter();
+
+if (license.GetCounter() &gt; license.GetMaxValue())
+{
+    throw new Exception("Too many activations");
+}
+
+// After: Rich domain model with ubiquitous language
+var license = licenseRepository.GetById(id);
+
+if (!license.CanActivate())
+{
+    throw new LicenseActivationException("License cannot be activated");
+}
+
+license.Activate(hardwareId);
+      </CodeSnippet>
+
+      <p>
+        The transformed version is shorter, clearer, and speaks the business language directly. Anyone familiar with the domain can read and 
+        understand it immediately.
+      </p>
+    </How>
+
+    <Summary>
+      <p>
+        The three core principles of Domain-Driven Design in practice—using <ContentHighlight>ubiquitous language in code</ContentHighlight>, 
+        choosing <ContentHighlight>intent-revealing names</ContentHighlight>, and favoring <ContentHighlight>behaviors over getters</ContentHighlight>—
+        work together to eliminate the translation problem that plagues software development.
+      </p>
+
+      <p>
+        When you apply these principles consistently, your code becomes self-documenting and speaks the language of the business domain. Method names 
+        reflect exactly what domain experts say in meetings. Classes encapsulate behaviors that represent business operations rather than exposing data 
+        for external manipulation. The gap between business requirements and technical implementation disappears.
+      </p>
+
+      <p>
+        These may seem like small principles, but their impact is transformative. They turn scattered, procedural code into cohesive domain models that 
+        accurately represent how the business actually works. Start applying these principles in your next feature, and you'll immediately notice 
+        improved communication with domain experts and code that's easier to understand, test, and maintain.
+      </p>
+    </Summary>
+  </ContentBody>
+</Content>

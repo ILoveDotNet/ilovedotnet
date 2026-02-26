@@ -1,0 +1,519 @@
+@page "/blogs/ddd-understanding-aggregates-and-boundaries-in-dotnet"
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(AggregatesAndBoundaries) UseNewTableOfContentsMenu=true>
+  <ContentBody>
+    <What>
+      <p>
+        In this article, we'll explore <ContentHighlight>Aggregates</ContentHighlight> and their boundaries in Domain-Driven Design. 
+        An aggregate is a cluster of domain objects that can be treated as a single unit for data changes. Understanding how to define 
+        aggregate boundaries is crucial for building consistent, scalable domain models in .NET applications.
+      </p>
+
+      <p>
+        We'll learn how to identify aggregate roots, define transaction boundaries, maintain consistency within aggregates, and 
+        determine when to split large aggregates into smaller ones. Proper aggregate design prevents inconsistent states, reduces 
+        concurrency conflicts, and makes your domain model easier to understand and maintain.
+      </p>
+
+      <p>
+        Through practical examples, we'll discover the rules that govern aggregates: external references must go through the root, 
+        consistency boundaries align with transaction boundaries, and each aggregate should be independently loadable and saveable.
+      </p>
+    </What>
+
+    <Why>
+      <h4>The Growing Entity Problem</h4>
+
+      <p>
+        As applications evolve, entities tend to accumulate references to related objects. This leads to what's known as the 
+        "god object" problem where one entity holds references to everything related to it:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// Problem: Everything is connected to everything
+public class License
+{
+    public Guid Id { get; set; }
+    public string LicenseKey { get; set; }
+    
+    // Direct references to related entities
+    public Customer Customer { get; set; }              // ❌ Brings in customer data
+    public Product Product { get; set; }                // ❌ Brings in product catalog
+    public List&lt;Payment&gt; Payments { get; set; }        // ❌ Loads payment history
+    public List&lt;Invoice&gt; Invoices { get; set; }        // ❌ Loads billing data
+    public List&lt;SupportTicket&gt; Tickets { get; set; }   // ❌ Loads support system
+    public List&lt;AuditLog&gt; AuditTrail { get; set; }     // ❌ Entire audit history
+}
+
+// Loading a license pulls in the entire database
+var license = _repository.GetById(licenseId);  
+// Behind the scenes: 6+ table joins, thousands of records loaded
+      </CodeSnippet>
+
+      <p>
+        <strong>Consequences of Poor Boundaries:</strong>
+      </p>
+
+      <ul>
+        <li><strong>Performance Issues:</strong> Loading one object requires fetching hundreds of related records</li>
+        <li><strong>Memory Bloat:</strong> Object graphs consume excessive memory</li>
+        <li><strong>Concurrency Conflicts:</strong> Multiple users editing different aspects lock the entire object</li>
+        <li><strong>Unclear Transactions:</strong> What should be updated in one transaction vs. multiple transactions?</li>
+        <li><strong>Testing Complexity:</strong> Must set up entire object graph for simple tests</li>
+      </ul>
+
+      <h4>The Consistency Boundary Challenge</h4>
+
+      <p>
+        Without clear aggregate boundaries, it's unclear which objects must be consistent with each other at all times:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// Problem: Unclear which changes must happen together
+public void UpgradeLicense(Guid licenseId)
+{
+    var license = _repository.GetLicense(licenseId);
+    
+    // Should these all happen in the same transaction?
+    license.Product = _productRepo.GetByName("Pro Edition");  // Change 1
+    license.MaxActivations = 10;                               // Change 2
+    
+    var invoice = new Invoice { ... };
+    _invoiceRepo.Add(invoice);                                 // Change 3
+    
+    var notification = new Notification { ... };
+    _notificationRepo.Add(notification);                       // Change 4
+    
+    _emailService.SendUpgradeConfirmation(license.Customer);   // Change 5
+    
+    // If any of these fails, what should roll back?
+    // Should email be sent even if save fails?
+}
+      </CodeSnippet>
+
+      <p>
+        <strong>Problems:</strong>
+      </p>
+
+      <ul>
+        <li>Unclear which operations are atomic</li>
+        <li>Risk of partial updates leaving system in inconsistent state</li>
+        <li>Different developers make different decisions about transaction scope</li>
+        <li>External services (email) mixed with database transactions</li>
+      </ul>
+
+      <h4>Why Aggregates Solve These Problems</h4>
+
+      <p>
+        Aggregates provide clear answers to these questions:
+      </p>
+
+      <ul>
+        <li><strong>What data travels together?</strong> Objects within an aggregate are loaded/saved as a unit</li>
+        <li><strong>What must be consistent?</strong> Invariants are enforced within aggregate boundaries</li>
+        <li><strong>What's a transaction?</strong> One transaction modifies one aggregate</li>
+        <li><strong>How do parts communicate?</strong> Only through the aggregate root</li>
+        <li><strong>When to use eventual consistency?</strong> Between aggregates, not within</li>
+      </ul>
+    </Why>
+
+    <How>
+      <h4>Step 1: Understand Aggregate Components</h4>
+
+      <p>
+        An aggregate consists of three main parts:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// 1. Aggregate Root - The main entity external code interacts with
+public class Order  // &lt;-- This is the Aggregate Root
+{
+    public Guid Id { get; private set; }  // Root has identity
+    
+    // 2. Internal Entities - Live inside the aggregate
+    private readonly List&lt;OrderLine&gt; _lines = new();  // &lt;-- Internal entities
+    
+    // 3. Value Objects - Describe or measure things
+    public Money TotalPrice { get; private set; }  // &lt;-- Value object
+    public OrderStatus Status { get; private set; }  // &lt;-- Value object
+    
+    // External code can only access internal entities through the root
+    public IReadOnlyCollection&lt;OrderLine&gt; Lines =&gt; _lines.AsReadOnly();
+}
+
+// Internal entity - only accessible through Order root
+public class OrderLine  // Not an aggregate root!
+{
+    public Guid Id { get; private set; }
+    public string ProductName { get; private set; }
+    public Money UnitPrice { get; private set; }
+    public int Quantity { get; private set; }
+    
+    public Money LineTotal =&gt; UnitPrice * Quantity;
+    
+    // Constructor is internal - only Order can create lines
+    internal OrderLine(Guid id, string productName, Money unitPrice, int quantity)
+    {
+        Id = id;
+        ProductName = productName;
+        UnitPrice = unitPrice;
+        Quantity = quantity;
+    }
+}
+      </CodeSnippet>
+
+      <h4>Step 2: Define Aggregate Boundaries</h4>
+
+      <p>
+        Use these rules to determine what belongs inside an aggregate:
+      </p>
+
+      <p>
+        <strong>Rule 1: External objects reference the aggregate root only</strong>
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// ✅ CORRECT: Reference the Order (root)
+public class Customer
+{
+    public Guid Id { get; private set; }
+    private readonly List&lt;Guid&gt; _orderIds = new();  // Store IDs, not objects
+    
+    public IReadOnlyCollection&lt;Guid&gt; OrderIds =&gt; _orderIds.AsReadOnly();
+}
+
+// ❌ WRONG: Don't reference internal entities directly
+public class Customer
+{
+    // This violates aggregate boundaries!
+    public List&lt;OrderLine&gt; FavoriteItems { get; set; }  // ❌ Wrong!
+}
+      </CodeSnippet>
+
+      <p>
+        <strong>Rule 2: The root enforces invariants for the whole aggregate</strong>
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+public class Order
+{
+    private readonly List&lt;OrderLine&gt; _lines = new();
+    private Money? _discountCoupon;
+    
+    // Invariant: Order must have at least one line
+    // Root enforces this rule
+    public void AddLine(string productName, Money unitPrice, int quantity)
+    {
+        if (quantity &lt;= 0)
+            throw new ArgumentException("Quantity must be positive");
+        
+        // Check for duplicate products (business rule)
+        if (_lines.Any(l =&gt; l.ProductName == productName))
+            throw new InvalidOperationException(
+                $"Product {productName} already in order");
+        
+        var line = new OrderLine(Guid.NewGuid(), productName, unitPrice, quantity);
+        _lines.Add(line);
+        
+        RecalculateTotal();  // Maintain consistency
+    }
+    
+    public void RemoveLine(Guid lineId)
+    {
+        var line = _lines.FirstOrDefault(l =&gt; l.Id == lineId);
+        if (line == null)
+            throw new InvalidOperationException("Line not found");
+        
+        _lines.Remove(line);
+        
+        // Enforce invariant
+        if (_lines.Count == 0)
+            throw new InvalidOperationException(
+                "Cannot remove last line. Cancel order instead.");
+        
+        RecalculateTotal();
+    }
+    
+    private void RecalculateTotal()
+    {
+        var subtotal = _lines.Sum(l =&gt; l.LineTotal.Amount);
+        var discount = _discountCoupon?.Amount ?? 0;
+        TotalPrice = Money.Usd(subtotal - discount);
+    }
+}
+      </CodeSnippet>
+
+      <p>
+        <strong>Rule 3: Changes happen through the root</strong>
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// ✅ CORRECT: Modify through root
+var order = _orderRepository.GetById(orderId);
+order.AddLine("Software License", Money.Usd(299), 1);
+order.ApplyDiscount(Money.Usd(30));
+_orderRepository.Save(order);
+
+// ❌ WRONG: Don't access internal entities directly
+var order = _orderRepository.GetById(orderId);
+var line = order.Lines.First();
+line.Quantity = 10;  // ❌ Can't do this! Line has private setter
+      </CodeSnippet>
+
+      <p>
+        <strong>Rule 4: Aggregate is loaded and saved as a unit</strong>
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// Repository works with the aggregate root
+public interface IOrderRepository
+{
+    Order GetById(Guid orderId);              // Loads entire aggregate
+    void Save(Order order);                   // Saves entire aggregate
+    void Delete(Order order);                 // Deletes entire aggregate
+}
+
+// Implementation handles the entire graph
+public class OrderRepository : IOrderRepository
+{
+    private readonly DbContext _context;
+    
+    public Order GetById(Guid orderId)
+    {
+        // Load order with all its lines in one query
+        return _context.Orders
+            .Include(o =&gt; o.Lines)  // All internal entities loaded together
+            .FirstOrDefault(o =&gt; o.Id == orderId);
+    }
+    
+    public void Save(Order order)
+    {
+        // EF Core tracks changes to entire aggregate
+        _context.Orders.Update(order);
+        _context.SaveChanges();  // Saves in one transaction
+    }
+}
+      </CodeSnippet>
+
+      <p>
+        <strong>Rule 5: One transaction = One aggregate modification</strong>
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// ✅ CORRECT: Single aggregate per transaction
+public void PlaceOrder(Guid orderId)
+{
+    var order = _orderRepository.GetById(orderId);
+    order.Confirm();  // Changes only Order aggregate
+    _orderRepository.Save(order);
+    
+    // Publish event for other aggregates to react
+    _eventBus.Publish(new OrderConfirmedEvent(orderId));
+}
+
+// ❌ WRONG: Modifying multiple aggregates in one transaction
+public void PlaceOrderAndUpdateInventory(Guid orderId)
+{
+    var order = _orderRepository.GetById(orderId);
+    order.Confirm();
+    
+    var inventory = _inventoryRepository.GetByProductId(productId);
+    inventory.Reserve(quantity);  // ❌ Different aggregate!
+    
+    _orderRepository.Save(order);
+    _inventoryRepository.Save(inventory);  // ❌ Multiple aggregates!
+}
+      </CodeSnippet>
+
+      <h4>Step 3: Identify Aggregate Boundaries</h4>
+
+      <p>
+        Use this decision framework:
+      </p>
+
+      <CodeSnippet CssClass="language-plaintext">
+Ask these questions:
+
+1. "Must these objects be consistent at all times?"
+   Yes → Same aggregate
+   No → Different aggregates
+
+2. "Do they have separate lifecycles?"
+   Yes → Different aggregates
+   No → Same aggregate
+
+3. "Can they be loaded/saved independently?"
+   Yes → Different aggregates
+   No → Same aggregate
+
+4. "Would multiple users edit them concurrently?"
+   Yes → Different aggregates (reduce conflicts)
+   No → Same aggregate
+
+5. "Is this causing performance or memory issues?"
+   Yes → Consider splitting into different aggregates
+   No → Can remain in same aggregate
+      </CodeSnippet>
+
+      <p>
+        <strong>Example Application:</strong>
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// Order Aggregate - includes lines that must be consistent
+public class Order
+{
+    public Guid Id { get; private set; }
+    public Guid CustomerId { get; private set; }  // Reference by ID only!
+    public OrderStatus Status { get; private set; }
+    
+    private readonly List&lt;OrderLine&gt; _lines = new();  // Part of aggregate
+    public IReadOnlyCollection&lt;OrderLine&gt; Lines =&gt; _lines.AsReadOnly();
+    
+    public Money TotalPrice { get; private set; }
+}
+
+// Customer Aggregate - separate lifecycle
+public class Customer
+{
+    public Guid Id { get; private set; }
+    public string Name { get; private set; }
+    public Email EmailAddress { get; private set; }
+    
+    // References Order aggregate by ID only
+    private readonly List&lt;Guid&gt; _orderIds = new();
+    public IReadOnlyCollection&lt;Guid&gt; OrderIds =&gt; _orderIds.AsReadOnly();
+}
+
+// Inventory Aggregate - independent consistency boundary
+public class Inventory
+{
+    public Guid Id { get; private set; }
+    public Guid ProductId { get; private set; }
+    public int QuantityAvailable { get; private set; }
+    public int QuantityReserved { get; private set; }
+    
+    public void Reserve(int quantity)
+    {
+        if (QuantityAvailable &lt; quantity)
+            throw new InsufficientInventoryException();
+        
+        QuantityAvailable -= quantity;
+        QuantityReserved += quantity;
+    }
+}
+      </CodeSnippet>
+
+      <h4>Step 4: Recognize When to Split Aggregates</h4>
+
+      <p>
+        Watch for these warning signs that an aggregate is too large:
+      </p>
+
+      <ul>
+        <li><strong>Size Issues:</strong> Loading the aggregate pulls hundreds of records</li>
+        <li><strong>Concurrency Conflicts:</strong> Users frequently get "object modified" errors</li>
+        <li><strong>No True Invariants:</strong> Parts don't actually need to be updated together</li>
+        <li><strong>Different Lifecycles:</strong> Some parts live much longer than others</li>
+        <li><strong>Performance Problems:</strong> Operations are slow due to large object graph</li>
+      </ul>
+
+      <CodeSnippet CssClass="language-csharp">
+// BEFORE: Too large - Order includes everything
+public class Order
+{
+    public Guid Id { get; private set; }
+    private readonly List&lt;OrderLine&gt; _lines = new();
+    private readonly List&lt;Payment&gt; _payments = new();         // ❌ Different lifecycle
+    private readonly List&lt;Shipment&gt; _shipments = new();       // ❌ Different lifecycle
+    private readonly List&lt;Invoice&gt; _invoices = new();         // ❌ Different lifecycle
+    private readonly List&lt;SupportTicket&gt; _tickets = new();    // ❌ Definitely different!
+}
+
+// AFTER: Split into separate aggregates
+public class Order  // Aggregate 1
+{
+    public Guid Id { get; private set; }
+    private readonly List&lt;OrderLine&gt; _lines = new();  // ✅ Core data
+    public Money TotalPrice { get; private set; }
+}
+
+public class Payment  // Aggregate 2
+{
+    public Guid Id { get; private set; }
+    public Guid OrderId { get; private set; }  // Reference by ID
+    public Money Amount { get; private set; }
+    public PaymentStatus Status { get; private set; }
+}
+
+public class Shipment  // Aggregate 3
+{
+    public Guid Id { get; private set; }
+    public Guid OrderId { get; private set; }  // Reference by ID
+    public Address DeliveryAddress { get; private set; }
+    public ShipmentStatus Status { get; private set; }
+}
+      </CodeSnippet>
+
+      <h4>Step 5: Connect Aggregates with Domain Events</h4>
+
+      <p>
+        When operations span multiple aggregates, use domain events for eventual consistency:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// Step 1: Order aggregate publishes event
+public class Order
+{
+    private readonly List&lt;IDomainEvent&gt; _domainEvents = new();
+    public IReadOnlyCollection&lt;IDomainEvent&gt; DomainEvents =&gt; _domainEvents.AsReadOnly();
+    
+    public void Confirm()
+    {
+        if (Status == OrderStatus.Confirmed)
+            throw new InvalidOperationException("Order already confirmed");
+        
+        Status = OrderStatus.Confirmed;
+        
+        // Raise event - don't modify other aggregates directly
+        _domainEvents.Add(new OrderConfirmedEvent(Id, CustomerId, Lines));
+    }
+}
+
+// Step 2: Event handler updates other aggregates
+public class OrderConfirmedEventHandler : IEventHandler&lt;OrderConfirmedEvent&gt;
+{
+    private readonly IInventoryRepository _inventoryRepo;
+    
+    public async Task Handle(OrderConfirmedEvent evt)
+    {
+        // Update Inventory aggregate separately
+        foreach (var line in evt.Lines)
+        {
+            var inventory = await _inventoryRepo.GetByProductId(line.ProductId);
+            inventory.Reserve(line.Quantity);
+            await _inventoryRepo.Save(inventory);
+        }
+    }
+}
+      </CodeSnippet>
+    </How>
+
+    <Summary>
+      <ul>
+        <li><ContentHighlight>Aggregates</ContentHighlight> are clusters of domain objects treated as a single unit for data changes</li>
+        <li>The <ContentHighlight>aggregate root</ContentHighlight> is the only entry point—external code references the root, not internal entities</li>
+        <li>One transaction should modify one aggregate; use domain events to coordinate changes across aggregates</li>
+        <li>Aggregate boundaries define consistency boundaries—objects within the aggregate must be consistent at all times</li>
+        <li>Load and save entire aggregates as a unit through repositories that work with the root</li>
+        <li>Split large aggregates when you see performance issues, concurrency conflicts, or lack of true invariants</li>
+        <li>Reference other aggregates by ID only, never by direct object reference</li>
+        <li>Invariants (business rules) are enforced by the root across the entire aggregate</li>
+        <li>Use eventual consistency between aggregates with domain events, immediate consistency within aggregates</li>
+        <li>Proper aggregate design improves performance, reduces conflicts, and makes transaction boundaries clear</li>
+      </ul>
+    </Summary>
+  </ContentBody>
+</Content>
