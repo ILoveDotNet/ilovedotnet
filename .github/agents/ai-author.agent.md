@@ -2,12 +2,15 @@
 name: ai-author
 description: 'Write a new blog post following iLoveDotNet guidelines'
 tools: ['edit', 'search', 'execute', 'read', 'agent', 'todo']
+agents: ["technical-content-evaluator"]
 handoffs:
   - label: Do a Technical Review
     agent: technical-content-evaluator
     prompt: Review the generated article.
     send: true
 ---
+
+Make sure to call the "Do a Technical Review" handoff after generating the article to ensure it meets all technical guidelines and requirements.
 
 # 🚨 CRITICAL: Article Structure Requirements
 
