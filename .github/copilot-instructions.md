@@ -1,27 +1,32 @@
 # GitHub Copilot Instructions for I ❤️ .NET
 
 ## Architecture Overview
-This is a **Blazor WebAssembly + .NET MAUI hybrid learning platform** with dual entry points:
-- **Web**: Blazor WASM SPA at `/Web/Program.cs`
-- **MAUI**: Native shell with BlazorWebView at `/MAUI/MauiProgram.cs`
+This is a **Blazor WebAssembly + .NET MAUI hybrid learning platform** targeting **net10.0** (`LangVersion: latest`, nullable enabled, implicit usings on) with dual entry points:
+- **Web**: Blazor WASM SPA at `Web/Program.cs`
+- **MAUI**: Native shell with BlazorWebView at `MAUI/MauiProgram.cs`
+
+Current ASP.NET Core package version: **10.0.3**. Always match this version when adding new `PackageReference` entries.
 
 ## Component Architecture
-**Modular RCL Design**: 20+ Razor Class Libraries organized by topic:
+**Modular RCL Design**: 28 Razor Class Libraries organized by topic:
 - **Core**: `BaseComponents`, `CommonComponents`, `SharedComponents`, `SharedModels`
-- **Topics**: `BlazorDemoComponents`, `LINQDemoComponents`, `DesignPatternDemoComponents`, etc.
+- **Topics**: `AIDemoComponents`, `BlazorDemoComponents`, `LINQDemoComponents`, `DesignPatternDemoComponents`, …(28 total, see `Web/Web.csproj` lazy-load entries)
 - **Lazy Loading**: All demo components are lazy-loaded via `BlazorWebAssemblyLazyLoad` entries in `Web/Web.csproj`
 
 ## Key Patterns & Conventions
 
 ### Lazy Loading Implementation
-- **Configuration**: `<BlazorWebAssemblyLazyLoad Include="ComponentName.wasm" />` in Web.csproj
-- **Service**: `LazyLoaderService` handles dynamic assembly loading based on URL patterns
+- **Configuration**: `<BlazorWebAssemblyLazyLoad Include="ComponentName.wasm" />` in `Web/Web.csproj`
+- **Service**: `CommonComponents/Services/LazyLoaderService.cs` — path-keyword matching in `OnNavigateAsync`, seeded with `AppState` assembly
+- **Startup**: `LazyLoaderService.PreloadAsync()` is called in `Web/Program.cs` before `host.RunAsync()` to pre-load assemblies for the initial URL
 - **Router**: Both `Web/App.razor` and `MAUI/Components/Routes.razor` use `OnNavigateAsync` for lazy loading
+- **BaseComponents**: Always loaded first for any `/blogs/` path
 
 ### Content Management
-- **Metadata**: `SharedModels/BlazorLearningPath.cs` contains structured learning content
-- **Pattern**: `ContentMetaData` objects with Order, Title, Description, Slug, ContentUrl
+- **Metadata model**: `ContentMetaData` in `SharedModels/` — fields: `Order`, `Title`, `Description`, `Author`, `Slug`, `PosterUrl`, `ThumbnailUrl`, `ContentUrl`, `IconUrl`, `Channel`, `Type`, `CreatedOn`, `ModifiedOn`, `Keywords[]`
+- **URL conventions**: `ContentUrl = "blogs/{slug}"`, `PosterUrl = "image/blogs/{channel}/{slug}.webp"`, `IconUrl = "image/icons/{channel}.webp"`
 - **Routing**: Blog content follows `/blogs/{slug}` pattern with corresponding Razor pages
+- **Future scheduling**: `TableOfContents.Contents` filters out entries where `ModifiedOn.Date > DateTime.Today` — set a future date to schedule content
 
 ### Component Inheritance
 - **Base**: Most content pages inherit from `BasePage` class
@@ -31,6 +36,7 @@ This is a **Blazor WebAssembly + .NET MAUI hybrid learning platform** with dual 
 ### Blog Content Structure
 - **Required Sections**: All blogs follow `What`, `Why`, `How`, `Summary` pattern
 - **Page Declaration**: `@page "/blogs/{slug}"` and `@inherits BasePage`
+- **Imports**: Add `@using BaseComponents` at the top of every Razor page (in addition to `_Imports.razor`)
 - **Content Wrapper**: `<Content FileName=@nameof(ActualFileName) UseNewTableOfContentsMenu=true>`
 - **Highlighting**: Use `<ContentHighlight>` for important terms and concepts
 - **Code Samples**: Wrap in `<CodeSnippet CssClass="language-{type}">` with proper escaping
@@ -43,35 +49,49 @@ This is a **Blazor WebAssembly + .NET MAUI hybrid learning platform** with dual 
 ## Project-Specific Conventions
 - **Namespaces**: Each RCL has its own namespace matching folder name
 - **Imports**: Use `_Imports.razor` for shared using statements
-- **Performance**: Dynamic image loading pattern (`_imageSource` variable pattern)
-- **SEO**: Pre-rendering enabled via `BlazorWasmPreRendering.Build` package
+- **Performance**: Dynamic image loading pattern (`_imageSource` variable pattern); `WasmBuildNative=true`, globalization/timezone data off
+- **SEO**: Pre-rendering via `BlazorWasmPreRendering.Build` (mode `WebAssemblyPrerendered`)
 - **Blog Placement**: Create blogs in appropriate `{Category}DemoComponents` project
 - **Asset Organization**: Images in `wwwroot/image/blogs/{category}/{slug}/`
 
 ## Integration Points
 - **MAUI Integration**: Shared components work in both Web and MAUI contexts via BlazorWebView
 - **Analytics**: Blazor Analytics integration across both platforms
-- **Logging**: Serilog for structured logging with browser console output
-- **Testing**: XUnit for unit tests, Playwright for E2E tests
+- **Logging**: Serilog → `BrowserConsole` sink at `Warning` level
+- **Testing**: XUnit for unit tests, Playwright for E2E tests (`E2E/`, `UITests/`)
 - **Documentation**: Mermaid diagrams for architecture visualization
 
+## Custom Agents & Skills
+Agents are defined in `.github/agents/`:
+- **`ai-author`** — Writes new blog posts; handoffs to `technical-content-evaluator` for review
+- **`dotnet-upgrade`** — Janitorial .NET modernization, cleanup, tech debt
+- **`technical-content-evaluator`** — Reviews generated articles for accuracy and quality
+
+Skills are in `.github/skills/`:
+- **`nuget-manager`** — Use when adding/removing/updating NuGet packages (enforces `dotnet` CLI)
+
 ## Key Files to Check First
-- `Web/Program.cs` - Main configuration and service registration
-- `CommonComponents/Services/LazyLoaderService.cs` - Assembly loading logic
-- `SharedModels/BlazorLearningPath.cs` - Content structure and metadata
-- `Web/Web.csproj` - Lazy loading configuration and package references
-- `copilot/blog-generation-guidelines.md` - Complete blog writing standards
+- `Web/Program.cs` — DI registrations, Serilog, `PreloadAsync()` startup
+- `CommonComponents/Services/LazyLoaderService.cs` — Assembly loading logic and path-keyword map
+- `SharedModels/TableOfContents.cs` — All 28 learning paths, capacity, future-date filtering
+- `Web/Web.csproj` — Lazy loading config, package versions
+- `copilot/blog-generation-guidelines.md` — Full blog writing standards and checklist
+- `copilot/` — Also contains: `commit-messages.md`, `blogpost-rules.md`, `ai-social-post-generation-guidelines.md`, `RELEASE_TEMPLATE.md`
 
 ## Content Creation Guidelines
 When creating new blog content:
 1. **Structure**: Follow What-Why-How-Summary sections
-2. **Metadata**: Add entry to appropriate `{Topic}LearningPath.cs`
-3. **Table of Contents**: Update the total count in `SharedModels/TableOfContents.cs` by incrementing `_fullContents` capacity by 1 for each new article
-4. **Placement**: Create in matching `{Topic}DemoComponents` project
-5. **Assets**: Store images in `wwwroot/image/blogs/{topic}/{slug}/`
-6. **Code**: Escape HTML characters (`<` as `&lt;`, `>` as `&gt;`)
+2. **Imports**: Add `@using BaseComponents` at top of the Razor file
+3. **Metadata**: Add `ContentMetaData` entry to appropriate `{Topic}LearningPath.cs`
+4. **Table of Contents**: Increment `_fullContents` capacity in `SharedModels/TableOfContents.cs` by 1 for each new article
+5. **Placement**: Create in matching `{Topic}DemoComponents` project
+6. **Assets**: Store images in `wwwroot/image/blogs/{topic}/{slug}/`
+7. **Code**: Escape HTML characters (`<` as `&lt;`, `>` as `&gt;`)
+8. **Final step**: Run `dotnet format --verbosity quiet whitespace --folder`
 
 When adding new features, follow the established RCL pattern and ensure both Web and MAUI compatibility.
+
+---
 
 ## Creating a New Topic/Demo Components Project
 
@@ -131,7 +151,7 @@ Replace the generated `.csproj` content with the standard pattern:
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.3" />
   </ItemGroup>
 
   <ItemGroup>
@@ -241,7 +261,7 @@ dotnet build Web/Web.csproj
 - Replace `{topic-slug}` with the URL path segment (e.g., `json`, `security`, `linq`)
 - Replace `{Topic}Channel` with the appropriate channel name for sitemap/poster generation
 - Maintain alphabetical order when adding entries to Web.csproj, LazyLoaderService.cs, keywords meta tags, and TableOfContents.cs
-- Ensure package versions match the rest of the solution (currently `10.0.0` for ASP.NET Core packages)
+- Ensure package versions match the rest of the solution (currently `10.0.3` for ASP.NET Core packages)
 - Initialize FullContents with capacity 0 for empty learning paths; increase as content is added
 
 ## Lint, Build and Test
