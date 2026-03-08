@@ -94,7 +94,108 @@
           Here is the code that we have used to solve this by adding a distributed lock in multiple instance scenario.
         </p>
 
-        <GithubGistSnippet Title="Using a distributed lock in Hosted Service in ASP.NET Web API" UserId="fingers10" FileName="d0b30e2d89eb8466f5bb1be0c89c9a7d"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+namespace ILoveDotNet.HostedServices;
+
+public class ILoveDotNetAthenaQueryBackgroundService(
+    ILogger&lt;ILoveDotNetAthenaQueryBackgroundService&gt; logger,
+    TimeProvider timeProvider,
+    IServiceProvider serviceProvider) : BackgroundService
+{
+  private const int QueryIntervalInMinutes = 30;
+  private string _currentInstanceId = string.Empty;
+
+  protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+  {
+    await RegisterInstance($"ilovedotnet-bg-metrics-process-{Guid.NewGuid().ToString()}");
+
+    timeProvider.CreateTimer(ReadDataFromAthena, null, TimeSpan.Zero, TimeSpan.FromMinutes(QueryIntervalInMinutes));
+  }
+  
+  private async Task RegisterInstance(string processTrackingId)
+  {
+    try
+    {
+      using var scope = serviceProvider.CreateScope();
+      var configRepo = scope.ServiceProvider.GetRequiredService&lt;IRepository&lt;Settings&gt;&gt;();
+      var instanceService = scope.ServiceProvider.GetRequiredService&lt;IAwsInstanceService&gt;();
+
+      if (string.IsNullOrEmpty(_currentInstanceId))
+      {
+        _currentInstanceId = instanceService.GetInstanceId();
+      }
+
+      var existingConfig = await configRepo.GetByIdAsync("ilovedotnet-bg-service");
+      if (existingConfig != null)
+      {
+        existingConfig.UpdateValue(_currentInstanceId);
+        configRepo.Update(existingConfig);
+      }
+      else
+      {
+        var config = new Settings("ilovedotnet-bg-service", _currentInstanceId);
+        await configRepo.AddAsync(config);
+      }
+
+      await configRepo.SaveChangesAsync();
+    }
+    catch
+    {
+      // log error
+    }
+  }
+
+  private async void ReadDataFromAthena(object? sender)
+  {
+    try
+    {
+      using var scope = serviceProvider.CreateScope();
+      var metricsService = scope.ServiceProvider.GetRequiredService&lt;IMetricsService&gt;();
+      var settingsRepo = scope.ServiceProvider.GetRequiredService&lt;IRepository&lt;Settings&gt;&gt;();
+      var instanceService = scope.ServiceProvider.GetRequiredService&lt;IAwsInstanceService&gt;();
+
+      var settings = await settingsRepo.GetByIdAsync("ilovedotnet-bg-service");
+      _currentInstanceId = instanceService.GetInstanceId();
+
+      var canExecute = await CanExecute(settings, _currentInstanceId);
+
+      if (!canExecute)
+      {
+        // log and return
+        return;
+      }
+
+      await metricsService.ProcessMetrics();
+
+      // Resetting / Update instance id after saving metrics
+
+      await RegisterInstance(processTrackingId);
+    }
+    catch (Exception e)
+    {
+      // log exception
+    }
+  }
+  
+  private async Task&lt;bool&gt; CanExecute(Settings? setting, string currentInstanceId)
+  {
+    if (setting == null)
+    {
+      return await Task.FromResult(false);
+    }
+
+    var thresholdTime = setting.LastUpdatedAt.AddMinutes(QueryIntervalInMinutes * 2);
+
+    var bgProcessorInstanceId = GetProcessorInstanceId(setting);
+
+    var currentUtcTime = timeProvider.GetUtcNow().DateTime;
+    var isThresholdCrossed = thresholdTime &lt; currentUtcTime;
+
+    return currentInstanceId.Equals(bgProcessorInstanceId, StringComparison.InvariantCultureIgnoreCase)
+      || isThresholdCrossed;
+  }
+}
+        </CodeSnippet>
 
         <p>
           Here is the explanation of the above code.

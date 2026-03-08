@@ -57,7 +57,19 @@
             any element in the collection met the criteria?.
         </p>
 
-        <GithubGistSnippet Title="LINQ Contains" UserId="fingers10" FileName="16fcd23b99a02d9b595db00adb10de1a"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+List&lt;Product&gt; products = GetProducts();
+
+//Method Syntax
+bool result = products
+              .Select(product =&gt; product.Color)
+              .Contains("Red");
+                    
+//Query Syntax
+bool result = (from product in products select product)
+              .Select(product =&gt; product.Color)
+              .Contains("Red");
+        </CodeSnippet>
 
         <DemoSnippet Title="LINQ Contains Clause Demo">
             <p>
@@ -91,9 +103,34 @@
             <li>Also override <ContentHighlight>GetHashCode()</ContentHighlight> method and return unique value for every single object.</li>
         </ol>
 
-        <GithubGistSnippet Title="LINQ Contains Product Comparer" UserId="fingers10" FileName="d2f61c2c1f75811433bf047b60f354e8"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+public class ProductIdComparer : EqualityComparer&lt;Product&gt;
+{
+    public override bool Equals(Product? product, Product? anotherProduct)
+    {
+        return product?.Id == anotherProduct?.Id;
+    }
 
-        <GithubGistSnippet Title="LINQ Contains With Product Comparer" UserId="fingers10" FileName="d4cce1714518e487b8d1d1a27636ac50"></GithubGistSnippet>
+    public override int GetHashCode([DisallowNull] Product product)
+    {
+        return product.Id.GetHashCode();
+    }
+}
+        </CodeSnippet>
+
+        <CodeSnippet CssClass="language-csharp">
+List&lt;Product&gt; products = GetProducts();
+Product product = products.Last();
+ProductIdComparer productIdComparer = new();
+
+//Method Syntax
+bool result = products
+              .Contains(product, productIdComparer);
+                    
+//Query Syntax
+bool result = (from product in products select product)
+              .Contains(product, productIdComparer);
+        </CodeSnippet>
 
         <DemoSnippet Title="LINQ Contains Clause with Comparer Demo">
             <p>

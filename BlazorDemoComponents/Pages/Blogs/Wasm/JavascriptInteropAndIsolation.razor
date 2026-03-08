@@ -76,7 +76,11 @@
             and display it in javascript <ContentHighlight>alert()</ContentHighlight>.
         </p>
 
-        <GithubGistSnippet Title="JS function to be called from .NET which returns no value" UserId="fingers10" FileName="97c3319d5cd3ba12030fd70039a510a0"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-javascript">
+var blazorInterop = blazorInterop || {};
+
+blazorInterop.displayAlert = (textToDisplay) =&gt; { alert(textToDisplay); };
+        </CodeSnippet>
 
         <h4 id="javascript-interop-js-from-dotnet">Calling JS from .Net</h4>
 
@@ -86,7 +90,18 @@
             <ContentHighlight>InvokeVoidAsync</ContentHighlight> as we don't have any return value from the javascript function.
         </p>
 
-        <GithubGistSnippet Title="Alert Component to call JS from .NET which returns no value" UserId="fingers10" FileName="0ddb3604c0fcdd77ef70ecf4d3943b06"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-razor">
+&lt;button @@onclick="() =&gt; DisplayAlert()"&gt;Display Alert&lt;/button&gt;
+
+@@code {
+    [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
+
+    private async Task DisplayAlert()
+    {
+        await JSRuntime.InvokeVoidAsync("blazorInterop.displayAlert", "I ❤️ DotNet");
+    }
+}
+        </CodeSnippet>
 
         <DemoSnippet Title="Javascript Interop - Displaying Alert">
             <JavascriptAlert></JavascriptAlert>
@@ -100,9 +115,38 @@
             before except this time we need to call the javascript function using <ContentHighlight CssClasses="[ break-all ]">InvokeAsync&lt;WindowDimensions&gt;("blazorInterop.getViewportDimensions")</ContentHighlight>.
         </p>
 
-        <GithubGistSnippet Title="JS function to be called from .NET which returns value" UserId="fingers10" FileName="375be41a677d108fbe2ec654468b28c3"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-javascript">
+var blazorInterop = blazorInterop || {};
 
-        <GithubGistSnippet Title="JS function to be called from .NET which returns value" UserId="fingers10" FileName="910132da990202eb248b24bd515ce565"></GithubGistSnippet>
+blazorInterop.getViewportDimensions = () =&gt; {
+    return { width: window.innerWidth, height: window.innerHeight };
+}
+        </CodeSnippet>
+
+        <CodeSnippet CssClass="language-razor">
+&lt;button @@onclick="() =&gt; DisplayAlert()"&gt;Get Dimensions&lt;/button&gt;
+
+&lt;p&gt;Window Width: @@windowDimensions.Width px&lt;/p&gt;
+&lt;p&gt;Window Height: @@windowDimensions.Height px&lt;/p&gt;
+
+@@code {
+    private WindowDimensions windowDimensions = new();
+
+    [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
+
+    private async Task DisplayAlert()
+    {
+        windowDimensions = await JSRuntime.InvokeAsync&lt;WindowDimensions&gt;("blazorInterop.getViewportDimensions");
+        Console.WriteLine(windowDimensions.Height);
+    }
+
+    public class WindowDimensions
+    {
+        public int Width { get; set; }        
+        public int Height { get; set; }
+    }
+}
+        </CodeSnippet>
 
         <DemoSnippet Title="Javascript Interop - Finding Viewport Dimensions">
             <JavascriptViewportDimensions></JavascriptViewportDimensions>
@@ -125,9 +169,33 @@
             <ContentHighlight>.NET static</ContentHighlight> method and call the static .Net method from JS using <ContentHighlight CssClasses="[ break-all ]">DotNet.invokeMethod('Namespace', '.Net Static Method Name')</ContentHighlight>.
         </p>
 
-        <GithubGistSnippet Title=".NET static method to be called from JS" UserId="fingers10" FileName="a2fa2758d1eb84a385cf081ef3cbb391"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-javascript">
+var blazorInterop = blazorInterop || {};
 
-        <GithubGistSnippet Title=".NET static method to be called from JS" UserId="fingers10" FileName="281c5631294b193187dda864b6cd6f48"></GithubGistSnippet>
+blazorInterop.callDotNetStaticFromJs = () =&gt; {
+    let message = DotNet.invokeMethod('Web', 'GetMessageFromDotNet');
+    alert(`Message from .Net Static Method - ${message}`);
+}
+        </CodeSnippet>
+
+        <CodeSnippet CssClass="language-razor">
+&lt;button @@onclick="() =&gt; DisplayAlert()"&gt;Calling .Net Static Method from JS&lt;/button&gt;
+
+@@code {
+    [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
+
+    private async Task DisplayAlert()
+    {
+        await JSRuntime.InvokeVoidAsync("blazorInterop.callDotNetStaticFromJs");
+    }
+
+    [JSInvokable]
+    public static string GetMessageFromDotNet()
+    {
+        return "DotNet ❤️ JS";
+    }
+}
+        </CodeSnippet>
 
         <DemoSnippet Title="Javascript Interop - Calling .Net Static Method From JS">
             <DotNetStaticMethodFromJavascript></DotNetStaticMethodFromJavascript>
@@ -144,9 +212,43 @@
             to <ContentHighlight>dispose</ContentHighlight> the <ContentHighlight>DotNetObjectReference</ContentHighlight>.
         </p>
 
-        <GithubGistSnippet Title=".NET instance method to be called from JS" UserId="fingers10" FileName="d2204803bb0cef42e4285efb4636fa98"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-javascript">
+var blazorInterop = blazorInterop || {};
 
-        <GithubGistSnippet Title=".NET instance method to be called from JS" UserId="fingers10" FileName="f06b0b70a1c74444d1d6483cb09a08f2"></GithubGistSnippet>
+blazorInterop.callDotNetInstanceFromJs = (dotNetHelper) =&gt; {
+    let message = dotNetHelper.invokeMethod('GetMessageFromDotNet');
+    alert(`Message from .Net Static Method - ${message}`);
+}
+        </CodeSnippet>
+
+        <CodeSnippet CssClass="language-razor">
+@@implements IDisposable
+
+&lt;button @@onclick="() =&gt; DisplayAlert()"&gt;Calling .Net instance Method from JS&lt;/button&gt;
+
+@@code {
+    private DotNetObjectReference&lt;DotNetInstanceMethodFromJavascript&gt;? objRef;
+
+    [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
+
+    private async Task DisplayAlert()
+    {
+        objRef = DotNetObjectReference.Create(this);
+        await JSRuntime.InvokeVoidAsync("blazorInterop.callDotNetInstanceFromJs", objRef);
+    }
+
+    [JSInvokable]
+    public string GetMessageFromDotNet()
+    {
+        return "DotNet ❤️ JS";
+    }
+
+    public void Dispose()
+    {
+        objRef?.Dispose();
+    }
+}
+        </CodeSnippet>
 
         <DemoSnippet Title="Javascript Interop - Calling .Net Instance Method From JS">
             <DotNetInstanceMethodFromJavascript></DotNetInstanceMethodFromJavascript>
@@ -172,9 +274,57 @@
             <ContentHighlight>disposed</ContentHighlight> on <ContentHighlight>component dispose</ContentHighlight>.
         </p>
 
-        <GithubGistSnippet Title=".NET instance method to be called from JS Module" UserId="fingers10" FileName="6024a6acdb759562b052e1eab2c68126"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-javascript">
+export function showPrompt(message) {
+    return prompt(message, 'Type anything here');
+}
+        </CodeSnippet>
 
-        <GithubGistSnippet Title=".NET instance method to be called from JS Module" UserId="fingers10" FileName="e83808f737d36a23304e6546cd34b964"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-razor">
+@@implements IAsyncDisposable
+
+&lt;button @@onclick="TriggerPrompt"&gt;Trigger browser window prompt&lt;/button&gt;
+
+&lt;p&gt;Your message: @@result&lt;/p&gt;
+
+@@code {
+    private IJSObjectReference? module;
+    private string? result;
+
+    [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            module = await JSRuntime.InvokeAsync&lt;IJSObjectReference&gt;("import","./js/demo/jsisolation.js");
+        }
+    }
+
+    private async Task TriggerPrompt()
+    {
+        result = await Prompt("Provide some text");
+    }
+
+    public async ValueTask&lt;string?&gt; Prompt(string message) 
+    {
+        if(module is not null) 
+        {
+            return await module.InvokeAsync&lt;string&gt;("showPrompt", message);
+        }
+
+        return null;
+    }
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        if (module is not null)
+        {
+            await module.DisposeAsync();
+        }
+    }
+}
+        </CodeSnippet>
 
         <DemoSnippet Title="Javascript Isolation - Calling Javascript prompt from JS Module">
             <JavascriptIsolation></JavascriptIsolation>

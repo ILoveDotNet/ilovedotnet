@@ -106,7 +106,34 @@
              adds security headers to the HTTP response.
         </p>
 
-        <GithubGistSnippet Title="WebAPI Middleware" UserId="fingers10" FileName="f832993359c9e9eb6afc4a3aa44f4e58"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+using Microsoft.AspNetCore.Http;
+using System.Threading.Tasks;
+
+namespace ILoveDotNet.Middleware
+{
+    public class AddSecurityHeadersMiddleware
+    {
+        private readonly RequestDelegate _next;
+
+        public AddSecurityHeadersMiddleware(RequestDelegate next)
+        {
+            _next = next;
+        }
+
+        public async Task InvokeAsync(HttpContext context)
+        {
+            IHeaderDictionary headers = context.Response.Headers;
+             
+            // Add CSP + X-Content-Type
+            headers["Content-Security-Policy"] = "default-src 'self';frame-ancestors 'none';"; 
+            headers["X-Content-Type-Options"] = "nosniff"; 
+
+            await _next(context);
+        }
+    }
+}
+        </CodeSnippet>
 
         
 
@@ -137,7 +164,36 @@
             collection of the <ContentHighlight>HttpContext</ContentHighlight>. We compare the obtained values with the expected values using assertions.
         </p>
 
-        <GithubGistSnippet Title="WebAPI Middleware Test" UserId="fingers10" FileName="938bc21071b45e27be8d594aa47848f1"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+using ILoveDotNet.Middleware;
+using Microsoft.AspNetCore.Http;
+using Xunit;
+
+namespace ILoveDotNet.Tests
+{
+    public class AddSecurityHeadersMiddlewareTests
+    {
+        [Fact]
+        public async Task InvokeAsync_SetsExpectedResponseHeaders()
+        {
+            // Arrange
+            var httpContext = new DefaultHttpContext();
+            RequestDelegate next = (HttpContext httpContext) =&gt; Task.CompletedTask;
+            var middleware = new AddSecurityHeadersMiddleware(next);
+
+            // Act
+            await middleware.InvokeAsync(httpContext);
+
+            // Assert
+            var cspHeader = httpContext.Response.Headers["Content-Security-Policy"].ToString();
+            var xContentTypeOptionsHeader = httpContext.Response.Headers["X-Content-Type-Options"].ToString();
+
+            Assert.Equal("default-src 'self';frame-ancestors 'none';", cspHeader);
+            Assert.Equal("nosniff", xContentTypeOptionsHeader);
+        }
+    }
+}
+        </CodeSnippet>
 
         
 

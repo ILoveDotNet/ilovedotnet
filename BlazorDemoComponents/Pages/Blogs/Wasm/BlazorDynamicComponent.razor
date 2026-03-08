@@ -74,7 +74,14 @@
             <li><ContentHighlight>parameters</ContentHighlight> specifies component parameters to pass to the <ContentHighlight>componentType</ContentHighlight> component.</li>
         </ul>
 
-        <GithubGistSnippet Title="Simple Dynamic Component" UserId="fingers10" FileName="dadd0babe24b9f50a13776e6d87f4912"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-razor">
+&lt;DynamicComponent Type="@@componentType" Parameters="@@parameters" /&gt;
+
+@@code {
+    private Type componentType = ...;
+    private IDictionary&lt;string, object&gt; parameters = ...;
+}
+        </CodeSnippet>
 
         
 
@@ -101,7 +108,16 @@
             A simple <ContentHighlight>&lt;input type="text" /&gt;</ContentHighlight>
         </p>
 
-        <GithubGistSnippet Title="Text Box Component" UserId="fingers10" FileName="82cb694f9147dd30705c5e783bfc4258"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-razor">
+&lt;label&gt;
+    @@Label
+    &lt;input type="text" /&gt;
+&lt;/label&gt;
+
+@@code {
+    [Parameter] public string Label { get; set; }
+}
+        </CodeSnippet>
 
         
 
@@ -109,7 +125,16 @@
             A simple <ContentHighlight>&lt;input type="checkbox" /&gt;</ContentHighlight>
         </p>
 
-        <GithubGistSnippet Title="Check Box Component" UserId="fingers10" FileName="6c1e68ef390b314aa2606633d042fdf0"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-razor">
+&lt;label&gt;
+    &lt;input type="checkbox" /&gt;
+    @@Label
+&lt;/label&gt;
+
+@@code {
+    [Parameter] public string Label { get; set; }
+}
+        </CodeSnippet>
 
         
 
@@ -117,7 +142,16 @@
             A simple <ContentHighlight>&lt;input type="radio" /&gt;</ContentHighlight>
         </p>
 
-        <GithubGistSnippet Title="Radio Button Component" UserId="fingers10" FileName="716770bc6e1808b856ff65f8effbb4cc"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-razor">
+&lt;label&gt;
+    &lt;input type="radio" /&gt;
+    @@Label
+&lt;/label&gt;
+
+@@code {
+    [Parameter] public string Label { get; set; }
+}
+        </CodeSnippet>
 
         
         
@@ -143,7 +177,62 @@
             </li>
         </ol>
 
-        <GithubGistSnippet Title="Dynamically Rendering Input Components" UserId="fingers10" FileName="c813114d80a4080bf20fbee82424f14b"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-razor">
+&lt;select @@onchange="RenderComponent"&gt;
+    &lt;option&gt;Select&lt;/option&gt;
+    &lt;option value="@@(nameof(TextboxComponent))"&gt;Text Box&lt;/option&gt;
+    &lt;option value="@@(nameof(CheckboxComponent))"&gt;Check Box&lt;/option&gt;
+    &lt;option value="@@(nameof(RadiobuttonComponent))"&gt;Radio Button&lt;/option&gt;
+&lt;/select&gt;
+
+@@if(type is not null)
+{
+    &lt;DynamicComponent Type="@@type" Parameters="@@components[type.Name].Parameters"&gt;&lt;/DynamicComponent&gt;
+} 
+
+@@code {
+    Type? type;
+    private Dictionary&lt;string, ComponentMetadata&gt; components = new()
+    {
+        {
+            nameof(TextboxComponent),
+            new ComponentMetadata
+            {
+                Name = "Text Box",
+                Parameters = new() { { "Label", "Text Box" } }
+            }
+        },
+        {
+            nameof(CheckboxComponent),
+            new ComponentMetadata
+            {
+                Name = "Check Box",
+                Parameters = new() { { "Label", "Check Box" } }
+            }
+        },
+        {
+            nameof(RadiobuttonComponent),
+            new ComponentMetadata
+            {
+                Name = "Radio Button",
+                Parameters = new() { { "Label", "Radio Button" } }
+            }
+        }
+    };
+
+    public void RenderComponent(ChangeEventArgs eventArgs)
+    {
+        type = Type.GetType($"BlazorDemoComponents.{eventArgs.Value}");
+    }
+
+    public class ComponentMetadata
+    {
+        public string? Name { get; set; }
+        public Dictionary&lt;string, object&gt; Parameters { get; set; } = 
+            new Dictionary&lt;string, object&gt;();
+    }
+}
+        </CodeSnippet>
 
         
 

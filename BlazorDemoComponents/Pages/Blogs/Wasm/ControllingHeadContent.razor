@@ -113,7 +113,20 @@
             can be placed anywhere inside component or page in your blazor application.
         </p>
         
-        <GithubGistSnippet Title="PageTitle" UserId="fingers10" FileName="6c392cc8ae9bb5b6418ac6d64022b37f"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+&lt;PageTitle&gt;@@Title&lt;/PageTitle&gt;
+
+&lt;p&gt;
+    &lt;label&gt;
+        Try giving new &lt;code&gt;PageTitle&lt;/code&gt;.
+        &lt;input @@bind-value="Title" @@bind-value:event="oninput" /&gt;
+    &lt;/label&gt;
+&lt;/p&gt;
+
+@@code {
+    private string Title = "Blazor WASM Controlling Head Content";
+}
+        </CodeSnippet>
 
         <DemoSnippet Title="PageTitle Demo">
             <p class="[ text-black ] [ dark:text-white ]">
@@ -140,7 +153,15 @@
             can be placed anywhere inside component or page in your blazor application.
         </p>
 
-        <GithubGistSnippet Title="HeadContent" UserId="fingers10" FileName="648865991869267dc92ae7d2e2e6622d"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+&lt;HeadContent&gt;
+    &lt;meta name="Head Content Demo" content="@@description"&gt;
+&lt;/HeadContent&gt;
+
+@@code {
+    private string description = "Head Content Demo";
+}
+        </CodeSnippet>
 
         <DemoSnippet Title="HeadContent Demo">
             <p class="[ text-black ] [ dark:text-white ]">
@@ -166,7 +187,12 @@
 
         <details open="true">
             <summary>What if we use <ContentHighlight>PageTitle</ContentHighlight> twice?</summary>
-            <GithubGistSnippet Title="Multiple PageTitle" UserId="fingers10" FileName="9cb00ab55c133d34a6c34ad622bb8d49"></GithubGistSnippet>
+            <CodeSnippet CssClass="language-csharp">
+@@page "/pagetitledemo"
+
+&lt;PageTitle&gt;Page Title 1&lt;/PageTitle&gt;
+&lt;PageTitle&gt;Page Title 2&lt;/PageTitle&gt;
+            </CodeSnippet>
             <p>
                 Blazor will not create two title tags inside of the head of your document. Instead, the last PageTitle component to be rendered will be 
                 reflected as the title of your document.
@@ -175,7 +201,12 @@
 
         <details open="true">
             <summary>What if we give <ContentHighlight>&lt;title&gt;</ContentHighlight> inside <ContentHighlight>HeadContent</ContentHighlight>?</summary>
-            <GithubGistSnippet Title="Page Title in both PageTitle and HeadContent" UserId="fingers10" FileName="2cb7873ae9b547e261fb3084cdc11e80"></GithubGistSnippet>
+            <CodeSnippet CssClass="language-csharp">
+&lt;PageTitle&gt;Page title from PageTitle&lt;/PageTitle&gt;
+&lt;HeadContent&gt;
+  &lt;title&gt;Page title from HeadContent&lt;/title&gt;
+&lt;/HeadContent&gt;
+            </CodeSnippet>
             <p>
                 Browser will use second title. But I recommend using <ContentHighlight>PageTitle</ContentHighlight> component for titles as it designed for 
                 that and it takes care of creating and updating.
@@ -184,7 +215,17 @@
 
         <details open="true">
             <summary>What if we have mutiple <ContentHighlight>HeadContent</ContentHighlight>?</summary>
-            <GithubGistSnippet Title="Multiple HeadContent" UserId="fingers10" FileName="22c0a74c6cbb7ae03bbf03f322e65d0f"></GithubGistSnippet>
+            <CodeSnippet CssClass="language-csharp">
+@@page "/headcontentdemo"
+
+&lt;HeadContent&gt;
+  &lt;meta name="description" content="page description" /&gt;
+  &lt;meta name="author" content="Abdul Rahman - I ❤️ .NET"&gt;
+&lt;/HeadContent&gt;
+&lt;HeadContent&gt;
+  &lt;meta name="description" content="another page description" /&gt;
+&lt;/HeadContent&gt;
+            </CodeSnippet>
             <p>
                 Blazor will not merge instead it will replace the contents of last <ContentHighlight>HeadContent</ContentHighlight> and remaining will be lost.
             </p>
@@ -204,7 +245,129 @@
             Here is I ❤️ DotNet's HeadContent Configuration - A good Real world example.
         </p>
 
-        <GithubGistSnippet Title="Multiple HeadContent" UserId="fingers10" FileName="56c1076746d054caf00fc453feffa4f8"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+@@inject IConfiguration configuration
+@@inject TableOfContents tableOfContents
+@@inject Sitemaps sitemap
+
+&lt;Title&gt;@@Title - I ❤️ DotNet&lt;/Title&gt;
+
+&lt;Meta Property="description" Content="@@Description" /&gt;
+&lt;Meta Property="keywords" Content="@@($".NET, DotNet, I Love DotNet, I ❤️ DotNet, Blazor, Blazor (WebAssembly), Blazor Wasm, C#, Entity Framework, LINQ, ML.NET, Web API, TDD, OOPS, Middleware, JWT, Dependency Injection, {string.Join(", ", Keywords)}")" /&gt;
+&lt;Meta Property="url" Content="@@($"{BaseUrl}{ContentType}/{Slug}/")" /&gt;
+&lt;Meta Property="identifier-URL" Content="@@($"{BaseUrl}{ContentType}/{Slug}/")" /&gt;
+&lt;Meta Property="og:site_name" Content="I Love DotNet" /&gt;
+&lt;Meta Property="og:type" Content="article" /&gt;
+&lt;Meta Property="og:title" Content="@@Title" /&gt;
+&lt;Meta Property="og:image" Content="@@($"{BaseUrl}image/brand/mini-logo.png")" /&gt;
+&lt;Meta Property="og:image" Content="@@($"{BaseUrl}image/{normalizedPosterPath}/{Slug}.png")" /&gt;
+&lt;Meta Property="og:image:alt" Content="DotNet bot with heart and DotNet brand" /&gt;
+&lt;Meta Property="og:description" Content="@@Description" /&gt;
+&lt;Meta Property="og:url" Content="@@($"{BaseUrl}{ContentType}/{Slug}/")" /&gt;
+&lt;Meta Property="twitter:card" Content="summary_large_image" /&gt;
+&lt;Meta Property="twitter:title" Content="@@Title" /&gt;
+&lt;Meta Property="twitter:image" Content="@@($"{BaseUrl}image/brand/mini-logo.png")" /&gt;
+&lt;Meta Property="twitter:image" Content="@@($"{BaseUrl}image/{normalizedPosterPath}/{Slug}.png")" /&gt;
+&lt;Meta Property="twitter:image:alt" Content="DotNet bot with heart and DotNet brand" /&gt;
+&lt;Meta Property="twitter:description" Content="@@Description" /&gt;
+&lt;Meta Property="twitter:url" Content="@@($"{BaseUrl}{ContentType}/{Slug}/")" /&gt;
+&lt;Meta Property="article:published_time" Content="@@CreatedOn.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")" /&gt;
+&lt;Meta Property="article:modified_time" Content="@@ModifiedOn.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")" /&gt;
+&lt;Meta Property="article:tag" Content=".NET" /&gt;
+&lt;Meta Property="article:tag" Content="DotNet" /&gt;
+&lt;Meta Property="article:tag" Content="I Love DotNet" /&gt;
+&lt;Meta Property="article:tag" Content="I ❤️ DotNet" /&gt;
+&lt;Meta Property="article:tag" Content="Blazor" /&gt;
+&lt;Meta Property="article:tag" Content="Blazor (WebAssembly)" /&gt;
+&lt;Meta Property="article:tag" Content="Blazor Wasm" /&gt;
+&lt;Meta Property="article:tag" Content="C#" /&gt;
+&lt;Meta Property="article:tag" Content="Entity Framework" /&gt;
+&lt;Meta Property="article:tag" Content="LINQ" /&gt;
+&lt;Meta Property="article:tag" Content="ML.NET" /&gt;
+@@foreach(var keyword in Keywords)
+{
+    &lt;Meta Property="article:tag" Content="@@keyword" /&gt;
+}
+@@foreach(var sitemap in sitemap.Files)
+{
+    &lt;Link Rel="sitemap" Href="@@($"{BaseUrl}{sitemap}")" type="application/xml" title="Sitemap" /&gt;   
+}
+&lt;Link Rel="alternate" Href="@@($"{BaseUrl}atom.xml")" type="application/rss+xml" /&gt;
+&lt;Link Rel="alternate" Href="@@($"{BaseUrl}{ContentType}/{Slug}/")" hreflang="en" /&gt;
+&lt;Link Rel="alternate" Href="@@($"{BaseUrl}{ContentType}/{Slug}/")" hreflang="x-default" /&gt;
+&lt;Link Rel="canonical" Href="@@($"{BaseUrl}{ContentType}/{Slug}/")" /&gt;
+&lt;Link Rel="index" Href="@@($"{BaseUrl}{ContentType}/{Slug}/")" title="@@($"{Title} - I ❤️ DotNet")" /&gt;
+&lt;HeadContent&gt;
+    @@(new MarkupString(
+        $$""""
+        &lt;script type="application/ld+json"&gt;
+        {
+            "@@context": "https://schema.org",
+            "@@type": "Article",
+            "publisher": {
+                "@@type": "Organization",
+                "name": "I Love DotNet",
+                "url": "{{BaseUrl}}",
+                "logo": {
+                    "@@type": "ImageObject",
+                    "url": "{{BaseUrl}}favicon.ico",
+                    "width": 16,
+                    "height": 16
+                }
+            },
+            "author": {
+                "@@type": "Person",
+                "name": "Abdul Rahman Shabeek Mohamed",
+                "image": {
+                    "@@type": "ImageObject",
+                    "url": "//https://www.gravatar.com/avatar/6f221209a03c1800679fc684dea24bf2?s=250&amp;d=mm&amp;r=x",
+                    "width": 250,
+                    "height": 250
+                },
+                "url": "{{BaseUrl}}author/abdulrahman/",
+                "sameAs": [
+                    "https://www.linkedin.com/in/fingers10",
+                    "https://github.com/fingers10",
+                    "https://stackoverflow.com/users/10851213/fingers10",
+                    "https://www.youtube.com/channel/UCOS3wCw7SVXjXXffMPqid7A"
+                ]
+            },
+            "headline": "{{Title}}",
+            "url": "{{BaseUrl}}{{ContentType}}/{{Slug}}/",
+            "datePublished": "{{CreatedOn:yyyy-MM-ddTHH:mm:ss.fffZ}}",
+            "dateModified": "{{ModifiedOn:yyyy-MM-ddTHH:mm:ss.fffZ}}",
+            "image": {
+                "@@type": "ImageObject",
+                "url": "{{BaseUrl}}image/{{normalizedPosterPath}}/{{Slug}}.png",
+                "width": 1265,
+                "height": 827
+            },
+            "keywords": ".NET, DotNet, I Love DotNet, I ❤️ DotNet, Blazor, Blazor (WebAssembly), Blazor Wasm, C#, Entity Framework, LINQ, ML.NET, Web API, TDD, OOPS, Middleware, JWT, Dependency Injection, {{string.Join(", ", Keywords)}}",
+            "description": "{{Description}}",
+            "mainEntityOfPage": {
+                "@@type": "WebPage",
+                "@@id": "{{BaseUrl}}"
+            }
+        }
+        &lt;/script&gt;
+        """"
+    ))
+&lt;/HeadContent&gt;
+
+@@code {
+    private string BaseUrl =&gt; configuration.GetValue&lt;string&gt;("baseUrl")!;
+    private string normalizedPosterPath =&gt; PosterPath.ToLower();
+
+    [Parameter, EditorRequired] public string Title { get; set; } = default!;
+    [Parameter, EditorRequired] public string Description { get; set; } = default!;
+    [Parameter, EditorRequired] public DateTime CreatedOn { get; set; }
+    [Parameter, EditorRequired] public DateTime ModifiedOn { get; set; }
+    [Parameter, EditorRequired] public string Slug { get; set; } = default!;
+    [Parameter, EditorRequired] public string PosterPath { get; set; } = default!;
+    [Parameter, EditorRequired] public string ContentType { get; set; } = default!;
+    [Parameter, EditorRequired] public List&lt;string&gt; Keywords { get; set; } = new();
+}
+        </CodeSnippet>
         
         
 

@@ -48,9 +48,53 @@
                 <ContentHighlight>&lt;img&gt;</ContentHighlight> tag.
             </p>
 
-            <GithubGistSnippet Title="Script to Create Temporary URL" UserId="fingers10" FileName="feda2b185ff0a0d7ee958026dba2ced6"></GithubGistSnippet>
+            <CodeSnippet CssClass="language-javascript">
+﻿export async function LoadImageThroughStream(imageElement, imageStream) {
+    const arrayBuffer = await imageStream.arrayBuffer();
+    const blob = new Blob([arrayBuffer], {type: 'image/webp'});
+    const url = URL.createObjectURL(blob);
 
-            <GithubGistSnippet Title="Dynamically stream image in Blazor WASM" UserId="fingers10" FileName="dd34e0f401720df997fecc441b02b9ec"></GithubGistSnippet>
+    if (imageElement) {
+        imageElement.onload = () =&gt; {
+            URL.revokeObjectURL(url);
+        }
+        imageElement.src = url;
+    }
+}
+            </CodeSnippet>
+
+            <CodeSnippet CssClass="language-csharp">
+&lt;img @@ref="_imageReference" /&gt;
+
+@@code {
+    private ElementReference _imageReference;
+    private IJSObjectReference? _jsModule;
+
+    [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
+    [Inject] private HttpClient HttpClient { get; set; } = default!;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _jsModule = await JSRuntime.InvokeAsync&lt;IJSObjectReference&gt;("import", "./_content/BlazorDemoComponents/streamImage.js");  
+
+            var imageStream = await StreamImageAsync();
+
+            if (imageStream != null)
+            {
+                var dotNetImageStream = new DotNetStreamReference(imageStream);
+                await _jsModule.InvokeVoidAsync("LoadImageThroughStream", _imageReference, dotNetImageStream);
+            }
+        }
+    }
+
+    private async Task&lt;Stream?&gt; StreamImageAsync()
+    {
+        return await HttpClient.GetStreamAsync("/image/blogs/blazor/wasm/prevent-image-leech-by-dynamically-streaming-image-in-blazor-wasm.webp");        
+    }
+}
+            </CodeSnippet>
 
             <DemoSnippet Title="Dynamic Image Streaming">
                 <p class="[ text-black ] [ dark:text-white ]">

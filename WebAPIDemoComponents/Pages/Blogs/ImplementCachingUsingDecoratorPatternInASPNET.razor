@@ -85,7 +85,22 @@
             Here is the code sample of the <ContentHighlight>WeatherForecastController</ContentHighlight>.
         </p>
 
-        <GithubGistSnippet Title="Web API without Caching" UserId="fingers10" FileName="e1c5de0214eaa59c170734e71135ab79"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+using API.Services;
+using Microsoft.AspNetCore.Mvc;
+
+namespace API.Controllers;
+[ApiController]
+[Route("[controller]")]
+public class WeatherForecastController : ControllerBase
+{
+    [HttpGet("fromapi", Name = "GetWeatherForecastFromAPI")]
+    public async Task&lt;WeatherForecast&gt; GetFromAPI([FromServices] IWeatherService weatherService)
+    {
+        return await weatherService.GetWeatherForecast();
+    }
+}
+        </CodeSnippet>
 
         
         
@@ -94,7 +109,22 @@
             <ContentHighlight>IWeatherService interface</ContentHighlight> as shown below.
         </p>
 
-        <GithubGistSnippet Title="Normal Weather Service" UserId="fingers10" FileName="c4a95da8feee8a50e6aeb8e9d6c55dfd"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+public interface IWeatherService
+{
+  public Task&lt;WeatherResult&gt; GetWeatherForecast();
+}
+
+public class WeatherService : IWeatherService
+{
+  public async Task&lt;WeatherResult&gt; GetWeatherForecast()
+  {
+      var result = await ...//awaiting to get result from external api..
+      
+      return result.
+  }
+}
+        </CodeSnippet>
 
         
         
@@ -107,7 +137,13 @@
             Now the above service needs to be registered in the <ContentHighlight>Program.cs</ContentHighlight> file as shown below.
         </p>
 
-        <GithubGistSnippet Title="Registering Weather Service" UserId="fingers10" FileName="0933793bda9860434cfa940b8d969320"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+....
+
+services.AddTransient&lt;IWeatherService, WeatherService&gt;();
+
+....
+        </CodeSnippet>
 
         
 
@@ -123,7 +159,23 @@
             code. We use the Decorator pattern to wrap the existing <ContentHighlight>WeatherService</ContentHighlight> instance with caching functionality.
         </p>
 
-        <GithubGistSnippet Title="Decorating Weather Service" UserId="fingers10" FileName="822743c92225cf0d5bee9cdc35f2f495"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+public class CachedWeatherService(WeatherService weatherService, IMemoryCache memoryCache) : IWeatherService
+{ 
+  public async Task&lt;WeatherResult&gt; GetWeatherForecast()
+  {
+      var cacheKey = $"{nameof(CachedWeatherService)}-{nameof(GetWeatherForecast)}";
+  
+      return memoryCache.GetOrCreate(cacheKey, entry =&gt;
+      {
+          entry.AbsoluteExpiration = DateTime.Now.AddHours(1);
+          entry.Priority = CacheItemPriority.High;
+          entry.SlidingExpiration = TimeSpan.FromMinutes(30);
+          return weatherService.GetWeatherForecast();
+      });
+  }
+}
+        </CodeSnippet>
 
         <p>
             In the above code, we are creating a <ContentHighlight>new class CachedWeatherService</ContentHighlight> which implements the 
@@ -136,7 +188,14 @@
             the <ContentHighlight>Program.cs</ContentHighlight> file while registering the services as shown below.
         </p>
 
-        <GithubGistSnippet Title="Decorating and Registering Weather Service" UserId="fingers10" FileName="44d56976c6547a89ac3697fa91a3a379"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+...
+
+services.AddTransient&lt;IWeatherService, CachedWeatherService&gt;();
+services.AddTransient&lt;WeatherService&gt;();
+
+...
+        </CodeSnippet>
 
         
 

@@ -58,7 +58,22 @@
             <ContentHighlight>Clients</ContentHighlight> property in the hub to talk to all the clients in that group. How cool is that?
         </p>
 
-        <GithubGistSnippet Title="Groups and ConnectionId" UserId="fingers10" FileName="0903bc8ebe466f34f791082cd9591aa0"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+public class ILoveDotNetHub : Hub
+{
+    public override async Task OnConnectedAsync()
+    {
+        var groupName = "group";
+           
+        await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
+        await Clients.OthersInGroup(groupName).SendAsync("NotifyNewUserJoined");
+        //await Clients.Group()
+        //await Clients.GroupExcept()
+        
+        await Clients.All.SendAsync("ReceiveNewArticle", new Article());
+    }
+}
+        </CodeSnippet>
 
         <p>
             When a call comes in, we first figure out a name for the group it belongs to. Then, we add the connection ID of the client making the call to that 

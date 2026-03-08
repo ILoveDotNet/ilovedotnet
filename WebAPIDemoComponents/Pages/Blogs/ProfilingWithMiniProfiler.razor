@@ -92,7 +92,12 @@
                     configure <ContentHighlight>RouteBasePath</ContentHighlight>.
                 </p>
 
-                <GithubGistSnippet Title="WebAPI Mini Profiler Configuration" UserId="fingers10" FileName="9594d5f99ac498af3232cb089b23167e"></GithubGistSnippet>
+                <CodeSnippet CssClass="language-csharp">
+builder.Services.AddMiniProfiler(options =&gt;
+{
+    options.RouteBasePath = "/profiler"; //Navigate to /profiler/results-index
+}).AddEntityFramework();
+                </CodeSnippet>
 
                 
             </li>
@@ -141,7 +146,18 @@
             I'm using <ContentHighlight>MinimalAPI</ContentHighlight> introduced in .NET 6 as example here.
         </p>
 
-        <GithubGistSnippet Title="WebAPI Mini Profiler with Custom Step" UserId="fingers10" FileName="669c2311da903128d85dc106ead2d5ff"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+app.MapGet("/authors", async ([FromServices] ProfilingContext context) =&gt;
+{
+    var authors = await context.Authors.ToListAsync();
+
+    using (MiniProfiler.Current.Step("Returning data"))
+    { 
+        return authors;
+    }
+})
+.WithName("GetAuthors");
+        </CodeSnippet>
 
         
 
@@ -170,7 +186,13 @@
                     Modify your Mini Profiler Configuration and pass the Provider in the options as shown below.
                 </p>
 
-                <GithubGistSnippet Title="WebAPI Mini Profiler Persisting Data Configuration" UserId="fingers10" FileName="02721ab70dabfae779f4e580e9600915"></GithubGistSnippet>
+                <CodeSnippet CssClass="language-csharp">
+builder.Services.AddMiniProfiler(options =&gt;
+{
+    options.RouteBasePath = "/profiler"; //Navigate to /profiler/results-index
+    options.Storage = new PostgreSqlStorage("Host=localhost;Database=database;User id=postgres;Password=password;");
+}).AddEntityFramework();
+                </CodeSnippet>
 
                 
             </li>
@@ -179,7 +201,13 @@
                     Note that you need to create database tables to store profiling details. This is a manual step. You can get the database scripts using the below code.
                 </p>
 
-                <GithubGistSnippet Title="WebAPI Mini Profiler Persisting Data Database Scripts" UserId="fingers10" FileName="f73a0dd6e04b87ff1d66bfe38279684e"></GithubGistSnippet>
+                <CodeSnippet CssClass="language-csharp">
+var storage = new PostgreSqlStorage("Host=localhost;Database=Database;User id=postgres;Password=password;");
+foreach (var cs in storage.TableCreationScripts)
+{
+    Console.WriteLine(cs);
+}
+                </CodeSnippet>
 
                 
 
@@ -218,7 +246,20 @@
             To do so, modify the MiniProfiler Configuration as follows,
         </p>
 
-        <GithubGistSnippet Title="WebAPI Mini Profiler Authorization Configuration" UserId="fingers10" FileName="c3cf24706ff67e8aa48c87a602f96316"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+builder.Services.AddMiniProfiler(options =&gt;
+{
+    options.RouteBasePath = "/profiler"; //Navigate to /profiler/results-index
+    options.Storage = new PostgreSqlStorage("Host=localhost;Database=ProfilingResults;User id=postgres;Password=pg9962663633;");
+    options.ResultsAuthorize = request =&gt; IsUserAuthorized(request);
+    options.ResultsListAuthorize = request =&gt; IsUserAuthorized(request);
+}).AddEntityFramework();
+
+static bool IsUserAuthorized(HttpRequest request)
+{
+    return request.HttpContext.User.Identity!.IsAuthenticated;
+}
+        </CodeSnippet>
 
         
 
@@ -276,7 +317,95 @@
             Here is the complete configuration that I have used for this demo.
         </p>
 
-        <GithubGistSnippet Title="WebAPI Mini Profiler Complete Configuration" UserId="fingers10" FileName="3f833422aa426f783019d4869d39821e"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using StackExchange.Profiling;
+using StackExchange.Profiling.Storage;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Add services to the container.
+// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+builder.Services.AddDbContext&lt;ProfilingContext&gt;();
+
+//var storage = new PostgreSqlStorage("Host=localhost;Database=database;User id=postgres;Password=password;");
+//foreach (var cs in storage.TableCreationScripts)
+//{
+//    Console.WriteLine(cs);
+//}
+
+builder.Services.AddMiniProfiler(options =&gt;
+{
+    options.RouteBasePath = "/profiler"; //Navigate to /profiler/results-index
+    options.IgnoredPaths.Add("/swagger");
+    options.Storage = new PostgreSqlStorage("Host=localhost;Database=database;User id=postgres;Password=password;");
+    options.ResultsAuthorize = request =&gt; IsUserAuthorized(request);
+    options.ResultsListAuthorize = request =&gt; IsUserAuthorized(request);
+    options.ShouldProfile = request =&gt; ShouldProfile(request);
+    options.ColorScheme = ColorScheme.Dark;
+}).AddEntityFramework();
+
+var app = builder.Build();
+
+// Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment())
+{
+    app.UseMiniProfiler();
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+app.UseHttpsRedirection();
+
+app.MapGet("/authors", async ([FromServices] ProfilingContext context) =&gt;
+{
+    var authors = await context.Authors.ToListAsync();
+
+    using (MiniProfiler.Current.Step("Returning data"))
+    { 
+        return authors;
+    }
+})
+.WithName("GetAuthors");
+
+app.Run();
+
+static bool IsUserAuthorized(HttpRequest request)
+{
+    return request.HttpContext.User.Identity!.IsAuthenticated;
+}
+
+static bool ShouldProfile(HttpRequest request)
+{
+    // only profile api's
+    return request.Path.StartsWithSegments("/api");
+}
+
+public class Author
+{
+    public long Id { get; set; }
+    public string Name { get; set; } = default!;
+}
+
+public class ProfilingContext : DbContext
+{
+    public DbSet&lt;Author&gt; Authors =&gt; Set&lt;Author&gt;();
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        optionsBuilder.UseNpgsql("Host=localhost;Database=database;User id=postgres;Password=password;");
+    }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity&lt;Author&gt;().ToTable("Authors");
+        modelBuilder.Entity&lt;Author&gt;().HasKey(a =&gt; a.Id);
+    }
+}
+        </CodeSnippet>
 
         
 

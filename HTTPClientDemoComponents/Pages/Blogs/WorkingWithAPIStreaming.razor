@@ -56,7 +56,30 @@
             To better grasp this concept, let's briefly look at the API code.     
         </p>
 
-        <GithubGistSnippet Title="API Supporting Streaming" UserId="fingers10" FileName="5b6d47198fa9e17525715b7046c54fd2"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+[Route("api/numbersstream")]
+[ApiController]
+public class NumbersStreamController : ControllerBase
+{
+    private readonly INumbersRepository _numbersRepository;
+
+    public NumbersStreamController(INumbersRepository numbersRepository)
+    {
+        _numbersRepository = numbersRepository ?? throw new ArgumentNullException(nameof(numbersRepository));
+    }
+
+    [HttpGet]    
+    public async IAsyncEnumerable&lt;int&gt; GetNumbersStream()
+    {
+        await foreach (var number in _numbersRepository.GetNumbersAsAsyncEnumerable())
+        {
+            // for demo purposes, add a delay to visually see the effect
+            await Task.Delay(500);
+            yield return number;
+        } 
+    } 
+} 
+        </CodeSnippet>
 
         
 
@@ -66,7 +89,22 @@
             process</ContentHighlight>. For now, this illustrates that data flows asynchronously from the data store to the client via API.
         </p>
 
-        <GithubGistSnippet Title="Consuming Data from API that supports Streaming" UserId="fingers10" FileName="91a039e5dd99c01475bc35154a0bde66"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+var httpClient = _httpClientFactory.CreateClient("NumbersAPIClient");
+
+var request = new HttpRequestMessage(HttpMethod.Get, $"api/numbersstream");
+
+var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+response.EnsureSuccessStatusCode();
+
+var responseStream = await response.Content.ReadAsStreamAsync();
+var numbers = JsonSerializer.DeserializeAsyncEnumerable&lt;int&gt;(responseStream);
+
+await foreach (var number in numbers)
+{
+    Console.WriteLine(number);
+}
+        </CodeSnippet>
 
         
 

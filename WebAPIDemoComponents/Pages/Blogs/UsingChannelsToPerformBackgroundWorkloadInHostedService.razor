@@ -79,7 +79,43 @@
 
         
 
-        <GithubGistSnippet Title="Data Migration Channel" UserId="fingers10" FileName="fa0f4c25e71935eff1303bcd2a9ac6ef"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+using System.Threading.Channels;
+
+namespace ILoveDotNet.HostedServices;
+
+public class DataMigrationChannel
+{
+    private const int MaxMessagesInChannel = 10;
+    private readonly Channel&lt;bool&gt; channel;
+
+    public DataMigrationChannel()
+    {
+        var options = new BoundedChannelOptions(MaxMessagesInChannel)
+        {
+            SingleWriter = true,
+            SingleReader = true
+        };
+
+        channel = Channel.CreateBounded&lt;bool&gt;(options);
+    }
+
+    public async Task&lt;bool&gt; MigrateData(bool start, CancellationToken cancellationToken)
+    {
+        while (await channel.Writer.WaitToWriteAsync(cancellationToken) &amp;&amp; !cancellationToken.IsCancellationRequested)
+        {
+            if (channel.Writer.TryWrite(start))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public IAsyncEnumerable&lt;bool&gt; ReadAllAsync(CancellationToken cancellationToken) =&gt; channel.Reader.ReadAllAsync(cancellationToken);
+}
+        </CodeSnippet>
 
         <p>
             In the above code, the <ContentHighlight>DataMigrationChannel</ContentHighlight> <ContentHighlight>class</ContentHighlight> provides a 
@@ -111,7 +147,50 @@
 
         
 
-        <GithubGistSnippet Title="Data Migration Hosted Service" UserId="fingers10" FileName="f066589f4d0439c6d02eade7ed08f537"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+namespace ILoveDotNet.HostedServices;
+
+public class DataMigrationService : BackgroundService
+{
+    private readonly DataMigrationChannel dataMigrationChannel;
+    private readonly ILogger&lt;DataMigrationService&gt; logger;
+    private readonly IServiceProvider serviceProvider;
+
+    public DataMigrationService(
+        DataMigrationChannel dataMigrationChannel,
+        ILogger&lt;DataMigrationService&gt; logger,
+        IServiceProvider serviceProvider)
+    {
+        this.dataMigrationChannel = dataMigrationChannel;
+        this.logger = logger;
+        this.serviceProvider = serviceProvider;
+    }
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        using var scope = serviceProvider.CreateScope();
+        var unitOfWork = scope.ServiceProvider.GetRequiredService&lt;IUnitOfWork&gt;();
+
+        await foreach (var start in dataMigrationChannel
+                                       .ReadAllAsync(stoppingToken)
+                                       .WithCancellation(stoppingToken))
+        {
+            logger.LogInformation("Starting Data Migration");
+
+            try
+            {
+                // do migration via unit of work...
+            }
+            catch (Exception ex)
+            {
+                logger.LogCritical("Data Migration Failed...");
+            }
+            
+            logger.LogInformation("Data Migration Completed Successfully")
+        }
+    }
+}
+        </CodeSnippet>
 
         <p>
             In the above code, the <ContentHighlight>DataMigrationService</ContentHighlight> <ContentHighlight>class</ContentHighlight> extends 
@@ -146,11 +225,44 @@
             <NavLink href="blogs/dependency-injection-lifetimes-in-dotnet" Match="NavLinkMatch.All">Dependency Injection Lifetimes in .NET</NavLink>.
         </p>
 
-        <GithubGistSnippet Title="Registering Hosted Service and Channel" UserId="fingers10" FileName="78cb7a47103526ffbf93b431ac70e3bf"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+builder.Services.AddHostedService&lt;DataMigrationService&gt;();
+builder.Services.AddSingleton&lt;DataMigrationChannel&gt;();
+        </CodeSnippet>
 
         
 
-        <GithubGistSnippet Title="Coordinating Request and Hosted Service" UserId="fingers10" FileName="d740cf3b57820778e62bb0ed3231e28d"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+namespace ILoveDotNet.API;
+
+[Produces(MediaTypeNames.Application.Json)]
+[ApiController]
+[ApiVersion("1.0")]
+public class DataMigration : ControllerBase
+{
+    private readonly DataMigrationChannel dataMigrationChannel;
+
+    public DataMigration(DataMigrationChannel dataMigrationChannel)
+    {
+        this.dataMigrationChannel = dataMigrationChannel;
+    }
+
+    [HttpPut("api/dataMigration", Name = "DataMigration")]
+    [SwaggerOperation(
+        Summary = "Migrate Data",
+        Description = "Migrate Data",
+        OperationId = "DataMigration",
+        Tags = new[] { "MigrationEndpoints" })
+    ]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task&lt;ActionResult&gt; HandleAsync(CancellationToken cancellationToken = default)
+    {
+        await dataMigrationChannel.MigrateData(true, cancellationToken);
+
+        return NoContent();
+    }
+}
+        </CodeSnippet>
 
         <p>
             In the above code, the <ContentHighlight>DataMigration</ContentHighlight> <ContentHighlight>class</ContentHighlight> represents an 

@@ -54,8 +54,13 @@
                         following cli command.
                     </p>
 
-                    <GithubGistSnippet Title="Create NUnit Playwright project" UserId="fingers10"
-                        FileName="a2d23ed2148d6c2d04406932f440bf32"></GithubGistSnippet>
+                    <CodeSnippet CssClass="language-bash">
+mkdir E2E
+dotnet new project nunit-playwright --name EndToEndTests
+cd EndToEndTests
+dotnet new sln --name ILoveDotNet.EndToEnd.Tests
+dotnet sln add EndToEndTests.csproj
+                    </CodeSnippet>
 
                     <p>
                         This will create sln and csproj as shown below.
@@ -75,8 +80,23 @@
                         for browser interaction. I have updated the test to Navigate to I Love .NET's site, assert the title as shown below.
                     </p>
 
-                    <GithubGistSnippet Title="Home page E2E Test" UserId="fingers10"
-                        FileName="dfd1e331345bd61bac3bb0079223bd2f"></GithubGistSnippet>
+                    <CodeSnippet CssClass="language-csharp">
+namespace EndToEndTests;
+
+[Parallelizable(ParallelScope.Self)]
+[TestFixture]
+public class HomePageTests : PageTest
+{
+  [Test]
+  public async Task HomepageHasCorrectContentAsync()
+  {
+    await Page.GotoAsync("https://localhost:7176/");
+
+    // Expect a title "to contain" a substring.
+    await Expect(Page).ToHaveTitleAsync(new Regex("I ❤️ DotNet"));
+  }
+}
+                    </CodeSnippet>
                 </li>
                 <li>
                     <p>
@@ -194,8 +214,16 @@
                 avoid code changes for URL for different environments.
             </p>
 
-            <GithubGistSnippet Title="Run Settings to configure Base URL for Playwright E2E Tests" UserId="fingers10"
-                FileName="7d75043bde7c87639bcfebfd9d15aecc"></GithubGistSnippet>
+            <CodeSnippet CssClass="language-xml">
+&lt;?xml version="1.0" encoding="utf-8"?&gt;
+&lt;RunSettings&gt;
+    &lt;RunConfiguration&gt;
+        &lt;EnvironmentVariables&gt;
+            &lt;WEB_URL&gt;https://localhost:7176&lt;/WEB_URL&gt;
+        &lt;/EnvironmentVariables&gt;
+    &lt;/RunConfiguration&gt;
+&lt;/RunSettings&gt;
+            </CodeSnippet>
 
             <p>
                 Update test classes to inherit from BaseTest and reference the BaseUrl property for easy maintenance.
@@ -204,8 +232,33 @@
                 approach enhances scalability and efficiency in end-to-end testing workflows.
             </p>
 
-            <GithubGistSnippet Title="Blazor WASM PlayWright E2E Test with Base Test" UserId="fingers10"
-                FileName="a159d6d38ade2aa31cbb05633a9dc632"></GithubGistSnippet>
+            <CodeSnippet CssClass="language-csharp">
+namespace EndToEndTests.Utilities;
+
+public class BaseTest : PageTest
+{
+  public string BaseUrl { get; private set; } = null!;
+
+  public BaseTest()
+  {
+    BaseUrl = Environment.GetEnvironmentVariable("WEB_URL") ?? "https://DEFINE_AS_ENV_VAR_OR_RUNSETTINGS";
+  }
+}
+
+[Parallelizable(ParallelScope.Self)]
+[TestFixture]
+public class HomePageTests : BaseTest
+{
+  [Test]
+  public async Task HomepageHasCorrectContentAsync()
+  {
+    await Page.GotoAsync(BaseUrl);
+
+    // Expect a title "to contain" a substring.
+    await Expect(Page).ToHaveTitleAsync(new Regex("I ❤️ DotNet"));
+  }
+}
+            </CodeSnippet>
 
             <p>
                 <strong>Note</strong> that you need to run test with <ContentHighlight CssClasses="[ break-all ]">dotnet
@@ -229,8 +282,19 @@
                 simplifies debugging and improves test reliability.
             </p>
 
-            <GithubGistSnippet Title="Blazor WASM PlayWright E2E Test with Screenshot" UserId="fingers10"
-                FileName="0c0965c9c678d0aa903c1b46e9eb666c"></GithubGistSnippet>
+            <CodeSnippet CssClass="language-csharp">
+[Test]
+public async Task TestGeneratedUsingPlayWrightRecorderAsync()
+{
+  await Page.GotoAsync(BaseUrl);
+  await Expect(Page.Locator("#brand")).ToContainTextAsync("I ❤️ .NET");
+  await Page.ScreenshotAsync(new()
+  {
+      Path = "ILoveDotNetBrandAsserted.png"
+  });
+  await Expect(Page.Locator("#main")).ToContainTextAsync("👉🏼 Click here to Join I ❤️ .NET WhatsApp Channel to get 🔔 notified about new articles and other updates.");
+}
+            </CodeSnippet>
 
             <p>
                 This will generate screenshots of the page while executing that exact line in test and store them in
@@ -262,8 +326,34 @@
                 I'm altering above test a little to fix and make it work as shown below.
             </p>
 
-            <GithubGistSnippet Title="Blazor WASM E2E Login Workflow Test" UserId="fingers10"
-                FileName="5319e06a630fa4cfb0cbdfc804c79b24"></GithubGistSnippet>
+            <CodeSnippet CssClass="language-csharp">
+using EndToEndTests.Utilities;
+using Microsoft.Playwright;
+using System.Reflection;
+
+namespace EndToEndTests;
+
+[Parallelizable(ParallelScope.Self)]
+[TestFixture]
+public class WorkflowTests : BaseTest
+{
+  [Test]
+  public async Task CompleteLoginWorkFlowAsync()
+  {
+    await Page.GotoAsync($"{BaseUrl}/blogs/securing-blazor-wasm-with-oauth-and-oidc-using-identity-server");
+    await Page.Locator("#blazordemologin").ClickAsync();
+    await Page.GetByPlaceholder("Username").FillAsync("alice");
+    await Page.GetByPlaceholder("Username").PressAsync("Tab");
+    await Page.GetByPlaceholder("Password").FillAsync("alice");
+    await Page.GetByPlaceholder("Password").PressAsync("Enter");
+    await Expect(Page.Locator("#main")).ToContainTextAsync("Welcome, Alice Smith");
+    await Page.Locator("#blazordemologout").ClickAsync();
+    await Page.GetByRole(AriaRole.Link, new() { Name = "here" }).ClickAsync();
+    await Expect(Page).ToHaveTitleAsync(new Regex("Securing Blazor WASM with OAuth and OIDC using Identity Server - I ❤️ DotNet"));
+    await Expect(Page.Locator("#blazordemologin")).ToContainTextAsync("Login");
+  }
+}
+            </CodeSnippet>
 
             <p>
                 <strong>Note</strong> that for demo purpose I have hardcoded the username and password in the test. You
@@ -285,8 +375,40 @@
                 the <ContentHighlight>TearDown</ContentHighlight> method generates a trace zip file.
             </p>
 
-            <GithubGistSnippet Title="Playwright NUnit Setup and Trace Method" UserId="fingers10"
-                FileName="d34dc5ed8139bc3794f3b5ac695e8e83"></GithubGistSnippet>
+            <CodeSnippet CssClass="language-csharp">
+[Parallelizable(ParallelScope.Self)]
+[TestFixture]
+public class WorkflowTests : BaseTest
+{
+  [SetUp]
+  public async Task Setup()
+  {
+      await Context.Tracing.StartAsync(new()
+      {
+          Title = TestContext.CurrentContext.Test.ClassName + "." + TestContext.CurrentContext.Test.Name,
+          Screenshots = true,
+          Snapshots = true,
+          Sources = true
+      });
+  }
+
+  [TearDown]
+  public async Task TearDown()
+  {
+      // This will produce e.g.:
+      // bin/Debug/net8.0/playwright-traces/LoggedInCheckOutCancellation.zip
+      await Context.Tracing.StopAsync(new()
+      {
+          Path = Path.Combine(
+              TestContext.CurrentContext.WorkDirectory,
+              "playwright-traces",
+              $"{TestContext.CurrentContext.Test.Name}.zip"
+          )
+      });
+  }
+  .. // Tests go here
+}
+            </CodeSnippet>
 
             <p>
                 Use the Playwright PowerShell script <ContentHighlight CssClasses="[ break-all ]">pwsh playwright.ps1

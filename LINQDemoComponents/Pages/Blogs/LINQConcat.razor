@@ -62,7 +62,20 @@
             compare the values against other value in the collection
         </p>
 
-        <GithubGistSnippet Title="LINQ Concat Primitive Types" UserId="fingers10" FileName="33cdf49eccc4439e739d2d66b8ce8bec"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+List&lt;int&gt; list = new() { 1, 2, 3, 4, 5 };
+List&lt;int&gt; anotherList = new() { 4, 5, 6 };
+
+//Method Syntax
+List&lt;int&gt; result = list
+                   .Concat(anotherList)
+                   .ToList();
+                    
+//Query Syntax
+List&lt;int&gt; result = (from number in list select number)
+                   .Concat(anotherList)
+                   .ToList();
+        </CodeSnippet>
 
         <DemoSnippet Title="LINQ Concat Clause Demo">
             <p>
@@ -88,9 +101,40 @@
             as <ContentHighlight>Concat()</ContentHighlight> is going to simply combine without comparing.
         </p>
 
-        <GithubGistSnippet Title="LINQ Concat Product Comparer" UserId="fingers10" FileName="397a8b7689831bac6da7e46d78f63768"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+public class ProductComparer : EqualityComparer&lt;Product&gt;
+{
+    public override bool Equals(Product? product, Product? anotherProduct)
+    {
+        return (product?.Id == anotherProduct?.Id &amp;&amp;
+                product?.Name == anotherProduct?.Name &amp;&amp;
+                product?.Price == anotherProduct?.Price &amp;&amp;
+                product?.Color == anotherProduct?.Color &amp;&amp;
+                product?.Size == anotherProduct?.Size);
+    }
 
-        <GithubGistSnippet Title="LINQ Concat With Product Comparer" UserId="fingers10" FileName="29b888b1a49f3ca305b57140b12a9751"></GithubGistSnippet>
+    public override int GetHashCode([DisallowNull] Product product)
+    {
+        return $"{product.Id}{product.Name}{product.Price}{product.Color}{product.Size}".GetHashCode();
+    }
+}
+        </CodeSnippet>
+
+        <CodeSnippet CssClass="language-csharp">
+List&lt;Product&gt; products = GetProducts();
+List&lt;Product&gt; anotherProducts = GetProducts();
+ProductComparer productComparer = new();
+
+//Method Syntax
+List&lt;Product&gt; result = products
+                       .Concat(anotherProducts, productComparer)
+                       .ToList();
+                    
+//Query Syntax
+List&lt;Product&gt; result = (from product in products select product)
+                       .Concat(anotherProducts, productComparer)
+                       .ToList();
+        </CodeSnippet>
 
         <DemoSnippet Title="LINQ Concat Clause with Objects Demo">
             <p>

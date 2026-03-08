@@ -120,7 +120,33 @@
              services for the business and data access layers, respectively.
         </p>
 
-        <GithubGistSnippet Title="WebAPI Service Registration" UserId="fingers10" FileName="4546d00abe16961ae7ee067cf66bd66b"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+using Microsoft.Extensions.DependencyInjection;
+using EmployeeManagement.DataAccess.Services;
+using Microsoft.Extensions.Configuration;
+
+namespace ILoveDotNet
+{
+    public static class ServiceRegistration
+    {
+        public static void RegisterDataServices(this IServiceCollection services, IConfiguration configuration)
+        {
+            // Register DbContext and repository
+            services.AddScoped&lt;DbContext&gt;();
+            services.AddScoped&lt;IILoveDotNetRepository, ILoveDotNetRepository&gt;();
+            
+            // Additional service registrations for data access layer
+            // ...
+        }
+
+        public static void RegisterBusinessServices(this IServiceCollection services)
+        {
+            // Register business services
+            // ...
+        }
+    }
+}
+        </CodeSnippet>
 
         
 
@@ -154,7 +180,41 @@
             <li>Optionally, use <ContentHighlight>Assert.IsType</ContentHighlight> to verify that the registered concrete implementation matches a specific type.</li>
         </ol>
 
-        <GithubGistSnippet Title="WebAPI Service Registration Test" UserId="fingers10" FileName="5dd6032abae4822b8581b81ef34eeae7"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+using Microsoft.Extensions.DependencyInjection;
+using Xunit;
+using ILoveDotNet;
+using ILoveDotNet.DataAccess.Services;
+using Microsoft.Extensions.Configuration;
+
+namespace ILoveDotNet.Tests
+{
+    public class ServiceCollectionTests
+    {
+        [Fact]
+        public void RegisterDataServices_ShouldRegisterIILoveDotNetRepository()
+        {
+            // Arrange
+            var serviceCollection = new ServiceCollection();
+            var configuration = new ConfigurationBuilder()
+                .AddInMemoryCollection(
+                    new Dictionary&lt;string, string&gt; {
+                        {"ConnectionStrings:ILoveDotNetDB", "ILoveDotNet"}})
+                .Build();
+            
+            // Act
+            serviceCollection.RegisterDataServices(configuration);
+            var serviceProvider = serviceCollection.BuildServiceProvider();
+            
+            // Assert
+            var ilovedotnetRepository = serviceProvider.GetService&lt;IILoveDotNetRepository&gt;();
+            
+            Assert.NotNull(ilovedotnetRepository);
+            Assert.IsType&lt;ILoveDotNetRepository&gt;(ilovedotnetRepository);
+        }
+    }
+}
+        </CodeSnippet>
 
         
 

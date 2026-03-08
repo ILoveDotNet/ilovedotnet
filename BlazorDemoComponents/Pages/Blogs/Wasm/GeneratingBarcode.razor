@@ -56,7 +56,43 @@
             Create a new component called <ContentHighlight>BwipJsBarcode.razor</ContentHighlight> and add the following code to it.
         </p>
 
-        <GithubGistSnippet Title="Blazor WASM bwipjs Barcode Component" UserId="fingers10" FileName="1cd23451a2f2a56200c1fc4d0e3f0d7d"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-razor">
+@@using Microsoft.JSInterop
+
+@@implements IAsyncDisposable
+
+&lt;canvas id="bwipcanvas" width=1 height=1 style="border:1px solid #fff;background-color:white;"&gt;&lt;/canvas&gt;
+
+@@code {
+    private IJSObjectReference? module;
+    [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            module = await JSRuntime.InvokeAsync&lt;IJSObjectReference&gt;("import", "./_content/BlazorDemoComponents/generatebwipbarcode.js");
+            await GenerateBarCode();
+        }
+    }
+
+    private async Task GenerateBarCode()
+    {
+        if (module is not null)
+        {
+            await module.InvokeVoidAsync("generateBarcode");
+        }
+    }
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        if (module is not null)
+        {
+            await module.DisposeAsync();
+        }
+    }
+}
+        </CodeSnippet>
 
         
 
@@ -75,7 +111,21 @@
             code to generate barcode.
         </p>
 
-        <GithubGistSnippet Title="bwipjs barcode generation" UserId="fingers10" FileName="64be6db53125540aacea444233988f18"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-javascript">
+import("./bwip.min.js");
+
+export function generateBarcode()
+{
+    bwipjs.toCanvas('bwipcanvas', {
+        bcid: 'code128',       // Barcode type
+        text: 'ilovedotnet.org',    // Text to encode
+        scale: 3,               // 3x scaling factor
+        height: 10,              // Bar height, in millimeters
+        includetext: true,            // Show human-readable text
+        textxalign: 'center',        // Always good to set this
+    });
+}
+        </CodeSnippet>
 
         <p>
             In the above code we are importing <ContentHighlight>bwip.min.js</ContentHighlight> library and just calling the <ContentHighlight>toCanvas</ContentHighlight> 

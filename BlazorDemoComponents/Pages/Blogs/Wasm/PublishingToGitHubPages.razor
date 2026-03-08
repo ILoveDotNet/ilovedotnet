@@ -58,7 +58,16 @@
                     Application source code must be inside of a GitHub repository. So, you need to create a local Git repository and commit your 
                     source code to the repository using these commands.
                 </p>
-                <GithubGistSnippet Title="Create Local Repository" UserId="fingers10" FileName="ba35eed4720d5cc91d6b315a8ee404f1"></GithubGistSnippet>
+                <CodeSnippet CssClass="language-plaintext">
+# add the gitignore file tailored for dotnet applications, this will ignore bin/obj and many other non-source code files
+dotnet new gitignore
+# create the git repository
+git init
+# track all files that are not ignore by .gitignore
+git add --all
+# commit all changes to the repository
+git commit -m "Initial commit"
+                </CodeSnippet>
             </li>
         </ol>
 
@@ -70,7 +79,10 @@
             like but with a different URL:
         </p>
 
-        <GithubGistSnippet Title="Push to GitHub Repository" UserId="fingers10" FileName="f8df74eb610c92a260e42e7e0db22367"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-plaintext">
+git remote add origin https://github.com/ilovedotnet/ilovedotnet.git
+git push -u origin master
+        </CodeSnippet>
 
         
 
@@ -114,7 +126,9 @@
             Give a meaningful name for your workflow:
         </p>
 
-        <GithubGistSnippet Title="Give a meaning name" UserId="fingers10" FileName="e2e21773117dd578df32cd6d3544b489"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-yaml">
+name: build and test and deploy
+        </CodeSnippet>
 
         
 
@@ -122,7 +136,16 @@
             Next, you need to specify what will trigger the workflow. Add the following lines:
         </p>
 
-        <GithubGistSnippet Title="Setup Trigger" UserId="fingers10" FileName="1a1f1cfc761aeecde8700959f1ef0a02"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-yaml">
+# Run workflow on every push to the master branch
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+        </CodeSnippet>
 
         <p>
             These lines instruct GitHub Actions to run your workflow on every <ContentHighlight>git push</ContentHighlight> and 
@@ -138,7 +161,13 @@
             Configure your job to run on Ubuntu by adding <ContentHighlight>runs-on: ubuntu-latest</ContentHighlight>, and add an empty steps property.
         </p>
 
-        <GithubGistSnippet Title="Setup Job" UserId="fingers10" FileName="881e6301a50552d2889d9439f7d40e09"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-yaml">
+jobs:
+  deploy-to-github-pages:
+  # use ubuntu-latest image to run steps on
+    runs-on: ubuntu-latest
+    steps:
+        </CodeSnippet>
 
         <p>
             The first step to add will be using the <ContentHighlight>checkout</ContentHighlight> action provided by GitHub. Without passing any parameters to 
@@ -146,7 +175,10 @@
             against your main branch.
         </p>
 
-        <GithubGistSnippet Title="Setup Job" UserId="fingers10" FileName="23ff30f361e3935a17bd8f7083da8d85"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-yaml">
+    # uses GitHub's checkout action to checkout code form the main branch
+    - uses: actions/checkout@@v4
+        </CodeSnippet>
 
         <p>
             Once this action is performed, your code will be available to work with.
@@ -160,7 +192,13 @@
             machine:
         </p>
 
-        <GithubGistSnippet Title="Setup .NET" UserId="fingers10" FileName="8dfaa09ad89e2a01bef855e3ea1cddaa"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-yaml">
+    # sets up .NET Core SDK 6.0.x
+    - name: Setup .NET Core SDK
+      uses: actions/setup-dotnet@@v4
+      with:
+        dotnet-version: 8.0.x
+        </CodeSnippet>
 
         <p>
             By passing in the <ContentHighlight>dotnet-version</ContentHighlight> parameter, you can specify which version of the .NET SDK you want to install.
@@ -171,7 +209,11 @@
             <ContentHighlight>run</ContentHighlight> property with value of your <ContentHighlight>dotnet workload install wasm-tools</ContentHighlight> command.
         </p>
 
-        <GithubGistSnippet Title="Install WASM Tools Workload" UserId="fingers10" FileName="bec4b5207d2a05a94b9d4701a1b87116"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-yaml">
+      # Install dotnet wasm buildtools workload
+      - name: Install .NET WASM Build Tools
+        run: dotnet workload install wasm-tools
+        </CodeSnippet>
 
         <p>
             Now that the .NET Core SDK is installed, you can run the <ContentHighlight>dotnet publish</ContentHighlight> command to build and deploy your 
@@ -179,7 +221,11 @@
             <ContentHighlight>run</ContentHighlight> property with value of your <ContentHighlight>dotnet publish</ContentHighlight> command.
         </p>
 
-        <GithubGistSnippet Title="Publish Project" UserId="fingers10" FileName="2030c326fd3577ae035a09ca9b36173d"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-yaml">
+      # Publishes Blazor project to the release-folder
+      - name: Publish .NET Core Project
+        run: dotnet publish ./Web/Web.csproj -c:Release -p:GHPages=true -o dist/Web --nologo
+        </CodeSnippet>
 
         
 
@@ -203,7 +249,13 @@
             This action will make it easy to publish your static files to GitHub Pages.
         </p>
 
-        <GithubGistSnippet Title="Commit to GitHub Pages" UserId="fingers10" FileName="48bb61664440b171f01ab7082d700b29"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-yaml">
+    - name: Commit wwwroot to GitHub Pages
+      uses: JamesIves/github-pages-deploy-action@@v4
+      with:
+        BRANCH: gh-pages
+        FOLDER: dist/Web/wwwroot
+        </CodeSnippet>
 
         <ul>
             <li>
@@ -270,7 +322,45 @@
            Here is the complete workflow configuration:
        </p>
 
-       <GithubGistSnippet Title="Complete GitHub Pages Workflow" UserId="fingers10" FileName="252b888ea885d29c91ce993efb33a714"></GithubGistSnippet>
+       <CodeSnippet CssClass="language-yaml">
+name: build and test and deploy
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  deploy-to-github-pages:
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout the code
+      - uses: actions/checkout@@v4
+
+      # Install .NET Core SDK
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@@v4
+        with:
+          dotnet-version: 8.0.x
+          
+      # Install dotnet wasm buildtools workload
+      - name: Install .NET WASM Build Tools
+        run: dotnet workload install wasm-tools
+          
+      # Publishes Blazor project to the release-folder
+      - name: Publish .NET Core Project
+        run: dotnet publish ./Web/Web.csproj -c:Release -p:GHPages=true -o dist/Web --nologo
+
+      - name: Commit wwwroot to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@@v4
+        with:
+          BRANCH: gh-pages
+          FOLDER: dist/Web/wwwroot
+          single-commit: true # No need of history for publish branch
+       </CodeSnippet>
 
         <h4>Configure CNAME</h4>
 

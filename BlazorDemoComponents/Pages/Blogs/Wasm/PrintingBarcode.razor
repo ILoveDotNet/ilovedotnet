@@ -122,7 +122,98 @@
 
         
 
-        <GithubGistSnippet Title="Blazor WASM Barcode Print Component" UserId="fingers10" FileName="a355e2c9e5fc14ca81392d1087bb118e"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-razor">
+@@using Microsoft.JSInterop
+
+@@implements IAsyncDisposable
+
+&lt;HeadContent&gt;
+    &lt;style&gt;
+        #barcode-section-to-print, #barcode-section-to-print * {
+            display: none;
+        }
+    &lt;/style&gt;
+&lt;/HeadContent&gt;
+
+&lt;input type="number" 
+       min="1"
+       class="[ w-full h-full ] [ px-4 py-2 ] [ border-2 ] [ focus:outline-none focus:border-gray-400 ] [ dark:bg-black dark:border-gray-800 dark:focus:border-b-white dark:md:focus:border-blue-800 dark:caret-white dark:text-white ]" 
+       @@bind="Count" /&gt;
+
+&lt;button type="button" 
+        class="[ bg-cyan-500 ] [ text-white ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ]" @@onclick="PrintBarCode"&gt;
+    Print Barcode
+&lt;/button&gt;
+
+&lt;section id="barcode-section-to-print"&gt;
+    @@for (int i = 0; i &lt; _rows; i++)
+    {
+        &lt;article&gt;
+            @@for (int j = 0; j &lt; (i == _rows - 1 ? _remainder == 0 ? 2 : 1 : 2); j++)
+            {
+                &lt;section&gt;
+                    &lt;header&gt;@@_brandName&lt;/header&gt;
+                    &lt;main&gt;@@_siteUrl&lt;/main&gt;
+                    &lt;footer&gt;
+                        &lt;canvas id="@@($"canvas{i}{j}")" width="1" height="1" style="border: 1px solid #fff" data-text="@@_barcodeText"&gt;&lt;/canvas&gt;
+                    &lt;/footer&gt;
+                &lt;/section&gt;
+            }
+        &lt;/article&gt;
+    }
+&lt;/section&gt;
+
+@@code {
+    private int _rows = 0;
+    private int _remainder = 0;
+    private int _count = 1;
+    private string _brandName = "I ❤️ .NET";
+    private string _siteUrl = "https://ilovedotnet.org";
+    private string _barcodeText = "12345";
+
+    public int Count
+    {
+        get =&gt; _count;
+        set
+        {
+            _count = value;
+            _rows = Math.DivRem(_count, 2, out _remainder) + _remainder;
+        }
+    }   
+
+    private IJSObjectReference? module;
+    [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
+
+    protected override void OnInitialized()
+    {
+        _rows = Math.DivRem(_count, 2, out _remainder) + _remainder;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            module = await JSRuntime.InvokeAsync&lt;IJSObjectReference&gt;("import", "./_content/BlazorDemoComponents/printbwipbarcode.js");
+        }
+    }
+
+    private async Task PrintBarCode()
+    {
+        if (module is not null)
+        {
+            await module.InvokeVoidAsync("printBarcode");
+        }
+    }
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        if (module is not null)
+        {
+            await module.DisposeAsync();
+        }
+    }
+}
+        </CodeSnippet>
 
         
 
@@ -150,7 +241,57 @@
 
         
 
-        <GithubGistSnippet Title="Blazor WASM Barcode Print Component CSS" UserId="fingers10" FileName="02cc90591f1b6d010b566b510f4267c1"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-css">
+@@media print {
+    #barcode-section-to-print {
+        position: absolute;
+        left: 0;
+        top: 0;
+    }
+
+    html,
+    body {
+        max-width: 100mm;
+        max-height: 35mm;
+        width: fit-content;
+        font-family: Calibri;
+        font-size: 1rem;
+    }
+
+    article {
+        padding: 20px 0 0 18px;
+        margin-right: 18px;
+        display: grid;
+        grid-template-columns: 40mm 40mm;
+        grid-gap: 36px;
+        page-break-after: always;
+    }
+
+    p {
+        margin: 0;
+    }
+
+    section {
+        display: flex;
+        flex-direction: column;
+    }
+
+        section header {
+            text-transform: uppercase;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        section main {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        section footer {
+            text-align: center;
+        }
+}
+        </CodeSnippet>
 
         
 
@@ -182,7 +323,64 @@
 
         
 
-        <GithubGistSnippet Title="Blazor WASM Barcode Print Component JS" UserId="fingers10" FileName="24c6f9eb4e73c35e096342bfbf9c607c"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-javascript">
+import("./bwip.min.js");
+
+export function printBarcode() {
+    var iframe = document.querySelector('#barcode-print') || document.createElement('iframe');
+    iframe.setAttribute("id", "barcode-print");
+    document.body.appendChild(iframe);
+    iframe.contentWindow.document.body.innerHTML = document.querySelector('#barcode-section-to-print').innerHTML;
+    var printScript = document.createElement("script");
+    printScript.innerHTML = `function setPrintStyles() {
+                                var css = \`@@media print { @@page { size: 100mm 35mm; } }\`,
+        		                    head = document.head || document.getElementsByTagName('head')[0],
+        		                    style = document.createElement('style');
+	    	                    head.appendChild(style);
+	    	                    style.type = 'text/css';
+	    	                    style.appendChild(document.createTextNode(css));
+                            }`;
+    iframe.contentWindow.document.head.appendChild(printScript);
+    var barCodeScript = document.createElement("script");
+    barCodeScript.innerHTML = `function drawBarCode() {
+                                document.querySelectorAll('canvas').forEach(function (barcodeCanvas) {
+                                        bwipjs.toCanvas(barcodeCanvas, {
+                                        bcid: "code128", // Barcode type
+                                        text: barcodeCanvas.dataset.text, // Text to encode
+                                        scale: 2, // 2x scaling factor
+                                        height: 6, // Bar height, in millimeters
+                                        includetext: false, // Show human-readable text
+                                        textxalign: "center", // Always good to set this
+                                    });
+                                });
+                            }`;
+    iframe.contentWindow.document.head.appendChild(barCodeScript);
+    var bodyScript = document.createElement("script");
+    bodyScript.innerHTML = `fetch('${window.location.origin}/_content/BlazorDemoComponents/barcode-label.css')
+							.then(response =&gt; response.text())
+							.then(cssdata =&gt; {
+								var head = document.head || document.getElementsByTagName('head')[0],
+									style = document.createElement('style');
+								head.appendChild(style);
+								style.type = 'text/css';
+								style.appendChild(document.createTextNode(cssdata));
+                                
+                                fetch('${window.location.origin}/_content/BlazorDemoComponents/bwip.min.js')
+							        .then(response =&gt; response.text())
+							        .then(scriptdata =&gt; {
+								        var body = document.body || document.getElementsByTagName('body')[0],
+									        script = document.createElement('script');
+								        body.appendChild(script);
+								        script.type = 'text/javascript';
+								        script.appendChild(document.createTextNode(scriptdata));
+                                        drawBarCode();
+								        setPrintStyles();
+								        window.print();
+							        });
+							});`;
+    iframe.contentWindow.document.body.appendChild(bodyScript);
+}
+        </CodeSnippet>
 
         
 

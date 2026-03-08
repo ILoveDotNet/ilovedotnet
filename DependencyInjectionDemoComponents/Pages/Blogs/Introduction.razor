@@ -65,7 +65,12 @@
             that other classes depend on:
         </p>
 
-        <GithubGistSnippet Title="Dependency Injection Demo" UserId="fingers10" FileName="1112139c6b84900d5393ca40e80b89c1"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+public class classB 
+{
+  // omitted for brevity
+} 
+        </CodeSnippet>
 
         
 
@@ -75,7 +80,17 @@
             <ContentHighlight>ClassB class</ContentHighlight> is a dependency of the <ContentHighlight>ClassA class</ContentHighlight>:
         </p>
 
-        <GithubGistSnippet Title="Dependency Injection Demo" UserId="fingers10" FileName="3c3d495dab0f1652faf81eb3fe16f753"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+public class ClassA
+{
+    private readonly ClassB _classB = new();
+
+    public void Run()
+    {
+        // omitted for brevity
+    }
+}
+        </CodeSnippet>
 
         
 
@@ -102,7 +117,22 @@
             <ContentHighlight>ClassA</ContentHighlight>.
         </p>
 
-        <GithubGistSnippet Title="Dependency Injection Demo" UserId="fingers10" FileName="7a6e6a74f932306846f0e185976e1ff9"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+public class ClassA
+{
+    private readonly ClassB _classB;
+
+    ClassA(ClassB classB)
+    {
+        _classB = classB;
+    }
+    
+    public void Run()
+    {
+        // omitted for brevity
+    }
+}
+        </CodeSnippet>
 
         
 
@@ -110,7 +140,15 @@
             Here is the complete wire up in <ContentHighlight>Program.cs</ContentHighlight>.
         </p>
 
-        <GithubGistSnippet Title="Before Dependency Injection" UserId="fingers10" FileName="fc93a7adc16c61fff1b8c063169bdb85"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+class Program
+{
+    var classB = new ClassB();
+    var classA = new ClassA(classB);
+    
+    classA.Run();
+}
+        </CodeSnippet>
 
         
 
@@ -135,7 +173,21 @@
             </li>
         </ul>
 
-        <GithubGistSnippet Title="After Dependency Injection" UserId="fingers10" FileName="5e52b76029a0e8d338c259278aca3789"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+class Program
+{
+    using var host = Host.CreateDefaultBuilder(args)
+                         .ConfigureServices((context, services) =&gt; 
+                         { 
+				services.AddTransient&lt;ClassB&gt;();
+				services.AddTransient&lt;ClassA&gt;();
+			 })
+                         .Build();
+
+    var classA = host.Services.GetRequiredService&lt;ClassA&gt;();
+    classA.Run();
+}
+        </CodeSnippet>
 
         
 
@@ -172,7 +224,14 @@
             <li>Install <ContentHighlight>Microsoft.Extensions.Hosting</ContentHighlight> Nuget Package.</li>
             <li>
                 <p>Register services using</p>
-                <GithubGistSnippet Title="Registering Services" UserId="fingers10" FileName="00da3f2772f8fc807aef5ba767492a04"></GithubGistSnippet>
+                <CodeSnippet CssClass="language-csharp">
+var host = Host.CreateDefaultBuilder(args)
+               .ConfigureServices((context, services) =&gt; 
+               { 
+                  //Registration goes here 
+               })
+               .Build();
+                </CodeSnippet>
             </li>
             <li>Resolve services using <ContentHighlight CssClasses="[ break-all ]">Host.Services.GetRequiredService&lt;YourService&gt;();</ContentHighlight></li>
         </ol>
@@ -206,7 +265,10 @@
             are the same you provide it once.
         </p>
 
-        <GithubGistSnippet Title="Registering Types" UserId="fingers10" FileName="65b10fa1895583c6bcdcbf04d99c370e"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+services.AddTransient&lt;IService, MyService&gt;();
+services.AddSingleton&lt;ClassA&gt;();
+        </CodeSnippet>
 
         <h4>Resolving Phase</h4>
 
@@ -234,7 +296,10 @@
             If the <em>implementing type</em> has dependencies, they are provided to the <em>implementing type</em> as well.
         </p>
 
-        <GithubGistSnippet Title="Resolving Types" UserId="fingers10" FileName="6b0c1167c0818ff407511a7ec1261c47"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+host.Services.GetRequiredService&lt;IService&gt;();
+host.Services.GetRequiredService&lt;ClassA&gt;();
+        </CodeSnippet>
 
         
 

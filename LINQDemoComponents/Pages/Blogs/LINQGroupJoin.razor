@@ -61,7 +61,35 @@
             with the matching key element and their associated collection values. For Example, new collection of customerOrders for each customer.
         </p>
 
-        <GithubGistSnippet Title="LINQ GroupJoin Objects with Single Field" UserId="fingers10" FileName="75be9b5adfdb7792fb319cc44bb4f46b"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+List&lt;Product&gt; products = GetProducts();
+List&lt;Sale&gt; sales = GetSales();
+List&lt;ProductSales&gt; result = new();
+
+//Method Syntax
+List&lt;ProductSales&gt; result = products
+                           .GroupJoin(sales, 
+                                 product =&gt; product.Id,
+                                 sale =&gt; sale.ProductId,
+                                 (product, productSales) =&gt; new ProductSales
+                                 {
+                                    Product = product,
+                                    Sales = productSales.ToList()
+                                 })
+                           .ToList();
+                    
+//Query Syntax
+List&lt;ProductSales&gt; result = (from product in products
+                            join sale in sales 
+                            on product.Id equals sale.ProductId
+                            into productSales
+                            select new ProductSales
+                             {
+                                Product = product,
+                                Sales = productSales.ToList()
+                             }) 
+                           .ToList();
+        </CodeSnippet>
 
         <DemoSnippet Title="LINQ GroupJoin Clause with Objects Demo">
             <p>

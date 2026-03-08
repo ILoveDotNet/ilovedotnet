@@ -87,7 +87,17 @@
             in your codebase. For example:
         </p>
 
-        <GithubGistSnippet Title="Generic Repository" UserId="fingers10" FileName="79c1bee78f117e2b3545a0dbe67e8a50"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+public interface IRepository&lt;T&gt; where T : class
+{
+    Task&lt;T&gt; GetByIdAsync(int id);
+    Task&lt;IEnumerable&lt;T&gt;&gt; GetAllAsync();
+    Task AddAsync(T entity);
+    void Update(T entity);
+    void Delete(T entity);
+    Task SaveChangesAsync();
+}
+        </CodeSnippet>
 
         
 
@@ -99,7 +109,26 @@
             example, lets take EF Core as the ORM and define a generic repository that implements the <ContentHighlight>IRepository interface</ContentHighlight>.
         </p>
 
-        <GithubGistSnippet Title="Generic Repository Implementation" UserId="fingers10" FileName="7ec7256718d7776fc3c45861b0cf89d8"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+public class GenericRepository&lt;T&gt; : IRepository&lt;T&gt; where T : class
+{
+    private readonly DbContext _context;
+    private readonly DbSet&lt;T&gt; _dbSet;
+
+    public GenericRepository(DbContext context)
+    {
+        _context = context;
+        _dbSet = context.Set&lt;T&gt;();
+    }
+
+    public async Task&lt;T&gt; GetByIdAsync(int id) =&gt; await _dbSet.FindAsync(id);
+    public async Task&lt;IEnumerable&lt;T&gt;&gt; GetAllAsync() =&gt; await _dbSet.ToListAsync();
+    public async Task AddAsync(T entity) =&gt; await _dbSet.AddAsync(entity);
+    public void Update(T entity) =&gt; _dbSet.Update(entity);
+    public void Delete(T entity) =&gt; _dbSet.Remove(entity);
+    public async Task SaveChangesAsync() =&gt; await _context.SaveChangesAsync();
+}
+        </CodeSnippet>
 
         
 
@@ -127,7 +156,18 @@
             For example:
         </p>
 
-        <GithubGistSnippet Title="Non Generic Repository" UserId="fingers10" FileName="281d18a3fc9ac054e295f0459f6eb931"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+public interface IOrderRepository
+{
+    Task&lt;Order?&gt; GetByIdAsync(int id);
+    Task&lt;IEnumerable&lt;Order&gt;&gt; GetAllAsync();
+    Task&lt;IEnumerable&lt;Order&gt;&gt; GetOrdersByCustomerIdAsync(int customerId);
+    Task AddAsync(order entity);
+    void Update(order entity);
+    void Delete(order entity);
+    Task SaveChangesAsync();
+}
+        </CodeSnippet>
 
         
 
@@ -157,11 +197,26 @@
             defined in the generic repository and add custom methods as needed reducing massive code duplication.
         </p>
 
-        <GithubGistSnippet Title="Combining Generic and Non Generic Repository" UserId="fingers10" FileName="fd5a0543f86545b864d7b4bcd71f9693"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+public interface IOrderRepository : IRepository&lt;Order&gt;
+{
+    Task&lt;IEnumerable&lt;Order&gt;&gt; GetOrdersByCustomerIdAsync(int customerId);
+}
+        </CodeSnippet>
 
         
 
-        <GithubGistSnippet Title="Combining Generic and Non Generic Repository Implementation" UserId="fingers10" FileName="034fe3e75512edad14f5c604895f70c5"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+public class OrderRepository(DbContext dbContext) : GenericRepository&lt;Order&gt;(dbContext), IOrderRepository
+{
+    private readonly DbContext _dbContext = dbContext;
+    
+    public async Task&lt;IEnumerable&lt;Order&gt;&gt; GetOrdersByCustomerIdAsync(int customerId)
+    {
+        return await _dbContext.Orders.Where(x =&gt; x.CustomerId == customerId).ToListAsync();
+    }
+}
+        </CodeSnippet>
 
         
 

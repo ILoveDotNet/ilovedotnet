@@ -53,7 +53,16 @@
             <ContentHighlight>blazor</ContentHighlight> we have exception handling built in in two different ways.
         </p>
 
-        <GithubGistSnippet Title="Chat component to simulate exception" UserId="fingers10" FileName="c2b5d43dcc0017bafcecd995772f3f69"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-razor">
+&lt;button type="button" @@onclick="ConnectToAgent"&gt;Click to initiate chat with agent&lt;/button&gt;
+
+@@code {
+  protected static void ConnectToAgent() 
+  {
+      throw new Exception();
+  }
+}
+        </CodeSnippet>
 
         
 
@@ -67,7 +76,12 @@
             option to reload the app to <ContentHighlight>restore</ContentHighlight> the app to correct working state.
         </p>
 
-        <GithubGistSnippet Title="Blazor Global Exception Handling" UserId="fingers10" FileName="57a183a3489acca5760391d728bf712c"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-markup">
+&lt;div id="blazor-error-ui" class="[ bg-red-500 ] [ text-white ] [ fixed bottom-0 ] [ w-full ] [ p-2 ]" style="display: none;"&gt;
+    An unhandled error has occurred. Please click on &lt;a href="javascript: void(0)" onclick="location.reload()"&gt;Reload&lt;/a&gt; to proceed.
+    &lt;button&gt;X&lt;/button&gt;
+&lt;/div&gt;
+        </CodeSnippet>
 
         
 
@@ -89,7 +103,11 @@
             component.
         </p>
 
-        <GithubGistSnippet Title="Blazor Error Boundary" UserId="fingers10" FileName="b26cd84ae5ee60c935050cc372c7d727"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-razor">
+&lt;ErrorBoundary&gt;
+    &lt;Chat&gt;&lt;/Chat&gt;
+&lt;/ErrorBoundary&gt;
+        </CodeSnippet>
 
         
 
@@ -105,7 +123,18 @@
             using <ContentHighlight>@("<ErrorContent>")</ContentHighlight>. From now incase of any unhandled exception, our custom error UI will be displayed.
         </p>
 
-        <GithubGistSnippet Title="Blazor Error Boundary with custom Error UI" UserId="fingers10" FileName="de665e941c3efd35ec2115db3c4b1a98"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-razor">
+&lt;ErrorBoundary&gt;
+    &lt;ChildContent&gt;
+        &lt;Chat&gt;&lt;/Chat&gt;
+    &lt;/ChildContent&gt;
+    &lt;ErrorContent&gt;
+        &lt;div class="[ bg-red-500 ]"&gt;
+            &lt;p class="[ text-white ]"&gt;An error occured while establishing a connection. Please try again later.&lt;/p&gt;
+        &lt;/div&gt;
+    &lt;/ErrorContent&gt;
+&lt;/ErrorBoundary&gt;
+        </CodeSnippet>
 
         
 
@@ -123,7 +152,27 @@
             <ContentHighlight>errorBoundary?.Recover()</ContentHighlight> method to retry the action.
         </p>
 
-        <GithubGistSnippet Title="Blazor Error Boundary with custom Error UI and Recovery" UserId="fingers10" FileName="28dfa506cb0e53f4ce0469f735f89bfe"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-razor">
+&lt;ErrorBoundary @@ref="@@errorBoundary"&gt;
+    &lt;ChildContent&gt;
+        &lt;Chat&gt;&lt;/Chat&gt;
+    &lt;/ChildContent&gt;
+    &lt;ErrorContent&gt;
+        &lt;p&gt;An error occured while establishing a connection. Please try again later.&lt;/p&gt;
+    &lt;/ErrorContent&gt;
+&lt;/ErrorBoundary&gt;
+
+&lt;button type="button" @@onclick="Recover"&gt;Click to recover&lt;/button&gt;
+
+@@code {
+    protected ErrorBoundary errorBoundary = default!;
+
+    protected void Recover() 
+    {
+        errorBoundary?.Recover();
+    }
+}
+        </CodeSnippet>
 
         
 
@@ -143,7 +192,24 @@
             <ContentHighlight>CSS</ContentHighlight> styles when an error occurs.
         </p>
 
-        <GithubGistSnippet Title="Error component" UserId="fingers10" FileName="15e50550370685d5c14334e2c057f19e"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-razor">
+@@using Microsoft.Extensions.Logging
+@@inject ILogger&lt;Error&gt; Logger
+
+&lt;CascadingValue Value=this&gt;
+    @@ChildContent
+&lt;/CascadingValue&gt;
+
+@@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    public void ProcessError(Exception ex)
+    {
+        //Post Exception Details to API. For simplicity I'm logging to browser console.
+        Logger.LogError("Error:ProcessError - Type: {Type} Message: {Message}", ex.GetType(), ex.Message);
+    }
+}
+        </CodeSnippet>
 
         
 
@@ -155,7 +221,13 @@
             <ContentHighlight><NavLink href="blogs/blazor-wasm-error-logging">Blazor Wasm Error Logging</NavLink></ContentHighlight>.
         </p>
 
-        <GithubGistSnippet Title="Alternative Global Exception Handling" UserId="fingers10" FileName="7e50f51c0b1585d328e3ff804dcf583c"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-razor">
+&lt;Error&gt;
+    &lt;Router ...&gt;
+        ...
+    &lt;/Router&gt;
+&lt;/Error&gt;
+        </CodeSnippet>
 
         
 

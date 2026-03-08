@@ -53,7 +53,50 @@
                 Here is the quick reference of the hosted service used in that article.
             </p>
 
-            <GithubGistSnippet Title="Data Migration Hosted Service" UserId="fingers10" FileName="f066589f4d0439c6d02eade7ed08f537"></GithubGistSnippet>
+            <CodeSnippet CssClass="language-csharp">
+namespace ILoveDotNet.HostedServices;
+
+public class DataMigrationService : BackgroundService
+{
+    private readonly DataMigrationChannel dataMigrationChannel;
+    private readonly ILogger&lt;DataMigrationService&gt; logger;
+    private readonly IServiceProvider serviceProvider;
+
+    public DataMigrationService(
+        DataMigrationChannel dataMigrationChannel,
+        ILogger&lt;DataMigrationService&gt; logger,
+        IServiceProvider serviceProvider)
+    {
+        this.dataMigrationChannel = dataMigrationChannel;
+        this.logger = logger;
+        this.serviceProvider = serviceProvider;
+    }
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        using var scope = serviceProvider.CreateScope();
+        var unitOfWork = scope.ServiceProvider.GetRequiredService&lt;IUnitOfWork&gt;();
+
+        await foreach (var start in dataMigrationChannel
+                                       .ReadAllAsync(stoppingToken)
+                                       .WithCancellation(stoppingToken))
+        {
+            logger.LogInformation("Starting Data Migration");
+
+            try
+            {
+                // do migration via unit of work...
+            }
+            catch (Exception ex)
+            {
+                logger.LogCritical("Data Migration Failed...");
+            }
+            
+            logger.LogInformation("Data Migration Completed Successfully")
+        }
+    }
+}
+            </CodeSnippet>
 
             <p>
                 To unit test the <ContentHighlight>DataMigrationService Hosted Service</ContentHighlight>, follow these steps:
@@ -100,14 +143,59 @@
                 <li>Additionally, verify <ContentHighlight>IUnitOfWork</ContentHighlight> using <ContentHighlight>Moq Verify</ContentHighlight> methods.</li>
             </ol>
 
-            <GithubGistSnippet Title="Unit Testing Hosted Service in ASP.NET Web API" UserId="fingers10" FileName="78f22f4ba74f2655dc61e0440baca55b"></GithubGistSnippet>
+            <CodeSnippet CssClass="language-csharp">
+public class HostedServiceTests
+{
+    [Fact]
+    public async Task DataMigrationService_ExecuteAsync()
+    {
+        // Arrange
+        var dataMigrationChannel = new DataMigrationChannel();
+        var serviceCollection = new ServiceCollection();
+        var mockUnitOfWork = new Mock&lt;IUnitOfWork&gt;();
+        serviceCollection.AddTransient&lt;IUnitOfWork&gt;(_ =&gt; mockUnitOfWork.Object);
+        var serviceProvider = serviceCollection.BuildServiceProvider();
+        var logger = NullLogger&lt;DataMigrationService&gt;.Instance;
+
+        await dataMigrationChannel.MigrateData(true, default);
+
+        // Act
+        using var dataMigrationService = new DataMigrationService(dataMigrationChannel, logger, serviceProvider);
+        await dataMigrationService.StartAsync(default);
+        await dataMigrationService.ExecuteTask!;
+
+        // Assert
+        mockUnitOfWork.Verify(x =&gt; x.SaveChanges(default), Times.Once);
+        dataMigrationService.ExecuteTask.IsCompletedSuccessfully.Should().BeTrue();
+    }
+}
+            </CodeSnippet>
 
             <p>
                 Here is an another examples of background service using <ContentHighlight>TimeProvider</ContentHighlight> which uses timer to Sync data attribute regular interval. 
                 Let's see how to unit test this service. 
             </p>
 
-            <GithubGistSnippet Title="Data Syncing Hosted Service" UserId="fingers10" FileName="a1bb0b8c3996bdc6a3f0baa8bb695163"></GithubGistSnippet>
+            <CodeSnippet CssClass="language-csharp">
+public class DataSyncService(
+      TimeProvider timeProvider, 
+      ILogger&lt;DataSyncService&gt; logger) : BackgroundService
+{
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        await Task.Yield();
+        
+        timeProvider.CreateTimer(SyncData, null, TimeSpan.Zero, TimeSpan.FromSeconds(30));
+    }
+
+    private async void SyncData(object? sender)
+    {
+        logger.LogInformation("Starting Sync");
+        await Task.Delay(TimeSpan.FromSeconds(5));
+        logger.LogInformation("Completing Sync");
+    }
+}
+            </CodeSnippet>
 
             <p>
                 To unit test the <ContentHighlight>DataSyncService Hosted Service</ContentHighlight>, follow these steps:
@@ -148,7 +236,26 @@
                 <li>Additionally, make assertions as per your needs.</li>
             </ol>
 
-            <GithubGistSnippet Title="Unit Testing Hosted Service in ASP.NET Web API" UserId="fingers10" FileName="61c0b91ec1a5cd02a822d53330b58f03"></GithubGistSnippet>
+            <CodeSnippet CssClass="language-csharp">
+public class HostedServiceTests
+{
+    [Fact]
+    public async Task DataSyncService_ExecuteAsync()
+    {
+        var fakeTimeProvider = new FakeTimeProvider();
+        var fakeLogger = new FakeLogger&lt;DataSyncService&gt;();
+        
+        using var dataSyncService = new DataSyncService(fakeTimeProvider, fakeLogger);
+        await dataSyncService.StartAsync(default);
+        await dataSyncService.ExecuteTask!;
+        
+        fakeTimeProvider.Advance(TimeSpan.FromSeconds(30));
+
+        dataSyncService.ExecuteTask.IsCompletedSuccessfully.Should().BeTrue();
+        fakeLogger.Collector.Count.Should().Be(4);
+    }
+}
+            </CodeSnippet>
 
             <p>
                 By executing above test we can validate background services in ASP.NET Core apps. The same can be used to validate worker services in dotnet.

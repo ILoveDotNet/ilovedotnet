@@ -202,8 +202,137 @@
                             alt="solution-structure" />
                     </figure>
 
-                    <GithubGistSnippet Title="Language Detection Using AutoML in ML.NET" UserId="fingers10"
-                        FileName="e655fb2e5f9aedcb5282bb747de0292f"></GithubGistSnippet>
+                    <CodeSnippet CssClass="language-csharp">
+@@using Microsoft.ML
+@@using Microsoft.ML.Data
+@@inject HttpClient _client;
+
+&lt;textarea rows="5" 
+          spellcheck="false" 
+          placeholder="Enter your text here" 
+          @@bind="inputText" 
+          @@bind:event="oninput" 
+          @@bind:after="TextChanged" /&gt;
+
+&lt;p&gt;Detected Language: @@detectedLanguage&lt;/p&gt;
+
+@@if (allLabels is not null)
+{
+    &lt;ul&gt;
+        @@foreach (var label in allLabels)
+        {
+            &lt;li&gt;@@label.Key - @@($"{Math.Round(label.Value, 2):P2}")&lt;/li&gt;
+        }
+    &lt;/ul&gt;
+}
+
+@@code 
+{
+    private MLContext? _context;
+    private PredictionEngine&lt;ModelInput,ModelOutput&gt;? _predictionEngine;
+    private string? inputText;
+    private string? detectedLanguage = "None";
+    private IOrderedEnumerable&lt;KeyValuePair&lt;string, float&gt;&gt;? allLabels;
+
+    override protected async Task OnInitializedAsync()
+    {
+        var model = await _client.GetStreamAsync("model/languagedetectionmodel.zip");
+        _context = new MLContext();
+        var transformer = _context.Model.Load(model, out DataViewSchema schema);
+        _predictionEngine = _context.Model.CreatePredictionEngine&lt;ModelInput,ModelOutput&gt;(transformer);
+    }
+
+    private void TextChanged()
+    {
+        if (inputText is null or "")
+        {
+            detectedLanguage = "None";
+            allLabels = null;
+            return;
+        }
+
+        var input = new ModelInput
+        {
+            Message = inputText
+        };
+
+        var output = _predictionEngine!.Predict(input);
+
+        detectedLanguage = output.PredictedLabel;
+
+        allLabels = PredictAllLabels(input);
+    }
+
+    private IOrderedEnumerable&lt;KeyValuePair&lt;string, float&gt;&gt; PredictAllLabels(ModelInput input)
+    {
+        var result = _predictionEngine!.Predict(input);
+        return GetSortedScoresWithLabels(result);
+    }
+
+    private IOrderedEnumerable&lt;KeyValuePair&lt;string, float&gt;&gt; GetSortedScoresWithLabels(ModelOutput result)
+    {
+        var unlabeledScores = result.Score;
+        var labelNames = GetLabels(result);
+
+        Dictionary&lt;string, float&gt; labledScores = new Dictionary&lt;string, float&gt;();
+        for (int i = 0; i &lt; labelNames.Count(); i++)
+        {
+            // Map the names to the predicted result score array
+            var labelName = labelNames.ElementAt(i);
+            labledScores.Add(labelName.ToString(), unlabeledScores[i]);
+        }
+
+        return labledScores.OrderByDescending(c =&gt; c.Value);
+    }
+
+    private IEnumerable&lt;string&gt; GetLabels(ModelOutput result)
+    {
+        var schema = _predictionEngine!.OutputSchema;
+
+        var labelColumn = schema.GetColumnOrNull("Language");
+        if (labelColumn == null)
+        {
+            throw new Exception("Language column not found. Make sure the name searched for matches the name in the schema.");
+        }
+
+        // Key values contains an ordered array of the possible labels. This allows us to map the results to the correct label value.
+        var keyNames = new VBuffer&lt;ReadOnlyMemory&lt;char&gt;&gt;();
+        labelColumn.Value.GetKeyValues(ref keyNames);
+        return keyNames.DenseValues().Select(x =&gt; x.ToString());
+    }
+
+    public class ModelInput
+    {
+        [LoadColumn(0)]
+        [ColumnName(@@"Language")]
+        public string Language { get; set; } = string.Empty;
+
+        [LoadColumn(1)]
+        [ColumnName(@@"Message")]
+        public string Message { get; set; } = string.Empty;
+
+    }
+
+    public class ModelOutput
+    {
+        [ColumnName(@@"Language")]
+        public uint Language { get; set; }
+
+        [ColumnName(@@"Message")]
+        public float[] Message { get; set; } = [];
+
+        [ColumnName(@@"Features")]
+        public float[] Features { get; set; } = [];
+
+        [ColumnName(@@"PredictedLabel")]
+        public string PredictedLabel { get; set; } = string.Empty;
+
+        [ColumnName(@@"Score")]
+        public float[] Score { get; set; } = [];
+
+    }
+}
+                    </CodeSnippet>
                 </li>
             </ol>
 

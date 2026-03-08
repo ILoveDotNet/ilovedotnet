@@ -50,7 +50,49 @@
             based on operating systems default display mode.
         </p>
 
-        <GithubGistSnippet Title="Display Theme Component to toggle Display Mode" UserId="fingers10" FileName="61c1c376a14a8126935ca276aaae6dbf"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-razor">
+@@implements IAsyncDisposable
+
+&lt;section&gt;
+    &lt;button @@onclick="() =&gt; SetTheme(DisplayMode.Light)"&gt;Light&lt;/button&gt;
+    &lt;button @@onclick="() =&gt; SetTheme(DisplayMode.Dark)"&gt;Dark&lt;/button&gt;
+    &lt;button @@onclick="() =&gt; SetTheme(DisplayMode.System)"&gt;System&lt;/button&gt;
+&lt;/section&gt;
+
+@@code {
+    public enum DisplayMode
+    {
+        Light,
+        Dark,
+        System
+    }
+
+    private IJSObjectReference? module;
+
+    [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        module = await JSRuntime.InvokeAsync&lt;IJSObjectReference&gt;("import", "./js/displaymode.js");
+    }
+
+    public async Task SetTheme(DisplayMode displayMode)
+    {
+        if (module is not null) 
+        {
+            await module.InvokeVoidAsync("onDisplayModeChanged", $"{displayMode.ToString().ToLower()}");
+        }
+    }
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        if (module is not null)
+        {
+            await module.DisposeAsync();
+        }
+    }
+}
+        </CodeSnippet>
 
         
 
@@ -68,7 +110,18 @@
             <ContentHighlight>Local Storage</ContentHighlight>.
         </p>
 
-        <GithubGistSnippet Title="Javascript function to store and toggle CSS class" UserId="fingers10" FileName="5064bb598d94a8d37b624ac4029b7295"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-javascript">
+export function onDisplayModeChanged(mode) {
+    if (mode === 'dark' || (mode === 'system' &amp;&amp; window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+        localStorage.setItem('DisplayMode', 'dark');
+    }
+    else {
+        document.documentElement.classList.remove('dark');
+        localStorage.removeItem('DisplayMode');
+    }
+}
+        </CodeSnippet>
 
         <p>
             Now that all set, we need to make sure to load the user preference when the user visits our site anytime in future. For this we can again use small 
@@ -78,7 +131,22 @@
             <ContentHighlight>HTML</ContentHighlight> document. If both the above cases are not met then, we can leave it to default light theme.
         </p>
 
-        <GithubGistSnippet Title="Javascript to toggle display mode CSS class on page load" UserId="fingers10" FileName="ceee90f0cd2a5db2e2fd12ea27f63e1d"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-markup">
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;script&gt;
+      if (localStorage.DisplayMode === 'dark' || (!('DisplayMode' in localStorage) &amp;&amp; window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+          document.documentElement.classList.add('dark');
+      } else {
+          document.documentElement.classList.remove('dark');
+      }
+    &lt;/script&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    ...
+  &lt;/body&gt;
+&lt;/html&gt;
+        </CodeSnippet>
 
         <p>
             Time for a live demo. Try with below demo and make sure to inspect and see how CSS classed are toggled in <ContentHighlight>HTML</ContentHighlight> along with 

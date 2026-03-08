@@ -62,8 +62,61 @@
                 </li>
             </ol>
 
-            <GithubGistSnippet Title="Convert HTML to PDF using wkhtmltopdf" UserId="fingers10"
-                FileName="9c5c00ee7a67810ba65da232110905cf"></GithubGistSnippet>
+            <CodeSnippet CssClass="language-csharp">
+public static string HtmlToPdf(string outputFilenamePrefix, string[] urls,
+    string[] options = null,
+    string pdfHtmlToPdfExePath = @@"C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe")
+{
+    string urlsSeparatedBySpaces = string.Empty;
+    try
+    {
+        //Determine inputs
+        if ((urls == null) || (urls.Length == 0))
+            throw new Exception("No input URLs provided for HtmlToPdf");
+        else
+            urlsSeparatedBySpaces = String.Join(" ", urls); //Concatenate URLs
+
+        string outputFilename = outputFilenamePrefix + "_" + DateTime.Now.ToString("yyyy-MM-dd-hh-mm-ss-fff") + ".PDF"; // assemble destination PDF file name
+
+        var p = new System.Diagnostics.Process()
+        {
+            StartInfo =
+            {
+                FileName = pdfHtmlToPdfExePath,
+                Arguments = ((options == null) ? "" : string.Join(" ", options)) + " " + urlsSeparatedBySpaces + " " + outputFilename,
+                UseShellExecute = false, // needs to be false in order to redirect output
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                RedirectStandardInput = true, // redirect all 3, as it should be all 3 or none
+                WorkingDirectory = Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location))
+            }
+        };
+
+        p.Start();
+
+        // read the output here...
+        var output = p.StandardOutput.ReadToEnd();
+        var errorOutput = p.StandardError.ReadToEnd();
+
+        // ...then wait n milliseconds for exit (as after exit, it can't read the output)
+        p.WaitForExit(60000);
+
+        // read the exit code, close process
+        int returnCode = p.ExitCode;
+        p.Close();
+
+        // if 0 or 2, it worked so return path of pdf
+        if ((returnCode == 0) || (returnCode == 2))
+            return outputFilename;
+        else
+            throw new Exception(errorOutput);
+    }
+    catch (Exception exc)
+    {
+        throw new Exception("Problem generating PDF from HTML, URLs: " + urlsSeparatedBySpaces + ", outputFilename: " + outputFilenamePrefix, exc);
+    }
+}
+            </CodeSnippet>
 
             <h5>Drawbacks using <ContentHighlight>wkhtmltopdf</ContentHighlight>
             </h5>
@@ -106,8 +159,25 @@
                 </li>
             </ol>
 
-            <GithubGistSnippet Title="Convert HTML to PDF using Chrome Headless" UserId="fingers10"
-                FileName="ce5beee3428e6fb11a14db04ad605d8e"></GithubGistSnippet>
+            <CodeSnippet CssClass="language-csharp">
+var p = new System.Diagnostics.Process()
+{
+    StartInfo =
+    {
+        FileName = "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe",
+        Arguments = @@"/C --headless --disable-gpu --run-all-compositor-stages-before-draw --print-to-pdf-no-header --print-to-pdf=""C:/Users/Abdul Rahman/Desktop/test.pdf"" ""C:/Users/Abdul Rahman/Desktop/grid.html""",
+    }
+};
+
+p.Start();
+
+// ...then wait n milliseconds for exit (as after exit, it can't read the output)
+p.WaitForExit(60000);
+
+// read the exit code, close process
+int returnCode = p.ExitCode;
+p.Close();
+            </CodeSnippet>
 
             <h5>Drawbacks using <ContentHighlight>Chrome Headless</ContentHighlight>
             </h5>
@@ -143,8 +213,36 @@
                 <li>Use the below code.</li>
             </ol>
 
-            <GithubGistSnippet Title="Convert HTML to PDF using Selenium WebDriver" UserId="fingers10"
-                FileName="b5878b7d4acdd45827665a1481bb04fd"></GithubGistSnippet>
+            <CodeSnippet CssClass="language-csharp">
+public async Task&lt;byte[]&gt; ConvertHtmlToPdf(string html)
+{
+    var directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonDocuments), "ApplicationName");
+    Directory.CreateDirectory(directory);
+    var filePath = Path.Combine(directory, $"{Guid.NewGuid()}.html");
+    await File.WriteAllTextAsync(filePath, html);
+
+    var driverOptions = new ChromeOptions();
+    // In headless mode, PDF writing is enabled by default (tested with driver major version 85)
+    driverOptions.AddArgument("headless");
+    using var driver = new ChromeDriver(driverOptions);
+    driver.Navigate().GoToUrl(filePath);
+
+    // Output a PDF of the first page in A4 size at 90% scale
+    var printOptions = new Dictionary&lt;string, object&gt;
+    {
+        { "paperWidth", 210 / 25.4 },
+        { "paperHeight", 297 / 25.4 },
+        { "scale", 0.9 },
+        { "pageRanges", "1" }
+    };
+    var printOutput = driver.ExecuteChromeCommandWithResult("Page.printToPDF", printOptions) as Dictionary&lt;string, object&gt;;
+    var pdf = Convert.FromBase64String(printOutput["data"] as string);
+
+    File.Delete(filePath);
+
+    return pdf;
+}
+            </CodeSnippet>
 
             <h5>Drawbacks using <ContentHighlight>Selenium WebDriver
                 </ContentHighlight>
@@ -183,8 +281,14 @@
                 in <ContentHighlight>.csproj</ContentHighlight> file as shown below:
             </p>
 
-            <GithubGistSnippet Title="Convert HTML to PDF using Selenium WebDriver Project Settings" UserId="fingers10"
-                FileName="893ff9c1e0c185199b34e93e95710238"></GithubGistSnippet>
+            <CodeSnippet CssClass="language-csharp">
+&lt;PropertyGroup&gt;
+  &lt;TargetFramework&gt;net5.0&lt;/TargetFramework&gt;
+  &lt;LangVersion&gt;latest&lt;/LangVersion&gt;
+  &lt;Nullable&gt;enable&lt;/Nullable&gt;
+  &lt;PublishChromeDriver&gt;true&lt;/PublishChromeDriver&gt;
+&lt;/PropertyGroup&gt;
+            </CodeSnippet>
 
             <p>
                 This will publish the chrome driver when publishing the project.
@@ -201,8 +305,11 @@
                 in an inventory app.
             </p>
 
-            <GithubGistSnippet Title="Convert HTML to PDF using window print" UserId="fingers10"
-                FileName="e898deea9550b6a3b1ce8ca132a9c04b"></GithubGistSnippet>
+            <CodeSnippet CssClass="language-javascript">
+export function printWindow() {
+  return window.print();
+}
+            </CodeSnippet>
 
             <DemoSnippet Title="HTML to PDF Demo using window.print()">
                 <p class="[ text-black ] [ dark:text-white ]">

@@ -57,7 +57,16 @@
                     Application source code must be inside of a GitHub repository. So, you need to create a local Git repository and commit your 
                     source code to the repository using these commands.
                 </p>
-                <GithubGistSnippet Title="Create Local Repository" UserId="fingers10" FileName="ba35eed4720d5cc91d6b315a8ee404f1"></GithubGistSnippet>
+                <CodeSnippet CssClass="language-plaintext">
+# add the gitignore file tailored for dotnet applications, this will ignore bin/obj and many other non-source code files
+dotnet new gitignore
+# create the git repository
+git init
+# track all files that are not ignore by .gitignore
+git add --all
+# commit all changes to the repository
+git commit -m "Initial commit"
+                </CodeSnippet>
             </li>
             <li>Create a Azure Account</li>
         </ol>
@@ -70,7 +79,10 @@
             like but with a different URL:
         </p>
 
-        <GithubGistSnippet Title="Push to GitHub Repository" UserId="fingers10" FileName="f8df74eb610c92a260e42e7e0db22367"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-plaintext">
+git remote add origin https://github.com/ilovedotnet/ilovedotnet.git
+git push -u origin master
+        </CodeSnippet>
 
         
 
@@ -186,7 +198,20 @@
 
         <p>So Instead I'm going to simply update my existing workflow file with azure deployment step as shown below.</p>
 
-        <GithubGistSnippet Title="Publishing Blazor Wasm Apps to Azure Static Web Apps" UserId="fingers10" FileName="da21248e9d4427894dd3a74e0e5958c6"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-yaml">
+- name: Azure Static Web Apps Deploy
+  uses: Azure/static-web-apps-deploy@@v1
+  with:
+    azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+    action: "upload"
+    ###### Repository/Build Configurations - These values can be configured to match your app requirements. ######
+    # For more information regarding Static Web App workflow configurations, please visit: https://aka.ms/swaworkflowconfig
+    app_location: "dist/Web/wwwroot" # App source code path
+    api_location: "" # Api source code path - optional
+    output_location: "" # Built app content directory - optional
+    skip_app_build: true # Skip build - optional
+    ###### End of Repository/Build Configurations ######
+        </CodeSnippet>
 
         
 
@@ -260,7 +285,25 @@
             <ContentHighlight>staticwebapp.config.json</ContentHighlight> and place it in the root of your Blazor WASM project as shown below.
         </p>
 
-         <GithubGistSnippet Title="Azure Static Web App Config Json" UserId="fingers10" FileName="19f1a9fbeba24dd051f22afa63235ea2"></GithubGistSnippet>
+         <CodeSnippet CssClass="language-json">
+{
+  "navigationFallback": {
+    "rewrite": "index.html",
+    "exclude": [
+      "/*.{css,gif,ico,jpg,js,png,txt,svg,woff,woff2,ttf,map,json,br,gz,html,md,eot,otf,dll,blat,wasm,dat,webp,xml}",
+      "/css/*",
+      "/appicons/*",
+      "/image/*",
+      "/js/*"
+    ]
+  },
+  "responseOverrides": {
+    "404": {
+      "rewrite": "/index.html"
+    }
+  }
+}
+         </CodeSnippet>
 
         
 

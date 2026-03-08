@@ -89,7 +89,28 @@
             <ContentHighlight>tightly coupled</ContentHighlight> to a specific database type <ContentHighlight>SQL Server</ContentHighlight>. 
         </p>
 
-        <GithubGistSnippet Title="DIP - Dependency Inversion Principle - Before" UserId="fingers10" FileName="4f8464eedd15245e3b5920b2e8d7c9aa"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+// SalesReport class with tight coupling to SQL Server
+public class SalesReport
+{
+    private readonly SqlServerDatabase _database;
+
+    public SalesReport()
+    {
+        _database = new SqlServerDatabase();
+    }
+
+    // Report generation and other methods
+    // ...
+}
+
+// SQL Server specific database implementation
+public class SqlServerDatabase
+{
+    // SQL Server specific implementation
+    // ...
+}
+        </CodeSnippet>
 
         
 
@@ -97,7 +118,45 @@
             However, we want to make the application adaptable to support different database types, such as <ContentHighlight>Cassandra</ContentHighlight>.
         </p>
 
-        <GithubGistSnippet Title="DIP - Dependency Inversion Principle - After" UserId="fingers10" FileName="cd2241156cf9885672312f0ebcf3ba9c"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+// IDatabase interface representing common database operations
+public interface IDatabase
+{
+    void Connect();
+    void Insert();
+    void Update();
+    void Delete();
+    void Select();
+}
+
+// Implementation for SQL Server database
+public class SqlServerDatabase : IDatabase
+{
+    // SQL Server specific implementation
+    // ...
+}
+
+// Implementation for Cassandra database
+public class CassandraDatabase : IDatabase
+{
+    // Cassandra specific implementation
+    // ...
+}
+
+// SalesReport class using IDatabase interface
+public class SalesReport
+{
+    private readonly IDatabase _database;
+
+    public SalesReport(IDatabase database)
+    {
+        _database = database;
+    }
+
+    // Report generation and other methods
+    // ...
+}
+        </CodeSnippet>
 
         <p>
             In the above code, we introduce the <ContentHighlight>IDatabase</ContentHighlight> interface, which defines the common database operations. Both the 

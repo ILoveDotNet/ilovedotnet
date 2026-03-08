@@ -51,14 +51,33 @@
               Find all test files and group them by folder.
             </p>
 
-            <GithubGistSnippet Title="Find all test Files" UserId="fingers10" FileName="1c199e2a1e154510ed5d637ed572d8d8"></GithubGistSnippet>
+            <CodeSnippet CssClass="language-csharp">
+var testProjectPath = "/Users/ilovedotnet/Projects/FluentAssertionToXUnitAssertion";
+
+var filesByFolder = Directory
+    .EnumerateFiles(testProjectPath, "*.cs", SearchOption.AllDirectories)
+    .Where(file =&gt; file.EndsWith("Tests.cs", StringComparison.OrdinalIgnoreCase))
+    .GroupBy(Path.GetDirectoryName)
+    .ToList();
+            </CodeSnippet>
           </li>
           <li>
             <p>
               Parallely Process each file.
             </p>
 
-            <GithubGistSnippet Title="Parallely run conversion task" UserId="fingers10" FileName="93413c872c9a0950409da70dddfaab37"></GithubGistSnippet>
+            <CodeSnippet CssClass="language-csharp">
+foreach (var folderGroup in filesByFolder)
+{
+    Console.WriteLine($"Processing folder group: {folderGroup.Key}");
+
+    var tasks = folderGroup.Select(ProcessWithRegex);
+    await foreach (var result in Task.WhenEach(tasks))
+    {
+        Console.WriteLine(result); // Log results if needed
+    }
+}
+            </CodeSnippet>
           </li>
           <li>
             <p>
@@ -66,14 +85,102 @@
               Assertions and replace the line. Finally save the test file.
             </p>
 
-            <GithubGistSnippet Title="Processing Test File" UserId="fingers10" FileName="edc1108390ef4363d204977c88fc8b82"></GithubGistSnippet>
+            <CodeSnippet CssClass="language-csharp">
+static async Task ProcessWithRegex(string filePath)
+{
+    var lines = await File.ReadAllLinesAsync(filePath);
+    var updatedLines = new StringBuilder();
+    var converted = false;
+
+    foreach (var line in lines)
+    {
+        if (line.Contains(".Should()."))
+        {
+            var result = ConvertFluentAssertionsToXUnit(line);
+            updatedLines.AppendLine(result);
+            converted = true;
+        }
+        else
+        {
+            updatedLines.AppendLine(line);
+        }
+    }
+    if (converted)
+        await File.WriteAllTextAsync(filePath, updatedLines.ToString());
+}
+            </CodeSnippet>
           </li>
           <li>
             <p>
               The <ContentHighlight>secret sauce Regex</ContentHighlight> that I used for commonly used FluentAsserions statements.
             </p>
 
-            <GithubGistSnippet Title="Regex to convert common and simple FluentAsserions statements" UserId="fingers10" FileName="6bfa2c0b41fb53df7d2b54ab82718548"></GithubGistSnippet>
+            <CodeSnippet CssClass="language-csharp">
+static string ConvertFluentAssertionsToXUnit(string input)
+{
+    // 1. Replace .Should().Be with Assert.Equal
+    input = Regex.Replace(input, @@"((?:[\w\[\]\.!]+(?:\.\w+|\(.*\))*))\.Should\(\)\.Be\((.*)\);", @@"Assert.Equal($2, $1);");
+
+    // 2. Replace .Should().Equal() with Assert.Equal()
+    input = Regex.Replace(input, @@"((?:[\w\[\]\.!]+(?:\.\w+|\(.*\))*))\.Should\(\)\.Equal\((.*)\);", @@"Assert.Equal($2, $1);");
+
+    // 3. Replace .Should().NotBe with Assert.NotEqual
+    input = Regex.Replace(input, @@"((?:[\w\[\]\.!]+(?:\.\w+|\(.*\))*))\.Should\(\)\.NotBe\((.*)\);", @@"Assert.NotEqual($2, $1);");
+
+    // 4. Replace .Should().NotBeNull with Assert.NotNull
+    input = Regex.Replace(input, @@"((?:[\w\[\]\.!]+(?:\.\w+|\(.*\))*))\.Should\(\)\.NotBeNull\(\);", @@"Assert.NotNull($1);");
+
+    // 5. Replace .Should().BeTrue with Assert.True
+    input = Regex.Replace(input, @@"((?:[\w\[\]\.!]+(?:\.\w+|\(.*\))*))\.Should\(\)\.BeTrue\(\);", @@"Assert.True($1);");
+
+    // 6. Replace .Should().BeFalse with Assert.False
+    input = Regex.Replace(input, @@"((?:[\w\[\]\.!]+(?:\.\w+|\(.*\))*))\.Should\(\)\.BeFalse\(\);", @@"Assert.False($1);");
+
+    // 7. Replace .Should().Contain with Assert.Contains
+    input = Regex.Replace(input, @@"((?:[\w\[\]\.!]+(?:\.\w+|\(.*\))*))\.Should\(\)\.Contain\((.*)\);", @@"Assert.Contains($2, $1);");
+
+    // 8. Replace .Should().NotContain with Assert.DoesNotContain
+    input = Regex.Replace(input, @@"((?:[\w\[\]\.!]+(?:\.\w+|\(.*\))*))\.Should\(\)\.NotContain\((.*)\);", @@"Assert.DoesNotContain($2, $1);");
+
+    // 9. Replace .Should().BeEquivalentTo with Assert.Equivalent
+    input = Regex.Replace(input, @@"((?:[\w\[\]\.!]+(?:\.\w+|\(.*\))*))\.Should\(\)\.BeEquivalentTo\((.*)\);", @@"Assert.Equivalent($2, $1);");
+
+    // 10. Handle .Should().BeGreaterThanOrEqualTo
+    input = Regex.Replace(input, @@"((?:[\w\[\]\.!]+(?:\.\w+|\(.*\))*))\.Should\(\)\.BeGreaterThanOrEqualTo\((.*)\);", @@"Assert.True($1 &gt;= $2);");
+
+    // 11. Handle .Should().HaveCount with Assert.Equal
+    input = Regex.Replace(input, @@"((?:[\w\[\]\.!]+(?:\.\w+|\(.*\))*))\.Should\(\)\.HaveCount\((\d+)\);", @@"Assert.Equal($2, $1.Count);");
+
+    // 12. Convert .Should().BeEmpty() to Assert.Empty
+    input = Regex.Replace(input, @@"((?:[\w\[\]\.!]+(?:\.\w+|\(.*\))*))\.Should\(\)\.BeEmpty\(\);", @@"Assert.Empty($1);");
+
+    // 13. Convert .Should().BeNull() to Assert.Null()
+    input = Regex.Replace(input, @@"((?:[\w\[\]\.!]+(?:\.\w+|\(.*\))*))\.Should\(\)\.BeNull\(\);", @@"Assert.Null($1);");
+
+    // 14. Convert .Should().HaveCountGreaterThanOrEqualTo() to Assert.True
+    input = Regex.Replace(input, @@"((?:[\w\[\]\.!]+(?:\.\w+|\(.*\))*))\.Should\(\)\.HaveCountGreaterThanOrEqualTo\((.*)\);", @@"Assert.True($1.Count &gt;= $2);");
+
+    // 15. Convert .Should().Throw&lt;T&gt;().WithMessage("...") to Assert.Throws&lt;T&gt;()
+    input = Regex.Replace(input, @@"(\w+)\.Should\(\)\.Throw&lt;([^&gt;]+)&gt;\(\)\.WithMessage\((.*)\);", 
+        @@"var ex = Assert.Throws&lt;$2&gt;($1); Assert.Equal($3, ex.Message);");
+    
+    // 16. Replace .Should().BeOfType with Assert.IsType
+    input = Regex.Replace(input, @@"((?:[\w\[\]\.!]+(?:\.\w+)*))\.Should\(\)\.BeOfType&lt;([^&gt;]+)&gt;\(\);", @@"Assert.IsType&lt;$2&gt;($1);");
+    
+    // 17. Handle BeCloseTo separately (converted to InRange)
+    input = Regex.Replace(input, 
+         @@"((?:[\w\[\]\.!]+(?:\.\w+)*))\.Should\(\)\.BeCloseTo\((.*), (.*)\);", 
+         @@"Assert.InRange($1, $2 - $3, $2 + $3);");
+    
+    // 18. Convert .Should().NotBeEmpty() to Assert.NotEmpty()
+    input = Regex.Replace(input, @@"((?:[\w\[\]\.!]+(?:\.\w+|\(.*\))*))\.Should\(\)\.NotBeEmpty\(\);", @@"Assert.NotEmpty($1);");
+    
+    // 19. Convert .Should().HaveCountGreaterOrEqualTo() to Assert.True
+    input = Regex.Replace(input, @@"((?:[\w\[\]\.!]+(?:\.\w+|\(.*\))*))\.Should\(\)\.HaveCountGreaterOrEqualTo\((.*)\);", @@"Assert.True($1.Count &gt;= $2);");
+
+    return input;
+}
+            </CodeSnippet>
           </li>
         </ol>
 
@@ -81,9 +188,138 @@
           Here is the sample input and output.
         </p>
 
-        <GithubGistSnippet Title="FluentAsserions input statements" UserId="fingers10" FileName="b86e263372c4f71f96f23f3ac7554bf5"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+using FluentAssertions;
 
-        <GithubGistSnippet Title="Migrated XUnit output statements" UserId="fingers10" FileName="2d49db3deae1add138d7fa72a9370fb9"></GithubGistSnippet>
+namespace ILoveDotNet.FluentAssertionToXUnitAssertion;
+
+public class Tests
+{
+    public void FluentAssertionsToConvert()
+    {
+        var result = new FluentAssertionDto();
+        var results = new List&lt;AnotherFluentAssertionDto&gt;();
+        
+        Action act = () =&gt;
+        {
+            Error error = new();
+        };
+
+        act.Should().Throw&lt;Exception&gt;().WithMessage("Error");
+        result.Strings.Count.Should().BeGreaterThanOrEqualTo(1);
+        result.Strings[0].Should().Contain("XUnit");
+        result.Strings[0].Should().Be("XUnit");
+        results.Count.Should().Be(0);
+        results.Should().NotBeNull();
+        results.Should().BeNull();
+        result.Boolean.Should().BeTrue();
+        result.Boolean.Should().BeFalse();
+        result.Numbers.Should().NotContain(1);
+        result.Numbers.Should().HaveCount(0);
+        result.Numbers.Should().Equal(result.Numbers);
+        result.Numbers.Should().HaveCountGreaterThanOrEqualTo(0);
+        result.Now.Should().BeCloseTo(DateTimeOffset.Now, TimeSpan.FromMinutes(10));
+        results[0].Now.Should().BeCloseTo(DateTimeOffset.Now, TimeSpan.FromMinutes(10));
+
+        results[0].Number.Should().Be(0);
+        results[0].Numbers.Count.Should().BeGreaterThanOrEqualTo(0);
+        results[0].Numbers[0].Should().Be(0);
+        results[0].Persons[0].Name.Should().Be(string.Empty);
+        results[0].Persons![0].Name!.Should().BeEmpty();
+        result.Should().NotBe(null);
+        result.Should().BeEquivalentTo(result);
+        result.Should().BeOfType&lt;FluentAssertionDto&gt;();
+        result!.Should().Be(result);
+
+        result.Numbers.Sum().Should().Be(1);
+        results.Sum(x =&gt; x.Number).Should().Be(0);
+        results[0].Numbers.Sum().Should().Be(0);
+        results.Should().NotBeEmpty();
+        result.Numbers.Should().HaveCountGreaterOrEqualTo(0);
+    }
+}
+
+public class FluentAssertionDto
+{
+    public List&lt;string&gt; Strings { get; set; } = ["XUnit"];
+    public List&lt;int&gt; Numbers { get; set; } = [1];
+    public bool Boolean { get; set; }
+    public DateTimeOffset Now { get; set; } = DateTimeOffset.UtcNow;
+}
+
+public class AnotherFluentAssertionDto
+{
+    public int Number { get; set; }
+    public DateTimeOffset Now { get; set; } = DateTimeOffset.UtcNow;
+    public List&lt;int&gt; Numbers { get; set; } = [];
+    public List&lt;Person&gt; Persons { get; set; } = [];
+}
+
+public class Person
+{
+    public string Name { get; set; }
+}
+
+public class Error
+{
+    public Error()
+    {
+        throw new Exception("Error");
+    }
+}
+        </CodeSnippet>
+
+        <CodeSnippet CssClass="language-csharp">
+using Xunit;
+
+namespace ILoveDotNet.FluentAssertionToXUnitAssertion;
+
+public class Tests
+{
+    public void FluentAssertionsToConvert()
+    {
+        var result = new FluentAssertionDto();
+        var results = new List&lt;AnotherFluentAssertionDto&gt;();
+        
+        Action act = () =&gt;
+        {
+            Error error = new();
+        };
+
+        var ex = Assert.Throws&lt;Exception&gt;(act); Assert.Equal("Error", ex.Message);
+        Assert.True(result.Strings.Count &gt;= 1);
+        Assert.Contains("XUnit", result.Strings[0]);
+        Assert.Equal("XUnit", result.Strings[0]);
+        Assert.Equal(0, results.Count);
+        Assert.NotNull(results);
+        Assert.Null(results);
+        Assert.True(result.Boolean);
+        Assert.False(result.Boolean);
+        Assert.DoesNotContain(1, result.Numbers);
+        Assert.Equal(0, result.Numbers.Count);
+        Assert.Equal(result.Numbers, result.Numbers);
+        Assert.True(result.Numbers.Count &gt;= 0);
+        Assert.InRange(result.Now, DateTimeOffset.Now - TimeSpan.FromMinutes(10), DateTimeOffset.Now + TimeSpan.FromMinutes(10));
+        Assert.InRange(results[0].Now, DateTimeOffset.Now - TimeSpan.FromMinutes(10), DateTimeOffset.Now + TimeSpan.FromMinutes(10));
+
+        Assert.Equal(0, results[0].Number);
+        Assert.True(results[0].Numbers.Count &gt;= 0);
+        Assert.Equal(0, results[0].Numbers[0]);
+        Assert.Equal(string.Empty, results[0].Persons[0].Name);
+        Assert.Empty(results[0].Persons![0].Name!);
+        Assert.NotEqual(null, result);
+        Assert.Equivalent(result, result);
+        Assert.IsType&lt;FluentAssertionDto&gt;(result);
+        Assert.Equal(result, result!);
+
+        Assert.Equal(1, result.Numbers.Sum());
+        Assert.Equal(0, results.Sum(x =&gt; x.Number));
+        Assert.Equal(0, results[0].Numbers.Sum());
+        Assert.NotEmpty(results);
+        Assert.True(result.Numbers.Count &gt;= 0);
+    }
+}
+        </CodeSnippet>
       </How>
 
       <Summary>

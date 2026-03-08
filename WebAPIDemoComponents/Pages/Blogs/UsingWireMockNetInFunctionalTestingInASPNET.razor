@@ -55,7 +55,18 @@
 
         
 
-        <GithubGistSnippet Title="App Settings for External API Call in Web API" UserId="fingers10" FileName="f8ad45af3f92ea4df9fc8e6492aca3da"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-json">
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*",
+  "WeatherAPIUrl": "https://api.open-meteo.com/" // &lt;-- External URL to be used to get weather information
+}
+        </CodeSnippet>
 
         
 
@@ -64,7 +75,15 @@
             <ContentHighlight>ExternalService</ContentHighlight> add the <ContentHighlight>HttpClient</ContentHighlight> configuration as shown below.
         </p>
 
-        <GithubGistSnippet Title="ExtrenalService Registration and HTTP Client Configuration" UserId="fingers10" FileName="e73e8e29bf118a7c6c3eb780432d544c"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+builder.Services.AddTransient&lt;IExternalAPIService, ExternalAPIService&gt;();
+builder.Services.AddHttpClient("WeatherClient", client =&gt;
+{
+    client.BaseAddress = new Uri(builder.Configuration.GetValue&lt;string&gt;("WeatherAPIUrl")!);
+    client.DefaultRequestHeaders.Clear();
+    client.DefaultRequestHeaders.Add(HeaderNames.Accept, MediaTypeNames.Application.Json);
+});
+        </CodeSnippet>
 
         
 
@@ -73,7 +92,48 @@
             <ContentHighlight>ExternalAPIService</ContentHighlight> and make a call to get weather information as shown below.
         </p>
 
-        <GithubGistSnippet Title="External API call to get weather information" UserId="fingers10" FileName="5a15506a6a2eb8e20806f40c9a87a6b4"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+using System.Text.Json.Serialization;
+
+namespace API.Services;
+
+public class ExternalAPIService : IExternalAPIService
+{
+    private readonly IHttpClientFactory httpClientFactory;
+
+    public ExternalAPIService(IHttpClientFactory httpClientFactory)
+    {
+        this.httpClientFactory = httpClientFactory;
+    }
+
+    public async Task&lt;WeatherForecast&gt; GetWeatherForecast()
+    {
+        var client = httpClientFactory.CreateClient("WeatherClient");
+
+        var response = await client.GetFromJsonAsync&lt;ExternalWeatherForecast&gt;("v1/forecast?latitude=52.52&amp;longitude=13.41&amp;current_weather=true");
+
+        var weatherForecast = new WeatherForecast
+        {
+            Date = DateOnly.FromDateTime(DateTime.Now),
+            TemperatureC = (int)response!.Current_Weather.Temperature
+        };
+
+        return weatherForecast;
+    }
+}
+
+public class ExternalWeatherForecast
+{
+    [JsonPropertyName("current_weather")]
+    public CurrentWeather Current_Weather { get; set; }
+}
+
+public class CurrentWeather
+{
+    [JsonPropertyName("temperature")]
+    public decimal Temperature { get; set; }
+}
+        </CodeSnippet>
 
         
 
@@ -144,7 +204,43 @@
                     Setup <ContentHighlight>SharedFixture</ContentHighlight> as shown below
                 </p>
 
-                <GithubGistSnippet Title="Shared Fixture for WireMock.NET setup in Function Test in ASP.NET" UserId="fingers10" FileName="13ba40fcd4d792635691a9c2c0d5f471"></GithubGistSnippet>
+                <CodeSnippet CssClass="language-csharp">
+using WireMock.Server;
+using WireMock.Settings;
+
+namespace FunctionalTest;
+public class SharedFixture : IAsyncLifetime
+{
+    public WireMockServer WeatherService = default!;
+
+    // WireMock for Weather Service --------------------
+    public string WeatherServiceUrl { get; private set; } = null!;
+
+    private string StartWireMockForWeatherService()
+    {
+        WeatherService = WireMockServer.Start(new WireMockServerSettings
+        {
+            UseSSL = false
+        });
+
+        return WeatherService.Urls[0];
+    }
+
+    public async Task InitializeAsync()
+    {
+        WeatherServiceUrl = StartWireMockForWeatherService();
+    }
+
+    public async Task DisposeAsync()
+    {
+        if (WeatherService is not null)
+        {
+            WeatherService.Stop();
+            WeatherService.Dispose();
+        }
+    }
+}
+                </CodeSnippet>
 
                 
 
@@ -163,7 +259,30 @@
                     <ContentHighlight>CustomWebApiFactory</ContentHighlight> in <ContentHighlight>FunctionalTest.cs</ContentHighlight> as shown below.
                 </p>
 
-                <GithubGistSnippet Title="Override Configuration in Functional Test" UserId="fingers10" FileName="4e42f73ea077f6e650ac90f4050e6bbf"></GithubGistSnippet>
+                <CodeSnippet CssClass="language-csharp">
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.Configuration;
+
+namespace FunctionalTest;
+public class CustomWebApiFactory(SharedFixture fixture) : WebApplicationFactory&lt;Program&gt;
+{
+    public SharedFixture SharedFixture =&gt; fixture;
+
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    {
+        builder.UseEnvironment("Test");
+
+        builder.ConfigureAppConfiguration((context, conf) =&gt;
+        {
+            conf.AddInMemoryCollection(new Dictionary&lt;string, string&gt;
+            {
+                ["WeatherAPIUrl"] = $"{SharedFixture.WeatherServiceUrl}/"
+            }!);
+        });
+    }
+}
+                </CodeSnippet>
 
                 
             </li>
@@ -171,13 +290,31 @@
                 Before we run the test, we need to modify <ContentHighlight>BastTest</ContentHighlight> to expose <ContentHighlight>WireMockServer</ContentHighlight> 
                 to setup HTTP response for ExtrenalAPI result. This is shown in the below code.
 
-                <GithubGistSnippet Title="Expose Weather Service in BaseTest" UserId="fingers10" FileName="37f678c3b4f60b33a13b0566fc450f18"></GithubGistSnippet>
+                <CodeSnippet CssClass="language-csharp">
+using API.DbContexts;
+using WireMock.Server;
+
+namespace FunctionalTest;
+
+public abstract class BaseTest(CustomWebApiFactory factory)
+{
+    protected CustomWebApiFactory Factory =&gt; factory;
+    protected HttpClient Client =&gt; factory.CreateClient();
+    protected WeatherForecastDbContext Database =&gt; factory.SharedFixture.DbContext;
+    protected WireMockServer WeatherService =&gt; factory.SharedFixture.WeatherService;
+}
+                </CodeSnippet>
             </li>
             <li>
                 Now we need to <ContentHighlight>setup response</ContentHighlight> from the WireMock.NET server to be used in test. For that we need to add the 
                 following setup code as shown below
 
-                <GithubGistSnippet Title="WireMock ExternalAPI Fixture to respond to API Calls" UserId="fingers10" FileName="f3cb927d3e1c1059c68dc7fb56255ddd"></GithubGistSnippet>
+                <CodeSnippet CssClass="language-csharp">
+var expectedWeather = new ExternalWeatherForecast { Current_Weather = new CurrentWeather { Temperature = 18 } };
+WeatherService
+    .Given(Request.Create().WithPath("/v1/forecast").UsingGet())
+    .RespondWith(Response.Create().WithStatusCode(HttpStatusCode.OK).WithBodyAsJson(expectedWeather));
+                </CodeSnippet>
 
                 
 
@@ -197,7 +334,39 @@
             <li>
                 Now we are left with our test. So lets add the test as shown below.
 
-                <GithubGistSnippet Title="Get From API Functional Test using WireMock.NET" UserId="fingers10" FileName="0d0b9172fb1a61e66543c8d85980c52b"></GithubGistSnippet>
+                <CodeSnippet CssClass="language-csharp">
+using API;
+using API.Services;
+using FluentAssertions;
+using System.Diagnostics.CodeAnalysis;
+using System.Net;
+using WireMock.RequestBuilders;
+using WireMock.ResponseBuilders;
+using Xunit.Abstractions;
+
+namespace FunctionalTest;
+[ExcludeFromCodeCoverage]
+[Collection(nameof(FunctionalTestCollection))]
+public class WeatherForecastControllerShouldTests(
+    CustomWebApiFactory factory,
+    ITestOutputHelper outputHelper) : BaseTest(factory), IClassFixture&lt;CustomWebApiFactory&gt;
+{
+    [Fact]
+    public async Task ReturnExpectedResponse_From_API()
+    {
+        var expectedWeather = new ExternalWeatherForecast { Current_Weather = new CurrentWeather { Temperature = 18 } };
+        WeatherService
+            .Given(Request.Create().WithPath("/v1/forecast").UsingGet())
+            .RespondWith(Response.Create().WithStatusCode(HttpStatusCode.OK).WithBodyAsJson(expectedWeather));
+
+        var result = await Client.GetJsonResultAsync&lt;WeatherForecast&gt;("/weatherforecast/fromapi", HttpStatusCode.OK, outputHelper);
+        
+        result.Should().NotBeNull();
+        result.TemperatureC.Should().Be((int)expectedWeather.Current_Weather.Temperature);
+        result.Date.Should().Be(DateOnly.FromDateTime(DateTime.Now));
+    }
+}
+                </CodeSnippet>
 
                 
 

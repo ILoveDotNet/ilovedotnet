@@ -120,7 +120,14 @@
             </li>
         </ul>
         
-        <GithubGistSnippet Title="Without Virtualization" UserId="fingers10" FileName="63c46ad24c4b88c2f6418fa6f301242f"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-razor">
+&lt;div style="height:500px;overflow-y:scroll"&gt;
+    @@foreach (var content in tableOfContents.Contents.OrderByDescending(content =&gt; content.CreatedOn).ToList())
+    {
+        &lt;VirtualizationContent Details="content"&gt;&lt;/VirtualizationContent&gt;
+    }
+&lt;/div&gt;
+        </CodeSnippet>
 
         
         
@@ -161,7 +168,13 @@
             </li>
         </ul>
         
-        <GithubGistSnippet Title="With Virtualization" UserId="fingers10" FileName="052ee594d9107f262d6a97962315a7fc"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-razor">
+&lt;div style="height:500px;overflow-y:scroll"&gt;
+    &lt;Virtualize Items="@@tableOfContents.Contents.OrderByDescending(content =&gt; content.CreatedOn).ToList()" Context="content"&gt;
+        &lt;VirtualizationContent @@key="@@($"{content.Type}-{content.Order}")" Details="content"&gt;&lt;/VirtualizationContent&gt;
+    &lt;/Virtualize&gt;
+&lt;/div&gt;
+        </CodeSnippet>
 
         
 
@@ -214,7 +227,22 @@
             <ContentHighlight>Virtualize</ContentHighlight> component:
         </p>
 
-        <GithubGistSnippet Title="Item Provider Delegate" UserId="fingers10" FileName="8792865ba50a370c6f7a4a3d841994c4"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-razor">
+&lt;Virtualize Context="content" ItemsProvider="@@LoadContents"&gt;
+    &lt;VirtualizationContent @@key="@@($"{content.Type}-{content.Order}")" Details="content"&gt;&lt;/VirtualizationContent&gt;
+&lt;/Virtualize&gt;
+
+@@code {
+  private async ValueTask&lt;ItemsProviderResult&lt;Content&gt;&gt; LoadContents(ItemsProviderRequest request)
+  {
+      var numContents = Math.Min(request.Count, totalContents - request.StartIndex);
+      var contents = await ContentsService.GetContentsAsync(request.StartIndex, 
+          numContents, request.CancellationToken);
+
+      return new ItemsProviderResult&lt;Content&gt;(contents, totalContents);
+  }
+}
+        </CodeSnippet>
 
         
 
@@ -240,7 +268,29 @@
             with item content:
         </p>
 
-        <GithubGistSnippet Title="Virtualization with Placeholder" UserId="fingers10" FileName="c163f12de1bf084c0541cefaeadd53c0"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-razor">
+&lt;Virtualize Context="content" ItemsProvider="@@LoadContents"&gt;
+  &lt;ItemContent&gt;
+    &lt;VirtualizationContent @@key="@@($"{content.Type}-{content.Order}")" Details="content"&gt;&lt;/VirtualizationContent&gt;
+  &lt;/ItemContent&gt;
+  &lt;Placeholder&gt;
+    &lt;p&gt;
+      Loading&amp;hellip;
+    &lt;/p&gt;
+  &lt;/Placeholder&gt;  
+&lt;/Virtualize&gt;
+
+@@code {
+  private async ValueTask&lt;ItemsProviderResult&lt;Content&gt;&gt; LoadContents(ItemsProviderRequest request)
+  {
+      var numContents = Math.Min(request.Count, totalContents - request.StartIndex);
+      var contents = await ContentsService.GetContentsAsync(request.StartIndex, 
+          numContents, request.CancellationToken);
+
+      return new ItemsProviderResult&lt;Content&gt;(contents, totalContents);
+  }
+}
+        </CodeSnippet>
 
         <ul>
             <li>
@@ -263,7 +313,11 @@
             users might view the wrong items. The following example changes the height of each item from the default of 50 pixels to 25 pixels:
         </p>
 
-        <GithubGistSnippet Title="Virtualization with Item Size" UserId="fingers10" FileName="1f87797797c2a83b4db1c20dd4f91330"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-razor">
+&lt;Virtualize Items="@@tableOfContents.Contents" Context="content" ItemSize="25"&gt;
+    ...
+&lt;/Virtualize&gt;
+        </CodeSnippet>
 
         
 
@@ -275,7 +329,11 @@
             elements rendered in the page (default: 3). The following example changes the overscan count from the default of three items to four items:
         </p>
 
-        <GithubGistSnippet Title="Virtualization with Overscan Count" UserId="fingers10" FileName="e240482c382dfab098fa3c457eeb3b4f"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-razor">
+&lt;Virtualize Items="@@tableOfContents.Contents" Context="content" OverscanCount="4"&gt;
+    ...
+&lt;/Virtualize&gt;
+        </CodeSnippet>
 
         
 
