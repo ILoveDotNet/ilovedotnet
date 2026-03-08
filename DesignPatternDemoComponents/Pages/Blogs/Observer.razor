@@ -118,7 +118,57 @@
             Here's how we can implement the Observer pattern in our order management system:
         </p>
 
-        <GithubGistSnippet Title="Publisher Code Sample - Observer Pattern" UserId="fingers10" FileName="5c2b0969f3fdba6f4ae08d2256241354"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+//Step - 1: Define Publisher
+
+public abstract class OrderItemChangeNotifier()
+{
+    private readonly List&lt;IOrderItemChangeListener&gt; _observers = [];
+
+    public void AddObserver(IOrderItemChangeListener observer)
+    {
+        _observers.Add(observer);
+    }
+
+    public void RemoveObserver(IOrderItemChangeListener observer)
+    {
+        _observers.Remove(observer);
+    }
+
+    public void NotifyOrderItemProcessed()
+    {
+        foreach (var observer in _observers)
+        {
+            observer.ReceiveOrderItemProcessedNotification();
+        }
+    }
+}
+
+//Step -2: Implement Publisher
+
+public class OrderItemViewModel : OrderItemChangeNotifier
+{
+    public int Quantity { get; set; }
+    public decimal UnitPrice { get; set; }
+    
+    public void UpdateQuantity(int newQuantity)
+    {
+        Quantity = newQuantity;
+        NotifyOrderItemProcessed();
+    }
+    
+    public void UpdateUnitPrice(decimal newUnitPrice)
+    {
+        UnitPrice = newUnitPrice;
+        NotifyOrderItemProcessed();
+    }
+    
+    public decimal GetTotalPrice()
+    {
+        return Quantity * UnitPrice;
+    }
+}
+        </CodeSnippet>
 
         <p>
             In the above code we are adding Observer (Order) using <ContentHighlight>AddObserver</ContentHighlight> and removing Observer (Order) using 
@@ -127,7 +177,51 @@
             <ContentHighlight>abstract class</ContentHighlight> and calls NotifyOrderItemProcessed method whenever there is a change in OrderItem.
         </p>
 
-        <GithubGistSnippet Title="Listener Code Sample - Observer Pattern" UserId="fingers10" FileName="75847c1374771f5289b46d27fbd39e6d"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+//Step - 3: Define Subscriber
+
+public interface IOrderItemChangeListener
+{
+    void ReceiveOrderItemProcessedNotification();
+}
+
+//Step - 4: Implement Subscriber
+
+public class OrderViewModel : IOrderItemChangeListener
+{
+
+    private List&lt;OrderItemViewModel&gt; _orderItems = [];
+    public IReadOnlyList&lt;OrderItemViewModel&gt; OrderItems =&gt; _orderItems;
+    public decimal Total { get; private set; }
+    
+    public void AddItem()
+    {
+        var orderItem = new OrderItemViewModel 
+        {
+            Quantity = 1,
+            UnitPrice = 10
+        };
+        orderItem.AddObserver(this);
+        _orderItems.Add(orderItem);
+    }
+
+    public void RemoveItem(OrderItemViewModel item)
+    {
+        item.RemoveObserver(this);
+        _orderItems.Remove(item);
+    }
+    
+    public void CalculateTotalAmount()
+    {
+        Total = _orderItems.Sum(x =&gt; x.GetTotalPrice());
+    }
+    
+    public void ReceiveOrderItemProcessedNotification()
+    {
+        CalculateTotalAmount();
+    }
+}
+        </CodeSnippet>
 
         <p>
             In the above code <ContentHighlight>OrderViewModel</ContentHighlight> <ContentHighlight>listens</ContentHighlight> for changes in 
@@ -142,7 +236,69 @@
                 to see the observer pattern in action. 
                 The results will be displayed at the bottom of table.
             </p>
-            <GithubGistSnippet Title="Observer Pattern Demo" UserId="fingers10" FileName="f0888606f84143204529efa30270f52e"></GithubGistSnippet>
+            <CodeSnippet CssClass="language-razor">
+&lt;button type="button"
+    @@onclick="HandleAddOrderItem"&gt;
+    Add Order Item
+&lt;/button&gt;
+
+&lt;button type="button"
+    @@onclick="HandleRemoveOrderItem"&gt;
+    Remove Order Item
+&lt;/button&gt;
+&lt;table&gt;
+    &lt;thead&gt;
+        &lt;tr&gt;
+            &lt;th&gt;Quantity&lt;/th&gt;
+            &lt;th&gt;Price&lt;/th&gt;
+            &lt;th&gt;Line Amount&lt;/th&gt;
+        &lt;/tr&gt;
+    &lt;/thead&gt;
+    &lt;tbody&gt;
+        @@foreach (var index in Enumerable.Range(0, _order.OrderItems.Count))
+        {
+            &lt;tr @@key="@@index"&gt;
+                &lt;td&gt;
+                    &lt;InputNumber 
+                        ValueExpression="() =&gt; _order.OrderItems[index].Quantity"
+                        Value="_order.OrderItems[index].Quantity"
+                        ValueChanged="(int quantity) =&gt; _order.OrderItems[index].UpdateQuantity(quantity)" /&gt;
+                &lt;/td&gt;
+                &lt;td&gt;
+                    &lt;InputNumber 
+                        ValueExpression="() =&gt; _order.OrderItems[index].UnitPrice"
+                        Value="_order.OrderItems[index].UnitPrice"
+                        ValueChanged="(decimal unitPrice) =&gt; _order.OrderItems[index].UpdateUnitPrice(unitPrice)" /&gt;
+                &lt;/td&gt;
+                &lt;td&gt;
+                    @@_order.OrderItems[index].GetTotalPrice()
+                &lt;/td&gt;
+            &lt;/tr&gt;
+        }
+    &lt;/tbody&gt;
+    &lt;tfoot&gt;
+        &lt;tr&gt;
+            &lt;td colspan="3"&gt;Total&lt;/td&gt;
+            &lt;td&gt;@@_order.Total.ToString("C")&lt;/td&gt;
+        &lt;/tr&gt;
+    &lt;/tfoot&gt;
+&lt;/table&gt;
+
+@@code
+{
+    private OrderViewModel _order = new OrderViewModel();
+
+    private void HandleAddOrderItem()
+    {
+        _order.AddItem();
+    }
+
+    private void HandleRemoveOrderItem()
+    {
+        _order.RemoveItem(_order.OrderItems.Last());
+    }
+}
+            </CodeSnippet>
             <ObserverDemo></ObserverDemo>
         </DemoSnippet>
 

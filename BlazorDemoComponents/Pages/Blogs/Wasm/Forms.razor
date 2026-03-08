@@ -76,7 +76,84 @@
             To start working with EditForm, we need to create a model class that will hold the data that we want to collect.
         </p>
         
-        <GithubGistSnippet Title="EditForm With Model Demo" UserId="fingers10" FileName="148eb1d4bfbd25db7d130079f437c84a"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-razor">
+&lt;EditForm Model="@@starship" OnValidSubmit="@@HandleValidSubmit"&gt;
+    &lt;p&gt;
+        &lt;label&gt;
+            Identifier:
+            &lt;InputText @@bind-Value="starship.Identifier" /&gt;
+        &lt;/label&gt;
+    &lt;/p&gt;
+    &lt;p&gt;
+        &lt;label&gt;
+            Description (optional):
+            &lt;InputTextArea @@bind-Value="starship.Description" /&gt;
+        &lt;/label&gt;
+    &lt;/p&gt;
+    &lt;p&gt;
+        &lt;label&gt;
+            Primary Classification:
+            &lt;InputSelect @@bind-Value="starship.Classification"&gt;
+                &lt;option value=""&gt;Select classification ...&lt;/option&gt;
+                &lt;option value="Exploration"&gt;Exploration&lt;/option&gt;
+                &lt;option value="Diplomacy"&gt;Diplomacy&lt;/option&gt;
+                &lt;option value="Defense"&gt;Defense&lt;/option&gt;
+            &lt;/InputSelect&gt;
+        &lt;/label&gt;
+    &lt;/p&gt;
+    &lt;p&gt;
+        &lt;label&gt;
+            Maximum Accommodation:
+            &lt;InputNumber @@bind-Value="starship.MaximumAccommodation" /&gt;
+        &lt;/label&gt;
+    &lt;/p&gt;
+    &lt;p&gt;
+        &lt;label&gt;
+            Engineering Approval:
+            &lt;InputCheckbox @@bind-Value="starship.IsValidatedDesign" /&gt;
+        &lt;/label&gt;
+    &lt;/p&gt;
+    &lt;p&gt;
+        &lt;label&gt;
+            Production Date:
+            &lt;InputDate @@bind-Value="starship.ProductionDate" /&gt;
+        &lt;/label&gt;
+    &lt;/p&gt;
+
+    &lt;button type="submit"&gt;Submit&lt;/button&gt;
+
+    &lt;p&gt;
+        @@message
+    &lt;/p&gt;
+&lt;/EditForm&gt;
+
+@@code {
+    public class Starship
+    {
+        public string? Identifier { get; set; }
+
+        public string? Description { get; set; }
+
+        public string? Classification { get; set; }
+
+        public int MaximumAccommodation { get; set; }
+
+        public bool IsValidatedDesign { get; set; }
+
+        public DateTime ProductionDate { get; set; }
+    }
+
+    private Starship starship = new() { ProductionDate = DateTime.UtcNow };
+    private string? message = null;
+
+    private void HandleValidSubmit()
+    {
+        message = "HandleValidSubmit called";
+
+        // Process the valid form
+    }
+}
+        </CodeSnippet>
 
         <DemoSnippet Title="EditForm With Model Demo">
             <p class="[ text-black ] [ dark:text-white ]">
@@ -114,7 +191,68 @@
             </strong>
         </p>
 
-        <GithubGistSnippet Title="EditForm With EditContext Demo" UserId="fingers10" FileName="0c0820c02d890296f15a59a2265f9aff"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-razor">
+&lt;EditForm EditContext="@@editContext" OnSubmit="@@HandleSubmit"&gt;
+    &lt;p&gt;
+        &lt;label&gt;
+            Identifier:
+            &lt;InputText @@bind-Value="starship.Identifier" /&gt;
+        &lt;/label&gt;
+    &lt;/p&gt;
+
+    &lt;button type="submit"&gt;Submit&lt;/button&gt;
+
+    &lt;p&gt;
+        @@message
+    &lt;/p&gt;
+&lt;/EditForm&gt;
+
+@@code {
+    public class Starship
+    {
+        public string? Identifier { get; set; }
+
+        public string? Description { get; set; }
+
+        public string? Classification { get; set; }
+
+        public int MaximumAccommodation { get; set; }
+
+        public bool IsValidatedDesign { get; set; }
+
+        public DateTime ProductionDate { get; set; }
+    }
+
+    private Starship starship = 
+        new()
+        {
+            Identifier = "NCC-1701",
+            Classification = "Exploration",
+            MaximumAccommodation = 150,
+            IsValidatedDesign = true,
+            ProductionDate = new DateTime(2245, 4, 11)
+        };
+    private EditContext? editContext;
+    private string? message;
+
+    protected override void OnInitialized()
+    {
+        editContext = new(starship);
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (editContext != null)
+        {
+            message = "HandleSubmit called: Form is valid";
+
+            // Process the valid form
+            // await ...
+            await Task.CompletedTask;
+        }
+    }
+}
+        </CodeSnippet>
 
         <DemoSnippet Title="EditForm With EditContext Demo">
             <p class="[ text-black ] [ dark:text-white ]">

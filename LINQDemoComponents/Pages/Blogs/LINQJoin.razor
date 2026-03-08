@@ -69,7 +69,25 @@
             combine the values against other equal values in the collection
         </p>
 
-        <GithubGistSnippet Title="LINQ Join Primitive Types" UserId="fingers10" FileName="0cb3e4cbb4b39c3a218952500d99f3cc"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+List&lt;int&gt; list = new() { 1, 2, 3, 4, 5 };
+List&lt;int&gt; anotherList = new() { 4, 5, 6 };
+
+//Method Syntax
+var result = list
+             .Join(anotherList, 
+                   number =&gt; number, 
+                   anotherNumber =&gt; anotherNumber, 
+                   (number, anotherNumber) =&gt; new { number, anotherNumber ])
+             .ToList();
+                    
+//Query Syntax
+var result = (from number in list
+             join anotherNumber in anotherList 
+             on number equals anotherNumber
+             select new { number, anotherNumber })
+             .ToList();
+        </CodeSnippet>
 
         <DemoSnippet Title="LINQ Join Clause Demo">
             <p>
@@ -95,7 +113,38 @@
             that contains elements with the matching key and their associated values.
         </p>
 
-        <GithubGistSnippet Title="LINQ Join Objects with Single Field" UserId="fingers10" FileName="d861247e7fe5cc6ca48da17214a6c739"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+List&lt;Product&gt; products = GetProducts();
+List&lt;Sale&gt; sales = GetSales();
+List&lt;ProductSale&gt; result = new();
+
+//Method Syntax
+List&lt;ProductSale&gt; result = products
+                           .Join(sales, 
+                                 product =&gt; product.Id,
+                                 sale =&gt; sale.ProductId,
+                                 (product, sale) =&gt; new ProductSale
+                                 {
+                                    ProductId = product.Id,
+                                    SaleId = sale.Id,
+                                    Name = product.Name,
+                                    Price = sale.Price
+                                 })
+                           .ToList();
+                    
+//Query Syntax
+List&lt;ProductSale&gt; result = (from product in products
+                            join sale in sales 
+                            on product.Id equals sale.ProductId
+                            select new ProductSale
+                             {
+                                ProductId = product.Id,
+                                SaleId = sale.Id,
+                                Name = product.Name,
+                                Price = sale.Price
+                             }) 
+                           .ToList();
+        </CodeSnippet>
 
         <DemoSnippet Title="LINQ Join Clause with Objects Demo">
             <p>
@@ -122,7 +171,43 @@
             So for joining collections with more than one field, the key selector condition will have an <ContentHighlight>anonymous</ContentHighlight> object containing multiple fields to compare.
         </p>
 
-        <GithubGistSnippet Title="LINQ Join Objects with Multiple Fields" UserId="fingers10" FileName="f0b8cde072441f6b6aa7e67b441088a2"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+List&lt;Product&gt; products = GetProducts();
+List&lt;Sale&gt; sales = GetSales();
+List&lt;ProductSale&gt; result = new();
+
+//Method Syntax
+List&lt;ProductSale&gt; result = products
+                           .Join(sales, 
+                                 product =&gt; new { ProductId = product.Id, ProductColor = product.Color },
+                                 sale =&gt; new { ProductId = sale.ProductId, ProductColor = sale.ProductColor },
+                                 (product, sale) =&gt; new ProductSale
+                                 {
+                                    ProductId = product.Id,
+                                    SaleId = sale.Id,
+                                    Name = product.Name,
+                                    Price = sale.Price,
+                                    Color = product.Color
+                                 })
+                           .ToList();
+                    
+//Query Syntax
+List&lt;ProductSale&gt; result = (from product in products
+                            join sale in sales 
+                            on 
+                              new { ProductId = product.Id, ProductColor = product.Color } 
+                            equals 
+                              new { ProductId = sale.ProductId, ProductColor = sale.ProductColor }
+                            select new ProductSale
+                             {
+                                ProductId = product.Id,
+                                SaleId = sale.Id,
+                                Name = product.Name,
+                                Price = sale.Price,
+                                Color = product.Color
+                             }) 
+                           .ToList();
+        </CodeSnippet>
 
         <DemoSnippet Title="LINQ Join Clause with Objects Demo">
             <p>

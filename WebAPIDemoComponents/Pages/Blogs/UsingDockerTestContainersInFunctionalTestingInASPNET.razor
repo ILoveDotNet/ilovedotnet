@@ -105,7 +105,52 @@
                     Setup <ContentHighlight>SharedFixture</ContentHighlight> as shown below
                 </p>
 
-                <GithubGistSnippet Title="Shared Fixture for Test Containers in Function Test in ASP.NET" UserId="fingers10" FileName="5cfeb897d13e62889fe1614a71a1b840"></GithubGistSnippet>
+                <CodeSnippet CssClass="language-csharp">
+using API.DbContexts;
+using Microsoft.EntityFrameworkCore;
+using Testcontainers.PostgreSql;
+
+namespace FunctionalTest;
+public class SharedFixture : IAsyncLifetime
+{
+    public WeatherForecastDbContext DbContext = default!;
+    public string PostgresConnectionString =&gt; _dbContainer.GetConnectionString();
+    private readonly PostgreSqlContainer _dbContainer =
+        new PostgreSqlBuilder()
+        .WithDatabase("ILoveDotNet")
+        .WithUsername("postgres")
+        .WithPassword("postgres")
+        .Build();
+
+    public async Task InitializeAsync()
+    {
+        await _dbContainer.StartAsync();
+
+        var dbContextOptions = new DbContextOptionsBuilder&lt;WeatherForecastDbContext&gt;()
+                                .UseNpgsql(PostgresConnectionString)
+                                .Options;
+
+        DbContext = new WeatherForecastDbContext(dbContextOptions);
+
+        await DbContext.Database.MigrateAsync();
+    }
+
+    public async Task DisposeAsync()
+    {
+        if (DbContext is not null)
+        {
+            await DbContext.DisposeAsync();
+        }
+
+        if (_dbContainer is not null)
+        {
+            await _dbContainer.StopAsync();
+            await _dbContainer.DisposeAsync();
+        }
+
+    }
+}
+                </CodeSnippet>
 
                 
 
@@ -123,7 +168,33 @@
                     connection string with <ContentHighlight>Test Container Connection String</ContentHighlight> as shown below
                 </p>
                 
-                <GithubGistSnippet Title="Customer Web Application Factory with Test Containers in Function Test in ASP.NET" UserId="fingers10" FileName="d0ec7a2254614e716fca16ac67d5058f"></GithubGistSnippet>
+                <CodeSnippet CssClass="language-csharp">
+using API.DbContexts;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace FunctionalTest;
+public class CustomWebApiFactory(SharedFixture fixture) : WebApplicationFactory&lt;Program&gt;
+{
+    public SharedFixture SharedFixture =&gt; fixture;
+
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    {
+        builder.UseEnvironment("Test");
+
+        builder.ConfigureServices(services =&gt;
+        {
+            var ctx = services.SingleOrDefault(d =&gt; d.ServiceType == typeof(WeatherForecastDbContext));
+            services.Remove(ctx!);
+
+            services.AddDbContext&lt;WeatherForecastDbContext&gt;(opts =&gt;
+                opts.UseNpgsql(SharedFixture.PostgresConnectionString));
+        });
+    }
+}
+                </CodeSnippet>
                 
                 
             </li>
@@ -133,7 +204,32 @@
                     and running and our tests are running against the real database within test container.
                 </p>
                 
-                <GithubGistSnippet Title="Testing against real database in Function Test in ASP.NET" UserId="fingers10" FileName="07263ddcfb405c7ad989db4a24046689"></GithubGistSnippet>
+                <CodeSnippet CssClass="language-csharp">
+using API;
+using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
+using System.Diagnostics.CodeAnalysis;
+using System.Net;
+using Xunit.Abstractions;
+
+namespace FunctionalTest;
+[ExcludeFromCodeCoverage]
+[Collection(nameof(FunctionalTestCollection))]
+public class WeatherForecastControllerShouldTests(
+    CustomWebApiFactory factory,
+    ITestOutputHelper outputHelper) : BaseTest(factory), IClassFixture&lt;CustomWebApiFactory&gt;
+{
+    [Fact]
+    public async Task ReturnExpectedResponse_From_Database()
+    {
+        var expectedWeatherForecast = await Database.WeatherForecasts.FirstAsync();
+
+        var result = await Client.GetJsonResultAsync&lt;List&lt;WeatherForecast&gt;&gt;("/weatherforecast/fromdatabase", HttpStatusCode.OK, outputHelper);
+        result.Count.Should().Be(1);
+        result[0].Should().BeEquivalentTo(expectedWeatherForecast);
+    }
+}
+                </CodeSnippet>
 
                 
             </li>

@@ -155,7 +155,23 @@
             project's root directory and paste the provided code. 
         </p>
 
-        <GithubGistSnippet Title="NGINX Configuration File" UserId="fingers10" FileName="abadae6d9b16f0a3dd40bc7acd10265b"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-plaintext">
+events { }
+http {
+   include mime.types;
+   types {
+      application/wasm;
+    }
+  server {
+     listen 80;
+     index index.html;
+     location / {
+        root /user/share/nginx/html;
+        try_files $uri $uri/ /index.html =404;
+     }
+  }
+}
+        </CodeSnippet>
 
         <p>
             Let's break down the above code and understand in detail
@@ -217,7 +233,21 @@
             Let's create a dockerfile in the project's root directory with the following code.
         </p>
 
-        <GithubGistSnippet Title="Docker File" UserId="fingers10" FileName="473971b3a50935308531c1affa67a2f0"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-plaintext">
+FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine AS build-env
+RUN apk add nodejs
+RUN apk add npm
+WORKDIR /app
+COPY . ./
+RUN npm --prefix CommonComponents install
+RUN dotnet publish "Web/Web.csproj" -c Release -o output
+
+FROM nginx:alpine
+WORKDIR /user/share/nginx/html
+COPY --from=build-env /app/output/wwwroot .
+COPY Web/nginx.conf /etc/nginx/nginx.conf
+EXPOSE 80
+        </CodeSnippet>
 
         <p>
             Let's break down the above code and understand in detail
@@ -311,7 +341,21 @@
             Create the following <ContentHighlight>docker-compose.yml</ContentHighlight> at the root of the <ContentHighlight>Solution</ContentHighlight> folder.
         </p>
 
-        <GithubGistSnippet Title="Docker Compose File" UserId="fingers10" FileName="3406280d32baaf6a0f83730066e52036"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-yaml">
+version: '3.7'
+
+services:
+   ilovedotnet:
+    image: ilovedotnet
+    build:
+      context: .
+      dockerfile: Web/Dockerfile
+    environment:
+      - ASPNETCORE_URLS=http://*:5005
+      - ASPNETCORE_ENVIRONMENT=Development
+    ports:
+      - "8080:80"
+        </CodeSnippet>
 
         <p>
             This Docker Compose file sets up a service named <ContentHighlight>ilovedotnet</ContentHighlight> that runs a pre-built Docker image or builds an image from a Dockerfile, 

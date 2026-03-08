@@ -86,7 +86,48 @@
 
         
 
-        <GithubGistSnippet Title="Code Sample - Decorator Pattern" UserId="fingers10" FileName="6454ba113536c4b3a57261a4fd47b0ed"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+// Component
+public interface IRepository
+{
+    string ReadData();
+}
+
+// Concrete Component
+public class DatabaseRepository : IRepository
+{
+    public string ReadData()
+    {
+        return "Data From Database";
+    }
+}
+
+// Decorator
+public abstract class RepositoryDecoratorBase(IRepository repository) : IRepository
+{
+    public virtual string ReadData()
+    {
+        return repository.ReadData();
+    }
+}
+
+// Concrete Decorator
+public class CachedDatabaseRepository(IRepository repository) : RepositoryDecoratorBase(repository)
+{
+    public override string ReadData()
+    {
+        Random gen = new();
+        int prob = gen.Next(100);
+        
+        if (prob &lt; 20)
+        {
+            return "Data from Cache";
+        }
+        
+        return base.ReadData();
+    }
+}
+        </CodeSnippet>
 
         
 
@@ -110,7 +151,28 @@
                 see the demo on the screen. Click the button multiple times to see the data being read from cache or from database based on cache availability. 
                 For demo purpose, radomness is introduced to simulate the cache availability. In reality, it could be based on time.
             </p>
-            <GithubGistSnippet Title="Decorator Pattern Demo" UserId="fingers10" FileName="25d0f573f3f61ab5f41b703fff54001f"></GithubGistSnippet>
+            <CodeSnippet CssClass="language-razor">
+&lt;p&gt;Reading Data Using Decoratort : @@_result&lt;/p&gt;
+
+&lt;button type="button"
+    class="[ bg-cyan-500 ] [ text-white ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ]"
+    @@onclick="HandleDecorator"&gt;
+    Read Data via Decorator
+&lt;/button&gt;
+
+
+@@code
+{
+    private IRepository _cachedDatabaseRepository = new CachedDatabaseRepository(new DatabaseRepository());
+    private string? _result;
+
+    private void HandleDecorator()
+    {
+        _result = _cachedDatabaseRepository.ReadData();
+    }
+}
+
+            </CodeSnippet>
             <DecoratorDemo></DecoratorDemo>
         </DemoSnippet>
 

@@ -128,7 +128,30 @@
                     programmatically or using <ContentHighlight>appsettings.json</ContentHighlight>. I prefer appsettings.json as it gives more flexibility.
                 </p>
 
-                <GithubGistSnippet Title="App Settings for Serilog in ASP.NET Core" UserId="fingers10" FileName="87dc2f7fda89d1e50dd3136558e747c8"></GithubGistSnippet>
+                <CodeSnippet CssClass="language-json">
+{
+  "Serilog": {
+    "Using": [],
+    "MinimumLevel": {
+      "Default": "Warning",
+      "Override": {
+        "Microsoft": "Warning",
+        "System": "Warning"
+      }
+    }
+    "WriteTo": [
+      {
+        "Name": "File",
+        "Args": {
+          "path": "C:\\Users\\Public\\Documents\\ILoveDotNet\\APILogs_.txt",
+          "rollingInterval": "Day",
+          "shared": true
+        }
+      }
+    ]
+  }
+}
+                </CodeSnippet>
 
                 
 
@@ -141,14 +164,33 @@
                     as shown below.
                 </p>
 
-                <GithubGistSnippet Title="Use Configuration and Create logger" UserId="fingers10" FileName="0fddd7e051005002d4f67637c0d50961"></GithubGistSnippet>
+                <CodeSnippet CssClass="language-csharp">
+//Read Configuration from appSettings
+var config = new ConfigurationBuilder()
+	.AddJsonFile("appsettings.json")
+	.AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")}.json", optional: false)
+	.Build();
+
+// Create Logging Configuration
+var loggerConfiguration = new LoggerConfiguration()
+			.ReadFrom.Configuration(config)
+			.WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level}] {SourceContext}{NewLine}{Message:lj}{NewLine}{Exception}{NewLine}", theme: AnsiConsoleTheme.Code);
+
+// Use configuration to create logger
+Log.Logger = loggerConfiguration
+			.CreateLogger();
+                </CodeSnippet>
 
                 
             </li>
             <li>
                 <p>Finally <ContentHighlight>UseSerilog()</ContentHighlight> in app to replace default Logger in .NET</p>
 
-                <GithubGistSnippet Title="Use Serilog as default logger" UserId="fingers10" FileName="139e55c8b1a30e1431dbc05e9d08ed5f"></GithubGistSnippet>
+                <CodeSnippet CssClass="language-csharp">
+// Inform the ASP.NET Core app to use Serilog logger
+var builder = WebApplication.CreateBuilder(args);
+builder.Host.UseSerilog();//Uses Serilog instead of default .NET Logger
+                </CodeSnippet>
             </li>
         </ol>
 
@@ -181,7 +223,16 @@
             Update the Serilog logger configuration to enrich log events with these properties.
         </p>
 
-        <GithubGistSnippet Title="Enriching logs with additional details" UserId="fingers10" FileName="9226635583c760988c7f015922c141b8"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+//Initialize Logger
+var loggerConfiguration = new LoggerConfiguration()
+			.ReadFrom.Configuration(config)
+			.Enrich.WithMachineName() // --&gt; Add machine name to logs
+			.Enrich.WithProcessId() // --&gt; Add process id to logs
+			.Enrich.WithThreadId() // --&gt; Add thread id to logs
+			.Enrich.WithProperty("ApplicationName", "I Love .NET API") // --&gt; Add custom data to logs
+			.WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level}] {SourceContext}{NewLine}{Message:lj}{NewLine}{Exception}{NewLine}", theme: AnsiConsoleTheme.Code);
+        </CodeSnippet>
 
         <p>
             From the above code snippet, you can see that we are enriching the log events with <ContentHighlight>MachineName</ContentHighlight>, 
@@ -201,7 +252,17 @@
             User ID or Tenant ID property in log output.
         </p>
 
-        <GithubGistSnippet Title="Configuration to enrich log with scopes" UserId="fingers10" FileName="31d51c7d38e8b2633c08fde33979299d"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+//Initialize Logger
+var loggerConfiguration = new LoggerConfiguration()
+			.ReadFrom.Configuration(config)
+			.Enrich.FromLogContext() // --&gt; Added to enrich log with properties from scope
+			.Enrich.WithMachineName()
+			.Enrich.WithProcessId()
+			.Enrich.WithThreadId()
+			.Enrich.WithProperty("ApplicationName", "GallaAPI")
+			.WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level}] {SourceContext}{NewLine}{Message:lj}{NewLine}{Exception}{NewLine}", theme: AnsiConsoleTheme.Code);
+        </CodeSnippet>
 
         
 
@@ -220,7 +281,46 @@
             scope to all the log events in a request.
         </p>
 
-        <GithubGistSnippet Title="Log Scope Middleware to enrich all logs in a request" UserId="fingers10" FileName="16dfe2a2aa7951fe190a22078c28a686"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+public sealed class LogScopeMiddleware : IMiddleware
+{
+    private readonly ILogger&lt;LogScopeMiddleware&gt; _logger;
+    private readonly ITenantService _tenantService;
+
+    public LogScopeMiddleware(ILogger&lt;LogScopeMiddleware&gt; logger, ITenantService tenantService)
+    {
+        _logger = logger;
+        _tenantService = tenantService;
+    }
+
+    public async Task InvokeAsync(HttpContext context, RequestDelegate next)
+    {
+        if (context.User.Identity.IsAuthenticated)
+        {
+            using (_logger.BeginScope("Request {RequestId}, Tenant {TenantId}, User {UserId}",
+            context.TraceIdentifier, _tenantService.GetTenantId(), _tenantService.GetCurrentUser()))
+            {
+                await next(context);
+            }
+        }
+        else
+        {
+            await next(context);
+        }
+    }
+}
+
+public static class LogScopeMiddlewareExtensions
+{
+    public static IApplicationBuilder UseLogScope(this IApplicationBuilder builder)
+    {
+        return builder.UseMiddleware&lt;LogScopeMiddleware&gt;();
+    }
+}
+
+// Program.cs
+app.UseLogScope();
+        </CodeSnippet>
 
         
 

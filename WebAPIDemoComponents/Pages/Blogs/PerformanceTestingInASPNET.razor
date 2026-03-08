@@ -94,8 +94,18 @@
                             shared HttpClient</ContentHighlight> to avoid excessive resource consumption.
                     </p>
 
-                    <GithubGistSnippet Title="Define Scenario" UserId="fingers10"
-                        FileName="e840796b838e18a07b88a6fe888c908d"></GithubGistSnippet>
+                    <CodeSnippet CssClass="language-csharp">
+using NBomber.CSharp;
+
+using var httpClient = new HttpClient();
+
+var getScenario = Scenario.Create("get_weather_forecast", async context =&gt;
+{
+    var response = await httpClient.GetAsync("https://localhost:7116/weatherforecast");
+
+    return response.IsSuccessStatusCode ? Response.Ok() : Response.Fail();
+});
+                    </CodeSnippet>
                 </li>
                 <li>
                     <p>
@@ -104,8 +114,29 @@
                         seconds. Register the scenario with the NBomber runner and configure it to run.
                     </p>
 
-                    <GithubGistSnippet Title="Configure Load Generation" UserId="fingers10"
-                        FileName="dde357664daece22e970b0d5b262698b"></GithubGistSnippet>
+                    <CodeSnippet CssClass="language-csharp">
+using NBomber.CSharp;
+
+using var httpClient = new HttpClient();
+
+var getScenario = Scenario.Create("get_weather_forecast", async context =&gt;
+{
+    var response = await httpClient.GetAsync("https://localhost:7116/weatherforecast");
+
+    return response.IsSuccessStatusCode ? Response.Ok() : Response.Fail();
+})
+.WithoutWarmUp()
+.WithLoadSimulations(
+    Simulation.Inject(rate: 100,
+        interval: TimeSpan.FromSeconds(1),
+        during: TimeSpan.FromSeconds(30))
+);
+
+NBomberRunner
+    .RegisterScenarios(getScenario)
+    .WithWorkerPlugins(new HttpMetricsPlugin())
+    .Run();
+                    </CodeSnippet>
                 </li>
                 <li>
                     <p>
@@ -172,8 +203,30 @@
                 comprehensive performance testing and improved application resilience.
             </p>
 
-            <GithubGistSnippet Title="Measuring Http Metrics" UserId="fingers10"
-                FileName="39047b61d02bd4cc94d938147d18a962"></GithubGistSnippet>
+            <CodeSnippet CssClass="language-csharp">
+using NBomber.CSharp;
+using NBomber.Http;
+using NBomber.Http.CSharp;
+
+using var httpClient = new HttpClient();
+
+var getScenario = Scenario.Create("get_weather_forecast", async context =&gt;
+{
+    var request = Http.CreateRequest("GET", "https://localhost:7116/weatherforecast");
+    return await Http.Send(httpClient, request);
+})
+.WithoutWarmUp()
+.WithLoadSimulations(
+    Simulation.Inject(rate: 100,
+        interval: TimeSpan.FromSeconds(1),
+        during: TimeSpan.FromSeconds(30))
+);
+
+NBomberRunner
+    .RegisterScenarios(getScenario)
+    .WithWorkerPlugins(new HttpMetricsPlugin())
+    .Run();
+            </CodeSnippet>
 
             <figure>
                 <img src="./image/blogs/webapi/using-nbomber-for-performance-load-and-stress-testing-in-asp-net-webapi/performance-report-dashboard-with-http-metrics.png"
@@ -210,8 +263,30 @@
                         starting point to a target load over a specified duration.
                     </p>
 
-                    <GithubGistSnippet Title="Changing Load to Ramping Inject" UserId="fingers10"
-                        FileName="90fbce8672000afb78694177c2494aea"></GithubGistSnippet>
+                    <CodeSnippet CssClass="language-csharp">
+using NBomber.CSharp;
+using NBomber.Http;
+using NBomber.Http.CSharp;
+
+using var httpClient = new HttpClient();
+
+var getScenario = Scenario.Create("get_weather_forecast", async context =&gt;
+{
+    var request = Http.CreateRequest("GET", "https://localhost:7116/weatherforecast");
+    return await Http.Send(httpClient, request);
+})
+.WithoutWarmUp()
+.WithLoadSimulations(
+    Simulation.RampingInject(rate: 800,
+        interval: TimeSpan.FromSeconds(1),
+        during: TimeSpan.FromSeconds(30))
+);
+
+NBomberRunner
+    .RegisterScenarios(getScenario)
+    .WithWorkerPlugins(new HttpMetricsPlugin())
+    .Run();
+                    </CodeSnippet>
                 </li>
                 <li>
                     <p>
@@ -247,8 +322,62 @@
                         package. Finally we need to resgiter the scenarios in the test run as shown below.
                     </p>
 
-                    <GithubGistSnippet Title="Multiple Scenarios with Authentication" UserId="fingers10"
-                        FileName="76cda9f142dab56056bed630f265e9b4"></GithubGistSnippet>
+                    <CodeSnippet CssClass="language-csharp">
+using IdentityModel.Client;
+using NBomber.CSharp;
+using NBomber.Data;
+using NBomber.Data.CSharp;
+using NBomber.Http;
+using NBomber.Http.CSharp;
+
+using var httpClient = new HttpClient();
+var _globalJwt = string.Empty;
+
+IDataFeed&lt;string&gt; locations = DataFeed.Random(new[] { "India", "New York", "Paris" });
+
+var getScenario = Scenario.Create("get_weather_forecast", async context =&gt;
+{
+    var location = locations.GetNextItem(context.ScenarioInfo);
+    var request = Http.CreateRequest("GET", $"https://localhost:7116/weatherforecast?location={location}");
+    return await Http.Send(httpClient, request);
+})
+.WithoutWarmUp()
+.WithLoadSimulations(
+    Simulation.RampingInject(rate: 800,
+        interval: TimeSpan.FromSeconds(1),
+        during: TimeSpan.FromSeconds(30))
+);
+
+var getWithAuthScenario = Scenario.Create("get_weather_forecast_with_auth", async context =&gt;
+{
+    var location = locations.GetNextItem(context.ScenarioInfo);
+    var request = Http.CreateRequest("GET", $"https://localhost:7116/weatherforecast?location={location}")
+                      .WithHeader("Authorization", $"Bearer {_globalJwt}");
+    return await Http.Send(httpClient, request);
+})
+.WithInit(async context =&gt; 
+{
+    var token = await httpClient.RequestClientCredentialsTokenAsync(new ClientCredentialsTokenRequest
+    {
+        Address = "https://demo.duendesoftware.com/connect/token",
+        ClientId = "m2m",
+        ClientSecret = "secret",
+        Scope = "api",
+    });
+    _globalJwt = token.AccessToken!;
+})
+.WithoutWarmUp()
+.WithLoadSimulations(
+    Simulation.RampingInject(rate: 800,
+        interval: TimeSpan.FromSeconds(1),
+        during: TimeSpan.FromSeconds(30))
+);
+
+NBomberRunner
+    .RegisterScenarios(getScenario, getWithAuthScenario)
+    .WithWorkerPlugins(new HttpMetricsPlugin())
+    .Run();
+                    </CodeSnippet>
                 </li>
             </ol>
 
@@ -270,11 +399,43 @@
                         project. Configure the connection details using a JSON file to link to your InfluxDB instance.
                     </p>
 
-                    <GithubGistSnippet Title="Infra Configuration JSON" UserId="fingers10"
-                        FileName="5d5e1651a55b9a563fd92df6c2882f6b"></GithubGistSnippet>
+                    <CodeSnippet CssClass="language-json">
+{
+    "InfluxDBSink": {
+      "Url": "http://localhost:8086",
+      "Database": "nbomber",
+      "UserName": "",
+      "Password": "",
+      "CustomTags": [
+        {
+          "Key": "environment",
+          "Value": "linux"
+        }
+      ]
+    }
+  }
+                    </CodeSnippet>
 
-                    <GithubGistSnippet Title="Link Infra Configuration with NBomber Performance Test" UserId="fingers10"
-                        FileName="f4140cad8cf838653673013ed4ddc843"></GithubGistSnippet>
+                    <CodeSnippet CssClass="language-csharp">
+using NBomber.Sinks.InfluxDB;
+
+using var httpClient = new HttpClient();
+InfluxDBSink _influxDbSink = new();
+
+.
+.
+.
+
+NBomberRunner
+    .RegisterScenarios(getScenario, getWithAuthScenario)
+    .WithWorkerPlugins(new HttpMetricsPlugin())
+    .LoadInfraConfig("infra-config.json")
+    .WithReportingInterval(TimeSpan.FromSeconds(5))
+    .WithReportingSinks(_influxDbSink)
+    .WithTestSuite("ILoveDotNetPerformanceTest")
+    .WithTestName("Get_WeatherForecast_Requests")
+    .Run();
+                    </CodeSnippet>
                 </li>
                 <li>
                     <p>
@@ -285,8 +446,32 @@
                         Update ports if needed to avoid conflicts with other services.
                     </p>
 
-                    <GithubGistSnippet Title="Docker Compose YML" UserId="fingers10"
-                        FileName="d67234b5ab4d9817c8730ca465a63f6f"></GithubGistSnippet>
+                    <CodeSnippet CssClass="language-yaml">
+version: "3.9"
+services:
+
+  influxdb:
+    image: "influxdb:1.8.1"
+    environment:
+      INFLUXDB_DB: "\"nbomber\""
+    ports:
+      - "8086:8086"
+    volumes:
+        - 'influxdb-storage:/var/lib/influxdb'
+
+  grafana:
+    image: "grafana/grafana:8.5.2"
+    ports:
+      - "3010:3000"
+    depends_on:
+      - "influxdb"
+    volumes:
+        - 'grafana-storage:/var/lib/grafana'
+
+volumes:
+    influxdb-storage:
+    grafana-storage:
+                    </CodeSnippet>
                 </li>
                 <li>
                     <p>

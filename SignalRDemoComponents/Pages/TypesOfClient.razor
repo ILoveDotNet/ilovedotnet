@@ -75,19 +75,100 @@
 
         <h4 id="blazor-client" class="[ font-semibold text-lg ]">Blazor Client</h4>
 
-        <GithubGistSnippet Title="Creating and Configuring Blazor Client" UserId="fingers10" FileName="787fa9ec41e10559b8fe7f9079079a9b"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+public class NotificationBase : ComponentBase, IAsyncDisposable
+{
+    private readonly CancellationTokenSource _cancellationTokenSource = new();
+    private HubConnection? _hubConnection;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        _hubConnection = new HubConnectionBuilder()
+                .WithUrl("https://ilovedotnet.org/notifications", options =&gt; 
+                {
+                    //options.Transports = Microsoft.AspNetCore.Http.Connections.HttpTransportType.WebSockets;
+                    //options.SkipNegotiation = true;
+                })
+                .Build();
+                
+        _hubConnection.On&lt;string&gt;("ReceiveNewArticle", article =&gt;
+        {
+            Console.WriteLine(article.Title);
+            InvokeAsync(StateHasChanged);
+        });
+
+        await _hubConnection.StartAsync(_cancellationTokenSource.Token);
+    }
+    
+    public async ValueTask DisposeAsync()
+    {
+        if (_hubConnection is not null)
+        {
+            await _hubConnection.DisposeAsync();
+        }
+        
+        _cancellationTokenSource.Cancel();
+        _cancellationTokenSource.Dispose();
+    }
+}
+        </CodeSnippet>
 
         
 
         <h4 id="console-client" class="[ font-semibold text-lg ]">Console Client</h4>
 
-        <GithubGistSnippet Title="Creating and Configuring Console Client" UserId="fingers10" FileName="f5426199e3f4924095b92e236854dbfc"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+using var httpClient = new HttpClient();
+httpClient.BaseAddress = new Uri("https://ilovedotnet.org");
+var response = await httpClient.GetAsync("/notifications");
+var articles = await response.Content.ReadFromJsonAsync&lt;Article[]&gt;();
+
+if (articles == null)
+    return;
+
+foreach (var article in articles)
+{
+    Console.WriteLine($"{article.Title}");
+}
+
+var connection = new HubConnectionBuilder()
+    .WithUrl("https://ilovedotnet.org/notifications")
+    .Build();
+
+connection.On("ReceiveNewArticle", (Article article) =&gt; {
+    Console.WriteLine(article.Title);
+});
+
+try
+{
+    await connection.StartAsync();
+}
+catch (Exception ex)
+{
+    Console.WriteLine(ex.Message);
+}
+        </CodeSnippet>
 
         
 
         <h4 id="javascript-client" class="[ font-semibold text-lg ]">Javascript Client</h4>
 
-        <GithubGistSnippet Title="Creating and Configuring Javascript Client" UserId="fingers10" FileName="e36d1bf3064fd843692bea6db3aa48df"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-javascript">
+//import &lt;script src="~/js/signalr/dist/browser/signalr.min.js"&gt;&lt;/script&gt;
+
+var connection = new signalR.HubConnectionBuilder()
+                            .withUrl("https://ilovedotnet.org/notifications")
+                            .build();
+
+connection.on("ReceiveNewArticle", (article) =&gt; {
+    console.log(article.Title);
+});
+
+connection.start()
+          .catch((err) =&gt; {
+    return console.error(err.toString());
+});
+        </CodeSnippet>
 
         
 

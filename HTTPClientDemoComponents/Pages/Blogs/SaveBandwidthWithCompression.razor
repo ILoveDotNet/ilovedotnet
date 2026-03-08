@@ -92,7 +92,17 @@
 
         
 
-        <GithubGistSnippet Title="Decompress while Reading Data" UserId="fingers10" FileName="b4705c0f329949a53f1ac0c4cd323143"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+using var request = new HttpRequestMessage(HttpMethod.Get, "posts.json");
+
+request.Headers.AcceptEncoding.Add(new StringWithQualityHeaderValue("gzip"));
+
+using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+
+using var responseStream = await response.Content.ReadAsStreamAsync();
+
+var result = await JsonSerializer.DeserializeAsync&lt;IEnumerable&lt;PostDto&gt;&gt;(responseStream);
+        </CodeSnippet>
 
         <p>
             When you deserialize as shown above you will get an deserialization error. To successfully <ContentHighlight>deserialize</ContentHighlight> the 
@@ -103,7 +113,18 @@
 
         
 
-        <GithubGistSnippet Title="Automatic Decompression using SocketsHttpHandler" UserId="fingers10" FileName="1f14af7123bcfaf9dc61c44ba48e57ea"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+services.AddHttpClient("ILoveDotNetAPIClientWithCustomHandler", configureClient =&gt;
+{
+      configureClient.BaseAddress = new Uri("https://ilovedotnet.org");
+})
+.ConfigurePrimaryHttpMessageHandler(() =&gt;
+{
+   var handler = new SocketsHttpHandler();
+   handler.AutomaticDecompression = System.Net.DecompressionMethods.GZip;
+   return handler;
+});
+        </CodeSnippet>
 
         
 
@@ -124,7 +145,38 @@
 
         
 
-        <GithubGistSnippet Title="Compress while Sending Data" UserId="fingers10" FileName="b7396b5881efabd0af22b5eeaf08ad17"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+var clientCommand = new CreateClientCommand();
+
+using (var memoryContentStream = new MemoryStream())
+{
+  await JsonSerializer.SerializeAsync(memoryContentStream, clientCommand);
+
+  memoryContentStream.Seek(0, SeekOrigin.Begin);
+
+  using var request = new HttpRequestMessage(HttpMethod.Post, "/api/clients");
+  request.Headers.AcceptEncoding.Add(new StringWithQualityHeaderValue("gzip"));
+
+    using (var compressedMemoryContentStream = new MemoryStream())
+    {
+        using (var gzipStream = new GZipStream(compressedMemoryContentStream, CompressionMode.Compress))
+        {
+            memoryContentStream.CopyTo(gzipStream);
+            gzipStream.Flush();
+            compressedMemoryContentStream.Position = 0;
+
+            using var streamContent = new StreamContent(compressedMemoryContentStream);
+            streamContent.Headers.ContentType = new MediaTypeHeaderValue(MediaTypeNames.Application.Json);
+            streamContent.Headers.ContentEncoding.Add("gzip");
+            request.Content = streamContent;
+
+            var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+
+            response.EnsureSuccessStatusCode();
+        }
+    }
+}
+        </CodeSnippet>
 
         
 

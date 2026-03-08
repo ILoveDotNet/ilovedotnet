@@ -53,7 +53,35 @@
             <ContentHighlight>IHubContext</ContentHighlight>.
         </p>
 
-        <GithubGistSnippet Title="IHubContext and Caller" UserId="fingers10" FileName="6004fe10717dcb27a02eace5b5fc8f70"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+// Hub
+public class ILoveDotNetHub : Hub
+{
+    public override async Task OnConnectedAsync()
+    {
+        await Clients.All.SendAsync("ReceiveNewArticle", new Article());
+        await Clients.Caller.SendAsync("ConfirmNewArticle"); // Caller Accessible Here.
+    }
+}
+
+// Program.cs
+..
+builder.Services.AddSignalR();
+..
+
+var app = builder.Build();
+
+..
+app.MapHub&lt;ILoveDotNetHub&gt;("notifications");
+
+app.MapPost("article", async (string title, IArticleRepo articleRepo, IHubContext&lt;ILoveDotNetHub&gt; hubContext) =&gt;
+{
+    articleRepo.NewArticle(title);
+    await hubContext.All.SendAsync("ReceiveNewArticle", new Article(title));
+    //hubContext.Caller.SendAsync("ConfirmNewArticle"); --&gt; Caller Is Not Accessible Here.
+});
+..
+        </CodeSnippet>
 
         <p>
             <ContentHighlight>This leaves us with no possibility to send any notifications to the Caller alone</ContentHighlight>. But there's also the 

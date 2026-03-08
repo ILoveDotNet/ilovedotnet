@@ -124,7 +124,15 @@
 
         
 
-        <GithubGistSnippet Title="Reading Data As String" UserId="fingers10" FileName="ed4d890c1ba0f71dc827d15a26eb209f"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+using var request = new HttpRequestMessage(HttpMethod.Get, "posts.json");
+
+var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+
+var responseString = await response.Content.ReadAsStringAsync();
+
+var result = JsonSerializer.Deserialize&lt;IEnumerable&lt;PostDto&gt;&gt;(responseString);
+        </CodeSnippet>
 
         <DemoSnippet Title="Readind Data As String Demo">
             <p>
@@ -149,7 +157,15 @@
 
         
 
-        <GithubGistSnippet Title="Reading Data As Stream" UserId="fingers10" FileName="a84d2871eddf4fdbbe7a225479eacec7"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+using var request = new HttpRequestMessage(HttpMethod.Get, "posts.json");
+
+using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+
+using var responseStream = await response.Content.ReadAsStreamAsync();
+
+var result = await JsonSerializer.DeserializeAsync&lt;IEnumerable&lt;PostDto&gt;&gt;(responseStream);
+        </CodeSnippet>
 
         <DemoSnippet Title="Readind Data As Stream Demo">
             <p>
@@ -174,7 +190,17 @@
 
         
 
-        <GithubGistSnippet Title="Sending Data As String" UserId="fingers10" FileName="f5839dae552d332e57adb5e0de0a21c0"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+var clientCommand = new CreateClientCommand();
+var serializedClientForCreation = JsonSerializer.Serialize(clientCommand);
+using var request = new HttpRequestMessage(HttpMethod.Post, "/api/clients")
+{
+  Content = new StringContent(serializedClientForCreation, Encoding.Unicode, MediaTypeNames.Application.Json)
+};
+var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+
+response.EnsureSuccessStatusCode();
+        </CodeSnippet>
 
         <p>
             Instead of <ContentHighlight>serializing to a JSON string</ContentHighlight>, we can utilize a <ContentHighlight>stream to bypass this step</ContentHighlight>, 
@@ -189,7 +215,25 @@
 
         
 
-        <GithubGistSnippet Title="Sending Data As Stream" UserId="fingers10" FileName="defede0107e0df282b7e3b419857783e"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+var clientCommand = new CreateClientCommand();
+
+using (var memoryContentStream = new MemoryStream())
+{
+  await JsonSerializer.SerializeAsync(memoryContentStream, clientCommand);
+
+  memoryContentStream.Seek(0, SeekOrigin.Begin);
+
+  using var request = new HttpRequestMessage(HttpMethod.Post, "/api/clients");
+  using var streamContent = new StreamContent(memoryContentStream);
+  streamContent.Headers.ContentType = new MediaTypeHeaderValue(MediaTypeNames.Application.Json);
+  request.Content = streamContent;
+
+  var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+
+  response.EnsureSuccessStatusCode();
+}
+        </CodeSnippet>
 
         
 

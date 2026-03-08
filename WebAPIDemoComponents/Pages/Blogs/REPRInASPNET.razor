@@ -145,7 +145,24 @@
             The next step is to apply the necessary attributes and inject needed dependencies to the controller. The following code snippet show how it looks like.
         </p>
 
-        <GithubGistSnippet Title="Request Endpoint Response (REPR) Pattern" UserId="fingers10" FileName="2e953f96c27c92c77d2b754e919d4b6e"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+﻿namespace ILoveDotNet.Article;
+
+[Produces(MediaTypeNames.Application.Json)]
+[Consumes(MediaTypeNames.Application.Json)]
+[ApiController]
+[Authorize(Policy = Policies.MustBeAdminUser)]
+[ApiVersion("1.0")]
+public class Publish : ControllerBase
+{
+    [HttpPut("api/articles/publish", Name = "Publish Article")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public ActionResult HandleAsync(PublishArticleCommand request)
+    {
+        return NoContent();
+    }
+}
+        </CodeSnippet>
 
         
 
@@ -168,7 +185,73 @@
                     All we need to do is to Install <ContentHighlight>NetArchTest.Rules</ContentHighlight> NuGet package and write the following test.
                 </p>
 
-                <GithubGistSnippet Title="Fitness Test for (REPR) Pattern" UserId="fingers10" FileName="faf88d3573e934270b69f7c9f4c7cdd2"></GithubGistSnippet>
+                <CodeSnippet CssClass="language-csharp">
+using Microsoft.AspNetCore.Mvc;
+using NetArchTest.Rules;
+using System.Diagnostics.CodeAnalysis;
+using Xunit.Abstractions;
+
+namespace ILoveDotNet.FitnessTest;
+
+public class ControllerTests(ITestOutputHelper output)
+{
+    [Fact]
+    public void Should_Have_Only_One_Handler_Inside_Them()
+    {
+        var policy = Policy
+                .Define("Controller Policies",
+                    "Enforces all Endpoints to have only one handlers inside them.")
+                .For(Types.InAssembly(typeof(Program).Assembly))
+                .Add(types =&gt; types
+                    .That()
+		    .AreClasses()
+		    .And()
+		    .Inherit(typeof(ControllerBase))
+		    .Should()
+		    .MeetCustomRule(new OnlyOneHandleRule()),
+                "Use One Handler Per Endpoint",
+                "Controller endpoints should not have more than one handler.");
+
+        policy.Evaluate().Report(output);
+    }
+
+    [Fact]
+    public void Should_Have_Only_One_ActionResult_Inside_Them()
+    {
+        var policy = Policy
+            .Define("Controller Policies",
+                "Enforces all Endpoints to have only one Action Result inside them.")
+            .For(Types.InAssembly(typeof(Program).Assembly))
+            .Add(types =&gt; types
+                    .That()
+		    .AreClasses()
+   		    .And()
+		    .Inherit(typeof(ControllerBase))
+		    .Should()
+		    .MeetCustomRule(new OnlyOneActionResultRule()),
+                "Use One Action Result Per Endpoint",
+                "Controller endpoints should not have more than one Action Result.");
+        
+        policy.Evaluate().Report(output);
+    }
+}
+
+public class OnlyOneHandleRule : ICustomRule
+{
+    public bool MeetsRule(TypeDefinition type)
+    {
+        return type.Methods.Count(x =&gt; x.Name.Equals("HandleAsync")).Equals(1);
+    }
+}
+
+public class OnlyOneActionResultRule : ICustomRule
+{
+    public bool MeetsRule(TypeDefinition type)
+    {
+        return type.Methods.Count(x =&gt; x.IsPublic &amp;&amp; !x.IsConstructor).Equals(1);
+    }
+}
+                </CodeSnippet>
 
                 
             </li>
@@ -193,7 +276,14 @@
                     we need to add the below code snippet to endpoints.
                 </p>
 
-                <GithubGistSnippet Title="Using Tags in SwaggerOperation to Group Endpoints" UserId="fingers10" FileName="d1374769c6a33d65fd171b0796c2a090"></GithubGistSnippet>
+                <CodeSnippet CssClass="language-csharp">
+[SwaggerOperation(
+    Summary = "I Love DotNet Endpoint Summary",
+    Description = "I Love DotNet Endpoint Description",
+    OperationId = "I Love DotNet Endpoint OperationId",
+    Tags = new[] { "ILoveDotNetEndpoints" })
+]
+                </CodeSnippet>
 
                 
 

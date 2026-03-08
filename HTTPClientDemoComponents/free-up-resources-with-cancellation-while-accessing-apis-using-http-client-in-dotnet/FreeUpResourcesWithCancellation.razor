@@ -72,7 +72,21 @@
                 scenario, you can set the timeout to 30 seconds or 1 minute or you can cancel when user presses cancel button.
             </p>
 
-            <GithubGistSnippet Title="Support Cancellation while Reading Data" UserId="fingers10" FileName="88f09bb2b546363ede9d901183d8d533"></GithubGistSnippet>
+            <CodeSnippet CssClass="language-csharp">
+var cancellationTokenSource = new CancellationTokenSource();
+
+cancellationTokenSource.CancelAfter(10);
+
+await Task.Delay(5);
+
+using var request = new HttpRequestMessage(HttpMethod.Get, "posts.json");
+
+using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationTokenSource.Token);
+
+var responseStream = await response.Content.ReadAsStreamAsync(cancellationTokenSource.Token);
+
+var result = await JsonSerializer.DeserializeAsync&lt;IEnumerable&lt;PostDto&gt;&gt;(responseStream, cancellationTokenSource.Token);
+            </CodeSnippet>
 
             <DemoSnippet Title="Support Cancellation while Reading Data">
                 <p>

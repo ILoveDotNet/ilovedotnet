@@ -52,7 +52,15 @@
             with <ContentHighlight>[Authorize]</ContentHighlight> attribute.
         </p>
 
-        <GithubGistSnippet Title="Configure Authentication in Web API" UserId="fingers10" FileName="c2990ce7edadccdcd05b4c239a07710b"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+builder.Services.AddControllers();
+
+builder.Services.AddAuthentication().AddJwtBearer();
+
+var app = builder.Build();
+
+app.UseAuthorization();
+        </CodeSnippet>
 
         <p>
             Now we need to decorate the endpoints with <ContentHighlight>[Authorize]</ContentHighlight> attribute as shown below.
@@ -95,7 +103,25 @@
                     Let's start with Empty <ContentHighlight>AuthClaimsProvider</ContentHighlight>.
                 </p>
 
-                <GithubGistSnippet Title="Empty Auth Claims Provider to be used in Functional Test Authentication" UserId="fingers10" FileName="df72e5ae9e3dd1b1c6bb70e3286d27d4"></GithubGistSnippet>
+                <CodeSnippet CssClass="language-csharp">
+using System.Security.Claims;
+
+namespace FunctionalTest;
+public class AuthClaimsProvider
+{
+    public IList&lt;Claim&gt; Claims { get; }
+
+    public AuthClaimsProvider(IList&lt;Claim&gt; claims)
+    {
+        Claims = claims;
+    }
+
+    public AuthClaimsProvider()
+    {
+        Claims = [];
+    }
+}
+                </CodeSnippet>
 
             </li>
             <li>
@@ -103,7 +129,40 @@
                     Next, we need to add <ContentHighlight>AuthenticationHandler</ContentHighlight>.
                 </p>
 
-                <GithubGistSnippet Title="Configure Test Auth Handler for ASP.NET WEB API Functional Test" UserId="fingers10" FileName="d85385b1a82bf0337ce8fc04661114c2"></GithubGistSnippet>
+                <CodeSnippet CssClass="language-csharp">
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using System.Security.Claims;
+using System.Text.Encodings.Web;
+
+namespace FunctionalTest;
+public class TestAuthHandler(
+    IOptionsMonitor&lt;AuthenticationSchemeOptions&gt; options,
+    ILoggerFactory logger,
+    UrlEncoder encoder,
+    AuthClaimsProvider claimsProvider) : AuthenticationHandler&lt;AuthenticationSchemeOptions&gt;(options, logger, encoder)
+{
+    public const string SchemeName = "Test";
+    private readonly IList&lt;Claim&gt; _claims = claimsProvider.Claims;
+
+    protected override Task&lt;AuthenticateResult&gt; HandleAuthenticateAsync()
+    {
+        var identity = new ClaimsIdentity(_claims, SchemeName);
+        var principal = new ClaimsPrincipal(identity);
+        var ticket = new AuthenticationTicket(principal, SchemeName);
+
+        // If needed to add anything in HttpContext to be available inside app, then we can do it below.
+        // the below example uses claims to set value. But it can be anything. 
+        // Just Inject _httpContextAccessor in this class and use.
+        // _httpContextAccessor.HttpContext.Items[key] = principal.Claims.First(claim =&gt; claim.Type == key)?.Value;
+
+        var result = AuthenticateResult.Success(ticket);
+
+        return Task.FromResult(result);
+    }
+}
+                </CodeSnippet>
 
             </li>
             <li>
@@ -111,7 +170,32 @@
                     When application is started in test host add new authentication scheme (let's call it <ContentHighlight>Test</ContentHighlight>).
                 </p>
 
-                <GithubGistSnippet Title="Register Test Authentication Scheme in Custom Web Application Factory" UserId="fingers10" FileName="259d4ae672e4e28a882561f0f5e380bc"></GithubGistSnippet>
+                <CodeSnippet CssClass="language-csharp">
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace FunctionalTest;
+public class CustomWebApiFactory(SharedFixture fixture) : WebApplicationFactory&lt;Program&gt;
+{
+    public SharedFixture SharedFixture =&gt; fixture;
+
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    {
+        builder.UseEnvironment("Test");
+        
+        builder.ConfigureTestServices(services =&gt;
+        {
+            services.AddAuthentication(TestAuthHandler.SchemeName)
+                .AddScheme&lt;AuthenticationSchemeOptions, TestAuthHandler&gt;(TestAuthHandler.SchemeName, _ =&gt; { });
+
+            services.AddScoped(_ =&gt; new AuthClaimsProvider());
+        });
+    }
+}
+                </CodeSnippet>
 
             </li>
             <li>
@@ -151,7 +235,45 @@
                     <ContentHighlight>Admin</ContentHighlight>.
                 </p>
 
-                <GithubGistSnippet Title="Configuring Claims in ASP.NET WEB API Functional Test" UserId="fingers10" FileName="56e8df43e30282657e6ba7dde2c7a44e"></GithubGistSnippet>
+                <CodeSnippet CssClass="language-csharp">
+using System.Security.Claims;
+
+namespace FunctionalTest;
+public class AuthClaimsProvider
+{
+    public IList&lt;Claim&gt; Claims { get; }
+
+    public AuthClaimsProvider(IList&lt;Claim&gt; claims)
+    {
+        Claims = claims;
+    }
+
+    public AuthClaimsProvider()
+    {
+        Claims = [];
+    }
+
+    public static AuthClaimsProvider WithGuestClaims()
+    {
+        var provider = new AuthClaimsProvider();
+        provider.Claims.Add(new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()));
+        provider.Claims.Add(new Claim(ClaimTypes.Name, "Guest User"));
+        provider.Claims.Add(new Claim(ClaimTypes.Role, "Guest"));
+
+        return provider;
+    }
+
+    public static AuthClaimsProvider WithAdminClaims()
+    {
+        var provider = new AuthClaimsProvider();
+        provider.Claims.Add(new Claim(ClaimTypes.NameIdentifier, Guid.Empty.ToString()));
+        provider.Claims.Add(new Claim(ClaimTypes.Name, "Admin User"));
+        provider.Claims.Add(new Claim(ClaimTypes.Role, "Admin"));
+
+        return provider;
+    }
+}
+                </CodeSnippet>
 
             </li>
             <li>
@@ -160,7 +282,30 @@
                     This method will be used in tests to create <ContentHighlight>HttpClient</ContentHighlight> with required claims. The code for that is shown below.
                 </p>
 
-                <GithubGistSnippet Title="Extension Method to create HttpClient with Claims" UserId="fingers10" FileName="65bfda2357027941469410a5f2edb4a6"></GithubGistSnippet>
+                <CodeSnippet CssClass="language-csharp">
+public static class WebApplicationFactoryExtensions 
+{
+	public static HttpClient CreateClientWithClaim(this WebApplicationFactory&lt;Program&gt; factory, AuthClaimsProvider claims)
+	{
+		var client = factory.WithWebHostBuilder(builder =&gt;
+		{
+			builder.ConfigureTestServices(services =&gt;
+			{
+				var descriptor = services.SingleOrDefault(d =&gt; d.ServiceType == typeof(AuthClaimsProvider));
+
+				if (descriptor != null)
+				{
+					services.Remove(descriptor);
+					services.AddScoped(_ =&gt; claims);
+				}
+			});
+		})
+		.CreateClient();
+		
+		return client;
+	}
+}
+                </CodeSnippet>
 
             </li>
         </ol>
@@ -175,7 +320,34 @@
             endpoint. For this we need to use the extension method to create <ContentHighlight>HttpClient</ContentHighlight> with <ContentHighlight>Admin</ContentHighlight> claims.
         </p>
 
-        <GithubGistSnippet Title="Running WEB API Functional Test with Admin Role" UserId="fingers10" FileName="83bc66386f47212e2a0b13f805055e0c"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+using API;
+using API.Services;
+using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
+using System.Diagnostics.CodeAnalysis;
+using System.Net;
+using Xunit.Abstractions;
+
+namespace FunctionalTest;
+[ExcludeFromCodeCoverage]
+[Collection(nameof(FunctionalTestCollection))]
+public class WeatherForecastControllerShouldTests(
+    CustomWebApiFactory factory,
+    ITestOutputHelper outputHelper) : BaseTest(factory), IClassFixture&lt;CustomWebApiFactory&gt;
+{
+    [Fact]
+    public async Task ReturnExpectedResponse_From_Database()
+    {
+        var expectedWeatherForecast = await Database.WeatherForecasts.FirstAsync();
+
+        using var client = Factory.CreateClientWithClaim(AuthClaimsProvider.WithAdminClaims());
+        var result = await client.GetJsonResultAsync&lt;List&lt;WeatherForecast&gt;&gt;("/weatherforecast/fromdatabase", HttpStatusCode.OK, outputHelper);
+        result.Count.Should().Be(1);
+        result[0].Should().BeEquivalentTo(expectedWeatherForecast);
+    }
+}
+        </CodeSnippet>
 
         <p>
             Thats it. We are done with setup. Now the tests will run in the following flow.

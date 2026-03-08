@@ -66,7 +66,20 @@
             compare the values against other value in the collection
         </p>
 
-        <GithubGistSnippet Title="LINQ Union Primitive Types" UserId="fingers10" FileName="64ec823de86c45525c38a0d7ce69cb7e"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+List&lt;int&gt; list = new() { 1, 2, 3, 4, 5 };
+List&lt;int&gt; anotherList = new() { 4, 5, 6 };
+
+//Method Syntax
+List&lt;int&gt; result = list
+                   .Union(anotherList)
+                   .ToList();
+                    
+//Query Syntax
+List&lt;int&gt; result = (from number in list select number)
+                   .Union(anotherList)
+                   .ToList();
+        </CodeSnippet>
 
         <DemoSnippet Title="LINQ Union Clause Demo">
             <p>
@@ -100,9 +113,40 @@
             <li>Also override <ContentHighlight>GetHashCode()</ContentHighlight> method and return unique value for every single object.</li>
         </ol>
 
-        <GithubGistSnippet Title="LINQ Union Product Comparer" UserId="fingers10" FileName="a609d75a536cbe7b985cd73eceeaa66f"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+public class ProductComparer : EqualityComparer&lt;Product&gt;
+{
+    public override bool Equals(Product? product, Product? anotherProduct)
+    {
+        return (product?.Id == anotherProduct?.Id &amp;&amp;
+                product?.Name == anotherProduct?.Name &amp;&amp;
+                product?.Price == anotherProduct?.Price &amp;&amp;
+                product?.Color == anotherProduct?.Color &amp;&amp;
+                product?.Size == anotherProduct?.Size);
+    }
 
-        <GithubGistSnippet Title="LINQ Union With Product Comparer" UserId="fingers10" FileName="dc8ee787c8462981b533deee6ea062bf"></GithubGistSnippet>
+    public override int GetHashCode([DisallowNull] Product product)
+    {
+        return $"{product.Id}{product.Name}{product.Price}{product.Color}{product.Size}".GetHashCode();
+    }
+}
+        </CodeSnippet>
+
+        <CodeSnippet CssClass="language-csharp">
+List&lt;Product&gt; products = GetProducts();
+List&lt;Product&gt; anotherProducts = GetProducts();
+ProductComparer productComparer = new();
+
+//Method Syntax
+List&lt;Product&gt; result = products
+                       .Union(anotherProducts, productComparer)
+                       .ToList();
+                    
+//Query Syntax
+List&lt;Product&gt; result = (from product in products select product)
+                       .Union(anotherProducts, productComparer)
+                       .ToList();
+        </CodeSnippet>
 
         <DemoSnippet Title="LINQ Union Clause with Comparer Demo">
             <p>
@@ -129,7 +173,20 @@
             simplification that we don't need to use a comparer class. We can use <ContentHighlight>Key Expression</ContentHighlight> to combine items.
         </p>
 
-        <GithubGistSnippet Title="LINQ Union By Object Types" UserId="fingers10" FileName="d6b694e9e6529a4652e79ad8bd2419d0"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+List&lt;Product&gt; products = GetProducts();
+List&lt;Product&gt; anotherProducts = GetProducts();
+
+//Method Syntax
+List&lt;Product&gt; result = products
+                       .UnionBy(anotherProducts, product =&gt; product.Id)
+                       .ToList();
+                    
+//Query Syntax
+List&lt;Product&gt; result = (from product in products select product)
+                       .UnionBy(anotherProducts, product =&gt; product.Id)
+                       .ToList();
+        </CodeSnippet>
 
         <DemoSnippet Title="LINQ Union By Clause Demo">
             <p>

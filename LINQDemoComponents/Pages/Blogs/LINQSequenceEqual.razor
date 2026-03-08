@@ -68,7 +68,18 @@
             compare the values against other value in the collection
         </p>
 
-        <GithubGistSnippet Title="LINQ SequenceEqual Primitive Types" UserId="fingers10" FileName="61c769b2cc14509b34637a4acc088f2a"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+List&lt;int&gt; list = new() { 1, 2, 3, 4, 5 };
+List&lt;int&gt; anotherList = new() { 1, 2, 3, 4, 5 };
+
+//Method Syntax
+bool result = list
+              .SequenceEqual(anotherList);
+                    
+//Query Syntax
+bool result = (from number in list select number)
+              .SequenceEqual(anotherList);
+        </CodeSnippet>
 
         <DemoSnippet Title="LINQ SequenceEqual Clause Demo">
             <p>
@@ -93,7 +104,21 @@
             Sequence Equal checks for reference equality of two objects for <ContentHighlight>object</ContentHighlight> data types.
         </p>
 
-        <GithubGistSnippet Title="LINQ Sequence Equal Objects" UserId="fingers10" FileName="2d00b00132628463fc1138957a5d1ccb"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+List&lt;Product&gt; products = GetProducts();
+List&lt;Product&gt; anotherProducts = GetProducts();
+
+//Point to same reference to make SequenceEqual True
+//products = anotherProducts;
+
+//Method Syntax
+bool result = products
+              .SequenceEqual(anotherProducts);
+                    
+//Query Syntax
+bool result = (from product in products select product)
+              .SequenceEqual(anotherProducts);
+        </CodeSnippet>
 
         <DemoSnippet Title="LINQ SequenceEqual Clause Objects Demo">
             <p>
@@ -128,9 +153,38 @@
             <li>Also override <ContentHighlight>GetHashCode()</ContentHighlight> method and return unique value for every single object.</li>
         </ol>
 
-        <GithubGistSnippet Title="LINQ Sequence Equal Product Comparer" UserId="fingers10" FileName="24b9d73992162315dcf8481e4d636d3c"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+public class ProductComparer : EqualityComparer&lt;Product&gt;
+{
+    public override bool Equals(Product? product, Product? anotherProduct)
+    {
+        return (product?.Id == anotherProduct?.Id &amp;&amp;
+                product?.Name == anotherProduct?.Name &amp;&amp;
+                product?.Price == anotherProduct?.Price &amp;&amp;
+                product?.Color == anotherProduct?.Color &amp;&amp;
+                product?.Size == anotherProduct?.Size);
+    }
 
-        <GithubGistSnippet Title="LINQ Sequence Equal With Product Comparer" UserId="fingers10" FileName="71176dc3397e34cc85d5386ea913b185"></GithubGistSnippet>
+    public override int GetHashCode([DisallowNull] Product product)
+    {
+        return $"{product.Id}{product.Name}{product.Price}{product.Color}{product.Size}".GetHashCode();
+    }
+}
+        </CodeSnippet>
+
+        <CodeSnippet CssClass="language-csharp">
+List&lt;Product&gt; products = GetProducts();
+List&lt;Product&gt; anotherProducts = GetProducts();
+ProductComparer productComparer = new();
+
+//Method Syntax
+bool result = products
+              .SequenceEqual(anotherProducts, productComparer);
+                    
+//Query Syntax
+bool result = (from product in products select product)
+              .SequenceEqual(anotherProducts, productComparer);
+        </CodeSnippet>
 
         <DemoSnippet Title="LINQ SequenceEqual Clause with Comparer Demo">
             <p>

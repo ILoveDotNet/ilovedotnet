@@ -64,7 +64,38 @@
             JSON gets turned into binary. So, not the smoothest ride for audio and video.
         </p>
 
-        <GithubGistSnippet Title="SignalR Streaming" UserId="fingers10" FileName="e1f3ba4262e6fc779816c9a98c5ea75b"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+// Server
+public class AsyncEnumerableHub : Hub
+{
+    public async IAsyncEnumerable&lt;int&gt; Counter(
+        CountInfo countInfo,
+        [EnumeratorCancellation]
+        CancellationToken cancellationToken)
+    {
+        for (var i = 0; i &lt; countInfo.CountUntil; i++)
+        {
+            // Check the cancellation token regularly so that the server will stop
+            // producing items if the client disconnects.
+            cancellationToken.ThrowIfCancellationRequested();
+
+            yield return i;
+
+            // Use the cancellationToken in other APIs that accept cancellation
+            // tokens so the cancellation can flow down to them.
+            await Task.Delay(countInfo.DelayMilliSeconds, cancellationToken);
+        }
+    }
+}
+
+// Client
+var cts = new CancellationTokenSource();
+var stream = connection.StreamAsync&lt;int&gt;("Counter", new CountInfo { CountUntil = 10, DelayMilliSeconds = 500 }, cts.Token);
+await foreach (var count in stream)
+{
+   Console.WriteLine(count);
+}
+        </CodeSnippet>
 
         
 
@@ -77,7 +108,32 @@
             authentication. Here is the example for JWT authentication.
         </p>
 
-        <GithubGistSnippet Title="SignalR Authentication and Authorization" UserId="fingers10" FileName="94e766fdabbe112709b2ce6198c1f798"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+//Server
+[Authorize]
+public class ILoveDotNetHub : Hub
+{
+    public override async Task OnConnectedAsync()
+    {
+        // Accessing the claims
+        var claims = Context.User.Claims;
+    }
+}
+
+//Client
+new HubConnectionBuilder()
+     .WithUrl($"{Configuration.GetValue&lt;string&gt;("ApiBaseAddress")}notifications",
+     options =&gt;
+     {
+         options.AccessTokenProvider = async () =&gt;
+         {
+             var accessTokenResult = await TokenProvider.RequestAccessToken();
+             accessTokenResult.TryGetToken(out var token);
+             return token!.Value;
+         };
+     })
+     .Build();
+        </CodeSnippet>
 
         <p>
             <ContentHighlight>Authorization</ContentHighlight> doesn't work any differently with SignalR than it does with any other ASP.NET Core application. You 

@@ -140,7 +140,31 @@
 
         
 
-        <GithubGistSnippet Title="Creating and Configuring Hub" UserId="fingers10" FileName="4863a515168267bda32851cccaaae452"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+// Hub
+public class ILoveDotNetHub : Hub
+{
+    public override async Task OnConnectedAsync()
+    {
+        await Clients.All.SendAsync("ReceiveNewArticle", new Article());
+        
+        // await Clients.Caller.SendAsync("ReceiveNewArticle", new Article());
+        
+        // await Clients.Group("ILoveDotNetSubscribers").SendAsync("ReceiveNewArticle", new Article());
+    }
+}
+
+// Program.cs
+..
+builder.Services.AddSignalR();
+..
+
+var app = builder.Build();
+
+..
+app.MapHub&lt;ILoveDotNetHub&gt;("notifications");
+..
+        </CodeSnippet>
 
         
 
@@ -203,7 +227,43 @@
 
         
 
-        <GithubGistSnippet Title="Creating and Configuring Web Client" UserId="fingers10" FileName="787fa9ec41e10559b8fe7f9079079a9b"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+public class NotificationBase : ComponentBase, IAsyncDisposable
+{
+    private readonly CancellationTokenSource _cancellationTokenSource = new();
+    private HubConnection? _hubConnection;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        _hubConnection = new HubConnectionBuilder()
+                .WithUrl("https://ilovedotnet.org/notifications", options =&gt; 
+                {
+                    //options.Transports = Microsoft.AspNetCore.Http.Connections.HttpTransportType.WebSockets;
+                    //options.SkipNegotiation = true;
+                })
+                .Build();
+                
+        _hubConnection.On&lt;string&gt;("ReceiveNewArticle", article =&gt;
+        {
+            Console.WriteLine(article.Title);
+            InvokeAsync(StateHasChanged);
+        });
+
+        await _hubConnection.StartAsync(_cancellationTokenSource.Token);
+    }
+    
+    public async ValueTask DisposeAsync()
+    {
+        if (_hubConnection is not null)
+        {
+            await _hubConnection.DisposeAsync();
+        }
+        
+        _cancellationTokenSource.Cancel();
+        _cancellationTokenSource.Dispose();
+    }
+}
+        </CodeSnippet>
 
         
 

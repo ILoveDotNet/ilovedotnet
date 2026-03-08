@@ -75,7 +75,17 @@
             assigns the length of the product name to another property within the product object.
         </p>
 
-        <GithubGistSnippet Title="LINQ ForEach" UserId="fingers10" FileName="b432000c4c9e5df9df54062ad5ba9b78"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+IEnumerable&lt;Product&gt; products = GetProducts();
+
+//Method Syntax
+products.ForEach(product =&gt; product.TotalStock = product.Price * product.Quantity);
+
+//Query Syntax
+(from product in products
+ let tmp = product.TotalStock = product.Price * product.Quantity
+ select product);
+        </CodeSnippet>
 
         <DemoSnippet Title="LINQ ForEach Demo">
             <p>
@@ -103,7 +113,20 @@
             sales in there.
         </p>
 
-        <GithubGistSnippet Title="LINQ For Each with Sub Query" UserId="fingers10" FileName="062feb76e06e0ee1d0edb7c6acdf3e88"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+List&lt;Product&gt; products = GetProducts();
+List&lt;Sale&gt; sales = GetSales();
+
+//Method Syntax
+products.ForEach(product =&gt; product.TotalSale 
+         = sales.Where(sale =&gt; sale.ProductId == product.Id).Sum(sale =&gt; product.Price * sale.Quantity));
+
+//Query Syntax
+(from product in products
+ let tmp = product.TotalSale 
+         = sales.Where(sale =&gt; sale.ProductId == product.Id).Sum(sale =&gt; product.Price * sale.Quantity)
+ select product);
+        </CodeSnippet>
 
         <DemoSnippet Title="LINQ ForEach Sub Query">
             <p>
@@ -134,7 +157,25 @@
             which we can filter using the Where method to only include those products with a TotalSales greater than 0. Finally, we convert the resulting collection to a list and return it.
         </p>
 
-        <GithubGistSnippet Title="LINQ For Each with Custom Method" UserId="fingers10" FileName="f4afb25100bfb0189e4a0355d0f9300b"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+List&lt;Product&gt; products = GetProducts();
+List&lt;Sale&gt; sales = GetSales();
+
+//Method Syntax
+products.ForEach(product =&gt; product.TotalSale = CalculateTotalSalesForProduct(sales, product));
+products = products.Where(product =&gt; product.TotalSale &gt; 0).ToList();
+
+//Query Syntax
+(from product in products
+ let tmp = product.TotalSale = CalculateTotalSalesForProduct(sales, product)
+ select product);
+ products = products.Where(product =&gt; product.TotalSale &gt; 0).ToList();
+ 
+ decimal CalculateTotalSalesForProduct(IEnumerable&lt;Sale&gt; sales, Product product)
+ {
+     return sales.Where(sale =&gt; sale.ProductId == product.Id).Sum(sale =&gt; product.Price * sale.Quantity);
+ }
+        </CodeSnippet>
 
         <DemoSnippet Title="LINQ ForEach Custome Method">
             <p>

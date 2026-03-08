@@ -73,7 +73,90 @@
 
         
 
-        <GithubGistSnippet Title="Code Sample - Builder Pattern" UserId="fingers10" FileName="03ddad799365260406df72253ccfd6b2"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+// Builder Interface
+public interface ICarBuilder
+{
+    void BuildEngine();
+    void BuildFrame();
+}
+
+// Concrete Builders
+public class BMWBuilder : ICarBuilder
+{
+    private Car _car;
+
+    public BMWBuilder()
+    {
+        _car = new Car("BMW");
+    }
+
+    public void BuildEngine()
+    {
+        _car.AddPart("High-performance BMW Engine");
+    }
+
+    public void BuildFrame()
+    {
+        _car.AddPart("Sturdy BMW Frame");
+    }
+}
+
+public class MiniBuilder : ICarBuilder
+{
+    private Car _car;
+
+    public MiniBuilder()
+    {
+        _car = new Car("Mini");
+    }
+
+    public void BuildEngine()
+    {
+        _car.AddPart("Efficient Mini Engine");
+    }
+
+    public void BuildFrame()
+    {
+        _car.AddPart("Compact Mini Frame");
+    }
+}
+
+// Product
+public class Car
+{
+    private string _type;
+    private List&lt;string&gt; _parts = new List&lt;string&gt;();
+
+    public Car(string type)
+    {
+        _type = type;
+    }
+
+    public void AddPart(string part)
+    {
+        _parts.Add(part);
+    }
+
+    public override string ToString()
+    {
+        return $"{_type} - Parts: {string.Join(", ", _parts)}";
+    }
+}
+
+// Director
+public class Garage
+{
+    private ICarBuilder _builder;
+
+    public void Construct(ICarBuilder builder)
+    {
+        _builder = builder;
+        _builder.BuildEngine();
+        _builder.BuildFrame();
+    }
+}
+        </CodeSnippet>
 
         
 
@@ -111,7 +194,66 @@
                 Let's try <ContentHighlight>Builder</ContentHighlight> Demo, Click on the Build Mini Card and Build BMW Car to see the builder pattern in action. 
                 The results will be displayed next to the buttons after building the respective cars.
             </p>
-            <GithubGistSnippet Title="Builder Pattern Demo" UserId="fingers10" FileName="498cf9fd77e2d478b5e2b8716379efd8"></GithubGistSnippet>
+            <CodeSnippet CssClass="language-razor">
+&lt;p&gt;Mini Car : @@_miniCar?.ToString()&lt;/p&gt;
+
+&lt;button type="button"
+    @@onclick="HandleMiniBuilder"&gt;
+    Build Mini Car
+&lt;/button&gt;
+
+&lt;button type="button"
+    @@onclick="ResetMiniCar"&gt;
+    Reset
+&lt;/button&gt;
+
+&lt;p&gt;BMW Car : @@_bmwCar?.ToString()&lt;/p&gt;
+
+&lt;button type="button"
+    @@onclick="HandleBMWBuilder"&gt;
+    Build BMW Car
+&lt;/button&gt;
+
+&lt;button type="button"
+    @@onclick="ResetBMWCar"&gt;
+    Reset
+&lt;/button&gt;
+
+@@code {
+    private Car? _bmwCar;
+    private Car? _miniCar;
+
+    private void HandleBMWBuilder()
+    {
+        var garage = new Garage();
+        var bmwBuilder = new BMWBuilder();
+        garage.Construct(bmwBuilder);
+        _bmwCar = bmwBuilder.GetCar();
+        StateHasChanged();
+    }
+
+    private void ResetMiniCar()
+    {
+        _miniCar = null;
+        StateHasChanged();
+    }
+
+    private void HandleMiniBuilder()
+    {
+        var garage = new Garage();
+        var miniBuilder = new MiniBuilder();
+        garage.Construct(miniBuilder);
+        _miniCar = miniBuilder.GetCar();
+        StateHasChanged();
+    }
+
+    private void ResetBMWCar()
+    {
+        _bmwCar = null;
+        StateHasChanged();
+    }
+}
+            </CodeSnippet>
             <BuilderDemo></BuilderDemo>
         </DemoSnippet>
 

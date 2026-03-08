@@ -91,7 +91,52 @@
             we use the Factory Method pattern to <ContentHighlight>abstract the creation process</ContentHighlight>.
         </p>
 
-        <GithubGistSnippet Title="Factory Pattern Code Sample" UserId="fingers10" FileName="8703439c3594229d0a66613fcff3ceec"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+// Product
+public abstract class DiscountService
+{
+    public abstract decimal DiscountPercentage { get; }
+}
+
+// Concrete Product 1
+public class CountryDiscountService(string country) : DiscountService
+{
+    private readonly string _country = country;
+
+    public override decimal DiscountPercentage =&gt;
+        _country == "India" ? 0.20m : 0.10m;
+}
+
+// Concrete Product 2
+public class CodeDiscountService(string code) : DiscountService
+{
+    public override decimal DiscountPercentage =&gt; 0.15m;
+}
+
+// Creator
+public abstract class DiscountFactory
+{
+    public abstract DiscountService CreateDiscountService();
+}
+
+// Concrete Creator 1
+public class CountryDiscountFactory(string country) : DiscountFactory
+{
+    public override DiscountService CreateDiscountService()
+    {
+        return new CountryDiscountService(country);
+    }
+}
+
+// Concrete Creator 2
+public class CodeDiscountFactory(string code) : DiscountFactory
+{
+    public override DiscountService CreateDiscountService()
+    {
+        return new CodeDiscountService(code);
+    }
+}
+        </CodeSnippet>
 
         
 
@@ -101,7 +146,39 @@
                 button and <ContentHighlight>Create Code Discount Service</ContentHighlight> button to see the factory pattern in action. 
                 The results will be displayed at the bottom.
             </p>
-            <GithubGistSnippet Title="Factory Pattern Demo" UserId="fingers10" FileName="02ff16026b10d8b9c7054477989da20a"></GithubGistSnippet>
+            <CodeSnippet CssClass="language-razor">
+&lt;button type="button"
+    @@onclick="HandleCountryDiscountService"&gt;
+    Create Country Discount Service
+&lt;/button&gt;
+
+&lt;button type="button"
+    @@onclick="HandleCodeDiscountService"&gt;
+    Create Code Discount Service
+&lt;/button&gt;
+
+&lt;p&gt;
+    Total Amount: @@_totalAmount
+&lt;/p&gt;
+
+@@code
+{
+    private decimal _totalAmount;
+    private void HandleCountryDiscountService()
+    {
+        var countryDiscountFactory = new CountryDiscountFactory("India");
+        var shoppingCart = new ShoppingCart(countryDiscountFactory);
+        _totalAmount = shoppingCart.CalculateTotal();
+    }
+
+    private void HandleCodeDiscountService()
+    {
+        var codeDiscountFactory = new CodeDiscountFactory("INDIA15");
+        var shoppingCart = new ShoppingCart(codeDiscountFactory);
+        _totalAmount = shoppingCart.CalculateTotal();
+    }
+}
+            </CodeSnippet>
             <FactoryDemo></FactoryDemo>
         </DemoSnippet>
 

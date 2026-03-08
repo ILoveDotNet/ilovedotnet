@@ -41,18 +41,39 @@
                 <li>Create a new standalone Blazor WebAssembly project.</li>
                 <li>
                     <p>Add a <ContentHighlight>Test.c</ContentHighlight> file to the project.</p>
-                    <GithubGistSnippet Title="Simple C Test file" UserId="fingers10" FileName="e985fd30a4e3fc5b8257f4adc46229c2"></GithubGistSnippet>
+                    <CodeSnippet CssClass="language-c">
+int fact(int n)
+{
+    if (n == 0) return 1;
+    return n * fact(n - 1);
+}
+                    </CodeSnippet>
                 </li>
                 <li>
                     <p>Add a <ContentHighlight>NativeFileReference</ContentHighlight> for <ContentHighlight>Test.c</ContentHighlight> in the app's project file.</p>
-                    <GithubGistSnippet Title="NativeFileReference for Test.c" UserId="fingers10" FileName="81ed7c3569c182dbf97741750ebc0352"></GithubGistSnippet>
+                    <CodeSnippet CssClass="language-xml">
+&lt;ItemGroup&gt;
+  &lt;NativeFileReference Include="..\BlazorDemoComponents\using-c-c++-native-dependencies-in-blazor-wasm\Test.c" /&gt;
+&lt;/ItemGroup&gt;
+                    </CodeSnippet>
                 </li>
                 <li>
                     <p>
                         In a Razor component, add a <ContentHighlight>DllImportAttribute</ContentHighlight> for the <ContentHighlight>fact</ContentHighlight> 
                         function in the generated Test library and call the fact method from .NET code in the component.
                     </p>
-                    <GithubGistSnippet Title="Calling C function from C#" UserId="fingers10" FileName="7a59adc3627d81a328c85112f08d212c"></GithubGistSnippet>
+                    <CodeSnippet CssClass="language-razor">
+@@using System.Runtime.InteropServices
+
+&lt;p&gt;
+    @@@@fact(3) result: @@fact(3)
+&lt;/p&gt;
+
+@@code {
+    [DllImport("Test")]
+    static extern int fact(int n);
+}
+                    </CodeSnippet>
                 </li>
                 <li>
                     When you build the app with the .NET WebAssembly build tools installed, the <ContentHighlight>native C code is compiled and linked into 
@@ -71,7 +92,58 @@
                 <ContentHighlight>Skia Sharp</ContentHighlight> library in Blazor WebAssembly.
             </p>
 
-            <GithubGistSnippet Title="Drawing a .NET logo using Skia Sharp in Blazor WASM" UserId="fingers10" FileName="a012df0c0406749b02e666734d7f9257"></GithubGistSnippet>
+            <CodeSnippet CssClass="language-razor">
+@@using SkiaSharp
+@@using SkiaSharp.Views.Blazor
+
+&lt;SKCanvasView OnPaintSurface="OnPaintSurface" Width="100" Height="100" /&gt;
+
+@@code {
+    private void OnPaintSurface(SKPaintSurfaceEventArgs e)
+    {
+        var canvas = e.Surface.Canvas;
+        var info = e.Info;
+
+        // Clear the canvas with a transparent color
+        canvas.Clear(SKColors.Transparent);
+
+        // Draw the background (square with #512bd4 color)
+        using (var backgroundPaint = new SKPaint
+        {
+            Color = SKColor.Parse("#512bd4"),
+            Style = SKPaintStyle.Fill
+        })
+        {
+            canvas.DrawRect(new SKRect(0, 0, info.Width, info.Height), backgroundPaint);
+        }
+
+        // Draw the .NET text using SKFont and SKPaint
+        using (var font = new SKFont(SKTypeface.Default, info.Width * 0.2f)) // Font size relative to canvas size
+        using (var textPaint = new SKPaint
+        {
+            Color = SKColors.White,
+            IsAntialias = true
+        })
+        {
+            var text = ".NET";
+            var bounds = new SKRect();
+
+            // Measure text bounds using Span&lt;char&gt;
+            font.MeasureText(
+                text.AsSpan(),
+                out bounds,
+                textPaint);
+
+            // Calculate text position (centered)
+            var x = info.Width / 2 - bounds.MidX;
+            var y = info.Height / 2 - bounds.MidY;
+
+            // Draw the text (with correct parameter order)
+            canvas.DrawText(text, x, y, font, textPaint);
+        }
+    }
+}
+            </CodeSnippet>
 
             <ol>
                 <li>Install the <ContentHighlight>SkiaSharp.Views.Blazor</ContentHighlight> NuGet package in your Blazor application.</li>

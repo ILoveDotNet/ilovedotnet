@@ -90,7 +90,77 @@
             </li>
         </ol>
 
-        <GithubGistSnippet Title="State Pattern Code Sample" UserId="fingers10" FileName="42d600ad99e64fc65e1077063df91663"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+// State base class
+public abstract class BankAccountState(BankAccount account)
+{
+    protected BankAccount _account = account;
+
+    public abstract void Deposit(decimal amount);
+    public abstract void Withdraw(decimal amount);
+}
+
+// Regular state class
+public class RegularState(BankAccount account) : BankAccountState(account)
+{
+    public override void Deposit(decimal amount)
+    {
+        _account.Balance += amount;
+        Console.WriteLine("Deposited money in Regular State.");
+    }
+
+    public override void Withdraw(decimal amount)
+    {
+        _account.Balance -= amount;
+        if (_account.Balance &lt; 0)
+            _account.State = new OverdrawnState(_account);
+        Console.WriteLine("Withdrew money in Regular State.");
+    }
+
+    override public string ToString()
+    {
+        return "Regular State";
+    }
+}
+
+// Overdrawn state class
+public class OverdrawnState(BankAccount account) : BankAccountState(account)
+{
+    public override void Deposit(decimal amount)
+    {
+        _account.Balance += amount;
+        if (_account.Balance &gt;= 0)
+            _account.State = new RegularState(_account);
+        Console.WriteLine("Deposited money in Overdrawn State.");
+    }
+
+    public override void Withdraw(decimal amount)
+    {
+        Console.WriteLine("Cannot withdraw in Overdrawn State.");
+    }
+
+    override public string ToString()
+    {
+        return "Overdrawn State";
+    }
+}
+
+// Context class
+public class BankAccount
+{
+    public decimal Balance { get; set; }
+    public BankAccountState State { get; set; }
+
+    public BankAccount()
+    {
+        Balance = 200;
+        State = new RegularState(this);
+    }
+
+    public void Deposit(decimal amount) =&gt; State.Deposit(amount);
+    public void Withdraw(decimal amount) =&gt; State.Withdraw(amount);
+}
+        </CodeSnippet>
 
         
 
@@ -100,7 +170,53 @@
                 button and <ContentHighlight>Withdraw</ContentHighlight> button to see the state pattern in action. 
                 The results will be displayed at the bottom.
             </p>
-            <GithubGistSnippet Title="State Pattern Demo" UserId="fingers10" FileName="4a34a7643e0bdf2388e30d7d1f18f3ca"></GithubGistSnippet>
+            <CodeSnippet CssClass="language-razor">
+&lt;button type="button"
+    @@onclick="HandleDeposit"&gt;
+    Deposit
+&lt;/button&gt;
+
+&lt;button type="button"
+    @@onclick="HandleWithdraw"&gt;
+    Withdraw
+&lt;/button&gt;
+
+&lt;table&gt;
+    &lt;thead&gt;
+        &lt;tr&gt;
+            &lt;th&gt;State&lt;/th&gt;
+            &lt;th&gt;Balance&lt;/th&gt;
+        &lt;/tr&gt;
+    &lt;/thead&gt;
+    &lt;tbody&gt;
+        @@foreach (var accountState in _accountStates)
+        {
+            &lt;tr&gt;
+                &lt;td&gt;@@accountState.Item1&lt;/td&gt;
+                &lt;td&gt;@@accountState.Item2&lt;/td&gt;
+            &lt;/tr&gt;
+        }
+    &lt;/tbody&gt;
+&lt;/table&gt;
+
+@@code
+{
+    private List&lt;(string,string)&gt; _accountStates = new();
+    private BankAccount _account = new();
+
+    private void HandleDeposit()
+    {
+        _account.Deposit(100);
+        _accountStates.Add((_account.State.ToString()!, _account.Balance.ToString()));
+    }
+
+    private void HandleWithdraw()
+    {
+        _account.Withdraw(100);
+        _accountStates.Add((_account.State.ToString()!, _account.Balance.ToString()));
+    }
+}
+            </CodeSnippet>
             <StateDemo></StateDemo>
         </DemoSnippet>
 

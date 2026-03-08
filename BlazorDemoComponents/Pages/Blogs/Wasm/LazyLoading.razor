@@ -82,7 +82,17 @@
 
         
 
-        <GithubGistSnippet Title="Blazor WASM Lazy Loading Project File Configuration" UserId="fingers10" FileName="9c029a47dc00c262c76da049ee534d91"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-xml">
+&lt;ItemGroup&gt;
+  &lt;ProjectReference Include="..\BlazorDemoComponents\BlazorDemoComponents.csproj" /&gt;
+  &lt;ProjectReference Include="..\BaseComponents\BaseComponents.csproj" /&gt;
+&lt;/ItemGroup&gt;
+
+&lt;ItemGroup&gt;
+  &lt;BlazorWebAssemblyLazyLoad Include="BlazorDemoComponents.wasm" /&gt;
+  &lt;BlazorWebAssemblyLazyLoad Include="BaseComponents.wasm" /&gt;
+&lt;/ItemGroup&gt;
+        </CodeSnippet>
 
         <p>
             This will make Blazor framework to prevent the assemblies to be loaded at app launch thus improves the performance.
@@ -100,7 +110,36 @@
             <li>Now you can conditionally <ContentHighlight>lazy load asssemblies</ContentHighlight> based on route using <ContentHighlight CssClasses="[ break-all ]">await AssemblyLoader.LoadAssembliesAsync(new[] { "Components.wasm" });</ContentHighlight></li>
         </ol>
 
-        <GithubGistSnippet Title="Blazor WASM Lazy Loading Project File Configuration" UserId="fingers10" FileName="f021dd591d91d06dfd47009a801e7587"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-razor">
+@@using Microsoft.AspNetCore.Components.WebAssembly.Services
+@@inject LazyAssemblyLoader AssemblyLoader
+
+&lt;Router AppAssembly="@@typeof(Program).Assembly" OnNavigateAsync="@@OnNavigateAsync"&gt;
+  ...
+&lt;/Router&gt;
+
+@@code {
+    private async Task OnNavigateAsync(NavigationContext args)
+    {
+       try
+       {
+          if (args.Path.Contains("blogs", StringComparison.OrdinalIgnoreCase))
+          {
+              await AssemblyLoader.LoadAssembliesAsync(new[] { "BaseComponents.wasm" });
+          }
+
+          if (args.Path.Contains("blazor", StringComparison.OrdinalIgnoreCase))
+          {
+              await AssemblyLoader.LoadAssembliesAsync(new[] { "BlazorDemoComponents.wasm" });
+          }
+       }
+       catch (Exception ex)
+       {
+           // Log exception
+       }
+    }
+}
+        </CodeSnippet>
 
         
 

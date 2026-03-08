@@ -116,7 +116,25 @@
             Here's an example of testing the type of ActionResult returned from the <ContentHighlight>GetBlogs</ContentHighlight> action:
         </p>
 
-        <GithubGistSnippet Title="WebAPI Controller Action Result Test" UserId="fingers10" FileName="3a1c376a43c881519026e49d3746ed57"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+[Fact]
+public void GetBlogs_GetAction_MustReturnOkObjectResult()
+{
+    // Arrange
+    var blogsServiceMock = new Mock&lt;IBlogsService&gt;();
+    blogsServiceMock.Setup(e =&gt; e.FetchBlogsAsync())
+        .ReturnsAsync(new List&lt;Blog&gt;());
+
+    var controller = new BlogsController(blogsServiceMock.Object, null);
+
+    // Act
+    var result = controller.GetBlogs();
+
+    // Assert
+    var actionResult = Assert.IsType&lt;ActionResult&lt;IEnumerable&lt;BlogDto&gt;&gt;&gt;(result);
+    Assert.IsType&lt;OkObjectResult&gt;(actionResult.Result);
+}
+        </CodeSnippet>
 
         
 
@@ -133,7 +151,25 @@
             <ContentHighlight>IEnumerable&lt;BlogDto&gt;</ContentHighlight>:
         </p>
 
-        <GithubGistSnippet Title="WebAPI Controller Model Type Test" UserId="fingers10" FileName="e156d954fc0d4ecabb203376ef7baf95"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+[Fact]
+public void GetBlogs_GetAction_MustReturnIEnumerableOfBlogDtoAsModelType()
+{
+    // Arrange
+    var blogsServiceMock = new Mock&lt;IBlogsService&gt;();
+    blogsServiceMock.Setup(e =&gt; e.FetchBlogsAsync())
+        .ReturnsAsync(new List&lt;Blog&gt;());
+		
+    var controller = new BlogsController(blogsServiceMock.Object, null);
+
+    // Act
+    var result = controller.GetBlogs();
+
+    // Assert
+    var actionResult = Assert.IsType&lt;ActionResult&lt;IEnumerable&lt;BlogDto&gt;&gt;&gt;(result);
+    Assert.IsAssignableFrom&lt;IEnumerable&lt;BlogDto&gt;&gt;(((OkObjectResult)actionResult.Result).Value);
+}
+        </CodeSnippet>
 
         
 
@@ -153,7 +189,25 @@
             <ContentHighlight>IEnumerable&lt;BlogDto&gt;</ContentHighlight> and <ContentHighlight>count</ContentHighlight> it.
         </p>
 
-        <GithubGistSnippet Title="WebAPI Controller Model Content Test" UserId="fingers10" FileName="d8e356cfc53e09b42795171df4bbc7cb"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+[Fact]
+public void GetBlogs_GetActionMustReturnNumberOfInputtedBlogs()
+{
+    // Arrange
+    var blogsServiceMock = new Mock&lt;IBlogsService&gt;();
+    blogsServiceMock.Setup(e =&gt; e.FetchBlogsAsync())
+        .ReturnsAsync(new List&lt;Blog&gt;() { new Blog { Name = "I Love DotNet Blog" } });
+		
+    var controller = new BlogsController(blogsServiceMock.Object, null);
+
+    // Act
+    var result = controller.GetBlogs();
+
+    // Assert
+    var actionResult = Assert.IsType&lt;ActionResult&lt;IEnumerable&lt;BlogDto&gt;&gt;&gt;(result);
+    Assert.Equal(1, ((IEnumerable&lt;BlogDto&gt;)((OkActionResult)actionResult).Value).Count());
+}
+        </CodeSnippet>
 
         
 
@@ -173,7 +227,27 @@
             Let's update our test to incorporate these improvements:
         </p>
 
-        <GithubGistSnippet Title="WebAPI Controller Complete Test" UserId="fingers10" FileName="f6e6ed14a179930de5b95529db97538b"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+[Fact]
+public void GetBlogs_GetAction_MustReturnOkObjectResult()
+{
+    // Arrange
+    var blogsServiceMock = new Mock&lt;IBlogsService&gt;();
+    blogsServiceMock.Setup(e =&gt; e.FetchBlogsAsync())
+        .ReturnsAsync(new List&lt;Blog&gt;() { new Blog { Name = "I Love DotNet Blog" } });
+
+    var controller = new BlogsController(blogsServiceMock.Object, null);
+
+    // Act
+    var result = controller.GetBlogs();
+
+    // Assert
+    var actionResult = Assert.IsType&lt;ActionResult&lt;IEnumerable&lt;BlogDto&gt;&gt;&gt;(result);
+    var okObjectResult = Assert.IsType&lt;OkObjectResult&gt;(actionResult.Result);
+    var dtos = Assert.IsAssignableFrom&lt;IEnumerable&lt;BlogDto&gt;&gt;(okObjectResult.Value);
+    Assert.Equal(1, dtos.Count());
+}
+        </CodeSnippet>
 
         
 

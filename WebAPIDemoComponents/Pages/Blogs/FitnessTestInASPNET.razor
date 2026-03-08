@@ -90,15 +90,300 @@
                 <NavLink href="blogs/request-endpoint-response-repr-pattern-in-asp-net-webapi" Match="NavLinkMatch.All">Request Endpoint Response (REPR) pattern in ASP.NET WEB API</NavLink>.
             </p>
 
-            <GithubGistSnippet Title="Fitness Test to Enforce REPR Pattern in Endpoints" UserId="fingers10" FileName="faf88d3573e934270b69f7c9f4c7cdd2"></GithubGistSnippet>
+            <CodeSnippet CssClass="language-csharp">
+using Microsoft.AspNetCore.Mvc;
+using NetArchTest.Rules;
+using System.Diagnostics.CodeAnalysis;
+using Xunit.Abstractions;
 
-            <GithubGistSnippet Title="Fitness Test to Enforce Clean Architecture" UserId="fingers10" FileName="a780a3e663c3e5d8580d36ec21971b5f"></GithubGistSnippet>
+namespace ILoveDotNet.FitnessTest;
 
-            <GithubGistSnippet Title="Fitness Test to Enforce rules for Commands and Queries" UserId="fingers10" FileName="07ef2e828f0e79aedc857b9911cf2683"></GithubGistSnippet>
+public class ControllerTests(ITestOutputHelper output)
+{
+    [Fact]
+    public void Should_Have_Only_One_Handler_Inside_Them()
+    {
+        var policy = Policy
+                .Define("Controller Policies",
+                    "Enforces all Endpoints to have only one handlers inside them.")
+                .For(Types.InAssembly(typeof(Program).Assembly))
+                .Add(types =&gt; types
+                    .That()
+		    .AreClasses()
+		    .And()
+		    .Inherit(typeof(ControllerBase))
+		    .Should()
+		    .MeetCustomRule(new OnlyOneHandleRule()),
+                "Use One Handler Per Endpoint",
+                "Controller endpoints should not have more than one handler.");
 
-            <GithubGistSnippet Title="Fitness Test to Enforce Encapsulation in Domain Entities" UserId="fingers10" FileName="6f28c80744eb81b27ff1a09c7d4a0b74"></GithubGistSnippet>
+        policy.Evaluate().Report(output);
+    }
 
-            <GithubGistSnippet Title="Fitness Test to Avoid Empty Public Constructor in Domain Entities" UserId="fingers10" FileName="ae876ddec604fc717c3c9fa4b8ed1cbb"></GithubGistSnippet>
+    [Fact]
+    public void Should_Have_Only_One_ActionResult_Inside_Them()
+    {
+        var policy = Policy
+            .Define("Controller Policies",
+                "Enforces all Endpoints to have only one Action Result inside them.")
+            .For(Types.InAssembly(typeof(Program).Assembly))
+            .Add(types =&gt; types
+                    .That()
+		    .AreClasses()
+   		    .And()
+		    .Inherit(typeof(ControllerBase))
+		    .Should()
+		    .MeetCustomRule(new OnlyOneActionResultRule()),
+                "Use One Action Result Per Endpoint",
+                "Controller endpoints should not have more than one Action Result.");
+        
+        policy.Evaluate().Report(output);
+    }
+}
+
+public class OnlyOneHandleRule : ICustomRule
+{
+    public bool MeetsRule(TypeDefinition type)
+    {
+        return type.Methods.Count(x =&gt; x.Name.Equals("HandleAsync")).Equals(1);
+    }
+}
+
+public class OnlyOneActionResultRule : ICustomRule
+{
+    public bool MeetsRule(TypeDefinition type)
+    {
+        return type.Methods.Count(x =&gt; x.IsPublic &amp;&amp; !x.IsConstructor).Equals(1);
+    }
+}
+            </CodeSnippet>
+
+            <CodeSnippet CssClass="language-csharp">
+using Application;
+using Domain.Entity;
+using Infrastructure;
+using NetArchTest.Rules;
+using Xunit.Abstractions;
+
+namespace ILoveDotNet.FitnessTest;
+
+public class CleanArchitectureTests(ITestOutputHelper output)
+{
+    [Fact]
+    public void Domain_Should_Not_Have_Any_Dependencies()
+    {
+        var policy = Policy
+            .Define("Clean Architecture Policies",
+                "Enforces Domain Project should not have dependency on Infrastructure and Application Project.")
+            .For(Types.InAssembly(typeof(BaseEntity).Assembly))
+            .Add(types =&gt; types
+                    .ShouldNot()
+		    .HaveDependencyOnAny("Application", "Infrastructure"),
+                "Remove Application and Infrastructure Project references from Domain Project",
+                "Domain Project should not have dependency on Application Project and Infrastructure Project.");
+        
+        policy.Evaluate().Report(output);
+    }
+
+    [Fact]
+    public void Application_Should_Not_Have_Dependency_On_Infrastructure()
+    {
+        var policy = Policy
+            .Define("Clean Architecture Policies",
+                "Enforces Application Project should not have dependency on Infrastructure Project.")
+            .For(Types.InAssembly(typeof(ApplicationServiceRegistration).Assembly))
+            .Add(types =&gt; types
+                    .ShouldNot()
+		    .HaveDependencyOn("Infrastructure"),
+                "Remove Infrastructure Project reference from Application Project",
+                "Application Project should not have dependency on Infrastructure Project");
+        
+        policy.Evaluate().Report(output);
+    }
+
+    [Fact]
+    public void Infrastructure_Should_Depend_On_Domain()
+    {
+        var policy = Policy
+            .Define("Clean Architecture Policies",
+                "Enforces Infrastructure Project should have dependency on Domain Project.")
+            .For(Types.InAssembly(typeof(InfrastructureServiceRegistration).Assembly))
+            .Add(types =&gt; types
+                    .That()
+		    .HaveNameEndingWith("Repository")
+		    .Should()
+		    .HaveDependencyOn("Domain"),
+                "Add Domain Project reference to Infrastructure Project",
+                "Infrastructure Project should have dependency on Domain Project");
+        
+        policy.Evaluate().Report(output);
+    }
+}
+            </CodeSnippet>
+
+            <CodeSnippet CssClass="language-csharp">
+using Application;
+using MediatR;
+using NetArchTest.Rules;
+using Xunit.Abstractions;
+
+namespace ILoveDotNet.FitnessTest;
+
+public class CommandQueryTests(ITestOutputHelper output)
+{
+    [Fact]
+    public void Should_Have_Request_To_Be_Sealed()
+    {
+        var policy = Policy
+            .Define("Command Query Policies",
+                "Enforces all Request to be sealed.")
+            .For(Types.InAssembly(typeof(ApplicationServiceRegistration).Assembly))
+            .Add(types =&gt; types
+                    .That()
+		    .AreClasses()
+		    .And()
+		    .ImplementInterface(typeof(IRequest&lt;&gt;))
+		    .Should()
+		    .BeSealed(),
+                "Seal all Requests",
+                "Command Query Request should be sealed.");
+        
+        policy.Evaluate().Report(output);
+    }
+
+    [Fact]
+    public void Should_Have_Request_Handler_To_Be_Sealed()
+    {
+        var policy = Policy
+            .Define("Command Query Policies",
+                "Enforces all Request Handlers to be sealed.")
+            .For(Types.InAssembly(typeof(ApplicationServiceRegistration).Assembly))
+            .Add(types =&gt; types
+                    .That()
+		    .AreClasses()
+		    .And()
+		    .ImplementInterface(typeof(IRequestHandler&lt;,&gt;))
+		    .Should()
+		    .BeSealed(),
+                "Seal all Request Handlers",
+                "Command Query Request Handlers should be sealed.");
+        
+        policy.Evaluate().Report(output);
+    }
+
+    [Fact]
+    public void Handlers_Must_End_With_Handler()
+    {
+        var policy = Policy
+            .Define("Command Query Policies",
+                "Enforces all Request Handlers to have proper naming convention.")
+            .For(Types.InAssembly(typeof(ApplicationServiceRegistration).Assembly))
+            .Add(types =&gt; types
+                    .That()
+		    .ImplementInterface(typeof(IRequestHandler&lt;,&gt;))
+		    .Should()
+		    .HaveNameEndingWith("Handler"),
+                "All Request Handlers name should end with Handler",
+                "Command Query Request Handlers name should end with Handler.");
+        
+        policy.Evaluate().Report(output);
+    }
+}
+            </CodeSnippet>
+
+            <CodeSnippet CssClass="language-csharp">
+using Domain.Entity;
+using NetArchTest.Rules;
+using System.Diagnostics.CodeAnalysis;
+using Xunit.Abstractions;
+
+namespace ILoveDotNet.FitnessTest;
+
+public class DomainTests(ITestOutputHelper output)
+{
+    [Fact]
+    public void All_Entities_Should_Be_Encapsulated()
+    {
+    	var policy = Policy
+           .Define("Domain Policies",
+                "Enforces all members in Domain Entites to be encapsulated with private setters or init only setters.")
+            .For(Types.InAssembly(typeof(BaseEntity).Assembly))
+            .Add(types =&gt; types
+                    .That()
+                    .AreClasses()
+		    .And()
+		    .Inherit(typeof(BaseEntity))
+		    .Should()
+                    .MeetCustomRule(new EncapsulationRule()),
+                "Use proper encapsulation",
+                "Properties in Classes should only have private or init only setters.");
+        
+        policy.Evaluate().Report(output);
+    }
+}  
+
+public class EncapsulationRule : ICustomRule
+{
+    public bool MeetsRule(TypeDefinition type)
+    {
+        return TypeShouldNotHavePublicSetters(type) &amp;&amp; TypeShouldNotHavePublicSetters(type.BaseType?.Resolve());
+    }
+
+    private static bool TypeShouldNotHavePublicSetters(TypeDefinition? type)
+    {
+        return type?.Properties
+    		   .All(x =&gt; x.SetMethod is null // For IReadOnlyList
+		   || !x.SetMethod.IsPublic // Allow Private and Protected
+		   || x.SetMethod.ReturnType.FullName.Contains("IsExternalInit")) // For C# 9 init
+		   ?? false;
+    }
+}
+            </CodeSnippet>
+
+            <CodeSnippet CssClass="language-csharp">
+using FitnessTest.Rules;
+using Domain.Entity;
+using NetArchTest.Rules;
+using System.Diagnostics.CodeAnalysis;
+using Xunit.Abstractions;
+using NetArchTest.Rules.Policies;
+using FitnessTest.Utilities;
+
+namespace FitnessTest;
+
+[ExcludeFromCodeCoverage]
+public class DomainTests(ITestOutputHelper output)
+{
+  [Fact]
+  public void All_Entities_Should_Not_Have_Parameterless_Public_Constructor()
+  {
+    var policy = Policy
+            .Define("Domain Policies",
+                "Enforces all Entities should not have parameterless public constructor.")
+            .For(Types.InAssembly(typeof(BaseEntity).Assembly))
+            .Add(types =&gt; types
+                    .That()
+                    .AreClasses()
+		    .And()
+                    .Inherit(typeof(BaseEntity))
+                    .Should()
+                    .MeetCustomRule(new NoParameterlessPublicConstructorRule()),
+                "Remove empty public constructor from all domain entites",
+                "Domain Entity Classes should not have empty public constructors.");
+        
+    policy.Evaluate().Report(output);
+  }
+}
+
+public class NoParameterlessPublicConstructorRule : ICustomRule
+{
+    public bool MeetsRule(TypeDefinition type)
+    {
+	var result = type.GetConstructors().Any(x =&gt; x.IsPublic &amp;&amp; !x.HasParameters);		
+	return !result;
+    }
+}
+            </CodeSnippet>
 
             <p>
                 The above code snippets demonstrate how you can enforce architectural rules using NetArchTest. By defining rules that align with your architectural 
@@ -112,7 +397,51 @@
                 below policy extension to report and write failures to Test Output Logs.
             </p>
 
-            <GithubGistSnippet Title="Policy Extension to report and write failures to Test Output Logs" UserId="fingers10" FileName="157c9bfbf8594745e8de9d2fb6debc38"></GithubGistSnippet>
+            <CodeSnippet CssClass="language-csharp">
+using System.Diagnostics.CodeAnalysis;
+using FluentAssertions;
+using FluentAssertions.Execution;
+using NetArchTest.Rules.Policies;
+using Xunit.Abstractions;
+
+namespace ILoveDotNet.FitnessTest;
+
+[ExcludeFromCodeCoverage]
+public static class PolicyExtensions
+{
+    public static void Report(this PolicyResults results, ITestOutputHelper output)
+    {
+        if (results.HasViolations)
+        {
+            output.WriteLine($"Policy violations found for: {results.Name}");
+
+            foreach (var rule in results.Results)
+            {
+                if (rule.IsSuccessful)
+                {
+                    continue;
+                }
+                output.WriteLine("-----------------------------------------------------------");
+                output.WriteLine($"Rule failed: {rule.Name}");
+
+                foreach (var type in rule.FailingTypes)
+                {
+                    output.WriteLine($"\t {type.FullName}");
+                }
+            }
+
+            output.WriteLine("-----------------------------------------------------------");
+        }
+        else
+        {
+            output.WriteLine($"No policy violations found for: {results.Name}");
+        }
+        
+        using var scope = new AssertionScope();
+        results.HasViolations.Should().BeFalse();
+    }
+}
+            </CodeSnippet>
 
             <p>
                 Here are some design rules that you can enforce:

@@ -57,7 +57,16 @@
                     Application source code must be inside of a GitHub repository. So, you need to create a local Git repository and commit your 
                     source code to the repository using these commands.
                 </p>
-                <GithubGistSnippet Title="Create Local Repository" UserId="fingers10" FileName="ba35eed4720d5cc91d6b315a8ee404f1"></GithubGistSnippet>
+                <CodeSnippet CssClass="language-plaintext">
+# add the gitignore file tailored for dotnet applications, this will ignore bin/obj and many other non-source code files
+dotnet new gitignore
+# create the git repository
+git init
+# track all files that are not ignore by .gitignore
+git add --all
+# commit all changes to the repository
+git commit -m "Initial commit"
+                </CodeSnippet>
             </li>
             <li>Create a AWS Account</li>
         </ol>
@@ -70,7 +79,10 @@
             like but with a different URL:
         </p>
 
-        <GithubGistSnippet Title="Push to GitHub Repository" UserId="fingers10" FileName="f8df74eb610c92a260e42e7e0db22367"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-plaintext">
+git remote add origin https://github.com/ilovedotnet/ilovedotnet.git
+git push -u origin master
+        </CodeSnippet>
 
         
 
@@ -146,7 +158,30 @@
             Enter the following YAML code:
         </p>
 
-        <GithubGistSnippet Title="AWS Amplify Build Settings" UserId="fingers10" FileName="c823f67bf7c0392293a5d6e957f39f9c"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-yaml">
+version: 1
+applications:
+  - frontend:
+      phases:
+        preBuild:
+          commands:
+            - npm install
+            - curl -sSL https://dot.net/v1/dotnet-install.sh &gt; dotnet-install.sh
+            - chmod +x *.sh
+            - ./dotnet-install.sh -c 7.0 -InstallDir ./dotnet7
+            - ./dotnet7/dotnet --version
+        build:
+          commands: 
+            - ./dotnet7/dotnet publish -c Release -o release
+      artifacts:
+        baseDirectory: /release/wwwroot
+        files:
+          - '**/*'
+      cache:
+        paths:
+          - node_modules/**/*
+    appRoot: Web
+        </CodeSnippet>
 
         <p>
             The above preBuild commands do the following:

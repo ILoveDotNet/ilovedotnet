@@ -120,7 +120,37 @@
             single responsibility.
         </p>
 
-        <GithubGistSnippet Title="SRP - Single Responsibility Principle" UserId="fingers10" FileName="3a4452d203b6da084460e6ddcc28f934"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+public class Customer
+{
+    public void AddCustomer(string name, string email)
+    {
+        // Add customer to the database
+    }
+    
+    public void SendEmail(string email)
+    {
+        // Send email to the customer
+    }
+}
+
+// Refactored code
+public class Customer
+{
+    public void AddCustomer(string name, string email)
+    {
+        // Add customer to the database
+    }
+}
+
+public class EmailSender
+{
+    public void SendEmail(string email)
+    {
+        // Send email to the customer
+    }
+}
+        </CodeSnippet>
 
         
 
@@ -136,7 +166,44 @@
             the behavior of <ContentHighlight>PaymentProcessor</ContentHighlight> without changing its source code.
         </p>
 
-        <GithubGistSnippet Title="OCP - Open / Closed Principle" UserId="fingers10" FileName="78761ba0cc47c57d3dac0327d3e19016"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+public class PaymentProcessor
+{
+    public void ProcessPayment(decimal amount)
+    {
+        if (amount &gt; 100)
+        {
+            // Perform complex payment process for high value payments
+        }
+        else
+        {
+            // Perform simple payment process for low value payments
+        }
+    }
+}
+
+// Refactored code
+public interface IPaymentProcessor
+{
+    void ProcessPayment(decimal amount);
+}
+
+public class PaymentProcessor : IPaymentProcessor
+{
+    public virtual void ProcessPayment(decimal amount)
+    {
+        // Perform simple payment process
+    }
+}
+
+public class HighValuePaymentProcessor : PaymentProcessor
+{
+    public override void ProcessPayment(decimal amount)
+    {
+        // Perform complex payment process for high value payments
+    }
+}
+        </CodeSnippet>
 
         
 
@@ -151,7 +218,33 @@
             on both <ContentHighlight>Dog</ContentHighlight> and <ContentHighlight>Cat</ContentHighlight>, and they should behave like an <ContentHighlight>Animal</ContentHighlight>.
         </p>
 
-        <GithubGistSnippet Title="LSP - Liskov Substitution Principle" UserId="fingers10" FileName="0ec2697dec2db1598b8a88f2a55c0a6d"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+public class Animal
+{
+    public virtual string MakeSound()
+    {
+        return "Some animal sound";
+    }
+}
+
+public class Dog : Animal
+{
+    public override string MakeSound()
+    {
+        return "Woof";
+    }
+}
+
+public class Cat : Animal
+{
+    public override string MakeSound()
+    {
+        return "Meow";
+    }
+}
+
+// LSP is already being applied here as Dog and Cat are behaving like their parent class Animal
+        </CodeSnippet>
 
         
 
@@ -166,7 +259,24 @@
             <ContentHighlight>interface</ContentHighlight> has a single method.
         </p>
 
-        <GithubGistSnippet Title="ISP - Interface Segregation Principle" UserId="fingers10" FileName="6e36440c2f16020a57f28bf64c9fe7d4"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+public interface ICustomer
+{
+    void Add();
+    void Delete();
+}
+
+// Refactored code
+public interface IAddCustomer
+{
+    void Add();
+}
+
+public interface IDeleteCustomer
+{
+    void Delete();
+}
+        </CodeSnippet>
 
         
 
@@ -182,7 +292,59 @@
             and we can <ContentHighlight>inject</ContentHighlight> it into <ContentHighlight>OrderProcessor</ContentHighlight>.
         </p>
 
-        <GithubGistSnippet Title="DIP - Dependency Inversion Principle" UserId="fingers10" FileName="070e36ba95bb5228fcd464bc80d0cd32"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+public class OrderProcessor
+{
+    private PaymentProcessor _paymentProcessor;
+
+    public OrderProcessor()
+    {
+        _paymentProcessor = new PaymentProcessor();
+    }
+
+    public void ProcessOrder(decimal amount)
+    {
+        _paymentProcessor.ProcessPayment(amount);
+    }
+}
+
+// Refactored code
+public interface IPaymentProcessor
+{
+    void ProcessPayment(decimal amount);
+}
+
+public class OrderProcessor
+{
+    private IPaymentProcessor _paymentProcessor;
+
+    public OrderProcessor(IPaymentProcessor paymentProcessor)
+    {
+        _paymentProcessor = paymentProcessor;
+    }
+
+    public void ProcessOrder(decimal amount)
+    {
+        _paymentProcessor.ProcessPayment(amount);
+    }
+}
+
+public class PaymentProcessor : IPaymentProcessor
+{
+    public void ProcessPayment(decimal amount)
+    {
+        // Perform payment process
+    }
+}
+
+public class PayPalPaymentProcessor : IPaymentProcessor
+{
+    public void ProcessPayment(decimal amount)
+    {
+        // Perform payment process using PayPal API
+    }
+}
+        </CodeSnippet>
 
         
 

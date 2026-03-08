@@ -70,26 +70,135 @@
                     <p>Convert <ContentHighlight>List / IEnumerable</ContentHighlight> data to <ContentHighlight>
                             DataTable</ContentHighlight>
                     </p>
-                    <GithubGistSnippet Title="Convert IEnumerable to DataTable" UserId="fingers10"
-                        FileName="f15f20d0b2028f3bac259cb8955a193b"></GithubGistSnippet>
+                    <CodeSnippet CssClass="language-csharp">
+public static DataTable ToDataTable&lt;T&gt;(this IEnumerable&lt;T&gt; data, string name)
+{
+    PropertyDescriptorCollection properties = TypeDescriptor.GetProperties(typeof(T));
+    DataTable table = new(name);
+
+    foreach (PropertyDescriptor prop in properties)
+        table.Columns.Add(prop.Name, Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType);
+
+    foreach (T item in data)
+    {
+        DataRow row = table.NewRow();
+
+        foreach (PropertyDescriptor prop in properties)
+            row[prop.Name] = prop.GetValue(item) ?? DBNull.Value;
+
+        table.Rows.Add(row);
+    }
+
+    return table;
+}
+                    </CodeSnippet>
                 </li>
                 <li>
                     <p>Add <ContentHighlight>DataTable</ContentHighlight> to Excel <ContentHighlight>WorkSheet
                         </ContentHighlight>
                     </p>
-                    <GithubGistSnippet Title="Add DataTable to Excel WorkSheet using Closed XML" UserId="fingers10"
-                        FileName="59b7990842d5adb9905bcf81a8d6111b"></GithubGistSnippet>
+                    <CodeSnippet CssClass="language-csharp">
+var data = new TableOfContents().Contents;
+var table = data.ToDataTable("contents");
+
+using var wb = new XLWorkbook();
+wb.Worksheets.Add(table).ColumnsUsed().AdjustToContents();
+                    </CodeSnippet>
                 </li>
                 <li>
                     <p>Save it to excel file or <ContentHighlight>MemoryStream</ContentHighlight> and get
                         <ContentHighlight>bytes[]</ContentHighlight> from workbook and send to browser for download</p>
-                    <GithubGistSnippet Title="Save Closed XML WorkSheet to File" UserId="fingers10"
-                        FileName="2ff4f82695fc43afbe1fc2724c694a5f"></GithubGistSnippet>
+                    <CodeSnippet CssClass="language-csharp">
+// save to file
+wb.SaveAs("report.xlsx");
+
+// or get bytes to return excel file from web api
+using var stream = new MemoryStream();
+wb.SaveAs(stream);
+return stream.ToArray();
+                    </CodeSnippet>
                 </li>
             </ol>
 
-            <GithubGistSnippet Title="Generating Simple Excel Report" UserId="fingers10"
-                FileName="66a9c69639354f6ee47859cb8ecdef5f"></GithubGistSnippet>
+            <CodeSnippet CssClass="language-csharp">
+@@using ClosedXML.Excel
+@@using Microsoft.JSInterop
+
+@@implements IAsyncDisposable
+
+&lt;button @@onclick="SimpleExcel"&gt;Download Simple Excel&lt;/button&gt;
+
+@@code 
+{
+    private IJSObjectReference? module;
+    private string? base64String;
+
+    [Inject] private TableOfContents TableOfContents { get; set; } = default!;
+    [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
+
+    protected override void OnInitialized()
+    {
+        var data = TableOfContents.AllContents;
+        var table = data.ToDataTable("contents");
+
+        using var wb = new XLWorkbook();
+        wb.Worksheets.Add(table).ColumnsUsed().AdjustToContents();
+        using var stream = new MemoryStream();
+        wb.SaveAs(stream);
+
+        var bytes = stream.ToArray();
+        base64String = Convert.ToBase64String(bytes);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            module = await JSRuntime.InvokeAsync&lt;IJSObjectReference&gt;("import", "./excel-download.js");
+        }
+    }
+
+    private async Task SimpleExcel()
+    {
+        if (module is not null)
+        {
+            await module.InvokeVoidAsync("saveAsFile", "TableOfContents.xlsx", base64String);
+        }
+    }
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        if (module is not null)
+        {
+            await module.DisposeAsync();
+        }
+    }
+}
+
+internal static class Utilities
+{
+    public static DataTable ToDataTable&lt;T&gt;(this IEnumerable&lt;T&gt; data, string name)
+    {
+        PropertyDescriptorCollection properties = TypeDescriptor.GetProperties(typeof(T));
+        DataTable table = new(name);
+
+        foreach (PropertyDescriptor prop in properties)
+            table.Columns.Add(prop.Name, Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType);
+
+        foreach (T item in data)
+        {
+            DataRow row = table.NewRow();
+
+            foreach (PropertyDescriptor prop in properties)
+                row[prop.Name] = prop.GetValue(item) ?? DBNull.Value;
+
+            table.Rows.Add(row);
+        }
+
+        return table;
+    }
+}
+            </CodeSnippet>
 
             <DemoSnippet Title="Generate Simple Excel Report Using Closed XML">
                 <p>
@@ -207,24 +316,86 @@
                 </li>
                 <li>
                     <p>Load the template and add data variable to template</p>
-                    <GithubGistSnippet Title="Load the Excel Template and Data Variable to Template" UserId="fingers10"
-                        FileName="6aff559ac5ac23ac0efa48575ef54019"></GithubGistSnippet>
+                    <CodeSnippet CssClass="language-csharp">
+var template = new XLTemplate(@@"ILoveDotNetContentTemplate.xlsx");
+template.AddVariable(data);
+                    </CodeSnippet>
                 </li>
                 <li>
                     <p>Generate the report using template</p>
-                    <GithubGistSnippet Title="Generate Excel using ClosedXML Report Template" UserId="fingers10"
-                        FileName="4f901c355ed7927b2f9420c50186fc1f"></GithubGistSnippet>
+                    <CodeSnippet CssClass="language-csharp">
+template.Generate();
+                    </CodeSnippet>
                 </li>
                 <li>
                     <p>Save it to excel file or <ContentHighlight>MemoryStream</ContentHighlight> and get
                         <ContentHighlight>bytes[]</ContentHighlight> from workbook and send to browser for download</p>
-                    <GithubGistSnippet Title="Save Closed XML Template to File" UserId="fingers10"
-                        FileName="0a1da192498f9ee64763b97e69042365"></GithubGistSnippet>
+                    <CodeSnippet CssClass="language-csharp">
+// save to file
+template.SaveAs("report.xlsx");
+
+// or get bytes to return excel file from web api
+using var stream = new MemoryStream();
+template.WorkBook.SaveAs(stream);
+return stream.ToArray();
+                    </CodeSnippet>
                 </li>
             </ol>
 
-            <GithubGistSnippet Title="Generate Complex Report Using Closed XML" UserId="fingers10"
-                FileName="fc5150c586bdbad1bec23341ef12bb54"></GithubGistSnippet>
+            <CodeSnippet CssClass="language-csharp">
+internal class Program
+{
+    private static void Main(string[] args)
+    {
+        Console.WriteLine("I Love .NET - https://ilovedotnet.org");
+
+        var data = new TableOfContents().Contents;
+
+        var complexdata = new
+        {
+            PlatformName = "I Love .NET",
+            ReportName = "Contet Report",
+            CreatedBy = "Abdul Rahman",
+            GeneratedOn = DateTime.Now,
+            Data = data.GroupBy(content =&gt; content.Author)
+                       .Select(x =&gt; new
+                       {
+                           AuthorName = x.Key,
+                           TotalArticles = x.Count(),
+                           AuthorChannels = x.GroupBy(y =&gt; y.Type)
+                                              .Select(z =&gt; new
+                                              {
+                                                  ChannelName = z.Key,
+                                                  TotalArticles = z.Count(),
+                                                  ArticleDetails = z.Select(c =&gt; new 
+                                                  {
+                                                      ArticleName = c.Title,
+                                                      CreatedOn = c.CreatedOn,
+                                                      Url = c.ContentUrl
+                                                  }).ToList()
+                                              })
+                                              .ToList()
+                       }).ToList()
+        };
+
+        var template = new XLTemplate(@@"ILoveDotNetContentTemplate.xlsx");
+
+        template.AddVariable(complexdata);
+        template.Generate();
+        template.Workbook.Worksheets
+            .Worksheet(template.Workbook.Worksheets.First().Name)
+            .ColumnsUsed()
+            .AdjustToContents();
+
+        template.SaveAs("report.xlsx");
+
+        //Show report
+        Process.Start(new ProcessStartInfo("report.xlsx") { UseShellExecute = true });
+
+        Console.ReadLine();
+    }
+}
+            </CodeSnippet>
 
             <DemoSnippet Title="Generating Complex Excel Report">
                 <p>

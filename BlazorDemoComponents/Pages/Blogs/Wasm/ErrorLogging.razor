@@ -114,14 +114,24 @@
             Here is the example how logging is set in <ContentHighlight>appsettings.json</ContentHighlight> file.
         </p>
 
-        <GithubGistSnippet Title="Logging settings in appsettings.json in Blazor WASM" UserId="fingers10" FileName="375b2fbc8821f1f20013604b4d82b131"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-json">
+{
+  "Logging": {
+    "LogLevel": {
+      "ILoveDotNet.Web": "Warning"
+    }
+  }
+}
+        </CodeSnippet>
 
         <p>
             For this to work in blazor wasm, we need to add <ContentHighlight CssClasses="[ break-all ]">Microsoft.Extensions.Logging.Configuration</ContentHighlight> 
             Nuget package to the project. Now this needs to be configured in <ContentHighlight>Program.cs</ContentHighlight> file as shown below.
         </p>
 
-        <GithubGistSnippet Title="Configuring Logging in Blazor WASM" UserId="fingers10" FileName="98fc4ca0c4ed60312c78681e7a13db21"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+builder.Logging.AddConfiguration(builder.Configuration.GetSection("Logging"));
+        </CodeSnippet>
 
         <p>
             That's all with configuring logging in blazor wasm. Now you can <ContentHighlight>inject</ContentHighlight> 
@@ -154,11 +164,32 @@
             <li>Next install <ContentHighlight>Serilog.AspNetCore.Ingestion</ContentHighlight> Nuget package in server app.</li>
             <li>
                 <p>Now configure <ContentHighlight>appsettings.json</ContentHighlight> in your server app and configure the destination or sinks to store logs.</p>
-                <GithubGistSnippet Title="Configuring Logging in Backend App" UserId="fingers10" FileName="3fbe6f47735bed66fbb94d833fbead64"></GithubGistSnippet>
+                <CodeSnippet CssClass="language-json">
+{
+  "Serilog": {
+    "Using": [],
+    "MinimumLevel": {
+      "Default": "Warning"
+    },
+    "WriteTo": [
+      {
+        "Name": "File",
+        "Args": {
+          "path": "C:\\Users\\Public\\Documents\\ILoveDotNet\\WebUILogs_.txt",
+          "rollingInterval": "Day",
+          "shared": true
+        }
+      }
+    ]
+  }
+}
+                </CodeSnippet>
             </li>
             <li>
                 <p>Register <ContentHighlight>Serilog Logging in Host Builder</ContentHighlight> of backend app.</p>
-                <GithubGistSnippet Title="Add Serilog to Host Builder" UserId="fingers10" FileName="f04bf41ecee9cdb0e9f54107585e0339"></GithubGistSnippet>
+                <CodeSnippet CssClass="language-csharp">
+builder.Host.UseSerilog();
+                </CodeSnippet>
             </li>
             <li>
                 <p>
@@ -166,7 +197,11 @@
                     This tells the application that serilog endpoints needs is setup so that logs can be sent to the server. This will be helpful for 
                     Blazor WASM app to send logs to backend API.
                 </p>
-                <GithubGistSnippet Title="Add Serilog Injestion to Backend Request Pipeline" UserId="fingers10" FileName="399f407c5b2d89ee657e9e902f859704"></GithubGistSnippet>
+                <CodeSnippet CssClass="language-csharp">
+var app = builder.Build();
+
+app.UseSerilogIngestion();
+                </CodeSnippet>
             </li>
         </ol>
 
@@ -186,7 +221,23 @@
             <li>Next install <ContentHighlight>Serilog.Sinks.BrowserHttp</ContentHighlight> Nuget package.</li>
             <li>
                 <p>Finally add the following configuration in <ContentHighlight>Program.cs</ContentHighlight></p>
-                <GithubGistSnippet Title="Configure Serilog in Blazor WASM" UserId="fingers10" FileName="7414e70311a81bcc42e52e9a0885af12"></GithubGistSnippet>                
+                <CodeSnippet CssClass="language-csharp">
+var builder = WebAssemblyHostBuilder.CreateDefault(args);
+
+//builder.Logging.AddConfiguration(builder.Configuration.GetSection("Logging"));
+
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(builder.Configuration)
+    .Enrich.FromLogContext()
+    .Enrich.WithProperty("InstanceId", Guid.NewGuid().ToString("n"))
+    .WriteTo.BrowserHttp($"{builder.Configuration.GetValue&lt;string&gt;("ApiBaseAddress")}ingest", controlLevelSwitch: new LoggingLevelSwitch(LogEventLevel.Error))
+    .WriteTo.BrowserConsole(levelSwitch: new LoggingLevelSwitch(LogEventLevel.Warning))
+    .CreateLogger();
+
+builder.Logging
+       //.ClearProviders() // Commented this as it affects default global blazor-error-ui from getting rendered.
+       .AddProvider(new SerilogLoggerProvider());
+                </CodeSnippet>                
             </li>
         </ol>
 
@@ -222,7 +273,26 @@
             <ContentHighlight>Subscribe Now</ContentHighlight> button click.
         </p>
 
-        <GithubGistSnippet Title="Subscribe component to simulate exception" UserId="fingers10" FileName="63b860184af61f1d0274e1eb06e28151"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-razor">
+&lt;button type="button" @@onclick="Subscribe"&gt;Subscribe Now&lt;/button&gt;
+
+@@code {
+    [CascadingParameter] public Error? Error { get; set; }
+
+    protected void Subscribe()
+    {
+        try
+        {
+            throw new Exception();
+        }
+        catch (Exception ex)
+        {
+            Exception = ex;
+            Error?.ProcessError(ex);
+        }
+    }
+}
+        </CodeSnippet>
 
         
 
@@ -233,7 +303,24 @@
             or <ContentHighlight>backend API</ContentHighlight>. For simplicity I'm logging into browser console.
         </p>
 
-        <GithubGistSnippet Title="Error component to log exception" UserId="fingers10" FileName="15e50550370685d5c14334e2c057f19e"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-razor">
+@@using Microsoft.Extensions.Logging
+@@inject ILogger&lt;Error&gt; Logger
+
+&lt;CascadingValue Value=this&gt;
+    @@ChildContent
+&lt;/CascadingValue&gt;
+
+@@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    public void ProcessError(Exception ex)
+    {
+        //Post Exception Details to API. For simplicity I'm logging to browser console.
+        Logger.LogError("Error:ProcessError - Type: {Type} Message: {Message}", ex.GetType(), ex.Message);
+    }
+}
+        </CodeSnippet>
 
         <p>
             Now lets wrap our <ContentHighlight>Subscription</ContentHighlight> component with <ContentHighlight>Error</ContentHighlight> component.
@@ -241,7 +328,11 @@
 
         <p>Note that the above mentioned components are created in previous article.</p>
 
-        <GithubGistSnippet Title="Blazor Error logging with Error Component" UserId="fingers10" FileName="87f6fd800d66d3162e69eabbea5f8aec"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-razor">
+&lt;Error&gt;
+    &lt;Subscription&gt;&lt;/Subscription&gt;
+&lt;/Error&gt;
+        </CodeSnippet>
 
         
 

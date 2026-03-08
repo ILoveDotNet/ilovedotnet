@@ -87,7 +87,39 @@
             in the <ContentHighlight>Logger class</ContentHighlight> corresponds to what is known as a singleton operation in the pattern structure.
         </p>
 
-        <GithubGistSnippet Title="Singleton Pattern" UserId="fingers10" FileName="bbc746507c51c3fbd973d2f6224cc8cc"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+public class Logger
+{
+    private static Logger? _instance;
+
+    /// &lt;summary&gt;
+    /// Instance
+    /// &lt;/summary&gt;
+    public static Logger Instance
+    {
+        get
+        {
+            if (_instance == null)
+            {
+                _instance = new Logger();
+            }
+            return _instance;
+        }
+    }
+
+    protected Logger()
+    {
+    }
+
+    /// &lt;summary&gt;
+    /// SingletonOperation
+    /// &lt;/summary&gt; 
+    public void Log(string message)
+    {
+        Console.WriteLine($"Message to log: {message}");
+    }
+}
+        </CodeSnippet>
 
         <ol>
             <li>Create a <ContentHighlight>Logger class</ContentHighlight> and add a <ContentHighlight>protected constructor</ContentHighlight> to it so that clients cannot instantiate it but can subclass it.</li>
@@ -113,7 +145,33 @@
             <ContentHighlight>thread-safe</ContentHighlight>. Let's see how to make it thread-safe!!.
         </p>
 
-        <GithubGistSnippet Title="Thread Safe Singleton Pattern" UserId="fingers10" FileName="ec21a7472804b9ac79d04301c8f13e0b"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+public class Logger
+{
+    private static readonly Lazy&lt;Logger&gt; _lazyLogger
+        = new Lazy&lt;Logger&gt;(() =&gt; new Logger());
+
+    /// &lt;summary&gt;
+    /// Instance
+    /// &lt;/summary&gt;
+    public static Logger Instance
+    {
+        get { return _lazyLogger.Value; }
+    }
+
+    protected Logger()
+    {
+    }
+
+    /// &lt;summary&gt;
+    /// SingletonOperation
+    /// &lt;/summary&gt; 
+    public void Log(string message)
+    {
+        Console.WriteLine($"Message to log: {message}");
+    }
+}
+        </CodeSnippet>
 
         <ol>
             <li>Let's Use <ContentHighlight>.NET's</ContentHighlight> built-in <ContentHighlight>thread-safe</ContentHighlight> way of dealing with lazy initialization by implementing <ContentHighlight>Lazy&lt;T&gt;</ContentHighlight>.</li>
@@ -138,7 +196,21 @@
             <p>
                 Let's try Singleton Demo, Click on the Singleton Button to see the demo on the screen.
             </p>
-            <GithubGistSnippet Title="Singleton Pattern Demo" UserId="fingers10" FileName="cd4d1248b92ae419036f4a2aa84595d7"></GithubGistSnippet>
+            <CodeSnippet CssClass="language-csharp">
+var instance1 = Logger.Instance;
+var instance2 = Logger.Instance;
+
+if (instance1 == instance2 &amp;&amp; instance2 == Logger.Instance)
+{
+    Console.WriteLine("Instances are the same.");
+}
+
+instance1.Log($"Message from {nameof(instance1)}");
+// or
+instance1.Log($"Message from {nameof(instance2)}");
+// or
+Logger.Instance.Log($"Message from {nameof(Logger.Instance)}");
+            </CodeSnippet>
             <SingletonDemo></SingletonDemo>
         </DemoSnippet>
 

@@ -122,7 +122,20 @@
             This will add the custom header to all the requests.
         </p>
 
-        <GithubGistSnippet Title="Custom Header HTTP Message Handler" UserId="fingers10" FileName="4903f06f901c58909a71a7c7771293ad"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+public class CustomHeaderHandler : DelegatingHandler
+{
+    protected override async Task&lt;HttpResponseMessage&gt; SendAsync(
+        HttpRequestMessage request,
+        CancellationToken cancellationToken)
+    {
+        request.Headers.Add("X-Client-ID", "https://ilovedotnet.org");    
+
+        return await base.SendAsync(request, cancellationToken);
+    }
+  }
+}
+        </CodeSnippet>
 
         
 
@@ -131,7 +144,17 @@
             <ContentHighlight>HttpClient</ContentHighlight> pipeline as shown below.
         </p>
 
-        <GithubGistSnippet Title="Registering Custom Http Message Handler" UserId="fingers10" FileName="bf8a79739465773c61517df5c8c2ef1f"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+var builder = WebAssemblyHostBuilder.CreateDefault(args);
+
+builder.Services.AddTransient&lt;CustomHeaderMessageHandler&gt;();
+
+builder.Services
+       .AddHttpClient&lt;ILoveDotNetService&gt;(client =&gt; client.BaseAddress = new Uri("https://ilovedotnet.org/"))
+       .AddHttpMessageHandler&lt;CustomHeaderMessageHandler&gt;();
+       //.AddHttpMessageHandler&lt;AnotherCustomMessageHandler&gt;();
+
+        </CodeSnippet>
 
         
 

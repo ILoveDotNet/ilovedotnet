@@ -47,7 +47,29 @@
                 following:
             </p>
 
-            <GithubGistSnippet Title="Client Registration in Duende Identity Server" UserId="fingers10" FileName="c0cbcb9ad1ec4f9bab2d1542fb70fdd2"></GithubGistSnippet>
+            <CodeSnippet CssClass="language-csharp">
+new Client
+{
+    ClientId = "ilovedotnet",
+    ClientName = "I Love .NET",
+
+    RedirectUris = { "https://ilovedotnet.org/authentication/login-callback" },
+    PostLogoutRedirectUris = { "https://ilovedotnet.org/authentication/logout-callback" },
+    AllowedCorsOrigins = { "https://ilovedotnet.org" },
+
+    RequirePkce = true,
+    RequireClientSecret = false,
+
+    AllowedGrantTypes = GrantTypes.Code,
+    AllowedScopes = { "openid", "profile", "email", "offline_access", "api" },
+
+    AllowOfflineAccess = true,
+    RefreshTokenUsage = TokenUsage.OneTimeOnly,
+    RefreshTokenExpiration = TokenExpiration.Sliding,
+
+    AccessTokenLifetime = 75
+},
+            </CodeSnippet>
 
             <h4 id="configuring-the-client">Configuring the Client</h4>
 
@@ -62,7 +84,10 @@
                 operations.
             </p>
 
-            <GithubGistSnippet Title="Registering Authentication Service in index.html" UserId="fingers10" FileName="dadd2200c6cd5e58eb06503bf65898fd"></GithubGistSnippet>
+            <CodeSnippet CssClass="language-markup">
+&lt;script src="_content/Microsoft.AspNetCore.Components.WebAssembly.Authentication/AuthenticationService.js"&gt;&lt;/script&gt;
+&lt;script src="_framework/blazor.webassembly.js"&gt;&lt;/script&gt;
+            </CodeSnippet>
 
             <h4 id="authentication-page">Authentication Page</h4>
             
@@ -72,7 +97,17 @@
                 The <ContentHighlight>RemoteAuthenticatorView</ContentHighlight> component manages the appropriate actions at the each stages of authentication.
             </p>
 
-            <GithubGistSnippet Title="Authentication Page" UserId="fingers10" FileName="58549c4e4441bc61543183760d671fca"></GithubGistSnippet>
+            <CodeSnippet CssClass="language-razor">
+@@page "/authentication/{action}"
+@@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+
+&lt;RemoteAuthenticatorView Action="@@Action" /&gt;
+
+@@code {
+    [Parameter]
+    public string? Action { get; set; }
+}
+            </CodeSnippet>
 
             <h4 id="registering-oidc-services">Registering OIDC Services</h4>
 
@@ -83,7 +118,51 @@
                 The configuration looks like the following:
             </p>
 
-            <GithubGistSnippet Title="Blazor WASM OIDC Configuration" UserId="fingers10" FileName="9a98185a28d10583915227a96ca9cd6f"></GithubGistSnippet>
+            <CodeSnippet CssClass="language-csharp">
+services.AddAuthorizationCore();
+
+services.AddCascadingAuthenticationState();
+
+// Register here directly
+
+services.AddOidcAuthentication(options =&gt;
+{
+    options.ProviderOptions.Authority = "https://demo.duendesoftware.com";
+    options.ProviderOptions.ClientId = "interactive.public.short"; // demo client id from https://demo.duendesoftware.com/
+    options.ProviderOptions.ResponseType = "code";
+    options.ProviderOptions.DefaultScopes.Add("openid");
+    options.ProviderOptions.DefaultScopes.Add("profile");
+    options.ProviderOptions.DefaultScopes.Add("email");
+    options.ProviderOptions.DefaultScopes.Add("offline_access");
+    options.ProviderOptions.DefaultScopes.Add("api");
+    options.ProviderOptions.RedirectUri = $"{baseAddress}authentication/login-callback";
+    options.ProviderOptions.PostLogoutRedirectUri = $"{baseAddress}authentication/logout-callback";
+});
+
+// or dynamically load from appsettings.json
+
+services.AddOidcAuthentication(options =&gt;
+{
+    configuration.Bind("OidcConfiguration", options.ProviderOptions);
+});
+
+// appsettings.json
+
+"OidcConfiguration": {
+  "Authority": "https://demo.duendesoftware.com/",
+  "ClientId": "ilovedotnet",
+  "DefaultScopes": [
+    "openid",
+    "profile",
+    "email",
+    "offline_access",
+    "api"
+  ],
+  "RedirectUri": "https://ilovedotnet.org/authentication/login-callback",
+  "PostLogoutRedirectUri": "https://ilovedotnet.org/authentication/logout-callback",
+  "ResponseType": "code"
+},
+            </CodeSnippet>
 
             <p>
                 For demo purpose, I'make using the <ContentHighlight CssClasses="[ break-all ]">interactive.public.short ClientID</ContentHighlight> from the 
@@ -98,7 +177,19 @@
                 happens behind the scenes using <ContentHighlight>Navigation History State</ContentHighlight>.
             </p>
 
-            <GithubGistSnippet Title="OIDC Redirect To Login" UserId="fingers10" FileName="ae0589e2341f7551d4cb4828ddf2d9ce"></GithubGistSnippet>
+            <CodeSnippet CssClass="language-razor">
+@@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@@using Microsoft.Extensions.Options
+@@inject IOptionsSnapshot&lt;RemoteAuthenticationOptions&lt;ApiAuthorizationProviderOptions&gt;&gt; Options
+@@inject NavigationManager Navigation
+ 
+@@code {
+    protected override void OnInitialized()
+    {
+        Navigation.NavigateToLogin(Options.Get(Microsoft.Extensions.Options.Options.DefaultName).AuthenticationPaths.LogInPath);
+    }
+}
+            </CodeSnippet>
 
             <p>
                 Thats it! We have successfully secured the Blazor WASM app with <ContentHighlight>OIDC</ContentHighlight> using <ContentHighlight>Duende Identity Server</ContentHighlight>.
@@ -202,7 +293,26 @@
                 along with <ContentHighlight>AddHttpClient</ContentHighlight> in Program.cs.
             </p>
 
-            <GithubGistSnippet Title="Passing Access Token to API" UserId="fingers10" FileName="3cad8de6e5734627178ce6a666cf4482"></GithubGistSnippet>
+            <CodeSnippet CssClass="language-csharp">
+using Microsoft.AspNetCore.Components.WebAssembly.Authentication;
+
+namespace ILoveDotNet.MessageHandlers;
+
+public class ILoveDotNetApiAuthorizationMessageHandler : AuthorizationMessageHandler
+{
+    public ILoveDotNetApiAuthorizationMessageHandler(IAccessTokenProvider provider, NavigationManager navigation,
+        IConfiguration configuration) : base(provider, navigation)
+    {
+        ConfigureHandler(authorizedUrls: new[] { configuration.GetValue&lt;string&gt;("ApiBaseAddress"), configuration.GetValue&lt;string&gt;("OidcConfiguration:Authority") });
+    }
+}
+
+// Program.cs
+
+builder.Services.AddTransient&lt;ILoveDotNetApiAuthorizationMessageHandler&gt;();
+builder.Services.AddHttpClient&lt;IAPIClient, APIClient&gt;(client =&gt; client.BaseAddress = new Uri(builder.Configuration.GetValue&lt;string&gt;("ApiBaseAddress")))
+                    .AddHttpMessageHandler&lt;ILoveDotNetApiAuthorizationMessageHandler&gt;();
+            </CodeSnippet>
 
             <h4 id="displaying-parts-of-ui">Displaying parts of UI</h4>
 
@@ -238,7 +348,28 @@
                 <ContentHighlight>options.UserOptions.NameClaim</ContentHighlight> in Program.cs file. This will now display email instead of name.
             </p>
 
-            <GithubGistSnippet Title="User Options Provider" UserId="fingers10" FileName="e03cf354d24fd077efe53e6add45af51"></GithubGistSnippet>
+            <CodeSnippet CssClass="language-csharp">
+services.AddOidcAuthentication(options =&gt;
+{
+    ...
+    options.UserOptions.RoleClaim = "role";
+    options.UserOptions.NameClaim = "name";
+});
+
+// or dynamically load from appsettings.json
+
+services.AddOidcAuthentication(options =&gt;
+{
+    configuration.Bind("UserOptions", options.UserOptions);
+});
+
+// appsettings.json
+
+"UserOptions": {
+  "NameClaim": "name",
+  "RoleClaim": "role"
+},
+            </CodeSnippet>
 
             <h4 id="authentication-state-provider">Authentication State Provider</h4>
 
@@ -253,7 +384,39 @@
                 Now we can use this to get the authentication state and use it in the UI components to conditionally write logic as shown below.
             </p>
 
-            <GithubGistSnippet Title="Get Authentication State" UserId="fingers10" FileName="940a96a6ff59766023e4fb9ccd9c191d"></GithubGistSnippet>
+            <CodeSnippet CssClass="language-razor">
+@@using Microsoft.AspNetCore.Components.Authorization
+@@using Microsoft.AspNetCore.Components.WebAssembly.Authentication;
+@@using System.Security.Claims
+
+&lt;AuthorizeView&gt;
+    &lt;NotAuthorized&gt;
+        &lt;p&gt;Please Login&lt;/p&gt;
+    &lt;/NotAuthorized&gt;
+    &lt;Authorized&gt;
+        @@if (name?.Equals("Bob Smith", StringComparison.OrdinalIgnoreCase) ?? false)
+        {
+            &lt;p&gt;This will be visible only for Bob Smith&lt;/p&gt;
+        }
+        else if (name?.Equals("Alice Smith", StringComparison.OrdinalIgnoreCase) ?? false)
+        {
+            &lt;p&gt;This will be visible only for Alice Smith&lt;/p&gt;
+        }
+    &lt;/Authorized&gt;
+&lt;/AuthorizeView&gt;
+
+@@code {
+    private string? name;
+    [CascadingParameter] Task&lt;AuthenticationState&gt; AuthenticationStateTask { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateTask;
+        var user = authState.User;
+        name = user.Identity?.Name;
+    }
+}    
+            </CodeSnippet>
 
             <h4 id="prevent-unauthorized-access">Prevent UnAuthorized Access</h4>
 
@@ -281,7 +444,23 @@
                 component. This will now redirect the user to login page when they try to access a page that they are not authorized to access.
             </p>
 
-            <GithubGistSnippet Title="Update Router with AuthorizeRouteView" UserId="fingers10" FileName="af0fb562baf9fec4e210afaa963f0291"></GithubGistSnippet>
+            <CodeSnippet CssClass="language-razor">
+// from
+
+&lt;RouteView RouteData="@@routeData" DefaultLayout="@@typeof(MainLayout)" /&gt;
+
+// to
+@@using Microsoft.AspNetCore.Components.Authorization
+
+&lt;AuthorizeRouteView RouteData="@@routeData" DefaultLayout="@@typeof(MainLayout)"&gt;
+    &lt;NotAuthorized&gt;
+        &lt;p&gt;You are not authorized to view this.&lt;/p&gt; // Custom Message
+    &lt;/NotAuthorized&gt;
+    &lt;Authorized&gt;
+        &lt;RedirectToLogin /&gt; // To Automatically Redirect to login
+    &lt;/Authorized&gt;
+&lt;/AuthorizeRouteView&gt;
+            </CodeSnippet>
 
             <h4 id="customization">Customization</h4>
             
@@ -295,7 +474,22 @@
                 <ContentHighlight>AuthenticationMessage</ContentHighlight> component in the <ContentHighlight>App.razor</ContentHighlight> file as shown below.
             </p>
 
-            <GithubGistSnippet Title="Customize Authentication Message" UserId="fingers10" FileName="2ab275ca00f681715d4ee7a8ced84323"></GithubGistSnippet>
+            <CodeSnippet CssClass="language-razor">
+ &lt;RemoteAuthenticatorView Action="@@Action"&gt;
+      &lt;LoggingIn&gt;
+          &lt;p&gt;We're logging you in, please wait&lt;/p&gt;
+      &lt;/LoggingIn&gt;
+      &lt;CompletingLoggingIn&gt;
+          &lt;p&gt;We're completing login, please wait&lt;/p&gt;
+      &lt;/CompletingLoggingIn&gt;
+      &lt;LogOut&gt;
+          &lt;p&gt;We're logging you out, please wait&lt;/p&gt;
+      &lt;/LogOut&gt;
+      &lt;LogOutSucceeded&gt;
+          &lt;p&gt;Logout Success!! Its a good idea to close app now&lt;/p&gt;
+      &lt;/LogOutSucceeded&gt;
+  &lt;/RemoteAuthenticatorView&gt;
+            </CodeSnippet>
         </How>
 
         <Summary>

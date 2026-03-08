@@ -51,7 +51,16 @@
             the <ContentHighlight>[Parameter]</ContentHighlight> attribute.
         </p>
 
-        <GithubGistSnippet Title="Component Parameters Demo" UserId="fingers10" FileName="52edfed991e8c184f60861dcbc16630d"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-razor">
+&lt;h4&gt;Title: &lt;b&gt;@@Title&lt;/b&gt;&lt;/h4&gt;
+
+&lt;p&gt;Description: &lt;b&gt;@@Description&lt;/b&gt;&lt;/p&gt;
+
+@@code {
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? Description { get; set; }
+}
+        </CodeSnippet>
 
         
 
@@ -81,7 +90,25 @@
             Cascading values and parameters also allow components to coordinate with each other across a component hierarchy.
         </p>
 
-        <GithubGistSnippet Title="Cascading Values and Parameters Demo" UserId="fingers10" FileName="bff1e106974e69b6daa4510626e87bb3"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-razor">
+//App.Razor
+&lt;CascadingValue Value="SmallDevice"&gt;
+  &lt;Router ..&gt;
+    ..
+  &lt;/Router&gt;
+&lt;/CascadingValue&gt;  
+
+@@code {
+  private bool SmallDevice = true;
+}
+
+//CascadingDemo.razor
+&lt;p&gt;Viewing I ❤️ .NET On Mobile Device? : @@(SmallDevice ? "Yes" : "No")&lt;/p&gt;
+
+@@code {
+    [CascadingParameter] public bool SmallDevice { get; set; }
+}
+        </CodeSnippet>
 
         
         
@@ -112,7 +139,28 @@
             parent component using event callbacks along with data.
         </p>
 
-        <GithubGistSnippet Title="Event Callbacks Demo" UserId="fingers10" FileName="75314c9ee5d7a6a39d8db6896b76414f"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-razor">
+//Child.razor
+&lt;button @@onclick="@@(() =&gt; OnClick.InvokeAsync("Hello from Child Component"))"&gt;Click to get message from child component&lt;/button&gt;
+
+@@code {
+    [Parameter] public EventCallback&lt;string&gt; OnClick { get; set; }
+}
+
+//Parent.razor
+&lt;EventCallbackChildDemo OnClick="ClickHandler"&gt;&lt;/EventCallbackChildDemo&gt;
+
+&lt;p&gt;Message: &lt;b&gt;@@message&lt;/b&gt;&lt;/p&gt;
+
+@@code {
+    string message = "Hello from Parent Component";
+
+    void ClickHandler(string newMessage)
+    {
+        message = newMessage;
+    }
+}
+        </CodeSnippet>
 
         
 
@@ -146,7 +194,95 @@
             the same and use it to store and pass data between components on any event.
         </p>
 
-        <GithubGistSnippet Title="State Container Demo" UserId="fingers10" FileName="ec8c37cb99f26e43d5042b779c0d07e5"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-razor">
+//AppStateDemo.cs
+public class AppStateDemo
+{
+    public event Action OnChange = default!;
+    public readonly List&lt;string&gt; messages1 = new();
+    public readonly List&lt;string&gt; messages2 = new();
+
+    public void SendMessageToChat1(string message)
+    {
+        messages1.Add(message);
+        NotifyStateChanged();
+    }
+
+    public void SendMessageToChat2(string message) 
+    {
+        messages2.Add(message);
+        NotifyStateChanged();
+    }
+    
+    private void NotifyStateChanged() =&gt; OnChange?.Invoke();
+}
+
+//Chat1Demo.razor
+@@inject AppStateDemo AppState;
+@@implements IDisposable;
+
+@@foreach (var message in AppState.messages1)
+{
+    &lt;p&gt;@@message&lt;/p&gt;
+}
+
+&lt;button @@onclick="SendMessage"&gt;Send Message to chat 2&lt;/button&gt;
+
+@@code {
+    protected override void OnInitialized()
+    {
+        AppState.OnChange += StateHasChanged;
+    }
+
+    void SendMessage()
+    {
+        AppState.SendMessageToChat2("Red");
+    }
+    
+    public void Dispose()
+    {
+        AppState.OnChange -= StateHasChanged;
+    }
+}
+
+//Chat2Demo.razor
+@@inject AppStateDemo AppState;
+@@implements IDisposable;
+
+@@foreach (var message in AppState.messages2)
+{
+    &lt;p&gt;@@message&lt;/p&gt;
+}
+
+&lt;button @@onclick="SendMessage"&gt;Send Message to chat 1&lt;/button&gt;
+
+@@code {
+    protected override void OnInitialized()
+    {
+        AppState.OnChange += StateHasChanged;
+    }
+
+    void SendMessage()
+    {
+        AppState.SendMessageToChat1("Red");
+    }
+    
+    public void Dispose()
+    {
+        AppState.OnChange -= StateHasChanged;
+    }
+}
+
+//StateContainer.razor
+&lt;Chat1Demo&gt;&lt;/Chat1Demo&gt;
+&lt;Chat2Demo&gt;&lt;/Chat2Demo&gt;
+
+@@code {
+}
+
+//Program.cs
+services.AddScoped&lt;AppStateDemo&gt;();
+        </CodeSnippet>
 
         
 

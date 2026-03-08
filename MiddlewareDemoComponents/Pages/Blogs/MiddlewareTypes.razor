@@ -93,7 +93,17 @@
             pipeline. Instead, a single anonymous function is called in response to every HTTP request.
         </p>
 
-        <GithubGistSnippet Title="Run Middleware" UserId="fingers10" FileName="66a05950b20165267fc97c8c07fb82e1"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+var builder = WebApplication.CreateBuilder(args);
+var app = builder.Build();
+
+app.Run(async context =&gt;
+{
+    await context.Response.WriteAsync("Hello from Run Middleware!");
+});
+
+app.Run();
+        </CodeSnippet>
 
         
 
@@ -107,7 +117,14 @@
             <ContentHighlight>perform actions both before and after the next delegate</ContentHighlight>.
         </p>
 
-        <GithubGistSnippet Title="Use Middleware" UserId="fingers10" FileName="6d4fb67bf040067785f7c38f34ac92c1"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+app.Use(async (context, next) =&gt;
+{
+    await context.Response.WriteAsync("Hello from Use Middleware!");
+    await next();
+    await context.Response.WriteAsync("Bye from Use Middleware!");
+});
+        </CodeSnippet>
 
         
         
@@ -127,7 +144,30 @@
             terminal middleware.
         </p>
 
-        <GithubGistSnippet Title="UseWhen Middleware" UserId="fingers10" FileName="b07795a4d571b38839140bd52fcdf7bd"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+app.UseWhen(context =&gt; context.Request.Query.ContainsKey("branch"),
+    appBuilder =&gt; HandleBranchAndRejoin(appBuilder));
+
+app.Run(async context =&gt;
+{
+    await context.Response.WriteAsync("Hello from non-Map delegate!");
+});
+    
+void HandleBranchAndRejoin(IApplicationBuilder app)
+{
+    var logger = app.ApplicationServices.GetRequiredService&lt;ILogger&lt;Program&gt;&gt;(); 
+
+    app.Use(async (context, next) =&gt;
+    {
+        var branchVer = context.Request.Query["branch"];
+        logger.LogInformation("Branch used = {branchVer}", branchVer);
+
+        // Do work that doesn't write to the Response.
+        await next();
+        // Do other work that doesn't write to the Response.
+    });
+}
+        </CodeSnippet>
 
         
 
@@ -139,7 +179,24 @@
             given <ContentHighlight>request path</ContentHighlight>. If the request path starts with the given path, the branch is executed.
         </p>
 
-        <GithubGistSnippet Title="Map Middleware" UserId="fingers10" FileName="b942378b3ba7551b3d7560c923f6dbda"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+app.Map("/branch", HandleBranch);
+
+private static void HandleBranch(IApplicationBuilder app)
+{
+    app.Use(async (context, next) =&gt;
+    {
+        await context.Response.WriteAsync("Hello from inside Map Use Middleware!");
+        await next();
+        await context.Response.WriteAsync("Bye from inside Map Use Middleware!");
+    });
+
+    app.Run(async (context) =&gt;
+    {
+        await context.Response.WriteAsync("Hello from inside Map Run Middleware!");
+    });
+}
+        </CodeSnippet>
 
         
         
@@ -152,7 +209,15 @@
             main pipeline.
         </p>
 
-        <GithubGistSnippet Title="MapWhen Middleware" UserId="fingers10" FileName="cf512c1eb310a6bbe33b522875713796"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+app.MapWhen(context =&gt; context.Request.Query.ContainsKey("query"), context =&gt;
+{
+    app.Run(async (context) =&gt;
+    {
+        await context.Response.WriteAsync("Hello from inside MapWhen Middleware!");
+    });
+});
+        </CodeSnippet>
         
         
 

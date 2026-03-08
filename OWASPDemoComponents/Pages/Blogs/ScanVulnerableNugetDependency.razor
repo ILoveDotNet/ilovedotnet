@@ -118,7 +118,17 @@
             Here is what all <ContentHighlight>.csproj</ContentHighlight> file looks like with the above properties in I Love DotNet.
         </p>
 
-        <GithubGistSnippet Title="Nuget Audit to check for vulnerable nuget package and fail build for critical vulnerability" UserId="fingers10" FileName="1d075c8566df0905f7ffede08b78d5db"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-xml">
+&lt;PropertyGroup&gt;
+  &lt;TargetFramework&gt;net8.0&lt;/TargetFramework&gt;
+  &lt;LangVersion&gt;latest&lt;/LangVersion&gt;
+  &lt;NoWarn&gt;NU1900&lt;/NoWarn&gt;
+  &lt;WarningsNotAsErrors&gt;NU1900&lt;/WarningsNotAsErrors&gt;
+  &lt;NugetAudit&gt;true&lt;/NugetAudit&gt;
+  &lt;NugetAuditLevel&gt;critical&lt;/NugetAuditLevel&gt;
+  &lt;NugetAuditMode&gt;all&lt;/NugetAuditMode&gt;
+&lt;/PropertyGroup&gt;
+        </CodeSnippet>
 
         
 
@@ -184,7 +194,19 @@
             pipeline and fail the build if there are any vulnerabilities.
         </p>
 
-        <GithubGistSnippet Title="UNIX command to check for vulnerable nuget package and fail build" UserId="fingers10" FileName="957bfdef041e4fa9adf9caeda8b1c926"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-yaml">
+# Check Vulnerable Nuget Packages
+- name: Checking Vulnerable Nuget Packages
+  run: |
+    dotnet list package --vulnerable --include-transitive --format=json &gt; list.json
+    if jq -cre '.projects | .. | .severity? // empty' list.json; then
+      echo 'Vulnerabilities found! Exiting...'
+      jq . list.json
+      exit 1
+    else
+      echo 'No vulnerabilities found!'
+    fi
+        </CodeSnippet>
 
         
         
@@ -207,7 +229,19 @@
             CI pipeline.
         </p>
 
-        <GithubGistSnippet Title="UNIX command to check for vulnerable nuget package and fail build for selected severity" UserId="fingers10" FileName="1c90ab49654251424b02d6bd5b27d035"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-yaml">
+# Check Vulnerable Nuget Packages
+- name: Checking Vulnerable Nuget Packages
+  run: |
+    dotnet list package --vulnerable --include-transitive --format=json &gt; list.json
+    if jq -cre '.projects | .. | .severity? // empty | select(test("Critical|High"))' list.json; then
+      echo 'Vulnerabilities found! Exiting...'
+      jq . list.json
+      exit 1
+    else
+      echo 'No vulnerabilities found!'
+    fi
+        </CodeSnippet>
 
         
 

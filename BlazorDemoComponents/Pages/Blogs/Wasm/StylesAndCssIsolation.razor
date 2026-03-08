@@ -74,7 +74,22 @@
             </ol>
         </p>
 
-        <GithubGistSnippet Title="Blazor WASM Bulma Setup" UserId="fingers10" FileName="f2143f9361d1cc2faa56395914691995"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-json">
+{
+  "name": "ilovedotnet",
+  "version": "1.0.0",
+  "description": "configuration to build bulma css",
+  "scripts": {
+    "buildbulma": "node-sass --omit-source-map-url styles.css wwwroot/css/app.css"
+  },
+  "author": "Abdul Rahman",
+  "license": "CC0-1.0 License",
+  "dependencies": {
+    "bulma": "^0.9.3",
+    "node-sass": "^7.0.1"
+  }
+}
+        </CodeSnippet>
 
         
 
@@ -99,7 +114,21 @@
             </ol>
         </p>
 
-        <GithubGistSnippet Title="Blazor WASM Tailwind CSS Setup" UserId="fingers10" FileName="6b03c327859cfe63c69ef4a391828dce"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-json">
+{
+  "name": "ilovedotnet",
+  "version": "1.0.0",
+  "description": "configuration to build and purge css",
+  "scripts": {
+    "buildcss": "npx tailwindcss -i wwwroot/css/app.css -o wwwroot/css/app.min.css"
+  },
+  "author": "Abdul Rahman",
+  "license": "CC0-1.0 License",
+  "dependencies": {
+    "tailwindcss": "^3.0.2"
+  }
+}
+        </CodeSnippet>
 
         
 
@@ -107,15 +136,73 @@
             I ❤️ .NET uses both bulma and tailwindcss together. Here is the complete configuration.
         </p>
 
-        <GithubGistSnippet Title="Blazor WASM Bulma & Tailwind CSS Setup" UserId="fingers10" FileName="ccf642b8e820aaec92845da7ac28ea59"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-json">
+{
+  "name": "ilovedotnet",
+  "version": "1.0.0",
+  "description": "configuration to build and purge css",
+  "scripts": {
+    "buildbulma": "node-sass --omit-source-map-url styles.css wwwroot/css/app.css",
+    "buildcss:dev": "npm run buildbulma &amp;&amp; npx tailwindcss -i wwwroot/css/app.css -o wwwroot/css/app.min.css --watch",
+    "purgecss": "purgecss --config ./purgecss.config.js",
+    "buildcss:prod": "npm run buildbulma &amp;&amp; npx tailwindcss -i wwwroot/css/app.css -o wwwroot/css/app.min.css --minify",
+    "buildcss": "npm run buildcss:prod &amp;&amp; npm run purgecss"
+  },
+  "author": "Abdul Rahman",
+  "license": "CC0-1.0 License",
+  "dependencies": {
+    "autoprefixer": "^10.4.0",
+    "bulma": "^0.9.3",
+    "node-sass": "^7.0.1",
+    "purgecss": "^4.1.3",
+    "tailwindcss": "^3.0.2"
+  }
+}
+        </CodeSnippet>
 
-        <GithubGistSnippet Title="Blazor WASM Tailwind Config JS" UserId="fingers10" FileName="dfdcf3ee04d2a75f02a7f712ab743b54"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-javascript">
+module.exports = {
+    important: true,
+    content: ['../**/*.html', '../**/*.razor', '../**/*.cs'],
+    darkMode: 'class',
+    theme: {
+        extend: {}
+    },
+    variants: {
+        extend: {},
+    },
+    plugins: [
+        require('autoprefixer')
+    ],
+};
+        </CodeSnippet>
 
         
 
-        <GithubGistSnippet Title="Blazor WASM Purge CSS Config JS" UserId="fingers10" FileName="e06955850ad94e40736471ecef642e8a"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-javascript">
+module.exports = {
+    content: ['../**/*.html', '../**/*.razor', '../**/*.cs'],
+    extractors: [
+        {
+            extractor: (content) =&gt; {
+                // fix for escaped tailwind prefixes (sm:, lg:, etc)
+                return content.match(/[A-Za-z0-9-_:\/]+/g) || []
+            },
+            extensions: ['css', 'html', 'razor'],
+        },
+    ],
+    css: ['wwwroot/css/app.min.css'],
+    safelist: ['blazor-error-boundary'],
+    output: 'wwwroot/css/app.min.css'
+};
+        </CodeSnippet>
 
-        <GithubGistSnippet Title="Blazor WASM Styles CSS" UserId="fingers10" FileName="c13e17882afcc04eb169f56b19bfff2b"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-css">
+@@import './node_modules/bulma/sass/components/dropdown.sass';
+@@tailwind base;
+@@tailwind components;
+@@tailwind utilities;
+        </CodeSnippet>
 
         <p>
             In development environment, you can do <ContentHighlight>npm run buildcss:dev</ContentHighlight>
@@ -129,7 +216,16 @@
             <ContentHighlight>Release</ContentHighlight> configuration as show below.
         </p>
 
-        <GithubGistSnippet Title="Blazor WASM Project File Configuration" UserId="fingers10" FileName="4e97f3e771016500965d7271a2395bd0"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-xml">
+&lt;ItemGroup Condition="'$(Configuration)'=='Release'"&gt;
+  &lt;Content Remove="wwwroot\css\app.css" /&gt;
+  &lt;None Include="wwwroot\css\app.css" /&gt;
+&lt;/ItemGroup&gt;
+
+&lt;Target Name="BuildCSS" BeforeTargets="Compile" Condition="'$(Configuration)'=='Release'"&gt;
+  &lt;Exec EnvironmentVariables="NODE_ENV=production" Command="npm run buildcss" /&gt;
+&lt;/Target&gt;
+        </CodeSnippet>
 
         <p>
             If you don't prefer to use <ContentHighlight>TailwindCSS</ContentHighlight>, <ContentHighlight>Bulma</ContentHighlight>, <ContentHighlight>Bootstrap</ContentHighlight> or your

@@ -78,7 +78,20 @@
             compare the values against other value in the collection
         </p>
 
-        <GithubGistSnippet Title="LINQ Except Primitive Types" UserId="fingers10" FileName="8b857b012416dcce3c4507e6b6e62cec"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+List&lt;int&gt; list = new() { 1, 2, 3, 4, 5 };
+List&lt;int&gt; anotherList = new() { 4, 5, 6 };
+
+//Method Syntax
+List&lt;int&gt; result = list
+                   .Except(anotherList)
+                   .ToList();
+                    
+//Query Syntax
+List&lt;int&gt; result = (from number in list select number)
+                   .Except(anotherList)
+                   .ToList();
+        </CodeSnippet>
 
         <DemoSnippet Title="LINQ Except Clause Demo">
             <p>
@@ -103,7 +116,20 @@
             Except checks for reference equality of two objects for <ContentHighlight>object</ContentHighlight> data types.
         </p>
 
-        <GithubGistSnippet Title="LINQ Except Objects" UserId="fingers10" FileName="988e1a1b7d5a1cbd41aff90e32235b1d"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+List&lt;Product&gt; products = GetProducts();
+List&lt;Sale&gt; sales = GetSales();
+
+//Method Syntax
+List&lt;int&gt; result = products.Select(product =&gt; product.Id)
+                   .Except(sales.Select(sale =&gt; sale.ProductId))
+                   .ToList();
+                    
+//Query Syntax
+List&lt;int&gt; result = (from product in products select product.Id)
+                   .Except(from sale in sales select sale.ProductId)
+                   .ToList();
+        </CodeSnippet>
 
         <DemoSnippet Title="LINQ Except Clause Objects Demo">
             <p>
@@ -138,9 +164,42 @@
             <li>Also override <ContentHighlight>GetHashCode()</ContentHighlight> method and return unique value for every single object.</li>
         </ol>
 
-        <GithubGistSnippet Title="LINQ Except Product Comparer" UserId="fingers10" FileName="6f0ec5f1ab8df9032e72b666daa372db"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+public class ProductComparer : EqualityComparer&lt;Product&gt;
+{
+    public override bool Equals(Product? product, Product? anotherProduct)
+    {
+        return (product?.Id == anotherProduct?.Id &amp;&amp;
+                product?.Name == anotherProduct?.Name &amp;&amp;
+                product?.Price == anotherProduct?.Price &amp;&amp;
+                product?.Color == anotherProduct?.Color &amp;&amp;
+                product?.Size == anotherProduct?.Size);
+    }
 
-        <GithubGistSnippet Title="LINQ Except With Product Comparer" UserId="fingers10" FileName="8a9859514f3d4e9f3c908bdd627aa9ce"></GithubGistSnippet>
+    public override int GetHashCode([DisallowNull] Product product)
+    {
+        return $"{product.Id}{product.Name}{product.Price}{product.Color}{product.Size}".GetHashCode();
+    }
+}
+        </CodeSnippet>
+
+        <CodeSnippet CssClass="language-csharp">
+List&lt;Product&gt; products = GetProducts();
+List&lt;Product&gt; anotherProducts = GetProducts();
+ProductComparer productComparer = new();
+
+anotherProducts.Remove(0);
+
+//Method Syntax
+List&lt;Product&gt; result = products
+                       .Except(anotherProducts, productComparer)
+                       .ToList();
+                    
+//Query Syntax
+List&lt;Product&gt; result = (from product in products select product)
+                       .Except(anotherProducts, productComparer)
+                       .ToList();
+        </CodeSnippet>
 
         <DemoSnippet Title="LINQ Except Clause with Comparer Demo">
             <p>
@@ -167,7 +226,20 @@
             simplification that we don't need to use a comparer class. We can use <ContentHighlight>Key Expression</ContentHighlight> to find the difference.
         </p>
 
-        <GithubGistSnippet Title="LINQ Except By Primitive Types" UserId="fingers10" FileName="542c7f89995b986c23c3ff9fc5e0fd7a"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+List&lt;Product&gt; products = GetProducts();
+List&lt;int&gt; productIds = new { 1, 2 };
+
+//Method Syntax
+List&lt;Product&gt; result = products
+                       .ExceptBy(productIds, product =&gt; product.Id)
+                       .ToList();
+                    
+//Query Syntax
+List&lt;Product&gt; result = (from product in products select product)
+                       .ExceptBy(productIds, product =&gt; product.Id)
+                       .ToList();
+        </CodeSnippet>
 
         <DemoSnippet Title="LINQ Except By Clause Demo">
             <p>
@@ -196,7 +268,26 @@
             product Id's.
         </p>
 
-        <GithubGistSnippet Title="LINQ Except By Objects" UserId="fingers10" FileName="402c5360837afa0c93b32b58806b4225"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+List&lt;Product&gt; products = GetProducts();
+List&lt;Sale&gt; sales = GetSales();
+
+//Method Syntax
+List&lt;Product&gt; result = products
+                       .ExceptBy&lt;Product, int&gt;(
+                          sales.Select(sale =&gt; sale.ProductId),
+                          product =&gt; product.Id
+                        )
+                       .ToList();
+                    
+//Query Syntax
+List&lt;Product&gt; result = (from product in products select product)
+                       .ExceptBy&lt;Product, int&gt;(
+                          from sale in sales select sale.ProductId,
+                          product =&gt; product.Id
+                        )
+                       .ToList();
+        </CodeSnippet>
 
         <DemoSnippet Title="LINQ Except By Clause Demo">
             <p>

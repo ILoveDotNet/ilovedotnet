@@ -107,7 +107,19 @@
              learn in the upcoming demo can be applied to those other types of filters as well. Important is to know how to mock the dependencies. Let's check that out with a demo.
         </p>
 
-        <GithubGistSnippet Title="WebAPI Action Filter" UserId="fingers10" FileName="f03c9ae6d2c55a95213b593e80ba946b"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+public class ValidateUserRole : ActionFilterAttribute
+{ 
+    public override void OnActionExecuting(ActionExecutingContext context)
+    {
+        // if the User is not master user, a BadRequest must be returned.
+        if (!context.HttpContext.User.HasClaim("role", "master"))
+        {
+            context.Result = new BadRequestResult();
+        }
+    } 
+}
+        </CodeSnippet>
 
         
 
@@ -152,7 +164,32 @@
             </li>
         </ol>
 
-        <GithubGistSnippet Title="WebAPI Action Filter Test" UserId="fingers10" FileName="a2941fbcf64daf901a2648988c2163a2"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+public class ValidateUserRoleTests
+{
+    [Fact]
+    public void OnActionExecuting_InvokeWithoutMasterRoleClaim_ReturnsBadRequest()
+    {
+        // Arrange 
+        var validateUserRoleActionFilter = 
+            new ValidateUserRole();
+
+        var httpContext = new DefaultHttpContext();
+
+        var actionContext = new ActionContext(httpContext, new(), new(), new());
+        var actionExecutingContext = new ActionExecutingContext(actionContext,
+            new List&lt;IFilterMetadata&gt;(),
+            new Dictionary&lt;string, object?&gt;(),
+            controller: null);
+
+        // Act
+        validateUserRoleActionFilter.OnActionExecuting(actionExecutingContext);
+
+        // Assert
+        Assert.IsType&lt;BadRequestResult&gt;(actionExecutingContext.Result);
+    }
+}
+        </CodeSnippet>
 
         
 

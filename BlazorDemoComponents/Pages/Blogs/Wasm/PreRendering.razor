@@ -62,7 +62,33 @@
             Blazor WASM applications, this is what crawlers see:
         </p>
 
-        <GithubGistSnippet Title="What crawlers see without prerendering" UserId="fingers10" FileName="9e4de6a7e829e0472189c8735dbbd9bc"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-markup">
+&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;
+
+&lt;head&gt;
+    &lt;meta charset="utf-8" /&gt;
+    &lt;meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" /&gt;
+    &lt;title&gt;I Love DotNet&lt;/title&gt;
+    &lt;base href="/" /&gt;
+    &lt;link href="css/bootstrap/bootstrap.min.css" rel="stylesheet" /&gt;
+    &lt;link href="css/app.css" rel="stylesheet" /&gt;
+    &lt;link href="ILoveDotNet.styles.css" rel="stylesheet" /&gt;
+&lt;/head&gt;
+
+&lt;body&gt;
+    &lt;div id="app"&gt;Loading...&lt;/div&gt;
+
+    &lt;div id="blazor-error-ui"&gt;
+        An unhandled error has occurred.
+        &lt;a href="" class="reload"&gt;Reload&lt;/a&gt;
+        &lt;a class="dismiss"&gt;🗙&lt;/a&gt;
+    &lt;/div&gt;
+    &lt;script src="_framework/blazor.webassembly.js"&gt;&lt;/script&gt;
+&lt;/body&gt;
+
+&lt;/html&gt;
+        </CodeSnippet>
 
         
 
@@ -116,11 +142,46 @@
                     <ContentHighlight CssClasses="[ break-all ]">static void ConfigureServices(IServiceCollection services, string baseAddress)</ContentHighlight>.
                 </p>
 
-                <GithubGistSnippet Title="Blazor Wasm Pre Rendering Program Before Extraction" UserId="fingers10" FileName="135fdbccacc441e70637f91780ed512f"></GithubGistSnippet>
+                <CodeSnippet CssClass="language-csharp">
+public class Program
+{
+  public static async Task Main(string[] args)
+  {
+    var builder = WebAssemblyHostBuilder.CreateDefault(args);
+    builder.RootComponents.Add&lt;App&gt;("#app");
+
+    // 👇 Extract service registration...
+    services.AddScoped(sp =&gt; new HttpClient { BaseAddress = new Uri(baseAddress) });
+    services.AddScoped&lt;IFoo, MyFoo&gt;();
+
+    await builder.Build().RunAsync();
+  }
+}
+                </CodeSnippet>
 
                 
 
-                <GithubGistSnippet Title="Blazor Wasm Pre Rendering Program After Extraction" UserId="fingers10" FileName="8f297813f67bb4bef2deb7ab172a6209"></GithubGistSnippet>
+                <CodeSnippet CssClass="language-csharp">
+public class Program
+{
+  public static async Task Main(string[] args)
+  {
+    var builder = WebAssemblyHostBuilder.CreateDefault(args);
+    builder.RootComponents.Add&lt;App&gt;("#app");
+
+    ConfigureServices(builder.Services, builder.HostEnvironment.BaseAddress);
+
+    await builder.Build().RunAsync();
+  }
+
+  // 👇 ... to this named static method.
+  private static void ConfigureServices(IServiceCollection services, string baseAddress)
+  {
+    services.AddScoped(sp =&gt; new HttpClient { BaseAddress = new Uri(baseAddress) });
+    services.AddScoped&lt;IFoo, MyFoo&gt;();
+  }
+}
+                </CodeSnippet>
 
                 <p>
                     <strong>Note:</strong> The "ConfigureServices" local function must be "static" local function.
@@ -139,7 +200,83 @@
             rendered contents. Now that crawlers can see:
         </p>
 
-        <GithubGistSnippet Title="What crawlers see with prerendering" UserId="fingers10" FileName="59ee411bdfeb7235cfb536aee9b36732"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-markup">
+&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;
+
+&lt;head&gt;
+    &lt;meta charset="utf-8" /&gt;
+    &lt;meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" /&gt;
+    &lt;title&gt;I Love DotNet&lt;/title&gt;
+    &lt;base href="/" /&gt;
+    &lt;link href="css/bootstrap/bootstrap.min.css" rel="stylesheet" /&gt;
+    &lt;link href="css/app.css" rel="stylesheet" /&gt;
+    &lt;link href="ILoveDotNet.styles.css" rel="stylesheet" /&gt;
+&lt;!-- %%-PRERENDERING-HEADOUTLET-BEGIN-%% --&gt;
+&lt;!--Blazor:{"type":"webassembly","assembly":"Microsoft.AspNetCore.Components.Web",
+"typeName":"Microsoft.AspNetCore.Components.Web.HeadOutlet","parameterDefinitions":"W10=",
+"parameterValues":"W10=","prerenderId":"e9e5b3f7e26f4242a0a258246f92a8e7"}
+--&gt;&lt;title&gt;Index&lt;/title&gt;&lt;!--Blazor:{"prerenderId":"e9e5b3f7e26f4242a0a258246f92a8e7"}--&gt;
+&lt;!-- %%-PRERENDERING-HEADOUTLET-END-%% --&gt;
+&lt;/head&gt;
+
+&lt;body&gt;
+    &lt;div id="app"&gt;
+&lt;!-- %%-PRERENDERING-BEGIN-%% --&gt;
+&lt;!--Blazor:{"type":"webassembly","assembly":"WasmNonServiceWorkerPrerender",
+"typeName":"WasmNonServiceWorkerPrerender.App","parameterDefinitions":"W10=",
+"parameterValues":"W10=","prerenderId":"ef8d06ce84074336aebf21f1c1208c83"}
+--&gt;&lt;div class="page" b-7cnpq78vhy&gt;
+        &lt;div class="sidebar" b-7cnpq78vhy&gt;
+            &lt;div class="top-row ps-3 navbar navbar-dark" b-fzjo1kuotl&gt;
+                &lt;div class="container-fluid" b-fzjo1kuotl&gt;
+                    &lt;a class="navbar-brand" href b-fzjo1kuotl&gt;WasmNonServiceWorkerPrerender&lt;/a&gt;
+        &lt;button title="Navigation menu" class="navbar-toggler" b-fzjo1kuotl&gt;&lt;span class="navbar-toggler-icon" b-fzjo1kuotl&gt;&lt;/span&gt;&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;div class="collapse" b-fzjo1kuotl&gt;
+    &lt;nav class="flex-column" b-fzjo1kuotl&gt;&lt;div class="nav-item px-3" b-fzjo1kuotl&gt;
+        &lt;a href="" class="nav-link active"&gt;&lt;span class="oi oi-home" aria-hidden="true" b-fzjo1kuotl&gt;&lt;/span&gt; Home
+            &lt;/a&gt;&lt;/div&gt;
+        &lt;div class="nav-item px-3" b-fzjo1kuotl&gt;&lt;a href="counter" class="nav-link"&gt;&lt;span class="oi oi-plus" aria-hidden="true" b-fzjo1kuotl&gt;&lt;/span&gt; Counter
+            &lt;/a&gt;&lt;/div&gt;
+        &lt;div class="nav-item px-3" b-fzjo1kuotl&gt;&lt;a href="fetchdata" class="nav-link"&gt;&lt;span class="oi oi-list-rich" aria-hidden="true" b-fzjo1kuotl&gt;&lt;/span&gt; Fetch data
+            &lt;/a&gt;&lt;/div&gt;&lt;/nav&gt;&lt;/div&gt;&lt;/div&gt;
+
+    &lt;main b-7cnpq78vhy&gt;&lt;div class="top-row px-4" b-7cnpq78vhy&gt;&lt;a href="https://docs.microsoft.com/aspnet/" target="_blank" b-7cnpq78vhy&gt;About&lt;/a&gt;&lt;/div&gt;
+
+        &lt;article class="content px-4" b-7cnpq78vhy&gt;
+
+&lt;h1&gt;Hello, world!&lt;/h1&gt;
+
+Welcome to your new app.
+
+&lt;div class="alert alert-secondary mt-4"&gt;&lt;span class="oi oi-pencil me-2" aria-hidden="true"&gt;&lt;/span&gt;
+    &lt;strong&gt;How is Blazor working for you?&lt;/strong&gt;
+
+    &lt;span class="text-nowrap"&gt;
+        Please take our
+        &lt;a target="_blank" class="font-weight-bold link-dark" href="https://go.microsoft.com/fwlink/?linkid=2148851"&gt;brief survey&lt;/a&gt;&lt;/span&gt;
+    and tell us what you think.
+&lt;/div&gt;&lt;/article&gt;&lt;/main&gt;&lt;/div&gt;
+        &lt;!--Blazor:{"prerenderId":"ef8d06ce84074336aebf21f1c1208c83"}--&gt;
+&lt;!-- %%-PRERENDERING-END-%% --&gt;
+&lt;!--Blazor-Component-State:e30=--&gt;&lt;/div&gt;
+
+    &lt;div id="blazor-error-ui"&gt;
+        An unhandled error has occurred.
+        &lt;a href="" class="reload"&gt;Reload&lt;/a&gt;
+        &lt;a class="dismiss"&gt;🗙&lt;/a&gt;
+    &lt;/div&gt;
+    &lt;script src="_framework/blazor.webassembly.js" autostart="false"&gt;&lt;/script&gt;
+
+
+
+    &lt;script src="decode.min.js"&gt;&lt;/script&gt;
+    &lt;script src="brotliloader.min.js"&gt;&lt;/script&gt;
+&lt;/body&gt;
+
+&lt;/html&gt;
+        </CodeSnippet>
 
         
 

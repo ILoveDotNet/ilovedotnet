@@ -78,7 +78,13 @@
             <ContentHighlight>committing</ContentHighlight> and <ContentHighlight>rolling back transactions</ContentHighlight>:
         </p>
 
-        <GithubGistSnippet Title="Unit of Work Interface" UserId="fingers10" FileName="46aa98b15ec0a9ed22b4e8169de2673b"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+public interface IUnitOfWork
+{
+    Task CommitAsync();
+    Task RollbackAsync();
+}
+        </CodeSnippet>
 
         
 
@@ -89,7 +95,28 @@
             <ContentHighlight>DbContext</ContentHighlight> should be scoped to the lifetime of the request.
         </p>
 
-        <GithubGistSnippet Title="Unit of Work Abstraction" UserId="fingers10" FileName="2456e1f89c0ca3ebc9a7d06ec594674b"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+public abstract class UnitOfWork : IUnitOfWork
+{
+    protected readonly OrderDbContext _context;
+
+    protected UnitOfWork(OrderDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task CommitAsync()
+    {
+        await _context.SaveChangesAsync();
+    }
+
+    public Task RollbackAsync()
+    {
+        _context.ChangeTracker.Clear();
+        return Task.CompletedTask;
+    }
+}
+        </CodeSnippet>
 
         
 
@@ -98,7 +125,20 @@
             handling orders and order lines:
         </p>
 
-        <GithubGistSnippet Title="Unit of Work Implementation" UserId="fingers10" FileName="4ea9332bb770ba3b8e76fcc9585b8204"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-csharp">
+public class CreateOrderWithOrderLinesUnitOfWork : UnitOfWork
+{
+    public IOrderRepository OrderRepository { get; }
+    public IOrderLineRepository OrderLineRepository { get; }
+
+    public CreateOrderWithOrderLinesUnitOfWork(OrderDbContext context, IOrderRepository orderRepo, IOrderLineRepository orderLineRepo)
+        : base(context)
+    {
+        OrderRepository = orderRepo;
+        OrderLineRepository = orderLineRepo;
+    }
+}
+        </CodeSnippet>
 
         <p>
             Now all we need to do is to use the <ContentHighlight>repositories</ContentHighlight> to do operations and use <ContentHighlight>SaveChanges</ContentHighlight> 

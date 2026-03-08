@@ -47,7 +47,33 @@
           an example of a custom target named <ContentHighlight>CopyGitHook</ContentHighlight> and a detailed explanation of its components.
         </p>
 
-        <GithubGistSnippet Title="Copying Git Pre Commit Hook before Project Build" UserId="fingers10" FileName="79f21e3c5fa1f872f5082dfb7be0109c"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-xml">
+&lt;Project Sdk="Microsoft.NET.Sdk"&gt;
+
+    &lt;Target Name="CopyGitHook" BeforeTargets="BeforeBuild" Condition="'$(Configuration)'!='Release'"&gt;
+        &lt;!-- Ensure the .git/hooks directory exists --&gt;
+        &lt;MakeDir Directories="$(ProjectDir)/../.git/hooks" Condition="!Exists('$(ProjectDir)/../.git/hooks')" /&gt;
+
+        &lt;!-- Copy the pre-commit hook --&gt;
+        &lt;Copy
+        SourceFiles="$(ProjectDir)/../Scripts/git_hooks/pre-commit"
+        DestinationFiles="$(ProjectDir)/../.git/hooks/pre-commit"
+        SkipUnchangedFiles="true" /&gt;
+
+        &lt;!-- Make the pre-commit hook executable on Linux/macOS --&gt;
+        &lt;Exec Command="chmod +x '$(ProjectDir)/../.git/hooks/pre-commit'" 
+              Condition="Exists('$(ProjectDir)/../.git/hooks/pre-commit') AND '$(OS)' != 'Windows_NT'" /&gt;
+
+        &lt;!-- For Windows: Create a batch script to execute the pre-commit hook --&gt;
+        &lt;WriteLinesToFile 
+            File="$(ProjectDir)/../../.git/hooks/pre-commit.bat"
+            Lines="@@echo off&amp;#xD;&amp;#xA;bash .git/hooks/pre-commit"
+            Overwrite="true"
+            Condition="'$(OS)' == 'Windows_NT'" /&gt;
+    &lt;/Target&gt;
+
+&lt;/Project&gt;
+        </CodeSnippet>
 
         <ol>
           <li>
@@ -95,7 +121,103 @@
           Here is an example of ilovedotnet pre-commit hook file.
         </p>
 
-        <GithubGistSnippet Title="I Love .NET Git Pre Commit Hook" UserId="fingers10" FileName="f948d350b4292320caa23b9c79d8a5d8"></GithubGistSnippet>
+        <CodeSnippet CssClass="language-bash">
+echo "Selecting modified .cs files"
+FILES=$(git diff --cached --name-only --diff-filter=ACM "*.cs" | sed 's| |\\ |g')
+# - `git diff --cached --name-only`: Lists the staged files.
+# - `--diff-filter=ACM`: Filters only Added (A), Copied (C), or Modified (M) files.
+# - `"*.cs"`: Restricts the list to C# files.
+# - `sed 's| |\\ |g'`: Escapes spaces in file paths for proper handling.
+
+if [ -n "$FILES" ]; then
+  # Run dotnet format
+  LC_ALL=C
+  # Set locale to "C" to ensure consistent behavior for text processing, sorting, etc.
+
+  # Initialize flag to check if any file was formatted
+  formatted_files=0
+
+  # Format all selected files
+  # Loop through each file and run dotnet format
+  # Build the --include arguments for dotnet format
+  echo "Files to be formatted:"
+  INCLUDE_ARGS=""
+  for FILE in $FILES; do
+    INCLUDE_ARGS="$INCLUDE_ARGS --include $FILE"
+  done
+
+  # Run dotnet format on all files at once
+  dotnet format --no-restore --verbosity normal $INCLUDE_ARGS || {
+    echo "dotnet format failed. Aborting commit." &gt;&amp;2
+    exit 1
+  }
+
+  # Check if any files were modified by dotnet format
+  # Stage the formatted files only if they are modified
+  for FILE in $FILES; do
+    git diff --exit-code "$FILE" &gt; /dev/null || {
+      git add "$FILE"  # Stage the formatted file
+      formatted_files=1  # Set the flag to indicate that a file was formatted
+    }
+  done
+
+  # Exit commit if any file was formatted
+  if [ $formatted_files -eq 1 ]; then
+    echo "One or more files were formatted. Please review the changes and commit again."
+    exit 1
+  else
+    echo "No files were formatted."
+  fi
+fi
+
+echo "Checking and installing dotnet report generator"
+dotnet tool install --global dotnet-reportgenerator-globaltool
+
+echo "Cleaning up previous test results inside *Tests directories..."
+find . -type d -name "*Tests" -exec rm -rf {}/TestResults \;
+
+echo "Running tests and collecting code coverage..."
+dotnet test . --settings ./UITests/ilovedotnet.runsettings --collect:"XPlat Code Coverage"
+
+echo "Generating aggregated code coverage report..."
+reportgenerator -reports:"./**/TestResults/**/coverage.cobertura.xml" -targetdir:"test_coverage_report" -reporttypes:XmlSummary || {
+    echo "Error: Failed to generate code coverage report. Commit aborted."
+    exit 1
+}
+
+# Define the summary file path
+SUMMARY_FILE="test_coverage_report/Summary.xml"
+
+# Check if the summary file exists
+if [ ! -f "$SUMMARY_FILE" ]; then
+    echo "Error: Coverage summary file not found. Commit aborted."
+    exit 1
+fi
+
+# Extract the Linecoverage percentage
+COVERAGE=$(xmllint --xpath "string(//Summary/Linecoverage)" "$SUMMARY_FILE")
+
+if [ -z "$COVERAGE" ]; then
+    echo "Error: Failed to retrieve code coverage from summary. Commit aborted."
+    exit 1
+fi
+
+# Set the required coverage threshold
+THRESHOLD=70.0
+
+# Round off coverage to one decimal place
+COVERAGE_PERCENTAGE=$(printf "%.1f" "$COVERAGE")
+
+echo "Aggregated Code Coverage: ${COVERAGE_PERCENTAGE}%"
+
+# Check if the aggregated coverage meets the threshold
+if (( $(echo "$COVERAGE_PERCENTAGE &lt; $THRESHOLD" | bc -l) )); then
+    echo "Code coverage (${COVERAGE_PERCENTAGE}%) is below the required threshold (${THRESHOLD}%). Commit aborted."
+    exit 1
+fi
+
+echo "Code coverage ${COVERAGE_PERCENTAGE}% is sufficient. Proceeding with commit."
+        </CodeSnippet>
 
         <figure>
             <caption>Windows Pre-Commit Output</caption>
