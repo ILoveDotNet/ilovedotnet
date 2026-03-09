@@ -31,7 +31,7 @@ Current ASP.NET Core package version: **10.0.3**. Always match this version when
 ### Component Inheritance
 - **Base**: Most content pages inherit from `BasePage` class
 - **Layout**: Uses `Content` component wrapper with `ContentBody`, `What`, `Why`, `How` sections
-- **Demos**: `DemoSnippet` for live examples, `GithubGistSnippet` for code samples
+- **Demos**: `DemoSnippet` for live examples
 
 ### Blog Content Structure
 - **Required Sections**: All blogs follow `What`, `Why`, `How`, `Summary` pattern

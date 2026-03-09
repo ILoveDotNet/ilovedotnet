@@ -313,16 +313,6 @@ Use `<ContentHighlight>` to emphasize important terms, concepts, or code referen
 <ContentHighlight>key concept</ContentHighlight>
 ```
 
-### GitHub Gist Integration
-
-If you encounter a GitHub Gist snippet:
-
-```html
-<GithubGistSnippet Title="Code Title" UserId="user-id" FileName="filename"></GithubGistSnippet>
-```
-
-Retrieve the content from `https://gist.github.com/{UserId}/{FileName}` and display it appropriately.
-
 ## Table of Contents
 
 When `UseNewTableOfContentsMenu=true` is used, the Content component automatically generates a table of contents with links to each section:
