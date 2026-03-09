@@ -15,15 +15,15 @@
             </blockquote>
             <p>
                 You've learned the basics of logging in .NET, but there's a whole world of power hidden beneath the surface. The 
-                <ContentHighlight>modern .NET logger</ContentHighlight> isn't just about writing messages to a console - it's a sophisticated 
-                system designed for <ContentHighlight>structured logging</ContentHighlight>, flexible filtering, and enterprise-grade observability.
+                <Highlight>modern .NET logger</Highlight> isn't just about writing messages to a console - it's a sophisticated 
+                system designed for <Highlight>structured logging</Highlight>, flexible filtering, and enterprise-grade observability.
             </p>
             <p>
-                In this deep-dive article, we'll explore the inner workings of <ContentHighlight>ILogger</ContentHighlight> and discover why the 
-                logging approach you've been using might be fundamentally wrong. We'll master <ContentHighlight>structured logging principles</ContentHighlight>, 
-                understand the distinction between <ContentHighlight>message templates and parameters</ContentHighlight>, and learn how to properly 
-                configure <ContentHighlight>log levels</ContentHighlight>, <ContentHighlight>categories</ContentHighlight>, and 
-                <ContentHighlight>event IDs</ContentHighlight> for production-ready .NET applications.
+                In this deep-dive article, we'll explore the inner workings of <Highlight>ILogger</Highlight> and discover why the 
+                logging approach you've been using might be fundamentally wrong. We'll master <Highlight>structured logging principles</Highlight>, 
+                understand the distinction between <Highlight>message templates and parameters</Highlight>, and learn how to properly 
+                configure <Highlight>log levels</Highlight>, <Highlight>categories</Highlight>, and 
+                <Highlight>event IDs</Highlight> for production-ready .NET applications.
             </p>
             <p>
                 Whether you're building console apps, APIs, Blazor applications, or microservices, this guide will transform how you think about 
@@ -49,7 +49,7 @@ logger.LogInformation("User " + name + " is " + age + " years old");</CodeSnippe
 
             <p>
                 This looks harmless - the message appears correctly in the console. But here's the problem: when you use 
-                <ContentHighlight>string interpolation</ContentHighlight> or <ContentHighlight>concatenation</ContentHighlight>, you're creating 
+                <Highlight>string interpolation</Highlight> or <Highlight>concatenation</Highlight>, you're creating 
                 a finalized string <strong>before</strong> it reaches the logger. The logger receives this:
             </p>
 
@@ -58,7 +58,7 @@ logger.LogInformation("User " + name + " is " + age + " years old");</CodeSnippe
 
             <h4>Why This Breaks Structured Logging</h4>
             <p>
-                Now let's see what happens in production with a <ContentHighlight>JSON logging provider</ContentHighlight> (which you'd use with 
+                Now let's see what happens in production with a <Highlight>JSON logging provider</Highlight> (which you'd use with 
                 modern observability platforms like Application Insights, Seq, Elasticsearch, or Datadog):
             </p>
 
@@ -84,7 +84,7 @@ services.AddLogging(builder =&gt;
 }</CodeSnippet>
 
             <p>
-                The critical data you need - <ContentHighlight>name</ContentHighlight> and <ContentHighlight>age</ContentHighlight> - are <strong>baked into the message string</strong>. 
+                The critical data you need - <Highlight>name</Highlight> and <Highlight>age</Highlight> - are <strong>baked into the message string</strong>. 
                 They're not separate, queryable fields. This creates serious problems:
             </p>
 
@@ -104,7 +104,7 @@ services.AddLogging(builder =&gt;
 
             <h4>The Power of Structured Logging</h4>
             <p>
-                <ContentHighlight>Structured logging</ContentHighlight> (also called <ContentHighlight>semantic logging</ContentHighlight>) solves 
+                <Highlight>Structured logging</Highlight> (also called <Highlight>semantic logging</Highlight>) solves 
                 this by treating log messages as <strong>templates with parameters</strong> rather than finalized strings. When done correctly, 
                 your logging provider can:
             </p>
@@ -143,8 +143,8 @@ services.AddLogging(builder =&gt;
         <How>
             <h4>The Modern .NET Logger Across Application Types</h4>
             <p>
-                One of the beautiful aspects of the .NET logging abstraction is its <ContentHighlight>universal availability</ContentHighlight>. 
-                The <ContentHighlight>ILogger&lt;T&gt;</ContentHighlight> interface works identically across all .NET application types. Let's 
+                One of the beautiful aspects of the .NET logging abstraction is its <Highlight>universal availability</Highlight>. 
+                The <Highlight>ILogger&lt;T&gt;</Highlight> interface works identically across all .NET application types. Let's 
                 see how it appears in different contexts.
             </p>
 
@@ -177,8 +177,8 @@ logger.LogDebug("Debug information available");
 //       Debug information available</CodeSnippet>
 
             <p>
-                The <ContentHighlight>category name</ContentHighlight> (shown as "Program[0]") comes from the generic type parameter 
-                <ContentHighlight>ILogger&lt;Program&gt;</ContentHighlight>. This helps identify which part of your application generated each log entry.
+                The <Highlight>category name</Highlight> (shown as "Program[0]") comes from the generic type parameter 
+                <Highlight>ILogger&lt;Program&gt;</Highlight>. This helps identify which part of your application generated each log entry.
             </p>
 
             <h4>Minimal API</h4>
@@ -204,7 +204,7 @@ app.MapGet("/weather", (ILogger&lt;Program&gt; logger) =&gt;
 app.Run();</CodeSnippet>
 
             <p>
-                Notice how you simply add <ContentHighlight>ILogger&lt;Program&gt;</ContentHighlight> as a parameter to your endpoint lambda - the framework 
+                Notice how you simply add <Highlight>ILogger&lt;Program&gt;</Highlight> as a parameter to your endpoint lambda - the framework 
                 automatically injects the logger instance.
             </p>
 
@@ -243,8 +243,8 @@ public class WeatherForecastController : ControllerBase
 
             <p>
                 The logger is injected automatically by ASP.NET Core's dependency injection container. Notice the 
-                <ContentHighlight>category name</ContentHighlight> now reflects the controller type: 
-                <ContentHighlight>WeatherForecastController</ContentHighlight>.
+                <Highlight>category name</Highlight> now reflects the controller type: 
+                <Highlight>WeatherForecastController</Highlight>.
             </p>
 
             <h4>Blazor Component</h4>
@@ -272,13 +272,13 @@ public class WeatherForecastController : ControllerBase
 }</CodeSnippet>
 
             <p>
-                The pattern is consistent: <ContentHighlight>@@inject ILogger&lt;ComponentType&gt;</ContentHighlight> and then use it anywhere in your component logic.
+                The pattern is consistent: <Highlight>@@inject ILogger&lt;ComponentType&gt;</Highlight> and then use it anywhere in your component logic.
             </p>
 
             <h4>Important: ILogger vs ILogger&lt;T&gt;</h4>
             <p>
-                Starting from <ContentHighlight>.NET 6</ContentHighlight>, the <strong>non-generic</strong> <ContentHighlight>ILogger</ContentHighlight> interface is 
-                <strong>not automatically registered</strong> in dependency injection. You can only inject <ContentHighlight>ILogger&lt;T&gt;</ContentHighlight> with a 
+                Starting from <Highlight>.NET 6</Highlight>, the <strong>non-generic</strong> <Highlight>ILogger</Highlight> interface is 
+                <strong>not automatically registered</strong> in dependency injection. You can only inject <Highlight>ILogger&lt;T&gt;</Highlight> with a 
                 specific type parameter.
             </p>
 
@@ -291,15 +291,15 @@ public class WeatherForecastController : ControllerBase
       .CreateLogger("CustomCategory"));</CodeSnippet>
 
             <p>
-                However, the recommended pattern is to always use <ContentHighlight>ILogger&lt;T&gt;</ContentHighlight> where <ContentHighlight>T</ContentHighlight> is the class or component 
-                using the logger. This automatically sets the <ContentHighlight>category name</ContentHighlight> to the fully qualified type name, 
+                However, the recommended pattern is to always use <Highlight>ILogger&lt;T&gt;</Highlight> where <Highlight>T</Highlight> is the class or component 
+                using the logger. This automatically sets the <Highlight>category name</Highlight> to the fully qualified type name, 
                 making it easier to filter and organize logs.
             </p>
 
             <h4>Understanding the Log Methods</h4>
             <p>
-                When you write <ContentHighlight>logger.LogInformation("message")</ContentHighlight>, you're actually calling an 
-                <ContentHighlight>extension method</ContentHighlight>. If you examine the <ContentHighlight>ILogger</ContentHighlight> interface definition, you'll find 
+                When you write <Highlight>logger.LogInformation("message")</Highlight>, you're actually calling an 
+                <Highlight>extension method</Highlight>. If you examine the <Highlight>ILogger</Highlight> interface definition, you'll find 
                 it has surprisingly few members:
             </p>
 
@@ -319,13 +319,13 @@ public class WeatherForecastController : ControllerBase
 }</CodeSnippet>
 
             <p>
-                The <ContentHighlight>Log</ContentHighlight> method is the <strong>core logging method</strong> - all convenience methods like 
-                <ContentHighlight>LogInformation</ContentHighlight>, <ContentHighlight>LogError</ContentHighlight>, and <ContentHighlight>LogDebug</ContentHighlight> eventually call this.
+                The <Highlight>Log</Highlight> method is the <strong>core logging method</strong> - all convenience methods like 
+                <Highlight>LogInformation</Highlight>, <Highlight>LogError</Highlight>, and <Highlight>LogDebug</Highlight> eventually call this.
             </p>
 
             <h4>The Core Log Method</h4>
             <p>
-                Let's deconstruct the <ContentHighlight>Log</ContentHighlight> method to understand what's happening under the hood:
+                Let's deconstruct the <Highlight>Log</Highlight> method to understand what's happening under the hood:
             </p>
 
             <CodeSnippet CssClass="language-csharp">// Using LogInformation (extension method)
@@ -340,13 +340,13 @@ logger.Log(
     formatter: (state, ex) =&gt; state.ToString());</CodeSnippet>
 
             <p>
-                You <em>can</em> use the <ContentHighlight>Log</ContentHighlight> method directly, but it's verbose and unnecessary in most cases. The extension methods 
+                You <em>can</em> use the <Highlight>Log</Highlight> method directly, but it's verbose and unnecessary in most cases. The extension methods 
                 provide a much cleaner API while giving you the same power.
             </p>
 
             <h4>Log Levels Explained</h4>
             <p>
-                The <ContentHighlight>LogLevel enum</ContentHighlight> defines six levels of severity, plus two special values:
+                The <Highlight>LogLevel enum</Highlight> defines six levels of severity, plus two special values:
             </p>
 
             <CodeSnippet CssClass="language-csharp">public enum LogLevel
@@ -372,13 +372,13 @@ logger.LogError("Error: operation failed but app continues");
 logger.LogCritical("Critical failure: immediate attention needed");</CodeSnippet>
 
             <p>
-                When you set a <ContentHighlight>minimum log level</ContentHighlight>, any logs below that threshold are suppressed. For example, 
-                if the minimum level is set to <ContentHighlight>Information</ContentHighlight>, then <ContentHighlight>Trace</ContentHighlight> and <ContentHighlight>Debug</ContentHighlight> logs won't appear.
+                When you set a <Highlight>minimum log level</Highlight>, any logs below that threshold are suppressed. For example, 
+                if the minimum level is set to <Highlight>Information</Highlight>, then <Highlight>Trace</Highlight> and <Highlight>Debug</Highlight> logs won't appear.
             </p>
 
             <h4>Structured Logging with Message Templates</h4>
             <p>
-                Now we arrive at the most important concept: <ContentHighlight>message templates</ContentHighlight>. This is where structured 
+                Now we arrive at the most important concept: <Highlight>message templates</Highlight>. This is where structured 
                 logging comes to life.
             </p>
 
@@ -400,7 +400,7 @@ logger.LogInformation(
 //       User John is 30 years old</CodeSnippet>
 
             <p>
-                Notice the <strong>curly braces</strong> in the message string? Those are <ContentHighlight>template placeholders</ContentHighlight>, 
+                Notice the <strong>curly braces</strong> in the message string? Those are <Highlight>template placeholders</Highlight>, 
                 not string interpolation. The string is called the <strong>message template</strong> or <strong>format string</strong>.
             </p>
 
@@ -513,13 +513,13 @@ logger.LogInformation(
 // }</CodeSnippet>
 
             <p>
-                Look at the <ContentHighlight>State</ContentHighlight> object - the individual parameters are preserved as <strong>separate properties</strong>:
+                Look at the <Highlight>State</Highlight> object - the individual parameters are preserved as <strong>separate properties</strong>:
             </p>
 
             <ul>
-                <li><ContentHighlight>UserName</ContentHighlight>: "John"</li>
-                <li><ContentHighlight>Role</ContentHighlight>: "Administrator"</li>
-                <li><ContentHighlight>{OriginalFormat}</ContentHighlight>: The original template for grouping/aggregation</li>
+                <li><Highlight>UserName</Highlight>: "John"</li>
+                <li><Highlight>Role</Highlight>: "Administrator"</li>
+                <li><Highlight>{OriginalFormat}</Highlight>: The original template for grouping/aggregation</li>
             </ul>
 
             <p>
@@ -537,7 +537,7 @@ State.Role == "Administrator" AND Message CONTAINS "logged in"
 GROUP BY State.Role WHERE Message CONTAINS "logged in"</CodeSnippet>
 
             <p>
-                This is the power of <ContentHighlight>structured logging</ContentHighlight> - transforming logs from unstructured text into 
+                This is the power of <Highlight>structured logging</Highlight> - transforming logs from unstructured text into 
                 queryable, analyzable data.
             </p>
 
@@ -623,8 +623,8 @@ logger.LogInformation(
 
             <h4>Understanding Log Categories</h4>
             <p>
-                The <ContentHighlight>category</ContentHighlight> is an arbitrary string that helps organize and filter logs. When you use 
-                <ContentHighlight>ILogger&lt;T&gt;</ContentHighlight>, the category is automatically set to the fully qualified name of type <ContentHighlight>T</ContentHighlight>:
+                The <Highlight>category</Highlight> is an arbitrary string that helps organize and filter logs. When you use 
+                <Highlight>ILogger&lt;T&gt;</Highlight>, the category is automatically set to the fully qualified name of type <Highlight>T</Highlight>:
             </p>
 
             <CodeSnippet CssClass="language-csharp">// In a class called UserService in namespace MyApp.Services:
@@ -638,7 +638,7 @@ public UserService(ILogger&lt;UserService&gt; logger)
 // Category will be: "MyApp.Services.UserService"</CodeSnippet>
 
             <p>
-                You can also create a logger with a custom category using <ContentHighlight>ILoggerFactory</ContentHighlight>:
+                You can also create a logger with a custom category using <Highlight>ILoggerFactory</Highlight>:
             </p>
 
             <CodeSnippet CssClass="language-csharp">public class UserService
@@ -678,10 +678,10 @@ public UserService(ILogger&lt;UserService&gt; logger)
             </p>
 
             <ul>
-                <li>Most of the app logs at <ContentHighlight>Information</ContentHighlight> level and above</li>
-                <li>Microsoft's internal logs are filtered to <ContentHighlight>Warning</ContentHighlight> and above (reduces noise)</li>
-                <li>Entity Framework logs at <ContentHighlight>Information</ContentHighlight> (to see SQL queries)</li>
-                <li><ContentHighlight>UserService</ContentHighlight> logs at <ContentHighlight>Debug</ContentHighlight> level for detailed diagnostics</li>
+                <li>Most of the app logs at <Highlight>Information</Highlight> level and above</li>
+                <li>Microsoft's internal logs are filtered to <Highlight>Warning</Highlight> and above (reduces noise)</li>
+                <li>Entity Framework logs at <Highlight>Information</Highlight> (to see SQL queries)</li>
+                <li><Highlight>UserService</Highlight> logs at <Highlight>Debug</Highlight> level for detailed diagnostics</li>
             </ul>
 
             <p>
@@ -705,7 +705,7 @@ public UserService(ILogger&lt;UserService&gt; logger)
 
             <h4>Working with Minimum Log Levels</h4>
             <p>
-                The <ContentHighlight>minimum log level</ContentHighlight> acts as a threshold - any logs below it are suppressed. This is crucial 
+                The <Highlight>minimum log level</Highlight> acts as a threshold - any logs below it are suppressed. This is crucial 
                 for performance and managing log volume in production.
             </p>
 
@@ -728,7 +728,7 @@ logger.LogError("This error will show");
 logger.LogCritical("This critical will show");</CodeSnippet>
 
             <p>
-                In ASP.NET Core applications, the minimum log level is typically configured in <ContentHighlight>appsettings.json</ContentHighlight>:
+                In ASP.NET Core applications, the minimum log level is typically configured in <Highlight>appsettings.json</Highlight>:
             </p>
 
             <CodeSnippet CssClass="language-json">{
@@ -763,7 +763,7 @@ logger.LogCritical("This critical will show");</CodeSnippet>
 
             <h4>Understanding Event IDs</h4>
             <p>
-                The <ContentHighlight>EventId</ContentHighlight> is an optional identifier you can assign to log entries to categorize and track 
+                The <Highlight>EventId</Highlight> is an optional identifier you can assign to log entries to categorize and track 
                 specific events:
             </p>
 
@@ -783,7 +783,7 @@ logger.LogError(
     databaseName);</CodeSnippet>
 
             <p>
-                The <ContentHighlight>EventId</ContentHighlight> struct has two parts:
+                The <Highlight>EventId</Highlight> struct has two parts:
             </p>
 
             <ul>
@@ -862,7 +862,7 @@ logger.LogError(
 //       category               event ID</CodeSnippet>
 
             <p>
-                The number in square brackets <ContentHighlight>[1001]</ContentHighlight> is the event ID, making it easy to spot specific event types in console output.
+                The number in square brackets <Highlight>[1001]</Highlight> is the event ID, making it easy to spot specific event types in console output.
             </p>
 
             <h4>Best Practices for Production Logging</h4>
@@ -974,31 +974,31 @@ public class UserService
 
             <ul>
                 <li>
-                    <ContentHighlight>Structured logging is mandatory</ContentHighlight> - Never use string interpolation or concatenation. 
+                    <Highlight>Structured logging is mandatory</Highlight> - Never use string interpolation or concatenation. 
                     Always use message templates with parameters to preserve data types and enable powerful queries.
                 </li>
                 <li>
-                    <ContentHighlight>ILogger&lt;T&gt; works everywhere</ContentHighlight> - The same logging interface and patterns work across 
+                    <Highlight>ILogger&lt;T&gt; works everywhere</Highlight> - The same logging interface and patterns work across 
                     console apps, APIs, Blazor components, and all other .NET application types.
                 </li>
                 <li>
-                    <ContentHighlight>Message templates are the foundation</ContentHighlight> - Use curly-brace placeholders in your log messages 
+                    <Highlight>Message templates are the foundation</Highlight> - Use curly-brace placeholders in your log messages 
                     and pass values as separate parameters. This enables proper structured logging output.
                 </li>
                 <li>
-                    <ContentHighlight>Categories organize your logs</ContentHighlight> - Use <ContentHighlight>ILogger&lt;T&gt;</ContentHighlight> where T is your class 
+                    <Highlight>Categories organize your logs</Highlight> - Use <Highlight>ILogger&lt;T&gt;</Highlight> where T is your class 
                     name to automatically set meaningful categories, enabling precise filtering and analysis.
                 </li>
                 <li>
-                    <ContentHighlight>Log levels control verbosity</ContentHighlight> - Set appropriate minimum log levels for different environments 
+                    <Highlight>Log levels control verbosity</Highlight> - Set appropriate minimum log levels for different environments 
                     and categories to manage performance and log volume while maintaining visibility.
                 </li>
                 <li>
-                    <ContentHighlight>Event IDs enable tracking</ContentHighlight> - Assign consistent event IDs to categorize and track specific 
+                    <Highlight>Event IDs enable tracking</Highlight> - Assign consistent event IDs to categorize and track specific 
                     operations, enabling alerts and pattern analysis.
                 </li>
                 <li>
-                    <ContentHighlight>Templates must be consistent</ContentHighlight> - Keep message template structure identical across calls to 
+                    <Highlight>Templates must be consistent</Highlight> - Keep message template structure identical across calls to 
                     enable log aggregation, pattern detection, and meaningful analytics.
                 </li>
             </ul>

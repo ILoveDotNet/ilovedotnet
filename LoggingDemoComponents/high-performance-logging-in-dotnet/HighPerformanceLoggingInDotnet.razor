@@ -13,11 +13,11 @@
             </p>
 
             <p>
-                In this article, you will learn two powerful .NET techniques designed for <ContentHighlight>
-                high-performance logging</ContentHighlight> in hot paths: the <ContentHighlight>
-                LoggerMessage.Define</ContentHighlight> method and the <ContentHighlight>logging source
-                generator</ContentHighlight>. Both are built into <ContentHighlight>
-                Microsoft.Extensions.Logging</ContentHighlight> and produce the fastest, most memory-efficient logs
+                In this article, you will learn two powerful .NET techniques designed for <Highlight>
+                high-performance logging</Highlight> in hot paths: the <Highlight>
+                LoggerMessage.Define</Highlight> method and the <Highlight>logging source
+                generator</Highlight>. Both are built into <Highlight>
+                Microsoft.Extensions.Logging</Highlight> and produce the fastest, most memory-efficient logs
                 possible in .NET.
             </p>
 
@@ -26,9 +26,9 @@
             </p>
 
             <ul>
-                <li>Why standard <ContentHighlight>logger.LogInformation</ContentHighlight> calls can be costly in hot paths</li>
-                <li>How <ContentHighlight>LoggerMessage.Define</ContentHighlight> eliminates those costs</li>
-                <li>How the <ContentHighlight>[LoggerMessage]</ContentHighlight> source generator gives you the same performance with a clean, maintainable API</li>
+                <li>Why standard <Highlight>logger.LogInformation</Highlight> calls can be costly in hot paths</li>
+                <li>How <Highlight>LoggerMessage.Define</Highlight> eliminates those costs</li>
+                <li>How the <Highlight>[LoggerMessage]</Highlight> source generator gives you the same performance with a clean, maintainable API</li>
             </ul>
         </What>
 
@@ -57,10 +57,10 @@ _logger.LogInformation(
             </p>
 
             <ul>
-                <li>The <ContentHighlight>params object[]</ContentHighlight> overload — the one used by every plain
-                    <ContentHighlight>LogInformation(template, args...)</ContentHighlight> call — boxes value types
-                    like <ContentHighlight>decimal</ContentHighlight> and <ContentHighlight>int</ContentHighlight>
-                    into <ContentHighlight>object</ContentHighlight> on every invocation</li>
+                <li>The <Highlight>params object[]</Highlight> overload — the one used by every plain
+                    <Highlight>LogInformation(template, args...)</Highlight> call — boxes value types
+                    like <Highlight>decimal</Highlight> and <Highlight>int</Highlight>
+                    into <Highlight>object</Highlight> on every invocation</li>
                 <li>Allocates a new array on the heap to hold those boxed arguments</li>
                 <li>Performs these allocations <strong>even when the log level is disabled</strong></li>
             </ul>
@@ -89,9 +89,9 @@ _logger.LogInformation(
             <h4>Step 1 — LoggerMessage.Define</h4>
 
             <p>
-                <ContentHighlight>LoggerMessage.Define</ContentHighlight> is a factory method that creates a strongly
-                typed, cached <ContentHighlight>Action</ContentHighlight> delegate for a specific log message at
-                <ContentHighlight>application startup</ContentHighlight>. The formatter is compiled once and reused
+                <Highlight>LoggerMessage.Define</Highlight> is a factory method that creates a strongly
+                typed, cached <Highlight>Action</Highlight> delegate for a specific log message at
+                <Highlight>application startup</Highlight>. The formatter is compiled once and reused
                 for every subsequent call. There is no boxing, no array allocation.
             </p>
 
@@ -130,15 +130,15 @@ public class PaymentService
             </CodeSnippet>
 
             <p>
-                The generic type parameters on <ContentHighlight>Define&lt;string, decimal, int&gt;</ContentHighlight>
+                The generic type parameters on <Highlight>Define&lt;string, decimal, int&gt;</Highlight>
                 match the three message template placeholders. The last argument in the generated
-                <ContentHighlight>Action</ContentHighlight> is always an <ContentHighlight>Exception?</ContentHighlight>
-                — pass <ContentHighlight>null</ContentHighlight> when there is no exception to attach.
+                <Highlight>Action</Highlight> is always an <Highlight>Exception?</Highlight>
+                — pass <Highlight>null</Highlight> when there is no exception to attach.
             </p>
 
             <p>
-                When you do have an exception — for example, inside a <ContentHighlight>catch</ContentHighlight>
-                block — pass it as the final argument instead of <ContentHighlight>null</ContentHighlight>. It
+                When you do have an exception — for example, inside a <Highlight>catch</Highlight>
+                block — pass it as the final argument instead of <Highlight>null</Highlight>. It
                 will be attached to the structured log entry and surfaced automatically by any log store:
             </p>
 
@@ -156,7 +156,7 @@ catch (Exception ex)
 
             <p>
                 This works and is maximally fast. But the developer experience has some rough edges: you must manage
-                a private static field, and you must pass the injected <ContentHighlight>_logger</ContentHighlight>
+                a private static field, and you must pass the injected <Highlight>_logger</Highlight>
                 as a parameter into the delegate even though it was injected. It is awkward, and nullable
                 exceptions add noise. There is a better way.
             </p>
@@ -164,14 +164,14 @@ catch (Exception ex)
             <h4>Step 2 — The [LoggerMessage] source generator</h4>
 
             <p>
-                The <ContentHighlight>[LoggerMessage]</ContentHighlight> source generator, introduced in .NET 6,
-                gives you the <em>exact same performance</em> as <ContentHighlight>LoggerMessage.Define</ContentHighlight>
+                The <Highlight>[LoggerMessage]</Highlight> source generator, introduced in .NET 6,
+                gives you the <em>exact same performance</em> as <Highlight>LoggerMessage.Define</Highlight>
                 but with a clean, idiomatic API. You declare your intent; the compiler generates the optimised code.
             </p>
 
             <p>
-                Make the class <ContentHighlight>partial</ContentHighlight> and annotate methods with
-                <ContentHighlight>[LoggerMessage]</ContentHighlight>:
+                Make the class <Highlight>partial</Highlight> and annotate methods with
+                <Highlight>[LoggerMessage]</Highlight>:
             </p>
 
             <CodeSnippet CssClass="language-csharp">
@@ -201,24 +201,24 @@ public partial class PaymentService(ILogger&lt;PaymentService&gt; logger)
             </CodeSnippet>
 
             <p>
-                Two things are required: the class must be <ContentHighlight>partial</ContentHighlight>, and
-                the method must be <ContentHighlight>partial</ContentHighlight> as well. The
-                <ContentHighlight>partial</ContentHighlight> keyword is how you tell the compiler that another file
+                Two things are required: the class must be <Highlight>partial</Highlight>, and
+                the method must be <Highlight>partial</Highlight> as well. The
+                <Highlight>partial</Highlight> keyword is how you tell the compiler that another file
                 will contribute part of the definition — in this case, the source generator writes the method body
                 into a separate generated file at compile time, and you never write the implementation yourself.
             </p>
 
             <p>
-                The <ContentHighlight>static</ContentHighlight> modifier is only needed when you want to define
-                log methods as <ContentHighlight>ILogger</ContentHighlight> extension methods in a dedicated
+                The <Highlight>static</Highlight> modifier is only needed when you want to define
+                log methods as <Highlight>ILogger</Highlight> extension methods in a dedicated
                 helper class. When the logger is already injected into the class, instance
-                <ContentHighlight>partial</ContentHighlight> methods are cleaner and avoid passing
-                <ContentHighlight>this ILogger</ContentHighlight> explicitly.
+                <Highlight>partial</Highlight> methods are cleaner and avoid passing
+                <Highlight>this ILogger</Highlight> explicitly.
             </p>
 
             <p>
                 The generated code automatically checks whether the target log level is enabled before doing
-                anything else. If <ContentHighlight>Information</ContentHighlight> is not enabled for this logger,
+                anything else. If <Highlight>Information</Highlight> is not enabled for this logger,
                 the method returns immediately — no boxing, no allocation, no string formatting. Zero cost.
             </p>
 
@@ -249,7 +249,7 @@ LogPaymentCreation(email, amount, productId);
 
             <p>
                 These techniques are not for everywhere — they require more setup than a plain
-                <ContentHighlight>LogInformation</ContentHighlight> call. Apply them in:
+                <Highlight>LogInformation</Highlight> call. Apply them in:
             </p>
 
             <ul>
@@ -260,8 +260,8 @@ LogPaymentCreation(email, amount, productId);
             </ul>
 
             <p>
-                If you can afford the slightly higher maintenance burden, the <ContentHighlight>
-                [LoggerMessage]</ContentHighlight> source generator is the recommended approach for all logging —
+                If you can afford the slightly higher maintenance burden, the <Highlight>
+                [LoggerMessage]</Highlight> source generator is the recommended approach for all logging —
                 not just hot paths. It is the highest-performance logging option available in .NET today, and it
                 is not significantly harder to write once you are familiar with the pattern.
             </p>
@@ -275,21 +275,21 @@ LogPaymentCreation(email, amount, productId);
 
             <ul>
                 <li>
-                    <ContentHighlight>LoggerMessage.Define</ContentHighlight> creates a pre-compiled, cached
+                    <Highlight>LoggerMessage.Define</Highlight> creates a pre-compiled, cached
                     delegate at startup. It eliminates boxing and heap allocation on every log call, making it
                     ideal for hot paths.
                 </li>
                 <li>
-                    The <ContentHighlight>[LoggerMessage]</ContentHighlight> source generator delivers the same
+                    The <Highlight>[LoggerMessage]</Highlight> source generator delivers the same
                     zero-allocation performance with a clean, maintainable extension-method API. The compiler
                     generates the implementation — you only declare the intent.
                 </li>
                 <li>
                     Both techniques check whether the target log level is enabled before doing any work, ensuring
-                    <ContentHighlight>zero-cost logging</ContentHighlight> when the level is disabled.
+                    <Highlight>zero-cost logging</Highlight> when the level is disabled.
                 </li>
                 <li>
-                    For general use, prefer the <ContentHighlight>[LoggerMessage]</ContentHighlight> source
+                    For general use, prefer the <Highlight>[LoggerMessage]</Highlight> source
                     generator. It is the best balance of performance, readability, and maintainability
                     available in .NET today.
                 </li>

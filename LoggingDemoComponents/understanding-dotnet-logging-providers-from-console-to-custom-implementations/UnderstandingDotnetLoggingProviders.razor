@@ -7,8 +7,8 @@
     <ContentBody>
         <What>
             <p>
-                In .NET logging, a <ContentHighlight>log provider</ContentHighlight> is the destination where your log messages are sent.
-                When you call <ContentHighlight>logger.LogInformation("Request received")</ContentHighlight>, the .NET logging framework
+                In .NET logging, a <Highlight>log provider</Highlight> is the destination where your log messages are sent.
+                When you call <Highlight>logger.LogInformation("Request received")</Highlight>, the .NET logging framework
                 routes that message to one or more registered providers. Providers can be anything from the familiar terminal window
                 to a cloud-based analytics service or a custom file sink you build yourself.
             </p>
@@ -20,13 +20,13 @@
             <ul>
                 <li>
                     <strong>Ephemeral providers</strong> - Log output that disappears when the application stops. The
-                    <ContentHighlight>console provider</ContentHighlight> is the classic example: logs appear in the terminal
+                    <Highlight>console provider</Highlight> is the classic example: logs appear in the terminal
                     while the app runs, then vanish.
                 </li>
                 <li>
                     <strong>Persistent providers</strong> - Log output that is stored and survives process restarts. File system
                     providers, database providers, and cloud services such as
-                    <ContentHighlight>Azure Application Insights</ContentHighlight> all fall into this category.
+                    <Highlight>Azure Application Insights</Highlight> all fall into this category.
                 </li>
             </ul>
 
@@ -53,7 +53,7 @@
             <h3 class="[ font-semibold text-lg ]">Unexpected providers registered implicitly</h3>
 
             <p>
-                Adding a NuGet package such as <ContentHighlight>Microsoft.Extensions.Hosting</ContentHighlight> silently
+                Adding a NuGet package such as <Highlight>Microsoft.Extensions.Hosting</Highlight> silently
                 registers several providers (console, debug, event log, event source) as indirect dependencies. Developers
                 who are unaware of this end up with duplicate log entries and unexpectedly high verbosity in production.
             </p>
@@ -79,9 +79,9 @@
             <h3 class="[ font-semibold text-lg ]">How log messages reach their destination</h3>
 
             <p>
-                Every call to <ContentHighlight>ILogger.Log()</ContentHighlight> goes through the
-                <ContentHighlight>ILoggerFactory</ContentHighlight>, which fans the message out to every registered
-                <ContentHighlight>ILoggerProvider</ContentHighlight>. Each provider then writes independently to its
+                Every call to <Highlight>ILogger.Log()</Highlight> goes through the
+                <Highlight>ILoggerFactory</Highlight>, which fans the message out to every registered
+                <Highlight>ILoggerProvider</Highlight>. Each provider then writes independently to its
                 own destination:
             </p>
 
@@ -110,21 +110,21 @@ ILogger.Log(level, message)
             </p>
 
             <ul>
-                <li><ContentHighlight>Console</ContentHighlight> - writes to stdout / the terminal</li>
-                <li><ContentHighlight>Debug</ContentHighlight> - writes to the attached debugger output window</li>
-                <li><ContentHighlight>EventLog</ContentHighlight> - writes to the Windows Event Log (Windows only)</li>
-                <li><ContentHighlight>EventSource</ContentHighlight> - writes ETW / EventPipe events (requires an active listener such as <ContentHighlight>dotnet-trace</ContentHighlight> or PerfView to capture)</li>
+                <li><Highlight>Console</Highlight> - writes to stdout / the terminal</li>
+                <li><Highlight>Debug</Highlight> - writes to the attached debugger output window</li>
+                <li><Highlight>EventLog</Highlight> - writes to the Windows Event Log (Windows only)</li>
+                <li><Highlight>EventSource</Highlight> - writes ETW / EventPipe events (requires an active listener such as <Highlight>dotnet-trace</Highlight> or PerfView to capture)</li>
             </ul>
 
             <p>
-                A fifth provider, <ContentHighlight>TraceSource</ContentHighlight>, integrates with
-                <ContentHighlight>System.Diagnostics.TraceSource</ContentHighlight> and requires explicit
-                <ContentHighlight>AddTraceSource()</ContentHighlight> registration — it is not active by default.
+                A fifth provider, <Highlight>TraceSource</Highlight>, integrates with
+                <Highlight>System.Diagnostics.TraceSource</Highlight> and requires explicit
+                <Highlight>AddTraceSource()</Highlight> registration — it is not active by default.
             </p>
 
             <p>
                 In a plain console application the story is different. No implicit web SDK is present, so you must reference
-                the NuGet packages yourself. Adding <ContentHighlight>Microsoft.Extensions.Hosting</ContentHighlight> is the
+                the NuGet packages yourself. Adding <Highlight>Microsoft.Extensions.Hosting</Highlight> is the
                 quickest path because it transitively pulls in console, debug, event log, and event source providers. Remove
                 that package and only the console provider remains — unless you add others explicitly.
             </p>
@@ -151,10 +151,10 @@ logger.LogInformation("Application started");
 
             <p>
                 External providers follow a naming convention:
-                <ContentHighlight>Microsoft.Extensions.Logging.{ProviderName}</ContentHighlight>. For Application Insights the
-                package is <ContentHighlight>Microsoft.Extensions.Logging.ApplicationInsights</ContentHighlight>.
-                Install it and call <ContentHighlight>AddApplicationInsights</ContentHighlight> inside
-                <ContentHighlight>builder.Logging</ContentHighlight>:
+                <Highlight>Microsoft.Extensions.Logging.{ProviderName}</Highlight>. For Application Insights the
+                package is <Highlight>Microsoft.Extensions.Logging.ApplicationInsights</Highlight>.
+                Install it and call <Highlight>AddApplicationInsights</Highlight> inside
+                <Highlight>builder.Logging</Highlight>:
             </p>
 
             <CodeSnippet CssClass="language-csharp">
@@ -196,8 +196,8 @@ app.Run();
 
             <p>
                 In a console app the hosting infrastructure is absent, so you manage the telemetry channel yourself.
-                Use <ContentHighlight>Microsoft.ApplicationInsights</ContentHighlight> (not the extensions variant) and
-                create an <ContentHighlight>InMemoryChannel</ContentHighlight> to buffer telemetry before the process exits:
+                Use <Highlight>Microsoft.ApplicationInsights</Highlight> (not the extensions variant) and
+                create an <Highlight>InMemoryChannel</Highlight> to buffer telemetry before the process exits:
             </p>
 
             <CodeSnippet CssClass="language-csharp">
@@ -242,7 +242,7 @@ finally
             </CodeSnippet>
 
             <p>
-                The <ContentHighlight>try/finally</ContentHighlight> block guarantees that the channel is flushed even after
+                The <Highlight>try/finally</Highlight> block guarantees that the channel is flushed even after
                 an unexpected exception, so no buffered logs are silently dropped.
             </p>
 
@@ -279,19 +279,19 @@ app.Run();
             </CodeSnippet>
 
             <p>
-                <ContentHighlight>ClearProviders()</ContentHighlight> removes every previously registered provider — including
+                <Highlight>ClearProviders()</Highlight> removes every previously registered provider — including
                 the four implicit ASP.NET Core ones — giving you a clean slate. This pattern prevents development-only
-                providers (e.g. <ContentHighlight>Debug</ContentHighlight>) from appearing in production binaries and avoids
+                providers (e.g. <Highlight>Debug</Highlight>) from appearing in production binaries and avoids
                 paying the cost of cloud ingestion during local development.
             </p>
 
             <h3 class="[ font-semibold text-lg ]">Fine-tuning log levels per provider via appsettings.json</h3>
 
             <p>
-                You do not need to touch <ContentHighlight>Program.cs</ContentHighlight> to control what each provider
-                logs. The <ContentHighlight>Logging</ContentHighlight> section of
-                <ContentHighlight>appsettings.json</ContentHighlight> (or
-                <ContentHighlight>appsettings.{Environment}.json</ContentHighlight>) lets you set minimum log levels
+                You do not need to touch <Highlight>Program.cs</Highlight> to control what each provider
+                logs. The <Highlight>Logging</Highlight> section of
+                <Highlight>appsettings.json</Highlight> (or
+                <Highlight>appsettings.{Environment}.json</Highlight>) lets you set minimum log levels
                 globally and override them per provider and per category:
             </p>
 
@@ -318,8 +318,8 @@ app.Run();
 
             <p>
                 This is the preferred approach for log level management: configuration-based filtering requires no
-                recompile and works seamlessly alongside <ContentHighlight>ClearProviders()</ContentHighlight>.
-                Changes to <ContentHighlight>appsettings.json</ContentHighlight> take effect without redeploying
+                recompile and works seamlessly alongside <Highlight>ClearProviders()</Highlight>.
+                Changes to <Highlight>appsettings.json</Highlight> take effect without redeploying
                 when the file configuration provider is set to reload on change (the default for ASP.NET Core apps).
             </p>
 
@@ -327,7 +327,7 @@ app.Run();
 
             <p>
                 When no built-in or third-party provider meets your needs, you can implement your own by satisfying two
-                interfaces: <ContentHighlight>ILoggerProvider</ContentHighlight> and <ContentHighlight>ILogger</ContentHighlight>.
+                interfaces: <Highlight>ILoggerProvider</Highlight> and <Highlight>ILogger</Highlight>.
             </p>
 
             <CodeSnippet CssClass="language-csharp">
@@ -380,7 +380,7 @@ public sealed class CustomLogger : ILogger
             </CodeSnippet>
 
             <p>
-                Register the provider using <ContentHighlight>AddProvider</ContentHighlight>:
+                Register the provider using <Highlight>AddProvider</Highlight>:
             </p>
 
             <CodeSnippet CssClass="language-csharp">
@@ -392,7 +392,7 @@ services.AddLogging(logging =&gt; logging.AddProvider(new CustomLoggerProvider()
             </CodeSnippet>
 
             <p>
-                The real complexity in a custom provider lives in the <ContentHighlight>ILogger.Log</ContentHighlight>
+                The real complexity in a custom provider lives in the <Highlight>ILogger.Log</Highlight>
                 implementation: formatting, batching, async I/O, thread safety, and error handling. The provider class itself
                 is intentionally thin — its only job is to manufacture logger instances.
             </p>
@@ -422,34 +422,34 @@ services.AddLogging(logging =&gt; logging.AddProvider(new CustomLoggerProvider()
 
             <ul>
                 <li>
-                    Providers are either <ContentHighlight>ephemeral</ContentHighlight> (console, debug) or
-                    <ContentHighlight>persistent</ContentHighlight> (file, database, cloud services).
+                    Providers are either <Highlight>ephemeral</Highlight> (console, debug) or
+                    <Highlight>persistent</Highlight> (file, database, cloud services).
                 </li>
                 <li>
-                    ASP.NET Core and the <ContentHighlight>Microsoft.Extensions.Hosting</ContentHighlight> package register
+                    ASP.NET Core and the <Highlight>Microsoft.Extensions.Hosting</Highlight> package register
                     multiple providers implicitly — be aware of what you get for free.
                 </li>
                 <li>
-                    External providers such as <ContentHighlight>Application Insights</ContentHighlight> are added via their
-                    <ContentHighlight>Microsoft.Extensions.Logging.{ProviderName}</ContentHighlight> NuGet package and a
-                    single <ContentHighlight>AddApplicationInsights</ContentHighlight> call.
+                    External providers such as <Highlight>Application Insights</Highlight> are added via their
+                    <Highlight>Microsoft.Extensions.Logging.{ProviderName}</Highlight> NuGet package and a
+                    single <Highlight>AddApplicationInsights</Highlight> call.
                 </li>
                 <li>
-                    In console applications, manage the <ContentHighlight>InMemoryChannel</ContentHighlight> lifecycle
-                    explicitly and flush it in a <ContentHighlight>finally</ContentHighlight> block to avoid losing buffered logs.
+                    In console applications, manage the <Highlight>InMemoryChannel</Highlight> lifecycle
+                    explicitly and flush it in a <Highlight>finally</Highlight> block to avoid losing buffered logs.
                 </li>
                 <li>
-                    Use <ContentHighlight>ClearProviders()</ContentHighlight> combined with environment checks to register
+                    Use <Highlight>ClearProviders()</Highlight> combined with environment checks to register
                     only the providers appropriate for each deployment environment.
                 </li>
                 <li>
-                    Fine-tune log levels per provider and category via the <ContentHighlight>Logging</ContentHighlight>
-                    section of <ContentHighlight>appsettings.json</ContentHighlight> — no recompile required, and changes
+                    Fine-tune log levels per provider and category via the <Highlight>Logging</Highlight>
+                    section of <Highlight>appsettings.json</Highlight> — no recompile required, and changes
                     take effect at runtime when the file configuration provider reloads on change.
                 </li>
                 <li>
-                    Build a custom provider by implementing <ContentHighlight>ILoggerProvider</ContentHighlight> and
-                    <ContentHighlight>ILogger</ContentHighlight>. The provider creates logger instances; the logger handles
+                    Build a custom provider by implementing <Highlight>ILoggerProvider</Highlight> and
+                    <Highlight>ILogger</Highlight>. The provider creates logger instances; the logger handles
                     the actual write logic.
                 </li>
             </ul>

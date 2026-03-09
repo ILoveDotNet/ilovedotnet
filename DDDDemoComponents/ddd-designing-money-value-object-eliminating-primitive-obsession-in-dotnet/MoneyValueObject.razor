@@ -6,9 +6,9 @@
   <ContentBody>
     <What>
       <p>
-        In this article, we'll design a robust <ContentHighlight>Money Value Object</ContentHighlight> for .NET applications using 
+        In this article, we'll design a robust <Highlight>Money Value Object</Highlight> for .NET applications using 
         Domain-Driven Design principles. Money is one of the most common value objects in business applications, yet it's frequently 
-        mishandled by representing it as primitive types like <ContentHighlight>decimal</ContentHighlight> and <ContentHighlight>string</ContentHighlight>.
+        mishandled by representing it as primitive types like <Highlight>decimal</Highlight> and <Highlight>string</Highlight>.
       </p>
 
       <p>
@@ -19,7 +19,7 @@
 
       <p>
         By the end of this article, you'll understand why primitive obsession is problematic for financial domains and how to implement 
-        a Money <ContentHighlight>record</ContentHighlight> with proper equality semantics — without any boilerplate.
+        a Money <Highlight>record</Highlight> with proper equality semantics — without any boilerplate.
       </p>
     </What>
 
@@ -27,7 +27,7 @@
       <h4>The Primitive Obsession Problem</h4>
 
       <p>
-        Many applications represent money using primitive types, leading to a pattern called <ContentHighlight>primitive obsession</ContentHighlight>. 
+        Many applications represent money using primitive types, leading to a pattern called <Highlight>primitive obsession</Highlight>. 
         This anti-pattern causes subtle bugs and forces developers to remember business rules throughout the codebase.
       </p>
 
@@ -62,7 +62,7 @@ product.Currency = null;    // ❌ Price without currency!
       <ul>
         <li><strong>No validation:</strong> Nothing prevents negative amounts or zero-precision edge cases</li>
         <li><strong>Separated concerns:</strong> Amount and currency live in separate fields—they can get out of sync</li>
-        <li><strong>Floating-point errors:</strong> Using <ContentHighlight>double</ContentHighlight> for money causes rounding issues (0.1 + 0.2 ≠ 0.3)</li>
+        <li><strong>Floating-point errors:</strong> Using <Highlight>double</Highlight> for money causes rounding issues (0.1 + 0.2 ≠ 0.3)</li>
         <li><strong>Non-standard currencies:</strong> "INR", "rupees", "₹" all mean the same thing but compare differently</li>
         <li><strong>Scattered logic:</strong> Every method that handles money must re-implement the same validation rules</li>
       </ul>
@@ -118,10 +118,10 @@ ProcessOrder(100.0, null, 50.0, "INR");    // ❌ Null currency crashes at runti
       <ul>
         <li><strong>Encapsulation:</strong> Amount and currency always travel together</li>
         <li><strong>Validation:</strong> Invalid states are impossible to construct</li>
-        <li><strong>Precision:</strong> Uses <ContentHighlight>decimal</ContentHighlight> instead of <ContentHighlight>double</ContentHighlight> for exact arithmetic</li>
+        <li><strong>Precision:</strong> Uses <Highlight>decimal</Highlight> instead of <Highlight>double</Highlight> for exact arithmetic</li>
         <li><strong>Type Safety:</strong> Currency mismatches are caught at runtime — impossible to accidentally skip the check</li>
         <li><strong>Immutability:</strong> Once created, Money instances can't be corrupted</li>
-        <li><strong>Free equality:</strong> Using a <ContentHighlight>record</ContentHighlight> gives structural equality with zero boilerplate</li>
+        <li><strong>Free equality:</strong> Using a <Highlight>record</Highlight> gives structural equality with zero boilerplate</li>
         <li><strong>Domain Language:</strong> Code reads like business requirements</li>
       </ul>
     </Why>
@@ -130,12 +130,12 @@ ProcessOrder(100.0, null, 50.0, "INR");    // ❌ Null currency crashes at runti
       <h4>Step 1: Define the Money Record Structure</h4>
 
       <p>
-        We'll create Money as a <ContentHighlight>record</ContentHighlight> — not a class. Records in C# provide 
-        <ContentHighlight>structural equality</ContentHighlight> automatically, meaning two Money instances with the same 
-        <ContentHighlight>Amount</ContentHighlight> and <ContentHighlight>Currency</ContentHighlight> are equal without 
-        writing a single line of <ContentHighlight>Equals</ContentHighlight> or <ContentHighlight>GetHashCode</ContentHighlight> code.
-        A <ContentHighlight>private</ContentHighlight> constructor keeps creation controlled through factory methods while 
-        <ContentHighlight>init</ContentHighlight> properties guarantee immutability after construction.
+        We'll create Money as a <Highlight>record</Highlight> — not a class. Records in C# provide 
+        <Highlight>structural equality</Highlight> automatically, meaning two Money instances with the same 
+        <Highlight>Amount</Highlight> and <Highlight>Currency</Highlight> are equal without 
+        writing a single line of <Highlight>Equals</Highlight> or <Highlight>GetHashCode</Highlight> code.
+        A <Highlight>private</Highlight> constructor keeps creation controlled through factory methods while 
+        <Highlight>init</Highlight> properties guarantee immutability after construction.
       </p>
 
       <CodeSnippet CssClass="language-csharp">
@@ -177,10 +177,10 @@ public record Money
       </p>
 
       <ul>
-        <li><ContentHighlight>record</ContentHighlight> gives structural equality for free — no <ContentHighlight>Equals</ContentHighlight>, <ContentHighlight>GetHashCode</ContentHighlight>, or <ContentHighlight>==</ContentHighlight>/<ContentHighlight>!=</ContentHighlight> boilerplate</li>
-        <li><ContentHighlight>private</ContentHighlight> constructor prevents external instantiation — all creation goes through factory methods</li>
+        <li><Highlight>record</Highlight> gives structural equality for free — no <Highlight>Equals</Highlight>, <Highlight>GetHashCode</Highlight>, or <Highlight>==</Highlight>/<Highlight>!=</Highlight> boilerplate</li>
+        <li><Highlight>private</Highlight> constructor prevents external instantiation — all creation goes through factory methods</li>
         <li>Currency is normalised to uppercase so "inr", "INR", and "Inr" all resolve to the same value</li>
-        <li>Rounding to 2 decimals with <ContentHighlight>AwayFromZero</ContentHighlight> matches standard financial rounding</li>
+        <li>Rounding to 2 decimals with <Highlight>AwayFromZero</Highlight> matches standard financial rounding</li>
       </ul>
 
       <h4>Step 2: Add Factory Methods</h4>
@@ -237,7 +237,7 @@ public record Money
 
       <p>
         All arithmetic operators return <strong>new instances</strong> — Money is immutable. The 
-        <ContentHighlight>EnsureSameCurrency</ContentHighlight> guard is shared by all operators so currency validation 
+        <Highlight>EnsureSameCurrency</Highlight> guard is shared by all operators so currency validation 
         is defined exactly once.
       </p>
 
@@ -448,11 +448,11 @@ var finalPrice = Money.Inr(100) * 3 - Money.Inr(50);  // ₹250.00 INR
 
     <Summary>
       <ul>
-        <li><ContentHighlight>Primitive obsession</ContentHighlight> for money leads to bugs, scattered validation, and currency mismatch errors</li>
-        <li>A <ContentHighlight>Money record</ContentHighlight> encapsulates amount and currency as an inseparable, immutable unit</li>
-        <li>Use <ContentHighlight>decimal</ContentHighlight> instead of <ContentHighlight>double</ContentHighlight> for precise financial calculations without floating-point errors</li>
-        <li>Implement Money as a <ContentHighlight>record</ContentHighlight> — C# records provide structural equality for free, eliminating <ContentHighlight>Equals</ContentHighlight>, <ContentHighlight>GetHashCode</ContentHighlight>, and <ContentHighlight>==</ContentHighlight>/<ContentHighlight>!=</ContentHighlight> boilerplate</li>
-        <li>Use a <ContentHighlight>private</ContentHighlight> constructor with <ContentHighlight>init</ContentHighlight> properties to keep instances immutable and creation controlled via factory methods</li>
+        <li><Highlight>Primitive obsession</Highlight> for money leads to bugs, scattered validation, and currency mismatch errors</li>
+        <li>A <Highlight>Money record</Highlight> encapsulates amount and currency as an inseparable, immutable unit</li>
+        <li>Use <Highlight>decimal</Highlight> instead of <Highlight>double</Highlight> for precise financial calculations without floating-point errors</li>
+        <li>Implement Money as a <Highlight>record</Highlight> — C# records provide structural equality for free, eliminating <Highlight>Equals</Highlight>, <Highlight>GetHashCode</Highlight>, and <Highlight>==</Highlight>/<Highlight>!=</Highlight> boilerplate</li>
+        <li>Use a <Highlight>private</Highlight> constructor with <Highlight>init</Highlight> properties to keep instances immutable and creation controlled via factory methods</li>
         <li>Validate currency codes (ISO 4217) and amounts at construction time to prevent invalid states</li>
         <li>All arithmetic operators return new Money instances, preserving immutability</li>
         <li>Add comparison operators manually for ordering — records provide structural equality but not ordering</li>

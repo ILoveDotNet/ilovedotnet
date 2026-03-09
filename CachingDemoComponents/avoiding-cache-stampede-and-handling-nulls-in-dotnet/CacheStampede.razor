@@ -12,9 +12,9 @@
             </p>
             
             <p>
-                In this article, we'll build <ContentHighlight>production-grade caching patterns</ContentHighlight> that prevent these disasters. You'll learn 
-                <ContentHighlight>atomic cache operations</ContentHighlight>, <ContentHighlight>stampede prevention techniques</ContentHighlight>, and 
-                <ContentHighlight>defensive null handling</ContentHighlight> - techniques that protect both your infrastructure and your budget.
+                In this article, we'll build <Highlight>production-grade caching patterns</Highlight> that prevent these disasters. You'll learn 
+                <Highlight>atomic cache operations</Highlight>, <Highlight>stampede prevention techniques</Highlight>, and 
+                <Highlight>defensive null handling</Highlight> - techniques that protect both your infrastructure and your budget.
             </p>
             
             <p>
@@ -22,9 +22,9 @@
             </p>
             
             <ul>
-                <li>Caching <ContentHighlight>missing or invalid data</ContentHighlight> to prevent abuse and rate limit exhaustion</li>
-                <li>Using <ContentHighlight>coordinated cache operations</ContentHighlight> instead of naive get-then-set patterns</li>
-                <li>Preventing <ContentHighlight>thundering herd problems</ContentHighlight> when cache entries expire under load</li>
+                <li>Caching <Highlight>missing or invalid data</Highlight> to prevent abuse and rate limit exhaustion</li>
+                <li>Using <Highlight>coordinated cache operations</Highlight> instead of naive get-then-set patterns</li>
+                <li>Preventing <Highlight>thundering herd problems</Highlight> when cache entries expire under load</li>
             </ul>
         </What>
 
@@ -33,7 +33,7 @@
             
             <p>
                 Imagine you're building a weather dashboard that displays forecasts for major cities. Your external API allows 
-                <ContentHighlight>1,000 requests per hour</ContentHighlight>. During morning rush hour, 5,000 users request London's forecast. 
+                <Highlight>1,000 requests per hour</Highlight>. During morning rush hour, 5,000 users request London's forecast. 
                 The cached entry just expired.
             </p>
 
@@ -60,7 +60,7 @@ foreach (var user in 5000_concurrent_users)
 
             <p>
                 The problem? Your code checks the cache, finds nothing, then calls the API - but hundreds of other requests are doing 
-                <ContentHighlight>the exact same thing simultaneously</ContentHighlight>. By the time request #1 saves the forecast to cache, 
+                <Highlight>the exact same thing simultaneously</Highlight>. By the time request #1 saves the forecast to cache, 
                 requests #2-5000 have already started their API calls.
             </p>
 
@@ -121,7 +121,7 @@ public async Task&lt;WeatherForecast?&gt; GetForecast(string city)
             </ul>
 
             <p>
-                The solution? <ContentHighlight>Defensive caching patterns</ContentHighlight> that protect against these scenarios through 
+                The solution? <Highlight>Defensive caching patterns</Highlight> that protect against these scenarios through 
                 coordination, negative caching, and atomic operations.
             </p>
         </Why>
@@ -130,7 +130,7 @@ public async Task&lt;WeatherForecast?&gt; GetForecast(string city)
             <h4>Solution 1: Always Cache the Result (Including Nulls)</h4>
 
             <p>
-                The first defensive pattern: <ContentHighlight>cache everything</ContentHighlight>, even when data doesn't exist. 
+                The first defensive pattern: <Highlight>cache everything</Highlight>, even when data doesn't exist. 
                 Let's implement this for our weather API:
             </p>
 
@@ -184,7 +184,7 @@ public class WeatherService
             <h4>Solution 2: Different TTL for Negative Results</h4>
 
             <p>
-                Sometimes you want shorter cache duration for missing data. Here's how to implement <ContentHighlight>adaptive caching</ContentHighlight>:
+                Sometimes you want shorter cache duration for missing data. Here's how to implement <Highlight>adaptive caching</Highlight>:
             </p>
 
             <CodeSnippet CssClass="language-csharp">
@@ -294,7 +294,7 @@ public class WeatherStampedeSimulation
             <h4>Solution 4: The Option/Maybe Pattern (No Nulls)</h4>
 
             <p>
-                If you prefer avoiding nulls entirely, use the <ContentHighlight>Option Pattern</ContentHighlight> to explicitly represent presence/absence:
+                If you prefer avoiding nulls entirely, use the <Highlight>Option Pattern</Highlight> to explicitly represent presence/absence:
             </p>
 
             <CodeSnippet CssClass="language-csharp">
@@ -331,7 +331,7 @@ public async Task&lt;Product?&gt; GetProductApproach3(int productId)
             <h4>Solution 4: The Option/Maybe Pattern (No Nulls)</h4>
 
             <p>
-                If you prefer avoiding nulls entirely, use the <ContentHighlight>Option Pattern</ContentHighlight> to explicitly represent presence/absence:
+                If you prefer avoiding nulls entirely, use the <Highlight>Option Pattern</Highlight> to explicitly represent presence/absence:
             </p>
 
             <CodeSnippet CssClass="language-csharp">
@@ -530,23 +530,23 @@ Library Recommendations:
             
             <ul>
                 <li>
-                    <ContentHighlight>Negative Caching</ContentHighlight> - Cache null/missing results to prevent DOS attacks from repeated 
+                    <Highlight>Negative Caching</Highlight> - Cache null/missing results to prevent DOS attacks from repeated 
                     queries for non-existent data, protecting API rate limits and reducing costs
                 </li>
                 <li>
-                    <ContentHighlight>Atomic Operations</ContentHighlight> - Use GetOrCreate/GetOrSet instead of separate Get+Set calls to enable 
+                    <Highlight>Atomic Operations</Highlight> - Use GetOrCreate/GetOrSet instead of separate Get+Set calls to enable 
                     automatic coordination that prevents stampede conditions
                 </li>
                 <li>
-                    <ContentHighlight>Request Coordination</ContentHighlight> - Libraries like HybridCache and FusionCache ensure only one request executes 
+                    <Highlight>Request Coordination</Highlight> - Libraries like HybridCache and FusionCache ensure only one request executes 
                     expensive operations while others wait for the shared result
                 </li>
                 <li>
-                    <ContentHighlight>Adaptive TTL</ContentHighlight> - Apply different cache durations for successful vs failed lookups to balance 
+                    <Highlight>Adaptive TTL</Highlight> - Apply different cache durations for successful vs failed lookups to balance 
                     freshness with protection
                 </li>
                 <li>
-                    <ContentHighlight>Option Pattern</ContentHighlight> - Eliminate null reference issues while maintaining full stampede protection 
+                    <Highlight>Option Pattern</Highlight> - Eliminate null reference issues while maintaining full stampede protection 
                     through explicit presence/absence types
                 </li>
             </ul>

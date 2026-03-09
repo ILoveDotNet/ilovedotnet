@@ -4,8 +4,8 @@
 <Content FileName=@nameof(ImplementCachingUsingDecoratorPatternInASPNET)>
     <ContentBody>
         <p>
-            In this article, let's learn about how to do implement <ContentHighlight>Caching</ContentHighlight> using 
-            <ContentHighlight>Decorator Pattern</ContentHighlight> in <ContentHighlight>Web API</ContentHighlight> in ASP.NET Core.
+            In this article, let's learn about how to do implement <Highlight>Caching</Highlight> using 
+            <Highlight>Decorator Pattern</Highlight> in <Highlight>Web API</Highlight> in ASP.NET Core.
         </p>
 
         <p>
@@ -51,8 +51,8 @@
         <h3 id="introduction">Introduction</h3>
 
         <p>
-            I'm a big fan of using <ContentHighlight>design patterns</ContentHighlight>, especially when combining them to achieve significant benefits. 
-            One powerful example is the <ContentHighlight>Caching</ContentHighlight> where we can use <ContentHighlight>Proxy/Decorator</ContentHighlight> 
+            I'm a big fan of using <Highlight>design patterns</Highlight>, especially when combining them to achieve significant benefits. 
+            One powerful example is the <Highlight>Caching</Highlight> where we can use <Highlight>Proxy/Decorator</Highlight> 
             patterns in web applications.
         </p>
 
@@ -63,13 +63,13 @@
         <p>
             Recently as of writing this, my team was working in a project where we need to do performance testing to make sure our application supports 3x peak 
             load. In one of the priority use-case, we were not able to achieve this target. After doing some analysis, we found that we are getting 
-            <ContentHighlight>rate limit exceeded error</ContentHighlight> from one of the third party API. So we decided to implement 
-            <ContentHighlight>caching</ContentHighlight> to avoid this issue.
+            <Highlight>rate limit exceeded error</Highlight> from one of the third party API. So we decided to implement 
+            <Highlight>caching</Highlight> to avoid this issue.
         </p>
 
         <p>
-            The same pattern can be applied to <ContentHighlight>repositories</ContentHighlight> to <ContentHighlight>cache</ContentHighlight> the data from the 
-            database. This will help to improve the <ContentHighlight>performance</ContentHighlight> of the application.
+            The same pattern can be applied to <Highlight>repositories</Highlight> to <Highlight>cache</Highlight> the data from the 
+            database. This will help to improve the <Highlight>performance</Highlight> of the application.
         </p>
 
         
@@ -77,12 +77,12 @@
         <h3 id="failing-scenario">Failing Scenario</h3>
 
         <p>
-            Let's say we have a <ContentHighlight>WeatherForecastController</ContentHighlight> which is calling a third party API to get the weather forecast 
+            Let's say we have a <Highlight>WeatherForecastController</Highlight> which is calling a third party API to get the weather forecast 
             details. The third party API has a rate limit of 10 requests per minute. If we exceed this limit, we will get a rate limit exceeded error.
         </p>
 
         <p>
-            Here is the code sample of the <ContentHighlight>WeatherForecastController</ContentHighlight>.
+            Here is the code sample of the <Highlight>WeatherForecastController</Highlight>.
         </p>
 
         <CodeSnippet CssClass="language-csharp">
@@ -106,7 +106,7 @@ public class WeatherForecastController : ControllerBase
         
         <p>
             The above snippet is pretty straight forward. We are calling the third party API using service implemented using 
-            <ContentHighlight>IWeatherService interface</ContentHighlight> as shown below.
+            <Highlight>IWeatherService interface</Highlight> as shown below.
         </p>
 
         <CodeSnippet CssClass="language-csharp">
@@ -134,7 +134,7 @@ public class WeatherService : IWeatherService
         </p>
 
         <p>
-            Now the above service needs to be registered in the <ContentHighlight>Program.cs</ContentHighlight> file as shown below.
+            Now the above service needs to be registered in the <Highlight>Program.cs</Highlight> file as shown below.
         </p>
 
         <CodeSnippet CssClass="language-csharp">
@@ -148,15 +148,15 @@ services.AddTransient&lt;IWeatherService, WeatherService&gt;();
         
 
         <p>
-            Now when you run the application and hit the <ContentHighlight>WeatherForecast</ContentHighlight> endpoint, you will get the response. And this will 
+            Now when you run the application and hit the <Highlight>WeatherForecast</Highlight> endpoint, you will get the response. And this will 
             work fine until you hit the rate limit of the third party API.
         </p>
 
         <h3 id="decorator-to-rescue">Decorator to Rescue</h3>
 
         <p>
-            The <ContentHighlight>Decorator</ContentHighlight> pattern allows us to add <ContentHighlight>caching</ContentHighlight> without modifying existing 
-            code. We use the Decorator pattern to wrap the existing <ContentHighlight>WeatherService</ContentHighlight> instance with caching functionality.
+            The <Highlight>Decorator</Highlight> pattern allows us to add <Highlight>caching</Highlight> without modifying existing 
+            code. We use the Decorator pattern to wrap the existing <Highlight>WeatherService</Highlight> instance with caching functionality.
         </p>
 
         <CodeSnippet CssClass="language-csharp">
@@ -178,14 +178,14 @@ public class CachedWeatherService(WeatherService weatherService, IMemoryCache me
         </CodeSnippet>
 
         <p>
-            In the above code, we are creating a <ContentHighlight>new class CachedWeatherService</ContentHighlight> which implements the 
-            <ContentHighlight>IWeatherService interface</ContentHighlight>. In the <ContentHighlight>constructor</ContentHighlight>, we are injecting the existing 
-            <ContentHighlight>WeatherService</ContentHighlight> instance and <ContentHighlight>IMemoryCache</ContentHighlight> instance.
+            In the above code, we are creating a <Highlight>new class CachedWeatherService</Highlight> which implements the 
+            <Highlight>IWeatherService interface</Highlight>. In the <Highlight>constructor</Highlight>, we are injecting the existing 
+            <Highlight>WeatherService</Highlight> instance and <Highlight>IMemoryCache</Highlight> instance.
         </p>
 
         <p>
-            Now the key part is the <ContentHighlight>registration</ContentHighlight> of these services. We now need to apply decorator in 
-            the <ContentHighlight>Program.cs</ContentHighlight> file while registering the services as shown below.
+            Now the key part is the <Highlight>registration</Highlight> of these services. We now need to apply decorator in 
+            the <Highlight>Program.cs</Highlight> file while registering the services as shown below.
         </p>
 
         <CodeSnippet CssClass="language-csharp">
@@ -200,8 +200,8 @@ services.AddTransient&lt;WeatherService&gt;();
         
 
         <p>
-            Now when you run the application and hit the <ContentHighlight>WeatherForecast</ContentHighlight> endpoint, you will get the response. And this will 
-            work fine even if you hit the rate limit of the third party API. The reason is that we are <ContentHighlight>caching</ContentHighlight> the response 
+            Now when you run the application and hit the <Highlight>WeatherForecast</Highlight> endpoint, you will get the response. And this will 
+            work fine even if you hit the rate limit of the third party API. The reason is that we are <Highlight>caching</Highlight> the response 
             for 30 minute and if the same request comes within 30 minute, we will return the cached response instead of making the external API call.
         </p>
 
@@ -215,20 +215,20 @@ services.AddTransient&lt;WeatherService&gt;();
 
         <ul>
             <li>
-                Add caching <ContentHighlight>without modifying existing code</ContentHighlight>. This is very useful when we are working in a
-                <ContentHighlight>legacy code</ContentHighlight> base where we don't want to modify the existing code. We can just add the caching 
+                Add caching <Highlight>without modifying existing code</Highlight>. This is very useful when we are working in a
+                <Highlight>legacy code</Highlight> base where we don't want to modify the existing code. We can just add the caching 
                 functionality using this pattern.
             </li>
             <li>
-                We can add <ContentHighlight>multiple decorators</ContentHighlight> to add multiple functionalities. For example, we can add logging, caching, 
+                We can add <Highlight>multiple decorators</Highlight> to add multiple functionalities. For example, we can add logging, caching, 
                 and other functionalities without modifying the existing code.
             </li>
             <li>
-                Actual service <ContentHighlight>will not have unnecessary dependencies</ContentHighlight>. For example, in the above code, 
-                the <ContentHighlight>WeatherService</ContentHighlight> is not dependent on <ContentHighlight>IMemoryCache</ContentHighlight>.
+                Actual service <Highlight>will not have unnecessary dependencies</Highlight>. For example, in the above code, 
+                the <Highlight>WeatherService</Highlight> is not dependent on <Highlight>IMemoryCache</Highlight>.
             </li>
             <li>
-                We can easily <ContentHighlight>unit test the service</ContentHighlight> without any unwanted dependencies.
+                We can easily <Highlight>unit test the service</Highlight> without any unwanted dependencies.
             </li>
         </ul>
 
@@ -237,7 +237,7 @@ services.AddTransient&lt;WeatherService&gt;();
         <h3 id="cache-duration-considerations">Cache Duration Considerations</h3>
 
         <p>
-            Adjusting <ContentHighlight>cache duration</ContentHighlight> is crucial. For high-throughput APIs, start with the shortest duration and 
+            Adjusting <Highlight>cache duration</Highlight> is crucial. For high-throughput APIs, start with the shortest duration and 
             increase only if necessary. Finding the right balance ensures optimal database load and API performance characteristics for your application.
         </p>
 
@@ -246,10 +246,10 @@ services.AddTransient&lt;WeatherService&gt;();
         <h3 id="summary">Summary</h3>
 
         <p>
-            In this article, we learnt about how to implement <ContentHighlight>caching</ContentHighlight> using <ContentHighlight>decorator</ContentHighlight> 
+            In this article, we learnt about how to implement <Highlight>caching</Highlight> using <Highlight>decorator</Highlight> 
             pattern in ASP.NET Web API. We understood the benefits of using this approach and how it can help us to improve the 
-            <ContentHighlight>maintainability</ContentHighlight>, <ContentHighlight>testability</ContentHighlight> and 
-            <ContentHighlight>performance</ContentHighlight> of the application. I love to practice and implement what I learn like this. Thank you 
+            <Highlight>maintainability</Highlight>, <Highlight>testability</Highlight> and 
+            <Highlight>performance</Highlight> of the application. I love to practice and implement what I learn like this. Thank you 
             for reading. Happy Coding!
         </p>
     </ContentBody>

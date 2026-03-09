@@ -6,10 +6,10 @@
     <ContentBody>
         <What>
             <p>
-                Building a database without proper normalization is like storing every item in your house on your kitchen table—messy, inefficient, and bound to cause problems. In this article, let's learn about <ContentHighlight>Database Normalization</ContentHighlight> and how to <ContentHighlight>eliminate wasteful determinism</ContentHighlight> to create clean, maintainable, and performant database schemas.
+                Building a database without proper normalization is like storing every item in your house on your kitchen table—messy, inefficient, and bound to cause problems. In this article, let's learn about <Highlight>Database Normalization</Highlight> and how to <Highlight>eliminate wasteful determinism</Highlight> to create clean, maintainable, and performant database schemas.
             </p>
             <p>
-                Here's your mental anchor for this entire journey: <ContentHighlight>RAWD—Reduce All Wasteful Determinism</ContentHighlight>. That's not "reduce all determinism"—just the wasteful kind. We'll explore what determinism means in databases and how to identify which relationships are helpful and which ones cause problems.
+                Here's your mental anchor for this entire journey: <Highlight>RAWD—Reduce All Wasteful Determinism</Highlight>. That's not "reduce all determinism"—just the wasteful kind. We'll explore what determinism means in databases and how to identify which relationships are helpful and which ones cause problems.
             </p>
         </What>
 
@@ -17,7 +17,7 @@
             <h4>The Real Cost of Bad Data Design</h4>
             
             <p>
-                Picture a credit union database from the 1970s. One flat file. One table. <ContentHighlight>Hundreds or even thousands of fields wide</ContentHighlight>. Not because developers were incompetent, but because disk I/O in that era was literally a million times slower than today. A join that takes 0.1 seconds now would have taken over a day back then. <ContentHighlight>Normalization wasn't physically possible at scale.</ContentHighlight>
+                Picture a credit union database from the 1970s. One flat file. One table. <Highlight>Hundreds or even thousands of fields wide</Highlight>. Not because developers were incompetent, but because disk I/O in that era was literally a million times slower than today. A join that takes 0.1 seconds now would have taken over a day back then. <Highlight>Normalization wasn't physically possible at scale.</Highlight>
             </p>
             
             <p>
@@ -25,28 +25,28 @@
             </p>
             
             <ul>
-                <li><ContentHighlight>Data redundancy</ContentHighlight>—storing the same information multiple times wastes storage and memory</li>
-                <li><ContentHighlight>Update anomalies</ContentHighlight>—changing data in one place but forgetting others creates inconsistencies</li>
-                <li><ContentHighlight>Insert complexity</ContentHighlight>—having to update multiple places for a single logical change</li>
-                <li><ContentHighlight>Delete problems</ContentHighlight>—removing data might accidentally remove related information you wanted to keep</li>
+                <li><Highlight>Data redundancy</Highlight>—storing the same information multiple times wastes storage and memory</li>
+                <li><Highlight>Update anomalies</Highlight>—changing data in one place but forgetting others creates inconsistencies</li>
+                <li><Highlight>Insert complexity</Highlight>—having to update multiple places for a single logical change</li>
+                <li><Highlight>Delete problems</Highlight>—removing data might accidentally remove related information you wanted to keep</li>
             </ul>
             
             <p>
-                Think about it this way: if you're storing a value in more than one place, <ContentHighlight>you're creating competing sources of truth</ContentHighlight>. Which one is correct when they disagree? Version control gives us a single source of truth for code—normalization does the same for data.
+                Think about it this way: if you're storing a value in more than one place, <Highlight>you're creating competing sources of truth</Highlight>. Which one is correct when they disagree? Version control gives us a single source of truth for code—normalization does the same for data.
             </p>
 
             <h4>Understanding Determinism</h4>
             
             <p>
-                <ContentHighlight>Determinism just means cause and effect</ContentHighlight>—one thing has a defining relationship with another. Here's a simple example: if you multiply 6 by 5, you get 30. Always. That's determinism.
+                <Highlight>Determinism just means cause and effect</Highlight>—one thing has a defining relationship with another. Here's a simple example: if you multiply 6 by 5, you get 30. Always. That's determinism.
             </p>
             
             <p>
-                Now, what do you need to store to reproduce this calculation later? Just the multiplicand (6) and the multiplier (5). <ContentHighlight>You don't need to store the product (30)</ContentHighlight> because it's entirely determined by the other two values. Storing 30 is wasteful—at best it's redundant, at worst it creates errors when your parameters change but you forget to update the stored result.
+                Now, what do you need to store to reproduce this calculation later? Just the multiplicand (6) and the multiplier (5). <Highlight>You don't need to store the product (30)</Highlight> because it's entirely determined by the other two values. Storing 30 is wasteful—at best it's redundant, at worst it creates errors when your parameters change but you forget to update the stored result.
             </p>
             
             <p>
-                That's wasteful determinism in a nutshell: <ContentHighlight>storing values that can be calculated or derived from other data you already have</ContentHighlight>.
+                That's wasteful determinism in a nutshell: <Highlight>storing values that can be calculated or derived from other data you already have</Highlight>.
             </p>
         </Why>
 
@@ -60,15 +60,15 @@
             <h4>First Normal Form (1NF): No Repeating Groups</h4>
             
             <p>
-                <ContentHighlight>First Normal Form Rule:</ContentHighlight> Ensure atomic attributes and a primary key.
+                <Highlight>First Normal Form Rule:</Highlight> Ensure atomic attributes and a primary key.
             </p>
             
             <p>
-                <ContentHighlight>Atomicity means indivisibility</ContentHighlight>—your data shouldn't be subdivided into constituent parts. The Greek word <em>atom</em> literally means "no cutting" (a = not, tomos = cut).
+                <Highlight>Atomicity means indivisibility</Highlight>—your data shouldn't be subdivided into constituent parts. The Greek word <em>atom</em> literally means "no cutting" (a = not, tomos = cut).
             </p>
             
             <p>
-                Here's the most egregious violation you'll see: <ContentHighlight>pivoted fields</ContentHighlight>—rows of what should be a separate table pivoted into columns. Imagine a Members table like this:
+                Here's the most egregious violation you'll see: <Highlight>pivoted fields</Highlight>—rows of what should be a separate table pivoted into columns. Imagine a Members table like this:
             </p>
 
             <CodeSnippet CssClass="language-sql">
@@ -95,7 +95,7 @@ MemberId  FirstName  LastName  AccountNumber1  AccountNumber2  AccountNumber3
             </CodeSnippet>
 
             <p>
-                The problem? <ContentHighlight>Multiplicity is baked into the schema</ContentHighlight>. What happens when a customer wants a fourth account? You're stuck. Changing table schemas on old mainframe systems required hardware changes—so you'd see hacky workarounds like this:
+                The problem? <Highlight>Multiplicity is baked into the schema</Highlight>. What happens when a customer wants a fourth account? You're stuck. Changing table schemas on old mainframe systems required hardware changes—so you'd see hacky workarounds like this:
             </p>
 
             <CodeSnippet CssClass="language-sql">
@@ -111,7 +111,7 @@ CREATE TABLE Members (
             </CodeSnippet>
 
             <p>
-                Or worse—storing multiple values in a single field separated by commas. <ContentHighlight>This is database malpractice</ContentHighlight>.
+                Or worse—storing multiple values in a single field separated by commas. <Highlight>This is database malpractice</Highlight>.
             </p>
 
             <p>
@@ -176,7 +176,7 @@ CHK-99999      1003
             <h4>Second Normal Form (2NF): Full Functional Dependency</h4>
             
             <p>
-                <ContentHighlight>Second Normal Form Rule:</ContentHighlight> Ensure non-key attributes depend on the <ContentHighlight>entire</ContentHighlight> primary key, not just part of it.
+                <Highlight>Second Normal Form Rule:</Highlight> Ensure non-key attributes depend on the <Highlight>entire</Highlight> primary key, not just part of it.
             </p>
             
             <p>
@@ -207,11 +207,11 @@ MMA-33333      1002      Westside
             </CodeSnippet>
 
             <p>
-                Now here's the question: <ContentHighlight>what drives the value of BranchName?</ContentHighlight> Is it determined by the entire composite key (AccountNumber + MemberId), or just the MemberId part?
+                Now here's the question: <Highlight>what drives the value of BranchName?</Highlight> Is it determined by the entire composite key (AccountNumber + MemberId), or just the MemberId part?
             </p>
             
             <p>
-                After talking to an actual human being at the credit union, you learn that <ContentHighlight>branches are associated with members, not accounts</ContentHighlight>. The BranchName depends only on MemberId—half of your primary key. That's a <ContentHighlight>partial dependency</ContentHighlight>, and it violates 2NF.
+                After talking to an actual human being at the credit union, you learn that <Highlight>branches are associated with members, not accounts</Highlight>. The BranchName depends only on MemberId—half of your primary key. That's a <Highlight>partial dependency</Highlight>, and it violates 2NF.
             </p>
             
             <p>
@@ -260,13 +260,13 @@ CHK-99999      1003
             </p>
 
             <p>
-                A key insight here: <ContentHighlight>you can't normalize properly without understanding your business rules</ContentHighlight>. First normal form can be inferred mechanically by examining the schema. Beyond that, you need domain knowledge.
+                A key insight here: <Highlight>you can't normalize properly without understanding your business rules</Highlight>. First normal form can be inferred mechanically by examining the schema. Beyond that, you need domain knowledge.
             </p>
 
             <h4>Third Normal Form (3NF): No Transitive Dependencies</h4>
             
             <p>
-                <ContentHighlight>Third Normal Form Rule:</ContentHighlight> Ensure non-key attributes don't depend on other non-key attributes.
+                <Highlight>Third Normal Form Rule:</Highlight> Ensure non-key attributes don't depend on other non-key attributes.
             </p>
             
             <p>
@@ -298,11 +298,11 @@ MemberId  FirstName  LastName  BranchName  BranchManager
             </CodeSnippet>
 
             <p>
-                The problem? <ContentHighlight>BranchManager is determined by BranchName, not by MemberId</ContentHighlight>. This is called a <ContentHighlight>transitive dependency</ContentHighlight>—BranchManager relies on BranchName, which in turn relies on MemberId.
+                The problem? <Highlight>BranchManager is determined by BranchName, not by MemberId</Highlight>. This is called a <Highlight>transitive dependency</Highlight>—BranchManager relies on BranchName, which in turn relies on MemberId.
             </p>
             
             <p>
-                Here's a strong smell: <ContentHighlight>whenever you see prefixed field names (BranchName, BranchManager, LoanType, LoanAmount), you probably need another table</ContentHighlight>.
+                Here's a strong smell: <Highlight>whenever you see prefixed field names (BranchName, BranchManager, LoanType, LoanAmount), you probably need another table</Highlight>.
             </p>
             
             <p>
@@ -365,7 +365,7 @@ MemberId  FirstName  LastName  BranchId
             <h4>Boyce-Codd Normal Form (BCNF): Every Determinant Must Be a Candidate Key</h4>
             
             <p>
-                <ContentHighlight>Boyce-Codd Normal Form Rule:</ContentHighlight> Every determinant must be a candidate key. In simpler terms, <ContentHighlight>if a field determines another field, it must be able to uniquely identify the row</ContentHighlight>.
+                <Highlight>Boyce-Codd Normal Form Rule:</Highlight> Every determinant must be a candidate key. In simpler terms, <Highlight>if a field determines another field, it must be able to uniquely identify the row</Highlight>.
             </p>
             
             <p>
@@ -396,11 +396,11 @@ BranchId  Name       Manager        RegionalDirector
             </CodeSnippet>
 
             <p>
-                Now imagine the data shows that <ContentHighlight>RegionalDirector is unique per region, not per branch</ContentHighlight>. Multiple branches share the same RegionalDirector. The director determines the region, but the director isn't the primary key of Branches.
+                Now imagine the data shows that <Highlight>RegionalDirector is unique per region, not per branch</Highlight>. Multiple branches share the same RegionalDirector. The director determines the region, but the director isn't the primary key of Branches.
             </p>
             
             <p>
-                <ContentHighlight>RegionalDirector is a determinant (it determines region information) but it's not a candidate key</ContentHighlight>—it can't uniquely identify a branch row.
+                <Highlight>RegionalDirector is a determinant (it determines region information) but it's not a candidate key</Highlight>—it can't uniquely identify a branch row.
             </p>
             
             <p>
@@ -458,7 +458,7 @@ BranchId  Name       Manager        RegionId
             <h4>Fourth Normal Form (4NF): No Independent Multi-Valued Dependencies</h4>
             
             <p>
-                <ContentHighlight>Fourth Normal Form Rule:</ContentHighlight> Don't store independent lists in the same table.
+                <Highlight>Fourth Normal Form Rule:</Highlight> Don't store independent lists in the same table.
             </p>
             
             <p>
@@ -490,7 +490,7 @@ BranchId  Service   Role
             </CodeSnippet>
 
             <p>
-                See the problem? <ContentHighlight>You're creating a Cartesian product</ContentHighlight>. Services and Roles are independent—knowing that a branch offers mortgages doesn't tell you anything about which roles are present. But storing them together forces you to repeat every combination.
+                See the problem? <Highlight>You're creating a Cartesian product</Highlight>. Services and Roles are independent—knowing that a branch offers mortgages doesn't tell you anything about which roles are present. But storing them together forces you to repeat every combination.
             </p>
             
             <p>
@@ -552,11 +552,11 @@ BranchId  Role
             <h4>Fifth Normal Form (5NF): No Join Dependencies</h4>
             
             <p>
-                <ContentHighlight>Fifth Normal Form Rule:</ContentHighlight> A table should not be splittable into three or more smaller tables that, when joined, don't lose information or create false data.
+                <Highlight>Fifth Normal Form Rule:</Highlight> A table should not be splittable into three or more smaller tables that, when joined, don't lose information or create false data.
             </p>
             
             <p>
-                Here's the key cognitive marker: <ContentHighlight>if your table's primary key is a composite of all its fields, you probably have a 5NF violation</ContentHighlight>.
+                Here's the key cognitive marker: <Highlight>if your table's primary key is a composite of all its fields, you probably have a 5NF violation</Highlight>.
             </p>
             
             <p>
@@ -644,7 +644,7 @@ BranchId  Service
             <h4>The Practical Side: Foreign Keys and Constraints</h4>
             
             <p>
-                Here's something critical: <ContentHighlight>normalization isn't complete without foreign keys and constraints</ContentHighlight>. When you split tables, you're potentially removing information unless you formalize the relationships:
+                Here's something critical: <Highlight>normalization isn't complete without foreign keys and constraints</Highlight>. When you split tables, you're potentially removing information unless you formalize the relationships:
             </p>
 
             <CodeSnippet CssClass="language-sql">
@@ -667,22 +667,22 @@ FOREIGN KEY (RegionId) REFERENCES Regions(RegionId);
             </p>
             
             <ul>
-                <li><ContentHighlight>Data integrity</ContentHighlight>—prevent orphaned records</li>
-                <li><ContentHighlight>Documentation</ContentHighlight>—make relationships explicit and queryable</li>
+                <li><Highlight>Data integrity</Highlight>—prevent orphaned records</li>
+                <li><Highlight>Documentation</Highlight>—make relationships explicit and queryable</li>
             </ul>
             
             <p>
-                Use a database diagramming tool that automatically infers relationships from foreign keys. <ContentHighlight>If you can't trace your way across all connected tables using these connectors, you've missed a foreign key</ContentHighlight>.
+                Use a database diagramming tool that automatically infers relationships from foreign keys. <Highlight>If you can't trace your way across all connected tables using these connectors, you've missed a foreign key</Highlight>.
             </p>
 
             <h4>When NOT to Normalize: OLAP vs OLTP</h4>
             
             <p>
-                We've focused on <ContentHighlight>OLTP (Online Transaction Processing)</ContentHighlight>—transactional databases optimized for inserts, updates, and deletes. Normalization shines here because it reduces the number of places you must modify data.
+                We've focused on <Highlight>OLTP (Online Transaction Processing)</Highlight>—transactional databases optimized for inserts, updates, and deletes. Normalization shines here because it reduces the number of places you must modify data.
             </p>
             
             <p>
-                But there's another world: <ContentHighlight>OLAP (Online Analytical Processing)</ContentHighlight>. OLAP databases are read-only (or read-mostly) and optimized for reporting and analytics. Here, <ContentHighlight>denormalization makes sense</ContentHighlight>.
+                But there's another world: <Highlight>OLAP (Online Analytical Processing)</Highlight>. OLAP databases are read-only (or read-mostly) and optimized for reporting and analytics. Here, <Highlight>denormalization makes sense</Highlight>.
             </p>
             
             <p>
@@ -690,17 +690,17 @@ FOREIGN KEY (RegionId) REFERENCES Regions(RegionId);
             </p>
             
             <p>
-                The key insight: <ContentHighlight>OLAP data is derived from normalized OLTP data</ContentHighlight>. You maintain your source of truth in normalized form, then periodically export and denormalize it for analytical workloads. Best of both worlds.
+                The key insight: <Highlight>OLAP data is derived from normalized OLTP data</Highlight>. You maintain your source of truth in normalized form, then periodically export and denormalize it for analytical workloads. Best of both worlds.
             </p>
 
             <h4>Schema on Write vs Schema on Read</h4>
             
             <p>
-                Traditional relational databases enforce <ContentHighlight>schema-on-write</ContentHighlight>—data must conform to the schema when inserted. This ensures consistency and cleanliness.
+                Traditional relational databases enforce <Highlight>schema-on-write</Highlight>—data must conform to the schema when inserted. This ensures consistency and cleanliness.
             </p>
             
             <p>
-                Document-oriented databases (MongoDB, Cosmos DB) use <ContentHighlight>schema-on-read</ContentHighlight>—data can be any shape when written, and you deal with differences when querying. This is useful for:
+                Document-oriented databases (MongoDB, Cosmos DB) use <Highlight>schema-on-read</Highlight>—data can be any shape when written, and you deal with differences when querying. This is useful for:
             </p>
             
             <ul>
@@ -710,7 +710,7 @@ FOREIGN KEY (RegionId) REFERENCES Regions(RegionId);
             </ul>
             
             <p>
-                At scale, companies use a <ContentHighlight>map-reduce pattern</ContentHighlight>: ingest raw data however you can (schema-on-read), then map and reduce it into normalized, transactional databases (schema-on-write) for business logic.
+                At scale, companies use a <Highlight>map-reduce pattern</Highlight>: ingest raw data however you can (schema-on-read), then map and reduce it into normalized, transactional databases (schema-on-write) for business logic.
             </p>
 
             <h4>Real-World Best Practices</h4>
@@ -721,12 +721,12 @@ FOREIGN KEY (RegionId) REFERENCES Regions(RegionId);
             
             <p>
                 <strong>1. Don't Break Existing Applications</strong><br />
-                When normalizing a legacy database, use the <ContentHighlight>strangler vine pattern</ContentHighlight>. Keep the old flat file running, set up a nightly ETL to your normalized database, and migrate applications one by one. Only retire the legacy system when everything is migrated.
+                When normalizing a legacy database, use the <Highlight>strangler vine pattern</Highlight>. Keep the old flat file running, set up a nightly ETL to your normalized database, and migrate applications one by one. Only retire the legacy system when everything is migrated.
             </p>
             
             <p>
                 <strong>2. Manage Schema Migrations</strong><br />
-                Use a migration tool like <ContentHighlight>Flyway</ContentHighlight> or Entity Framework Migrations. Keep ordered scripts in version control, track which migrations have run in a database table, and never modify old migrations—only add new ones.
+                Use a migration tool like <Highlight>Flyway</Highlight> or Entity Framework Migrations. Keep ordered scripts in version control, track which migrations have run in a database table, and never modify old migrations—only add new ones.
             </p>
             
             <CodeSnippet CssClass="language-sql">
@@ -740,35 +740,35 @@ CREATE TABLE SchemaVersions (
             
             <p>
                 <strong>3. Good Enough is Better Than Perfect</strong><br />
-                If you can't normalize everything in one sprint, do what you can. <ContentHighlight>Getting to 2NF is a huge win even if 3NF has to wait</ContentHighlight>. Normalize incrementally and stabilize between changes.
+                If you can't normalize everything in one sprint, do what you can. <Highlight>Getting to 2NF is a huge win even if 3NF has to wait</Highlight>. Normalize incrementally and stabilize between changes.
             </p>
             
             <p>
                 <strong>4. Watch for Null Values</strong><br />
-                <ContentHighlight>Nulls are weak smells that you might need to break out data into a second table</ContentHighlight>. If half your rows have null values for several columns, consider whether those columns represent optional relationships that should be their own table.
+                <Highlight>Nulls are weak smells that you might need to break out data into a second table</Highlight>. If half your rows have null values for several columns, consider whether those columns represent optional relationships that should be their own table.
             </p>
         </How>
 
         <Summary>
             <p>
-                Database normalization is fundamentally about <ContentHighlight>reducing wasteful determinism</ContentHighlight>—eliminating redundancy by ensuring data is stored in exactly one place. We've covered five normal forms:
+                Database normalization is fundamentally about <Highlight>reducing wasteful determinism</Highlight>—eliminating redundancy by ensuring data is stored in exactly one place. We've covered five normal forms:
             </p>
             
             <ul>
-                <li><ContentHighlight>1NF:</ContentHighlight> Atomic attributes, no repeating groups, primary key required</li>
-                <li><ContentHighlight>2NF:</ContentHighlight> Non-key attributes depend on the entire primary key</li>
-                <li><ContentHighlight>3NF:</ContentHighlight> Non-key attributes don't depend on other non-key attributes</li>
-                <li><ContentHighlight>Boyce-Codd (BCNF):</ContentHighlight> Every determinant must be a candidate key</li>
-                <li><ContentHighlight>4NF:</ContentHighlight> No independent multi-valued dependencies (no Cartesian products)</li>
-                <li><ContentHighlight>5NF:</ContentHighlight> No join dependencies (can't split into three+ tables without losing info)</li>
+                <li><Highlight>1NF:</Highlight> Atomic attributes, no repeating groups, primary key required</li>
+                <li><Highlight>2NF:</Highlight> Non-key attributes depend on the entire primary key</li>
+                <li><Highlight>3NF:</Highlight> Non-key attributes don't depend on other non-key attributes</li>
+                <li><Highlight>Boyce-Codd (BCNF):</Highlight> Every determinant must be a candidate key</li>
+                <li><Highlight>4NF:</Highlight> No independent multi-valued dependencies (no Cartesian products)</li>
+                <li><Highlight>5NF:</Highlight> No join dependencies (can't split into three+ tables without losing info)</li>
             </ul>
             
             <p>
-                Remember: <ContentHighlight>normalization requires understanding your business domain</ContentHighlight>. Statistical analysis can hint at problems, but you need to talk to actual humans to understand the true relationships in your data.
+                Remember: <Highlight>normalization requires understanding your business domain</Highlight>. Statistical analysis can hint at problems, but you need to talk to actual humans to understand the true relationships in your data.
             </p>
             
             <p>
-                Finally, know when to denormalize. <ContentHighlight>OLTP databases benefit from normalization; OLAP databases benefit from denormalization</ContentHighlight>. Maintain your source of truth in normalized form, then derive optimized read structures as needed.
+                Finally, know when to denormalize. <Highlight>OLTP databases benefit from normalization; OLAP databases benefit from denormalization</Highlight>. Maintain your source of truth in normalized form, then derive optimized read structures as needed.
             </p>
             
             <p>

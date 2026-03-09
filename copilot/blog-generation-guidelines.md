@@ -181,14 +181,14 @@ Each blog post must include these four sections in this specific order:
 
 - Introduces the topic and sets expectations
 - Should be concise but informative
-- Highlight key terms with `<ContentHighlight>` tags
+- Highlight key terms with `<Highlight>` tags
 - Start with a hook to grab attention (bold statement, question, scenario, or analogy)
 - If needed, use `<h4>` tags for subheadings within this section
 - Example:
   ```html
   <What>
     <p>
-      Building an API without proper error handling is like constructing a house without a roof. In this article, let's learn about <ContentHighlight>Global Exception Handling</ContentHighlight> in <ContentHighlight>Web API</ContentHighlight> in ASP.NET Core - the safety net every API deserves.
+      Building an API without proper error handling is like constructing a house without a roof. In this article, let's learn about <Highlight>Global Exception Handling</Highlight> in <Highlight>Web API</Highlight> in ASP.NET Core - the safety net every API deserves.
     </p>
   </What>
   ```
@@ -205,10 +205,10 @@ Each blog post must include these four sections in this specific order:
   ```html
   <Why>
     <p>
-      <ContentHighlight>Global Exception Handling</ContentHighlight> allows us to handle exceptions globally
-      in <ContentHighlight>one single place</ContentHighlight> inside the application rather than scattering
-      try-catch blocks everywhere in the code base. This is a <ContentHighlight>good and clean practice
-      </ContentHighlight> that simplifies code maintenance and improves readability.
+      <Highlight>Global Exception Handling</Highlight> allows us to handle exceptions globally
+      in <Highlight>one single place</Highlight> inside the application rather than scattering
+      try-catch blocks everywhere in the code base. This is a <Highlight>good and clean practice
+      </Highlight> that simplifies code maintenance and improves readability.
     </p>
     <p>
       Think of it as a safety net that catches all errors, no matter where they occur in your application. Without this approach, you'd need to add error handling to every endpoint - a tedious and error-prone process.
@@ -253,8 +253,8 @@ Each blog post must include these four sections in this specific order:
   ```html
   <Summary>
     <p>
-      In this article, we explored the <ContentHighlight>simplest and easiest</ContentHighlight> way to handle
-      exceptions globally in ASP.NET Web API using a <ContentHighlight>custom middleware</ContentHighlight>.
+      In this article, we explored the <Highlight>simplest and easiest</Highlight> way to handle
+      exceptions globally in ASP.NET Web API using a <Highlight>custom middleware</Highlight>.
       This approach centralizes exception handling, reduces code duplication, and improves maintainability.
     </p>
   </Summary>
@@ -307,10 +307,10 @@ var service = context.RequestServices.GetRequiredService&lt;IMyService&gt;();
 
 ### Key Term Highlighting
 
-Use `<ContentHighlight>` to emphasize important terms, concepts, or code references within text:
+Use `<Highlight>` to emphasize important terms, concepts, or code references within text:
 
 ```html
-<ContentHighlight>key concept</ContentHighlight>
+<Highlight>key concept</Highlight>
 ```
 
 ## Table of Contents
@@ -350,7 +350,7 @@ When `UseNewTableOfContentsMenu=true` is used, the Content component automatical
 3. **Completeness**: Cover the topic thoroughly without unnecessary tangents.
 4. **Accuracy**: Ensure all technical information is correct and up-to-date.
 5. **Organization**: Follow the What-Why-How-Summary structure consistently.
-6. **Highlighting**: Use `<ContentHighlight>` for important terms and concepts.
+6. **Highlighting**: Use `<Highlight>` for important terms and concepts.
 7. **Code Samples**: Always wrap code in appropriate `<CodeSnippet>` tags with proper language specification.
 8. **Pacing**: Break up complex concepts with short paragraphs and use transitional phrases like "Here's the thing," "Now," or "That's why…"
 9. **Reader Focus**: Address the reader directly when appropriate ("you").
@@ -368,7 +368,7 @@ Example:
 ```html
 <What>
   <p>
-    Building an API without proper error handling is like constructing a house without a roof. In this article, let's learn about <ContentHighlight>Global Exception Handling</ContentHighlight> in <ContentHighlight>Web API</ContentHighlight> in ASP.NET Core - the safety net every API deserves.
+    Building an API without proper error handling is like constructing a house without a roof. In this article, let's learn about <Highlight>Global Exception Handling</Highlight> in <Highlight>Web API</Highlight> in ASP.NET Core - the safety net every API deserves.
   </p>
 </What>
 ```
