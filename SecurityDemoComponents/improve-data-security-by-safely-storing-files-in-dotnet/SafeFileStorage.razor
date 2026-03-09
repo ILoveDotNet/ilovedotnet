@@ -6,8 +6,8 @@
   <ContentBody>
     <What>
       <p>
-        Accepting file uploads in your application is like opening a door to your server. <ContentHighlight>One wrong move 
-        and attackers could overwrite critical system files or access confidential data.</ContentHighlight> In this article, 
+        Accepting file uploads in your application is like opening a door to your server. <Highlight>One wrong move 
+        and attackers could overwrite critical system files or access confidential data.</Highlight> In this article, 
         we'll explore how to safely store files in .NET applications, protecting against path traversal attacks and implementing 
         proper file storage security.
       </p>
@@ -19,7 +19,7 @@
 
     <Why>
       <p>
-        <ContentHighlight>Path traversal attacks</ContentHighlight> are one of the most common and dangerous vulnerabilities 
+        <Highlight>Path traversal attacks</Highlight> are one of the most common and dangerous vulnerabilities 
         in applications that accept file uploads. When users can control the file path where uploads are stored, they can 
         potentially write files anywhere on your server—from overwriting configuration files to replacing system executables.
       </p>
@@ -27,9 +27,9 @@
       <h4>The Real-World Impact</h4>
 
       <p>
-        Imagine this scenario: Your application stores user files in <ContentHighlight>C:\UserFiles\User9\</ContentHighlight>. 
-        A malicious user uploads a file named <ContentHighlight>..\..\config.json</ContentHighlight>. Without proper validation, 
-        this resolves to <ContentHighlight>C:\UserFiles\config.json</ContentHighlight>—they've just overwritten your application's 
+        Imagine this scenario: Your application stores user files in <Highlight>C:\UserFiles\User9\</Highlight>. 
+        A malicious user uploads a file named <Highlight>..\..\config.json</Highlight>. Without proper validation, 
+        this resolves to <Highlight>C:\UserFiles\config.json</Highlight>—they've just overwritten your application's 
         configuration file.
       </p>
 
@@ -38,8 +38,8 @@
       </p>
 
       <ul>
-        <li><ContentHighlight>C:\inetpub\wwwroot</ContentHighlight> - Inject malicious web content</li>
-        <li><ContentHighlight>C:\Windows\System32</ContentHighlight> - Replace system executables</li>
+        <li><Highlight>C:\inetpub\wwwroot</Highlight> - Inject malicious web content</li>
+        <li><Highlight>C:\Windows\System32</Highlight> - Replace system executables</li>
         <li>Other users' directories - Access or modify other users' data</li>
         <li>Cloud storage buckets - Path traversal works in cloud environments too</li>
       </ul>
@@ -52,14 +52,14 @@
       <h4>Beyond Code: Defense in Depth</h4>
 
       <p>
-        While secure coding practices are essential, they're only one layer of defense. <ContentHighlight>Operating system 
-        permissions</ContentHighlight> provide a critical safety net. Your application should run with the minimum privileges 
-        necessary—a principle known as <ContentHighlight>least privilege</ContentHighlight>.
+        While secure coding practices are essential, they're only one layer of defense. <Highlight>Operating system 
+        permissions</Highlight> provide a critical safety net. Your application should run with the minimum privileges 
+        necessary—a principle known as <Highlight>least privilege</Highlight>.
       </p>
 
       <p>
-        For example, modern IIS applications run under virtual accounts like <ContentHighlight>IIS AppPool\MyAppPool</ContentHighlight>, 
-        with read and execute permissions on <ContentHighlight>C:\inetpub\wwwroot</ContentHighlight> by default. This means even 
+        For example, modern IIS applications run under virtual accounts like <Highlight>IIS AppPool\MyAppPool</Highlight>, 
+        with read and execute permissions on <Highlight>C:\inetpub\wwwroot</Highlight> by default. This means even 
         if your code has a vulnerability, the OS prevents writing to critical directories.
       </p>
 
@@ -83,7 +83,7 @@
       <h4>Step 1: Use Random Filenames</h4>
 
       <p>
-        The simplest and most secure approach is to <ContentHighlight>completely ignore the user-provided filename</ContentHighlight> 
+        The simplest and most secure approach is to <Highlight>completely ignore the user-provided filename</Highlight> 
         and generate a random one. This eliminates path traversal risks entirely.
       </p>
 
@@ -109,7 +109,7 @@ await _database.SaveFileMetadataAsync(new FileMetadata
       <h4>Step 2: Sanitize User-Provided Filenames</h4>
 
       <p>
-        If you must preserve the original filename on disk, use .NET's <ContentHighlight>Path.GetFileName()</ContentHighlight> 
+        If you must preserve the original filename on disk, use .NET's <Highlight>Path.GetFileName()</Highlight> 
         to strip out any path components:
       </p>
 
@@ -128,8 +128,8 @@ var filePath = Path.Combine(userDirectory, safeFileName);
 </CodeSnippet>
 
       <p>
-        <ContentHighlight>Never concatenate file paths using string operations.</ContentHighlight> Always use 
-        <ContentHighlight>Path.Combine()</ContentHighlight> which handles path separators correctly across platforms 
+        <Highlight>Never concatenate file paths using string operations.</Highlight> Always use 
+        <Highlight>Path.Combine()</Highlight> which handles path separators correctly across platforms 
         (Windows vs. Linux) and prevents common mistakes.
       </p>
 
@@ -169,7 +169,7 @@ public async Task&lt;IActionResult&gt; UploadFile(IFormFile file)
 </CodeSnippet>
 
       <p>
-        <ContentHighlight>Path.GetFullPath()</ContentHighlight> resolves any relative path components (like <ContentHighlight>..</ContentHighlight>) 
+        <Highlight>Path.GetFullPath()</Highlight> resolves any relative path components (like <Highlight>..</Highlight>) 
         to their absolute form. By checking if the result starts with our base directory, we ensure files can only be 
         written where we intend.
       </p>
@@ -239,10 +239,10 @@ Set-Acl $uploadPath $acl
 
     <Summary>
       <p>
-        Safely storing files in .NET applications requires a multi-layered approach. <ContentHighlight>Use random 
-        filenames when possible</ContentHighlight>, sanitize user input with <ContentHighlight>Path.GetFileName()</ContentHighlight>, 
-        validate paths with <ContentHighlight>Path.GetFullPath()</ContentHighlight>, and always use 
-        <ContentHighlight>Path.Combine()</ContentHighlight> instead of string concatenation.
+        Safely storing files in .NET applications requires a multi-layered approach. <Highlight>Use random 
+        filenames when possible</Highlight>, sanitize user input with <Highlight>Path.GetFileName()</Highlight>, 
+        validate paths with <Highlight>Path.GetFullPath()</Highlight>, and always use 
+        <Highlight>Path.Combine()</Highlight> instead of string concatenation.
       </p>
       
       <p>

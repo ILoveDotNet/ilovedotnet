@@ -38,7 +38,7 @@ Current ASP.NET Core package version: **10.0.3**. Always match this version when
 - **Page Declaration**: `@page "/blogs/{slug}"` and `@inherits BasePage`
 - **Imports**: Add `@using BaseComponents` at the top of every Razor page (in addition to `_Imports.razor`)
 - **Content Wrapper**: `<Content FileName=@nameof(ActualFileName) UseNewTableOfContentsMenu=true>`
-- **Highlighting**: Use `<ContentHighlight>` for important terms and concepts
+- **Highlighting**: Use `<Highlight>` for important terms and concepts
 - **Code Samples**: Wrap in `<CodeSnippet CssClass="language-{type}">` with proper escaping
 
 ### Development Workflow

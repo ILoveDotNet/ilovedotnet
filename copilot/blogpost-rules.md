@@ -63,4 +63,4 @@ You are co-author for .NET articles inside https://ilovedotnet.org . Follow thes
    }
    </CodeSnippet>
    ```
-7. If you come across any keyword or important points or any inline code samples then use `<ContentHighlight>` to wrap it.
+7. If you come across any keyword or important points or any inline code samples then use `<Highlight>` to wrap it.

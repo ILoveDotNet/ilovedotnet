@@ -103,12 +103,12 @@ Follow these steps in order:
    - Each section should have distinct, non-overlapping content
    
    **Additional requirements:**
-   - Use `<ContentHighlight>` for key terms and inline code references
+   - Use `<Highlight>` for key terms and inline code references
    - **CRITICAL - Inline Code Styling**: 
-     - Wrap inline code (technical terms, method names, class names, variable names) with `<ContentHighlight>` directly
-     - DO NOT nest `<code>` tags inside `<ContentHighlight>` 
-     - ✅ Correct: `<ContentHighlight>ILogger&lt;T&gt;</ContentHighlight>`
-     - ❌ Wrong: `<ContentHighlight><code>ILogger&lt;T&gt;</code></ContentHighlight>`
+     - Wrap inline code (technical terms, method names, class names, variable names) with `<Highlight>` directly
+     - DO NOT nest `<code>` tags inside `<Highlight>` 
+     - ✅ Correct: `<Highlight>ILogger&lt;T&gt;</Highlight>`
+     - ❌ Wrong: `<Highlight><code>ILogger&lt;T&gt;</code></Highlight>`
    - Include practical code examples with proper escaping (use `&lt;` for `<`, `&gt;` for `>`, `@@` for `@`)
    - Add table outputs in code snippets to visualize data transformations where applicable
    - Use ASCII diagrams or mermaid diagrams inside `<CodeSnippet>` for complex concepts
@@ -139,8 +139,8 @@ Follow these steps in order:
    - [ ] All `<CodeSnippet>` tags have `CssClass` attribute
    - [ ] HTML entities properly escaped (`<` → `&lt;`, `>` → `&gt;`, `@` → `@@`)
    - [ ] Long code lines are broken for readability
-   - [ ] Inline code wrapped with `<ContentHighlight>` (NOT nested inside `<code>` tags)
-   - [ ] Key technical terms highlighted with `<ContentHighlight>`
+   - [ ] Inline code wrapped with `<Highlight>` (NOT nested inside `<code>` tags)
+   - [ ] Key technical terms highlighted with `<Highlight>`
    
    ✅ **Metadata:**
    - [ ] Entry added to `{Category}LearningPath.cs`
@@ -179,4 +179,4 @@ Follow these steps in order:
 6. Escape HTML entities in code snippets (`<` → `&lt;`, `>` → `&gt;`, `@` → `@@`)
 7. Keep each section focused on its purpose - no overlap between What, Why, and How
 8. Don't add unnecessary `@code` blocks - `@nameof()` uses the component class name directly
-9. Use `<ContentHighlight>` directly without nesting `<code>` tags inside
+9. Use `<Highlight>` directly without nesting `<code>` tags inside

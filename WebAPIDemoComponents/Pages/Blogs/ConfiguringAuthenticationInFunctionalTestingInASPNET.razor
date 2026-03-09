@@ -4,8 +4,8 @@
 <Content FileName=@nameof(ConfiguringAuthenticationInFunctionalTestingInASPNET)>
     <ContentBody>
         <p>
-            In this article, let's learn about how to setup <ContentHighlight>Authentication</ContentHighlight> in 
-            <ContentHighlight>Functional Test</ContentHighlight> in <ContentHighlight>WebAPI</ContentHighlight> in ASP.NET Core.
+            In this article, let's learn about how to setup <Highlight>Authentication</Highlight> in 
+            <Highlight>Functional Test</Highlight> in <Highlight>WebAPI</Highlight> in ASP.NET Core.
         </p>
 
         <p>
@@ -41,15 +41,15 @@
         <h3 id="introduction">Introduction</h3>
 
         <p>
-            In our previous article we saw how to use <ContentHighlight>WireMock.NET</ContentHighlight> in functional test to validate HTTP calls. In this article,
-            we will see how to setup <ContentHighlight>Authentication</ContentHighlight> and <ContentHighlight>Authorization</ContentHighlight> in functional test in 
-            <ContentHighlight>WebAPI</ContentHighlight> in ASP.NET Core step by step. We will be using the same project that we used in our previous article.
+            In our previous article we saw how to use <Highlight>WireMock.NET</Highlight> in functional test to validate HTTP calls. In this article,
+            we will see how to setup <Highlight>Authentication</Highlight> and <Highlight>Authorization</Highlight> in functional test in 
+            <Highlight>WebAPI</Highlight> in ASP.NET Core step by step. We will be using the same project that we used in our previous article.
         </p>
 
         <p>
-            The straight forward way to enable <ContentHighlight>Authentication</ContentHighlight> and <ContentHighlight>Authorization</ContentHighlight> in 
-            Web API is to add <ContentHighlight CssClasses="[ break-all ]">UseAuthentication()</ContentHighlight> middleware and decorate necessary endpoints 
-            with <ContentHighlight>[Authorize]</ContentHighlight> attribute.
+            The straight forward way to enable <Highlight>Authentication</Highlight> and <Highlight>Authorization</Highlight> in 
+            Web API is to add <Highlight CssClasses="[ break-all ]">UseAuthentication()</Highlight> middleware and decorate necessary endpoints 
+            with <Highlight>[Authorize]</Highlight> attribute.
         </p>
 
         <CodeSnippet CssClass="language-csharp">
@@ -63,7 +63,7 @@ app.UseAuthorization();
         </CodeSnippet>
 
         <p>
-            Now we need to decorate the endpoints with <ContentHighlight>[Authorize]</ContentHighlight> attribute as shown below.
+            Now we need to decorate the endpoints with <Highlight>[Authorize]</Highlight> attribute as shown below.
         </p>
 
         <figure>
@@ -72,7 +72,7 @@ app.UseAuthorization();
         </figure>
 
         <p>
-            Now if we run our tests, all our tests will fail with <ContentHighlight>401 UnAuthorized</ContentHighlight> as shown below.
+            Now if we run our tests, all our tests will fail with <Highlight>401 UnAuthorized</Highlight> as shown below.
         </p>
 
         <figure>
@@ -81,8 +81,8 @@ app.UseAuthorization();
         </figure>
 
         <p>
-            Lets quickly verify if we are getting <ContentHighlight>401 UnAuthorized</ContentHighlight> from swagger. Here is the swagger response from the 
-            <ContentHighlight>WeatherForecast</ContentHighlight> endpoint.
+            Lets quickly verify if we are getting <Highlight>401 UnAuthorized</Highlight> from swagger. Here is the swagger response from the 
+            <Highlight>WeatherForecast</Highlight> endpoint.
         </p>
 
         <figure>
@@ -93,14 +93,14 @@ app.UseAuthorization();
         <h3 id="setup-authentication">Setup Authentication</h3>
 
         <p>
-            Setting up <ContentHighlight>Authentication</ContentHighlight> in <ContentHighlight>Functional Test</ContentHighlight> is a bit tricky as it cannot be 
+            Setting up <Highlight>Authentication</Highlight> in <Highlight>Functional Test</Highlight> is a bit tricky as it cannot be 
             mocked like unit tests. But here is plan as per <NavLink href="https://learn.microsoft.com/en-us/aspnet/core/test/integration-tests?view=aspnetcore-8.0#mock-authentication" class="[ underline ]" target="_blank">official documentation</NavLink>. 
         </p>
 
         <ol>
             <li>
                 <p>
-                    Let's start with Empty <ContentHighlight>AuthClaimsProvider</ContentHighlight>.
+                    Let's start with Empty <Highlight>AuthClaimsProvider</Highlight>.
                 </p>
 
                 <CodeSnippet CssClass="language-csharp">
@@ -126,7 +126,7 @@ public class AuthClaimsProvider
             </li>
             <li>
                 <p>
-                    Next, we need to add <ContentHighlight>AuthenticationHandler</ContentHighlight>.
+                    Next, we need to add <Highlight>AuthenticationHandler</Highlight>.
                 </p>
 
                 <CodeSnippet CssClass="language-csharp">
@@ -167,7 +167,7 @@ public class TestAuthHandler(
             </li>
             <li>
                 <p>
-                    When application is started in test host add new authentication scheme (let's call it <ContentHighlight>Test</ContentHighlight>).
+                    When application is started in test host add new authentication scheme (let's call it <Highlight>Test</Highlight>).
                 </p>
 
                 <CodeSnippet CssClass="language-csharp">
@@ -200,8 +200,8 @@ public class CustomWebApiFactory(SharedFixture fixture) : WebApplicationFactory&
             </li>
             <li>
                 <p>
-                    Configure authentication scheme to use custom authentication handler (<ContentHighlight>TestAuthHandler</ContentHighlight>) that creates 
-                    fake identity for integration tests. This handler creates fake user when <ContentHighlight>HandleAuthenticateAsync()</ContentHighlight> is 
+                    Configure authentication scheme to use custom authentication handler (<Highlight>TestAuthHandler</Highlight>) that creates 
+                    fake identity for integration tests. This handler creates fake user when <Highlight>HandleAuthenticateAsync()</Highlight> is 
                     called. We don't need any additional hacks to make ASP.NET Core application use this fake identity. Our integration test needs also some 
                     changes because of authentication handler.
                 </p>
@@ -220,19 +220,19 @@ public class CustomWebApiFactory(SharedFixture fixture) : WebApplicationFactory&
         <h3 id="setup-authorization">Setup Authorization</h3>
 
         <p>
-            So far so good. Now the problem with the above <ContentHighlight>TestHandler</ContentHighlight> is that it provides static set of claims for all the 
+            So far so good. Now the problem with the above <Highlight>TestHandler</Highlight> is that it provides static set of claims for all the 
             tests. This will not be the case in real world applications. The handler provides web application with static set of claims. No matter what is the 
             request claims are always the same. This way it is not possible to test application with different users and roles. We need to validate 
-            <ContentHighlight>Authorization</ContentHighlight> for endpoints which require different set of claims. So we need to configure claims for each test. Here is the plan.
+            <Highlight>Authorization</Highlight> for endpoints which require different set of claims. So we need to configure claims for each test. Here is the plan.
         </p>
 
         <ol>
             <li>
                 <p>
-                    To make test authentication handler support different user accounts I extended claims provider. This is the <ContentHighlight>class</ContentHighlight> 
-                    that carries given set of <ContentHighlight>claims</ContentHighlight> to test authentication provider. I added also some static methods to 
-                    return already initialized provider with set of claims specific for role like <ContentHighlight>Guest</ContentHighlight> and 
-                    <ContentHighlight>Admin</ContentHighlight>.
+                    To make test authentication handler support different user accounts I extended claims provider. This is the <Highlight>class</Highlight> 
+                    that carries given set of <Highlight>claims</Highlight> to test authentication provider. I added also some static methods to 
+                    return already initialized provider with set of claims specific for role like <Highlight>Guest</Highlight> and 
+                    <Highlight>Admin</Highlight>.
                 </p>
 
                 <CodeSnippet CssClass="language-csharp">
@@ -278,8 +278,8 @@ public class AuthClaimsProvider
             </li>
             <li>
                 <p>
-                    Now we need to add extension method to create <ContentHighlight>HttpClient</ContentHighlight> with required <ContentHighlight>Claims</ContentHighlight>. 
-                    This method will be used in tests to create <ContentHighlight>HttpClient</ContentHighlight> with required claims. The code for that is shown below.
+                    Now we need to add extension method to create <Highlight>HttpClient</Highlight> with required <Highlight>Claims</Highlight>. 
+                    This method will be used in tests to create <Highlight>HttpClient</Highlight> with required claims. The code for that is shown below.
                 </p>
 
                 <CodeSnippet CssClass="language-csharp">
@@ -311,13 +311,13 @@ public static class WebApplicationFactoryExtensions
         </ol>
 
         <p>
-            That's it. Now we can use the above code to configure <ContentHighlight>claims</ContentHighlight> and <ContentHighlight>roles</ContentHighlight> for 
-            each test. Let's try to test both <ContentHighlight>Guest</ContentHighlight> and <ContentHighlight>Admin</ContentHighlight> role.
+            That's it. Now we can use the above code to configure <Highlight>claims</Highlight> and <Highlight>roles</Highlight> for 
+            each test. Let's try to test both <Highlight>Guest</Highlight> and <Highlight>Admin</Highlight> role.
         </p>
 
         <p>
-            Now lets try to test the <ContentHighlight>Admin</ContentHighlight> role on <ContentHighlight CssClasses="[ break-all ]">GetWeatherForecastFromDatabase</ContentHighlight> 
-            endpoint. For this we need to use the extension method to create <ContentHighlight>HttpClient</ContentHighlight> with <ContentHighlight>Admin</ContentHighlight> claims.
+            Now lets try to test the <Highlight>Admin</Highlight> role on <Highlight CssClasses="[ break-all ]">GetWeatherForecastFromDatabase</Highlight> 
+            endpoint. For this we need to use the extension method to create <Highlight>HttpClient</Highlight> with <Highlight>Admin</Highlight> claims.
         </p>
 
         <CodeSnippet CssClass="language-csharp">
@@ -372,16 +372,16 @@ public class WeatherForecastControllerShouldTests(
             <img src="./image/blogs/webapi/configuring-authentication-in-functional-testing-in-asp-net-webapi/all-passing-test.png" alt="all-passing-test" class="[ w-full ]" />
         </figure>
 
-        <p>We can do the same for <ContentHighlight>Guest Claims</ContentHighlight> for another test.</p>
+        <p>We can do the same for <Highlight>Guest Claims</Highlight> for another test.</p>
 
         <h3 id="summary">Summary</h3>
 
         <p>
-            In this article, we learnt about how to setup <ContentHighlight>Authentication</ContentHighlight> and <ContentHighlight>Authorization</ContentHighlight> 
-            in <ContentHighlight>Functional Test</ContentHighlight> in <ContentHighlight>WebAPI</ContentHighlight> in ASP.NET Core. We learnt how to setup 
-            <ContentHighlight>Test Authentication Handler</ContentHighlight> and <ContentHighlight>Test Scheme</ContentHighlight> and also learnt how to inject 
+            In this article, we learnt about how to setup <Highlight>Authentication</Highlight> and <Highlight>Authorization</Highlight> 
+            in <Highlight>Functional Test</Highlight> in <Highlight>WebAPI</Highlight> in ASP.NET Core. We learnt how to setup 
+            <Highlight>Test Authentication Handler</Highlight> and <Highlight>Test Scheme</Highlight> and also learnt how to inject 
             different users and claims in runtime. The complete source code for this article can be found <NavLink href="https://github.com/fingers10/ILoveDotNetFunctionalTest" class="[ underline ]" target="_blank">here</NavLink>. 
-            With this we are completing the series on <ContentHighlight>Functional Testing in ASP.NET WebAPI</ContentHighlight>. I'm happy to share my knowledge 
+            With this we are completing the series on <Highlight>Functional Testing in ASP.NET WebAPI</Highlight>. I'm happy to share my knowledge 
             on functional testing. Hope you enjoyed reading it.
         </p>
     </ContentBody>

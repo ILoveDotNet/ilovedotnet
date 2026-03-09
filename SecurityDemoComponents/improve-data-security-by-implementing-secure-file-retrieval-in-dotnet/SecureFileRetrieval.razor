@@ -6,9 +6,9 @@
   <ContentBody>
     <What>
       <p>
-        You've secured file uploads—now what about downloads? <ContentHighlight>A poorly implemented file download 
+        You've secured file uploads—now what about downloads? <Highlight>A poorly implemented file download 
         endpoint can expose configuration files, leak user data, or become a gateway for attackers to probe your internal 
-        network.</ContentHighlight> In this article, we'll explore how to implement secure file retrieval in .NET 
+        network.</Highlight> In this article, we'll explore how to implement secure file retrieval in .NET 
         applications, protecting against path traversal, Server-Side Request Forgery (SSRF), and browser-based exploits.
       </p>
       <p>
@@ -19,7 +19,7 @@
 
     <Why>
       <p>
-        <ContentHighlight>File retrieval vulnerabilities</ContentHighlight> mirror upload risks but with different 
+        <Highlight>File retrieval vulnerabilities</Highlight> mirror upload risks but with different 
         consequences. Instead of writing malicious files, attackers read sensitive data. The same path traversal 
         techniques that threaten uploads can expose configuration files, database credentials, API keys, and user data 
         during downloads.
@@ -30,8 +30,8 @@
       <p>
         When users control file paths in download requests, they can navigate your file system just like with uploads. 
         The difference? They're stealing data instead of planting it. A request for 
-        <ContentHighlight>../../../../etc/passwd</ContentHighlight> or 
-        <ContentHighlight>..\..\appsettings.json</ContentHighlight> could expose your entire security infrastructure.
+        <Highlight>../../../../etc/passwd</Highlight> or 
+        <Highlight>..\..\appsettings.json</Highlight> could expose your entire security infrastructure.
       </p>
 
       <p>
@@ -44,23 +44,23 @@
           documents by manipulating file IDs or paths.
         </li>
         <li>
-          <strong>Configuration File Exposure:</strong> Attackers retrieve <ContentHighlight>appsettings.json</ContentHighlight>, 
-          <ContentHighlight>web.config</ContentHighlight>, or environment files containing database credentials and API keys.
+          <strong>Configuration File Exposure:</strong> Attackers retrieve <Highlight>appsettings.json</Highlight>, 
+          <Highlight>web.config</Highlight>, or environment files containing database credentials and API keys.
         </li>
         <li>
           <strong>Source Code Leakage:</strong> If download paths aren't restricted, attackers might access your 
           application's source code, revealing business logic and security weaknesses.
         </li>
         <li>
-          <strong>Operating System Files:</strong> On Windows, files like <ContentHighlight>C:\Windows\System32\drivers\etc\hosts</ContentHighlight> 
-          or on Linux <ContentHighlight>/etc/shadow</ContentHighlight> could be targeted.
+          <strong>Operating System Files:</strong> On Windows, files like <Highlight>C:\Windows\System32\drivers\etc\hosts</Highlight> 
+          or on Linux <Highlight>/etc/shadow</Highlight> could be targeted.
         </li>
       </ul>
 
       <h4>Server-Side Request Forgery (SSRF): The Hidden Threat</h4>
 
       <p>
-        <ContentHighlight>SSRF attacks</ContentHighlight> occur when attackers trick your server into making requests on 
+        <Highlight>SSRF attacks</Highlight> occur when attackers trick your server into making requests on 
         their behalf. If your file download endpoint accepts URLs or can be manipulated to make HTTP requests, attackers 
         can use your server to:
       </p>
@@ -72,7 +72,7 @@
         </li>
         <li>
           <strong>Access Cloud Metadata:</strong> In AWS, Azure, or GCP, instances have metadata endpoints 
-          (like <ContentHighlight>http://169.254.169.254/</ContentHighlight>) that expose sensitive information including 
+          (like <Highlight>http://169.254.169.254/</Highlight>) that expose sensitive information including 
           IAM credentials. SSRF can compromise your entire cloud environment.
         </li>
         <li>
@@ -100,7 +100,7 @@
       <ul>
         <li>
           <strong>Content-Type:</strong> Tells the browser what type of content it's receiving 
-          (<ContentHighlight>text/html</ContentHighlight>, <ContentHighlight>application/pdf</ContentHighlight>, etc.).
+          (<Highlight>text/html</Highlight>, <Highlight>application/pdf</Highlight>, etc.).
         </li>
         <li>
           <strong>Content-Disposition:</strong> Controls whether the browser displays the content inline or treats it 
@@ -110,9 +110,9 @@
 
       <p>
         If an attacker uploads an HTML file containing malicious JavaScript, and your download endpoint serves it with 
-        <ContentHighlight>Content-Type: text/html</ContentHighlight> without 
-        <ContentHighlight>Content-Disposition: attachment</ContentHighlight>, the browser executes the JavaScript as if 
-        it's part of your application. This creates a <ContentHighlight>stored Cross-Site Scripting (XSS)</ContentHighlight> 
+        <Highlight>Content-Type: text/html</Highlight> without 
+        <Highlight>Content-Disposition: attachment</Highlight>, the browser executes the JavaScript as if 
+        it's part of your application. This creates a <Highlight>stored Cross-Site Scripting (XSS)</Highlight> 
         vulnerability, allowing attackers to steal session cookies, hijack accounts, or perform actions as the victim.
       </p>
 
@@ -231,11 +231,11 @@ public class FileDownloadController : ControllerBase
       </p>
 
       <ul>
-        <li><ContentHighlight>Path.GetFileName()</ContentHighlight> strips directory components from user input</li>
-        <li><ContentHighlight>Path.GetFullPath()</ContentHighlight> resolves the absolute path</li>
+        <li><Highlight>Path.GetFileName()</Highlight> strips directory components from user input</li>
+        <li><Highlight>Path.GetFullPath()</Highlight> resolves the absolute path</li>
         <li>Path validation ensures files can only come from the user's directory</li>
-        <li><ContentHighlight>application/octet-stream</ContentHighlight> prevents browser from executing content</li>
-        <li>Filename in <ContentHighlight>File()</ContentHighlight> method sets <ContentHighlight>Content-Disposition: attachment</ContentHighlight></li>
+        <li><Highlight>application/octet-stream</Highlight> prevents browser from executing content</li>
+        <li>Filename in <Highlight>File()</Highlight> method sets <Highlight>Content-Disposition: attachment</Highlight></li>
       </ul>
 
       <h4>Step 2: Implement Database-Backed File Access Control</h4>
@@ -550,8 +550,8 @@ public class SsrfProtectionService
       <h4>Step 4: Set Secure Download Headers</h4>
 
       <p>
-        Always control the <ContentHighlight>Content-Type</ContentHighlight> and 
-        <ContentHighlight>Content-Disposition</ContentHighlight> headers. Never let users specify these values.
+        Always control the <Highlight>Content-Type</Highlight> and 
+        <Highlight>Content-Disposition</Highlight> headers. Never let users specify these values.
       </p>
 
 <CodeSnippet CssClass="language-csharp">
@@ -586,7 +586,7 @@ public async Task&lt;IActionResult&gt; SecureDownload(Guid fileId)
       <ul>
         <li>
           <strong>Never use user input for Content-Type:</strong> Always use 
-          <ContentHighlight>application/octet-stream</ContentHighlight> or a validated MIME type from your database.
+          <Highlight>application/octet-stream</Highlight> or a validated MIME type from your database.
         </li>
         <li>
           <strong>Always set Content-Disposition to attachment:</strong> This forces browsers to download instead of 
@@ -829,9 +829,9 @@ public class TemporaryDownloadService
 
     <Summary>
       <p>
-        <ContentHighlight>Secure file retrieval</ContentHighlight> requires the same vigilance as file uploads—and then 
-        some. Validate paths with <ContentHighlight>Path.GetFileName()</ContentHighlight> and 
-        <ContentHighlight>Path.GetFullPath()</ContentHighlight>, implement database-backed access control, prevent SSRF 
+        <Highlight>Secure file retrieval</Highlight> requires the same vigilance as file uploads—and then 
+        some. Validate paths with <Highlight>Path.GetFileName()</Highlight> and 
+        <Highlight>Path.GetFullPath()</Highlight>, implement database-backed access control, prevent SSRF 
         by whitelisting domains and blocking private IP ranges, and always set secure download headers.
       </p>
       
