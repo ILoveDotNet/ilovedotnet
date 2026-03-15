@@ -1,86 +1,42 @@
 ﻿@page "/blogs/introducing-dependency-injection-in-dotnet"
+@using BaseComponents
 @inherits BasePage
 
-<Content FileName=@nameof(Introduction)>
+<Content FileName=@nameof(Introduction) UseNewTableOfContentsMenu=true>
     <ContentBody>
-        <p>
-            In this article, let's learn about <Highlight>Dependency Injection</Highlight> in .NET.
-        </p>
+        <What>
+            <p>
+                In this article, let's learn about <Highlight>Dependency Injection</Highlight> in .NET.
+            </p>
 
-        <h3>Table of Contents</h3>
-        
-        <ol>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
-                    Introduction
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#what-is-dependency")" Match="NavLinkMatch.All">
-                    What is Dependency?
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#dependency-injection-visualization")" Match="NavLinkMatch.All">
-                    Dependency Injection visualization
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#working-with-dependency-injection")" Match="NavLinkMatch.All">
-                    Working with Dependency Injection
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#phases-of-dependency-injection")" Match="NavLinkMatch.All">
-                    Phases of Dependency Injection
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#advantages-of-dependency-injection")" Match="NavLinkMatch.All">
-                    Advantages
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
-                    Summary
-                </NavLink>
-            </li>
-        </ol>
+            <p>
+                .NET supports the <Highlight>dependency injection (DI)</Highlight> software design pattern, which is a technique for achieving
+                <Highlight>Inversion of Control (IoC)</Highlight> between classes and their dependencies. Dependency injection in .NET is a
+                built-in part of the framework.
+            </p>
+        </What>
 
-        <h3 id="introduction">Introduction</h3>
-        
-        <p>
-            .NET supports the <Highlight>dependency injection (DI)</Highlight> software design pattern, which is a technique for achieving 
-            <Highlight>Inversion of Control (IoC)</Highlight> between classes and their dependencies. Dependency injection in .NET is a 
-            built-in part of the framework.
-        </p>
+        <Why>
+            <p>
+                A <Highlight><em>dependency</em></Highlight> is an <Highlight>object</Highlight> that
+                <Highlight>another object</Highlight> depends on. Examine the following <Highlight>ClassB class</Highlight> with
+                that other classes depend on:
+            </p>
 
-        
-
-        <h3 id="what-is-dependency">What is Dependency?</h3>
-
-        <p>
-            A <Highlight><em>dependency</em></Highlight> is an <Highlight>objec</Highlight> that 
-            <Highlight>another object</Highlight> depends on. Examine the following <Highlight>ClassB class</Highlight> with 
-            that other classes depend on:
-        </p>
-
-        <CodeSnippet CssClass="language-csharp">
+            <CodeSnippet CssClass="language-csharp">
 public class ClassB 
 {
   // omitted for brevity
 } 
-        </CodeSnippet>
+            </CodeSnippet>
 
-        
+            <p>
+                A <Highlight>class</Highlight> can create an <Highlight>instance</Highlight> of the
+                <Highlight>ClassB class</Highlight> to make use of it. In the following example, the
+                <Highlight>ClassB class</Highlight> is a dependency of the <Highlight>ClassA class</Highlight>:
+            </p>
 
-        <p>
-            A <Highlight>class</Highlight> can create an <Highlight>instance</Highlight> of the 
-            <Highlight>ClassB class</Highlight> to make use of it. In the following example, the 
-            <Highlight>ClassB class</Highlight> is a dependency of the <Highlight>ClassA class</Highlight>:
-        </p>
-
-        <CodeSnippet CssClass="language-csharp">
+            <CodeSnippet CssClass="language-csharp">
 public class ClassA
 {
     private readonly ClassB _classB = new();
@@ -90,34 +46,32 @@ public class ClassA
         // omitted for brevity
     }
 }
-        </CodeSnippet>
+            </CodeSnippet>
 
-        
+            <p>
+                The <Highlight>class</Highlight> creates and directly depends on the <Highlight>ClassB class</Highlight>.
+                Hard-coded dependencies, such as in the previous example, are problematic and should be avoided for the following reasons:
+            </p>
 
-        <p>
-            The <Highlight>class</Highlight> creates and directly depends on the <Highlight>ClassB class</Highlight>. 
-            Hard-coded dependencies, such as in the previous example, are problematic and should be avoided for the following reasons:
-        </p>
+            <ul>
+                <li>To replace <Highlight>ClassB</Highlight> with a different implementation, the <Highlight>ClassA class</Highlight> must be modified.</li>
+                <li>
+                    If <Highlight>ClassB</Highlight> has dependencies, they must also be configured by the <Highlight>ClassA class</Highlight>.
+                    In a large project with multiple classes depending on <Highlight>ClassB</Highlight>, the configuration code becomes
+                    scattered across the app.
+                </li>
+                <li>
+                    This implementation is <Highlight>difficult to unit test</Highlight>. The app should use a mock or
+                    stub <Highlight>ClassB</Highlight> class, which isn't possible with this approach.
+                </li>
+            </ul>
 
-        <ul>
-            <li>To replace <Highlight>ClassB</Highlight> with a different implementation, the <Highlight>ClassA class</Highlight> must be modified.</li>
-            <li>
-                If <Highlight>ClassB</Highlight> has dependencies, they must also be configured by the <Highlight>ClassA class</Highlight>. 
-                In a large project with multiple classes depending on <Highlight>ClassB</Highlight>, the configuration code becomes 
-                scattered across the app.
-            </li>
-            <li>
-                This implementation is <Highlight>difficult to unit test</Highlight>. The app should use a mock or 
-                stub <Highlight>ClassB</Highlight> class, which isn't possible with this approach.
-            </li>
-        </ul>
+            <p>
+                So let's try to get the instance of <Highlight>ClassB</Highlight> from <Highlight>constructor</Highlight> of
+                <Highlight>ClassA</Highlight>.
+            </p>
 
-        <p>
-            So let's try to get the instance of <Highlight>ClassB</Highlight> from <Highlight>constructor</Highlight> of 
-            <Highlight>ClassA</Highlight>.
-        </p>
-
-        <CodeSnippet CssClass="language-csharp">
+            <CodeSnippet CssClass="language-csharp">
 public class ClassA
 {
     private readonly ClassB _classB;
@@ -132,15 +86,13 @@ public class ClassA
         // omitted for brevity
     }
 }
-        </CodeSnippet>
+            </CodeSnippet>
 
-        
+            <p>
+                Here is the complete wire up in <Highlight>Program.cs</Highlight>.
+            </p>
 
-        <p>
-            Here is the complete wire up in <Highlight>Program.cs</Highlight>.
-        </p>
-
-        <CodeSnippet CssClass="language-csharp">
+            <CodeSnippet CssClass="language-csharp">
 class Program
 {
     var classB = new ClassB();
@@ -148,185 +100,170 @@ class Program
     
     classA.Run();
 }
-        </CodeSnippet>
+            </CodeSnippet>
 
-        
+            <p>
+                Dependency injection addresses these problems through:
+            </p>
 
-        <p>
-            Dependency injection addresses these problems through:
-        </p>
+            <ul>
+                <li>
+                    The use of an <Highlight>interface</Highlight> or <Highlight>base class</Highlight> to
+                    <Highlight>abstract</Highlight> the dependency implementation.
+                </li>
+                <li>
+                    Registration of the dependency in a service container. .NET provides a built-in service container, <Highlight>IServiceProvider</Highlight>.
+                    Services are typically registered at the app's start-up and appended to an <Highlight>IServiceCollection</Highlight>. Once all
+                    services are added, you use <Highlight>BuildServiceProvider</Highlight> to create the service container.
+                </li>
+                <li>
+                    <em>Injection</em> of the service into the <Highlight>constructor</Highlight> of the <Highlight>class</Highlight>
+                    where it's used. The framework takes on the responsibility of creating an instance of the dependency and disposing of it when it's no longer
+                    needed.
+                </li>
+            </ul>
 
-        <ul>
-            <li>
-                The use of an <Highlight>interface</Highlight> or <Highlight>base class</Highlight> to 
-                <Highlight>abstract</Highlight> the dependency implementation.
-            </li>
-            <li>
-                Registration of the dependency in a service container. .NET provides a built-in service container, <Highlight>IServiceProvider</Highlight>. 
-                Services are typically registered at the app's start-up and appended to an <Highlight>IServiceCollection</Highlight>. Once all 
-                services are added, you use <Highlight>BuildServiceProvider</Highlight> to create the service container.
-            </li>
-            <li>
-                <em>Injection</em> of the service into the <Highlight>constructor</Highlight> of the <Highlight>class</Highlight> 
-                where it's used. The framework takes on the responsibility of creating an instance of the dependency and disposing of it when it's no longer 
-                needed.
-            </li>
-        </ul>
-
-        <CodeSnippet CssClass="language-csharp">
+            <CodeSnippet CssClass="language-csharp">
 class Program
 {
     using var host = Host.CreateDefaultBuilder(args)
                          .ConfigureServices((context, services) =&gt; 
                          { 
-				services.AddTransient&lt;ClassB&gt;();
-				services.AddTransient&lt;ClassA&gt;();
-			 })
+                             services.AddTransient&lt;ClassB&gt;();
+                             services.AddTransient&lt;ClassA&gt;();
+                         })
                          .Build();
 
     var classA = host.Services.GetRequiredService&lt;ClassA&gt;();
     classA.Run();
 }
-        </CodeSnippet>
+            </CodeSnippet>
+        </Why>
 
-        
+        <How>
+            <h4 id="dependency-injection-visualization">Dependency Injection visualization</h4>
 
-        <h3 id="dependency-injection-visualization">Dependency Injection visualization</h3>
+            <p>
+                <abbr title="Dependency Injection">DI</abbr> enables decoupling and supports development of loosely-coupled code. DI supports implementation of
+                two related concepts, <Highlight><em>inversion of control</em></Highlight> and the
+                <Highlight><em>dependency inversion principle</em></Highlight>.
+            </p>
 
-        <p>
-            <abbr title="Dependency Injection">DI</abbr> enables decoupling and supports development of loosely-coupled code. DI supports implementation of 
-            two related concepts, <Highlight><em>inversion of control</em></Highlight> and the 
-            <Highlight><em>dependency inversion principle</em></Highlight>.
-        </p>
+            <dl>
+              <dt><Highlight>Inversion of Control</Highlight></dt>
+              <dd>- A framework controls which code is executed next, not your code.</dd>
+              <dt><Highlight>Dependency Inversion Principle</Highlight></dt>
+              <dd>- High-level modules should not depend on low-level modules. Both should depend on abstractions.</dd>
+            </dl>
 
-        <dl>
-          <dt><Highlight>Inversion of Control</Highlight></dt>
-          <dd>- High-level modules should not depend on low-level modules.</dd>
-          <dt><Highlight>Dependency Inversion Principle</Highlight></dt>
-          <dd>- A framework controls which code is executed next, not your code.</dd>
-        </dl>
+            <figure>
+                <img src="./image/blogs/dependency-injection/introduction/dependency-injection-in-dotnet.png" alt="dependency-injection-in-dotnet" class="[ w-full ]" />
+            </figure>
 
-        <figure>
-            <img src="./image/blogs/dependency-injection/introduction/dependency-injection-in-dotnet.png" alt="dependency-injection-in-dotnet" class="[ w-full ]" />
-        </figure>
+            <h4 id="working-with-dependency-injection">Working with Dependency Injection</h4>
 
-        
+            <p>
+                DI Configuration consist of two main phases, <Highlight>Registration</Highlight> phase and <Highlight>Resolving</Highlight> Phase.
+            </p>
 
-        <h3 id="working-with-dependency-injection">Working with Dependency Injection</h3>
+            <h4>Steps</h4>
 
-        <p>
-            DI Configuration consist of two main phases, <Highlight>Registration</Highlight> phase and <Highlight>Resolving</Highlight> Phase.
-        </p>
-
-        <h4>Steps</h4>
-
-        <ol>
-            <li>Install <Highlight>Microsoft.Extensions.Hosting</Highlight> Nuget Package.</li>
-            <li>
-                <p>Register services using</p>
-                <CodeSnippet CssClass="language-csharp">
+            <ol>
+                <li>Install <Highlight>Microsoft.Extensions.Hosting</Highlight> Nuget Package.</li>
+                <li>
+                    <p>Register services using</p>
+                    <CodeSnippet CssClass="language-csharp">
 var host = Host.CreateDefaultBuilder(args)
                .ConfigureServices((context, services) =&gt; 
                { 
                   //Registration goes here 
                })
                .Build();
-                </CodeSnippet>
-            </li>
-            <li>Resolve services using <Highlight CssClasses="[ break-all ]">Host.Services.GetRequiredService&lt;YourService&gt;();</Highlight></li>
-        </ol>
+                    </CodeSnippet>
+                </li>
+                <li>Resolve services using <Highlight CssClasses="[ break-all ]">Host.Services.GetRequiredService&lt;YourService&gt;();</Highlight></li>
+            </ol>
 
-        <figure>
-            <img src="./image/blogs/dependency-injection/introduction/working-with-dependency-injection-in-dotnet.png" alt="working-with-dependency-injection-in-dotnet" class="[ w-full ]" />
-        </figure>
+            <figure>
+                <img src="./image/blogs/dependency-injection/introduction/working-with-dependency-injection-in-dotnet.png" alt="working-with-dependency-injection-in-dotnet" class="[ w-full ]" />
+            </figure>
 
-        
+            <h4 id="phases-of-dependency-injection">Phases of Dependency Injection</h4>
 
-        <h3 id="phases-of-dependency-injection">Phases of Dependency Injection</h3>
+            <h4>Registration Phase</h4>
 
-        <h4>Registration Phase</h4>
+            <p>
+                Register types in container so it knows of their existence and when to construct them.
+            </p>
 
-        <p>
-            Register types in container so it knows of their existence and when to construct them.
-        </p>
+            <ol>
+                <li>Register types for later use.</li>
+                <li>Indirection through service type and implementing type.</li>
+                <li>Choose a lifetime.</li>
+            </ol>
 
-        <ol>
-            <li>Register types for later use.</li>
-            <li>Indirection through service type and implementing type.</li>
-            <li>Choose a lifetime.</li>
-        </ol>
+            <h4>Registering Types</h4>
 
-        
+            <p>
+                When registering types you specify the <em>lifetime</em>, the requested <em>service type</em> and the <em>implementing type</em>. If these types
+                are the same you provide it once.
+            </p>
 
-        <h4>Registering Types</h4>
-
-        <p>
-            When registering types you specify the <em>lifetime</em>, the requested <em>service type</em> and the <em>implementing type</em>. If these types 
-            are the same you provide it once.
-        </p>
-
-        <CodeSnippet CssClass="language-csharp">
+            <CodeSnippet CssClass="language-csharp">
 services.AddTransient&lt;IService, MyService&gt;();
 services.AddSingleton&lt;ClassA&gt;();
-        </CodeSnippet>
+            </CodeSnippet>
 
-        <h4>Resolving Phase</h4>
+            <h4>Resolving Phase</h4>
 
-        <p>
-            Container is responsible for instantiating types and providing them when requested.
-        </p>
+            <p>
+                Container is responsible for instantiating types and providing them when requested.
+            </p>
 
-        <ol>
-            <li>Resolves and creates types directly.</li>
-            <li>Provides dependencies of types you work with.</li>
-            <li>Provides dependencies to dependencies of the types you work with.</li>
-            <li>Manage the lifetimes of the types.</li>
-        </ol>
+            <ol>
+                <li>Resolves and creates types directly.</li>
+                <li>Provides dependencies of types you work with.</li>
+                <li>Provides dependencies to dependencies of the types you work with.</li>
+                <li>Manage the lifetimes of the types.</li>
+            </ol>
 
-        
+            <h4>Resolving Types</h4>
 
-        <h4>Resolving Types</h4>
+            <p>
+                When resolving a type, you request an instance of <em>service type</em>. The container will find the <em>implementing type</em>, instantiate it
+                if needed, and return it to you.
+            </p>
 
-        <p>
-            When resolving a type, you request an instance of <em>service type</em>. The container will find the <em>implementing type</em>, instantiate it 
-            if needed, and return it to you.
-        </p>
+            <p>
+                If the <em>implementing type</em> has dependencies, they are provided to the <em>implementing type</em> as well.
+            </p>
 
-        <p>
-            If the <em>implementing type</em> has dependencies, they are provided to the <em>implementing type</em> as well.
-        </p>
-
-        <CodeSnippet CssClass="language-csharp">
+            <CodeSnippet CssClass="language-csharp">
 host.Services.GetRequiredService&lt;IService&gt;();
 host.Services.GetRequiredService&lt;ClassA&gt;();
-        </CodeSnippet>
+            </CodeSnippet>
 
-        
+            <figure>
+                <img src="./image/blogs/dependency-injection/introduction/phases-of-dependency-injection-in-dotnet.png" alt="phases-of-dependency-injection-in-dotnet" class="[ w-full ]" />
+            </figure>
 
-        <figure>
-            <img src="./image/blogs/dependency-injection/introduction/phases-of-dependency-injection-in-dotnet.png" alt="phases-of-dependency-injection-in-dotnet" class="[ w-full ]" />
-        </figure>
+            <h4 id="advantages-of-dependency-injection">Advantages</h4>
 
-        
+            <ol>
+                <li>No longer calling constructors.</li>
+                <li>Container calls the constructors.</li>
+                <li>Not concerned with ordering registrations.</li>
+                <li>Not concerned with dependencies of each type.</li>
+            </ol>
+        </How>
 
-        <h3 id="advantages-of-dependency-injection">Advantages</h3>
-
-        <ol>
-            <li>No longer calling constructors.</li>
-            <li>Container calls the constructors.</li>
-            <li>Not concerned with ordering registrations.</li>
-            <li>Not concerned with dependencies of each type.</li>
-        </ol>
-
-        
-
-        <h3 id="summary">Summary</h3>
-
-        <p>
-            In this article, we learn't what is <Highlight>Dependency Injection</Highlight> in .NET. We understood how classes are invoked in 
-            traditional flow using <Highlight>new()</Highlight> keyword and how dependency injection helped us to avoid the 
-            <Highlight>new()</Highlight> glue and makes it easy to manage dependencies. In next article lets talk about 
-            <NavLink href="blogs/dependency-injection-lifetimes-in-dotnet" class="[ underline ]" Match="NavLinkMatch.All">lifetimes in dependency injection in .NET</NavLink>.
-        </p>
+        <Summary>
+            <p>
+                In this article, we learn't what is <Highlight>Dependency Injection</Highlight> in .NET. We understood how classes are invoked in
+                traditional flow using <Highlight>new()</Highlight> keyword and how dependency injection helped us to avoid the
+                <Highlight>new()</Highlight> glue and makes it easy to manage dependencies. In next article lets talk about
+                <NavLink href="blogs/dependency-injection-lifetimes-in-dotnet" class="[ underline ]" Match="NavLinkMatch.All">lifetimes in dependency injection in .NET</NavLink>.
+            </p>
+        </Summary>
     </ContentBody>
 </Content>

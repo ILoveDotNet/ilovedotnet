@@ -1,83 +1,58 @@
 ﻿@page "/blogs/dependency-injection-lifetimes-in-dotnet"
+@using BaseComponents
 @using DependencyInjectionDemoComponents
 @inherits BasePage
 
-<Content FileName=@nameof(Lifetimes)>
+<Content FileName=@nameof(Lifetimes) UseNewTableOfContentsMenu=true>
     <ContentBody>
-        <p>
-            In this article, let's learn about <Highlight>Lifetimes in Dependency Injection</Highlight> in .NET.
-        </p>
+        <What>
+            <p>
+                In this article, let's learn about <Highlight>Lifetimes in Dependency Injection</Highlight> in .NET.
+            </p>
 
-        <p>
-            <strong>Note:</strong> If you have not done so already, I recommend you read the article on 
-            <NavLink href="blogs/introducing-dependency-injection-in-dotnet" Match="NavLinkMatch.All">Introducing Dependency Injection in .NET</NavLink>.
-        </p>
+            <p>
+                <strong>Note:</strong> If you have not done so already, I recommend you read the article on
+                <NavLink href="blogs/introducing-dependency-injection-in-dotnet" Match="NavLinkMatch.All">Introducing Dependency Injection in .NET</NavLink>.
+            </p>
 
-        <h3>Table of Contents</h3>
-        
-        <ol>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
-                    Introduction
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#transient")" Match="NavLinkMatch.All">
-                    Transient
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#scoped")" Match="NavLinkMatch.All">
-                    Scoped
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#singleton")" Match="NavLinkMatch.All">
-                    Singleton
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#captive-dependency")" Match="NavLinkMatch.All">
-                    Captive Dependency
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#scope-validation")" Match="NavLinkMatch.All">
-                    Scope Validation
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
-                    Summary
-                </NavLink>
-            </li>
-        </ol>
+            <p>
+                <em>Lifetimes</em> in dependency injection describe the way object instance is created, reused and disposed by the framework. Services can be
+                registered with one of the following lifetimes:
+            </p>
 
-        <h3 id="introduction">Introduction</h3>
+            <ul>
+                <li>Transient</li>
+                <li>Scoped</li>
+                <li>Singleton</li>
+            </ul>
 
-        <p>
-            <em>Lifetimes</em> in dependency injection describe the way object instance is created, reused and disposed by the framework. Services can be 
-            registered with one of the following lifetimes:
-        </p>
+            <p>
+                The following sections describe each of the preceding lifetimes. Choose an appropriate lifetime for each registered service.
+            </p>
+        </What>
 
-        <ul>
-            <li>Transient</li>
-            <li>Scoped</li>
-            <li>Singleton</li>
-        </ul>
+        <Why>
+            <p>
+                Choosing the right service lifetime is crucial for your application's correctness, performance, and resource management.
+                Using the wrong lifetime can introduce subtle bugs that are hard to track down.
+            </p>
 
-        <p>
-            The following sections describe each of the preceding lifetimes. Choose an appropriate lifetime for each registered service.
-        </p>
+            <p>
+                For example, injecting a short-lived service into a long-lived one creates a <Highlight>captive dependency</Highlight>,
+                where the short-lived service lives longer than intended — potentially causing stale data, thread-safety issues, and memory leaks.
+                Understanding lifetimes helps you make intentional decisions about how and when services are created, shared, and disposed.
+            </p>
+        </Why>
 
-        <h3 id="transient">Transient</h3>
+        <How>
+            <h4 id="transient">Transient</h4>
 
-        <p>
-            Transient lifetime services are created each time they're requested from the service container. This lifetime works best for lightweight, 
-            stateless services. Register transient services with <Highlight>AddTransient</Highlight>.
-        </p>
+            <p>
+                Transient lifetime services are created each time they're requested from the service container. This lifetime works best for lightweight,
+                stateless services. Register transient services with <Highlight>AddTransient</Highlight>.
+            </p>
 
-        <CodeSnippet CssClass="language-razor">
+            <CodeSnippet CssClass="language-razor">
 @@inject TransientServiceDemo TransientService1;
 @@inject TransientServiceDemo TransientService2;
 
@@ -85,51 +60,51 @@
 &lt;p&gt;Guid from Transient Service 2 : @@TransientService2.Id&lt;/p&gt;
 
 &lt;p&gt;Transient Dependency TransientService1 Equals TransientService2 : @@(Object.ReferenceEquals(TransientService1, TransientService2))&lt;/p&gt;
-        </CodeSnippet>
+            </CodeSnippet>
 
-        <DemoSnippet Title="Transient Service Dependency">
-            <p class="[ text-black ] [ dark:text-white ]">
-                <ol class="[ list-decimal ] [ ml-4 ]">
-                    <li>
-                        <Highlight>TransientServiceDemo</Highlight> is registered in <Highlight>Program.cs</Highlight> as 
-                        <Highlight>Transient</Highlight> service using <Highlight CssClasses="[ break-all ]">services.AddTransient&lt;TransientServiceDemo&gt;();</Highlight>.
-                    </li>
-                    <li>
-                        Let's resolve and <Highlight>@@inject TransientServiceDemo</Highlight> twice within a component as follows.
-                        <Highlight>@@inject TransientServiceDemo TransientService1;</Highlight> and <Highlight>@@inject TransientServiceDemo TransientService2;</Highlight>.
-                    </li>
-                    <li>
-                        When we read <Highlight>Guid Id</Highlight> from both instances it should be 
-                        <Highlight>different</Highlight> as two instances are not same.
-                    </li>
-                    <li>
-                        Now let's compare the object reference of two <Highlight>TransientServiceDemo</Highlight> instance using 
-                        <Highlight CssClasses="[ break-all ]">Object.ReferenceEquals(TransientService1, TransientService2)</Highlight>. This should return
-                        <Highlight>False</Highlight>.
-                    </li>
-                </ol>
+            <DemoSnippet Title="Transient Service Dependency">
+                <p class="[ text-black ] [ dark:text-white ]">
+                    <ol class="[ list-decimal ] [ ml-4 ]">
+                        <li>
+                            <Highlight>TransientServiceDemo</Highlight> is registered in <Highlight>Program.cs</Highlight> as
+                            <Highlight>Transient</Highlight> service using <Highlight CssClasses="[ break-all ]">services.AddTransient&lt;TransientServiceDemo&gt;();</Highlight>.
+                        </li>
+                        <li>
+                            Let's resolve and <Highlight>@@inject TransientServiceDemo</Highlight> twice within a component as follows.
+                            <Highlight>@@inject TransientServiceDemo TransientService1;</Highlight> and <Highlight>@@inject TransientServiceDemo TransientService2;</Highlight>.
+                        </li>
+                        <li>
+                            When we read <Highlight>Guid Id</Highlight> from both instances it should be
+                            <Highlight>different</Highlight> as two instances are not same.
+                        </li>
+                        <li>
+                            Now let's compare the object reference of two <Highlight>TransientServiceDemo</Highlight> instance using
+                            <Highlight CssClasses="[ break-all ]">Object.ReferenceEquals(TransientService1, TransientService2)</Highlight>. This should return
+                            <Highlight>False</Highlight>.
+                        </li>
+                    </ol>
+                </p>
+                <br />
+                <TransientDependency></TransientDependency>
+            </DemoSnippet>
+
+            <h4 id="scoped">Scoped</h4>
+
+            <p>
+                For web applications, a scoped lifetime indicates that services are created once per client request (connection). Register scoped services
+                with <Highlight>AddScoped</Highlight>.
             </p>
-            <br />
-            <TransientDependency></TransientDependency>
-        </DemoSnippet>
 
-        <h3 id="scoped">Scoped</h3>
+            <p>
+                In apps that process requests, scoped services are disposed at the end of the request.
+            </p>
 
-        <p>
-            For web applications, a scoped lifetime indicates that services are created once per client request (connection). Register scoped services 
-            with <Highlight>AddScoped</Highlight>.
-        </p>
+            <p>
+                When using Entity Framework Core, the <Highlight>AddDbContext</Highlight> extension method registers DbContext types with a scoped
+                lifetime by default.
+            </p>
 
-        <p>
-            In apps that process requests, scoped services are disposed at the end of the request.
-        </p>
-
-        <p>
-            When using Entity Framework Core, the <Highlight>AddDbContext</Highlight> extension method registers DbContext types with a scoped 
-            lifetime by default.
-        </p>
-
-        <CodeSnippet CssClass="language-razor">
+            <CodeSnippet CssClass="language-razor">
 @@inject ScopedServiceDemo ScopedService1;
 @@inject ScopedServiceDemo ScopedService2;
 
@@ -137,65 +112,63 @@
 &lt;p&gt;Guid from Scoped Service 2 : @@ScopedService2.Id&lt;/p&gt;
 
 &lt;p&gt;Scoped Dependency ScopedService1 Equals ScopedService2 : @@(Object.ReferenceEquals(ScopedService1, ScopedService2))&lt;/p&gt;
-        </CodeSnippet>
+            </CodeSnippet>
 
-        <DemoSnippet Title="Scoped Service Dependency">
-            <p class="[ text-black ] [ dark:text-white ]">
-                <ol class="[ list-decimal ] [ ml-4 ]">
-                    <li>
-                        <Highlight>ScopedServiceDemo</Highlight> is registered in <Highlight>Program.cs</Highlight> as 
-                        <Highlight>Scoped</Highlight> service using <Highlight CssClasses="[ break-all ]">services.AddScoped&lt;ScopedServiceDemo&gt;();</Highlight>.
-                    </li>
-                    <li>
-                        Let's resolve and <Highlight>@@inject ScopedServiceDemo</Highlight> twice within a component as follows.
-                        <Highlight>@@inject ScopedServiceDemo ScopedService1;</Highlight> and <Highlight>@@inject ScopedServiceDemo ScopedService2;</Highlight>.
-                    </li>
-                    <li>
-                        When we read <Highlight>Guid Id</Highlight> from both instances it should be 
-                        <Highlight>same</Highlight> as two instances are same per scope (request).
-                    </li>
-                    <li>
-                        Now let's compare the object reference of two <Highlight>ScopedServiceDemo</Highlight> instance using 
-                        <Highlight CssClasses="[ break-all ]">Object.ReferenceEquals(ScopedService1, ScopedService2)</Highlight>. This should return
-                        <Highlight>True</Highlight>.
-                    </li>
-                </ol>
+            <DemoSnippet Title="Scoped Service Dependency">
+                <p class="[ text-black ] [ dark:text-white ]">
+                    <ol class="[ list-decimal ] [ ml-4 ]">
+                        <li>
+                            <Highlight>ScopedServiceDemo</Highlight> is registered in <Highlight>Program.cs</Highlight> as
+                            <Highlight>Scoped</Highlight> service using <Highlight CssClasses="[ break-all ]">services.AddScoped&lt;ScopedServiceDemo&gt;();</Highlight>.
+                        </li>
+                        <li>
+                            Let's resolve and <Highlight>@@inject ScopedServiceDemo</Highlight> twice within a component as follows.
+                            <Highlight>@@inject ScopedServiceDemo ScopedService1;</Highlight> and <Highlight>@@inject ScopedServiceDemo ScopedService2;</Highlight>.
+                        </li>
+                        <li>
+                            When we read <Highlight>Guid Id</Highlight> from both instances it should be
+                            <Highlight>same</Highlight> as two instances are same per scope (request).
+                        </li>
+                        <li>
+                            Now let's compare the object reference of two <Highlight>ScopedServiceDemo</Highlight> instance using
+                            <Highlight CssClasses="[ break-all ]">Object.ReferenceEquals(ScopedService1, ScopedService2)</Highlight>. This should return
+                            <Highlight>True</Highlight>.
+                        </li>
+                    </ol>
+                </p>
+                <br />
+                <ScopedDependency></ScopedDependency>
+            </DemoSnippet>
+
+            <h4 id="singleton">Singleton</h4>
+
+            <p>
+                Singleton lifetime services are created either:
             </p>
-            <br />
-            <ScopedDependency></ScopedDependency>
-        </DemoSnippet>
 
-        
+            <ul>
+                <li>The first time they're requested.</li>
+                <li>By the developer, when providing an implementation instance directly to the container. This approach is rarely needed.</li>
+            </ul>
 
-        <h3 id="singleton">Singleton</h3>
+            <p>
+                Every subsequent request of the service implementation from the dependency injection container uses the same instance. If the app requires
+                singleton behavior, allow the service container to manage the service's lifetime. Don't implement the singleton design pattern and provide
+                code to dispose of the singleton. Services should never be disposed by code that resolved the service from the container. If a type or factory
+                is registered as a singleton, the container disposes the singleton automatically.
+            </p>
 
-        <p>
-            Singleton lifetime services are created either:
-        </p>
+            <p>
+                Register singleton services with <Highlight>AddSingleton</Highlight>. Singleton services must be thread safe and are often used in
+                stateless services.
+            </p>
 
-        <ul>
-            <li>The first time they're requested.</li>
-            <li>By the developer, when providing an implementation instance directly to the container. This approach is rarely needed.</li>
-        </ul>
+            <p>
+                In apps that process requests, singleton services are disposed when the <Highlight>ServiceProvider</Highlight> is disposed on
+                application shutdown. Because memory is not released until the app is shut down, consider memory use with a singleton service.
+            </p>
 
-        <p>
-            Every subsequent request of the service implementation from the dependency injection container uses the same instance. If the app requires 
-            singleton behavior, allow the service container to manage the service's lifetime. Don't implement the singleton design pattern and provide 
-            code to dispose of the singleton. Services should never be disposed by code that resolved the service from the container. If a type or factory 
-            is registered as a singleton, the container disposes the singleton automatically.
-        </p>
-
-        <p>
-            Register singleton services with <Highlight>AddSingleton</Highlight>. Singleton services must be thread safe and are often used in 
-            stateless services.
-        </p>
-
-        <p>
-            In apps that process requests, singleton services are disposed when the <Highlight>ServiceProvider</Highlight> is disposed on 
-            application shutdown. Because memory is not released until the app is shut down, consider memory use with a singleton service.
-        </p>
-
-        <CodeSnippet CssClass="language-razor">
+            <CodeSnippet CssClass="language-razor">
 @@inject SingletonServiceDemo SingletonService1;
 @@inject SingletonServiceDemo SingletonService2;
 
@@ -203,140 +176,139 @@
 &lt;p&gt;Guid from Singleton Service 2 : @@SingletonService2.Id&lt;/p&gt;
 
 &lt;p&gt;Singleton Dependency SingletonService1 Equals SingletonService2 : @@(Object.ReferenceEquals(SingletonService1, SingletonService2))&lt;/p&gt;
-        </CodeSnippet>
+            </CodeSnippet>
 
-        <DemoSnippet Title="Singleton Service Dependency">
-            <p class="[ text-black ] [ dark:text-white ]">
-                <ol class="[ list-decimal ] [ ml-4 ]">
-                    <li>
-                        <Highlight>SingletonServiceDemo</Highlight> is registered in <Highlight>Program.cs</Highlight> as 
-                        <Highlight>Singleton</Highlight> service using <Highlight CssClasses="[ break-all ]">services.AddSingleton&lt;SingletonServiceDemo&gt;();</Highlight>.
-                    </li>
-                    <li>
-                        Let's resolve and <Highlight>@@inject SingletonServiceDemo</Highlight> twice within a component as follows.
-                        <Highlight>@@inject SingletonServiceDemo SingletonService1;</Highlight> and <Highlight>@@inject SingletonServiceDemo SingletonService2;</Highlight>.
-                    </li>
-                    <li>
-                        When we read <Highlight>Guid Id</Highlight> from both instances it should be 
-                        <Highlight>same</Highlight> as two instances are same per application life.
-                    </li>
-                    <li>
-                        Now let's compare the object reference of two <Highlight>SingletonServiceDemo</Highlight> instance using 
-                        <Highlight CssClasses="[ break-all ]">Object.ReferenceEquals(SingletonService1, SingletonService2)</Highlight>. This should return
-                        <Highlight>True</Highlight>.
-                    </li>
-                </ol>
+            <DemoSnippet Title="Singleton Service Dependency">
+                <p class="[ text-black ] [ dark:text-white ]">
+                    <ol class="[ list-decimal ] [ ml-4 ]">
+                        <li>
+                            <Highlight>SingletonServiceDemo</Highlight> is registered in <Highlight>Program.cs</Highlight> as
+                            <Highlight>Singleton</Highlight> service using <Highlight CssClasses="[ break-all ]">services.AddSingleton&lt;SingletonServiceDemo&gt;();</Highlight>.
+                        </li>
+                        <li>
+                            Let's resolve and <Highlight>@@inject SingletonServiceDemo</Highlight> twice within a component as follows.
+                            <Highlight>@@inject SingletonServiceDemo SingletonService1;</Highlight> and <Highlight>@@inject SingletonServiceDemo SingletonService2;</Highlight>.
+                        </li>
+                        <li>
+                            When we read <Highlight>Guid Id</Highlight> from both instances it should be
+                            <Highlight>same</Highlight> as two instances are same per application life.
+                        </li>
+                        <li>
+                            Now let's compare the object reference of two <Highlight>SingletonServiceDemo</Highlight> instance using
+                            <Highlight CssClasses="[ break-all ]">Object.ReferenceEquals(SingletonService1, SingletonService2)</Highlight>. This should return
+                            <Highlight>True</Highlight>.
+                        </li>
+                    </ol>
+                </p>
+                <br />
+                <SingletonDependency></SingletonDependency>
+            </DemoSnippet>
+
+            <figure>
+                <img src="./image/blogs/dependency-injection/lifetimes/lifetimes-in-dependency-injection-in-dotnet.png" alt="lifetimes-in-dependency-injection-in-dotnet" class="[ w-full ]" />
+            </figure>
+
+            <h4 id="captive-dependency">Captive Dependency</h4>
+
+            <p>
+                A service should not depend on a service with lifetime shorter than its own. This is called Dependency Captivity. For example, a service
+                registered with singleton lifetime should not depend on transient service. Captive Dependency will make service to live longer than expected
+                causing runtime bugs which are hard to track down.
             </p>
-            <br />
-            <SingletonDependency></SingletonDependency>
-        </DemoSnippet>
 
-        <figure>
-            <img src="./image/blogs/dependency-injection/lifetimes/lifetimes-in-dependency-injection-in-dotnet.png" alt="lifetimes-in-dependency-injection-in-dotnet" class="[ w-full ]" />
-        </figure>
+            <p>
+                A service is said to have safe dependency when it has a dependency of lifetime same or above its own lifetime. Here is a table describing the safe dependency.
+            </p>
 
-        <h3 id="captive-dependency">Captive Dependency</h3>
+            <table class="[ table-fixed border-collapse ] [ bg-white ] [ border-2 border-gray-200 ] [ dark:bg-black dark:border-slate-500 ]">
+                <thead>
+                    <tr class="[ bg-gray-100 ] [ dark:bg-slate-500 ]">
+                        <th class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Safe Dependencies</th>
+                        <th class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Transient</th>
+                        <th class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Scoped</th>
+                        <th class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Singleton</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="[ border-2 border-gray-200 ] [ dark:border-slate-700 ] [ p-2 ]">Transient</td>
+                        <td class="[ border-2 border-gray-200 ] [ dark:border-slate-700 ] [ p-2 ] [ text-center ]">✅</td>
+                        <td class="[ border-2 border-gray-200 ] [ dark:border-slate-700 ] [ p-2 ] [ text-center ]">✅</td>
+                        <td class="[ border-2 border-gray-200 ] [ dark:border-slate-700 ] [ p-2 ] [ text-center ]">✅</td>
+                    </tr>
+                    <tr>
+                        <td class="[ border-2 border-gray-200 ] [ dark:border-slate-700 ] [ p-2 ]">Scoped</td>
+                        <td class="[ border-2 border-gray-200 ] [ dark:border-slate-700 ] [ p-2 ] [ text-center ]">❌</td>
+                        <td class="[ border-2 border-gray-200 ] [ dark:border-slate-700 ] [ p-2 ] [ text-center ]">✅</td>
+                        <td class="[ border-2 border-gray-200 ] [ dark:border-slate-700 ] [ p-2 ] [ text-center ]">✅</td>
+                    </tr>
+                    <tr>
+                        <td class="[ border-2 border-gray-200 ] [ dark:border-slate-700 ] [ p-2 ]">Singleton</td>
+                        <td class="[ border-2 border-gray-200 ] [ dark:border-slate-700 ] [ p-2 ] [ text-center ]">❌</td>
+                        <td class="[ border-2 border-gray-200 ] [ dark:border-slate-700 ] [ p-2 ] [ text-center ]">❌</td>
+                        <td class="[ border-2 border-gray-200 ] [ dark:border-slate-700 ] [ p-2 ] [ text-center ]">✅</td>
+                    </tr>
+                </tbody>
+            </table>
 
-        <p>
-            A service should not depend on a service with lifetime shorter than its own. This is called Dependency Captivity. For example, a service 
-            registered with singleton lifetime should not depend on transient service. Captive Dependency will make service to live longer than expected 
-            causing runtime bugs which are hard to track down.
-        </p>
+            <p>
+                By default, in the development environment, resolving a service from another service with a longer lifetime throws an exception.
+                For more information, see <NavLink href="@($"blogs/{Slug}#scope-validation")" Match="NavLinkMatch.All">Scope Validation</NavLink>.
+            </p>
 
-        <p>
-            A service is said to have safe dependency when it has a dependency of lifetime same or above its own lifetime. Here is a table describing the safe dependency.
-        </p>
+            <figure>
+                <img src="./image/blogs/dependency-injection/lifetimes/dependency-captivity-in-dependency-injection-in-dotnet.png" alt="dependency-captivity-in-dependency-injection-in-dotnet" class="[ w-full ]" />
+            </figure>
 
-        <table class="[ table-fixed border-collapse ] [ bg-white ] [ border-2 border-gray-200 ] [ dark:bg-black dark:border-slate-500 ]">
-            <thead>
-                <tr class="[ bg-gray-100 ] [ dark:bg-slate-500 ]">
-                    <th class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Safe Dependencies</th>
-                    <th class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Transient</th>
-                    <th class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Scoped</th>
-                    <th class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Singleton</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td class="[ border-2 border-gray-200 ] [ dark:border-slate-700 ] [ p-2 ]">Transient</td>
-                    <td class="[ border-2 border-gray-200 ] [ dark:border-slate-700 ] [ p-2 ] [ text-center ]">✅</td>
-                    <td class="[ border-2 border-gray-200 ] [ dark:border-slate-700 ] [ p-2 ] [ text-center ]">✅</td>
-                    <td class="[ border-2 border-gray-200 ] [ dark:border-slate-700 ] [ p-2 ] [ text-center ]">✅</td>
-                </tr>
-                <tr>
-                    <td class="[ border-2 border-gray-200 ] [ dark:border-slate-700 ] [ p-2 ]">Scoped</td>
-                    <td class="[ border-2 border-gray-200 ] [ dark:border-slate-700 ] [ p-2 ] [ text-center ]">❌</td>
-                    <td class="[ border-2 border-gray-200 ] [ dark:border-slate-700 ] [ p-2 ] [ text-center ]">✅</td>
-                    <td class="[ border-2 border-gray-200 ] [ dark:border-slate-700 ] [ p-2 ] [ text-center ]">✅</td>
-                </tr>
-                <tr>
-                    <td class="[ border-2 border-gray-200 ] [ dark:border-slate-700 ] [ p-2 ]">Singleton</td>
-                    <td class="[ border-2 border-gray-200 ] [ dark:border-slate-700 ] [ p-2 ] [ text-center ]">❌</td>
-                    <td class="[ border-2 border-gray-200 ] [ dark:border-slate-700 ] [ p-2 ] [ text-center ]">❌</td>
-                    <td class="[ border-2 border-gray-200 ] [ dark:border-slate-700 ] [ p-2 ] [ text-center ]">✅</td>
-                </tr>
-            </tbody>
-        </table>
+            <h4 id="scope-validation">Scope Validation</h4>
 
-        <p>
-            By default, in the development environment, resolving a service from another service with a longer lifetime throws an exception. 
-            For more information, see <NavLink href="@($"blogs/{Slug}#scope-validation")" Match="NavLinkMatch.All">Scope Validation</NavLink>.
-        </p>
+            <p>
+                When the app runs in the <Highlight>Development</Highlight> environment and calls <Highlight>CreateDefaultBuilder</Highlight>
+                to build the host, the default service provider performs checks to verify that:
+            </p>
 
-        <figure>
-            <img src="./image/blogs/dependency-injection/lifetimes/dependency-captivity-in-dependency-injection-in-dotnet.png" alt="dependency-captivity-in-dependency-injection-in-dotnet" class="[ w-full ]" />
-        </figure>
+            <ul>
+                <li>Scoped services aren't resolved from the root service provider.</li>
+                <li>Scoped services aren't injected into singletons.</li>
+            </ul>
 
-        <h3 id="scope-validation">Scope Validation</h3>
+            <p>
+                The root service provider is created when <Highlight>BuildServiceProvider</Highlight> is called. The root service provider's
+                lifetime corresponds to the app's lifetime when the provider starts with the app and is disposed when the app shuts down.
+            </p>
 
-        <p>
-            When the app runs in the <Highlight>Development</Highlight> environment and calls <Highlight>CreateDefaultBuilder</Highlight> 
-            to build the host, the default service provider performs checks to verify that:
-        </p>
+            <p>
+                Scoped services are disposed by the container that created them. If a scoped service is created in the root container, the service's lifetime is
+                effectively promoted to singleton because it's only disposed by the root container when the app shuts down. Validating service scopes catches
+                these situations when <Highlight>BuildServiceProvider</Highlight> is called.
+            </p>
 
-        <ul>
-            <li>Scoped services aren't resolved from the root service provider.</li>
-            <li>Scoped services aren't injected into singletons.</li>
-        </ul>
+            <p>
+                Scope Validation can be enabled explicitly on build using <Highlight>ValidateOnBuild</Highlight> or in all environment using
+                <Highlight>ValidateScopes</Highlight> options inside <Highlight>UseDefaultServiceProvider</Highlight>.
+            </p>
 
-        <p>
-            The root service provider is created when <Highlight>BuildServiceProvider</Highlight> is called. The root service provider's 
-            lifetime corresponds to the app's lifetime when the provider starts with the app and is disposed when the app shuts down.
-        </p>
-
-        <p>
-            Scoped services are disposed by the container that created them. If a scoped service is created in the root container, the service's lifetime is 
-            effectively promoted to singleton because it's only disposed by the root container when the app shuts down. Validating service scopes catches 
-            these situations when <Highlight>BuildServiceProvider</Highlight> is called.
-        </p>
-
-        <p>
-            Scope Validation can be enabled explicitly on build using <Highlight>ValidateOnBuild</Highlight> or in all environment using 
-            <Highlight>ValidateScopes</Highlight> options inside <Highlight>UseDefaultServiceProvider</Highlight>.
-        </p>
-
-        <CodeSnippet CssClass="language-csharp">
+            <CodeSnippet CssClass="language-csharp">
 using var host = Host.CreateDefaultBuilder(args)
-		     .UseDefaultServiceProvider((context, options) =&gt; 
-		     {
-			options.ValidateScopes = true;
-			// or
-			options.ValidateOnBuild = true;
-		     })
-		     .ConfigureServices((context, services) =&gt; 
-		     { 
-		    	// Register Services
-		     })
+                     .UseDefaultServiceProvider((context, options) =&gt; 
+                     {
+                         options.ValidateScopes = true;
+                         // or
+                         options.ValidateOnBuild = true;
+                     })
+                     .ConfigureServices((context, services) =&gt; 
+                     { 
+                         // Register Services
+                     })
                      .Build();
-        </CodeSnippet>
-        
-        
+            </CodeSnippet>
+        </How>
 
-        <h3 id="summary">Summary</h3>
-
-        <p>
-            In this article, we learn't about different <Highlight>lifetimes</Highlight> in Dependency Injection in .NET and when to use 
-            what lifetime for registering services. We also understood what is captive dependency and how to avoid it by validating the scopes.
-        </p>
+        <Summary>
+            <p>
+                In this article, we learn't about different <Highlight>lifetimes</Highlight> in Dependency Injection in .NET and when to use
+                what lifetime for registering services. We also understood what is captive dependency and how to avoid it by validating the scopes.
+            </p>
+        </Summary>
     </ContentBody>
 </Content>
