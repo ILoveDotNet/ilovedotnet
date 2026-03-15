@@ -1,96 +1,79 @@
 ﻿@page "/blogs/introducing-middleware-in-aspnet"
 @inherits BasePage
 
-<Content FileName=@nameof(Introduction)>
+<Content FileName=@nameof(Introduction) UseNewTableOfContentsMenu=true>
     <ContentBody>
-        <p>
-            In this article, let's learn about <Highlight>Middleware</Highlight> in ASP.NET.
-        </p>
+        <What>
+            <p>
+                In this article, let's learn about <Highlight>Middleware</Highlight> in ASP.NET.
+            </p>
 
-        <h3>Table of Contents</h3>
-        
-        <ol>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
-                    Introduction
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#what-is-middleware")" Match="NavLinkMatch.All">
-                    What is middleware?
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#middleware-visualization")" Match="NavLinkMatch.All">
-                    Middleware visualization
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
-                    Summary
-                </NavLink>
-            </li>
-        </ol>
+            <p>
+                In <Highlight>ASP.NET Core</Highlight>, the <Highlight>HTTP pipeline</Highlight> is built from middleware—components 
+                that <Highlight>see every request and response</Highlight> and decide how to act upon them, and whether to forward each one to the 
+                next component in the pipeline. Let's learn what <Highlight>middleware</Highlight> is and how to <Highlight>write middleware 
+                components</Highlight> of our own to enhance ASP.NET Core web applications.
+            </p>
+        </What>
 
-        <h3 id="introduction">Introduction</h3>
-        
-        <p>
-            In <Highlight>ASP.NET Core</Highlight>, the <Highlight>HTTP pipeline</Highlight> is built from middleware—components 
-            that <Highlight>see every request and response</Highlight> and decide how to act upon them, and whether to forward each one to the 
-            next component in the pipeline. Let's learn what <Highlight>middleware</Highlight> is and how to <Highlight>write middleware 
-            components</Highlight> of our own to enhance ASP.NET Core web applications.
-        </p>
+        <Why>
+            <p>
+                Modern web applications require many <Highlight>cross-cutting concerns</Highlight> — authentication, logging, compression, 
+                and error handling — that must run for every request, regardless of the route or controller handling it. Without a structured 
+                way to compose these concerns, developers end up duplicating logic across controllers or struggling to enforce consistent behaviour.
+            </p>
 
-        
+            <p>
+                <Highlight>Middleware</Highlight> solves this by providing a clean, ordered pipeline where each component has a single 
+                responsibility and can either pass the request on or <Highlight>short-circuit the pipeline</Highlight>. This makes the 
+                application easier to reason about, test, and maintain.
+            </p>
+        </Why>
 
-        <h3 id="what-is-middleware">What is middleware?</h3>
+        <How>
+            <h4 id="what-is-middleware">What is middleware?</h4>
 
-        <p>
-            Middleware's are <Highlight>C# classes</Highlight> and logics connected by <Highlight>chain of responsibility</Highlight> 
-            pattern to <Highlight>handle and terminate request pipeline</Highlight> in the order of appearance. Middleware's are configured by 
-            default in <Highlight>Program.cs</Highlight> and the order in which they run are important. Request's are processed from 
-            <Highlight>top to bottom and outside to inside and back again</Highlight>. These are created once in application start up.
-        </p>
+            <p>
+                Middleware's are <Highlight>C# classes</Highlight> and logics connected by <Highlight>chain of responsibility</Highlight> 
+                pattern to <Highlight>handle and terminate request pipeline</Highlight> in the order of appearance. Middleware's are configured by 
+                default in <Highlight>Program.cs</Highlight> and the order in which they run are important. Request's are processed from 
+                <Highlight>top to bottom and outside to inside and back again</Highlight>. These are created once in application start up.
+            </p>
 
-        <p>
-            Each Middleware component can:
-        </p>
+            <p>
+                Each Middleware component can:
+            </p>
 
-        <ul>
-            <li>Chooses whether to <Highlight>pass the request to the next component</Highlight> in the pipeline.</li>
-            <li>Can perform <Highlight>work before and after the next component</Highlight> in the pipeline.</li>
-        </ul>
+            <ul>
+                <li>Chooses whether to <Highlight>pass the request to the next component</Highlight> in the pipeline.</li>
+                <li>Can perform <Highlight>work before and after the next component</Highlight> in the pipeline.</li>
+            </ul>
 
-        
-        
-        <h3 id="middleware-visualization">Middleware visualization</h3>
+            <h4 id="middleware-visualization">Middleware visualization</h4>
 
-        <p>
-            <Highlight>Request delegates</Highlight> are used to build the request pipeline. The request delegates handle each HTTP request. 
-            The ASP.NET Core request pipeline consists of a <Highlight>sequence of request delegates</Highlight>, called one after the other. 
-            The following diagram demonstrates the concept. The thread of execution follows the violet arrows.
-        </p>
-        
-        <figure>
-            <img src="./image/blogs/middleware/introduction/middleware-visualization.png" alt="asp.net core middleware visualization" class="[ w-full ]" />
-        </figure>
+            <p>
+                <Highlight>Request delegates</Highlight> are used to build the request pipeline. The request delegates handle each HTTP request. 
+                The ASP.NET Core request pipeline consists of a <Highlight>sequence of request delegates</Highlight>, called one after the other. 
+                The following diagram demonstrates the concept. The thread of execution follows the violet arrows.
+            </p>
 
-        
+            <figure>
+                <img src="./image/blogs/middleware/introduction/middleware-visualization.png" alt="asp.net core middleware visualization" class="[ w-full ]" />
+            </figure>
 
-        <p>
-            Each <Highlight>delegate</Highlight> can <Highlight>perform operations before and after the next delegate</Highlight>. 
-            <Highlight>Exception-handling delegates</Highlight> should be called early in the pipeline, so they can 
-            <Highlight>catch exceptions</Highlight> that occur in <Highlight>later stages</Highlight> of the pipeline.
-        </p>
+            <p>
+                Each <Highlight>delegate</Highlight> can <Highlight>perform operations before and after the next delegate</Highlight>. 
+                <Highlight>Exception-handling delegates</Highlight> should be called early in the pipeline, so they can 
+                <Highlight>catch exceptions</Highlight> that occur in <Highlight>later stages</Highlight> of the pipeline.
+            </p>
+        </How>
 
-        
-        
-        <h3 id="summary">Summary</h3>
-
-        <p>
-            In this article, we learn't what is <Highlight>Middleware</Highlight> in ASP.NET and how it processes the request pipeline and how 
-            we can use middleware to customise the HTTP request. In next article let's learn about the 
-            <NavLink href="blogs/types-of-middleware-in-aspnet" class="[ underline ]" Match="NavLinkMatch.All">types of middleware</NavLink> in ASP.NET.
-        </p>
+        <Summary>
+            <p>
+                In this article, we learn't what is <Highlight>Middleware</Highlight> in ASP.NET and how it processes the request pipeline and how 
+                we can use middleware to customise the HTTP request. In next article let's learn about the 
+                <NavLink href="blogs/types-of-middleware-in-aspnet" class="[ underline ]" Match="NavLinkMatch.All">types of middleware</NavLink> in ASP.NET.
+            </p>
+        </Summary>
     </ContentBody>
 </Content>

@@ -1,26 +1,6 @@
 Add `UseNewTableOfContentsMenu=true` to the `<Content` tag in all blog post Razor files that are missing it.
 
-## Files to Update (115 total, ascending by count)
-
-### OWASPDemoComponents (1 file)
-- OWASPDemoComponents/Pages/Blogs/ScanVulnerableNugetDependency.razor
-
-### PythonDemoComponents (1 file)
-- PythonDemoComponents/Pages/Blogs/Interoperating.razor
-
-### ReportDemoComponents (1 file)
-- ReportDemoComponents/generate-pdf-report-using-quest-pdf-in-dotnet/GenerateQuestPDFPdf.razor
-
-### TalkDemoComponents (1 file)
-- TalkDemoComponents/Pages/Talks/BlazorSPAFromASPNETFamily.razor
-
-### DependencyInjectionDemoComponents (2 files)
-- DependencyInjectionDemoComponents/Pages/Blogs/Introduction.razor
-- DependencyInjectionDemoComponents/Pages/Blogs/Lifetimes.razor
-
-### MiddlewareDemoComponents (2 files)
-- MiddlewareDemoComponents/Pages/Blogs/Introduction.razor
-- MiddlewareDemoComponents/Pages/Blogs/MiddlewareTypes.razor
+## Files to Update (107 total, ascending by count)
 
 ### OOPSDemoComponents (2 files)
 - OOPSDemoComponents/Pages/Blogs/Abstraction.razor

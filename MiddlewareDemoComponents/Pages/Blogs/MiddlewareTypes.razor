@@ -1,99 +1,72 @@
 ﻿@page "/blogs/types-of-middleware-in-aspnet"
 @inherits BasePage
 
-<Content FileName=@nameof(MiddlewareTypes)>
+<Content FileName=@nameof(MiddlewareTypes) UseNewTableOfContentsMenu=true>
     <ContentBody>
-        <p>
-            In this article, let's learn about different types of <Highlight>Middleware</Highlight> in ASP.NET.
-        </p>
+        <What>
+            <p>
+                In this article, let's learn about different types of <Highlight>Middleware</Highlight> in ASP.NET.
+            </p>
 
-        <p>
-            <strong>Note:</strong> If you have not done so already, I recommend you read the article on 
-            <NavLink href="blogs/introducing-middleware-in-aspnet" Match="NavLinkMatch.All">Introducing Middleware in ASP.NET</NavLink>.
-        </p>
+            <p>
+                <strong>Note:</strong> If you have not done so already, I recommend you read the article on 
+                <NavLink href="blogs/introducing-middleware-in-aspnet" Match="NavLinkMatch.All">Introducing Middleware in ASP.NET</NavLink>.
+            </p>
 
-        <h3>Table of Contents</h3>
-        
-        <ol>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
-                    Introduction
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#run-middleware")" Match="NavLinkMatch.All">
-                    Run Middleware
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#use-middleware")" Match="NavLinkMatch.All">
-                    Use Middleware
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#use-when-middleware")" Match="NavLinkMatch.All">
-                    UseWhen Middleware
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#map-middleware")" Match="NavLinkMatch.All">
-                    Map Middleware
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#map-when-middleware")" Match="NavLinkMatch.All">
-                    MapWhen Middleware
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
-                    Summary
-                </NavLink>
-            </li>
-        </ol>
+            <p>
+                Middleware's are <Highlight>C# classes</Highlight> and logics connected by <Highlight>chain of responsibility</Highlight> 
+                pattern to <Highlight>handle and terminate request pipeline</Highlight> in the order of appearance. Middleware's are configured by 
+                default in <Highlight>Program.cs</Highlight> and the order in which they run are important. Request's are processed from 
+                <Highlight>top to bottom and outside to inside and back again</Highlight>. These are created once in application start up.
+            </p>
 
-        <h3 id="introduction">Introduction</h3>
+            <p>
+                There are 5 types of middleware:
+            </p>
 
-        <p>
-            Middleware's are <Highlight>C# classes</Highlight> and logics connected by <Highlight>chain of responsibility</Highlight> 
-            pattern to <Highlight>handle and terminate request pipeline</Highlight> in the order of appearance. Middleware's are configured by 
-            default in <Highlight>Program.cs</Highlight> and the order in which they run are important. Request's are processed from 
-            <Highlight>top to bottom and outside to inside and back again</Highlight>. These are created once in application start up.
-        </p>
+            <ul>
+                <li><Highlight>Run</Highlight> Middleware</li>
+                <li><Highlight>Use</Highlight> Middleware</li>
+                <li><Highlight>UseWhen</Highlight> Middleware</li>
+                <li><Highlight>Map</Highlight> Middleware</li>
+                <li><Highlight>MapWhen</Highlight> Middleware</li>
+            </ul>
 
-        <p>
-            There are 5 types of middleware:
-        </p>
+            <figure>
+                <img src="./image/blogs/middleware/types/aspnet-core-middleware-types.png" alt="types of middleware in asp.net" class="[ w-full ]" />
+            </figure>
+        </What>
 
-        <ul>
-            <li><Highlight>Run</Highlight> Middleware</li>
-            <li><Highlight>Use</Highlight> Middleware</li>
-            <li><Highlight>UseWhen</Highlight> Middleware</li>
-            <li><Highlight>Map</Highlight> Middleware</li>
-            <li><Highlight>MapWhen</Highlight> Middleware</li>
-        </ul>
+        <Why>
+            <p>
+                Different middleware types give you precise control over <Highlight>how and when</Highlight> the request pipeline is 
+                modified. Using the wrong type can lead to requests not being handled correctly — for example, accidentally 
+                short-circuiting requests that should continue, or failing to rejoin the main pipeline after a branch.
+            </p>
 
-        <figure>
-            <img src="./image/blogs/middleware/types/aspnet-core-middleware-types.png" alt="types of middleware in asp.net" class="[ w-full ]" />
-        </figure>
+            <p>
+                Understanding the five types — <Highlight>Run</Highlight>, <Highlight>Use</Highlight>, <Highlight>UseWhen</Highlight>, 
+                <Highlight>Map</Highlight>, and <Highlight>MapWhen</Highlight> — lets you build pipelines that are both efficient and 
+                correct, applying logic only where it is needed.
+            </p>
+        </Why>
 
-        
+        <How>
+            <h4 id="run-middleware">Run Middleware</h4>
 
-        <h3 id="run-middleware">Run Middleware</h3>
+            <p>
+                <Highlight>Run</Highlight> Middleware execute the <Highlight>delegate</Highlight> and <Highlight>terminates</Highlight> 
+                processing the request pipeline. Run delegates <Highlight>don't receive a next parameter</Highlight>. The 
+                <Highlight>first Run delegate</Highlight> is <Highlight>always terminal and terminates</Highlight> the pipeline. 
+                Run should <Highlight>always be the last one in pipeline</Highlight>.
+            </p>
 
-        <p>
-            <Highlight>Run</Highlight> Middleware execute the <Highlight>delegate</Highlight> and <Highlight>terminates</Highlight> 
-            processing the request pipeline. Run delegates <Highlight>don't receive a next parameter</Highlight>. The 
-            <Highlight>first Run delegate</Highlight> is <Highlight>always terminal and terminates</Highlight> the pipeline. 
-            Run should <Highlight>always be the last one in pipeline</Highlight>.
-        </p>
+            <p>
+                The simplest possible ASP.NET Core app sets up a single request delegate that handles all requests. This case doesn't include an actual request 
+                pipeline. Instead, a single anonymous function is called in response to every HTTP request.
+            </p>
 
-        <p>
-            The simplest possible ASP.NET Core app sets up a single request delegate that handles all requests. This case doesn't include an actual request 
-            pipeline. Instead, a single anonymous function is called in response to every HTTP request.
-        </p>
-
-        <CodeSnippet CssClass="language-csharp">
+            <CodeSnippet CssClass="language-csharp">
 var builder = WebApplication.CreateBuilder(args);
 var app = builder.Build();
 
@@ -103,48 +76,42 @@ app.Run(async context =&gt;
 });
 
 app.Run();
-        </CodeSnippet>
+            </CodeSnippet>
 
-        
+            <h4 id="use-middleware">Use Middleware</h4>
 
-        <h3 id="use-middleware">Use Middleware</h3>
+            <p>
+                <Highlight>Use</Highlight> Middleware execute the <Highlight>delegate</Highlight> and <Highlight>proceed to next</Highlight> 
+                in request pipeline. We can <Highlight>chain multiple request delegates</Highlight> together with Use. 
+                The <Highlight>next</Highlight> parameter represents the <Highlight>next delegate</Highlight> in the pipeline. You can 
+                <em>short-circuit the pipeline</em> by not calling the next parameter. You can typically 
+                <Highlight>perform actions both before and after the next delegate</Highlight>.
+            </p>
 
-        <p>
-            <Highlight>Use</Highlight> Middleware execute the <Highlight>delegate</Highlight> and <Highlight>proceed to next</Highlight> 
-            in request pipeline. We can <Highlight>chain multiple request delegates</Highlight> together with Use. 
-            The <Highlight>next</Highlight> parameter represents the <Highlight>next delegate</Highlight> in the pipeline. You can 
-            <em>short-circuit the pipeline</em> by not calling the next parameter. You can typically 
-            <Highlight>perform actions both before and after the next delegate</Highlight>.
-        </p>
-
-        <CodeSnippet CssClass="language-csharp">
+            <CodeSnippet CssClass="language-csharp">
 app.Use(async (context, next) =&gt;
 {
     await context.Response.WriteAsync("Hello from Use Middleware!");
     await next();
     await context.Response.WriteAsync("Bye from Use Middleware!");
 });
-        </CodeSnippet>
+            </CodeSnippet>
 
-        
-        
-        <p>
-            When a delegate doesn't pass a request to the next delegate, it's called <Highlight>short-circuiting</Highlight> the request pipeline. 
-            Short-circuiting is often desirable because it avoids unnecessary work. For example, <Highlight>Static File Middleware</Highlight> can 
-            act as a terminal middleware by processing a request for a static file and short-circuiting the rest of the pipeline.
-        </p>
+            <p>
+                When a delegate doesn't pass a request to the next delegate, it's called <Highlight>short-circuiting</Highlight> the request pipeline. 
+                Short-circuiting is often desirable because it avoids unnecessary work. For example, <Highlight>Static File Middleware</Highlight> can 
+                act as a terminal middleware by processing a request for a static file and short-circuiting the rest of the pipeline.
+            </p>
 
-        
+            <h4 id="use-when-middleware">UseWhen Middleware</h4>
 
-        <h3 id="use-when-middleware">UseWhen Middleware</h3>
+            <p>
+                <Highlight>UseWhen</Highlight> Middleware <Highlight>branches</Highlight> the request pipeline based on the result of the 
+                given predicate and this branch is <Highlight>rejoined</Highlight> to the main pipeline if it doesn't short-circuit or contain a 
+                terminal middleware.
+            </p>
 
-        <p>
-            <Highlight>UseWhen</Highlight> Middleware <Highlight>branches</Highlight> the request pipeline based on the result of the 
-            given predicate and this branch is <Highlight>rejoined</Highlight> to the main pipeline if it doesn't short-circuit or contain a 
-            terminal middleware.
-        </p>
-
-        <CodeSnippet CssClass="language-csharp">
+            <CodeSnippet CssClass="language-csharp">
 app.UseWhen(context =&gt; context.Request.Query.ContainsKey("branch"),
     appBuilder =&gt; HandleBranchAndRejoin(appBuilder));
 
@@ -152,10 +119,10 @@ app.Run(async context =&gt;
 {
     await context.Response.WriteAsync("Hello from non-Map delegate!");
 });
-    
+
 void HandleBranchAndRejoin(IApplicationBuilder app)
 {
-    var logger = app.ApplicationServices.GetRequiredService&lt;ILogger&lt;Program&gt;&gt;(); 
+    var logger = app.ApplicationServices.GetRequiredService&lt;ILogger&lt;Program&gt;&gt;();
 
     app.Use(async (context, next) =&gt;
     {
@@ -167,19 +134,17 @@ void HandleBranchAndRejoin(IApplicationBuilder app)
         // Do other work that doesn't write to the Response.
     });
 }
-        </CodeSnippet>
+            </CodeSnippet>
 
-        
+            <h4 id="map-middleware">Map Middleware</h4>
 
-        <h3 id="map-middleware">Map Middleware</h3>
-        
-        <p>
-            <Highlight>Map</Highlight> Middleware <Highlight>conditionally execute</Highlight> a method and does not return to 
-            request pipeline. Map extensions are used as a convention for branching the pipeline. Map branches the request pipeline based on matches of the 
-            given <Highlight>request path</Highlight>. If the request path starts with the given path, the branch is executed.
-        </p>
+            <p>
+                <Highlight>Map</Highlight> Middleware <Highlight>conditionally execute</Highlight> a method and does not return to 
+                request pipeline. Map extensions are used as a convention for branching the pipeline. Map branches the request pipeline based on matches of the 
+                given <Highlight>request path</Highlight>. If the request path starts with the given path, the branch is executed.
+            </p>
 
-        <CodeSnippet CssClass="language-csharp">
+            <CodeSnippet CssClass="language-csharp">
 app.Map("/branch", HandleBranch);
 
 private static void HandleBranch(IApplicationBuilder app)
@@ -196,20 +161,18 @@ private static void HandleBranch(IApplicationBuilder app)
         await context.Response.WriteAsync("Hello from inside Map Run Middleware!");
     });
 }
-        </CodeSnippet>
+            </CodeSnippet>
 
-        
-        
-        <h3 id="map-when-middleware">MapWhen Middleware</h3>
-        
-        <p>
-            <Highlight>MapWhen</Highlight> <Highlight>branches</Highlight> the request pipeline based on the result of the given 
-            predicate. Any predicate of type <Highlight>Func&lt;HttpContext, bool&gt;</Highlight> can be used to map requests to a new branch of 
-            the pipeline. Unlike with <Highlight>UseWhen</Highlight>, this branch is <Highlight>not rejoined</Highlight> to the 
-            main pipeline.
-        </p>
+            <h4 id="map-when-middleware">MapWhen Middleware</h4>
 
-        <CodeSnippet CssClass="language-csharp">
+            <p>
+                <Highlight>MapWhen</Highlight> <Highlight>branches</Highlight> the request pipeline based on the result of the given 
+                predicate. Any predicate of type <Highlight>Func&lt;HttpContext, bool&gt;</Highlight> can be used to map requests to a new branch of 
+                the pipeline. Unlike with <Highlight>UseWhen</Highlight>, this branch is <Highlight>not rejoined</Highlight> to the 
+                main pipeline.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
 app.MapWhen(context =&gt; context.Request.Query.ContainsKey("query"), context =&gt;
 {
     app.Run(async (context) =&gt;
@@ -217,16 +180,15 @@ app.MapWhen(context =&gt; context.Request.Query.ContainsKey("query"), context =&
         await context.Response.WriteAsync("Hello from inside MapWhen Middleware!");
     });
 });
-        </CodeSnippet>
-        
-        
+            </CodeSnippet>
+        </How>
 
-        <h3 id="summary">Summary</h3>
-
-        <p>
-            In this article, we learn't different types <Highlight>Middleware</Highlight> in ASP.NET and how it processes the request pipeline 
-            and how we can use middleware to customise the HTTP request. In next article let's learn about the 
-            <NavLink href="blogs/unit-testing-middlewares-in-asp-net-webapi" class="[ underline ]" Match="NavLinkMatch.All">unit testing middleware</NavLink> in ASP.NET.
-        </p>
+        <Summary>
+            <p>
+                In this article, we learn't different types <Highlight>Middleware</Highlight> in ASP.NET and how it processes the request pipeline 
+                and how we can use middleware to customise the HTTP request. In next article let's learn about the 
+                <NavLink href="blogs/unit-testing-middlewares-in-asp-net-webapi" class="[ underline ]" Match="NavLinkMatch.All">unit testing middleware</NavLink> in ASP.NET.
+            </p>
+        </Summary>
     </ContentBody>
 </Content>
