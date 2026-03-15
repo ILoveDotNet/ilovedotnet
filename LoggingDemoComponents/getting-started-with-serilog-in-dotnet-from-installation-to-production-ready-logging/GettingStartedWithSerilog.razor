@@ -30,6 +30,7 @@
             <ul>
                 <li>Create a Serilog logger and write to multiple sinks simultaneously</li>
                 <li>Replace the built-in <Highlight>Microsoft.Extensions.Logging</Highlight> provider with Serilog in ASP.NET Core</li>
+                <li>Capture startup failures safely using Serilog <Highlight>Bootstrap Logger</Highlight></li>
                 <li>Drive all configuration from <Highlight>appsettings.json</Highlight></li>
                 <li>Enrich logs with machine name, thread ID, environment, and custom properties</li>
                 <li>Handle structured and complex objects with the destructuring operator</li>
@@ -91,13 +92,27 @@ logger.Information("Payment received: {@@Payment}", payment);
                 only one file, not hunting down provider-specific settings scattered across environments.
             </p>
 
+            <h3 class="[ font-semibold text-lg ]">Startup blind spot before host creation</h3>
+
+            <p>
+                In ASP.NET Core, some failures happen <em>before</em> the host is fully built: malformed configuration,
+                DI graph issues, or exceptions during startup wiring. If you only configure the final host logger,
+                these failures may be hard to diagnose because logging was not fully active yet.
+            </p>
+
+            <p>
+                Serilog's <Highlight>CreateBootstrapLogger()</Highlight> closes this gap by turning on safe early logging
+                immediately, then using that same configured logger with <Highlight>UseSerilog(Log.Logger)</Highlight>
+                for the host runtime.
+            </p>
+
             <h3 class="[ font-semibold text-lg ]">No easy timing for slow operations</h3>
 
             <p>
                 Measuring how long a code path takes requires manually capturing a <Highlight>Stopwatch</Highlight>,
                 writing two log statements, and remembering to log even when an exception is thrown midway. The
                 <Highlight>SerilogTimings</Highlight> package collapses all of that into a single
-                <Highlight>using</Highlight> block and automatically promotes slow operations to warnings.
+                <Highlight>using</Highlight> block and emits completion/abandonment timing events with minimal code.
             </p>
         </Why>
 
@@ -199,29 +214,97 @@ dotnet add package Serilog.AspNetCore
             </CodeSnippet>
 
             <p>
-                Then replace the built-in logging pipeline in <Highlight>Program.cs</Highlight> using
-                <Highlight>UseSerilog()</Highlight>. This single call replaces every provider that was
-                registered by the default host — console, debug, event source, and event log — with Serilog:
+                For production apps, use Serilog's <Highlight>Bootstrap Logger</Highlight> pattern so startup failures are logged
+                even before the host is fully built.
+            </p>
+
+            <p>
+                Configure Serilog fully during startup, then pass the same logger instance to the host.
+                This gives you early startup logging and avoids duplicate sink wiring.
+            </p>
+
+            <p>
+                In this model there is no bootstrap-to-final replacement. The single configured logger
+                remains active for the whole process lifetime.
             </p>
 
             <CodeSnippet CssClass="language-csharp">
 using Serilog;
+using Microsoft.Extensions.Configuration;
 
-Log.Logger = new LoggerConfiguration()
-    .WriteTo.Console()
-    .CreateLogger();
+var config = new ConfigurationBuilder()
+    .AddJsonFile("appsettings.json", optional: false)
+    .AddJsonFile(
+        $"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")}.json",
+        optional: true)
+    .AddEnvironmentVariables()
+    .Build();
 
-var builder = WebApplication.CreateBuilder(args);
-builder.Host.UseSerilog();
+var loggerConfiguration = new LoggerConfiguration()
+    .ReadFrom.Configuration(config)
+    .Enrich.FromLogContext()
+    .Enrich.WithMachineName()
+    .Enrich.WithProcessId()
+    .Enrich.WithThreadId()
+    .Enrich.WithEnvironmentName();
 
-var app = builder.Build();
-// ...
+if (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Local")
+{
+    loggerConfiguration = loggerConfiguration
+        .WriteTo.Async(sink =&gt; sink.Console());
+
+    var path = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "ILoveDotNet", "Logs", "ILoveDotNetAPI_.log");
+
+    loggerConfiguration = loggerConfiguration
+        .WriteTo.Async(sink =&gt; sink.File(
+            path: path,
+            rollingInterval: RollingInterval.Day,
+            shared: true));
+}
+
+Log.Logger = loggerConfiguration.CreateBootstrapLogger();
+
+try
+{
+    Log.Information("Application starting up");
+
+    var builder = WebApplication.CreateBuilder(args);
+
+    builder.Logging.ClearProviders();
+
+    builder.Host.UseSerilog(Log.Logger);
+
+    var app = builder.Build();
+    app.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "Host terminated unexpectedly");
+}
+finally
+{
+    await Log.CloseAndFlushAsync();
+}
             </CodeSnippet>
+
+            <p>
+                Then replace the built-in logging pipeline in <Highlight>Program.cs</Highlight> using
+                <Highlight>UseSerilog(Log.Logger)</Highlight>. This switches application logging to Serilog
+                while keeping one startup-configured logger instance end-to-end.
+            </p>
 
             <p>
                 After this, every call to the <Highlight>Microsoft.Extensions.Logging.ILogger&lt;T&gt;</Highlight>
                 interface — whether in controllers, minimal API handlers, or injected services — is routed through Serilog.
                 Your existing code does not need to change.
+            </p>
+
+            <p>
+                Why this pattern matters: <Highlight>CreateBootstrapLogger()</Highlight> captures <Highlight>early startup events</Highlight>
+                (configuration errors, DI failures, host build exceptions), and <Highlight>UseSerilog(Log.Logger)</Highlight>
+                keeps that fully configured logging instance as the host logger with no extra registration.
             </p>
 
             <h3 class="[ font-semibold text-lg ]">Step 5: Drive configuration from appsettings.json</h3>
@@ -245,16 +328,26 @@ dotnet add package Serilog.Settings.Configuration
             </p>
 
             <CodeSnippet CssClass="language-csharp">
-Log.Logger = new LoggerConfiguration()
-    .ReadFrom.Configuration(builder.Configuration)
-    .CreateLogger();
+var config = new ConfigurationBuilder()
+    .AddJsonFile("appsettings.json", optional: false)
+    .AddEnvironmentVariables()
+    .Build();
 
-builder.Host.UseSerilog();
+var loggerConfiguration = new LoggerConfiguration()
+    .ReadFrom.Configuration(config)
+    .Enrich.FromLogContext();
+
+Log.Logger = loggerConfiguration.CreateBootstrapLogger();
+
+var builder = WebApplication.CreateBuilder(args);
+builder.Logging.ClearProviders();
+builder.Host.UseSerilog(Log.Logger);
             </CodeSnippet>
 
             <p>
                 Add a <Highlight>Serilog</Highlight> section to <Highlight>appsettings.json</Highlight>
-                (remove the built-in <Highlight>Logging</Highlight> section — it is no longer used):
+                (if Serilog is your only active provider, you can simplify or remove the built-in <Highlight>Logging</Highlight>
+                section to avoid duplicated configuration):
             </p>
 
             <CodeSnippet CssClass="language-json">
@@ -298,8 +391,15 @@ dotnet add package Serilog.Enrichers.Process
             </p>
 
             <CodeSnippet CssClass="language-csharp">
+using Microsoft.Extensions.Configuration;
+
+var config = new ConfigurationBuilder()
+    .AddJsonFile("appsettings.json", optional: false)
+    .AddEnvironmentVariables()
+    .Build();
+
 Log.Logger = new LoggerConfiguration()
-    .ReadFrom.Configuration(builder.Configuration)
+    .ReadFrom.Configuration(config)
     .Enrich.FromLogContext()
     .Enrich.WithMachineName()
     .Enrich.WithThreadId()
@@ -442,7 +542,65 @@ public async Task ProcessPaymentAsync(Payment payment)
                 <Highlight>using</Highlight> blocks.
             </p>
 
-            <h3 class="[ font-semibold text-lg ]">Step 10: Time operations with SerilogTimings</h3>
+            <h3 class="[ font-semibold text-lg ]">Step 10: Add global log scopes with middleware</h3>
+
+            <p>
+                For request-driven applications, you can attach shared properties (for example request ID, tenant,
+                branch, and user) once per request using <Highlight>ILogger.BeginScope</Highlight> in middleware.
+                That scope then flows into every log written during the request.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
+
+public sealed class LogScopeMiddleware(
+    ILogger&lt;LogScopeMiddleware&gt; logger,
+    ITenantService tenantService) : IMiddleware
+{
+    public async Task InvokeAsync(HttpContext context, RequestDelegate next)
+    {
+        if (context.User.Identity is { IsAuthenticated: true })
+        {
+            using (logger.BeginScope(
+                "Request {RequestId}, Client {ClientId}, Branch {BranchId}, User {UserId}",
+                context.TraceIdentifier,
+                tenantService.GetClientId(),
+                tenantService.GetBranchId(),
+                tenantService.GetCurrentUser()))
+            {
+                await next(context);
+            }
+        }
+        else
+        {
+            await next(context);
+        }
+    }
+}
+
+public static class LogScopeMiddlewareExtensions
+{
+    public static IApplicationBuilder UseLogScope(
+        this IApplicationBuilder builder)
+    {
+        return builder.UseMiddleware&lt;LogScopeMiddleware&gt;();
+    }
+}
+            </CodeSnippet>
+
+            <p>
+                Register and use the middleware in startup:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+builder.Services.AddTransient&lt;LogScopeMiddleware&gt;();
+
+var app = builder.Build();
+app.UseLogScope();
+            </CodeSnippet>
+
+            <h3 class="[ font-semibold text-lg ]">Step 11: Time operations with SerilogTimings</h3>
 
             <p>
                 Install the timings package:
@@ -475,13 +633,19 @@ public async Task ProcessPaymentAsync(Payment payment)
             </CodeSnippet>
 
             <p>
-                If the operation takes longer than a threshold, promote it to a warning automatically:
+                If you want completion events to be written at warning level, use:
             </p>
 
             <CodeSnippet CssClass="language-csharp">
 using var op = Operation.At(LogEventLevel.Warning).Time(
     "Processing payment {PaymentId}", payment.PaymentId);
             </CodeSnippet>
+
+                <p>
+                    Note: <Highlight>Operation.At(LogEventLevel.Warning)</Highlight> sets the level for the completion event.
+                    If you need true threshold-based escalation (for example, warning only when elapsed time exceeds a limit),
+                    add explicit threshold logic in your code.
+                </p>
 
             <p>
                 For operations that can fail, call <Highlight>op.Abandon()</Highlight> to log an
@@ -504,7 +668,7 @@ catch (Exception ex)
 }
             </CodeSnippet>
 
-            <h3 class="[ font-semibold text-lg ]">Step 11: Integrate with Application Insights</h3>
+            <h3 class="[ font-semibold text-lg ]">Step 12: Integrate with Application Insights</h3>
 
             <p>
                 Install the Application Insights sink:
@@ -559,8 +723,13 @@ dotnet add package Serilog.Sinks.ApplicationInsights
             <ul>
                 <li>
                     <Highlight>Serilog</Highlight> replaces the built-in console and other providers with a
-                    single call to <Highlight>builder.Host.UseSerilog()</Highlight>. Existing
+                    single call to <Highlight>builder.Host.UseSerilog(Log.Logger)</Highlight>. Existing
                     <Highlight>ILogger&lt;T&gt;</Highlight> injections continue to work unchanged.
+                </li>
+                <li>
+                    Use <Highlight>CreateBootstrapLogger()</Highlight> at process start to capture early startup failures,
+                    and wire the same fully configured instance into ASP.NET Core with
+                    <Highlight>UseSerilog(Log.Logger)</Highlight> to avoid duplicate registration.
                 </li>
                 <li>
                     <Highlight>Sinks</Highlight> are destinations for log output. You can attach as many as
@@ -586,8 +755,12 @@ dotnet add package Serilog.Sinks.ApplicationInsights
                     <Highlight>ILogger</Highlight> scopes.
                 </li>
                 <li>
+                    Use middleware + <Highlight>ILogger.BeginScope</Highlight> to set request-wide properties once,
+                    so every log in the pipeline automatically includes tenant and user context.
+                </li>
+                <li>
                     <Highlight>SerilogTimings</Highlight> measures operation duration automatically and
-                    promotes slow paths to warnings without any hand-rolled stopwatch code.
+                    emits rich completion/abandonment timing events without any hand-rolled stopwatch code.
                 </li>
                 <li>
                     Always call <Highlight>Log.CloseAndFlushAsync()</Highlight> on shutdown to guarantee
