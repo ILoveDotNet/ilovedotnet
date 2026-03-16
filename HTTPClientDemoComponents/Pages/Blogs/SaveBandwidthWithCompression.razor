@@ -1,98 +1,66 @@
 @page "/blogs/save-bandwidth-with-compression-when-sending-and-reading-data-using-http-client-in-dotnet"
+@using BaseComponents
 @inherits BasePage
 
-<Content FileName=@nameof(SaveBandwidthWithCompression)>
+<Content FileName=@nameof(SaveBandwidthWithCompression) UseNewTableOfContentsMenu=true>
     <ContentBody>
-        <p>
-            In this article, let's learn about how to <Highlight>save bandwidth with compression</Highlight> while sending and receiving data  
-            using <Highlight>HTTP Client</Highlight> in .NET.
-        </p>
+        <What>
+            <p>
+                In this article, let's learn about how to <Highlight>save bandwidth with compression</Highlight> while sending and receiving data
+                using <Highlight>HTTP Client</Highlight> in .NET.
+            </p>
 
-        <p>
-            <strong>Note:</strong> If you have not done so already, I recommend you read the article on
-            <NavLink href="blogs/free-up-resources-with-cancellation-while-accessing-apis-using-http-client-in-dotnet" Match="NavLinkMatch.All">Free up resources with cancellation while accessing APIs using HTTPClient in dotnet</NavLink>.
-        </p>
+            <p>
+                <strong>Note:</strong> If you have not done so already, I recommend you read the article on
+                <NavLink href="blogs/free-up-resources-with-cancellation-while-accessing-apis-using-http-client-in-dotnet" Match="NavLinkMatch.All">Free up resources with cancellation while accessing APIs using HTTPClient in dotnet</NavLink>.
+            </p>
+        </What>
 
-        <h3>Table of Contents</h3>
+        <Why>
+            <p>
+                We send data over the internet in a text format called <Highlight><abbr title="Java Script Object Notation">JSON</abbr></Highlight>,
+                and we can make this data <Highlight>smaller</Highlight> to save time and internet space, which is similar to making a big package
+                smaller for shipping. To achieve this, we use <Highlight>compression</Highlight> and <Highlight>decompression</Highlight>.
+                Our server is capable of doing this, employing methods like <Highlight>gzip</Highlight> or <Highlight>deflate</Highlight>
+                to shrink the data. When the user's device requests data, it can specify that it wants the data in a smaller format like gzip by using a special header
+                called <Highlight>Accept-Encoding</Highlight>. The user's device understands how to open this compressed data, so it un-squishes it for
+                use.
+            </p>
 
-        <ol>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
-                    Introduction
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#advantages-of-compression")" Match="NavLinkMatch.All">
-                    Advantages of (De) Compression
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#decompress-data-when-reading")" Match="NavLinkMatch.All">
-                    Decompress data when reading
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#compress-data-when-sending")" Match="NavLinkMatch.All">
-                    Compress data when sending
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
-                    Summary
-                </NavLink>
-            </li>
-        </ol>
+            <p>
+                Conversely, when the user's device needs to send data back to the server, it must compress the data first using tools such as
+                <Highlight>GZipStream</Highlight> or <Highlight>DeflateStream</Highlight>. It communicates to the server that it has
+                squished the data using gzip through a special header called <Highlight>Content-Encoding</Highlight>.
+            </p>
 
-        <h3 id="introduction">Introduction</h3>
+            <p>
+                Note that the API, or the web server where the API is deployed, depending on which component in your system you want to make responsible for
+                compression and decompression, needs to support this. We can enable automatic decompression on the built-in <Highlight>SocketsHttpHandler</Highlight>.
+            </p>
+        </Why>
 
-        <p>
-            We send data over the internet in a text format called <Highlight><abbr title="Java Script Object Notation">JSON</abbr></Highlight>, 
-            and we can make this data <Highlight>smaller</Highlight> to save time and internet space, which is similar to making a big package 
-            smaller for shipping. To achieve this, we use <Highlight>compression</Highlight> and <Highlight>decompression</Highlight>. 
-            Our server is capable of doing this, employing methods like <Highlight>gzip</Highlight> or <Highlight>deflate</Highlight> 
-            to shrink the data. When the user's device requests data, it can specify that it wants the data in a smaller format like gzip by using a special header 
-            called <Highlight>Accept-Encoding</Highlight>. The user's device understands how to open this compressed data, so it un-squishes it for 
-            use.
-        </p>
+        <How>
+            <h4 id="advantages-of-compression">Advantages of (De) Compression</h4>
 
-        <p>
-            Conversely, when the user's device needs to send data back to the server, it must compress the data first using tools such as 
-            <Highlight>GZipStream</Highlight> or <Highlight>DeflateStream</Highlight>. It communicates to the server that it has 
-            squished the data using gzip through a special header called <Highlight>Content-Encoding</Highlight>. 
-        </p>
+            <p>
+                Before we look into examples, it's important to know that <Highlight>compression</Highlight> helps us with following advantages
+            </p>
 
-        <p>
-            Note that the API, or the web server where the API is deployed, depending on which component in your system you want to make responsible for 
-            compression and decompression, needs to support this. We can enable automatic decompression on the built-in <Highlight>SocketsHttpHandler</Highlight>
-        </p>
+            <ul>
+                <li><Highlight>Reduced Bandwidth</Highlight> which can save data cost over wire.</li>
+                <li><Highlight>Improved performance</Highlight> because of small size.</li>
+                <li><Highlight>Better SEO</Highlight> which results in faster page loads because of small size data.</li>
+            </ul>
 
-        
+            <h4 id="decompress-data-when-reading">Decompress data when reading</h4>
 
-        <h3 id="advantages-of-compression">Advantages of (De) Compression</h3>
+            <p>
+                To decompress data when reading, we first need to inform the server to compress and send the data. To do this we need to pass
+                <Highlight>Accept-Encoding</Highlight> Header with <Highlight>gzip</Highlight> value to the API request. If the server API
+                supports compression, it will compress and return the data in requested format. So far so good the below code example will help us to understand this.
+            </p>
 
-        <p>
-             Before we look into examples, it's important to know that <Highlight>compression</Highlight> helps us with following advantages 
-        </p>
-
-        <ul>
-            <li><Highlight>Reduced Bandwidth</Highlight> which can save data cost over wire.</li>
-            <li><Highlight>Improved performance</Highlight> because of small size.</li>
-            <li><Highlight>Better SEO</Highlight> which results in faster page loads because of small size data.</li>
-        </ul>
-
-        
-
-        <h3 id="decompress-data-when-reading">Decompress data when reading</h3>
-
-        <p>
-            To decompress data when reading, we first need to inform the server to compress and send the data. To do this we need to pass 
-            <Highlight>Accept-Encoding</Highlight> Header with <Highlight>gzip</Highlight> value to the API request. If the server API 
-            supports compression, it will compress and return the data in requested format. So far so good the below code example will help us to understand this.
-        </p>
-
-        
-
-        <CodeSnippet CssClass="language-csharp">
+            <CodeSnippet CssClass="language-csharp">
 using var request = new HttpRequestMessage(HttpMethod.Get, "posts.json");
 
 request.Headers.AcceptEncoding.Add(new StringWithQualityHeaderValue("gzip"));
@@ -102,67 +70,62 @@ using var response = await client.SendAsync(request, HttpCompletionOption.Respon
 using var responseStream = await response.Content.ReadAsStreamAsync();
 
 var result = await JsonSerializer.DeserializeAsync&lt;IEnumerable&lt;PostDto&gt;&gt;(responseStream);
-        </CodeSnippet>
+            </CodeSnippet>
 
-        <p>
-            When you deserialize as shown above you will get an deserialization error. To successfully <Highlight>deserialize</Highlight> the 
-            compressed data from server API, we need to set <Highlight>AutomaticDecompression</Highlight> property of 
-            <Highlight>SocketsHttpHandler</Highlight> to <Highlight>DecompressionMethods.GZip | DecompressionMethods.Deflate</Highlight>. 
-            This will automatically decompress the data when reading from the API.
-        </p>
+            <p>
+                When you deserialize as shown above you will get a deserialization error. To successfully <Highlight>deserialize</Highlight> the
+                compressed data from server API, we need to set <Highlight>AutomaticDecompression</Highlight> property of
+                <Highlight>SocketsHttpHandler</Highlight> to <Highlight>DecompressionMethods.GZip | DecompressionMethods.Deflate</Highlight>.
+                This will automatically decompress the data when reading from the API.
+            </p>
 
-        
-
-        <CodeSnippet CssClass="language-csharp">
+            <CodeSnippet CssClass="language-csharp">
 services.AddHttpClient("ILoveDotNetAPIClientWithCustomHandler", configureClient =&gt;
 {
-      configureClient.BaseAddress = new Uri("https://ilovedotnet.org");
+    configureClient.BaseAddress = new Uri("https://ilovedotnet.org");
 })
 .ConfigurePrimaryHttpMessageHandler(() =&gt;
 {
-   var handler = new SocketsHttpHandler();
-   handler.AutomaticDecompression = System.Net.DecompressionMethods.GZip;
-   return handler;
+    var handler = new SocketsHttpHandler();
+    handler.AutomaticDecompression = System.Net.DecompressionMethods.GZip;
+    return handler;
 });
-        </CodeSnippet>
+            </CodeSnippet>
 
-        
+            <h4 id="compress-data-when-sending">Compress data when sending</h4>
 
-        <h3 id="compress-data-when-sending">Compress data when sending</h3>
+            <p>
+                This is a two step process. We need to <Highlight>compress the payload</Highlight> before sending it to the API and then we need to
+                inform the API that the data is compressed. We have already learnt the best practice to use <Highlight>Stream</Highlight> while
+                sending the data to API. So we will use the same approach here and modify to support compression.
+            </p>
 
-        <p>
-            This is a two step process. We need to <Highlight>compress the payload</Highlight> before sending it to the API and then we need to 
-            inform the API that the data is compressed. We have already learnt the best practice to use <Highlight>Stream</Highlight> while 
-            sending the data to API. So we will use the same approach here and modify to support compression. 
-        </p>
+            <p>
+                We need to compress our payload, which is currently being streamed to <Highlight>memoryContentStream</Highlight>. Instead of passing
+                <Highlight>memoryContentStream</Highlight> as is when sending a request, we want to pass a compressed content stream. In .NET, you can
+                achieve this using streams like <Highlight>GZipStream</Highlight> or <Highlight>DeflateStream</Highlight> for different
+                compression algorithms.
+            </p>
 
-        <p>
-            We need to compress our payload, which is currently being streamed to <Highlight>memoryContentStream</Highlight>. Instead of passing 
-            <Highlight>memoryContentStream</Highlight> as is when sending a request, we want to pass a compressed content stream. In .NET, you can 
-            achieve this using streams like <Highlight>GZipStream</Highlight> or <Highlight>DeflateStream</Highlight> for different 
-            compression algorithms.
-        </p>
-
-        
-
-        <CodeSnippet CssClass="language-csharp">
+            <CodeSnippet CssClass="language-csharp">
 var clientCommand = new CreateClientCommand();
 
 using (var memoryContentStream = new MemoryStream())
 {
-  await JsonSerializer.SerializeAsync(memoryContentStream, clientCommand);
+    await JsonSerializer.SerializeAsync(memoryContentStream, clientCommand);
 
-  memoryContentStream.Seek(0, SeekOrigin.Begin);
+    memoryContentStream.Seek(0, SeekOrigin.Begin);
 
-  using var request = new HttpRequestMessage(HttpMethod.Post, "/api/clients");
-  request.Headers.AcceptEncoding.Add(new StringWithQualityHeaderValue("gzip"));
+    using var request = new HttpRequestMessage(HttpMethod.Post, "/api/clients");
+    request.Headers.AcceptEncoding.Add(new StringWithQualityHeaderValue("gzip"));
 
     using (var compressedMemoryContentStream = new MemoryStream())
     {
-        using (var gzipStream = new GZipStream(compressedMemoryContentStream, CompressionMode.Compress))
+        using (var gzipStream = new GZipStream(compressedMemoryContentStream, CompressionMode.Compress, leaveOpen: true))
         {
             memoryContentStream.CopyTo(gzipStream);
             gzipStream.Flush();
+
             compressedMemoryContentStream.Position = 0;
 
             using var streamContent = new StreamContent(compressedMemoryContentStream);
@@ -176,56 +139,53 @@ using (var memoryContentStream = new MemoryStream())
         }
     }
 }
-        </CodeSnippet>
+            </CodeSnippet>
 
-        
+            <p>
+                In the above code,
+            </p>
 
-        <p>
-            In the above code,
-        </p>
+            <ol>
+                <li>Create a new stream called <Highlight>compressedMemoryContentStream</Highlight> to hold the compressed content.</li>
+                <li>
+                    Wrap the following code in a <Highlight>using</Highlight> statement to ensure proper 
+                    <Highlight>stream disposal</Highlight>.
+                </li>
+                <li>
+                    Use the <Highlight>gzipStream</Highlight> <Highlight>class</Highlight> to compress the incoming
+                    <Highlight>memoryContentStream</Highlight>, passing <Highlight>compressedMemoryContentStream</Highlight> as the
+                    destination and <Highlight>CompressionMode.Compress</Highlight> to specify compression.
+                </li>
+                <li>
+                    Copy the data from <Highlight>memoryContentStream</Highlight> (uncompressed data) to <Highlight>gzipStream</Highlight> and 
+                    <Highlight>flush</Highlight> it.
+                </li>
+                <li>
+                    Set the <Highlight>position</Highlight> of <Highlight>compressedMemoryContentStream</Highlight> back to 0, as this 
+                    stream will be used to send data in the request, and we want to start from the beginning.
+                </li>
+                <li>
+                    Instead of passing <Highlight>memoryContentStream</Highlight>, create a <Highlight>StreamContent object</Highlight>
+                    and pass <Highlight>compressedMemoryContentStream</Highlight> as its content. This will handle compressing the response body
+                    using streams.
+                </li>
+                <li>
+                    Next step is to let the API know that the data is compressed. To do this we need to pass <Highlight>Content-Encoding</Highlight>
+                    Header with <Highlight>gzip</Highlight> value to the API request.
+                </li>
+            </ol>
+        </How>
 
-        <ol>
-            <li>Create a new stream called <Highlight>compressedMemoryContentStream</Highlight> to hold the compressed content.</li>
-            <li>
-                Wrap the following code in a <Highlight>using</Highlight> statement to ensure proper 
-                <Highlight>stream disposal</Highlight>.
-            </li>
-            <li>
-                Use the <Highlight>gzipStream</Highlight> <Highlight>class</Highlight> to compress the incoming 
-                <Highlight>memoryContentStream</Highlight>, passing <Highlight>compressedMemoryContentStream</Highlight> as the 
-                destination and <Highlight>CompressionMode.Compress</Highlight> to specify compression.
-            </li>
-            <li>
-                Copy the data from <Highlight>memoryContentStream</Highlight> (uncompressed data) to <Highlight>gzipStream</Highlight> and 
-                <Highlight>flush</Highlight> it.
-            </li>
-            <li>
-                Set the <Highlight>position</Highlight> of <Highlight>compressedMemoryContentStream</Highlight> back to 0, as this 
-                stream will be used to send data in the request, and we want to start from the beginning.
-            </li>
-            <li>
-                Instead of passing <Highlight>memoryContentStream</Highlight>, create a <Highlight>StreamContent object</Highlight> 
-                and pass <Highlight>compressedMemoryContentStream</Highlight> as its content. This will handle compressing the response body 
-                using streams.
-            </li>
-            <li>
-                Next step is to let the API know that the data is compressed. To do this we need to pass <Highlight>Content-Encoding</Highlight> 
-                Header with <Highlight>gzip</Highlight> value to the API request. 
-            </li>
-        </ol>
-
-        
-
-        <h3 id="summary">Summary</h3>
-
-        <p>
-            In this article, we learned about how to <Highlight>(de) compress</Highlight> data while receiving from and sending to APIs 
-            using <Highlight>HTTP Client</Highlight> in .NET. We learned about <Highlight>Compression</Highlight> and its 
-            advantages. Compression helps to <Highlight>save bandwidth</Highlight> and <Highlight>improve performance</Highlight>. 
-            We learnt how to <Highlight>compress the payload</Highlight> and inform the API that the data is compressed. We also learnt how to 
-            <Highlight>decompress the data</Highlight> when reading from the API. Now its time to improve performance of your API's 
-            using the above technique. We also learnt how to inform API using <Highlight>Accept-Encoding</Highlight> and 
-            <Highlight>Content-Encoding</Highlight> headers. I hope you found this useful. Thank you for reading.
-        </p>
+        <Summary>
+            <p>
+                In this article, we learned about how to <Highlight>(de) compress</Highlight> data while receiving from and sending to APIs
+                using <Highlight>HTTP Client</Highlight> in .NET. We learned about <Highlight>Compression</Highlight> and its
+                advantages. Compression helps to <Highlight>save bandwidth</Highlight> and <Highlight>improve performance</Highlight>.
+                We learnt how to <Highlight>compress the payload</Highlight> and inform the API that the data is compressed. We also learnt how to
+                <Highlight>decompress the data</Highlight> when reading from the API. Now its time to improve performance of your APIs
+                using the above technique. We also learnt how to inform API using <Highlight>Accept-Encoding</Highlight> and
+                <Highlight>Content-Encoding</Highlight> headers. I hope you found this useful. Thank you for reading.
+            </p>
+        </Summary>
     </ContentBody>
 </Content>

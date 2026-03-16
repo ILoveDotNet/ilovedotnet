@@ -1,12 +1,6 @@
 Add `UseNewTableOfContentsMenu=true` to the `<Content` tag in all blog post Razor files that are missing it.
 
-## Files to Update (103 total, ascending by count)
-
-### HTTPClientDemoComponents (4 files)
-- HTTPClientDemoComponents/Pages/Blogs/WorkingWithAPIStreaming.razor
-- HTTPClientDemoComponents/Pages/Blogs/CustomHttpMessageHandlers.razor
-- HTTPClientDemoComponents/Pages/Blogs/SaveBandwidthWithCompression.razor
-- HTTPClientDemoComponents/improving-performance-and-memory-use-while-accessing-apis-using-http-client-in-dotnet/ImprovePerformanceAndMemoryUsageWithStream.razor
+## Files to Update (99 total, ascending by count)
 
 ### SOLIDDemoComponents (4 files)
 - SOLIDDemoComponents/Pages/Blogs/SingleResponsibility.razor
