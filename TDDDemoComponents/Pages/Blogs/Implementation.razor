@@ -1,153 +1,114 @@
 ﻿@page "/blogs/implementing-tdd-in-csharp-dotnet"
 @inherits BasePage
 
-<Content FileName=@nameof(Implementation)>
+<Content FileName=@nameof(Implementation) UseNewTableOfContentsMenu=true>
     <ContentBody>
-        <p>
-            In this article, let's learn about how to <Highlight>practice</Highlight> and 
-            <Highlight>implement TDD</Highlight> in C# .NET.
-        </p>
+        <What>
+            <p>
+                In this article, let's learn about how to <Highlight>practice</Highlight> and
+                <Highlight>implement TDD</Highlight> in C# .NET.
+            </p>
 
-        <p>
-            <strong>Note:</strong> If you have not done so already, I recommend you read the article on
-            <NavLink href="blogs/introducing-tdd-in-csharp-dotnet">Introducing TDD in C# .NET</NavLink>.
-        </p>
+            <p>
+                <strong>Note:</strong> If you have not done so already, I recommend you read the article on
+                <NavLink href="blogs/introducing-tdd-in-csharp-dotnet">Introducing TDD in C# .NET</NavLink>.
+            </p>
+        </What>
 
-        <h3>Table of Contents</h3>
+        <Why>
+            <p>
+                Reading about TDD concepts is straightforward, but applying the <Highlight>Red-Green-Refactor</Highlight> cycle in a real
+                project is where most developers struggle. Without a concrete walkthrough, it is easy to write tests after the fact, skip
+                the refactor step, or end up with tightly coupled code that is difficult to test.
+            </p>
+            <p>
+                A practical scenario helps bridge the gap between theory and practice. By following a step-by-step implementation —
+                starting with a failing test, writing just enough code to make it pass, then improving the design — you develop the
+                muscle memory needed to apply TDD consistently.
+            </p>
+            <p>
+                Decoupling dependencies through interfaces and mocking is also a key TDD skill. Without it, tests become slow, fragile,
+                and dependent on external systems like databases. This article walks through exactly how to handle that, making your
+                tests fast, isolated, and reliable.
+            </p>
+        </Why>
 
-        <ol>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#scenario")" Match="NavLinkMatch.All">
-                    Scenario
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#using-tdd-to-write-business-logic")" Match="NavLinkMatch.All">
-                    Using TDD to write business logic
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#understanding-the-first-requirement")" Match="NavLinkMatch.All">
-                    Understanding the First Requirement
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#creating-a-red-unit-test")" Match="NavLinkMatch.All">
-                    Create a Red unit test
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#write-code-to-make-test-green")" Match="NavLinkMatch.All">
-                    Write Code to make test Green
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#refactor-to-improve-the-code")" Match="NavLinkMatch.All">
-                    Refactor to improve the code
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#understanding-the-second-requirement")" Match="NavLinkMatch.All">
-                    Understanding the second Requirement
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#decouple-the-dependencies")" Match="NavLinkMatch.All">
-                    Decouple the Dependencies
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#writing-code-to-make-test-pass")" Match="NavLinkMatch.All">
-                    Writing code to make the test pass
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#again-refactor-the-code")" Match="NavLinkMatch.All">
-                    Again refactor the code
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
-                    Summary
-                </NavLink>
-            </li>
-        </ol>
-        
-        <h3 id="scenario">Scenario</h3>
+        <How>
+            <h4 id="scenario">Scenario</h4>
 
-        <p>
-            Let's take a simple scenario where a user needs to book a ticket. The user needs to fill a form with basic details to book the ticket.
-        </p>
+            <p>
+                Let's take a simple scenario where a user needs to book a ticket. The user needs to fill a form with basic details to book the ticket.
+            </p>
 
-        <ul>
-            <li>Ticket Booking</li>
-            <li>TicketBookingCore (TicketBookingRequestProcessor) (.Net Core Class Library)</li>
-            <li>TicketBookingCore.Tests (TicketBookingRequestProcessorTests) (XUnit test project)</li>
-        </ul>
+            <ul>
+                <li>Ticket Booking</li>
+                <li>TicketBookingCore (TicketBookingRequestProcessor) (.Net Core Class Library)</li>
+                <li>TicketBookingCore.Tests (TicketBookingRequestProcessorTests) (XUnit test project)</li>
+            </ul>
 
-        <p>The steps are,</p>
-        
-        <ul>
-            <li>Getting started with TDD.</li>
-            <li>Testing and implementing business logic.</li>
-            <li>Adding features in asp.net core app.</li>
-        </ul>
-        
-        <p>
-            Let's first start with creating a test project named <Highlight>TicketBookingCore.Test</Highlight> for business logic. We will 
-            start writing the <Highlight>first failing test</Highlight> and continue from that. Then let's work on 
-            <Highlight>adding additional business logic by implementing tests</Highlight> and iterating through the TDD cycle. We have more 
-            complex requirements that will force us to decouple dependencies and we need to mock those classes while writing the test.
-        </p>
-        
-        <p>
-            Finally let's see how to implement TDD with web project. It is your responsibility to check the user entered information and implement TDD.
-        </p>
-        
-        <h3 id="using-tdd-to-write-business-logic">Using TDD to write business logic</h3>
+            <p>The steps are,</p>
 
-        <h4>Requirements</h4>
-        
-        <ol>
-            <li>Response should contain the same values as request after booking.</li>
-            <li>Booking should be saved to database.</li>
-        </ol>
-        
-        <h3 id="understanding-the-first-requirement">Understanding the First Requirement</h3>
+            <ul>
+                <li>Getting started with TDD.</li>
+                <li>Testing and implementing business logic.</li>
+                <li>Adding features in asp.net core app.</li>
+            </ul>
 
-        <p>
-            The user will submit a form to book a ticket which will make a call to <Highlight>TicketBookingRequestProcessor</Highlight> to book 
-            a ticket. The processor must return the same data after the booking is successful. To do this lets first think of the API. The 
-            <Highlight>TicketBookingRequestProcessor</Highlight> will use <Highlight>Book</Highlight> to book a ticket and it 
-            will receive <Highlight>TicketBookingRequest</Highlight> as input and return <Highlight>TicketBookingResponse</Highlight> 
-            as result.
-        </p>
-        
-        <figure>
-            <img src="./image/blogs/tdd/implementation/first-requirement.jpg" alt="first-requirement" class="[ w-full ]" />
-        </figure>
+            <p>
+                Let's first start with creating a test project named <Highlight>TicketBookingCore.Test</Highlight> for business logic. We will
+                start writing the <Highlight>first failing test</Highlight> and continue from that. Then let's work on
+                <Highlight>adding additional business logic by implementing tests</Highlight> and iterating through the TDD cycle. We have more
+                complex requirements that will force us to decouple dependencies and we need to mock those classes while writing the test.
+            </p>
 
-        <p>
-            This simple requirement is good to start with TDD.
-        </p>
+            <p>
+                Finally let's see how to implement TDD with web project. It is your responsibility to check the user entered information and implement TDD.
+            </p>
 
-        <h3 id="creating-a-red-unit-test">Create a Red unit test</h3>
+            <h4 id="using-tdd-to-write-business-logic">Using TDD to write business logic</h4>
 
-        <ol>
-            <li>Create a new <Highlight>C# XUnit</Highlight> test project named <Highlight>TicketBookingCore.Tests</Highlight>.</li>
-            <li>
-                As you need to test <Highlight>TicketBookingProcessor class</Highlight>, create a new class named 
-                <Highlight>TicketBookingRequestProcessorTests</Highlight>.
-            </li>
-            <li>Create a first test method as <Highlight>ShouldReturnTicketBookingResultWithRequestValues</Highlight>.</li>
-            <li>Mark the method with <Highlight>[Fact]</Highlight> attribute to indicate it as a test.</li>
-            <li>
-                Now create a processor instance as <Highlight>TicketBookingRequestProcessor</Highlight> and press Ctrl + . to create a class 
-                in a new file.
-            </li>
-        </ol>
-        
-        <CodeSnippet CssClass="language-csharp">
+            <h5 id="requirements">Requirements</h5>
+
+            <ol>
+                <li>Response should contain the same values as request after booking.</li>
+                <li>Booking should be saved to database.</li>
+            </ol>
+
+            <h4 id="understanding-the-first-requirement">Understanding the First Requirement</h4>
+
+            <p>
+                The user will submit a form to book a ticket which will make a call to <Highlight>TicketBookingRequestProcessor</Highlight> to book
+                a ticket. The processor must return the same data after the booking is successful. To do this lets first think of the API. The
+                <Highlight>TicketBookingRequestProcessor</Highlight> will use <Highlight>Book</Highlight> to book a ticket and it
+                will receive <Highlight>TicketBookingRequest</Highlight> as input and return <Highlight>TicketBookingResponse</Highlight>
+                as result.
+            </p>
+
+            <figure>
+                <img src="./image/blogs/tdd/implementation/first-requirement.jpg" alt="first-requirement" class="[ w-full ]" />
+            </figure>
+
+            <p>
+                This simple requirement is good to start with TDD.
+            </p>
+
+            <h4 id="creating-a-red-unit-test">Create a Red unit test</h4>
+
+            <ol>
+                <li>Create a new <Highlight>C# XUnit</Highlight> test project named <Highlight>TicketBookingCore.Tests</Highlight>.</li>
+                <li>
+                    As you need to test <Highlight>TicketBookingProcessor class</Highlight>, create a new class named
+                    <Highlight>TicketBookingRequestProcessorTests</Highlight>.
+                </li>
+                <li>Create a first test method as <Highlight>ShouldReturnTicketBookingResultWithRequestValues</Highlight>.</li>
+                <li>Mark the method with <Highlight>[Fact]</Highlight> attribute to indicate it as a test.</li>
+                <li>
+                    Now create a processor instance as <Highlight>TicketBookingRequestProcessor</Highlight> and press Ctrl + . to create a class
+                    in a new file.
+                </li>
+            </ol>
+
+            <CodeSnippet CssClass="language-csharp">
 namespace TicketBookingCore.Tests  
 {  
     public class TicketBookingRequestProcessorTests  
@@ -159,14 +120,14 @@ namespace TicketBookingCore.Tests
         }  
     }  
 }
-        </CodeSnippet>
-        
-        <p>
-            Create a <Highlight>TicketBookingRequest</Highlight> with FirstName, LastName and Email properties and set the values and again 
-            press Ctrl + . to create the class in new file.
-        </p>
-        
-        <CodeSnippet CssClass="language-csharp">
+            </CodeSnippet>
+
+            <p>
+                Create a <Highlight>TicketBookingRequest</Highlight> with FirstName, LastName and Email properties and set the values and again
+                press Ctrl + . to create the class in new file.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
 [Fact]  
 public void ShouldReturnTicketBookingResultWithRequestValues()  
 {  
@@ -179,28 +140,28 @@ public void ShouldReturnTicketBookingResultWithRequestValues()
         Email = "abdulrahman@@demo.com"  
     };  
 } 
-        </CodeSnippet>
+            </CodeSnippet>
 
-        <p>
-            Add the following line <Highlight CssClasses="[ break-all ]">TicketBookingResponse response = processor.Book(request);</Highlight> 
-            and press Ctrl + . to generate the Book method in TicketBookingRequestProcessor class.
-        </p>
+            <p>
+                Add the following line <Highlight CssClasses="[ break-all ]">TicketBookingResponse response = processor.Book(request);</Highlight>
+                and press Ctrl + . to generate the Book method in TicketBookingRequestProcessor class.
+            </p>
 
-        <p>
-            Next, we need to assert if the input and output are equal.
-        </p>
+            <p>
+                Next, we need to assert if the input and output are equal.
+            </p>
 
-        <p>
-            To <Highlight>Assert</Highlight> the input and output, first, create <Highlight>TicketBookingResponse class</Highlight> 
-            with the same properties as <Highlight>TicketBookingRequest</Highlight>.
-        </p>
-        
-        <p>
-            Modify the <Highlight>Book</Highlight> Method in <Highlight>TicketBookingRequestProcessor</Highlight> to return 
-            <Highlight>TicketBookingResponse</Highlight>.
-        </p>
+            <p>
+                To <Highlight>Assert</Highlight> the input and output, first, create <Highlight>TicketBookingResponse class</Highlight>
+                with the same properties as <Highlight>TicketBookingRequest</Highlight>.
+            </p>
 
-        <CodeSnippet CssClass="language-csharp">
+            <p>
+                Modify the <Highlight>Book</Highlight> Method in <Highlight>TicketBookingRequestProcessor</Highlight> to return
+                <Highlight>TicketBookingResponse</Highlight>.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
 internal class TicketBookingRequestProcessor  
 {  
     public TicketBookingRequestProcessor()  
@@ -212,13 +173,13 @@ internal class TicketBookingRequestProcessor
       throw new NotImplementedException();  
     }  
 } 
-        </CodeSnippet>
-        
-        <p>
-            We are all set with <Highlight>AAA (Arrange, Act, and Assert)</Highlight> of unit tests.
-        </p>
+            </CodeSnippet>
 
-        <CodeSnippet CssClass="language-csharp">
+            <p>
+                We are all set with <Highlight>AAA (Arrange, Act, and Assert)</Highlight> of unit tests.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
 [Fact]  
 public void ShouldReturnTicketBookingResultWithRequestValues()  
 {  
@@ -241,34 +202,32 @@ public void ShouldReturnTicketBookingResultWithRequestValues()
     Assert.Equal(request.LastName, response.LastName);  
     Assert.Equal(request.Email, response.Email);  
 } 
-        </CodeSnippet>
+            </CodeSnippet>
 
-        <p>
-            Press Ctrl + E, T to open Test Explorer. You can now see the test is listed in the test explorer. Now Click on the Run (Green Triangle) button. 
-            You can see that the test fails with NotImplementedException.
-        </p>
-        
-        <figure>
-            <img src="./image/blogs/tdd/implementation/first-red-test.jpg" alt="first-red-test" class="[ w-full ]" />
-        </figure>
+            <p>
+                Press Ctrl + E, T to open Test Explorer. You can now see the test is listed in the test explorer. Now Click on the Run (Green Triangle) button.
+                You can see that the test fails with NotImplementedException.
+            </p>
 
-        <p>
-            Great, we completed the <Highlight>1st step of TDD (Red Phase)</Highlight>.
-        </p>
+            <figure>
+                <img src="./image/blogs/tdd/implementation/first-red-test.jpg" alt="first-red-test" class="[ w-full ]" />
+            </figure>
 
-        
+            <p>
+                Great, we completed the <Highlight>1st step of TDD (Red Phase)</Highlight>.
+            </p>
 
-        <h3 id="write-code-to-make-test-green">Write Code to make test Green</h3>
+            <h4 id="write-code-to-make-test-green">Write Code to make test Green</h4>
 
-        <p>
-            Now let's go to 2nd step of TDD (Green Phase) and write the bare minimum code required to make the test pass.
-        </p>
+            <p>
+                Now let's go to 2nd step of TDD (Green Phase) and write the bare minimum code required to make the test pass.
+            </p>
 
-        <p>
-            Implemented the below code in <Highlight>Book</Highlight> Method of <Highlight>TicketBookingRequestProcessor class</Highlight>.
-        </p>
+            <p>
+                Implemented the below code in <Highlight>Book</Highlight> Method of <Highlight>TicketBookingRequestProcessor class</Highlight>.
+            </p>
 
-        <CodeSnippet CssClass="language-csharp">
+            <CodeSnippet CssClass="language-csharp">
 internal TicketBookingResponse Book(TicketBookingRequest request)  
 {  
     return new TicketBookingResponse  
@@ -278,64 +237,64 @@ internal TicketBookingResponse Book(TicketBookingRequest request)
         Email = request.Email  
     };  
 } 
-        </CodeSnippet>
+            </CodeSnippet>
 
-        <p>
-            That's it. Now again run the test. The test passes and turns green.
-        </p>
+            <p>
+                That's it. Now again run the test. The test passes and turns green.
+            </p>
 
-        <figure>
-            <img src="./image/blogs/tdd/implementation/first-green-test.jpg" alt="first-green-test" class="[ w-full ]" />
-        </figure>
+            <figure>
+                <img src="./image/blogs/tdd/implementation/first-green-test.jpg" alt="first-green-test" class="[ w-full ]" />
+            </figure>
 
-        <p>
-            Great, we completed the <Highlight>2nd step of TDD (Green Phase)</Highlight>.
-        </p>
+            <p>
+                Great, we completed the <Highlight>2nd step of TDD (Green Phase)</Highlight>.
+            </p>
 
-        <h3 id="refactor-to-improve-the-code">Refactor to improve the code</h3>
+            <h4 id="refactor-to-improve-the-code">Refactor to improve the code</h4>
 
-        <p>
-            Now we are in the 3rd step of TDD (Refactor Phase). We can refactor and improve the code as follows,
-        </p>
+            <p>
+                Now we are in the 3rd step of TDD (Refactor Phase). We can refactor and improve the code as follows,
+            </p>
 
-        <ol>
-            <li>
-                Create New <Highlight>.Net Core Class Library</Highlight> Named <Highlight>TicketBookingCore</Highlight> and move 
-                <Highlight>TicketBookingRequest</Highlight>, <Highlight>TicketBookingRequestProcessor</Highlight> and 
-                <Highlight>TicketBookingResponse</Highlight> into this project.
-            </li>
-            <li>Fix <Highlight>Namespaces</Highlight> of the files in <Highlight>TicketBookingCore</Highlight> project.</li>
-            <li>Change the <Highlight>access modifier</Highlight> of all classes and methods to the <Highlight>public</Highlight>.</li>
-            <li>
-                Create a <Highlight>base class TicketBookingBase</Highlight> and move the properties from 
-                <Highlight>TicketBookingRequest</Highlight> and <Highlight>TicketBookingResponse</Highlight> and 
-                <Highlight>inherit</Highlight> from <Highlight>TicketBookingBase class</Highlight>.
-            </li>
-            <li>
-                Add a <Highlight>reference</Highlight> to <Highlight>TicketBookingCore</Highlight> project in the 
-                <Highlight>TicketBookingCore.Tests</Highlight> project.
-            </li>            
-            <li>Now <Highlight>Build</Highlight> the solution and run the tests again.</li>
-            <li>The test should <Highlight>pass</Highlight>.</li>
-        </ol>
+            <ol>
+                <li>
+                    Create New <Highlight>.Net Core Class Library</Highlight> Named <Highlight>TicketBookingCore</Highlight> and move
+                    <Highlight>TicketBookingRequest</Highlight>, <Highlight>TicketBookingRequestProcessor</Highlight> and
+                    <Highlight>TicketBookingResponse</Highlight> into this project.
+                </li>
+                <li>Fix <Highlight>Namespaces</Highlight> of the files in <Highlight>TicketBookingCore</Highlight> project.</li>
+                <li>Change the <Highlight>access modifier</Highlight> of all classes and methods to the <Highlight>public</Highlight>.</li>
+                <li>
+                    Create a <Highlight>base class TicketBookingBase</Highlight> and move the properties from
+                    <Highlight>TicketBookingRequest</Highlight> and <Highlight>TicketBookingResponse</Highlight> and
+                    <Highlight>inherit</Highlight> from <Highlight>TicketBookingBase class</Highlight>.
+                </li>
+                <li>
+                    Add a <Highlight>reference</Highlight> to <Highlight>TicketBookingCore</Highlight> project in the
+                    <Highlight>TicketBookingCore.Tests</Highlight> project.
+                </li>
+                <li>Now <Highlight>Build</Highlight> the solution and run the tests again.</li>
+                <li>The test should <Highlight>pass</Highlight>.</li>
+            </ol>
 
-        <p>
-            The new project structure should look like shown below:
-        </p>
+            <p>
+                The new project structure should look like shown below:
+            </p>
 
-        <figure>
-            <img src="./image/blogs/tdd/implementation/solution-explorer.jpg" alt="solution-explorer" class="[ w-full ]" />
-        </figure>
+            <figure>
+                <img src="./image/blogs/tdd/implementation/solution-explorer.jpg" alt="solution-explorer" class="[ w-full ]" />
+            </figure>
 
-        <p>
-            Great, we completed the <Highlight>3rd step of TDD (Refactor Phase)</Highlight>.
-        </p>
+            <p>
+                Great, we completed the <Highlight>3rd step of TDD (Refactor Phase)</Highlight>.
+            </p>
 
-        <p>
-            Now let's write another test using TDD to quickly verify that request is not null while calling a Book method.
-        </p>
+            <p>
+                Now let's write another test using TDD to quickly verify that request is not null while calling a Book method.
+            </p>
 
-        <CodeSnippet CssClass="language-csharp">
+            <CodeSnippet CssClass="language-csharp">
 [Fact]  
 public void ShouldThrowExceptionIfRequestIsNull()  
 {  
@@ -348,21 +307,21 @@ public void ShouldThrowExceptionIfRequestIsNull()
     // Assert  
     Assert.Equal("request", exception.ParamName);  
 } 
-        </CodeSnippet>
+            </CodeSnippet>
 
-        <p>
-            Now if you run the above from test explorer, the test will fail with NullReferenceException instead of ArgumentNullException, as shown below:
-        </p>
+            <p>
+                Now if you run the above from test explorer, the test will fail with NullReferenceException instead of ArgumentNullException, as shown below:
+            </p>
 
-        <figure>
-            <img src="./image/blogs/tdd/implementation/second-red-test.jpg" alt="second-red-test" class="[ w-full ]" />
-        </figure>
+            <figure>
+                <img src="./image/blogs/tdd/implementation/second-red-test.jpg" alt="second-red-test" class="[ w-full ]" />
+            </figure>
 
-        <p>
-            Now let's write the minimum required code to make the test pass.
-        </p>
-        
-        <CodeSnippet CssClass="language-csharp">
+            <p>
+                Now let's write the minimum required code to make the test pass.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
 public TicketBookingResponse Book(TicketBookingRequest request)  
 {  
     if (request is null)  
@@ -377,27 +336,27 @@ public TicketBookingResponse Book(TicketBookingRequest request)
         Email = request.Email  
     };  
 } 
-        </CodeSnippet>
+            </CodeSnippet>
 
-        <p>
-            Now run the test again and the test will pass.
-        </p>
+            <p>
+                Now run the test again and the test will pass.
+            </p>
 
-        <figure>
-            <img src="./image/blogs/tdd/implementation/second-green-test.jpg" alt="second-green-test" class="[ w-full ]" />
-        </figure>
+            <figure>
+                <img src="./image/blogs/tdd/implementation/second-green-test.jpg" alt="second-green-test" class="[ w-full ]" />
+            </figure>
 
-        <p>
-            The next step is to refactor. We don't have anything in Book method to refactor but that doesn't mean that we have nothing we can also 
-            refactor our tests.
-        </p>
+            <p>
+                The next step is to refactor. We don't have anything in Book method to refactor but that doesn't mean that we have nothing we can also
+                refactor our tests.
+            </p>
 
-        <p>
-            Since we need <Highlight>TicketBookingRequestProcessor</Highlight> in both the test, we can remove that from both the test and move 
-            it to <Highlight>TicketBookingRequestProcessorTests constructor</Highlight> and use that in our test methods.
-        </p>
+            <p>
+                Since we need <Highlight>TicketBookingRequestProcessor</Highlight> in both the test, we can remove that from both the test and move
+                it to <Highlight>TicketBookingRequestProcessorTests constructor</Highlight> and use that in our test methods.
+            </p>
 
-        <CodeSnippet CssClass="language-csharp">
+            <CodeSnippet CssClass="language-csharp">
 public class TicketBookingRequestProcessorTests  
 {  
     private readonly TicketBookingRequestProcessor _processor;  
@@ -438,68 +397,66 @@ public class TicketBookingRequestProcessorTests
         Assert.Equal("request", exception.ParamName);  
     }  
 } 
-        </CodeSnippet>
+            </CodeSnippet>
 
-        
+            <h4 id="understanding-the-second-requirement">Understanding the second Requirement</h4>
 
-        <h3 id="understanding-the-second-requirement">Understanding the second Requirement</h3>
+            <p>
+                Now we need to save the booking to the database. To save to database we need to modify the book method to save the booking to the database and
+                return the booking request values.
+            </p>
 
-        <p>
-            Now we need to save the booking to the database. To save to database we need to modify the book method to save the booking to the database and 
-            return the booking request values.
-        </p>
+            <figure>
+                <img src="./image/blogs/tdd/implementation/second-requirement.jpg" alt="second-requirement" class="[ w-full ]" />
+            </figure>
 
-        <figure>
-            <img src="./image/blogs/tdd/implementation/second-requirement.jpg" alt="second-requirement" class="[ w-full ]" />
-        </figure>
+            <h4 id="decouple-the-dependencies">Decouple the Dependencies</h4>
 
-        <h3 id="decouple-the-dependencies">Decouple the Dependencies</h3>
+            <p>
+                If you look at the above image, <Highlight>TicketBookingRequestProcessor</Highlight> has too many responsibilities. One is to
+                process the booking request and another is to save it to the database.
+            </p>
 
-        <p>
-            If you look at the above image, <Highlight>TicketBookingRequestProcessor</Highlight> has too many responsibilities. One is to 
-            process the booking request and another is to save it to the database.
-        </p>
+            <p>
+                But this violates the <Highlight>Single Responsibility Principle (SRP)</Highlight> - which says a class should have a single
+                responsibility. So, to adhere to the SRP principle, we need to move the save to database logic to a separate class like
+                <Highlight>TicketBookingRepository</Highlight>.
+            </p>
 
-        <p>
-            But this violates the <Highlight>Single Responsibility Principle (SRP)</Highlight> - which says a class should have a single 
-            responsibility. So, to adhere to the SRP principle, we need to move the save to database logic to a separate class like 
-            <Highlight>TicketBookingRepository</Highlight>.
-        </p>
+            <figure>
+                <img src="./image/blogs/tdd/implementation/save-concrete.jpg" alt="save-concrete" class="[ w-full ]" />
+            </figure>
 
-        <figure>
-            <img src="./image/blogs/tdd/implementation/save-concrete.jpg" alt="save-concrete" class="[ w-full ]" />
-        </figure>
+            <p>
+                We can now save the <Highlight>TicketBooking object</Highlight> to the database using the
+                <Highlight>TicketBookingRepository class</Highlight>. But now <Highlight>TicketBookingRequestProcessor</Highlight>
+                depends on the <Highlight>TicketBookingRepository class</Highlight> to save to the database. This is not for the unit test, as
+                the test needs to run in isolation. So here comes the <Highlight>Dependency Inversion Principle (DI)</Highlight>, which says a
+                class should always depend on abstraction, not on implementation. We can implement this by introducing a new interface
+                <Highlight>ITicketBookingRepository</Highlight>. This interface implements <Highlight>TicketBookingRepository</Highlight>
+                and saves to the database.
+            </p>
 
-        <p>
-            We can now save the <Highlight>TicketBooking object</Highlight> to the database using the 
-            <Highlight>TicketBookingRepository class</Highlight>. But now <Highlight>TicketBookingRequestProcessor</Highlight> 
-            depends on the <Highlight>TicketBookingRepository class</Highlight> to save to the database. This is not for the unit test, as 
-            the test needs to run in isolation. So here comes the <Highlight>Dependency Inversion Principle (DI)</Highlight>, which says a 
-            class should always depend on abstraction, not on implementation. We can implement this by introducing a new interface 
-            <Highlight>ITicketBookingRepository</Highlight>. This interface implements <Highlight>TicketBookingRepository</Highlight> 
-            and saves to the database.
-        </p>
+            <figure>
+                <img src="./image/blogs/tdd/implementation/save-abstraction.jpg" alt="save-abstraction" class="[ w-full ]" />
+            </figure>
 
-        <figure>
-            <img src="./image/blogs/tdd/implementation/save-abstraction.jpg" alt="save-abstraction" class="[ w-full ]" />
-        </figure>
+            <p>
+                So now <Highlight>TicketBookingRequestProcessor</Highlight> depends on <Highlight>ITicketBookingRepository</Highlight>
+                and we don't need to worry about the database. This means to write a test we can create a mock (fake) object and use that to save to database and
+                we can verify by this from the mock object that Save method is called at least once. This is how we can use interface to decouple the dependencies.
+            </p>
 
-        <p>
-            So now <Highlight>TicketBookingRequestProcessor</Highlight> depends on <Highlight>ITicketBookingRepository</Highlight> 
-            and we don't need to worry about the database. This means to write a test we can create a mock (fake) object and use that to save to database and 
-            we can verify by this from the mock object that Save method is called at least once. This is how we can use interface to decouple the dependencies.
-        </p>
+            <p>
+                Now let's create a failing Red unit test,
+            </p>
 
-        <p>
-            Now let's create a failing Red unit test,
-        </p>
+            <ol>
+                <li>Create a new test method <Highlight>ShouldSaveToDatabase</Highlight>.</li>
+                <li>Create a request object and pass it to the processor save method.</li>
+            </ol>
 
-        <ol>
-            <li>Create a new test method <Highlight>ShouldSaveToDatabase</Highlight>.</li>
-            <li>Create a request object and pass it to the processor save method.</li>
-        </ol>
-
-        <CodeSnippet CssClass="language-csharp">
+            <CodeSnippet CssClass="language-csharp">
 [Fact]  
 public void ShouldSaveToDatabase()  
 {  
@@ -514,50 +471,50 @@ public void ShouldSaveToDatabase()
     // Act  
     TicketBookingResponse response = _processor.Book(request);  
 } 
-        </CodeSnippet>
+            </CodeSnippet>
 
-        <p>
-            Now to save to database, we need <Highlight>ITicketBookingRepository</Highlight> and that needs to be injected to 
-            <Highlight>TicketBookingRequestProcessor</Highlight>.
-        </p>
+            <p>
+                Now to save to database, we need <Highlight>ITicketBookingRepository</Highlight> and that needs to be injected to
+                <Highlight>TicketBookingRequestProcessor</Highlight>.
+            </p>
 
-        <ol>
-            <li>Add <Highlight>ITicketBookingRepository</Highlight> to <Highlight>TicketBookingCore</Highlight> project</li>
-            <li>Add <Highlight>Save() method</Highlight> with <Highlight>TicketBooking object</Highlight> as a parameter.</li>
-            <li>
-                Press Ctrl + . to create a <Highlight>TicketBooking class</Highlight> and <Highlight>inherit</Highlight> from the 
-                <Highlight>TicketBookingBase class</Highlight>.
-            </li>
-        </ol>
+            <ol>
+                <li>Add <Highlight>ITicketBookingRepository</Highlight> to <Highlight>TicketBookingCore</Highlight> project</li>
+                <li>Add <Highlight>Save() method</Highlight> with <Highlight>TicketBooking object</Highlight> as a parameter.</li>
+                <li>
+                    Press Ctrl + . to create a <Highlight>TicketBooking class</Highlight> and <Highlight>inherit</Highlight> from the
+                    <Highlight>TicketBookingBase class</Highlight>.
+                </li>
+            </ol>
 
-        <CodeSnippet CssClass="language-csharp">
+            <CodeSnippet CssClass="language-csharp">
 public interface ITicketBookingRepository  
 {  
     void Save(TicketBooking ticket);  
 }
-        </CodeSnippet>
+            </CodeSnippet>
 
-        <p>
-            Now we need a mock object for <Highlight>ITicketBookingRepository</Highlight>. We can use the mock library to 
-            <Highlight>fake</Highlight> the <Highlight>repository</Highlight>.
-        </p>
+            <p>
+                Now we need a mock object for <Highlight>ITicketBookingRepository</Highlight>. We can use the mock library to
+                <Highlight>fake</Highlight> the <Highlight>repository</Highlight>.
+            </p>
 
-        <ol>
-            <li>
-                Add <Highlight>_ticketBookingRepositoryMock = new Mock&lt;ITicketBookingRepository&gt;();</Highlight> to 
-                <Highlight>TicketBookingRequestProcessorTests constructor</Highlight>.
-            </li>
-            <li>
-                Press Ctrl + . to download install <Highlight>Moq</Highlight> nuget package and repeat to add a private readonly field 
-                <Highlight>Mock&lt;ITicketBookingRepository&gt; _ticketBookingRepositoryMock</Highlight> for that repository.
-            </li>
-            <li>
-                Pass the field to <Highlight>TicketBookingRequestProcessor constructor</Highlight> and press Ctrl + . to add that as a 
-                parameter to <Highlight>TicketBookingRequestProcessor class</Highlight>.
-            </li>
-        </ol>
+            <ol>
+                <li>
+                    Add <Highlight>_ticketBookingRepositoryMock = new Mock&lt;ITicketBookingRepository&gt;();</Highlight> to
+                    <Highlight>TicketBookingRequestProcessorTests constructor</Highlight>.
+                </li>
+                <li>
+                    Press Ctrl + . to download install <Highlight>Moq</Highlight> nuget package and repeat to add a private readonly field
+                    <Highlight>Mock&lt;ITicketBookingRepository&gt; _ticketBookingRepositoryMock</Highlight> for that repository.
+                </li>
+                <li>
+                    Pass the field to <Highlight>TicketBookingRequestProcessor constructor</Highlight> and press Ctrl + . to add that as a
+                    parameter to <Highlight>TicketBookingRequestProcessor class</Highlight>.
+                </li>
+            </ol>
 
-        <CodeSnippet CssClass="language-csharp">
+            <CodeSnippet CssClass="language-csharp">
 public class TicketBookingRequestProcessorTests  
 {  
     private readonly Mock&lt;ITicketBookingRepository&gt; _ticketBookingRepositoryMock;  
@@ -576,14 +533,14 @@ public class TicketBookingRequestProcessor
     {  
     }  
 } 
-        </CodeSnippet>
+            </CodeSnippet>
 
-        <p>
-            Now we need to write a setup in mock repository to make a callback when Save is called in that repository. And we need to assert that the Save 
-            method in the repository is called at least once and verifies the properties in the callback object.
-        </p>
+            <p>
+                Now we need to write a setup in mock repository to make a callback when Save is called in that repository. And we need to assert that the Save
+                method in the repository is called at least once and verifies the properties in the callback object.
+            </p>
 
-        <CodeSnippet CssClass="language-csharp">
+            <CodeSnippet CssClass="language-csharp">
 [Fact]  
 public void ShouldSaveToDatabase()  
 {  
@@ -614,25 +571,23 @@ public void ShouldSaveToDatabase()
     Assert.Equal(request.LastName, savedTicketBooking.LastName);  
     Assert.Equal(request.Email, savedTicketBooking.Email);  
 } 
-        </CodeSnippet>
+            </CodeSnippet>
 
-        <p>Now we are done with test setup. Run the test and the test should fail.</p>
+            <p>Now we are done with test setup. Run the test and the test should fail.</p>
 
-        <figure>
-            <img src="./image/blogs/tdd/implementation/third-red-test.jpg" alt="third-red-test" class="[ w-full ]" />
-        </figure>
+            <figure>
+                <img src="./image/blogs/tdd/implementation/third-red-test.jpg" alt="third-red-test" class="[ w-full ]" />
+            </figure>
 
-        
+            <h4 id="writing-code-to-make-test-pass">Writing code to make the test pass</h4>
 
-        <h3 id="writing-code-to-make-test-pass">Writing code to make the test pass</h3>
+            <p>
+                Now we need to write the minimum code to make the test pass which is to create a <Highlight>private readonly field</Highlight>
+                for <Highlight>ITicketBookingRepository</Highlight> make a call to Save method in repository inside the Book method in processor
+                class.
+            </p>
 
-        <p>
-            Now we need to write the minimum code to make the test pass which is to create a <Highlight>private readonly field</Highlight> 
-            for <Highlight>ITicketBookingRepository</Highlight> make a call to Save method in repository inside the Book method in processor 
-            class.
-        </p>
-
-        <CodeSnippet CssClass="language-csharp">
+            <CodeSnippet CssClass="language-csharp">
 public class TicketBookingRequestProcessor  
 {  
     private readonly ITicketBookingRepository _ticketBookingRepository;  
@@ -664,37 +619,37 @@ public class TicketBookingRequestProcessor
         };  
     }  
 } 
-        </CodeSnippet>
+            </CodeSnippet>
 
-        <p>Now if you run the test, the test will pass.</p>
+            <p>Now if you run the test, the test will pass.</p>
 
-        <figure>
-            <img src="./image/blogs/tdd/implementation/third-green-test.jpg" alt="third-green-test" class="[ w-full ]" />
-        </figure>
+            <figure>
+                <img src="./image/blogs/tdd/implementation/third-green-test.jpg" alt="third-green-test" class="[ w-full ]" />
+            </figure>
 
-        <h3 id="again-refactor-the-code">Again refactor the code</h3>
+            <h4 id="again-refactor-the-code">Again refactor the code</h4>
 
-        <p>Now we can improve the code by doing some refactoring.</p>
+            <p>Now we can improve the code by doing some refactoring.</p>
 
-        <ol>
-            <li>According to <Highlight>Do Not Repeat Principle (DRY)</Highlight>, we should avoid repeating the same code.</li>
-            <li>
-                In the <Highlight>TicketBookingRequestProcessorTests class</Highlight>, the same 
-                <Highlight>TicketBookingRequest object</Highlight> is constructed and used in two methods. This can be moved to the 
-                <Highlight>TicketBookingRequestProcessorTests constructor</Highlight> and can be made as a 
-                <Highlight>private readonly field</Highlight>.
-            </li>
-            <li>
-                In the <Highlight>TicketBookingProcessor class</Highlight>, we can see that the mapping of properties is done twice. 
-                This mapping can be extracted into a generic method.
-            </li>
-        </ol>
+            <ol>
+                <li>According to <Highlight>Do Not Repeat Principle (DRY)</Highlight>, we should avoid repeating the same code.</li>
+                <li>
+                    In the <Highlight>TicketBookingRequestProcessorTests class</Highlight>, the same
+                    <Highlight>TicketBookingRequest object</Highlight> is constructed and used in two methods. This can be moved to the
+                    <Highlight>TicketBookingRequestProcessorTests constructor</Highlight> and can be made as a
+                    <Highlight>private readonly field</Highlight>.
+                </li>
+                <li>
+                    In the <Highlight>TicketBookingProcessor class</Highlight>, we can see that the mapping of properties is done twice.
+                    This mapping can be extracted into a generic method.
+                </li>
+            </ol>
 
-        <p>
-            Now your code should look like as follows:
-        </p>
+            <p>
+                Now your code should look like as follows:
+            </p>
 
-        <CodeSnippet CssClass="language-csharp">
+            <CodeSnippet CssClass="language-csharp">
 public class TicketBookingRequestProcessorTests  
 {  
     private readonly TicketBookingRequest _request;  
@@ -771,24 +726,23 @@ public class TicketBookingRequestProcessor
         };  
     }  
 } 
-        </CodeSnippet>
+            </CodeSnippet>
 
-        <p>Now run all the tests. All the tests should pass.</p>
+            <p>Now run all the tests. All the tests should pass.</p>
 
-        <figure>
-            <img src="./image/blogs/tdd/implementation/all-green-test.jpg" alt="all-green-test" class="[ w-full ]" />
-        </figure>
-        
-        
+            <figure>
+                <img src="./image/blogs/tdd/implementation/all-green-test.jpg" alt="all-green-test" class="[ w-full ]" />
+            </figure>
+        </How>
 
-        <h3 id="summary">Summary</h3>
-
-        <p>
-            In this article, we learned how to <Highlight>implement TDD</Highlight> in C# .Net applications. We learned the TDD principle, 
-            advantages and disadvantages of TDD, understanding the requirements and starting from the test project then slowly building the actual requirement. 
-            We also learned how to <Highlight>decouple dependencies</Highlight> and mock them in a unit test. <Highlight>TDD is all about 
-            iterating the RED, GREEN and Refactor cycle over and again to develop our requirement</Highlight>. This is a demo project and it has a lot 
-            of scope for improvement. We learned TDD with XUnit Project, but the same can be applied to NUnit or MSTest projects as well.
-        </p>
+        <Summary>
+            <p>
+                In this article, we learned how to <Highlight>implement TDD</Highlight> in C# .Net applications. We learned the TDD principle,
+                advantages and disadvantages of TDD, understanding the requirements and starting from the test project then slowly building the actual requirement.
+                We also learned how to <Highlight>decouple dependencies</Highlight> and mock them in a unit test. <Highlight>TDD is all about
+                iterating the RED, GREEN and Refactor cycle over and again to develop our requirement</Highlight>. This is a demo project and it has a lot
+                of scope for improvement. We learned TDD with XUnit Project, but the same can be applied to NUnit or MSTest projects as well.
+            </p>
+        </Summary>
     </ContentBody>
 </Content>
