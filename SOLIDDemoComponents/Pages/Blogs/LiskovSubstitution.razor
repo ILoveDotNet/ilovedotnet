@@ -1,79 +1,60 @@
 @page "/blogs/liskov-substitution-principle-in-solid"
+@using BaseComponents
 @inherits BasePage
 
-<Content FileName=@nameof(LiskovSubstitution)>
+<Content FileName=@nameof(LiskovSubstitution) UseNewTableOfContentsMenu=true>
     <ContentBody>
-        <p>
-            In this article, let's learn about <Highlight>Liskov Substitution Principle</Highlight> in <Highlight>SOLID</Highlight> Principles 
-            in .NET.
-        </p>
+        <What>
+            <p>
+                In this article, let's learn about <Highlight>Liskov Substitution Principle</Highlight> in <Highlight>SOLID</Highlight> Principles 
+                in .NET.
+            </p>
 
-        <p>
-            <strong>Note:</strong> If you have not done so already, I recommend you read the article on
-            <NavLink href="blogs/open-closed-principle-in-solid" Match="NavLinkMatch.All">Open Closed Principle in SOLID</NavLink>.
-        </p>
+            <p>
+                <strong>Note:</strong> If you have not done so already, I recommend you read the article on
+                <NavLink href="blogs/open-closed-principle-in-solid" Match="NavLinkMatch.All">Open Closed Principle in SOLID</NavLink>.
+            </p>
 
-        <h3>Table of Contents</h3>
-        
-        <ol>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
-                    Introduction
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#when-to-apply-lsp")" Match="NavLinkMatch.All">
-                    When to apply LSP?
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#demo")" Match="NavLinkMatch.All">
-                    Demo
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#advantages")" Match="NavLinkMatch.All">
-                    Advantages
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
-                    Summary
-                </NavLink>
-            </li>
-        </ol>
+            <p>
+                The <Highlight>Liskov Substitution Principle (LSP)</Highlight>, which has been around since 1987. The LSP is a fundamental principle of 
+                object-oriented programming and is part of the SOLID principles. LSP states that <Highlight>objects in a program should be replaceable with instances of 
+                their subtypes without altering the correctness of the program</Highlight>. In other words, if <Highlight>class B</Highlight> is a subtype of 
+                <Highlight>class A</Highlight>, then objects of <Highlight>type B</Highlight> should be able to be used wherever objects of 
+                <Highlight>type A</Highlight> are expected, without causing any unexpected behavior or violating any contracts.
+            </p>
+        </What>
 
-        <h3 id="introduction">Introduction</h3>
-        
-        <p>
-            The <Highlight>Liskov Substitution Principle (LSP)</Highlight>, which has been around since 1987. The LSP is a fundamental principle of 
-            object-oriented programming and is part of the SOLID principles. LSP states that <Highlight>objects in a program should be replaceable with instances of 
-            their subtypes without altering the correctness of the program</Highlight>. In other words, if <Highlight>class B</Highlight> is a subtype of 
-            <Highlight>class A</Highlight>, then objects of <Highlight>type B</Highlight> should be able to be used wherever objects of 
-            <Highlight>type A</Highlight> are expected, without causing any unexpected behavior or violating any contracts.
-        </p>
+        <Why>
+            <p>
+                Without LSP, a subclass that overrides base class behavior in unexpected ways can break the code that depends on the base class contract. Callers 
+                that assume a <Highlight>Vehicle</Highlight> can be started with a key will encounter broken behavior if a subclass silently ignores or throws 
+                on that operation. This violates the trust that polymorphism is built on.
+            </p>
 
-        
+            <p>
+                Adhering to LSP ensures that your class hierarchies are reliable and that <Highlight>polymorphism</Highlight> works correctly. Any code written 
+                against a base type continues to work when given a subtype, making the system predictable, easier to extend, and safer to maintain.
+            </p>
+        </Why>
 
-        <h3 id="when-to-apply-lsp">When to apply LSP?</h3>
+        <How>
+            <h4 id="when-to-apply-lsp">When to apply LSP?</h4>
 
-        <p>
-            Use the Liskov Substitution Principle <Highlight>when you have a class hierarchy, and you want to ensure that subclasses can be used interchangeably with 
-            their superclass</Highlight>. It is particularly useful when working with <Highlight>interfaces</Highlight> or <Highlight>abstract</Highlight> 
-            classes that define contracts for behavior, allowing different implementations to be used seamlessly.
-        </p>
+            <p>
+                Use the Liskov Substitution Principle <Highlight>when you have a class hierarchy, and you want to ensure that subclasses can be used interchangeably with 
+                their superclass</Highlight>. It is particularly useful when working with <Highlight>interfaces</Highlight> or <Highlight>abstract</Highlight> 
+                classes that define contracts for behavior, allowing different implementations to be used seamlessly.
+            </p>
 
-        
+            <h4 id="demo">Demo</h4>
 
-        <h3 id="demo">Demo</h3>
+            <p>
+                Suppose we have a base class called <Highlight>Vehicle</Highlight>, which has a method <Highlight>Move()</Highlight> that receives a 
+                key to start the vehicle. We also have a subclass called <Highlight>Truck</Highlight>, which inherits from <Highlight>Vehicle</Highlight>. 
+                Both classes have a method with the same signature, but their implementations may differ.
+            </p>
 
-        <p>
-            Suppose we have a base class called <Highlight>Vehicle</Highlight>, which has a method <Highlight>Move()</Highlight> that receives a 
-            key to start the vehicle. We also have a subclass called <Highlight>Truck</Highlight>, which inherits from <Highlight>Vehicle</Highlight>. 
-            Both classes have a method with the same signature, but their implementations may differ.
-        </p>
-
-        <CodeSnippet CssClass="language-csharp">
+            <CodeSnippet CssClass="language-csharp">
 public class Vehicle
 {
     public virtual void Move(string key)
@@ -89,58 +70,51 @@ public class Truck : Vehicle
         // Implementation specific to trucks
     }
 }
-        </CodeSnippet>
+            </CodeSnippet>
 
-        
+            <p>
+                The Liskov Substitution Principle ensures that we can replace an instance of <Highlight>Truck</Highlight> with an instance of 
+                <Highlight>Vehicle</Highlight> and still expect the same behavior. Let's see how this works:
+            </p>
 
-        <p>
-            The Liskov Substitution Principle ensures that we can replace an instance of <Highlight>Truck</Highlight> with an instance of 
-            <Highlight>Vehicle</Highlight> and still expect the same behavior. Let's see how this works:
-        </p>
-
-        <CodeSnippet CssClass="language-csharp">
+            <CodeSnippet CssClass="language-csharp">
 Vehicle vehicle = new Truck();
 vehicle.Move("start");
-        </CodeSnippet>
+            </CodeSnippet>
 
-        
+            <p>
+                Even though the <Highlight>Vehicle</Highlight> object is of type <Highlight>Truck</Highlight>, we can treat it as an instance of 
+                <Highlight>Vehicle</Highlight> and call the <Highlight>Move()</Highlight> method. This demonstrates the substitutability aspect of the 
+                Liskov Substitution Principle.
+            </p>
 
-        <p>
-            Even though the <Highlight>Vehicle</Highlight> object is of type <Highlight>Truck</Highlight>, we can treat it as an instance of 
-            <Highlight>Vehicle</Highlight> and call the <Highlight>Move()</Highlight> method. This demonstrates the substitutability aspect of the 
-            Liskov Substitution Principle.
-        </p>
+            <h4 id="advantages">Advantages</h4>
 
-        
+            <p>
+                The Liskov Substitution Principle has several advantages, including:
+            </p>
 
-        <h3 id="advantages">Advantages</h3>
+            <ul>
+                <li><Highlight>Code Reusability</Highlight>: Create a hierarchy of classes that can be easily reused in different contexts. Subclasses can be substituted for their base class, allowing for flexible and extensible code.</li>
+                <li><Highlight>Polymorphism</Highlight>: Objects of different types can be treated uniformly through a shared interface or base class. This promotes code flexibility and simplifies interactions between objects.</li>
+                <li><Highlight>Modularity and Maintainability</Highlight>: Helps in creating modular code structures that are easy to understand and maintain. It allows developers to focus on specific behaviors in subclasses while ensuring compatibility with the base class.</li>
+                <li><Highlight>Testability</Highlight>: Promotes testability by allowing you to write meaningful and focused tests for individual classes or interfaces. Subclasses can be tested independently, and their behavior can be validated without relying on the specifics of the base class.</li>
+            </ul>
+        </How>
 
-        <p>
-            The Open Closed Principle has several advantages, including:
-        </p>
-
-        <ul>
-            <li><Highlight>Code Reusability</Highlight>: Create a hierarchy of classes that can be easily reused in different contexts. Subclasses can be substituted for their base class, allowing for flexible and extensible code.</li>
-            <li><Highlight>Polymorphism</Highlight>: Objects of different types can be treated uniformly through a shared interface or base class. This promotes code flexibility and simplifies interactions between objects.</li>
-            <li><Highlight>Modularity and Maintainability</Highlight>: Helps in creating modular code structures that are easy to understand and maintain. It allows developers to focus on specific behaviors in subclasses while ensuring compatibility with the base class.</li>
-            <li><Highlight>Testability</Highlight>: Promotes testability by allowing you to write meaningful and focused tests for individual classes or interfaces. Subclasses can be tested independently, and their behavior can be validated without relying on the specifics of the base class.</li>
-        </ul>
-
-        
-
-        <h3 id="summary">Summary</h3>
-
-        <p>
-            The <Highlight>Liskov Substitution Principle</Highlight> is a fundamental principle in object-oriented programming that ensures substitutability of 
-            objects in a hierarchy. It emphasizes that <Highlight>subclasses should be able to substitute their base class without affecting the correctness of the 
-            program</Highlight>.
-        </p>
-        
-        <p>
-            By adhering to the LSP, you create code that is <Highlight>reusable</Highlight>, <Highlight>extensible</Highlight>, and 
-            <Highlight>easily maintainable</Highlight>. It promotes <Highlight>modularity</Highlight> and allows for <Highlight>polymorphic</Highlight> 
-            behavior, where objects of different types can be treated uniformly. The LSP also improves testability by enabling focused testing of individual classes or 
-            interfaces.
-        </p>
+        <Summary>
+            <p>
+                The <Highlight>Liskov Substitution Principle</Highlight> is a fundamental principle in object-oriented programming that ensures substitutability of 
+                objects in a hierarchy. It emphasizes that <Highlight>subclasses should be able to substitute their base class without affecting the correctness of the 
+                program</Highlight>.
+            </p>
+            
+            <p>
+                By adhering to the LSP, you create code that is <Highlight>reusable</Highlight>, <Highlight>extensible</Highlight>, and 
+                <Highlight>easily maintainable</Highlight>. It promotes <Highlight>modularity</Highlight> and allows for <Highlight>polymorphic</Highlight> 
+                behavior, where objects of different types can be treated uniformly. The LSP also improves testability by enabling focused testing of individual classes or 
+                interfaces.
+            </p>
+        </Summary>
     </ContentBody>
 </Content>

@@ -1,12 +1,6 @@
 Add `UseNewTableOfContentsMenu=true` to the `<Content` tag in all blog post Razor files that are missing it.
 
-## Files to Update (99 total, ascending by count)
-
-### SOLIDDemoComponents (4 files)
-- SOLIDDemoComponents/Pages/Blogs/SingleResponsibility.razor
-- SOLIDDemoComponents/Pages/Blogs/Introduction.razor
-- SOLIDDemoComponents/Pages/Blogs/DependencyInversion.razor
-- SOLIDDemoComponents/Pages/Blogs/LiskovSubstitution.razor
+## Files to Update (95 total, ascending by count)
 
 ### SignalRDemoComponents (8 files)
 - SignalRDemoComponents/Pages/ExceptionHandlingAndLogging.razor
