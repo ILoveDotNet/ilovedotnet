@@ -1,81 +1,75 @@
 @page "/blogs/types-of-clients-in-signalr"
 @inherits BasePage
 
-<Content FileName=@nameof(TypesOfClient)>
+<Content FileName=@nameof(TypesOfClient) UseNewTableOfContentsMenu=true>
     <ContentBody>
-        <p>
-            In this article, let's learn about types of <Highlight>SignalR</Highlight> clients.
-        </p>
+        <What>
+            <p>
+                In this article, let's learn about types of <Highlight>SignalR</Highlight> clients.
+            </p>
 
-        <p>
-            <strong>Note:</strong> If you have not done so already, I recommend you read the article on
-            <NavLink class="[ underline ]" href="blogs/fundamentals-of-signalr-in-dotnet" Match="NavLinkMatch.All">Fundamentals of SignalR in .NET</NavLink>.
-        </p>
+            <p>
+                <strong>Note:</strong> If you have not done so already, I recommend you read the article on
+                <NavLink class="[ underline ]" href="blogs/fundamentals-of-signalr-in-dotnet" Match="NavLinkMatch.All">Fundamentals of SignalR in .NET</NavLink>.
+            </p>
 
-        <h3 class="[ font-semibold text-lg ]">Table of Contents</h3>
+            <p>
+                In our previous article, we learnt the <Highlight>fundamentals</Highlight> of SignalR. Today in this article lets dive deep into the
+                <Highlight>server and client features</Highlight> available in SignalR in .NET. One among them is the
+                <Highlight>types of clients</Highlight> available in SignalR.
+            </p>
 
-        <ol class="[ list-decimal ] [ ml-4 ]">
-            <li>
-                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
-                    Introduction
-                </NavLink>
-            </li>
-            <li>
-                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#connect-from-everywhere")" Match="NavLinkMatch.All">
-                    Connect from Everywhere
-                </NavLink>
-            </li>
-            <li>
-                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
-                    Summary
-                </NavLink>
-            </li>
-        </ol>
+            <p>
+                SignalR will use <Highlight>WebSockets when it's available, and gracefully falls back on other technologies when it isn't</Highlight>,
+                while your application code stays the same.
+            </p>
+        </What>
 
-        <h3 id="introduction" class="[ font-semibold text-lg ]">Introduction</h3>
+        <Why>
+            <p>
+                SignalR is not limited to browser-based applications. Your server hub can speak to <Highlight>Blazor WASM</Highlight> components,
+                <Highlight>console</Highlight> applications, <Highlight>desktop</Highlight> clients, or <Highlight>JavaScript</Highlight> front-ends
+                — all at the same time. Without knowing what client types and libraries are available, developers often assume SignalR is
+                browser-only and miss opportunities to build cross-platform real-time solutions.
+            </p>
 
-        <p>
-            In our previous article we learnt the <Highlight>fundamentals</Highlight> of SignalR. Today in this article lets dive deep into the 
-            <Highlight>server and client features</Highlight> available in SignalR in .NET. One among them is the 
-            <Highlight>types of clients</Highlight> available in SignalR.
-        </p>
+            <p>
+                Understanding the different client types and their respective SDK setup steps means you can connect any application to your
+                SignalR hub, regardless of the platform or technology stack it uses.
+            </p>
+        </Why>
 
-        <p>
-            SignalR will use <Highlight>WebSockets when it's available, and gracefully falls back on other technologies when it isn't</Highlight>, 
-            while your application code stays the same.
-        </p>
+        <How>
 
-        
+            <h4 id="connect-from-everywhere" class="[ font-semibold text-lg ]">Connect from Everywhere</h4>
 
-        <h3 id="connect-from-everywhere" class="[ font-semibold text-lg ]">Connect from Everywhere</h3>
-
-        <p>
+            <p>
             SignalR isn't just for browsers. Your clients can be all sorts of applications - <Highlight>desktop, web, or mobile</Highlight>, and 
             they don't even have to match. Mix and match to your heart's content!
-        </p>
+            </p>
 
-        <p>
+            <p>
             Plus, <Highlight>you're not limited to any specific tech stack</Highlight>. Whether it's <Highlight>React, Angular, WPF, 
             .NET MAUI, or Blazor</Highlight>, they can all hop on the SignalR train. The only thing to watch for is having the right client libraries. 
             Luckily, there are <Highlight>JavaScript, .NET, and Java</Highlight> libraries available, so as long as your app's using one of those, 
             you're good to go.
-        </p>
+            </p>
 
-        <h4 id="steps" class="[ font-semibold text-lg ]">Steps</h4>
+            <h5 id="steps" class="[ font-semibold text-lg ]">Steps</h5>
 
-        <ol class="[ list-decimal ] [ ml-4 ]">
+            <ol class="[ list-decimal ] [ ml-4 ]">
             <li>Add <Highlight CssClasses="[ break-all ]">Microsoft.AspNetCore.SignalR.Client</Highlight> Nuget Package to Client.</li>
             <li>Create <Highlight>HubConnection</Highlight>.</li>
             <li>Configure <Highlight>Handler</Highlight> to be invoked.</li>
             <li><Highlight>Start</Highlight> the HubConnection.</li>
             <li>Finally close it on Component <Highlight>Dispose</Highlight>.</li>
-        </ol>
+            </ol>
 
         
 
-        <h4 id="blazor-client" class="[ font-semibold text-lg ]">Blazor Client</h4>
+            <h5 id="blazor-client" class="[ font-semibold text-lg ]">Blazor Client</h5>
 
-        <CodeSnippet CssClass="language-csharp">
+            <CodeSnippet CssClass="language-csharp">
 public class NotificationBase : ComponentBase, IAsyncDisposable
 {
     private readonly CancellationTokenSource _cancellationTokenSource = new();
@@ -83,7 +77,7 @@ public class NotificationBase : ComponentBase, IAsyncDisposable
     
     protected override async Task OnInitializedAsync()
     {
-        _hubConnection = new HubConnectionBuilder()
+            _hubConnection = new HubConnectionBuilder()
                 .WithUrl("https://ilovedotnet.org/notifications", options =&gt; 
                 {
                     //options.Transports = Microsoft.AspNetCore.Http.Connections.HttpTransportType.WebSockets;
@@ -91,33 +85,33 @@ public class NotificationBase : ComponentBase, IAsyncDisposable
                 })
                 .Build();
                 
-        _hubConnection.On&lt;string&gt;("ReceiveNewArticle", article =&gt;
-        {
-            Console.WriteLine(article.Title);
-            InvokeAsync(StateHasChanged);
-        });
+            _hubConnection.On&lt;string&gt;("ReceiveNewArticle", article =&gt;
+            {
+                Console.WriteLine(article.Title);
+                InvokeAsync(StateHasChanged);
+            });
 
-        await _hubConnection.StartAsync(_cancellationTokenSource.Token);
+            await _hubConnection.StartAsync(_cancellationTokenSource.Token);
     }
     
     public async ValueTask DisposeAsync()
     {
-        if (_hubConnection is not null)
-        {
-            await _hubConnection.DisposeAsync();
-        }
+            if (_hubConnection is not null)
+            {
+                await _hubConnection.DisposeAsync();
+            }
         
-        _cancellationTokenSource.Cancel();
-        _cancellationTokenSource.Dispose();
+            _cancellationTokenSource.Cancel();
+            _cancellationTokenSource.Dispose();
     }
 }
-        </CodeSnippet>
+            </CodeSnippet>
 
         
 
-        <h4 id="console-client" class="[ font-semibold text-lg ]">Console Client</h4>
+            <h5 id="console-client" class="[ font-semibold text-lg ]">Console Client</h5>
 
-        <CodeSnippet CssClass="language-csharp">
+            <CodeSnippet CssClass="language-csharp">
 using var httpClient = new HttpClient();
 httpClient.BaseAddress = new Uri("https://ilovedotnet.org");
 var response = await httpClient.GetAsync("/notifications");
@@ -147,13 +141,13 @@ catch (Exception ex)
 {
     Console.WriteLine(ex.Message);
 }
-        </CodeSnippet>
+            </CodeSnippet>
 
         
 
-        <h4 id="javascript-client" class="[ font-semibold text-lg ]">Javascript Client</h4>
+            <h5 id="javascript-client" class="[ font-semibold text-lg ]">JavaScript Client</h5>
 
-        <CodeSnippet CssClass="language-javascript">
+            <CodeSnippet CssClass="language-javascript">
 //import &lt;script src="~/js/signalr/dist/browser/signalr.min.js"&gt;&lt;/script&gt;
 
 var connection = new signalR.HubConnectionBuilder()
@@ -168,17 +162,19 @@ connection.start()
           .catch((err) =&gt; {
     return console.error(err.toString());
 });
-        </CodeSnippet>
+            </CodeSnippet>
 
         
 
-        <h3 id="summary" class="[ font-semibold text-lg ]">Summary</h3>
+        </How>
 
-        <p>
-            In this article, we learnt about different <Highlight>types</Highlight> of SignalR clients. We also saw how to create a 
-            <Highlight>blazor client</Highlight>, <Highlight>console client</Highlight>, 
-            <Highlight>javascript client</Highlight> and connect to the SignalR hub. In the next article, we will learn about 
-            <Highlight>IHubContext</Highlight> and <Highlight>Caller</Highlight> in SignalR.
-        </p>
+        <Summary>
+            <p>
+                In this article, we learnt about different <Highlight>types</Highlight> of SignalR clients. We also saw how to create a
+                <Highlight>blazor client</Highlight>, <Highlight>console client</Highlight>,
+                <Highlight>javascript client</Highlight> and connect to the SignalR hub. In the next article, we will learn about
+                <Highlight>IHubContext</Highlight> and <Highlight>Caller</Highlight> in SignalR.
+            </p>
+        </Summary>
     </ContentBody>
 </Content>

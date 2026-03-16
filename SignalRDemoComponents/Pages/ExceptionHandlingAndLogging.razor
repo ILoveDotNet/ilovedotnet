@@ -1,60 +1,58 @@
 @page "/blogs/exception-handling-and-logging-in-signalr"
 @inherits BasePage
 
-<Content FileName=@nameof(ExceptionHandlingAndLogging)>
+<Content FileName=@nameof(ExceptionHandlingAndLogging) UseNewTableOfContentsMenu=true>
     <ContentBody>
-        <p>
-            In this article, let's learn about <Highlight>Exception Handling</Highlight> and <Highlight>Logging</Highlight> 
-            in <Highlight>SignalR</Highlight>.
-        </p>
+        <What>
+            <p>
+                In this article, let's learn about <Highlight>Exception Handling</Highlight> and <Highlight>Logging</Highlight>
+                in <Highlight>SignalR</Highlight>.
+            </p>
 
-        <p>
-            <strong>Note:</strong> If you have not done so already, I recommend you read the article on
-            <NavLink class="[ underline ]" href="blogs/message-pack-hub-protocol-and-keep-alive-in-signalr" Match="NavLinkMatch.All">Message Pack Hub Protocol and Keep Alive in SignalR</NavLink>.
-        </p>
+            <p>
+                <strong>Note:</strong> If you have not done so already, I recommend you read the article on
+                <NavLink class="[ underline ]" href="blogs/message-pack-hub-protocol-and-keep-alive-in-signalr" Match="NavLinkMatch.All">Message Pack Hub Protocol and Keep Alive in SignalR</NavLink>.
+            </p>
 
-        <h3 class="[ font-semibold text-lg ]">Table of Contents</h3>
+            <p>
+                In our previous article, we learnt about what are <Highlight>Message Pack Hub Protocol</Highlight> and
+                <Highlight>Keep Alive</Highlight> and how to configure them. Today in this article, lets learn about how to handle errors and log them
+                in <Highlight>SignalR</Highlight>. We will also see how to <Highlight>log messages</Highlight> that are sent and received
+                through the <Highlight>SignalR connection</Highlight>. This is useful for <Highlight>debugging</Highlight> and
+                <Highlight>monitoring</Highlight> the <Highlight>communication</Highlight> between the <Highlight>client</Highlight>.
+            </p>
+        </What>
 
-        <ol class="[ list-decimal ] [ ml-4 ]">
-            <li>
-                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
-                    Introduction
-                </NavLink>
-            </li>
-            <li>
-                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#exception-handling-and-logging")" Match="NavLinkMatch.All">
-                    Exception Handling and Logging
-                </NavLink>
-            </li>
-            <li>
-                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
-                    Summary
-                </NavLink>
-            </li>
-        </ol>
+        <Why>
+            <p>
+                When a <Highlight>hub method</Highlight> throws an <Highlight>exception</Highlight>, SignalR does not close the
+                connection — it only notifies the client that something went wrong. Without understanding this behavior, developers often
+                mishandle errors, either exposing sensitive stack traces to clients in production or silently swallowing errors without
+                any meaningful feedback.
+            </p>
 
-        <h3 id="introduction" class="[ font-semibold text-lg ]">Introduction</h3>
+            <p>
+                Proper <Highlight>logging</Highlight> is equally critical. Without the right <Highlight>log categories</Highlight>
+                configured, it becomes nearly impossible to diagnose transport selection issues, hub method invocation failures, or
+                connectivity problems in a running application.
+            </p>
 
-        <p>
-            In our previous article we about what are <Highlight>Message Pack Hub Protocol</Highlight> and 
-            <Highlight>Keep Alive</Highlight> and how to configure them. Today in this article, lets learn about how to handle errors and log them 
-            in <Highlight>SignalR</Highlight>. We will also see how to <Highlight>log messages</Highlight> that are sent and received 
-            through the <Highlight>SignalR connection</Highlight>. This is useful for <Highlight>debugging</Highlight> and 
-            <Highlight>monitoring</Highlight> the <Highlight>communication</Highlight> between the <Highlight>client</Highlight>.
-        </p>
+            <p>
+                Knowing when and how to use <Highlight>HubException</Highlight>, <Highlight>EnableDetailedErrors</Highlight>, and
+                the correct <Highlight>logging categories</Highlight> helps you build secure, observable, and production-ready
+                real-time applications with SignalR.
+            </p>
+        </Why>
 
-        
+        <How>
+            <p>
+                What happens when a <Highlight>hub method</Highlight> is invoked and an <Highlight>exception</Highlight> occurs? So when
+                an <Highlight>exception occurs on the server, the connection will not close</Highlight>. The only thing the hub does is
+                <Highlight>send a message to the client that something went wrong</Highlight>.
+                <Highlight>The client library will detect that and throw the error</Highlight>.
+            </p>
 
-        <h3 id="exception-handling-and-logging" class="[ font-semibold text-lg ]">Exception Handling and Logging</h3>
-
-        <p>
-            What happens when a <Highlight>hub method</Highlight> is invoked and an <Highlight>exception</Highlight> occurs?  So when 
-            an <Highlight>exception occurs on the server, the connection will not close</Highlight>. The only thing the hub do is 
-            <Highlight>send a message to the client that something went wrong</Highlight>. 
-            <Highlight>The client library will detect that and throw the error</Highlight>.
-        </p>
-
-        <CodeSnippet CssClass="language-csharp">
+            <CodeSnippet CssClass="language-csharp">
 // Hub
 public class ILoveDotNetHub : Hub
 {
@@ -63,18 +61,16 @@ public class ILoveDotNetHub : Hub
         throw new Exception();
     }
 }
-        </CodeSnippet>
+            </CodeSnippet>
 
-        
+            <p>
+                And to see the exception message, there are two possible solutions. Instead of throwing a <Highlight>standard exception</Highlight>,
+                you could <Highlight>throw</Highlight> a <Highlight>HubException</Highlight>. Now, the message is visible. This is usable
+                when you <Highlight>deliberately want to send an exception message</Highlight> to the client, for example, a
+                <Highlight>data validation error</Highlight>. SignalR will also throw HubExceptions itself when something goes wrong.
+            </p>
 
-        <p>
-            And to see the exception message, there are two possible solutions. Instead of throwing a <Highlight>standard exception</Highlight>, 
-            you could <Highlight>throw</Highlight> a <Highlight>HubException</Highlight>. Now, the message is visible. This is usable 
-            when you <Highlight>deliberately want to send an exception message</Highlight> to the client, for example, a 
-            <Highlight>data validation error</Highlight>. SignalR will also throw HubExceptions itself when something goes wrong.
-        </p>
-
-        <CodeSnippet CssClass="language-csharp">
+            <CodeSnippet CssClass="language-csharp">
 // Hub
 public class ILoveDotNetHub : Hub
 {
@@ -83,25 +79,23 @@ public class ILoveDotNetHub : Hub
         throw new HubException();
     }
 }
-        </CodeSnippet>
+            </CodeSnippet>
 
-        
+            <p>
+                All exceptions that are not <Highlight>HubExceptions</Highlight> thrown on the server will not contain the exception message. But if
+                you always want that message, no matter which exception is thrown, in <Highlight>Program.cs</Highlight> where
+                <Highlight>SignalR</Highlight> is added to <Highlight><abbr title="Dependency Injection">DI</abbr></Highlight>. Note
+                that just the <Highlight>Exception message</Highlight> is sent to the client, not the <Highlight>stack trace</Highlight>
+                or other exception information. You should be careful turning on <Highlight>EnableDetailedErrors</Highlight> because this information
+                could also reveal possible attack vectors to your application. Therefore, <Highlight>I recommend not turning this on in production</Highlight>.
+            </p>
 
-        <p>
-            All exceptions that are not <Highlight>HubExceptions</Highlight> thrown on the server will not contain the exception message. But if 
-            you always want that message, no matter which exception is thrown, in <Highlight>Program.cs</Highlight> where 
-            <Highlight>SignalR</Highlight> is added to <Highlight><abbr title="Dependency Injection">DI</abbr></Highlight>.  Note 
-            that just the <Highlight>Exception message</Highlight> is sent to the client, not the <Highlight>stack trace</Highlight> 
-            or other exception information. You should be careful turning on <Highlight>EnabledDetailedErrors</Highlight> because this information 
-            could also reveal possible attack vectors to your application. Therefore, <Highlight>I recommend not turning this on in production</Highlight>.
-        </p>
-
-        <CodeSnippet CssClass="language-csharp">
+            <CodeSnippet CssClass="language-csharp">
 // Program.cs
 ..
-builder.Services.AddSignalR(options =&gt; 
+builder.Services.AddSignalR(options =&gt;
 {
-  options.EnableDetailedErrors = !builder.Environment.IsProduction();
+    options.EnableDetailedErrors = !builder.Environment.IsProduction();
 });
 ..
 
@@ -110,24 +104,21 @@ var app = builder.Build();
 ..
 app.MapHub&lt;ILoveDotNetHub&gt;("notifications");
 ..
-        </CodeSnippet>
+            </CodeSnippet>
 
-        
+            <p>
+                To see more logs, <Highlight CssClasses="[ break-all ]">Microsoft.AspNetCore.SignalR</Highlight> category is about all activity of hubs
+                like invoking methods. You can also set <Highlight CssClasses="[ break-all ]">Microsoft.AspNetCore.Http.Connections</Highlight> to get
+                logging around <Highlight>transports</Highlight> such as which transport was selected and activity around the selected transport.
+            </p>
+        </How>
 
-        <p>
-            To see more logs, <Highlight CssClasses="[ break-all ]">Microsoft.AspNetCore.SignalR</Highlight> category is about all activity of hubs 
-            like invoking methods. You can also set <Highlight CssClasses="[ break-all ]">Microsoft.AspNetCore.Http.Connections</Highlight> to get 
-            logging around <Highlight>transports</Highlight> such as which transport was selected and activity around the selected transport.
-        </p>
-
-        
-
-        <h3 id="summary" class="[ font-semibold text-lg ]">Summary</h3>
-
-        <p>
-            In this article, we learnt about <Highlight>Exception Handling</Highlight> and <Highlight>Logging</Highlight> 
-            in SignalR. We also saw how to handle exception as <Highlight>Hub Exception</Highlight>. In the next article, we will learn 
-            about <Highlight>Streaming</Highlight> and <Highlight>Authentication & Authorization</Highlight> in SignalR.
-        </p>
+        <Summary>
+            <p>
+                In this article, we learnt about <Highlight>Exception Handling</Highlight> and <Highlight>Logging</Highlight>
+                in SignalR. We also saw how to handle exceptions as <Highlight>Hub Exceptions</Highlight>. In the next article, we will learn
+                about <Highlight>Streaming</Highlight> and <Highlight>Authentication &amp; Authorization</Highlight> in SignalR.
+            </p>
+        </Summary>
     </ContentBody>
 </Content>

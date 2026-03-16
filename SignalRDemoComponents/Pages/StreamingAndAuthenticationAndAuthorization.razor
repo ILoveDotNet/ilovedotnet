@@ -1,90 +1,84 @@
 @page "/blogs/streaming-and-authentication-and-authorization-in-signalr"
 @inherits BasePage
 
-<Content FileName=@nameof(StreamingAndAuthenticationAndAuthorization)>
+<Content FileName=@nameof(StreamingAndAuthenticationAndAuthorization) UseNewTableOfContentsMenu=true>
     <ContentBody>
-        <p>
-            In this article, let's learn about <Highlight>Streaming</Highlight> and <Highlight>Authentication</Highlight> 
-            and <Highlight>Authentication</Highlight> in <Highlight>SignalR</Highlight>.
-        </p>
+        <What>
+            <p>
+                In this article, let's learn about <Highlight>Streaming</Highlight> and <Highlight>Authentication</Highlight>
+                and <Highlight>Authorization</Highlight> in <Highlight>SignalR</Highlight>.
+            </p>
 
-        <p>
-            <strong>Note:</strong> If you have not done so already, I recommend you read the article on
-            <NavLink class="[ underline ]" href="blogs/exception-handling-and-logging-in-signalr" Match="NavLinkMatch.All">Exception Handling and Logging in SignalR</NavLink>.
-        </p>
+            <p>
+                <strong>Note:</strong> If you have not done so already, I recommend you read the article on
+                <NavLink class="[ underline ]" href="blogs/exception-handling-and-logging-in-signalr" Match="NavLinkMatch.All">Exception Handling and Logging in SignalR</NavLink>.
+            </p>
 
-        <h3 class="[ font-semibold text-lg ]">Table of Contents</h3>
+            <p>
+                In our previous article, we learnt about <Highlight>Exception Handling</Highlight> and
+                <Highlight>Logging</Highlight> and how to configure them. Today in this article, lets learn about how to do streaming and touch base on
+                authentication and authorization in SignalR.
+            </p>
+        </What>
 
-        <ol class="[ list-decimal ] [ ml-4 ]">
-            <li>
-                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
-                    Introduction
-                </NavLink>
-            </li>
-            <li>
-                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#streaming")" Match="NavLinkMatch.All">
-                    Streaming
-                </NavLink>
-            </li>
-            <li>
-                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#authentication-and-authorization")" Match="NavLinkMatch.All">
-                    Authentication & Authorization
-                </NavLink>
-            </li>
-            <li>
-                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
-                    Summary
-                </NavLink>
-            </li>
-        </ol>
+        <Why>
+            <p>
+                Not all data fits neatly into a single hub message. When dealing with sequences of data that arrive over time — such as
+                live sensor readings, progress updates, or real-time scores — <Highlight>streaming</Highlight> is the right tool. Without it,
+                developers have to either poll repeatedly or buffer all data before sending, neither of which is efficient.
+            </p>
 
-        <h3 id="introduction" class="[ font-semibold text-lg ]">Introduction</h3>
+            <p>
+                <Highlight>Authentication</Highlight> and <Highlight>Authorization</Highlight> are equally important. SignalR hubs maintain
+                persistent connections, and without proper access control, any connected client could receive notifications meant for
+                authenticated users only.
+            </p>
 
-        <p>
-            In our previous article we about <Highlight>Exception Handling</Highlight> and 
-            <Highlight>Logging</Highlight> and how to configure them. Today in this article, lets learn about how to do streaming and touch base on 
-            authentication and authorization in SignalR.
-        </p>
+            <p>
+                Understanding when to use streaming and how to apply the <Highlight>[Authorize]</Highlight> attribute on hubs, along with
+                <Highlight>JWT</Highlight> token configuration, ensures your real-time application is both efficient and secure.
+            </p>
+        </Why>
 
-        
+        <How>
 
-        <h3 id="streaming" class="[ font-semibold text-lg ]">Streaming</h3>
+            <h4 id="streaming" class="[ font-semibold text-lg ]">Streaming</h4>
 
-        <p>
+            <p>
             <Highlight>Streaming</Highlight> with SignalR is pretty specialized. If we're talking about using 
             <Highlight>WebSockets</Highlight> for connections, the messages flying back and forth don't weigh 
             much in terms of overhead. Since the connection's already set up, the biggest chunk of overhead is likely in serializing and deserializing, which 
             happens pretty quickly. So if you're passing things like real time data, the <Highlight>regular SignalR transport</Highlight> should do 
             the trick just fine.
-        </p>
+            </p>
 
-        <p>
+            <p>
             But <Highlight>streaming isn't the best fit for everything, especially not for binary data like audio and video</Highlight>. SignalR 
-            uses a <Highlight>JSON-based</Highlight> transport, even if it's using <Highlight>MessagePack</Highlight>, which means 
-            JSON gets turned into binary. So, not the smoothest ride for audio and video.
-        </p>
+            uses a JSON-based transport, even if it's using <Highlight>MessagePack</Highlight>, which means 
+            JSON gets turned into binary. So, not the smoothest ride for raw binary data like audio and video.
+            </p>
 
-        <CodeSnippet CssClass="language-csharp">
+            <CodeSnippet CssClass="language-csharp">
 // Server
 public class AsyncEnumerableHub : Hub
 {
     public async IAsyncEnumerable&lt;int&gt; Counter(
-        CountInfo countInfo,
-        [EnumeratorCancellation]
-        CancellationToken cancellationToken)
+            CountInfo countInfo,
+            [EnumeratorCancellation]
+            CancellationToken cancellationToken)
     {
-        for (var i = 0; i &lt; countInfo.CountUntil; i++)
-        {
-            // Check the cancellation token regularly so that the server will stop
-            // producing items if the client disconnects.
-            cancellationToken.ThrowIfCancellationRequested();
+            for (var i = 0; i &lt; countInfo.CountUntil; i++)
+            {
+                // Check the cancellation token regularly so that the server will stop
+                // producing items if the client disconnects.
+                cancellationToken.ThrowIfCancellationRequested();
 
-            yield return i;
+                yield return i;
 
-            // Use the cancellationToken in other APIs that accept cancellation
-            // tokens so the cancellation can flow down to them.
-            await Task.Delay(countInfo.DelayMilliSeconds, cancellationToken);
-        }
+                // Use the cancellationToken in other APIs that accept cancellation
+                // tokens so the cancellation can flow down to them.
+                await Task.Delay(countInfo.DelayMilliSeconds, cancellationToken);
+            }
     }
 }
 
@@ -95,20 +89,20 @@ await foreach (var count in stream)
 {
    Console.WriteLine(count);
 }
-        </CodeSnippet>
+            </CodeSnippet>
 
         
 
-        <h3 id="authentication-and-authorization" class="[ font-semibold text-lg ]">Authentication & Authorization</h3>
+            <h4 id="authentication-and-authorization" class="[ font-semibold text-lg ]">Authentication &amp; Authorization</h4>
 
-        <p>
+            <p>
             The cool thing is that the SignalR hub can <Highlight>make use of everything that's in ASP.NET Core already</Highlight>. We can just 
             put the <Highlight>Authorize</Highlight> attribute above <Highlight>ILoveDotNetHub</Highlight> and now users that don't 
             have a valid credentials can't access it. SignalR supports both <Highlight>JWT</Highlight> and <Highlight>Cookie</Highlight> 
             authentication. Here is the example for JWT authentication.
-        </p>
+            </p>
 
-        <CodeSnippet CssClass="language-csharp">
+            <CodeSnippet CssClass="language-csharp">
 //Server
 [Authorize]
 public class ILoveDotNetHub : Hub
@@ -133,21 +127,23 @@ new HubConnectionBuilder()
          };
      })
      .Build();
-        </CodeSnippet>
+            </CodeSnippet>
 
-        <p>
+            <p>
             <Highlight>Authorization</Highlight> doesn't work any differently with SignalR than it does with any other ASP.NET Core application. You 
             can use <Highlight>Context.User.Claims</Highlight> and get the <Highlight>claims</Highlight> and work on them.
-        </p>
+            </p>
 
         
 
-        <h3 id="summary" class="[ font-semibold text-lg ]">Summary</h3>
+        </How>
 
-        <p>
-            In this article, we learnt about <Highlight>Streaming</Highlight> and <Highlight>Authentication</Highlight> 
-            and <Highlight>Authorization</Highlight> in SignalR. In the next article, we will learn 
-            about <Highlight>Design Considerations</Highlight> and <Highlight>Deployment & Scaling</Highlight> in SignalR.
-        </p>
+        <Summary>
+            <p>
+                In this article, we learnt about <Highlight>Streaming</Highlight> and <Highlight>Authentication</Highlight>
+                and <Highlight>Authorization</Highlight> in SignalR. In the next article, we will learn
+                about <Highlight>Design Considerations</Highlight> and <Highlight>Deployment &amp; Scaling</Highlight> in SignalR.
+            </p>
+        </Summary>
     </ContentBody>
 </Content>

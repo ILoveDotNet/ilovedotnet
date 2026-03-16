@@ -1,59 +1,58 @@
 @page "/blogs/send-notifications-using-ihubcontext-and-caller-in-signalr"
 @inherits BasePage
 
-<Content FileName=@nameof(IHubContextAndCaller)>
+<Content FileName=@nameof(IHubContextAndCaller) UseNewTableOfContentsMenu=true>
     <ContentBody>
-        <p>
-            In this article, let's learn about <Highlight>IHubContext</Highlight> and <Highlight>Caller</Highlight> 
-            in <Highlight>SignalR</Highlight>.
-        </p>
+        <What>
+            <p>
+                In this article, let's learn about <Highlight>IHubContext</Highlight> and <Highlight>Caller</Highlight>
+                in <Highlight>SignalR</Highlight>.
+            </p>
 
-        <p>
-            <strong>Note:</strong> If you have not done so already, I recommend you read the article on
-            <NavLink class="[ underline ]" href="blogs/types-of-clients-in-signalr" Match="NavLinkMatch.All">Types of Clients in SignalR</NavLink>.
-        </p>
+            <p>
+                <strong>Note:</strong> If you have not done so already, I recommend you read the article on
+                <NavLink class="[ underline ]" href="blogs/types-of-clients-in-signalr" Match="NavLinkMatch.All">Types of Clients in SignalR</NavLink>.
+            </p>
 
-        <h3 class="[ font-semibold text-lg ]">Table of Contents</h3>
+            <p>
+                In our previous article, we learnt the different types of <Highlight>clients</Highlight> in SignalR. Today in this article lets
+                dive deep into the <Highlight>server and client features</Highlight> available in SignalR in .NET. One among them is the
+                <Highlight>IHubContext</Highlight> and <Highlight>Caller</Highlight> available in SignalR.
+            </p>
+        </What>
 
-        <ol class="[ list-decimal ] [ ml-4 ]">
-            <li>
-                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
-                    Introduction
-                </NavLink>
-            </li>
-            <li>
-                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#i-hubcontext-and-caller")" Match="NavLinkMatch.All">
-                    IHubContext and Caller
-                </NavLink>
-            </li>
-            <li>
-                <NavLink class="[ underline ]" href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
-                    Summary
-                </NavLink>
-            </li>
-        </ol>
+        <Why>
+            <p>
+                Sometimes you need to send notifications from outside a hub — from a background service, a REST API controller, or a hosted
+                service. The <Highlight>Hub</Highlight> class is only active when a client is connected, so you need another way to access
+                hub functionality from other parts of the application.
+            </p>
 
-        <h3 id="introduction" class="[ font-semibold text-lg ]">Introduction</h3>
+            <p>
+                <Highlight>IHubContext</Highlight> is the solution. Without it, you would have no way to push messages from non-hub code.
+                Equally important is understanding <Highlight>Caller</Highlight> — the ability to send a message only back to the client
+                that triggered the hub method — which is only available inside the hub itself and not through <Highlight>IHubContext</Highlight>.
+            </p>
 
-        <p>
-            In our previous article we learnt the different types of <Highlight>clients</Highlight> in SignalR. Today in this article lets 
-            dive deep into the <Highlight>server and client features</Highlight> available in SignalR in .NET. One among them is the 
-            <Highlight>IHubContext</Highlight> and <Highlight>Caller</Highlight> available in SignalR.
-        </p>
+            <p>
+                Knowing the difference between <Highlight>IHubContext</Highlight> and <Highlight>Caller</Highlight>, and understanding where
+                each is accessible, is essential for designing a clean and correct SignalR notification architecture.
+            </p>
+        </Why>
 
-        
+        <How>
 
-        <h3 id="i-hubcontext-and-caller" class="[ font-semibold text-lg ]">IHubContext and Caller</h3>
+            <h4 id="i-hubcontext-and-caller" class="[ font-semibold text-lg ]">IHubContext and Caller</h4>
 
-        <p>
-            The <Highlight>IHubContext interface</Highlight>, which is tailored to each hub, can be <Highlight>injected</Highlight> 
-            and then used to access the <Highlight>hub's client</Highlight> property. It's super handy to have IHubContext available in 
-            dependency injection because it means we can tap into it from anywhere in the app where the <Highlight>Hub class</Highlight> is 
-            hanging out. But there's a catch: The <Highlight>caller</Highlight> is only accessible within the hub itself, not through 
-            <Highlight>IHubContext</Highlight>.
-        </p>
+            <p>
+                The <Highlight>IHubContext interface</Highlight>, which is tailored to each hub, can be <Highlight>injected</Highlight> 
+                and then used to access the <Highlight>hub's client</Highlight> property. It's super handy to have IHubContext available in 
+                dependency injection because it means we can tap into it from anywhere in the app where the <Highlight>Hub class</Highlight> is 
+                hanging out. But there's a catch: The <Highlight>caller</Highlight> is only accessible within the hub itself, not through 
+                <Highlight>IHubContext</Highlight>.
+            </p>
 
-        <CodeSnippet CssClass="language-csharp">
+            <CodeSnippet CssClass="language-csharp">
 // Hub
 public class ILoveDotNetHub : Hub
 {
@@ -77,25 +76,27 @@ app.MapHub&lt;ILoveDotNetHub&gt;("notifications");
 app.MapPost("article", async (string title, IArticleRepo articleRepo, IHubContext&lt;ILoveDotNetHub&gt; hubContext) =&gt;
 {
     articleRepo.NewArticle(title);
-    await hubContext.All.SendAsync("ReceiveNewArticle", new Article(title));
+    await hubContext.Clients.All.SendAsync("ReceiveNewArticle", new Article(title));
     //hubContext.Caller.SendAsync("ConfirmNewArticle"); --&gt; Caller Is Not Accessible Here.
 });
 ..
-        </CodeSnippet>
+            </CodeSnippet>
 
-        <p>
+            <p>
             <Highlight>This leaves us with no possibility to send any notifications to the Caller alone</Highlight>. But there's also the 
             possibility to put clients in groups and then send messages to a specific group.
-        </p>
+            </p>
 
         
 
-        <h3 id="summary" class="[ font-semibold text-lg ]">Summary</h3>
+        </How>
 
-        <p>
-            In this article, we learnt about <Highlight>IHubContext</Highlight> and <Highlight>Caller</Highlight> in SignalR. 
-            We also saw how to use <Highlight>IHubContext</Highlight> to access the <Highlight>hub's client</Highlight> property. 
-            In the next article, we will learn about <Highlight>Groups</Highlight> in SignalR.
-        </p>
+        <Summary>
+            <p>
+                In this article, we learnt about <Highlight>IHubContext</Highlight> and <Highlight>Caller</Highlight> in SignalR.
+                We also saw how to use <Highlight>IHubContext</Highlight> to access the <Highlight>hub's client</Highlight> property.
+                In the next article, we will learn about <Highlight>Groups</Highlight> in SignalR.
+            </p>
+        </Summary>
     </ContentBody>
 </Content>
