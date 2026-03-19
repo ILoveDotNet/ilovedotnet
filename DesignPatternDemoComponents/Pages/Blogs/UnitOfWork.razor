@@ -2,100 +2,63 @@
 @using DesignPatternDemoComponents.UnitOfWork
 @inherits BasePage
 
-<Content FileName=@nameof(UnitOfWork)>
+<Content FileName=@nameof(UnitOfWork) UseNewTableOfContentsMenu=true>
     <ContentBody>
-        <p>
-            In this article, let's learn about <Highlight>Unit of Work Design Pattern</Highlight> in .NET.
-        </p>
+        <What>
+            <p>
+                In this article, let's learn about <Highlight>Unit of Work Design Pattern</Highlight> in .NET.
+            </p>
 
-        <p>
-            <strong>Note:</strong> If you have not done so already, I recommend you read the article on
-            <NavLink href="blogs/enterprise-design-pattern-repository" Match="NavLinkMatch.All">Enterprise Design Pattern - Repository</NavLink>.
-        </p>
+            <p>
+                <strong>Note:</strong> If you have not done so already, I recommend you read the article on
+                <NavLink href="blogs/enterprise-design-pattern-repository" Match="NavLinkMatch.All">Enterprise Design Pattern - Repository</NavLink>.
+            </p>
 
-        <h3>Table of Contents</h3>
-        
-        <ol>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
-                    Introduction
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#what-problem-does-it-solve")" Match="NavLinkMatch.All">
-                    What problem does it solve?
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#implementing-a-unit-of-work-pattern")" Match="NavLinkMatch.All">
-                    Implementing a Unit of Work Pattern
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#working-with-ef-core")" Match="NavLinkMatch.All">
-                    Working with EF Core
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#real-world-use-cases")" Match="NavLinkMatch.All">
-                    Real World Use Cases
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
-                    Summary
-                </NavLink>
-            </li>
-        </ol>
+            <p>
+                The <Highlight>Unit of Work</Highlight> pattern is crucial for <Highlight>managing transactions</Highlight> and
+                <Highlight>coordinating multiple data operations</Highlight> across repositories in enterprise software. It ensures
+                <Highlight>consistency</Highlight> by grouping operations into a <Highlight>single unit</Highlight>, where either
+                <Highlight>all operations succeed or none do</Highlight>.
+            </p>
+        </What>
 
-        <h3 id="introduction">Introduction</h3>
-        
-        <p>
-            The <Highlight>Unit of Work</Highlight> pattern is crucial for <Highlight>managing transactions</Highlight> and 
-            <Highlight>coordinating multiple data operations</Highlight> across repositories in enterprise software. It ensures 
-            <Highlight>consistency</Highlight> by grouping operations into a <Highlight>single unit</Highlight>, where either 
-            <Highlight>all operations succeed or none do</Highlight>.
-        </p>
+        <Why>
+            <p>
+                Imagine you have an order processing system. You need to save an order and its associated order lines. Without the Unit of Work, if
+                <Highlight>saving the order succeeds but saving the order lines fails</Highlight>, you could end up with
+                <Highlight>inconsistent data</Highlight>.
+            </p>
 
-        
+            <p>
+                The Unit of Work pattern solves this by <Highlight>ensuring that both operations are wrapped in a single transaction</Highlight>.
+                If one fails, everything is <Highlight>rolled back</Highlight>, preserving <Highlight>data integrity</Highlight>.
+            </p>
+        </Why>
 
-        <h3 id="what-problem-does-it-solve">What problem does it solve?</h3>
-        
-        <p>
-            Imagine you have an order processing system. You need to save an order and its associated order lines. Without the Unit of Work, if 
-            <Highlight>saving the order succeeds but saving the order lines fails</Highlight>, you could end up with 
-            <Highlight>inconsistent data</Highlight>. The Unit of Work pattern solves this by <Highlight>ensuring that both 
-            operations are wrapped in a single transaction</Highlight>. If one fails, everything is <Highlight>rolled back</Highlight>, 
-            preserving <Highlight>data integrity</Highlight>.
-        </p>
+        <How>
+            <h4 id="implementing-a-unit-of-work-pattern">Implementing Unit of Work Pattern</h4>
 
-        
+            <p>
+                To implement the Unit of Work pattern, start by creating an <Highlight>IUnitOfWork interface</Highlight> that includes methods for
+                <Highlight>committing</Highlight> and <Highlight>rolling back transactions</Highlight>:
+            </p>
 
-        <h3 id="implementing-a-unit-of-work-pattern">Implementing Unit of Work Pattern</h3>
-
-        <p>
-            To implement the Unit of Work pattern, start by creating an <Highlight>IUnitOfWork interface</Highlight> that includes methods for 
-            <Highlight>committing</Highlight> and <Highlight>rolling back transactions</Highlight>:
-        </p>
-
-        <CodeSnippet CssClass="language-csharp">
+            <CodeSnippet CssClass="language-csharp">
 public interface IUnitOfWork
 {
     Task CommitAsync();
     Task RollbackAsync();
 }
-        </CodeSnippet>
+            </CodeSnippet>
 
-        
+            <p>
+                Next, create an <Highlight>abstract UnitOfWork class</Highlight> that implements this <Highlight>interface</Highlight>.
+                It should handle transactions through an injected <Highlight>DbContext</Highlight>. Note we are leaving the
+                <Highlight>lifetime of DbContext</Highlight> to <Highlight>IOC container</Highlight> to manage. This is important as
+                <Highlight>DbContext</Highlight> should be scoped to the lifetime of the request.
+            </p>
 
-        <p>
-            Next, create an <Highlight>abstract UnitOfWork class</Highlight> that implements this <Highlight>interface</Highlight>. 
-            It should handle transactions through an injected <Highlight>DbContext</Highlight>. Note we are leaving the 
-            <Highlight>lifetime of DbContext</Highlight> to <Highlight>IOC container</Highlight> to manage. This is important as 
-            <Highlight>DbContext</Highlight> should be scoped to the lifetime of the request.
-        </p>
-
-        <CodeSnippet CssClass="language-csharp">
+            <CodeSnippet CssClass="language-csharp">
 public abstract class UnitOfWork : IUnitOfWork
 {
     protected readonly OrderDbContext _context;
@@ -116,16 +79,14 @@ public abstract class UnitOfWork : IUnitOfWork
         return Task.CompletedTask;
     }
 }
-        </CodeSnippet>
+            </CodeSnippet>
 
-        
+            <p>
+                You can now create a <Highlight>concrete class</Highlight> for <Highlight>specific units of work</Highlight>, such as
+                handling orders and order lines:
+            </p>
 
-        <p>
-            You can now create a <Highlight>concrete class</Highlight> for <Highlight>specific units of work</Highlight>, such as 
-            handling orders and order lines:
-        </p>
-
-        <CodeSnippet CssClass="language-csharp">
+            <CodeSnippet CssClass="language-csharp">
 public class CreateOrderWithOrderLinesUnitOfWork : UnitOfWork
 {
     public IOrderRepository OrderRepository { get; }
@@ -138,49 +99,44 @@ public class CreateOrderWithOrderLinesUnitOfWork : UnitOfWork
         OrderLineRepository = orderLineRepo;
     }
 }
-        </CodeSnippet>
+            </CodeSnippet>
 
-        <p>
-            Now all we need to do is to use the <Highlight>repositories</Highlight> to do operations and use <Highlight>SaveChanges</Highlight> 
-            in <Highlight>Unit of Work</Highlight> to <Highlight>commit</Highlight> the <Highlight>transaction</Highlight>. If 
-            any operation fails, the <Highlight>transaction</Highlight> will be <Highlight>rolled back</Highlight>.
-        </p>
+            <p>
+                Now all we need to do is to use the <Highlight>repositories</Highlight> to do operations and use <Highlight>SaveChanges</Highlight>
+                in <Highlight>Unit of Work</Highlight> to <Highlight>commit</Highlight> the <Highlight>transaction</Highlight>. If
+                any operation fails, the <Highlight>transaction</Highlight> will be <Highlight>rolled back</Highlight>.
+            </p>
 
-        
+            <h4 id="working-with-ef-core">Working with EF Core</h4>
 
-        <h3 id="working-with-ef-core">Working with EF Core</h3>
+            <p>
+                <Highlight>Entity Framework Core</Highlight> naturally implements the <Highlight>Unit of Work</Highlight> pattern via the
+                <Highlight>DbContext</Highlight>. When you call <Highlight>SaveChanges</Highlight>, all <Highlight>tracked changes</Highlight>
+                are wrapped in a <Highlight>transaction</Highlight>, ensuring either all changes are committed or none are.
+            </p>
 
-        <p>
-            <Highlight>Entity Framework Core</Highlight> naturally implements the <Highlight>Unit of Work</Highlight> pattern via the 
-            <Highlight>DbContext</Highlight>. When you call <Highlight>SaveChanges</Highlight>, all <Highlight>tracked changes</Highlight> 
-            are wrapped in a <Highlight>transaction</Highlight>, ensuring either all changes are committed or none are.
-        </p>
+            <h4 id="real-world-use-cases">Real World Use Cases</h4>
 
-        
+            <ul>
+                <li>
+                    <Highlight>Banking Applications</Highlight>: In financial transactions, like transferring funds between accounts, the
+                    Unit of Work ensures that both deduction and addition occur within a single transaction. If any part fails, the entire operation is rolled back.
+                </li>
+                <li>
+                    <Highlight>E-commerce Checkout</Highlight>: During the checkout process, actions like updating the cart, reserving inventory, and
+                    placing an order are coordinated by the Unit of Work. If inventory reservation fails, the whole transaction is rolled back, preventing incomplete
+                    orders.
+                </li>
+            </ul>
+        </How>
 
-        <h3 id="real-world-use-cases">Real World Use Cases</h3>
-
-        <ul>
-            <li>
-                <Highlight>Banking Applications</Highlight>: In financial transactions, like transferring funds between accounts, the 
-                Unit of Work ensures that both deduction and addition occur within a single transaction. If any part fails, the entire operation is rolled back.
-            </li>
-            <li>
-                <Highlight>E-commerce Checkout</Highlight>: During the checkout process, actions like updating the cart, reserving inventory, and 
-                placing an order are coordinated by the Unit of Work. If inventory reservation fails, the whole transaction is rolled back, preventing incomplete 
-                orders.
-            </li>
-        </ul>
-
-        
-
-        <h3 id="summary">Summary</h3>
-
-        <p>
-            The <Highlight>Unit of Work</Highlight> pattern is essential for <Highlight>managing transactions</Highlight> in 
-            data-intensive applications. It ensures <Highlight>data integrity</Highlight> by coordinating 
-            <Highlight>multiple operations</Highlight> in a <Highlight>single transaction</Highlight>. With Entity Framework Core, 
-            much of this functionality is already built-in, allowing you to leverage this pattern with minimal setup.
-        </p>
+        <Summary>
+            <p>
+                The <Highlight>Unit of Work</Highlight> pattern is essential for <Highlight>managing transactions</Highlight> in
+                data-intensive applications. It ensures <Highlight>data integrity</Highlight> by coordinating
+                <Highlight>multiple operations</Highlight> in a <Highlight>single transaction</Highlight>. With Entity Framework Core,
+                much of this functionality is already built-in, allowing you to leverage this pattern with minimal setup.
+            </p>
+        </Summary>
     </ContentBody>
 </Content>

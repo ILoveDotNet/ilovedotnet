@@ -2,92 +2,65 @@
 @using DesignPatternDemoComponents.Singleton
 @inherits BasePage
 
-<Content FileName=@nameof(Singleton)>
+<Content FileName=@nameof(Singleton) UseNewTableOfContentsMenu=true>
     <ContentBody>
-        <p>
-            In this article, let's learn about <Highlight>Singleton Design Pattern</Highlight> in .NET.
-        </p>
+        <What>
+            <p>
+                In this article, let's learn about <Highlight>Singleton Design Pattern</Highlight> in .NET.
+            </p>
 
-        <h3>Table of Contents</h3>
-        
-        <ol>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
-                    Introduction
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#structure")" Match="NavLinkMatch.All">
-                    Structure
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#thread-safety")" Match="NavLinkMatch.All">
-                    Thread Safety
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#use-cases")" Match="NavLinkMatch.All">
-                    Use Cases
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#advantages")" Match="NavLinkMatch.All">
-                    Advantages
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#disadvantages")" Match="NavLinkMatch.All">
-                    Disadvantages
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#related-patterns")" Match="NavLinkMatch.All">
-                    Related Patterns
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
-                    Summary
-                </NavLink>
-            </li>
-        </ol>
+            <p>
+                The <Highlight>singleton</Highlight> pattern is a design pattern that ensures <Highlight>only one instance</Highlight> of a <Highlight>class</Highlight>
+                is created and provides a way to access it globally. It's commonly used for creating objects like loggers, where you only want one instance for the entire application.
+            </p>
 
-        <h3 id="introduction">Introduction</h3>
-        
-        <p>
-            The <Highlight>singleton</Highlight> pattern is a design pattern that ensures <Highlight>only one instance</Highlight> of a <Highlight>class</Highlight> 
-            is created and provides a way to access it globally. It's commonly used for creating objects like loggers, where you only want one instance for the entire application.
-        </p>
+            <p>
+                To implement the pattern, we make the class responsible for <Highlight>managing its own instance</Highlight> by making the <Highlight>constructor</Highlight>
+                <Highlight>private</Highlight> or <Highlight>protected</Highlight>. We create a <Highlight>static</Highlight> property or method
+                that returns the <Highlight>instance</Highlight> of the <Highlight>class</Highlight> and make sure that it's only created the first time it's
+                accessed (<Highlight>lazy</Highlight> instantiation). Any other methods of the class are defined as regular instance methods and accessed through the
+                <Highlight>static</Highlight> property or method.
+            </p>
 
-        <p>
-            To implement the pattern, we make the class responsible for <Highlight>managing its own instance</Highlight> by making the <Highlight>constructor</Highlight> 
-            <Highlight>private</Highlight> or <Highlight>protected</Highlight>. We create a <Highlight>static</Highlight> property or method 
-            that returns the <Highlight>instance</Highlight> of the <Highlight>class</Highlight> and make sure that it's only created the first time it's 
-            accessed (<Highlight>lazy</Highlight> instantiation). Any other methods of the class are defined as regular instance methods and accessed through the 
-            <Highlight>static</Highlight> property or method.
-        </p>
+            <p>
+                By using the singleton pattern, we can avoid multiple instances interfering with each other, resulting in messages being logged multiple times or not at all.
+            </p>
+        </What>
 
-        <p>
-            By using the singleton pattern, we can avoid multiple instances interfering with each other, resulting in messages being logged multiple times or not at all.
-        </p>
+        <Why>
+            <p>
+                Without the Singleton pattern, creating multiple instances of a shared resource — like a <Highlight>logger</Highlight> — can lead to
+                serious problems. Each instance might write to a different output, causing <Highlight>duplicate</Highlight> or <Highlight>lost log entries</Highlight>.
+            </p>
 
-        
+            <p>
+                Shared resources such as <Highlight>configuration managers</Highlight>, <Highlight>connection pools</Highlight>, and
+                <Highlight>thread pools</Highlight> are especially vulnerable. Multiple instances competing for the same underlying resource can result in
+                <Highlight>race conditions</Highlight>, inconsistent state, and hard-to-debug failures.
+            </p>
 
-        <h3 id="structure">Structure</h3>
-        
-        <p>
-            Let's apply the singleton pattern structure to our real-life logger example. This pattern structure can be used for other real-life scenarios as well.
-        </p>
+            <p>
+                The Singleton pattern solves this by <Highlight>guaranteeing</Highlight> that only one instance exists and providing a
+                <Highlight>global access point</Highlight> to it. This makes the code predictable and avoids subtle bugs caused by unintended
+                object proliferation.
+            </p>
+        </Why>
 
-        <p>
-            To map our logger example to the singleton pattern, we simply need to create a <Highlight>class</Highlight> called <Highlight>Logger</Highlight>, 
-            which will be the singleton. The <Highlight>Logger class</Highlight> will have a <Highlight>public static</Highlight> property called 
-            <Highlight>"instance"</Highlight>, which will contain a <Highlight>private</Highlight> backing field to store the instance value. The log method 
-            in the <Highlight>Logger class</Highlight> corresponds to what is known as a singleton operation in the pattern structure.
-        </p>
+        <How>
+            <h4 id="structure">Structure</h4>
 
-        <CodeSnippet CssClass="language-csharp">
+            <p>
+                Let's apply the singleton pattern structure to our real-life logger example. This pattern structure can be used for other real-life scenarios as well.
+            </p>
+
+            <p>
+                To map our logger example to the singleton pattern, we simply need to create a <Highlight>class</Highlight> called <Highlight>Logger</Highlight>,
+                which will be the singleton. The <Highlight>Logger class</Highlight> will have a <Highlight>public static</Highlight> property called
+                <Highlight>"instance"</Highlight>, which will contain a <Highlight>private</Highlight> backing field to store the instance value. The log method
+                in the <Highlight>Logger class</Highlight> corresponds to what is known as a singleton operation in the pattern structure.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
 public class Logger
 {
     private static Logger? _instance;
@@ -119,33 +92,31 @@ public class Logger
         Console.WriteLine($"Message to log: {message}");
     }
 }
-        </CodeSnippet>
+            </CodeSnippet>
 
-        <ol>
-            <li>Create a <Highlight>Logger class</Highlight> and add a <Highlight>protected constructor</Highlight> to it so that clients cannot instantiate it but can subclass it.</li>
-            <li>Add a <Highlight>static</Highlight> Instance property and a <Highlight>private</Highlight> backing field that must be <Highlight>nullable</Highlight>.</li>
-            <li>In the getter of the Instance property, check whether it's <Highlight>null</Highlight>. If it is, instantiate and store a <Highlight>Logger</Highlight> instance. Always return that instance to ensure that only one instance of the Singleton class, <Highlight>Logger</Highlight> in this case, exists at any given time.</li>
-            <li>Add a Singleton operation method, Log, for testing purposes. Every instance of the <Highlight>Logger</Highlight> that's returned when getting the Instance property has access to it.</li>
-            <li>Test the <Highlight>Singleton</Highlight> pattern by attempting to create a new instance of <Highlight>Logger</Highlight>, which should fail due to the <Highlight>protected constructor</Highlight>. Then, retrieve two instances of <Highlight>Logger</Highlight> via <Highlight>Logger.Instance</Highlight> and compare them. If they are the same instance and match the <Highlight>Logger.Instance</Highlight> property, write that to the <Highlight>console output window</Highlight>.</li>
-            <li>Log a few messages as an example to ensure that each call does the same thing.</li>
-        </ol>
+            <ol>
+                <li>Create a <Highlight>Logger class</Highlight> and add a <Highlight>protected constructor</Highlight> to it so that clients cannot instantiate it but can subclass it.</li>
+                <li>Add a <Highlight>static</Highlight> Instance property and a <Highlight>private</Highlight> backing field that must be <Highlight>nullable</Highlight>.</li>
+                <li>In the getter of the Instance property, check whether it's <Highlight>null</Highlight>. If it is, instantiate and store a <Highlight>Logger</Highlight> instance. Always return that instance to ensure that only one instance of the Singleton class, <Highlight>Logger</Highlight> in this case, exists at any given time.</li>
+                <li>Add a Singleton operation method, Log, for testing purposes. Every instance of the <Highlight>Logger</Highlight> that's returned when getting the Instance property has access to it.</li>
+                <li>Test the <Highlight>Singleton</Highlight> pattern by attempting to create a new instance of <Highlight>Logger</Highlight>, which should fail due to the <Highlight>protected constructor</Highlight>. Then, retrieve two instances of <Highlight>Logger</Highlight> via <Highlight>Logger.Instance</Highlight> and compare them. If they are the same instance and match the <Highlight>Logger.Instance</Highlight> property, write that to the <Highlight>console output window</Highlight>.</li>
+                <li>Log a few messages as an example to ensure that each call does the same thing.</li>
+            </ol>
 
-        <p>
-            Note: Be aware of the potential issue with Singleton pattern, which is that it can cause difficulty in testing and mocking, and can also introduce global state, leading to 
-            unexpected behavior.
-        </p>
+            <p>
+                Note: Be aware of the potential issue with Singleton pattern, which is that it can cause difficulty in testing and mocking, and can also introduce global state, leading to
+                unexpected behavior.
+            </p>
 
-        
+            <h4 id="thread-safety">Thread Safety</h4>
 
-        <h3 id="thread-safety">Thread Safety</h3>
+            <p>
+                That's all what we've done here is a naïve form of lazy initialization. <Highlight>Lazy initialization</Highlight> is the principle that states that we're only going
+                to create an instance of a <Highlight>class</Highlight> once we need it and not when it's constructed. The problem is that this code is not guaranteed to be
+                <Highlight>thread-safe</Highlight>. Let's see how to make it thread-safe!!.
+            </p>
 
-        <p>
-            That's all what we've done here is a naïve form of lazy initialization. <Highlight>Lazy initialization</Highlight> is the principle that states that we're only going 
-            to create an instance of a <Highlight>class</Highlight> once we need it and not when it's constructed. The problem is that this code is not guaranteed to be 
-            <Highlight>thread-safe</Highlight>. Let's see how to make it thread-safe!!.
-        </p>
-
-        <CodeSnippet CssClass="language-csharp">
+            <CodeSnippet CssClass="language-csharp">
 public class Logger
 {
     private static readonly Lazy&lt;Logger&gt; _lazyLogger
@@ -171,32 +142,30 @@ public class Logger
         Console.WriteLine($"Message to log: {message}");
     }
 }
-        </CodeSnippet>
+            </CodeSnippet>
 
-        <ol>
-            <li>Let's Use <Highlight>.NET's</Highlight> built-in <Highlight>thread-safe</Highlight> way of dealing with lazy initialization by implementing <Highlight>Lazy&lt;T&gt;</Highlight>.</li>
-            <li>Add a <Highlight>new static</Highlight> field of type Lazy&lt;T&gt; to replace the old <Highlight>static private Logger</Highlight> instance, and make it <Highlight>readonly</Highlight>.</li>
-            <li>Initialize the lazyLogger, passing through a method for constructing the Logger when accessing the value property for the first time.</li>
-            <li>Remove the old private static Logger instance and return the value of the lazyLogger in the property getter.</li>
-            <li>Test the implementation to ensure it returns the same output as the previous implementation but in a thread-safe manner.</li>
-        </ol>
+            <ol>
+                <li>Let's Use <Highlight>.NET's</Highlight> built-in <Highlight>thread-safe</Highlight> way of dealing with lazy initialization by implementing <Highlight>Lazy&lt;T&gt;</Highlight>.</li>
+                <li>Add a <Highlight>new static</Highlight> field of type Lazy&lt;T&gt; to replace the old <Highlight>static private Logger</Highlight> instance, and make it <Highlight>readonly</Highlight>.</li>
+                <li>Initialize the lazyLogger, passing through a method for constructing the Logger when accessing the value property for the first time.</li>
+                <li>Remove the old private static Logger instance and return the value of the lazyLogger in the property getter.</li>
+                <li>Test the implementation to ensure it returns the same output as the previous implementation but in a thread-safe manner.</li>
+            </ol>
 
-        <p>
-            Note: In this case, Lazy of T is used to ensure thread-safe, on-demand initialization of the Singleton class. This way, the Logger instance is only constructed when needed, 
-            not at the time of the Singleton's construction, which can cause issues with thread safety.
-        </p>
-
-        
-
-        <p>
-            That's all we need to do to apply the singleton pattern structure to our logger example. Now, we can move on to implementing this in a demo.
-        </p>
-
-        <DemoSnippet Title="Singleton Pattern Demo">
             <p>
-                Let's try Singleton Demo, Click on the Singleton Button to see the demo on the screen.
+                Note: In this case, Lazy of T is used to ensure thread-safe, on-demand initialization of the Singleton class. This way, the Logger instance is only constructed when needed,
+                not at the time of the Singleton's construction, which can cause issues with thread safety.
             </p>
-            <CodeSnippet CssClass="language-csharp">
+
+            <p>
+                That's all we need to do to apply the singleton pattern structure to our logger example. Now, we can move on to implementing this in a demo.
+            </p>
+
+            <DemoSnippet Title="Singleton Pattern Demo">
+                <p>
+                    Let's try Singleton Demo, Click on the Singleton Button to see the demo on the screen.
+                </p>
+                <CodeSnippet CssClass="language-csharp">
 var instance1 = Logger.Instance;
 var instance2 = Logger.Instance;
 
@@ -210,75 +179,66 @@ instance1.Log($"Message from {nameof(instance1)}");
 instance1.Log($"Message from {nameof(instance2)}");
 // or
 Logger.Instance.Log($"Message from {nameof(Logger.Instance)}");
-            </CodeSnippet>
-            <SingletonDemo></SingletonDemo>
-        </DemoSnippet>
+                </CodeSnippet>
+                <SingletonDemo></SingletonDemo>
+            </DemoSnippet>
 
-        
+            <h4 id="use-cases">Use Cases</h4>
 
-        <h3 id="use-cases">Use Cases</h3>
+            <ul>
+                <li>The singleton pattern is useful when there needs to be only one instance of a class that can be accessed from a well-known access point, like our logger example.</li>
+                <li>
+                    It's also helpful when we want the sole instance to be extended by subclassing, without modifying any client code, which is possible by using a
+                    <Highlight>protected constructor</Highlight>.
+                </li>
+                <li>Subclassing enables you to configure your application with the desired instance of the class at runtime.</li>
+                <li>Allow multiple instances without having to modify any client code.</li>
+            </ul>
 
-        <ul>
-            <li>The singleton pattern is useful when there needs to be only one instance of a class that can be accessed from a well-known access point, like our logger example.</li>
-            <li>
-                It's also helpful when we want the sole instance to be extended by subclassing, without modifying any client code, which is possible by using a 
-                <Highlight>protected constructor</Highlight>.
-            </li>
-            <li>Subclassing enables you to configure your application with the desired instance of the class at runtime.</li>
-            <li>Allow multiple instances without having to modify any client code.</li>
-        </ul>
+            <p>
+                Overall, the singleton pattern has certain consequences, which need to be considered before implementing it in a design.
+            </p>
 
-        <p>
-            Overall, the singleton pattern has certain consequences, which need to be considered before implementing it in a design.
-        </p>
+            <h4 id="advantages">Advantages</h4>
 
-        
+            <ul>
+                <li>Strict control over how and when clients can access it.</li>
+                <li>Avoids polluting the namespace with global variables.</li>
+                <li>Subclassing enables you to configure your application with the desired instance of the class at runtime.</li>
+                <li>Allow multiple instances without having to modify any client code.</li>
+            </ul>
 
-        <h3 id="advantages">Advantages</h3>
+            <h4 id="disadvantages">Disadvantages</h4>
 
-        <ul>
-            <li>Strict control over how and when clients can access it.</li>
-            <li>Avoids polluting the namespace with global variables.</li>
-            <li>Subclassing enables you to configure your application with the desired instance of the class at runtime.</li>
-            <li>Allow multiple instances without having to modify any client code.</li>
-        </ul>
+            <ul>
+                <li>
+                    <Highlight>Violates the single responsibility principle</Highlight> by having objects control their own lifecycle. But, in modern languages, an
+                    <Highlight>Inversion of Control (IOC)</Highlight> container can handle these tasks, and the Singleton class doesn't have to manage its lifetime anymore.
+                </li>
+            </ul>
 
-        
+            <p>
+                Despite these points, the Singleton pattern is a useful starting point because of its simplicity. Finally, let's have a look at related patterns.
+            </p>
 
-        <h3 id="disadvantages">Disadvantages</h3>
+            <h4 id="related-patterns">Related Patterns</h4>
 
-        <ul>
-            <li>
-                <Highlight>Violates the single responsibility principle</Highlight> by having objects control their own lifecycle. But, in modern languages, an 
-                <Highlight>Inversion of Control (IOC)</Highlight> container can handle these tasks, and the Singleton class doesn't have to manage its lifetime anymore.
-            </li>
-        </ul>
+            <ul>
+                <li><Highlight>abstract factory</Highlight> pattern</li>
+                <li><Highlight>builder</Highlight> pattern</li>
+                <li><Highlight>prototype</Highlight> pattern</li>
+                <li><Highlight>state</Highlight> pattern</li>
+            </ul>
+        </How>
 
-        <p>
-            Despite these points, the Singleton pattern is a useful starting point because of its simplicity. Finally, let's have a look at related patterns.
-        </p>
-
-        
-
-        <h3 id="related-patterns">Related Patterns</h3>
-
-        <ul>
-            <li><Highlight>abstract factory</Highlight> pattern</li>
-            <li><Highlight>builder</Highlight> pattern</li>
-            <li><Highlight>prototype</Highlight> pattern</li>
-            <li><Highlight>state</Highlight> pattern</li>
-        </ul>
-
-        
-
-        <h3 id="summary">Summary</h3>
-
-        <p>
-            In this article we learn't what is <Highlight>Singleton Design Pattern</Highlight>, which makes sure that a class has <Highlight>only one instance</Highlight>, 
-            and provides a way to access it from anywhere in the code. We can create a simple implementation by adding a <Highlight>static Instance property and backing field 
-            with a private or protected constructor</Highlight>. However, this implementation may not be <Highlight>thread-safe</Highlight>. A better approach is to use 
-            <Highlight>lazy initialization via Lazy of T</Highlight>. We covered both implementations in this article. In the next article, we will learn about the 
-            <Highlight>factory method</Highlight> pattern, which is one of the two factory patterns described by the <Highlight>Gang of Four</Highlight>.
-        </p>
+        <Summary>
+            <p>
+                In this article we learn't what is <Highlight>Singleton Design Pattern</Highlight>, which makes sure that a class has <Highlight>only one instance</Highlight>,
+                and provides a way to access it from anywhere in the code. We can create a simple implementation by adding a <Highlight>static Instance property and backing field
+                with a private or protected constructor</Highlight>. However, this implementation may not be <Highlight>thread-safe</Highlight>. A better approach is to use
+                <Highlight>lazy initialization via Lazy of T</Highlight>. We covered both implementations in this article. In the next article, we will learn about the
+                <Highlight>factory method</Highlight> pattern, which is one of the two factory patterns described by the <Highlight>Gang of Four</Highlight>.
+            </p>
+        </Summary>
     </ContentBody>
 </Content>

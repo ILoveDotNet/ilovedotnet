@@ -2,123 +2,81 @@
 @using DesignPatternDemoComponents.Observer
 @inherits BasePage
 
-<Content FileName=@nameof(Observer)>
+<Content FileName=@nameof(Observer) UseNewTableOfContentsMenu=true>
     <ContentBody>
-        <p>
-            In this article, let's learn about <Highlight>Observer Design Pattern</Highlight> in .NET.
-        </p>
+        <What>
+            <p>
+                In this article, let's learn about <Highlight>Observer Design Pattern</Highlight> in .NET.
+            </p>
 
-        <h3>Table of Contents</h3>
-        
-        <ol>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
-                    Introduction
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#structure")" Match="NavLinkMatch.All">
-                    Structure
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#use-cases")" Match="NavLinkMatch.All">
-                    Use Cases
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#advantages")" Match="NavLinkMatch.All">
-                    Advantages
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#disadvantages")" Match="NavLinkMatch.All">
-                    Disadvantages
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#related-patterns")" Match="NavLinkMatch.All">
-                    Related Patterns
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
-                    Summary
-                </NavLink>
-            </li>
-        </ol>
+            <p>
+                In this article, we'll explore the <Highlight>Observer</Highlight> pattern, a <Highlight>behavioral design pattern</Highlight>
+                used to create a <Highlight>one-to-many dependency</Highlight> between objects so that when one object <Highlight>changes state</Highlight>,
+                all its dependents are notified and updated automatically. This pattern is also known as the <Highlight>Publish-Subscribe</Highlight> or
+                <Highlight>Pub/Sub pattern</Highlight>. We'll start by explaining the pattern using a practical example. We'll implement a simplified
+                order management system where different parts of an order need to stay in sync. Then, we'll delve into the pattern's structure, use cases,
+                consequences, and related patterns. Let's get started!
+            </p>
 
-        <h3 id="introduction">Introduction</h3>
-        
-        <p>
-            In this article, we'll explore the <Highlight>Observer</Highlight> pattern, a <Highlight>behavioral design pattern</Highlight> 
-            used to create a <Highlight>one-to-many dependency</Highlight> between objects so that when one object <Highlight>changes state</Highlight>, 
-            all its dependents are notified and updated automatically. This pattern is also known as the <Highlight>Publish-Subscribe</Highlight> or 
-            <Highlight>Pub/Sub pattern</Highlight>. We'll start by explaining the pattern using a practical example. We'll implement a simplified 
-            order management system where different parts of an order need to stay in sync. Then, we'll delve into the pattern's structure, use cases, 
-            consequences, and related patterns. Let's get started!
-        </p>
+            <p>
+                The Observer pattern, as described in the <Highlight>Gang of Four</Highlight> design patterns book, aims to define a dependency between
+                objects such that when one object changes, all its dependents are notified and updated automatically. This pattern is commonly used in applications
+                where data changes need to propagate throughout the system <Highlight>without tightly coupling</Highlight> components.
+            </p>
+        </What>
 
-        <p>
-            The Observer pattern, as described in the <Highlight>Gang of Four</Highlight> design patterns book, aims to define a dependency between 
-            objects such that when one object changes, all its dependents are notified and updated automatically. This pattern is commonly used in applications 
-            where data changes need to propagate throughout the system <Highlight>without tightly coupling</Highlight> components.
-        </p>
+        <Why>
+            <p>
+                Consider a scenario where we manage orders and their associated items in an order management system. When an
+                <Highlight>OrderItem</Highlight> (like the quantity or price of an item) is updated, the <Highlight>Order</Highlight> needs to
+                recalculate its total to reflect these changes. This setup mirrors the Observer pattern:
+            </p>
 
-        <p>
-            Example Scenario: <Highlight>Order</Highlight> and <Highlight>OrderItem</Highlight> in an Order Management System
-        </p>
+            <ul>
+                <li>
+                    <Highlight>OrderItem:</Highlight> Represents the individual items in an order, with properties such as quantity and unit price.
+                </li>
+                <li>
+                    <Highlight>Order:</Highlight> Represents the overall order, which needs to keep track of total cost and other details based on its items.
+                </li>
+            </ul>
 
-        <p>
-            Let's consider a scenario where we manage orders and their associated items in an order management system. When an OrderItem (like the quantity or 
-            price of an item) is updated, the Order needs to recalculate its total to reflect these changes. This setup mirrors the Observer pattern:
-        </p>
+            <p>
+                Rather than the Order directly querying each OrderItem for changes, we can use the Observer pattern to notify the Order whenever an OrderItem is
+                updated. This way, the system remains flexible and easy to extend.
+            </p>
+        </Why>
 
-        <ul>
-            <li>
-                <Highlight>OrderItem:</Highlight> Represents the individual items in an order, with properties such as quantity and unit price.
-            </li>
-            <li>
-                <Highlight>Order:</Highlight> Represents the overall order, which needs to keep track of total cost and other details based on its items.
-            </li>
-        </ul>
+        <How>
+            <h4 id="structure">Structure</h4>
 
-        <p>
-            Rather than the Order directly querying each OrderItem for changes, we can use the Observer pattern to notify the Order whenever an OrderItem is 
-            updated. This way, the system remains flexible and easy to extend.
-        </p>
+            <p>
+                The Observer pattern involves several key components:
+            </p>
 
-        
+            <ol>
+                <li>
+                    <Highlight>Subject:</Highlight> The object that holds the state and notifies observers of any state changes. In our example, the OrderItem acts as
+                    the subject.
+                </li>
+                <li>
+                    <Highlight>Observer:</Highlight> An interface or abstract class defining the method to be called when the subject's state changes. Here, <Highlight>IOrderItemChangeListener</Highlight> is our observer
+                    interface, implemented by <Highlight>OrderViewModel</Highlight>.
+                </li>
+                <li>
+                    <Highlight>Concrete Subject:</Highlight> The specific object holding the state of interest. For this example, it's the OrderItem class.
+                </li>
+                <li>
+                    <Highlight>Concrete Observer:</Highlight> The specific implementation of the observer interface. In our case, each Order implements an observer to track its
+                    changes.
+                </li>
+            </ol>
 
-        <h3 id="structure">Structure</h3>
-        
-        <p>
-            The Observer pattern involves several key components:
-        </p>
+            <p>
+                Here's how we can implement the Observer pattern in our order management system:
+            </p>
 
-        <ol>
-            <li>
-                <Highlight>Subject:</Highlight> The object that holds the state and notifies observers of any state changes. In our example, the OrderItem acts as 
-                the subject.
-            </li>
-            <li>
-                <Highlight>Observer:</Highlight> An interface or abstract class defining the method to be called when the subject's state changes. Here, Order is our observer 
-                interface.
-            </li>
-            <li>
-                <Highlight>Concrete Subject:</Highlight> The specific object holding the state of interest. For this example, it's the OrderItem class.
-            </li>
-            <li>
-                <Highlight>Concrete Observer:</Highlight> The specific implementation of the observer interface. In our case, each Order implements an observer to track its 
-                changes.
-            </li>
-        </ol>
-
-        <p>
-            Here's how we can implement the Observer pattern in our order management system:
-        </p>
-
-        <CodeSnippet CssClass="language-csharp">
+            <CodeSnippet CssClass="language-csharp">
 //Step - 1: Define Publisher
 
 public abstract class OrderItemChangeNotifier()
@@ -168,16 +126,16 @@ public class OrderItemViewModel : OrderItemChangeNotifier
         return Quantity * UnitPrice;
     }
 }
-        </CodeSnippet>
+            </CodeSnippet>
 
-        <p>
-            In the above code we are adding Observer (Order) using <Highlight>AddObserver</Highlight> and removing Observer (Order) using 
-            <Highlight>RemoveObserver</Highlight>. <Highlight>NotifyOrderItemProcessed</Highlight> notifies all subscribed observers 
-            (order) by calling their <Highlight>ReceiveOrderItemProcessedNotification</Highlight> method. OrderItem implements the above 
-            <Highlight>abstract class</Highlight> and calls NotifyOrderItemProcessed method whenever there is a change in OrderItem.
-        </p>
+            <p>
+                In the above code we are adding Observer (Order) using <Highlight>AddObserver</Highlight> and removing Observer (Order) using
+                <Highlight>RemoveObserver</Highlight>. <Highlight>NotifyOrderItemProcessed</Highlight> notifies all subscribed observers
+                (order) by calling their <Highlight>ReceiveOrderItemProcessedNotification</Highlight> method. OrderItem implements the above
+                <Highlight>abstract class</Highlight> and calls NotifyOrderItemProcessed method whenever there is a change in OrderItem.
+            </p>
 
-        <CodeSnippet CssClass="language-csharp">
+            <CodeSnippet CssClass="language-csharp">
 //Step - 3: Define Subscriber
 
 public interface IOrderItemChangeListener
@@ -221,22 +179,22 @@ public class OrderViewModel : IOrderItemChangeListener
         CalculateTotalAmount();
     }
 }
-        </CodeSnippet>
+            </CodeSnippet>
 
-        <p>
-            In the above code <Highlight>OrderViewModel</Highlight> <Highlight>listens</Highlight> for changes in 
-            <Highlight>OrderItemViewModel</Highlight> instances and recalculates the total amount using <Highlight>CalculateTotalAmount</Highlight> 
-            whenever any item is updated, ensuring the total is always accurate.
-        </p>
-
-        <DemoSnippet Title="Observer Pattern Demo">
             <p>
-                Let's try <Highlight>Observer</Highlight> Demo, Click on the <Highlight>Add Order Item</Highlight> and 
-                <Highlight>Remove Order Item</Highlight> and <Highlight>change Quantity and Price</Highlight> 
-                to see the observer pattern in action. 
-                The results will be displayed at the bottom of table.
+                In the above code <Highlight>OrderViewModel</Highlight> <Highlight>listens</Highlight> for changes in
+                <Highlight>OrderItemViewModel</Highlight> instances and recalculates the total amount using <Highlight>CalculateTotalAmount</Highlight>
+                whenever any item is updated, ensuring the total is always accurate.
             </p>
-            <CodeSnippet CssClass="language-razor">
+
+            <DemoSnippet Title="Observer Pattern Demo">
+                <p>
+                    Let's try <Highlight>Observer</Highlight> Demo, Click on the <Highlight>Add Order Item</Highlight> and
+                    <Highlight>Remove Order Item</Highlight> and <Highlight>change Quantity and Price</Highlight>
+                    to see the observer pattern in action.
+                    The results will be displayed at the bottom of table.
+                </p>
+                <CodeSnippet CssClass="language-razor">
 &lt;button type="button"
     @@onclick="HandleAddOrderItem"&gt;
     Add Order Item
@@ -298,83 +256,74 @@ public class OrderViewModel : IOrderItemChangeListener
         _order.RemoveItem(_order.OrderItems.Last());
     }
 }
-            </CodeSnippet>
-            <ObserverDemo></ObserverDemo>
-        </DemoSnippet>
+                </CodeSnippet>
+                <ObserverDemo></ObserverDemo>
+            </DemoSnippet>
 
-        
+            <h4 id="use-cases">Use Cases</h4>
 
-        <h3 id="use-cases">Use Cases</h3>
+            <p>
+                The Observer pattern is beneficial in several scenarios:
+            </p>
 
-        <p>
-            The Observer pattern is beneficial in several scenarios:
-        </p>
+            <ol>
+                <li>
+                    <Highlight>Dynamic Relationships:</Highlight> When the number of dependents (observers) that need to be updated can change at runtime, like dynamically adding or
+                    removing items from an order.
+                </li>
+                <li>
+                    <Highlight>Decoupling Components:</Highlight> To avoid tight coupling between components, like separating order calculation logic from item management.
+                </li>
+                <li>
+                    <Highlight>Event Handling Systems:</Highlight> In scenarios like GUI frameworks, where user interactions need to notify various components without tightly binding
+                    them together.
+                </li>
+            </ol>
 
-        <ol>
-            <li>
-                <Highlight>Dynamic Relationships:</Highlight> When the number of dependents (observers) that need to be updated can change at runtime, like dynamically adding or 
-                removing items from an order.
-            </li>
-            <li>
-                <Highlight>Decoupling Components:</Highlight> To avoid tight coupling between components, like separating order calculation logic from item management.
-            </li>
-            <li>
-                <Highlight>Event Handling Systems:</Highlight> In scenarios like GUI frameworks, where user interactions need to notify various components without tightly binding 
-                them together.
-            </li>
-        </ol>
+            <h4 id="advantages">Advantages</h4>
 
-        
+            <p>
+                <Highlight>Loose Coupling:</Highlight> Subjects and observers remain loosely coupled, which allows for greater flexibility and easier maintenance.
+            </p>
 
-        <h3 id="advantages">Advantages</h3>
+            <h4 id="disadvantages">Disadvantages</h4>
 
-        <p>
-            <Highlight>Loose Coupling:</Highlight> Subjects and observers remain loosely coupled, which allows for greater flexibility and easier maintenance.
-        </p>
+            <ul>
+                <li>
+                    <Highlight>Potential Performance Impact:</Highlight> If not managed carefully, especially with a large number of observers, the notification process might lead to
+                    performance issues.
+                </li>
+                <li>
+                    <Highlight>Change Cascades:</Highlight> Unintended cascades of changes can occur if observers can change the state of subjects in response to notifications.
+                </li>
+            </ul>
 
-        
+            <h4 id="related-patterns">Related Patterns</h4>
 
-        <h3 id="disadvantages">Disadvantages</h3>
+            <p>
+                The Observer pattern is closely related to several other design patterns:
+            </p>
 
-        <ul>
-            <li>
-                <Highlight>Potential Performance Impact:</Highlight> If not managed carefully, especially with a large number of observers, the notification process might lead to 
-                performance issues.
-            </li>
-            <li>
-                <Highlight>Change Cascades:</Highlight> Unintended cascades of changes can occur if observers can change the state of subjects in response to notifications.
-            </li>
-        </ul>
+            <ul>
+                <li>
+                    <Highlight>Mediator:</Highlight> Centralizes complex communication and control logic between objects, effectively reducing dependencies.
+                </li>
+                <li>
+                    <Highlight>Command:</Highlight> Encapsulates a request as an object, thereby allowing for parameterization and queuing of requests.
+                </li>
+                <li>
+                    <Highlight>Chain of Responsibility:</Highlight> Allows a request to pass along a chain of potential handlers until it is processed.
+                </li>
+            </ul>
+        </How>
 
-        
-
-        <h3 id="related-patterns">Related Patterns</h3>
-
-        <p>
-            The Observer pattern is closely related to several other design patterns:
-        </p>
-
-        <ul>
-            <li>
-                <Highlight>Mediator:</Highlight> Centralizes complex communication and control logic between objects, effectively reducing dependencies.
-            </li>
-            <li>
-                <Highlight>Command:</Highlight> Encapsulates a request as an object, thereby allowing for parameterization and queuing of requests.
-            </li>
-            <li>
-                <Highlight>Chain of Responsibility:</Highlight> Allows a request to pass along a chain of potential handlers until it is processed.
-            </li>
-        </ul>
-
-        
-
-        <h3 id="summary">Summary</h3>
-
-        <p>
-            In this module, we explored the <Highlight>Observer</Highlight> pattern through the lens of an order management system. We saw how 
-            this pattern allows for <Highlight>automatic updates</Highlight> and <Highlight>notifications</Highlight> across related 
-            components, promoting <Highlight>loose coupling</Highlight> and <Highlight>flexibility</Highlight>. We also covered use 
-            cases, consequences, and related patterns to provide a comprehensive understanding of its applications.
-        </p>
+        <Summary>
+            <p>
+                In this module, we explored the <Highlight>Observer</Highlight> pattern through the lens of an order management system. We saw how
+                this pattern allows for <Highlight>automatic updates</Highlight> and <Highlight>notifications</Highlight> across related
+                components, promoting <Highlight>loose coupling</Highlight> and <Highlight>flexibility</Highlight>. We also covered use
+                cases, consequences, and related patterns to provide a comprehensive understanding of its applications.
+            </p>
+        </Summary>
     </ContentBody>
 </Content>
