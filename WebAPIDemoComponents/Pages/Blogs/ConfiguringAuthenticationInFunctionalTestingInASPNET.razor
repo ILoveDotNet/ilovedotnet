@@ -1,8 +1,9 @@
 @page "/blogs/configuring-authentication-in-functional-testing-in-asp-net-webapi"
 @inherits BasePage
 
-<Content FileName=@nameof(ConfiguringAuthenticationInFunctionalTestingInASPNET)>
+<Content FileName=@nameof(ConfiguringAuthenticationInFunctionalTestingInASPNET) UseNewTableOfContentsMenu=true>
     <ContentBody>
+        <What>
         <p>
             In this article, let's learn about how to setup <Highlight>Authentication</Highlight> in 
             <Highlight>Functional Test</Highlight> in <Highlight>WebAPI</Highlight> in ASP.NET Core.
@@ -13,38 +14,15 @@
             <NavLink href="blogs/using-wiremock-net-in-functional-testing-in-asp-net-webapi" Match="NavLinkMatch.All">Using WireMock.NET in Functional testing in ASP.NET WEB API</NavLink>.
         </p>
 
-        <h3>Table of Contents</h3>
-
-        <ol>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
-                    Introduction
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#setup-authentication")" Match="NavLinkMatch.All">
-                    Setup Authentication
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#setup-authorization")" Match="NavLinkMatch.All">
-                    Setup Authorization
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
-                    Summary
-                </NavLink>
-            </li>
-        </ol>
-
-        <h3 id="introduction">Introduction</h3>
-
         <p>
             In our previous article we saw how to use <Highlight>WireMock.NET</Highlight> in functional test to validate HTTP calls. In this article,
             we will see how to setup <Highlight>Authentication</Highlight> and <Highlight>Authorization</Highlight> in functional test in 
             <Highlight>WebAPI</Highlight> in ASP.NET Core step by step. We will be using the same project that we used in our previous article.
         </p>
+
+        </What>
+
+        <Why>
 
         <p>
             The straight forward way to enable <Highlight>Authentication</Highlight> and <Highlight>Authorization</Highlight> in 
@@ -90,7 +68,21 @@ app.UseAuthorization();
             <img src="./image/blogs/webapi/configuring-authentication-in-functional-testing-in-asp-net-webapi/swagger-response.png" alt="swagger-response" class="[ w-full ]" />
         </figure>
 
-        <h3 id="setup-authentication">Setup Authentication</h3>
+            <p>
+                Adding <Highlight>[Authorize]</Highlight> to endpoints immediately breaks all functional tests because functional tests
+                spin up the real ASP.NET Core pipeline — unlike unit tests, the authentication middleware is fully active. Without a proper
+                fake authentication scheme, every protected endpoint returns <Highlight>401 UnAuthorized</Highlight>, making it impossible
+                to test any secured functionality.
+            </p>
+
+            <p>
+                To restore test coverage without compromising security, we need a structured fake authentication scheme that injects
+                controllable claims and roles into the test pipeline, allowing each test to simulate different users and access levels.
+            </p>
+        </Why>
+
+        <How>
+            <h4 id="setup-authentication">Setup Authentication</h4>
 
         <p>
             Setting up <Highlight>Authentication</Highlight> in <Highlight>Functional Test</Highlight> is a bit tricky as it cannot be 
@@ -217,7 +209,7 @@ public class CustomWebApiFactory(SharedFixture fixture) : WebApplicationFactory&
             <img src="./image/blogs/webapi/configuring-authentication-in-functional-testing-in-asp-net-webapi/authorize-passing-test.png" alt="authorize-passing-test" class="[ w-full ]" />
         </figure>
 
-        <h3 id="setup-authorization">Setup Authorization</h3>
+        <h4 id="setup-authorization">Setup Authorization</h4>
 
         <p>
             So far so good. Now the problem with the above <Highlight>TestHandler</Highlight> is that it provides static set of claims for all the 
@@ -374,7 +366,9 @@ public class WeatherForecastControllerShouldTests(
 
         <p>We can do the same for <Highlight>Guest Claims</Highlight> for another test.</p>
 
-        <h3 id="summary">Summary</h3>
+        </How>
+
+        <Summary>
 
         <p>
             In this article, we learnt about how to setup <Highlight>Authentication</Highlight> and <Highlight>Authorization</Highlight> 
@@ -384,5 +378,6 @@ public class WeatherForecastControllerShouldTests(
             With this we are completing the series on <Highlight>Functional Testing in ASP.NET WebAPI</Highlight>. I'm happy to share my knowledge 
             on functional testing. Hope you enjoyed reading it.
         </p>
+        </Summary>
     </ContentBody>
 </Content>

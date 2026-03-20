@@ -1,21 +1,6 @@
 Add `UseNewTableOfContentsMenu=true` to the `<Content` tag in all blog post Razor files that are missing it.
 
-## Files to Update (77 total, ascending by count)
-
-### WebAPIDemoComponents (13 files)
-- WebAPIDemoComponents/Pages/Blogs/ImportanceOfStatusCode.razor
-- WebAPIDemoComponents/Pages/Blogs/UnitTestingFiltersInASPNET.razor
-- WebAPIDemoComponents/Pages/Blogs/StructuredLoggingUsingSerilogInASPNET.razor
-- WebAPIDemoComponents/Pages/Blogs/UnitTestingMiddlewaresInASPNET.razor
-- WebAPIDemoComponents/Pages/Blogs/ImplementCachingUsingDecoratorPatternInASPNET.razor
-- WebAPIDemoComponents/Pages/Blogs/ProfilingWithMiniProfiler.razor
-- WebAPIDemoComponents/Pages/Blogs/REPRInASPNET.razor
-- WebAPIDemoComponents/Pages/Blogs/UsingChannelsToPerformBackgroundWorkloadInHostedService.razor
-- WebAPIDemoComponents/Pages/Blogs/ConfiguringAuthenticationInFunctionalTestingInASPNET.razor
-- WebAPIDemoComponents/Pages/Blogs/UsingWireMockNetInFunctionalTestingInASPNET.razor
-- WebAPIDemoComponents/Pages/Blogs/UnitTestingServiceRegistrationsInASPNET.razor
-- WebAPIDemoComponents/Pages/Blogs/UsingDockerTestContainersInFunctionalTestingInASPNET.razor
-- WebAPIDemoComponents/Pages/Blogs/UnitTestingControllersInASPNET.razor
+## Files to Update (64 total, ascending by count)
 
 ### LINQDemoComponents (25 files)
 - LINQDemoComponents/Pages/Blogs/Introduction.razor

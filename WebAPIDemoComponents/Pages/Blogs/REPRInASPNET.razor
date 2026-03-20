@@ -1,98 +1,55 @@
 ﻿@page "/blogs/request-endpoint-response-repr-pattern-in-asp-net-webapi"
 @inherits BasePage
 
-<Content FileName=@nameof(REPRInASPNET)>
+<Content FileName=@nameof(REPRInASPNET) UseNewTableOfContentsMenu=true>
     <ContentBody>
-        <p>
-            In this article, let's learn about <Highlight>Request Endpoint Response (REPR) Pattern</Highlight>, a better way to organize API's and 
-            how to implement in <Highlight>WebAPI</Highlight> in ASP.NET Core.
-        </p>
+        <What>
+            <p>
+                In this article, let's learn about <Highlight>Request Endpoint Response (REPR) Pattern</Highlight>, a better way to organize API's and 
+                how to implement in <Highlight>WebAPI</Highlight> in ASP.NET Core.
+            </p>
 
-        <p>
-            <strong>Note:</strong> If you have not done so already, I recommend you read the article on
-            <NavLink href="blogs/single-responsibility-principle-in-solid" Match="NavLinkMatch.All">Single Responsibility Principle in SOLID</NavLink>.
-        </p>
+            <p>
+                <strong>Note:</strong> If you have not done so already, I recommend you read the article on
+                <NavLink href="blogs/single-responsibility-principle-in-solid" Match="NavLinkMatch.All">Single Responsibility Principle in SOLID</NavLink>.
+            </p>
 
-        <h3>Table of Contents</h3>
+            <p>
+                I have been programming in API for a very long time and I also help companies to move out of their technical debt. I like to design and organize 
+                API's in a way that it is easy to maintain and scale. But I can tell you that the traditional way of organizing API's in 
+                <Highlight>Controllers</Highlight> are always a source of pain in ASP.NET projects.
+            </p>
 
-        <ol>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
-                    Introduction
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#why-repr-pattern")" Match="NavLinkMatch.All">
-                    Why REPR Pattern ?
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#what-is-repr-pattern")" Match="NavLinkMatch.All">
-                    What is REPR Pattern ?
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#implementing-repr-pattern")" Match="NavLinkMatch.All">
-                    Implementing REPR Pattern
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#problems-with-repr-pattern")" Match="NavLinkMatch.All">
-                    Problems with REPR Pattern
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#advantages")" Match="NavLinkMatch.All">
-                    Advantages
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
-                    Summary
-                </NavLink>
-            </li>
-        </ol>
+            <p>
+                ASP.NET WEB API Controllers are essentially an anti pattern. They are always fat and huge. They are collection of methods that never call one another 
+                and do not operate on same state. They are <Highlight>not cohesive</Highlight>. They tend to get bloated over the time of development. 
+                But since that is the approach which comes with the default template, most of the developers started to follow it. 
+            </p>
 
-        <h3 id="introduction">Introduction</h3>
+            <p>
+                Ofcourse you can use tools like <Highlight>MediatR</Highlight> to solve this problem. But what if I tell you that you can do it 
+                without any third party library or extra plumbing ?. Let's learn how to overcome this using <abbr title="Request Endpoint Response">REPR</abbr> Pattern.
+            </p>
+        </What>
 
-        <p>
-            I have been programming in API for a very long time and I also help companies to move out of their technical debt. I like to design and oragnize 
-            API's in a way that it is easy to maintain and scale. But I can tell you that the traditional way of organizing API's in 
-            <Highlight>Controllers</Highlight> are always a source of pain in ASP.NET projects.
-        </p>
+        <Why>
+            <p>
+                Well the answer is simple. API Endpoints are really just controllers with few constraints applied to them. They literally inherit from 
+                <Highlight>ControllerBase</Highlight> and so, its acceptable to do this way, and everything that works with Controllers, like routing, 
+                model binding, model validation, dependency injection, filters, etc. all works just fine with API Endpoints because, you might have guessed it, 
+                they're again controllers.
+            </p>
 
-        <p>
-            ASP.NET WEB API Controllers are essentially an anti pattern. They are always fat and huge. They are collection of methods that never call one another 
-            and do not operate on same state. They are <Highlight>not cohesive</Highlight>. They tend to get bloated over the time of development. 
-            But since that is the approach which comes with the default tempate, most of the developers started to follow it. 
-        </p>
+            <p>
+                Yes its going to be controllers again but with <Highlight>Single Responsibility Principle</Highlight> applied to them. They are going 
+                to be <Highlight>small</Highlight> and <Highlight>cohesive</Highlight>. They are going to be easy to maintain and scale. 
+                They are going to be easy to test. They don't change often like how we add new ActionMethod to Controllers. Lesser the change in file, lesser the 
+                chances of breaking things and introducing bugs.
+            </p>
+        </Why>
 
-        <p>
-            Ofcourse you can use tools like <Highlight>MediatR</Highlight> to solve this problem. But what if I tell you that you can do it 
-            without any third party library or extra plumbing ?. Let's learn how to overcome this using <abbr title="Request Endpoint Response">REPR</abbr> Pattern.
-        </p>
-
-        
-
-        <h3 id="why-repr-pattern">Why REPR Pattern ?</h3>
-
-        <p>
-            Well the answer is simple. API Endpoints are really just controllers with few constraints applied to them. They literally inherit from 
-            <Highlight>ControllerBase</Highlight> and so, its acceptable to do this way, and everything that works with Controllers, like routing, 
-            model binding, model validation, dependency injection, filters, etc. all works just fine with API Endpoints because, you might have guessed it, 
-            they're again controllers.
-        </p>
-
-        <p>
-            Yes its going to be controllers again but with <Highlight>Single Responsibility Principle</Highlight> applied to them. They are going 
-            to be <Highlight>small</Highlight> and <Highlight>cohesive</Highlight>. They are going to be easy to maintain and scale. 
-            They are going to be easy to test. They don't change often like how we add new ActionMethod to Controllers. Lesser the change in file, lesser the 
-            chances of breaking things and introducing bugs.
-        </p>
-
-        
-
-        <h3 id="what-is-repr-pattern">What is REPR Pattern ?</h3>
+        <How>
+            <h4 id="what-is-repr-pattern">What is REPR Pattern ?</h4>
 
         <p>
             Usually API development follows <Highlight>MVC</Highlight> pattern. But for API's, we don't need Views. So we can remove the View 
@@ -131,12 +88,12 @@
 
         
 
-        <h3 id="implementing-repr-pattern">Implementing REPR Pattern</h3>
+            <h4 id="implementing-repr-pattern">Implementing REPR Pattern</h4>
 
         <p>
             To start implementing this in new project, all you need is creating a new <Highlight>Controller</Highlight> file and inherit from 
             <Highlight>ControllerBase</Highlight>. But if you are trying to implement this in existing project, you need to do break the 
-            <Highlight>ActionMethod</Highlight> in exisitng controller to separate controllers (i.e.) each 
+            <Highlight>ActionMethod</Highlight> in existing controller to separate controllers (i.e.) each 
             <Highlight>ActionMethod</Highlight> will now become a <Highlight>Controller</Highlight> inheriting from 
             <Highlight>ControllerBase</Highlight>.
         </p>
@@ -166,7 +123,7 @@ public class Publish : ControllerBase
 
         
 
-        <h3 id="problems-with-repr-pattern">Problems with REPR Pattern</h3>
+            <h4 id="problems-with-repr-pattern">Problems with REPR Pattern</h4>
 
         <p>
             The common problem with REPR pattern are as follows. And fortunately we have ways to solve them.
@@ -307,14 +264,14 @@ public class OnlyOneActionResultRule : ICustomRule
 
         
 
-        <h3 id="advantages">Advantages</h3>
+            <h4 id="advantages">Advantages</h4>
 
         <p>
             The advantages of REPR Pattern are as follows,
         </p>
 
         <ul>
-            <li>Endpoints are more <Highlight>Ubiquitous</Highlight> and domain task/funtionality based.</li>
+            <li>Endpoints are more <Highlight>Ubiquitous</Highlight> and domain task/functionality based.</li>
             <li><Highlight>Single Responsibility</Highlight> and less prone to change.</li>
             <li>Easy to <Highlight>maintain and test and document</Highlight>.</li>
             <li>Easy for developers / new joiners to <Highlight>navigate inside codebase</Highlight> based on domain functionality.</li>
@@ -323,12 +280,14 @@ public class OnlyOneActionResultRule : ICustomRule
 
         
 
-        <h3 id="summary">Summary</h3>
+        </How>
 
-        <p>
-            In this article we learnt about <Highlight>REPR pattern</Highlight>, a better way to organize API's and how to implement in WebAPI 
-            in ASP.NET Core. We also learnt about the problems with REPR pattern and how to solve them. We also learnt about the advantages of REPR pattern. 
-            I hope you have enjoyed reading this. Now you are ready to be awesome in API development.
-        </p>
+        <Summary>
+            <p>
+                In this article we learnt about <Highlight>REPR pattern</Highlight>, a better way to organize API's and how to implement in WebAPI 
+                in ASP.NET Core. We also learnt about the problems with REPR pattern and how to solve them. We also learnt about the advantages of REPR pattern. 
+                I hope you have enjoyed reading this. Now you are ready to be awesome in API development.
+            </p>
+        </Summary>
     </ContentBody>
 </Content>

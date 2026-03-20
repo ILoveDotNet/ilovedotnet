@@ -1,134 +1,86 @@
 ﻿@page "/blogs/structured-logging-with-serilog-in-asp-net-webapi"
 @inherits BasePage
 
-<Content FileName=@nameof(StructuredLoggingUsingSerilogInASPNET)>
+<Content FileName=@nameof(StructuredLoggingUsingSerilogInASPNET) UseNewTableOfContentsMenu=true>
     <ContentBody>
-        <p>
-            In this article, let's learn about how to do <Highlight>Structured Logging</Highlight> of errors using 
-            <Highlight>Serilog</Highlight> in <Highlight>Web API</Highlight> in ASP.NET Core.
-        </p>
+        <What>
+            <p>
+                In this article, let's learn about how to do <Highlight>Structured Logging</Highlight> of errors using 
+                <Highlight>Serilog</Highlight> in <Highlight>Web API</Highlight> in ASP.NET Core.
+            </p>
 
-        <p>
-            <strong>Note:</strong> If you have not done so already, I recommend you read the article on
-            <NavLink href="blogs/global-exception-handling-in-asp-net-webapi" Match="NavLinkMatch.All">Global Exception Handling in ASP.NET WEB API</NavLink>.
-        </p>
+            <p>
+                <strong>Note:</strong> If you have not done so already, I recommend you read the article on
+                <NavLink href="blogs/global-exception-handling-in-asp-net-webapi" Match="NavLinkMatch.All">Global Exception Handling in ASP.NET WEB API</NavLink>.
+            </p>
 
-        <h3>Table of Contents</h3>
+            <p>
+                <Highlight>Logging</Highlight> is needed in all applications. This will help to find root cause or track user activity in any 
+                environment. <Highlight>By default logging is baked into ASP.NET Core</Highlight>. It is very easy to use and logs are stored in 
+                <Highlight>plain text</Highlight> format. This will be difficult to read and analyse.
+            </p>
 
-        <ol>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
-                    Introduction
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#why-structured-logging")" Match="NavLinkMatch.All">
-                    Why Structured Logging ?
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#write-to-sink")" Match="NavLinkMatch.All">
-                    Write to Sink
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#implementing-logging-with-serilog")" Match="NavLinkMatch.All">
-                    Implementing Logging with Serilog
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#enriching-logs-with-additional-information")" Match="NavLinkMatch.All">
-                    Enriching Logs with additional information
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#log-scope-using-serilog")" Match="NavLinkMatch.All">
-                    Log Scope using Serilog
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#advantages")" Match="NavLinkMatch.All">
-                    Advantages
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
-                    Summary
-                </NavLink>
-            </li>
-        </ol>
+            <p>
+                <Highlight>Serilog</Highlight> is a popular <Highlight>structured</Highlight> logging library for .NET applications. 
+                It is very easy to use and configure. It has many <Highlight>sinks</Highlight> available to store the logs in different places. It 
+                has many <Highlight>enrichers</Highlight> available to enrich the logs with additional information. It also supports 
+                <Highlight>scoping</Highlight> logs events to enrich logs for a particular scope.
+            </p>
 
-        <h3 id="introduction">Introduction</h3>
+            <p>
+                This is the <Highlight>second</Highlight> thing that I do when I create new Web API Projects or when I work on existing code base. 
+                Let's focus on how to implement <Highlight>structured logging</Highlight> in ASP.NET Web API.
+            </p>
+        </What>
 
-        <p>
-            <Highlight>Logging</Highlight> is needed in all applications. This will help to find root cause or track user activity in any 
-            environment. <Highlight>By default logging is baked into ASP.NET Core</Highlight>. It is very easy to use and logs are stored in 
-            <Highlight>plain text</Highlight> format. This will be difficult to read and analyse.
-        </p>
-
-        <p>
-            <Highlight>Serilog</Highlight> is a popular <Highlight>structured</Highlight> logging library for .NET applications. 
-            It is very easy to use and configure. It has many <Highlight>sinks</Highlight> available to store the logs in different places. It 
-            has many <Highlight>enrichers</Highlight> available to enrich the logs with additional information. It also supports 
-            <Highlight>scoping</Highlight> logs events to enrich logs for a particular scope.
-        </p>
-
-        <p>
-            This is the <Highlight>second</Highlight> thing that I do when I create new Web API Projects or when I work on existing code base. 
-            Let's focus on how to implement <Highlight>structured logging</Highlight> in ASP.NET Web API.
-        </p>
+        <Why>
+            <p>
+                Traditional <Highlight>plain-text</Highlight> logs can be hard to read and analyze. <Highlight>Structured logging</Highlight> 
+                is a practice where you apply the same message format <Highlight>(JSON Structure)</Highlight> to all of your application logs. The end 
+                result is that all your logs will have a similar structure, allowing them to be easily searched and analyzed.
+            </p>
+        </Why>
 
         
 
-        <h3 id="why-structured-logging">Why Structured Logging ?</h3>
+        <How>
+            <h4 id="write-to-sink">Write to Sink</h4>
 
-        <p>
-            Traditional <Highlight>plain-text</Highlight> logs can be hard to read and analyze. <Highlight>Structured logging</Highlight> 
-            is a practice where you apply the same message format <Highlight>(JSON Structure)</Highlight> to all of your application logs. The end 
-            result is that all your logs will have a similar structure, allowing them to be easily searched and analyzed.
-        </p>
+            <p>
+                A <Highlight>Sink</Highlight> in Serilog is a destination where your log events are sent. There are sinks for various outputs like the 
+                console, files, databases, and even other logging platforms like Seq, which we'll explore in more detail.
+            </p>
 
-        
+            <p>
+                The most commonly used Sinks are,
+            </p>
 
-        <h3 id="write-to-sink">Write to Sink</h3>
+            <ul>
+                <li><Highlight>Console</Highlight> - To log to console</li>
+                <li><Highlight>File</Highlight> - To log to file</li>
+                <li><Highlight>Seq</Highlight> - To log to Seq (useful in docker based development)</li>
+                <li><Highlight>Application Insights</Highlight> - To log to Azure Application Insights</li>
+                <li><Highlight>Database</Highlight> - To log to database</li>
+                <li><Highlight>Log Group</Highlight> - To log to AWS cloud watch log groups</li>
+            </ul>
 
-        <p>
-            A <Highlight>Sink</Highlight> in Serilog is a destination where your log events are sent. There are sinks for various outputs like the 
-            console, files, databases, and even other logging platforms like Seq, which we'll explore in more detail.
-        </p>
+            <h4 id="implementing-logging-with-serilog">Implementing Logging with Serilog</h4>
 
-        <p>
-            The most commonly used Sinks are,
-        </p>
+            <p>
+                Let's see how to implement <Highlight>structured logging</Highlight> with Serilog in ASP.NET Web API.            
+            </p>
 
-        <ul>
-            <li><Highlight>Console</Highlight> - To log to console</li>
-            <li><Highlight>File</Highlight> - To log to file</li>
-            <li><Highlight>Seq</Highlight> - To log to Seq (useful in docker based development)</li>
-            <li><Highlight>Application Insights</Highlight> - To log to Azure Application Insights</li>
-            <li><Highlight>Database</Highlight> - To log to database</li>
-            <li><Highlight>Log Group</Highlight> - To log to AWS cloud watch log groups</li>
-        </ul>
+            <ol>
+                <li>
+                    <p>Install the <Highlight>Serilog.AspNetCore</Highlight> Nuget Packages.</p>
+                </li>
+                <li>
+                    <p>
+                        The next step is to pass <Highlight>Configuration</Highlight> to and use it to create Serilog Logger. These can be done 
+                        programmatically or using <Highlight>appsettings.json</Highlight>. I prefer appsettings.json as it gives more flexibility.
+                    </p>
 
-        
-
-        <h3 id="implementing-logging-with-serilog">Implementing Logging with Serilog</h3>
-
-        <p>
-            Let's see how to implement <Highlight>structured logging</Highlight> with Serilog in ASP.NET Web API.            
-        </p>
-
-        <ol>
-            <li>
-                <p>Install the <Highlight>Serilog.AspNetCore</Highlight> Nuget Packages.</p>
-            </li>
-            <li>
-                <p>
-                    The next step is to pass <Highlight>Configuration</Highlight> to and use it to create Serilog Logger. These can be done 
-                    programmatically or using <Highlight>appsettings.json</Highlight>. I prefer appsettings.json as it gives more flexibility.
-                </p>
-
-                <CodeSnippet CssClass="language-json">
+                    <CodeSnippet CssClass="language-json">
 {
   "Serilog": {
     "Using": [],
@@ -138,7 +90,7 @@
         "Microsoft": "Warning",
         "System": "Warning"
       }
-    }
+    },
     "WriteTo": [
       {
         "Name": "File",
@@ -151,20 +103,20 @@
     ]
   }
 }
-                </CodeSnippet>
+                    </CodeSnippet>
 
-                
+                    
 
-                <p>
-                    The above configuration will create a Serilog logger with <Highlight>File</Highlight> sink.
-                </p>
+                    <p>
+                        The above configuration will create a Serilog logger with <Highlight>File</Highlight> sink.
+                    </p>
 
-                <p>
-                    The next step is to create log configuration using above configuration and use it to create <Highlight>Serilog logger</Highlight> 
-                    as shown below.
-                </p>
+                    <p>
+                        The next step is to create log configuration using above configuration and use it to create <Highlight>Serilog logger</Highlight> 
+                        as shown below.
+                    </p>
 
-                <CodeSnippet CssClass="language-csharp">
+                    <CodeSnippet CssClass="language-csharp">
 //Read Configuration from appSettings
 var config = new ConfigurationBuilder()
 	.AddJsonFile("appsettings.json")
@@ -179,51 +131,49 @@ var loggerConfiguration = new LoggerConfiguration()
 // Use configuration to create logger
 Log.Logger = loggerConfiguration
 			.CreateLogger();
-                </CodeSnippet>
+                    </CodeSnippet>
 
-                
-            </li>
-            <li>
-                <p>Finally <Highlight>UseSerilog()</Highlight> in app to replace default Logger in .NET</p>
+                    
+                </li>
+                <li>
+                    <p>Finally <Highlight>UseSerilog()</Highlight> in app to replace default Logger in .NET</p>
 
-                <CodeSnippet CssClass="language-csharp">
+                    <CodeSnippet CssClass="language-csharp">
 // Inform the ASP.NET Core app to use Serilog logger
 var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseSerilog();//Uses Serilog instead of default .NET Logger
-                </CodeSnippet>
-            </li>
-        </ol>
+                    </CodeSnippet>
+                </li>
+            </ol>
 
-        
+            <h4 id="enriching-logs-with-additional-information">Enriching Logs with additional information</h4>
 
-        <h3 id="enriching-logs-with-additional-information">Enriching Logs with additional information</h3>
+            <p>
+                So far so good. But wouldn't it be nice if we can add extra information to our logs?? Serilog <Highlight>enrichers</Highlight> are 
+                packages that <Highlight>add properties</Highlight> to log events. Enrichers are a great way to <Highlight>add context</Highlight> 
+                to your logs. For example, you can add properties that contain the current user's ID, the current request path, or the current machine name.
+            </p>
 
-        <p>
-            So far so good. But wouldn't it be nice if we can add extra information to our logs?? Serilog <Highlight>enrichers</Highlight> are 
-            packages that <Highlight>add properties</Highlight> to log events. Enrichers are a great way to <Highlight>add context</Highlight> 
-            to your logs. For example, you can add properties that contain the current user's ID, the current request path, or the current machine name.
-        </p>
+            <p>
+                Most commonly used enrichers are <Highlight>machine name</Highlight>, <Highlight>process id</Highlight>, 
+                <Highlight>thread id</Highlight>, <Highlight>environment</Highlight>, etc. Let's see how to add these enrichers to Serilog.
+            </p>
 
-        <p>
-            Most commonly used enrichers are <Highlight>machine name</Highlight>, <Highlight>process id</Highlight>, 
-            <Highlight>thread id</Highlight>, <Highlight>environment</Highlight>, etc. Let's see how to add these enrichers to Serilog.
-        </p>
+            <p>
+                Install the following Nuget Packages.
+            </p>
 
-        <p>
-            Install the following Nuget Packages.
-        </p>
+            <ol>
+                <li><Highlight>Serilog.Enrichers.Environment</Highlight> - To add / enrich with app environment in logs</li>
+                <li><Highlight>Serilog.Enrichers.Process</Highlight> - To add / enrich with process id in logs</li>
+                <li><Highlight>Serilog.Enrichers.Thread</Highlight> - To add / enrich with thread id in logs</li>
+            </ol>
 
-        <ol>
-            <li><Highlight>Serilog.Enrichers.Environment</Highlight> - To add / enrich with app environment in logs</li>
-            <li><Highlight>Serilog.Enrichers.Process</Highlight> - To add / enrich with process id in logs</li>
-            <li><Highlight>Serilog.Enrichers.Thread</Highlight> - To add / enrich with thread id in logs</li>
-        </ol>
+            <p>
+                Update the Serilog logger configuration to enrich log events with these properties.
+            </p>
 
-        <p>
-            Update the Serilog logger configuration to enrich log events with these properties.
-        </p>
-
-        <CodeSnippet CssClass="language-csharp">
+            <CodeSnippet CssClass="language-csharp">
 //Initialize Logger
 var loggerConfiguration = new LoggerConfiguration()
 			.ReadFrom.Configuration(config)
@@ -232,27 +182,25 @@ var loggerConfiguration = new LoggerConfiguration()
 			.Enrich.WithThreadId() // --&gt; Add thread id to logs
 			.Enrich.WithProperty("ApplicationName", "I Love .NET API") // --&gt; Add custom data to logs
 			.WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level}] {SourceContext}{NewLine}{Message:lj}{NewLine}{Exception}{NewLine}", theme: AnsiConsoleTheme.Code);
-        </CodeSnippet>
+            </CodeSnippet>
 
-        <p>
-            From the above code snippet, you can see that we are enriching the log events with <Highlight>MachineName</Highlight>, 
-            <Highlight>ProcessId</Highlight>, <Highlight>ThreadId</Highlight>, <Highlight>Environment</Highlight> 
-            and <Highlight>ApplicationName</Highlight>.
-        </p>
+            <p>
+                From the above code snippet, you can see that we are enriching the log events with <Highlight>MachineName</Highlight>, 
+                <Highlight>ProcessId</Highlight>, <Highlight>ThreadId</Highlight>, <Highlight>Environment</Highlight> 
+                and <Highlight>ApplicationName</Highlight>.
+            </p>
 
-        
+            <h4 id="log-scope-using-serilog">Log Scope using Serilog</h4>
 
-        <h3 id="log-scope-using-serilog">Log Scope using Serilog</h3>
+            <p>
+                Now what if we want to add some properties to all the logs events in a request in a single place?? Serilog supports logging 
+                <Highlight>scopes</Highlight>. Scopes are a way to add properties to log events that are in effect for a limited period of time. 
+                Scopes provide a global way to add properties to all log events in a particular request. For example, you can add a scope for a particular request 
+                with <Highlight>User ID</Highlight> or a <Highlight>Tenant ID</Highlight>. All log events within that scope will have the 
+                User ID or Tenant ID property in log output.
+            </p>
 
-        <p>
-            Now what if we want to add some properties to all the logs events in a request in a single place?? Serilog supports logging 
-            <Highlight>scopes</Highlight>. Scopes are a way to add properties to log events that are in effect for a limited period of time. 
-            Scopes provide a global way to add properties to all log events in a particular request. For example, you can add a scope for a particular request 
-            with <Highlight>User ID</Highlight> or a <Highlight>Tenant ID</Highlight>. All log events within that scope will have the 
-            User ID or Tenant ID property in log output.
-        </p>
-
-        <CodeSnippet CssClass="language-csharp">
+            <CodeSnippet CssClass="language-csharp">
 //Initialize Logger
 var loggerConfiguration = new LoggerConfiguration()
 			.ReadFrom.Configuration(config)
@@ -262,26 +210,26 @@ var loggerConfiguration = new LoggerConfiguration()
 			.Enrich.WithThreadId()
 			.Enrich.WithProperty("ApplicationName", "GallaAPI")
 			.WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level}] {SourceContext}{NewLine}{Message:lj}{NewLine}{Exception}{NewLine}", theme: AnsiConsoleTheme.Code);
-        </CodeSnippet>
+            </CodeSnippet>
 
-        
+            
 
-        <p>
-            To do that we need to enrich the configuration with <Highlight>FromLogContext()</Highlight> as shown above.
-        </p>
+            <p>
+                To do that we need to enrich the configuration with <Highlight>FromLogContext()</Highlight> as shown above.
+            </p>
 
-        <p>
-            <strong>Note:</strong> If you have not done so already, I recommend you read the article on
-            <NavLink href="blogs/introducing-middleware-in-aspnet" Match="NavLinkMatch.All">Introducing Middleware in ASP.NET</NavLink>.
-        </p>
+            <p>
+                <strong>Note:</strong> If you have not done so already, I recommend you read the article on
+                <NavLink href="blogs/introducing-middleware-in-aspnet" Match="NavLinkMatch.All">Introducing Middleware in ASP.NET</NavLink>.
+            </p>
 
-        <p>
-            Now we need to create a Middleware to do the actual work of adding the scope. Let's create a middleware called 
-            <Highlight>LogScopeMiddleware</Highlight> and use it in <Highlight>request pipeline</Highlight>. This will add the 
-            scope to all the log events in a request.
-        </p>
+            <p>
+                Now we need to create a Middleware to do the actual work of adding the scope. Let's create a middleware called 
+                <Highlight>LogScopeMiddleware</Highlight> and use it in <Highlight>request pipeline</Highlight>. This will add the 
+                scope to all the log events in a request.
+            </p>
 
-        <CodeSnippet CssClass="language-csharp">
+            <CodeSnippet CssClass="language-csharp">
 public sealed class LogScopeMiddleware : IMiddleware
 {
     private readonly ILogger&lt;LogScopeMiddleware&gt; _logger;
@@ -320,41 +268,38 @@ public static class LogScopeMiddlewareExtensions
 
 // Program.cs
 app.UseLogScope();
-        </CodeSnippet>
+            </CodeSnippet>
 
-        
+            
 
-        <p>
-            That's it now all you need to do is to inject <Highlight>ILogger&lt;T&gt;</Highlight> in your apps and start logging.
-        </p>
+            <p>
+                That's it now all you need to do is to inject <Highlight>ILogger&lt;T&gt;</Highlight> in your apps and start logging.
+            </p>
 
-        
+            <h4 id="advantages">Advantages</h4>
 
-        <h3 id="advantages">Advantages</h3>
+            <p>
+                The advantages of using Serilog are,
+            </p>
+            
+            <ul>
+                <li><Highlight>Structured Logging</Highlight> - Simple JSON structure for all log events</li>
+                <li><Highlight>Multiple Sinks</Highlight> - Can write / output to multiple sinks</li>
+                <li><Highlight>Enrichers</Highlight> - Can enrich logs with additional information</li>
+                <li><Highlight>Scopes</Highlight> - Can enrich logs with additional information for a particular scope</li>
+                <li><Highlight>Easy to use</Highlight> - Very easy to use and configure</li>
+                <li><Highlight>Improved Searching and readability</Highlight> - This is more powerful when linked with Seq or Elastic Search</li>
+                <li><Highlight>Improved Analytics</Highlight> - Because of the structured nature easy to get analytics</li>
+            </ul>
+        </How>
 
-        <p>
-            The advantages of using Serilog are,
-        </p>
-        
-        <ul>
-            <li><Highlight>Structured Logging</Highlight> - Simple JSON structure for all log events</li>
-            <li><Highlight>Multiple Sinks</Highlight> - Can write / output to multiple sinks</li>
-            <li><Highlight>Enrichers</Highlight> - Can enrich logs with additional information</li>
-            <li><Highlight>Scopes</Highlight> - Can enrich logs with additional information for a particular scope</li>
-            <li><Highlight>Easy to use</Highlight> - Very easy to use and configure</li>
-            <li><Highlight>Improved Searching and readbility</Highlight> - This is more powerful when linked with Seq or Elastic Search</li>
-            <li><Highlight>Improved Analytics</Highlight> - Because of the structured nature easy to get analytics</li>
-        </ul>
-
-        
-
-        <h3 id="summary">Summary</h3>
-
-        <p>
-            In this article, we learnt about how to do <Highlight>structured logging</Highlight> using <Highlight>SeriLog</Highlight> 
-            in ASP.NET Core. We learnt about <Highlight>Sinks</Highlight> and <Highlight>Enrichers</Highlight>. We also learnt about 
-            how to use Serilog <Highlight>Scopes</Highlight> to enrich logs for a particular request. We also learnt about the advantages of using 
-            Serilog. I hope you enjoyed reading it.
-        </p>
+        <Summary>
+            <p>
+                In this article, we learnt about how to do <Highlight>structured logging</Highlight> using <Highlight>SeriLog</Highlight> 
+                in ASP.NET Core. We learnt about <Highlight>Sinks</Highlight> and <Highlight>Enrichers</Highlight>. We also learnt about 
+                how to use Serilog <Highlight>Scopes</Highlight> to enrich logs for a particular request. We also learnt about the advantages of using 
+                Serilog. I hope you enjoyed reading it.
+            </p>
+        </Summary>
     </ContentBody>
 </Content>

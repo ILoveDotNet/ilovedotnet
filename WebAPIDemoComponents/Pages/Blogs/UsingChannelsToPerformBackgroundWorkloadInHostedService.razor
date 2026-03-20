@@ -1,68 +1,51 @@
 @page "/blogs/perform-background-workloads-in-hosted-service-using-channels-in-asp-net-webapi"
 @inherits BasePage
 
-<Content FileName=@nameof(UsingChannelsToPerformBackgroundWorkloadInHostedService)>
+<Content FileName=@nameof(UsingChannelsToPerformBackgroundWorkloadInHostedService) UseNewTableOfContentsMenu=true>
     <ContentBody>
-        <p>
-            In this article, let's learn about how to perform background workloads with the help of <Highlight>Channels</Highlight> inside 
-            <Highlight>Hosted Service</Highlight> in <Highlight>WebAPI</Highlight> in ASP.NET Core.
-        </p>
+        <What>
+            <p>
+                In this article, let's learn about how to perform background workloads with the help of <Highlight>Channels</Highlight> inside
+                <Highlight>Hosted Service</Highlight> in <Highlight>WebAPI</Highlight> in ASP.NET Core.
+            </p>
 
-        <h3>Table of Contents</h3>
+            <p>
+                <Highlight>I got a requirement to do data migration from one of my client and the constraint they have is to do it via an endpoint in web api
+                </Highlight>. Initially I thought it might be simple data migration but then I realized that it is not just a simple data migration but it is
+                a huge data migration. Though we recommended alternate approached the client was not ready to touch production database data outside the application.
+                So we decided to do it via an web api endpoint. But the problem is that the data migration will take more than 30 minutes to complete and the request
+                will timeout. So upon further analysis I came to know about <Highlight>Channels</Highlight> and
+                <Highlight>Hosted Service</Highlight> in ASP.NET Core. Before we start lets understand what are channels and hosted service. This
+                problem provides an example of a potential use case for a hosted service.
+            </p>
 
-        <ol>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#introduction")" Match="NavLinkMatch.All">
-                    Introduction
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#what-are-channels")" Match="NavLinkMatch.All">
-                    What are Channels?
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#what-is-hosted-service")" Match="NavLinkMatch.All">
-                    What is Hosted Service?
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#performing-background-workloads-in-hosted-service")" Match="NavLinkMatch.All">
-                    Performing Background Workloads in Hosted Service
-                </NavLink>
-            </li>
-            <li>
-                <NavLink href="@($"blogs/{Slug}#summary")" Match="NavLinkMatch.All">
-                    Summary
-                </NavLink>
-            </li>
-        </ol>
+            <p>
+                Other use cases include:
+            </p>
 
-        <h3 id="introduction">Introduction</h3>
+            <ul>
+                <li><Highlight>Processing uploaded excel in background</Highlight></li>
+                <li><Highlight>Sending emails in background</Highlight></li>
+                <li><Highlight>Other long running operations</Highlight>, etc</li>
+            </ul>
+        </What>
 
-        <p>
-            <Highlight>I got an requirement to do data migration from one of my client and the constraint they have is to do it via an endpoint in web api
-            </Highlight>. Initially I thought it might be simple data migration but then I realized that it is not just a simple data migration but it is 
-            a huge data migration. Though we recommended alternate approached the client was not ready to touch production database data outside the application. 
-            So we decided to do it via an web api endpoint. But the problem is that the data migration will take more than 30 minutes to complete and the request 
-            will timeout. So upon further analysis I came to know about <Highlight>Channels</Highlight> and 
-            <Highlight>Hosted Service</Highlight> in ASP.NET Core. Before we start lets understand what are channels and hosted service. This 
-            problem provides an example of a potential use case for a hosted service.
-        </p>
+        <Why>
+            <p>
+                When APIs need to handle long-running tasks such as data migrations, processing uploaded files, or sending emails, performing them
+                within the request lifecycle causes the request to time out and blocks the main thread. This leads to poor user experience and
+                unreliable systems.
+            </p>
 
-        <p>
-            Other use cases include:
-        </p>
+            <p>
+                By offloading these workloads to <Highlight>background services</Highlight> using <Highlight>Channels</Highlight>, the API
+                can respond immediately while the heavy processing continues asynchronously. This results in faster response times, a non-blocking
+                main thread, and a more resilient system overall.
+            </p>
+        </Why>
 
-        <ul>
-            <li><Highlight>Processing uploaded excel in background</Highlight></li>
-            <li><Highlight>Sending emails in background</Highlight></li>
-            <li><Highlight>Other long running operations</Highlight>, etc</li>
-        </ul>
-
-        
-
-        <h3 id="what-are-channels">What are Channels ?</h3>
+        <How>
+            <h4 id="what-are-channels">What are Channels ?</h4>
 
         <p>
             A channel is a synchronisation concept which supports passing data between <Highlight>producers</Highlight> and 
@@ -128,7 +111,7 @@ public class DataMigrationChannel
 
         
 
-        <h3 id="what-is-hosted-service">What is Hosted Service ?</h3>
+        <h4 id="what-is-hosted-service">What is Hosted Service ?</h4>
 
         <p>
             <Highlight>Hosted services</Highlight> in ASP.NET Core have been available since <Highlight>version 2.1</Highlight>, and 
@@ -204,10 +187,10 @@ public class DataMigrationService : BackgroundService
 
         
 
-        <h3 id="performing-background-workloads-in-hosted-service">Performing Background Workloads in Hosted Service</h3>
+        <h4 id="performing-background-workloads-in-hosted-service">Performing Background Workloads in Hosted Service</h4>
 
         <p>
-            So far we learn't what are channels and hosted service. Now lets see how to coordinate request and hosted service to perform background workloads. 
+            So far we learnt what are channels and hosted service. Now lets see how to coordinate request and hosted service to perform background workloads. 
             We'll use <Highlight CssClasses="[ break-all ]">System.Threading.Channels</Highlight> to transfer data between requests and hosted 
             services. Our goal will be to offload a long-running processing workload to a hosted service so that we improve the response time for requests 
             received. The user will simply make a request to the API, the API will register a request in Channels and the API will return a response immediately. 
@@ -273,13 +256,15 @@ public class DataMigration : ControllerBase
 
         
 
-        <h3 id="summary">Summary</h3>
+        </How>
 
-        <p>
-            In this article we learn't how to perform background workloads outside request life cycle using channels in hosted services in ASP.NET web api. We 
-            started with use case and under stood alternate use cases and then we learn't what are channels and hosted service. Then we learn't how to coordinate 
-            request and hosted service to perform background workloads. I hope you enjoyed reading this article. Now it's time to extend the idea like connecting 
-            producer and consumer via cloud and start implementing for similar use cases in your projects.
-        </p>
+        <Summary>
+            <p>
+                In this article we learnt how to perform background workloads outside request life cycle using channels in hosted services in ASP.NET web api. We
+                started with use case and under stood alternate use cases and then we learnt what are channels and hosted service. Then we learnt how to coordinate
+                request and hosted service to perform background workloads. I hope you enjoyed reading this article. Now it's time to extend the idea like connecting
+                producer and consumer via cloud and start implementing for similar use cases in your projects.
+            </p>
+        </Summary>
     </ContentBody>
 </Content>
