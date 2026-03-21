@@ -1,33 +1,11 @@
 Add `UseNewTableOfContentsMenu=true` to the `<Content` tag in all blog post Razor files that are missing it.
 
-## Files to Update (64 total, ascending by count)
+## Completed
 
-### LINQDemoComponents (25 files)
-- LINQDemoComponents/Pages/Blogs/Introduction.razor
-- LINQDemoComponents/Pages/Blogs/LINQAll.razor
-- LINQDemoComponents/Pages/Blogs/LINQAny.razor
-- LINQDemoComponents/Pages/Blogs/LINQAggregation.razor
-- LINQDemoComponents/Pages/Blogs/LINQChunk.razor
-- LINQDemoComponents/Pages/Blogs/LINQConcat.razor
-- LINQDemoComponents/Pages/Blogs/LINQContains.razor
-- LINQDemoComponents/Pages/Blogs/LINQDistinct.razor
-- LINQDemoComponents/Pages/Blogs/LINQExcept.razor
-- LINQDemoComponents/Pages/Blogs/LINQExecution.razor
-- LINQDemoComponents/Pages/Blogs/LINQFirst.razor
-- LINQDemoComponents/Pages/Blogs/LINQForEach.razor
-- LINQDemoComponents/Pages/Blogs/LINQGroupBy.razor
-- LINQDemoComponents/Pages/Blogs/LINQGroupJoin.razor
-- LINQDemoComponents/Pages/Blogs/LINQIntersect.razor
-- LINQDemoComponents/Pages/Blogs/LINQJoin.razor
-- LINQDemoComponents/Pages/Blogs/LINQLast.razor
-- LINQDemoComponents/Pages/Blogs/LINQLeftOuterJoin.razor
-- LINQDemoComponents/Pages/Blogs/LINQOrderBy.razor
-- LINQDemoComponents/Pages/Blogs/LINQSelect.razor
-- LINQDemoComponents/Pages/Blogs/LINQSequenceEqual.razor
-- LINQDemoComponents/Pages/Blogs/LINQSingle.razor
-- LINQDemoComponents/Pages/Blogs/LINQSkip.razor
-- LINQDemoComponents/Pages/Blogs/LINQTake.razor
-- LINQDemoComponents/Pages/Blogs/LINQUnion.razor
+### LINQDemoComponents (25 files) ✅
+All 25 LINQ blog pages have been fully restructured with `UseNewTableOfContentsMenu=true` and the `<What>`, `<Why>`, `<How>`, `<Summary>` layout.
+
+## Files to Update (27 remaining)
 
 ### BlazorDemoComponents (27 files)
 - BlazorDemoComponents/Pages/Blogs/Wasm/AppSettings.razor
