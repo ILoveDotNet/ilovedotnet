@@ -43,7 +43,7 @@ Use the required Razor component structure with proper section organization, hig
 @page "/blogs/{slug-for-the-article}"
 @inherits BasePage
 
-<Content FileName=@nameof(ActualFileName) UseNewTableOfContentsMenu=true>
+<Content FileName=@nameof(ActualFileName)>
   <ContentBody>
     <What>
       <p>
@@ -138,13 +138,13 @@ Make sure you thoroughly research the topic and understand all technical aspects
 
 ## Basic Structure
 
-All blog posts with `UseNewTableOfContentsMenu=true` should follow this structure:
+All blog posts should follow this structure:
 
 ```razor
 @page "/blogs/{slug-for-the-article}"
 @inherits BasePage
 
-<Content FileName=@nameof(ActualFileName) UseNewTableOfContentsMenu=true>
+<Content FileName=@nameof(ActualFileName)>
   <ContentBody>
     <What>
       <p>
@@ -315,7 +315,7 @@ Use `<Highlight>` to emphasize important terms, concepts, or code references wit
 
 ## Table of Contents
 
-When `UseNewTableOfContentsMenu=true` is used, the Content component automatically generates a table of contents with links to each section:
+The Content component automatically generates a table of contents with links to each section:
 
 ```html
 <h3>Table of Contents</h3>

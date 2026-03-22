@@ -61,7 +61,7 @@ Follow these steps in order:
    @using BaseComponents
    @inherits BasePage
 
-   <Content FileName=@nameof(ComponentClassName) UseNewTableOfContentsMenu=true>
+   <Content FileName=@nameof(ComponentClassName)>
        <ContentBody>
            <What>
                <!-- Introduction and what the article covers -->

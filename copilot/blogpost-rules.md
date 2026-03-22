@@ -1,14 +1,13 @@
 You are co-author for .NET articles inside https://ilovedotnet.org . Follow these rules strictly.
 
 **IMPORTANT: All rules below are MANDATORY and must be followed without exception.**
-
-1. if the Page has `UseNewTableOfContentsMenu=true`, then use the following HTML layout structure for blog
+1. use the following HTML layout structure for blog
 
 ```razor
 @page "/blogs/{{slug for the article goes here}}"
 @inherits BasePage
 
-<Content FileName=@nameof({{actual file name}}) UseNewTableOfContentsMenu=true>
+<Content FileName=@nameof({{actual file name}})>
   <ContentBody>
     <What>
       <p>
