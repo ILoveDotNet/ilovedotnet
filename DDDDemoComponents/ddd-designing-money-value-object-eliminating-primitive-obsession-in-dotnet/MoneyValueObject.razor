@@ -183,6 +183,32 @@ public record Money
         <li>Rounding to 2 decimals with <Highlight>AwayFromZero</Highlight> matches standard financial rounding</li>
       </ul>
 
+      <h4>Why record and Not struct?</h4>
+
+      <p>
+        Since DDD Value Objects share characteristics with .NET value types — immutability and equality by value — 
+        you might ask: <em>why not use a <Highlight>struct</Highlight> instead of a <Highlight>record</Highlight>?</em> 
+        There are three concrete reasons to always prefer <Highlight>record</Highlight>:
+      </p>
+
+      <ul>
+        <li><strong>No inheritance:</strong> <Highlight>struct</Highlight> types cannot inherit from other types. If you ever 
+        need a base <Highlight>ValueObject</Highlight> class to share common behaviour across multiple value objects, 
+        structs are immediately disqualified</li>
+        <li><strong>ORM compatibility:</strong> EF Core maps class-based owned types natively via <Highlight>OwnsOne</Highlight>. 
+        Structs require extra configuration and create boxing/unboxing overhead internally</li>
+        <li><strong>Nullable semantics:</strong> A <Highlight>struct</Highlight> cannot be <Highlight>null</Highlight>. 
+        Expressing "no price assigned yet" requires the awkward <Highlight>Nullable&lt;Money&gt;</Highlight> syntax 
+        everywhere, whereas a <Highlight>record</Highlight> class is nullable by default</li>
+        <li><strong>Record advantage:</strong> C# <Highlight>record</Highlight> is a reference type that gives you 
+        structural equality, immutability via <Highlight>init</Highlight>, and inheritance support — all with zero boilerplate</li>
+      </ul>
+
+      <p>
+        Always use <Highlight>record</Highlight> (or <Highlight>record class</Highlight>) over <Highlight>struct</Highlight> 
+        for DDD Value Objects in .NET.
+      </p>
+
       <h4>Step 2: Add Factory Methods</h4>
 
       <p>
@@ -307,6 +333,70 @@ public record Money
 
 }
       </CodeSnippet>
+
+      <h4>Step 4b: Conscious Equality — Not All Properties Must Participate</h4>
+
+      <p>
+        A subtle but important design consideration: <strong>not every property of a Value Object needs to participate 
+        in equality</strong>. A <Highlight>record</Highlight> automatically includes <em>all</em> <Highlight>init</Highlight> 
+        properties in its equality check — which is exactly right for <Highlight>Money</Highlight>, where both 
+        <Highlight>Amount</Highlight> and <Highlight>Currency</Highlight> define what makes two money values equal.
+      </p>
+
+      <p>
+        However, consider a more complex Value Object like <Highlight>Address</Highlight>. It might carry a 
+        <Highlight>Notes</Highlight> field for user comments that should <em>not</em> affect whether two addresses 
+        refer to the same location. In those cases, equality must be a conscious, explicit decision — you override 
+        the record's generated <Highlight>Equals</Highlight> and <Highlight>GetHashCode</Highlight> to include only 
+        the properties that define semantic identity:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// ✅ Money — all properties define equality, record's default is perfect
+public record Money
+{
+    public decimal Amount   { get; init; }
+    public string  Currency { get; init; }
+    // Amount AND Currency both participate — correct, nothing to override
+}
+
+// ⚠️ Address — Notes should NOT affect equality
+public record Address
+{
+    public string  Street  { get; init; }
+    public string  City    { get; init; }
+    public int     ZipCode { get; init; }
+    public string? Notes   { get; init; }  // delivery note — must NOT affect equality
+
+    // Override record's generated Equals to exclude Notes
+    public virtual bool Equals(Address? other)
+    {
+        if (other is null) return false;
+        if (ReferenceEquals(this, other)) return true;
+        return Street  == other.Street
+            &amp;&amp; City    == other.City
+            &amp;&amp; ZipCode == other.ZipCode;
+        // Notes intentionally excluded
+    }
+
+    public override int GetHashCode() =&gt;
+        HashCode.Combine(Street, City, ZipCode);
+        // Notes intentionally excluded
+}
+
+// Usage
+var addr1 = new Address { Street = "123 Main St", City = "Mumbai", ZipCode = 400001, Notes = "Leave at door" };
+var addr2 = new Address { Street = "123 Main St", City = "Mumbai", ZipCode = 400001, Notes = "Call on arrival" };
+
+Console.WriteLine(addr1 == addr2);  // True — same location despite different Notes
+      </CodeSnippet>
+
+      <p>
+        <strong>Key takeaway:</strong> Equality for Value Objects is a <em>domain</em> decision, not a technical one.
+        Ask: <em>"What makes two instances of this concept the same thing?"</em> For <Highlight>Money</Highlight>, both 
+        amount and currency matter — ₹100 and $100 are not the same. For <Highlight>Address</Highlight>, only the 
+        location data matters — a delivery note doesn't change where a parcel will be sent.
+      </p>
 
       <h4>Step 5: Use Money in Domain Entities</h4>
 
@@ -458,6 +548,8 @@ var finalPrice = Money.Inr(100) * 3 - Money.Inr(50);  // ₹250.00 INR
         <li>Add comparison operators manually for ordering — records provide structural equality but not ordering</li>
         <li>Currency mismatch operations throw at runtime, preventing silent bugs</li>
         <li>Money value objects eliminate an entire class of financial calculation bugs and provide type-safe domain vocabulary</li>
+        <li>Always prefer <Highlight>record</Highlight> (reference type) over <Highlight>struct</Highlight> for Value Objects — records support inheritance, integrate cleanly with ORMs via <Highlight>OwnsOne</Highlight>, and allow nullable semantics</li>
+        <li>Equality in Value Objects is a domain decision — explicitly choose which properties define sameness; when a property should not affect equality (like a comment or label), override <Highlight>Equals</Highlight> and <Highlight>GetHashCode</Highlight> to exclude it</li>
       </ul>
     </Summary>
   </ContentBody>

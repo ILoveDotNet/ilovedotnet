@@ -393,6 +393,78 @@ var dollars = Money.Usd(100);
 var finalPrice = Money.Inr(100) * 3 - Money.Inr(50);  // ₹250
     </CodeSnippet>
 
+      <h4>Value Object Lifetime and Ownership</h4>
+
+      <p>
+        An important but often overlooked principle: a <Highlight>Value Object cannot exist independently</Highlight>. 
+        It must always belong to a parent entity — there is always a <Highlight>composition relationship</Highlight> 
+        between a Value Object and the Entity that owns it. Without an owning entity, a Value Object has no meaning on its own.
+      </p>
+
+      <p>
+        Think about <Highlight>Money</Highlight> and <Highlight>DateRange</Highlight> in our licensing domain. A price 
+        without any <Highlight>License</Highlight> to attach it to is meaningless. A date range without an entity to 
+        give it context — "validity period of what?" — serves no purpose. Value Objects live and die alongside the entity 
+        that owns them:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// ❌ Wrong — Value Objects floating without an owner
+var orphanedMoney = Money.Inr(299);                                            // Price of what? Which license?
+var orphanedRange = DateRange.Create(DateTime.UtcNow, DateTime.UtcNow.AddYears(1));  // Validity of what?
+
+// ✅ Correct — Value Objects always belong to an owning Entity
+var license = License.Create(
+    "ABC-123-XYZ",
+    Money.Inr(299),                                                     // Price BELONGS TO this License
+    DateRange.Create(DateTime.UtcNow, DateTime.UtcNow.AddYears(1))     // Validity period OF this License
+);
+// Money and DateRange only make sense as properties of the License entity
+      </CodeSnippet>
+
+      <h4>Value Objects in the Database — No Separate Tables</h4>
+
+      <p>
+        Because Value Objects have no identity of their own, they <strong>should not have their own database tables</strong>. 
+        Giving a Value Object a separate table with a primary key creates a false visual signal that it is an Entity — 
+        developers start querying it independently, creating references to it, and losing all the Value Object semantics.
+      </p>
+
+      <p>
+        Instead, store Value Object properties as <strong>columns within the owning entity's table</strong>. 
+        EF Core supports this natively via <Highlight>Owned Entity Types</Highlight> using <Highlight>OwnsOne</Highlight>, 
+        which embeds the Value Object's columns directly into the parent table — no join, no foreign key, no identity confusion:
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// ❌ Wrong — giving Money its own table (and therefore an Id) makes it look like an Entity
+// Table: Moneys  → | Id | Amount | Currency |      ← false Entity signal
+// Table: Licenses → | Id | LicenseKey | MoneyId |  ← now it has a foreign key!
+
+// ✅ Correct — EF Core OwnsOne embeds Money and DateRange columns into the Licenses table
+protected override void OnModelCreating(ModelBuilder modelBuilder)
+{
+    modelBuilder.Entity&lt;License&gt;(entity =&gt;
+    {
+        // Money columns: Price_Amount, Price_Currency — stored IN the Licenses table
+        entity.OwnsOne(l =&gt; l.Price, money =&gt;
+        {
+            money.Property(m =&gt; m.Amount).HasColumnName("Price_Amount").HasPrecision(18, 2);
+            money.Property(m =&gt; m.Currency).HasColumnName("Price_Currency").HasMaxLength(3);
+        });
+
+        // DateRange columns: ValidityPeriod_Start, ValidityPeriod_End — stored IN the Licenses table
+        entity.OwnsOne(l =&gt; l.ValidityPeriod, range =&gt;
+        {
+            range.Property(r =&gt; r.Start).HasColumnName("ValidityPeriod_Start");
+            range.Property(r =&gt; r.End).HasColumnName("ValidityPeriod_End");
+        });
+    });
+}
+
+// Resulting Licenses table schema — Value Objects have no Id column of their own:
+// | Id | LicenseKey | Price_Amount | Price_Currency | ValidityPeriod_Start | ValidityPeriod_End |
+      </CodeSnippet>
 
       <h4>Decision Guide: Entity vs Value Object</h4>
 
@@ -512,6 +584,8 @@ license.UpdatePrice(Money.Inr(249));
         <li>Proper distinction between entities and value objects leads to clearer, more maintainable domain models</li>
         <li>Implement value objects as immutable <Highlight>record</Highlight> types with factory methods — records provide structural equality for free, eliminating boilerplate <Highlight>Equals</Highlight>, <Highlight>GetHashCode</Highlight>, and <Highlight>==</Highlight> overloads</li>
         <li>Implement entities with private setters, identity-based equality, and behavior methods that enforce invariants</li>
+        <li>Value Objects cannot exist independently — they must always be owned by a parent Entity via a composition relationship; a price without an order, or a date range without a license, has no domain meaning</li>
+        <li>Never give Value Objects their own database table or primary key — store their properties as columns in the owning Entity's table using EF Core's <Highlight>OwnsOne</Highlight> to avoid mistaking them for Entities</li>
       </ul>
     </Summary>
   </ContentBody>
