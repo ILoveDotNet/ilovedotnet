@@ -2,12 +2,29 @@
 
 public class DDDLearningPath
 {
-  public readonly List<ContentMetaData> FullContents = new(22);
+  public readonly List<ContentMetaData> FullContents = new(23);
 
   public DDDLearningPath()
   {
     FullContents =
     [
+      new ContentMetaData
+      {
+        Order = 23,
+        Title = "Storing Data in Its Richest Form in DDD - Preventing Information Loss in .NET",
+        Description = "In this post I will teach you how to prevent information loss in your domain model by always storing data in its most atomic, specific form using DDD Value Objects in .NET.",
+        Author = "Abdul Rahman",
+        Slug = "ddd-storing-data-in-its-richest-form-preventing-information-loss-in-dotnet",
+        PosterUrl = "image/blogs/ddd/ddd-storing-data-in-its-richest-form-preventing-information-loss-in-dotnet.webp",
+        ThumbnailUrl = "image/blogs/ddd/ddd-storing-data-in-its-richest-form-preventing-information-loss-in-dotnet.webp",
+        ContentUrl = "blogs/ddd-storing-data-in-its-richest-form-preventing-information-loss-in-dotnet",
+        IconUrl = "image/icons/ddd.webp",
+        Channel = "DDD",
+        Type = "blogs",
+        CreatedOn = new DateTime(2026, 8, 23, 22, 30, 0, DateTimeKind.Utc),
+        ModifiedOn = new DateTime(2026, 8, 23, 22, 30, 0, DateTimeKind.Utc),
+        Keywords = ["Domain-Driven Design", "DDD", "Value Objects", "Information Loss", "Primitive Obsession", ".NET", "C#", "Rich Domain Models", "Data Integrity", "Immutability"]
+      },
       new ContentMetaData
       {
         Order = 22,

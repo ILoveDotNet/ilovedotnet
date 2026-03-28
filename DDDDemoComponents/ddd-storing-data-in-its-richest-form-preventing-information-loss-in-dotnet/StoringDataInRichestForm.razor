@@ -1,0 +1,521 @@
+@page "/blogs/ddd-storing-data-in-its-richest-form-preventing-information-loss-in-dotnet"
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(StoringDataInRichestForm)>
+    <ContentBody>
+        <What>
+            <p>
+                There is a silent killer lurking in many domain models. It does not crash on day one. It does not throw exceptions. 
+                It quietly strips away information every time data is saved&mdash;until the day a business requirement arrives that 
+                your model simply cannot answer.
+            </p>
+
+            <p>
+                That killer is <Highlight>information loss through premature reduction</Highlight>. It happens when a domain model 
+                stores a <Highlight>derived</Highlight> or <Highlight>formatted</Highlight> value instead of the original, specific 
+                data it was computed from. The concept of <Highlight>storing data in its richest form</Highlight> is a DDD principle 
+                that says: <em>always prefer storing the most atomic, detailed representation of a fact</em>, because you can 
+                always derive a simpler form from rich data&mdash;but you can never reconstruct rich data from a simplified form.
+            </p>
+
+            <p>
+                In this article, let's see where this trap appears in real .NET codebases, why it causes long-term pain, and how 
+                <Highlight>well-designed Value Objects</Highlight> lock in the richest form of every piece of information 
+                from the moment it enters your system.
+            </p>
+        </What>
+
+        <Why>
+            <h4>Information Loss Is a One-Way Door</h4>
+
+            <p>
+                Consider how a team stores a person's name for a Customer entity:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+public class Customer
+{
+    public Guid Id { get; private set; }
+    public string FullName { get; private set; }  // "Abdul Rahman"
+}
+            </CodeSnippet>
+
+            <p>
+                Looks harmless. Then the marketing team asks for personalised emails that begin with 
+                "Hi Abdul,". Then the reporting team needs to sort customers by last name. 
+                Then the payments team needs the legal first name on invoices. Suddenly the team is 
+                writing fragile string-splitting logic: <Highlight>FullName.Split(' ')[0]</Highlight>&mdash;which 
+                fails catastrophically for "Mary Jane Watson" or "José García López".
+            </p>
+
+            <p>
+                The original data <em>had</em> a first name and a last name. By collapsing them into one string, 
+                that distinction was permanently erased. There is no reliable way to reconstruct what was intentionally 
+                separate.
+            </p>
+
+            <h4>The Percentage Trap</h4>
+
+            <p>
+                Here is a subtler case found in discount or tax calculations:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+public class Discount
+{
+    // Stored as a pre-divided percentage, e.g. 0.3333...
+    public decimal Rate { get; set; }  // ❌ mutable, no validation
+
+    public decimal Apply(decimal amount) =&gt; amount * Rate;
+}
+
+// Usage
+var discount = new Discount { Rate = 1m / 3m }; // 0.3333333333...
+            </CodeSnippet>
+
+            <p>
+                The original intent was "one-third". Once you store it as a <Highlight>decimal</Highlight>, 
+                the fraction <Highlight>1/3</Highlight> cannot be represented exactly — 
+                <Highlight>decimal</Highlight> gives you 28 significant digits but never an infinite repeating mantissa. 
+                Across thousands of multi-step calculations this tiny representation error compounds:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// Illustrative: multi-step rounding compounds the error
+decimal rate = 1m / 3m;               // 0.3333333333333333333333333333
+decimal partialTax = rate * 100m;      // 33.333333333333333333333333330
+decimal fullTax = partialTax * 3m;     // 99.999999999999999999999999990
+// ≠ 100.00 — and the original fraction is gone forever
+            </CodeSnippet>
+
+            <p>
+                Small error per transaction. Significant discrepancy across thousands of ledger entries. 
+                And you can never recover the exact original fraction from the stored representation.
+            </p>
+
+            <h4>The Formatted Address Problem</h4>
+
+            <p>
+                Addresses are another common offender:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+public class Order
+{
+    public string ShippingAddress { get; private set; }
+    // Stored as: "14 Baker Street, London, NW1 6XE, United Kingdom"
+}
+            </CodeSnippet>
+
+            <p>
+                One day the logistics system needs to group shipments by city. Another day the tax 
+                engine needs the country code. Regex against a free-text field is not a domain model&mdash;it 
+                is a maintenance nightmare.
+            </p>
+
+            <h4>The Audit Trail That Cannot Be Queried</h4>
+
+            <p>
+                A team logs changes as human-readable sentences:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+public class AuditEntry
+{
+    public string Message { get; private set; }
+    // "Admin updated subscription price from £49 to £79 on 2026-03-01"
+}
+            </CodeSnippet>
+
+            <p>
+                Works fine for displaying in a changelog. Then compliance asks: "Show me every price 
+                change greater than £20 in Q1 2026." There is no way to query that from an unstructured 
+                message string without parsing text&mdash;and text parsing breaks on the first typo.
+            </p>
+
+            <p>
+                In each case above, the rich data existed at the time of capture. The model just failed 
+                to preserve it. <Highlight>DDD Value Objects</Highlight> are the mechanism that fixes this 
+                by making the richest form the only form the model will accept.
+            </p>
+        </Why>
+
+        <How>
+            <h4>Step 1: Replace Full Name with a PersonName Value Object</h4>
+
+            <p>
+                Instead of a single string, capture first and last name as separate, validated components:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+public record PersonName
+{
+    public string First { get; }
+    public string Last { get; }
+
+    // Derive the full name on-demand, never store it
+    public string Full =&gt; $"{First} {Last}";
+
+    private PersonName(string first, string last)
+    {
+        if (string.IsNullOrWhiteSpace(first))
+            throw new ArgumentException("First name is required.", nameof(first));
+
+        if (string.IsNullOrWhiteSpace(last))
+            throw new ArgumentException("Last name is required.", nameof(last));
+
+        First = first.Trim();
+        Last = last.Trim();
+    }
+
+    public static PersonName Of(string first, string last) =&gt;
+        new(first, last);
+}
+            </CodeSnippet>
+
+            <p>
+                The entity stores <Highlight>PersonName</Highlight>, not a string:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+public class Customer
+{
+    public Guid Id { get; private set; }
+    public PersonName Name { get; private set; }
+
+    public static Customer Register(string firstName, string lastName) =&gt;
+        new() { Id = Guid.NewGuid(), Name = PersonName.Of(firstName, lastName) };
+}
+
+// Usage
+var customer = Customer.Register("Abdul", "Rahman");
+
+Console.WriteLine(customer.Name.First);  // Abdul
+Console.WriteLine(customer.Name.Last);   // Rahman
+Console.WriteLine(customer.Name.Full);   // Abdul Rahman
+            </CodeSnippet>
+
+            <p>
+                <Highlight>Full</Highlight> is a computed property. It is never stored. You can always derive 
+                the formatted name from the structured data, but you can never go the other way.
+            </p>
+
+            <p>
+                Because the properties use <Highlight>&#123; get; &#125;</Highlight> rather than <Highlight>init</Highlight>, 
+                the record is fully immutable — <Highlight>with</Highlight> expressions are intentionally disabled. 
+                To update a name, create a fresh <Highlight>PersonName</Highlight> via <Highlight>PersonName.Of(...)</Highlight>.
+            </p>
+
+            <p>
+                EF Core maps this cleanly using <Highlight>OwnsOne</Highlight>:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+protected override void OnModelCreating(ModelBuilder modelBuilder)
+{
+    modelBuilder.Entity&lt;Customer&gt;().OwnsOne(c =&gt; c.Name, name =&gt;
+    {
+        name.Property(n =&gt; n.First).HasColumnName("FirstName").HasMaxLength(100);
+        name.Property(n =&gt; n.Last).HasColumnName("LastName").HasMaxLength(100);
+    });
+}
+            </CodeSnippet>
+
+            <h4>Step 2: Replace Decimal Rate with a Fraction Value Object</h4>
+
+            <p>
+                Instead of pre-dividing a fraction into a decimal, store the numerator and denominator:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+public record Fraction
+{
+    public int Numerator { get; }
+    public int Denominator { get; }
+
+    // Derive the decimal representation only when needed
+    // (Constructor already validates Denominator != 0; guard is defensive)
+    public decimal AsDecimal =&gt;
+        Denominator == 0 ? 0m : (decimal)Numerator / Denominator;
+
+    private Fraction(int numerator, int denominator)
+    {
+        if (denominator == 0)
+            throw new ArgumentException(
+                "Denominator cannot be zero.", nameof(denominator));
+
+        if (numerator &lt; 0 || numerator &gt; denominator)
+            throw new ArgumentException(
+                "Numerator must be between 0 and the denominator.", nameof(numerator));
+
+        Numerator = numerator;
+        Denominator = denominator;
+    }
+
+    public static Fraction Of(int numerator, int denominator) =&gt;
+        new(numerator, denominator);
+
+    public static Fraction OneThird =&gt; new(1, 3);
+    public static Fraction OneQuarter =&gt; new(1, 4);
+    public static Fraction Half =&gt; new(1, 2);
+
+    public override string ToString() =&gt; $"{Numerator}/{Denominator}";
+}
+            </CodeSnippet>
+
+            <p>
+                The <Highlight>Discount</Highlight> entity now stores the fraction, and applies it without precision loss:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+public class Discount
+{
+    public Fraction Rate { get; private set; }
+
+    public static Discount Create(int numerator, int denominator) =&gt;
+        new() { Rate = Fraction.Of(numerator, denominator) };
+
+    public decimal Apply(decimal amount) =&gt;
+        Math.Round(amount * Rate.Numerator / Rate.Denominator, 2,
+            MidpointRounding.AwayFromZero);
+}
+
+// Usage
+var discount = Discount.Create(1, 3);
+var discounted = discount.Apply(300m); // Exactly 100.00, not 99.99999990
+Console.WriteLine(discounted);         // 100.00
+
+Console.WriteLine(discount.Rate);      // 1/3  — the intent is preserved
+            </CodeSnippet>
+
+            <p>
+                The difference is significant in regulated financial domains. Divide first, lose precision forever. 
+                Store the fraction, calculate precisely on each use.
+            </p>
+
+            <h4>Step 3: Replace Formatted Address with an Address Value Object</h4>
+
+            <p>
+                Store each postal component as a typed field, not as a single concatenated string:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+public record Address
+{
+    public string Line1 { get; }
+    public string? Line2 { get; }
+    public string City { get; }
+    public string PostCode { get; }
+    public string CountryCode { get; }  // ISO 3166-1 alpha-2, e.g. "GB"
+
+    private Address(
+        string line1,
+        string? line2,
+        string city,
+        string postCode,
+        string countryCode)
+    {
+        if (string.IsNullOrWhiteSpace(line1))
+            throw new ArgumentException("Line 1 is required.", nameof(line1));
+
+        if (string.IsNullOrWhiteSpace(city))
+            throw new ArgumentException("City is required.", nameof(city));
+
+        if (string.IsNullOrWhiteSpace(postCode))
+            throw new ArgumentException("Post code is required.", nameof(postCode));
+
+        var code = countryCode?.Trim().ToUpperInvariant() ?? string.Empty;
+
+        if (code.Length != 2)
+            throw new ArgumentException(
+                "Country code must be a 2-letter ISO 3166-1 code.", nameof(countryCode));
+
+        Line1 = line1.Trim();
+        Line2 = line2?.Trim();
+        City = city.Trim();
+        PostCode = postCode.Trim().ToUpperInvariant();
+        CountryCode = code;
+    }
+
+    public static Address Of(
+        string line1,
+        string? line2,
+        string city,
+        string postCode,
+        string countryCode) =&gt;
+        new(line1, line2, city, postCode, countryCode);
+
+    // Derive formatted string on-demand
+    public string Formatted =&gt;
+        string.Join(", ",
+            new[] { Line1, Line2, City, PostCode, CountryCode }
+            .Where(p =&gt; !string.IsNullOrWhiteSpace(p)));
+}
+            </CodeSnippet>
+
+            <p>
+                Now the logistics service can group by city, the tax engine can read the country code, 
+                and the confirmation email can still render the formatted string&mdash;all from the same 
+                single stored value object:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// Logistics: group shipments by city
+var byCity = orders
+    .GroupBy(o =&gt; o.ShippingAddress.City)
+    .ToDictionary(g =&gt; g.Key, g =&gt; g.ToList());
+
+// Tax: read country code directly
+var vatRate = vatRules.GetRateFor(order.ShippingAddress.CountryCode);
+
+// Email: render formatted string
+var addressLine = order.ShippingAddress.Formatted;
+// "14 Baker Street, London, NW1 6XE, GB"
+            </CodeSnippet>
+
+            <h4>Step 4: Replace Audit Messages with Structured Audit Entries</h4>
+
+            <p>
+                Store the precise before and after values as typed fields, not as a pre-rendered string:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+public record PriceChangeAudit
+{
+    public Guid ChangedBy { get; }
+    public Money OldPrice { get; }
+    public Money NewPrice { get; }
+    public DateTimeOffset ChangedAt { get; }
+
+    // Derive the human-readable message on-demand
+    public string Summary =&gt;
+        $"Price changed from {OldPrice} to {NewPrice} " +
+        $"by {ChangedBy} at {ChangedAt:yyyy-MM-dd HH:mm}";
+
+    private PriceChangeAudit(
+        Guid changedBy,
+        Money oldPrice,
+        Money newPrice,
+        DateTimeOffset changedAt)
+    {
+        ChangedBy = changedBy;
+        OldPrice = oldPrice;
+        NewPrice = newPrice;
+        ChangedAt = changedAt;
+    }
+
+    public static PriceChangeAudit Record(
+        Guid changedBy, Money oldPrice, Money newPrice) =&gt;
+        new(changedBy, oldPrice, newPrice, DateTimeOffset.UtcNow);
+}
+            </CodeSnippet>
+
+            <p>
+                With structured fields, the compliance query that was previously impossible is now trivial:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// Compliance: price changes greater than £20 in Q1 2026
+var q1Start = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+var q1End   = new DateTimeOffset(2026, 3, 31, 23, 59, 59, TimeSpan.Zero);
+
+var significantChanges = auditLog
+    .Where(a =&gt; a.ChangedAt &gt;= q1Start &amp;&amp; a.ChangedAt &lt;= q1End)
+    .Where(a =&gt; Math.Abs(a.NewPrice.Amount - a.OldPrice.Amount) &gt; 20m)
+    .OrderByDescending(a =&gt; a.ChangedAt)
+    .ToList();
+
+// And the human-friendly log still works
+foreach (var entry in significantChanges)
+    Console.WriteLine(entry.Summary);
+            </CodeSnippet>
+
+            <h4>Step 5: Apply the Richest Form Checklist Before Finalising a Value Object</h4>
+
+            <p>
+                Before marking a value object as complete, ask these questions:
+            </p>
+
+            <CodeSnippet CssClass="language-markdown">
+Richest Form Checklist
+======================
+
+1. Can any stored property be derived from other stored properties?
+   - YES → consider removing the derived property and computing it.
+   - NO  → you are already in the richest form.
+
+2. Is any stored property a concatenation or aggregation of smaller facts?
+   - YES → split those facts into individual typed properties.
+   - NO  → continue.
+
+3. Is any stored property a floating-point calculation over an exact fraction?
+   - YES → store numerator and denominator; derive the decimal on use.
+   - NO  → continue.
+
+4. Is any stored property a human-readable string that contains structured data?
+   - YES → parse the structure into typed fields; derive the string on use.
+   - NO  → you are recording the richest available form.
+            </CodeSnippet>
+
+            <p>
+                Here is a summary of the before-and-after transformations from all four examples:
+            </p>
+
+            <CodeSnippet CssClass="language-markdown">
+Scenario            | Reduced Form (Avoid)   | Richest Form (Prefer)
+--------------------|------------------------|------------------------
+Person Name         | "Abdul Rahman"         | First: "Abdul" + Last: "Rahman"
+Discount Rate       | 0.3333333...           | Numerator: 1, Denominator: 3
+Shipping Address    | "14 Baker St, London"  | Line1, City, PostCode, CountryCode
+Audit Change        | "Price changed to £79" | OldPrice: £49, NewPrice: £79, ChangedAt
+            </CodeSnippet>
+
+            <p>
+                In every case, the derived or formatted string can be computed from the rich data. 
+                But the rich data can never be reliably reconstructed from the simplified string.
+            </p>
+        </How>
+
+        <Summary>
+            <p>
+                <Highlight>Storing data in its richest form</Highlight> is a foundational discipline in 
+                Domain-Driven Design. It is not about over-engineering&mdash;it is about preserving the 
+                full intent and precision of every fact that enters your system.
+            </p>
+
+            <p>
+                Key takeaways:
+            </p>
+
+            <ul class="[ list-disc ] [ ml-4 ]">
+                <li>
+                    <Highlight>Derived data is always computable</Highlight>: Format, concatenate, and 
+                    compute on-demand as properties&mdash;never store the result.
+                </li>
+                <li>
+                    <Highlight>Collapsed data is unrecoverable</Highlight>: Once you store "Abdul Rahman" 
+                    as a single string, the first-name/last-name boundary is gone forever.
+                </li>
+                <li>
+                    <Highlight>Fractions beat decimals</Highlight>: Store numerator and denominator; 
+                    divide only at the point of rendering or calculation.
+                </li>
+                <li>
+                    <Highlight>Strings are not structured data</Highlight>: If a string contains multiple 
+                    facts, split those facts into typed value object properties.
+                </li>
+                <li>
+                    <Highlight>Value Objects enforce the discipline</Highlight>: A <Highlight>record</Highlight>-based 
+                    Value Object with a private constructor and factory method makes the richest form the 
+                    only form your domain will accept.
+                </li>
+            </ul>
+
+            <p>
+                Apply the <Highlight>Richest Form Checklist</Highlight> before finalising every Value Object. 
+                Your future self&mdash;and the compliance team&mdash;will thank you.
+            </p>
+        </Summary>
+    </ContentBody>
+</Content>
