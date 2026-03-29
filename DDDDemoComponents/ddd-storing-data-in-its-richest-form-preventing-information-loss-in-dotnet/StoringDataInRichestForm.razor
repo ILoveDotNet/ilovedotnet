@@ -20,9 +20,9 @@
             </p>
 
             <p>
-                In this article, let's see where this trap appears in real .NET codebases, why it causes long-term pain, and how 
-                <Highlight>well-designed Value Objects</Highlight> lock in the richest form of every piece of information 
-                from the moment it enters your system.
+                In this article, we walk through five real-world scenarios where this trap appears in .NET codebases,
+                why each causes long-term pain, and how <Highlight>well-designed Value Objects</Highlight> lock in
+                the richest form of every piece of information from the moment it enters your system.
             </p>
         </What>
 
@@ -130,14 +130,74 @@ public class AuditEntry
 
             <p>
                 Works fine for displaying in a changelog. Then compliance asks: "Show me every price 
-                change greater than £20 in Q1 2026." There is no way to query that from an unstructured 
+                change greater than &pound;20 in Q1 2026." There is no way to query that from an unstructured 
                 message string without parsing text&mdash;and text parsing breaks on the first typo.
+            </p>
+
+            <h4>The Loyalty Points Balance Trap</h4>
+
+            <p>
+                This is the most instructive example. Consider a <Highlight>Customer</Highlight> entity in 
+                a loyalty programme with two business use cases:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+public class Customer : Entity
+{
+    public LoyaltyPoints Points { get; private set; }
+
+    // Use case 1: customer places an order — earn points
+    public void AddLoyaltyPoints(LoyaltyPoints points)
+    {
+        Points += points;
+    }
+
+    // Use case 2: customer redeems points — minimum balance of 250 required
+    public void RedeemLoyaltyPoints(LoyaltyPoints points)
+    {
+        if (Points &lt; 250 || points &gt; Points)
+            throw new Exception();
+
+        Points -= points;
+    }
+}
+            </CodeSnippet>
+
+            <p>
+                The code addresses both use cases perfectly&mdash;until a new requirement arrives. When a customer 
+                removes an item from an existing order, the <Highlight>Order</Highlight> entity must subtract the 
+                difference in loyalty points. Three approaches come to mind and all three fail:
+            </p>
+
+            <ul class="[ list-disc ] [ ml-4 ]">
+                <li>
+                    Reuse <Highlight>RedeemLoyaltyPoints</Highlight>&mdash;but it validates a minimum of 250 points 
+                    and throws for customers with a zero balance.
+                </li>
+                <li>
+                    Pass a negative value to <Highlight>AddLoyaltyPoints</Highlight>&mdash;but 
+                    <Highlight>LoyaltyPoints</Highlight> cannot be negative by business rule. Allowing it here 
+                    violates the always-valid domain model principle.
+                </li>
+                <li>
+                    Add a new <Highlight>SubtractLoyaltyPoints</Highlight> method without the 250-point guard&mdash;but 
+                    now two public methods perform point subtraction and neither name reveals which business use case 
+                    it serves.
+                </li>
+            </ul>
+
+            <p>
+                The inability to find a method name that maps cleanly to the new use case is a red flag. The single 
+                <Highlight>Points</Highlight> field is too crude: it cannot distinguish between 
+                <em>removing earned points</em> (order adjustment) and <em>adding to the redeemed total</em> 
+                (customer redemption)&mdash;two operations with completely different validation rules.
             </p>
 
             <p>
                 In each case above, the rich data existed at the time of capture. The model just failed 
-                to preserve it. <Highlight>DDD Value Objects</Highlight> are the mechanism that fixes this 
-                by making the richest form the only form the model will accept.
+                to preserve it. <Highlight>DDD Value Objects</Highlight> and disciplined entity design 
+                are the mechanisms that fix this by making the richest form the only form your domain 
+                will accept.
             </p>
         </Why>
 
@@ -245,6 +305,8 @@ public record Fraction
             throw new ArgumentException(
                 "Denominator cannot be zero.", nameof(denominator));
 
+        // This Fraction models a proportion (0 &lt;= n &lt;= d), not a general rational number.
+        // e.g. Fraction.Of(1, 3) = valid discount rate; Fraction.Of(4, 3) = invalid (&gt; 100%).
         if (numerator &lt; 0 || numerator &gt; denominator)
             throw new ArgumentException(
                 "Numerator must be between 0 and the denominator.", nameof(numerator));
@@ -310,43 +372,23 @@ public record Address
     public string CountryCode { get; }  // ISO 3166-1 alpha-2, e.g. "GB"
 
     private Address(
-        string line1,
-        string? line2,
-        string city,
-        string postCode,
-        string countryCode)
+        string line1, string? line2,
+        string city, string postCode, string countryCode)
     {
-        if (string.IsNullOrWhiteSpace(line1))
-            throw new ArgumentException("Line 1 is required.", nameof(line1));
-
-        if (string.IsNullOrWhiteSpace(city))
-            throw new ArgumentException("City is required.", nameof(city));
-
-        if (string.IsNullOrWhiteSpace(postCode))
-            throw new ArgumentException("Post code is required.", nameof(postCode));
-
-        var code = countryCode?.Trim().ToUpperInvariant() ?? string.Empty;
-
-        if (code.Length != 2)
-            throw new ArgumentException(
-                "Country code must be a 2-letter ISO 3166-1 code.", nameof(countryCode));
-
-        Line1 = line1.Trim();
-        Line2 = line2?.Trim();
-        City = city.Trim();
-        PostCode = postCode.Trim().ToUpperInvariant();
-        CountryCode = code;
+        // Guards: Line1, City, PostCode non-empty; CountryCode exactly 2 chars (ISO 3166-1)
+        Line1       = line1.Trim();
+        Line2       = line2?.Trim();
+        City        = city.Trim();
+        PostCode    = postCode.Trim().ToUpperInvariant();
+        CountryCode = countryCode?.Trim().ToUpperInvariant() ?? string.Empty;
     }
 
     public static Address Of(
-        string line1,
-        string? line2,
-        string city,
-        string postCode,
-        string countryCode) =&gt;
+        string line1, string? line2,
+        string city, string postCode, string countryCode) =&gt;
         new(line1, line2, city, postCode, countryCode);
 
-    // Derive formatted string on-demand
+    // Derive the formatted mailing address on-demand — never store it
     public string Formatted =&gt;
         string.Join(", ",
             new[] { Line1, Line2, City, PostCode, CountryCode }
@@ -377,7 +419,8 @@ var addressLine = order.ShippingAddress.Formatted;
             <h4>Step 4: Replace Audit Messages with Structured Audit Entries</h4>
 
             <p>
-                Store the precise before and after values as typed fields, not as a pre-rendered string:
+                Store the precise before and after values as typed fields, not as a pre-rendered string.
+                Here <Highlight>Money</Highlight> represents a Value Object encapsulating an amount and currency:
             </p>
 
             <CodeSnippet CssClass="language-csharp">
@@ -431,7 +474,97 @@ foreach (var entry in significantChanges)
     Console.WriteLine(entry.Summary);
             </CodeSnippet>
 
-            <h4>Step 5: Apply the Richest Form Checklist Before Finalising a Value Object</h4>
+            <h4>Step 5: Replace the Single Loyalty Points Balance with Its Source Data</h4>
+
+            <p>
+                The root cause is storing the <em>remainder</em>&mdash;a derived value&mdash;instead of the 
+                two source values that produce it. Splitting <Highlight>Points</Highlight> into 
+                <Highlight>PointsEarned</Highlight> and <Highlight>PointsRedeemed</Highlight>
+                (both <Highlight>LoyaltyPoints</Highlight> Value Objects supporting arithmetic and comparison operators)
+                and computing the balance on-demand dissolves every ambiguity:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+public class Customer : Entity
+{
+    public LoyaltyPoints PointsEarned   { get; private set; }
+    public LoyaltyPoints PointsRedeemed { get; private set; }
+
+    // Derive the balance — never store it
+    public LoyaltyPoints Points =&gt; PointsEarned - PointsRedeemed;
+
+    public void IncreaseEarnedPoints(LoyaltyPoints points)
+    {
+        PointsEarned += points;
+    }
+
+    public void ReduceEarnedPoints(LoyaltyPoints points)
+    {
+        PointsEarned -= points;
+    }
+
+    public void RedeemPoints(LoyaltyPoints points)
+    {
+        if (Points &lt; 250 || points &gt; Points)
+            throw new Exception(); // use a domain-specific exception in production
+
+        PointsRedeemed += points;
+    }
+}
+            </CodeSnippet>
+
+            <p>
+                Each method now maps to exactly one business use case. 
+                <Highlight>IncreaseEarnedPoints</Highlight> and <Highlight>ReduceEarnedPoints</Highlight> 
+                handle order lifecycle changes without the 250-point guard. 
+                <Highlight>RedeemPoints</Highlight> handles customer redemption with full validation. 
+                The problematic <Highlight>SubtractLoyaltyPoints</Highlight> was never needed&mdash;the 
+                design problem dissolved when the data was stored in its richest form.
+            </p>
+
+            <p>
+                As a bonus, <Highlight>PointsEarned</Highlight> and <Highlight>PointsRedeemed</Highlight> 
+                can now each be displayed to the customer separately&mdash;information that was invisible 
+                when only the remainder was stored.
+            </p>
+
+            <p>
+                The guideline can be applied one step further. <Highlight>PointsEarned</Highlight> is itself 
+                derived&mdash;it is the sum of loyalty points from each order. Storing the orders instead 
+                makes <Highlight>PointsEarned</Highlight> computable rather than persisted:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+public class Customer : Entity
+{
+    public Order[] Orders               { get; private set; }  // simplified; use IReadOnlyList&lt;Order&gt; in production
+    public LoyaltyPoints PointsRedeemed { get; private set; }
+
+    // Both are derived — neither is stored
+    public LoyaltyPoints PointsEarned =&gt; Orders.Sum(x =&gt; x.LoyaltyPoints);
+    public LoyaltyPoints Points        =&gt; PointsEarned - PointsRedeemed;
+
+    public void RedeemPoints(LoyaltyPoints points)
+    {
+        if (Points &lt; 250 || points &gt; Points)
+            throw new Exception(); // use a domain-specific exception in production
+
+        PointsRedeemed += points;
+    }
+}
+            </CodeSnippet>
+
+            <p>
+                Earned points are now controlled by the <Highlight>Order</Highlight> class, so 
+                <Highlight>IncreaseEarnedPoints</Highlight> and <Highlight>ReduceEarnedPoints</Highlight> 
+                are no longer needed on <Highlight>Customer</Highlight>. Taken to the logical extreme, 
+                this progression leads to Event Sourcing&mdash;where individual events are the highest 
+                possible form of information. How far to go depends on project needs: for most systems, 
+                <Highlight>PointsEarned</Highlight> + <Highlight>PointsRedeemed</Highlight> is the 
+                right balance.
+            </p>
+
+            <h4>Step 6: Apply the Richest Form Checklist Before Finalising a Value Object</h4>
 
             <p>
                 Before marking a value object as complete, ask these questions:
@@ -449,26 +582,31 @@ Richest Form Checklist
    - YES → split those facts into individual typed properties.
    - NO  → continue.
 
-3. Is any stored property a floating-point calculation over an exact fraction?
+3. Is any stored property a decimal approximation of a fraction that cannot be expressed exactly in base 10?
    - YES → store numerator and denominator; derive the decimal on use.
    - NO  → continue.
 
 4. Is any stored property a human-readable string that contains structured data?
    - YES → parse the structure into typed fields; derive the string on use.
+   - NO  → continue.
+
+5. Is any stored property a derived total of upstream source values?
+   - YES → store the source values separately; derive the total on-demand.
    - NO  → you are recording the richest available form.
             </CodeSnippet>
 
             <p>
-                Here is a summary of the before-and-after transformations from all four examples:
+                Here is a summary of the before-and-after transformations from all five examples:
             </p>
 
             <CodeSnippet CssClass="language-markdown">
-Scenario            | Reduced Form (Avoid)   | Richest Form (Prefer)
---------------------|------------------------|------------------------
-Person Name         | "Abdul Rahman"         | First: "Abdul" + Last: "Rahman"
-Discount Rate       | 0.3333333...           | Numerator: 1, Denominator: 3
-Shipping Address    | "14 Baker St, London"  | Line1, City, PostCode, CountryCode
-Audit Change        | "Price changed to £79" | OldPrice: £49, NewPrice: £79, ChangedAt
+Scenario            | Reduced Form (Avoid)        | Richest Form (Prefer)
+--------------------|-----------------------------|----------------------------------------------
+Person Name         | "Abdul Rahman"              | First: "Abdul" + Last: "Rahman"
+Discount Rate       | 0.3333333...                | Numerator: 1, Denominator: 3
+Shipping Address    | "14 Baker St, London"       | Line1, City, PostCode, CountryCode
+Audit Change        | "Price changed to £79"      | OldPrice: £49, NewPrice: £79, ChangedAt
+Loyalty Points      | int Points (remainder)      | PointsEarned + PointsRedeemed (computed: Points)
             </CodeSnippet>
 
             <p>
