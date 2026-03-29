@@ -1,7 +1,7 @@
 ---
 name: ai-author
 description: 'Write a new blog post following iLoveDotNet guidelines'
-tools: ['edit', 'search', 'execute', 'read', 'agent', 'todo']
+tools: ['edit', 'search', 'execute', 'read', 'web/fetch', 'agent', 'todo']
 agents: ["technical-content-evaluator"]
 handoffs:
   - label: Do a Technical Review
