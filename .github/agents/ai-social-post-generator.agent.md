@@ -26,8 +26,17 @@ The target audience is always **software developers**. The content is .NET-based
 ### Step 3: Primary CTA
 The CTA is always **"read more"** — drive readers to the full blog post. Do not ask the user about this.
 
-### Step 4: Read Blog Content from the Attached File
-Read the full content of the attached `.razor` file — it contains all the blog text, code examples, and structure needed to write the posts. Do NOT fetch from the web.
+### Step 4: Extract PAS from Blog Content
+
+Read the full content of the attached `.razor` file. Do NOT fetch from the web.
+
+As you read, identify and note:
+- **Problem** — the developer pain or broken scenario named in the `<Why>` section
+- **Agitate** — the cost or consequence described (bugs, wasted hours, production risk)
+- **Solution** — the insight or fix demonstrated in the `<How>` section
+- **Key hook** — the most surprising or counter-intuitive thing in the article
+
+These four points are the raw material for every post variant and headline you generate. A post that leads with the exact developer pain from `<Why>` will outperform one that describes the topic abstractly.
 
 ### Step 5: Generate 3 Headline Options
 Create and number **3 attention-grabbing headline options** based on the blog content:
@@ -46,6 +55,8 @@ For the chosen headline, create 3 distinct post options — one set covering **b
 
 **1. Hook (1-2 sentences)**
 - Start with a question, statistic, or statement that highlights a pain point or opportunity
+- Use the exact developer pain extracted from the blog's `<Why>` section — name the specific broken scenario or symptom
+- **No FUD, exaggeration, or hype.** Developers distrust emotional manipulation. Ground the hook in a real, concrete technical situation ("Your `HttpClient` leaks sockets when used like this") not a dramatic claim ("This DESTROYS your app in production!")
 - Create immediate interest or tension for the target developer audience
 
 **2. Main Value Point (1-2 sentences)**
@@ -90,12 +101,13 @@ For the chosen headline, create 3 distinct post options — one set covering **b
 
 ## Content Strategy
 
+- **Build the Hook from the Problem, not the topic.** The developer pain extracted from `<Why>` is the hook — not "this article covers X". A post that opens with "Your app silently loses data when X happens" outperforms "Learn about X in .NET".
 - Prioritize **actionable insights over clickbait**
 - Focus on the **unique value proposition** of the blog post
-- Use these frameworks:
-  - "Problem → Insight → Solution → Link"
-  - "Misconception → Reality → Proof → Link"
+- Use these frameworks (mapped directly to the blog's PAS structure):
+  - **"Problem (from `<Why>`) → Agitate → Solution (from `<How>`) → Link"** — default framework
+  - **"Misconception → Reality → Proof → Link"** — use when the article corrects a common wrong assumption
 - Highlight what makes the content **must-read** for the target developers
 - For C#/.NET/Blazor audience, emphasize efficiency, performance gains, or workflow improvements
-- Include 1-2 compelling statistics or insights extracted directly from the blog
-- Use 1-3 emojis per post, placed strategically — never decoratively
+- Include 1–2 compelling specifics extracted directly from the blog (numbers, method names, real error messages)
+- Use 1–3 emojis per post, placed strategically — never decoratively

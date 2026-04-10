@@ -27,6 +27,65 @@ Make sure to call the "Do a Technical Review" handoff after generating the artic
 
 Your goal is to follow the blog generation guidelines in `copilot/blog-generation-guidelines.md` and generate a blog post for the given topic.
 
+---
+
+## Writing for Developer Engagement — Persuasive Blog Principles
+
+Every article must earn the reader's attention at each stage: **the title earns the click, the opening earns the scroll, each section earns the next.** Apply these principles so developers actively choose to read — and share — rather than skip.
+
+### Title as a Click-Worthy Headline
+
+The article title (and its derived slug) is the first and most important hook. Treat it like a subject line for a high-stakes cold email.
+
+**Title checklist:**
+- [ ] Names a specific pain, outcome, or surprise — not just the topic
+- [ ] Creates curiosity or signals an immediate, concrete gain for a developer
+- [ ] Avoids generic patterns: "Introduction to X", "A Guide to X", "Overview of X"
+- [ ] Is specific enough that a developer scanning a list of articles stops and clicks
+
+| ❌ Weak title | ✅ Click-worthy title |
+|--------------|----------------------|
+| `Introduction to Dependency Injection` | `Why Your DI Container Breaks Silently (And How to Fix It in Minutes)` |
+| `LINQ Performance Tips` | `5 LINQ Patterns That Are Quietly Slowing Down Your App` |
+| `Blazor State Management` | `Stop Prop-Drilling in Blazor: One Pattern That Scales` |
+
+### Hook-Driven `<What>` Section
+
+Do **NOT** open with "In this article, we will cover...". The `<What>` introduction must open with a hook — a line that names a real developer pain or a surprising truth — before zooming out to define the concept.
+
+**Opening hook patterns (pick one per article):**
+- **Problem hook**: "Every .NET developer has hit this wall: *[paint the relatable scenario in one line]*."
+- **Surprise hook**: "The standard advice about X is wrong — and your production app may already be paying the cost."
+- **Question hook**: "What does your app do when the database is temporarily unavailable? If you are not sure, keep reading."
+
+### PAS Arc in `<Why>` Section
+
+The `<Why>` must follow the **Problem → Agitate → Solution-tease** arc. This is what makes a developer feel the urgency to read `<How>`.
+
+| PAS Stage | What to write | Length |
+|-----------|--------------|--------|
+| **Problem** | Name the exact pain in concrete terms — a real code scenario, not abstract description | 1–2 sentences |
+| **Agitate** | Expand the cost — what breaks, how often, how painful to debug, what it costs in production. **Use code evidence or real symptoms, NOT emotional exaggeration** — developers distrust FUD and will stop reading if it feels like marketing. | 2–3 sentences |
+| **Solution tease** | One sentence promising what the article delivers, without giving away the how | 1 sentence |
+
+### `<Summary>` as a CTA — Keep Developers on the Site
+
+The summary is not just takeaways — it is the handoff to the developer's next read. A developer who finishes an article and finds a clear "what to do next" link is far more likely to stay on ilovedotnet.org than one who hits a dead end.
+
+- List 3–5 bullet-point key takeaways (skim-friendly)
+- End with a **"What to read next"** sentence that links to one or two related articles already on the site
+
+### Skim-First Formatting
+
+Developers scan before they read. If the value is not visible in a 1-second scan, they leave.
+
+- **First sentence of every paragraph must deliver the main point** — support and elaboration follow
+- Sub-headers describe outcomes: `"Register services with AddScoped for request-scoped lifetime"` not `"Service Registration"`
+- Keep individual prose paragraphs to 3–4 sentences maximum
+- Use numbered or bulleted lists for any multi-step or multi-item concept
+
+---
+
 ## Initial Assessment
 
 Before starting, clarify:
@@ -148,6 +207,14 @@ Follow these steps in order:
    - [ ] Slug is derived directly from title (lowercase, hyphens, remove punctuation like `-` and `.`) and includes category keyword
    - [ ] Publish date is a Sunday at 22:30 UTC
    
+   ✅ **Persuasion & Engagement:**
+   - [ ] Title names a specific pain, outcome, or surprise — no generic "Introduction to X" or "Overview of Y"
+   - [ ] `<What>` opens with a problem, surprise, or question hook — NOT "In this article, we will..."
+   - [ ] `<Why>` follows Problem → Agitate → Solution-tease arc
+   - [ ] `<Summary>` includes a "What to read next" CTA linking to one or two related articles on the site
+   - [ ] Each paragraph's first sentence delivers the main point independently
+   - [ ] Sub-headers describe outcomes, not just topics
+
    ✅ **Build Verification:**
    - [ ] Run `dotnet format --verbosity quiet whitespace --folder`
    - [ ] Run `dotnet build ILoveDotNet.slnx` with 0 errors
