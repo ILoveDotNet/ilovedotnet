@@ -1,0 +1,345 @@
+@page "/blogs/uri-based-api-versioning-in-aspnet-webapi"
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(URIBasedAPIVersioningInASPNETWebAPI)>
+    <ContentBody>
+        <What>
+            <p>
+                The version number in your API URL is the cheapest contract you can publish.
+                Without it, the moment you rename a field, change a status code, or restructure a
+                response body, every integration you have — mobile apps, third-party clients,
+                internal services — breaks silently at runtime with no warning and no fallback.
+                This article shows how to implement <Highlight>URI-based API versioning</Highlight>
+                in an ASP.NET Core Web API using the <Highlight>Asp.Versioning.Mvc</Highlight>
+                package so that multiple API versions coexist peacefully in a single application.
+            </p>
+        </What>
+
+        <Why>
+            <p>
+                There are several strategies for communicating the requested version to an API:
+            </p>
+
+            <CodeSnippet CssClass="language-text">
+┌────────────────┬──────────────────────────────────────────────────┐
+│ Strategy       │ Example                                          │
+├────────────────┼──────────────────────────────────────────────────┤
+│ URI segment    │ /api/v1/articles, /api/v2/articles               │
+│ Query string   │ /api/articles?api-version=2.0                    │
+│ Custom header  │ api-version: 2.0                                 │
+│ Accept header  │ Accept: application/vnd.api+json;version=2.0     │
+│ Media type     │ Content-Type: application/vnd.api.v2+json        │
+└────────────────┴──────────────────────────────────────────────────┘
+            </CodeSnippet>
+
+            <p>
+                <Highlight>URI-based versioning</Highlight> is the most explicit strategy: the version
+                is visible in every request log, browser bookmark, API reference, and error report —
+                no extra tooling required to know which version a client is calling.
+            </p>
+
+            <p>
+                The real cost of skipping versioning only becomes obvious the first time you need to make
+                a breaking change. Renaming a single JSON field is enough to bring down every integration
+                you have:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// ❌ V1 consumers expect:  { "id": 1, "title": "..." }
+// You rename the field to "heading". Every V1 client now crashes silently.
+record Article(int Id, string Heading, string Author, string Channel);
+            </CodeSnippet>
+
+            <p>
+                Versioning solves this by letting you introduce <Highlight>v2</Highlight> with the
+                breaking change while keeping <Highlight>v1</Highlight> alive for existing consumers.
+                You can also mark v1 as <Highlight>deprecated</Highlight> — the framework will
+                automatically advertise the retirement in every response header, giving clients time
+                to migrate on their own schedule.
+            </p>
+        </Why>
+
+        <How>
+            <h4>Step 1: Install the Versioning Package</h4>
+
+            <p>
+                Add the MVC-flavoured versioning package, which provides support for
+                <Highlight>ApiController</Highlight>-based APIs:
+            </p>
+
+            <CodeSnippet CssClass="language-bash">
+dotnet add package Asp.Versioning.Mvc
+            </CodeSnippet>
+
+            <h4>Step 2: Register Versioning Services</h4>
+
+            <p>
+                Chain three calls in <Highlight>Program.cs</Highlight>. <Highlight>AddApiVersioning()</Highlight>
+                sets the global defaults; <Highlight>.AddMvc()</Highlight> activates controller support;
+                <Highlight>.AddApiExplorer()</Highlight> exposes version-aware metadata to tools like
+                Scalar and OpenAPI generators:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+using Asp.Versioning;
+
+// Standard controller infrastructure (required)
+builder.Services.AddControllers();
+
+builder.Services
+    .AddApiVersioning(options =>
+    {
+        options.AssumeDefaultVersionWhenUnspecified = true;
+        options.DefaultApiVersion                   = new ApiVersion(1);
+        options.ReportApiVersions                   = true;
+    })
+    .AddMvc()
+    .AddApiExplorer(options =>
+    {
+        // Format: 'v'1 → "v1", 'v'2 → "v2"
+        options.GroupNameFormat = "'v'V";
+    });
+
+// ... other middleware ...
+app.MapControllers();
+            </CodeSnippet>
+
+            <p>
+                After this, three behaviours are active:
+            </p>
+
+            <ul>
+                <li>
+                    <Highlight>AssumeDefaultVersionWhenUnspecified</Highlight> — requests with no
+                    version in the URL are treated as v1 instead of returning a 400.
+                </li>
+                <li>
+                    <Highlight>DefaultApiVersion = new ApiVersion(1)</Highlight> — the implicit version
+                    assigned to controllers that carry no <code>[ApiVersion]</code> attribute.
+                </li>
+                <li>
+                    <Highlight>ReportApiVersions</Highlight> — every response carries an
+                    <code>api-supported-versions</code> header so clients can discover what is available.
+                </li>
+            </ul>
+
+            <h4>Step 3: Define Models and an In-Memory Store</h4>
+
+            <p>
+                Before writing the controllers, define the response models and a lightweight in-memory
+                store so the examples are self-contained:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+record Article(int Id, string Title, string Author, string Channel);
+record ArticleDetailDto(int Id, string Title, string Author, string Channel, bool IsFeatured);
+
+static class ArticleStore
+{
+    public static readonly List&lt;Article&gt; All =
+    [
+        new(1, "Logging in ASP.NET Web API",       "Abdul Rahman", "WebAPI"),
+        new(2, "JWT Auth in ASP.NET Web API",       "Abdul Rahman", "WebAPI"),
+        new(3, "Authorization in ASP.NET Web API",  "Abdul Rahman", "WebAPI"),
+        new(4, "API Versioning in ASP.NET Web API", "Abdul Rahman", "WebAPI"),
+    ];
+}
+            </CodeSnippet>
+
+            <p>
+                <Highlight>Article</Highlight> is the v1 shape. <Highlight>ArticleDetailDto</Highlight>
+                adds a <Highlight>IsFeatured</Highlight> flag — a non-breaking addition that motivates
+                introducing v2 while keeping v1 intact.
+            </p>
+
+            <h4>Step 4: Version Controllers with [ApiVersion] and URI Route Templates</h4>
+
+            <p>
+                Add <Highlight>[ApiVersion]</Highlight> at the controller class level to declare which
+                version the controller serves. Embed <Highlight>v{version:apiVersion}</Highlight> in the
+                route template so the version number is part of the URL — that is what makes this
+                strategy URI-based:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+[Produces(MediaTypeNames.Application.Json)]
+[Consumes(MediaTypeNames.Application.Json)]
+[ApiController]
+[ApiVersion(1)]
+[Route("api/v{version:apiVersion}/articles")]
+[Tags("ArticleEndpoints")]
+public class ArticlesV1Controller : ControllerBase
+{
+    /// &lt;summary&gt;Retrieves all articles.&lt;/summary&gt;
+    /// &lt;returns&gt;A list of articles.&lt;/returns&gt;
+    [HttpGet(Name = "GetArticlesV1")]
+    [ProducesResponseType(typeof(IEnumerable&lt;Article&gt;), StatusCodes.Status200OK)]
+    public ActionResult&lt;IEnumerable&lt;Article&gt;&gt; GetAll()
+        =&gt; Ok(ArticleStore.All);
+
+    /// &lt;summary&gt;Retrieves a single article by its identifier.&lt;/summary&gt;
+    /// &lt;param name="id"&gt;The article identifier.&lt;/param&gt;
+    /// &lt;returns&gt;The matching article, or 404 if not found.&lt;/returns&gt;
+    [HttpGet("{id:int}", Name = "GetArticleByIdV1")]
+    [ProducesResponseType(typeof(Article), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public ActionResult&lt;Article&gt; GetById(int id)
+    {
+        var article = ArticleStore.All.FirstOrDefault(a =&gt; a.Id == id);
+        return article is null ? NotFound() : Ok(article);
+    }
+}
+
+[Produces(MediaTypeNames.Application.Json)]
+[Consumes(MediaTypeNames.Application.Json)]
+[ApiController]
+[ApiVersion(2)]
+[Route("api/v{version:apiVersion}/articles")]
+[Tags("ArticleEndpoints")]
+public class ArticlesV2Controller : ControllerBase
+{
+    /// &lt;summary&gt;Retrieves all articles with a featured flag (v2).&lt;/summary&gt;
+    /// &lt;returns&gt;A list of enriched articles.&lt;/returns&gt;
+    [HttpGet(Name = "GetArticlesV2")]
+    [ProducesResponseType(typeof(IEnumerable&lt;ArticleDetailDto&gt;), StatusCodes.Status200OK)]
+    public ActionResult&lt;IEnumerable&lt;ArticleDetailDto&gt;&gt; GetAll()
+    {
+        var enriched = ArticleStore.All
+            .Select(a =&gt; new ArticleDetailDto(
+                a.Id, a.Title, a.Author, a.Channel,
+                IsFeatured: a.Id == 1));
+        return Ok(enriched);
+    }
+}
+            </CodeSnippet>
+
+            <p>
+                Both controllers share the same route prefix — what separates them is the
+                <Highlight>[ApiVersion]</Highlight> attribute. A request to
+                <Highlight>GET /api/v1/articles</Highlight> is routed to
+                <Highlight>ArticlesV1Controller</Highlight>; a request to
+                <Highlight>GET /api/v2/articles</Highlight> is routed to
+                <Highlight>ArticlesV2Controller</Highlight>. Both live in the same application
+                with zero routing conflicts.
+            </p>
+
+            <figure>
+                <img src="./image/blogs/webapi/uri-based-api-versioning-in-aspnet-webapi/v2-api-versioning-scalar.png" alt="v2-api-versioning-scalar" class="[ w-full ]" />
+                <figcaption>Scalar UI showing v1 and v2 article endpoints side by side — each version gets its own document tab</figcaption>
+            </figure>
+
+            <h4>Step 5: Deprecating an API Version</h4>
+
+            <p>
+                When a version is ready for retirement, pass <Highlight>Deprecated = true</Highlight>
+                to its <Highlight>[ApiVersion]</Highlight> attribute. The endpoint continues to function,
+                but every response now includes an <code>api-deprecated-versions</code> header to
+                notify clients:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+[ApiController]
+[ApiVersion(1, Deprecated = true)]
+[Route("api/v{version:apiVersion}/articles")]
+[Tags("ArticleEndpoints")]
+public class ArticlesV1Controller : ControllerBase
+{
+    // ... same actions as before
+}
+            </CodeSnippet>
+
+            <p>
+                A request to the deprecated version now returns both headers:
+            </p>
+
+            <CodeSnippet CssClass="language-text">
+api-supported-versions: 2.0
+api-deprecated-versions: 1.0
+            </CodeSnippet>
+
+            <h4>Step 6: Calling Versioned Endpoints</h4>
+
+            <p>
+                Test the endpoints directly from a <Highlight>.http file</Highlight>:
+            </p>
+
+            <CodeSnippet CssClass="language-http">
+@@baseUrl = https://localhost:7001
+
+### V1 — basic article list
+GET {{baseUrl}}/api/v1/articles
+
+### V1 — single article by id (non-integer id returns 404 — route won't match)
+GET {{baseUrl}}/api/v1/articles/1
+
+### V2 — enriched article list with featured flag
+GET {{baseUrl}}/api/v2/articles
+
+### Deprecated V1 — still responds, but includes api-deprecated-versions header
+GET {{baseUrl}}/api/v1/articles
+            </CodeSnippet>
+
+            <p>
+                The v1 and v2 responses for <Highlight>GET /api/v{n}/articles</Highlight>:
+            </p>
+
+            <CodeSnippet CssClass="language-text">
+// V1
+[
+  { "id": 1, "title": "Logging in ASP.NET Web API", "author": "Abdul Rahman", "channel": "WebAPI" },
+  ...
+]
+
+// V2
+[
+  { "id": 1, "title": "Logging in ASP.NET Web API", "author": "Abdul Rahman", "channel": "WebAPI", "isFeatured": true },
+  ...
+]
+            </CodeSnippet>
+        </How>
+
+        <Summary>
+            <ul>
+                <li>
+                    Version your API early — adding versioning after a breaking change has already
+                    landed is too late for the consumers you already broke.
+                </li>
+                <li>
+                    <Highlight>URI-based versioning</Highlight> (<code>/api/v1/</code>,
+                    <code>/api/v2/</code>) is the most explicit and discoverable strategy —
+                    the version is visible in logs, bookmarks, and every API reference without
+                    any extra tooling.
+                </li>
+                <li>
+                    <Highlight>Asp.Versioning.Mvc</Highlight> wires up versioning in three lines:
+                    <Highlight>AddApiVersioning()</Highlight>,
+                    <Highlight>.AddMvc()</Highlight>, and
+                    <Highlight>.AddApiExplorer()</Highlight>.
+                </li>
+                <li>
+                    Decorate each controller class with <Highlight>[ApiVersion(n)]</Highlight> and
+                    embed <Highlight>v{version:apiVersion}</Highlight> in the route template —
+                    multiple version controllers can share the same route prefix with no conflicts.
+                </li>
+                <li>
+                    Mark retiring versions with <Highlight>[ApiVersion(n, Deprecated = true)]</Highlight>
+                    — they keep working while the <code>api-deprecated-versions</code> header
+                    signals to clients that migration should begin.
+                </li>
+                <li>
+                    Enable <Highlight>ReportApiVersions</Highlight> so every response carries an
+                    <code>api-supported-versions</code> header — clients can use this to detect
+                    when a newer version is available.
+                </li>
+            </ul>
+
+            <p>
+                To document the versioned endpoints automatically in a live interactive UI, read
+                <NavLink href="blogs/documenting-webapi-with-openapi-and-scalar-in-dotnet" Match="NavLinkMatch.All">Documenting Web API with OpenAPI and Scalar in ASP.NET</NavLink>.
+                For securing those endpoints with JWT Bearer tokens, see
+                <NavLink href="blogs/securing-aspnet-webapi-with-jwt-bearer-token-authentication" Match="NavLinkMatch.All">Securing ASP.NET Web API with JWT Bearer Token Authentication</NavLink>.
+            </p>
+        </Summary>
+    </ContentBody>
+</Content>
