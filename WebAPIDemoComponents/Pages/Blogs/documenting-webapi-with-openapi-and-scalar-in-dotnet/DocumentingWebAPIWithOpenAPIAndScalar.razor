@@ -1,0 +1,522 @@
+@page "/blogs/documenting-webapi-with-openapi-and-scalar-in-dotnet"
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(DocumentingWebAPIWithOpenAPIAndScalar)>
+    <ContentBody>
+        <What>
+            <p>
+                Your API documentation is already out of sync. Not eventually — the moment you renamed that
+                parameter, added that new error code, or removed that field without updating the spec, every
+                consumer started working from a lie. The only documentation that stays accurate is
+                documentation that <em>cannot</em> drift because it is generated directly from your code.
+            </p>
+
+            <p>
+                Starting with <Highlight>.NET 9</Highlight>, ASP.NET Core ships a first-class
+                <Highlight>Microsoft.AspNetCore.OpenApi</Highlight> package that generates an
+                <Highlight>OpenAPI</Highlight> JSON document directly from your minimal-API or
+                controller-based route registrations. <Highlight>Scalar</Highlight> is a modern,
+                open-source UI that renders that document into a beautiful, interactive playground —
+                and serves as the recommended replacement for <Highlight>Swagger UI</Highlight> in
+                the .NET ecosystem.
+            </p>
+        </What>
+
+        <Why>
+            <p>
+                Before diving in, let's clear up a decades-old terminology confusion. Many developers use
+                "Swagger" and "OpenAPI" interchangeably — but they mean different things:
+            </p>
+
+            <ul>
+                <li>
+                    An <Highlight>OpenAPI specification</Highlight> (formerly called the Swagger specification)
+                    is a language-agnostic, standardised description of an HTTP API — either in JSON or YAML.
+                    It describes every endpoint, parameter, request body, response shape, and security scheme.
+                </li>
+                <li>
+                    <Highlight>Swagger</Highlight> is a set of <em>tools</em> that work with OpenAPI specs:
+                    <Highlight>Swagger UI</Highlight> renders an interactive page from a spec,
+                    <Highlight>Swagger Editor</Highlight> lets you write specs manually, and various
+                    code generators can produce client SDKs from a spec.
+                </li>
+                <li>
+                    <Highlight>OpenAPI</Highlight> is now the preferred term when talking about the
+                    specification standard itself. Swagger refers specifically to the tooling layer.
+                </li>
+            </ul>
+
+            <p>
+                Until recently, <Highlight>Swashbuckle</Highlight> (the library behind Swagger UI) was the
+                de-facto standard for .NET API documentation. That changed:
+            </p>
+
+            <ul>
+                <li>
+                    <Highlight>Swashbuckle was removed</Highlight> from the default .NET 9 Web API project
+                    template because its maintainer could no longer keep up with breaking changes.
+                </li>
+                <li>
+                    <Highlight>Swagger UI</Highlight> has an older look-and-feel and requires a third-party
+                    package with its own upgrade surface.
+                </li>
+                <li>
+                    Without interactive docs, developers are forced to fire up <Highlight>Postman</Highlight>
+                    or write curl commands just to try a single endpoint.
+                </li>
+                <li>
+                    Manually maintained spec files drift out of sync with the real API within weeks.
+                </li>
+            </ul>
+
+            <p>
+                The built-in OpenAPI support solves every one of those problems:
+            </p>
+
+            <ul>
+                <li>
+                    <Highlight>Zero manual maintenance</Highlight> — the JSON spec is generated from your
+                    route registrations, XML comments, and <code>[ProducesResponseType]</code> attributes at
+                    request time.
+                </li>
+                <li>
+                    <Highlight>Scalar UI</Highlight> is actively maintained, beautiful out of the box, and
+                    replaces Swagger UI with a single NuGet package.
+                </li>
+                <li>
+                    <Highlight>Multiple API versions</Highlight> are shown separately — each version gets
+                    its own JSON document and its own tab in the UI.
+                </li>
+                <li>
+                    <Highlight>JWT Bearer and OAuth2 authentication</Highlight> can be wired up globally
+                    through a document transformer — no per-endpoint decoration required.
+                </li>
+                <li>
+                    Docs stay in sync with the code because they <em>are</em> the code.
+                </li>
+            </ul>
+        </Why>
+
+        <How>
+            <h4>Step 1: Add NuGet Packages and Enable XML Documentation</h4>
+
+            <p>
+                Add three packages to your <Highlight>.csproj</Highlight> — the JWT Bearer authentication
+                package, the built-in OpenAPI package (first introduced in .NET 9), and the Scalar UI
+                adapter — then turn on the XML documentation file so that triple-slash comments flow into
+                the generated spec:
+            </p>
+
+            <CodeSnippet CssClass="language-xml">
+&lt;Project Sdk="Microsoft.NET.Sdk.Web"&gt;
+
+  &lt;PropertyGroup&gt;
+    &lt;TargetFramework&gt;net10.0&lt;/TargetFramework&gt;
+    &lt;!-- Enable triple-slash XML comments --&gt;
+    &lt;GenerateDocumentationFile&gt;true&lt;/GenerateDocumentationFile&gt;
+    &lt;!-- Suppress CS1591 "Missing XML comment" warnings for public members --&gt;
+    &lt;NoWarn&gt;$(NoWarn);1591&lt;/NoWarn&gt;
+  &lt;/PropertyGroup&gt;
+
+  &lt;ItemGroup&gt;
+    &lt;PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.3" /&gt;
+    &lt;PackageReference Include="Microsoft.AspNetCore.OpenApi"                  Version="10.0.3" /&gt;
+    &lt;PackageReference Include="Scalar.AspNetCore"                              Version="2.13.16" /&gt;
+  &lt;/ItemGroup&gt;
+
+&lt;/Project&gt;
+            </CodeSnippet>
+
+            <h4>Step 2: Register OpenAPI Services — One Call Per Version</h4>
+
+            <p>
+                Call <Highlight>AddOpenApi()</Highlight> once for each API version you want to expose.
+                Pass a <em>literal string</em> for the version name — this is important because the
+                <Highlight>XML-comment source generator</Highlight> analyses syntax nodes at build time
+                and may not resolve non-literal arguments such as variables or named constants.
+            </p>
+
+            <p>
+                Use <Highlight>AddDocumentTransformer</Highlight> to enrich each document with a title,
+                description, and security configuration:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.OpenApi;
+using Microsoft.OpenApi;
+using Scalar.AspNetCore;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Register built-in OpenAPI support — one call per API version.
+// IMPORTANT: use literal strings so the XML-comment source generator works.
+builder.Services.AddOpenApi("v1", options =>
+{
+    options.AddDocumentTransformer((document, context, _) =>
+    {
+        document.Info = new()
+        {
+            Title       = "ILoveDotNet API",
+            Version     = context.DocumentName,   // "v1"
+            Description = "A sample API demonstrating built-in .NET 10 OpenAPI support " +
+                          "with Scalar UI, XML comments, versioning, JWT and OAuth2 authentication."
+        };
+
+        // Declare Bearer and OAuth2 security schemes globally for v1.
+        document.Components ??= new OpenApiComponents();
+        document.Components.SecuritySchemes = new Dictionary&lt;string, IOpenApiSecurityScheme&gt;
+        {
+            [JwtBearerDefaults.AuthenticationScheme] = new OpenApiSecurityScheme
+            {
+                Type         = SecuritySchemeType.Http,
+                Scheme       = JwtBearerDefaults.AuthenticationScheme.ToLower(),
+                BearerFormat = "JWT",
+                Description  = "Enter your JWT token in the field below."
+            },
+            ["OAuth2"] = new OpenApiSecurityScheme
+            {
+                Description = "Authenticate using the OAuth2 Authorization Code flow.",
+                Type        = SecuritySchemeType.OAuth2,
+                Flows       = new OpenApiOAuthFlows
+                {
+                    AuthorizationCode = new OpenApiOAuthFlow
+                    {
+                        AuthorizationUrl = new Uri("https://idp.ilovedotnetapi.com/connect/authorize"),
+                        TokenUrl         = new Uri("https://idp.ilovedotnetapi.com/connect/token"),
+                        Scopes           = new Dictionary&lt;string, string&gt;
+                        {
+                            { "openid",                    "Identity"        },
+                            { "profile",                   "Profile"         },
+                            { "email",                     "Email"           },
+                            { "ilovedotnetapi.fullaccess", "ILoveDotNet API" }
+                        }
+                    }
+                }
+            }
+        };
+
+        document.Security =
+        [
+            new OpenApiSecurityRequirement
+            {
+                [new OpenApiSecuritySchemeReference(JwtBearerDefaults.AuthenticationScheme, document)] = []
+            },
+            new OpenApiSecurityRequirement
+            {
+                [new OpenApiSecuritySchemeReference("OAuth2", document)] = []
+            }
+        ];
+
+        return Task.CompletedTask;
+    });
+});
+
+// v2 follows the same transformer shape as v1 — only Version and Description differ.
+builder.Services.AddOpenApi("v2", options =>
+{
+    options.AddDocumentTransformer((document, context, _) =>
+    {
+        document.Info = new()
+        {
+            Title       = "ILoveDotNet API",
+            Version     = context.DocumentName,   // "v2"
+            Description = "Version 2 of the ILoveDotNet API — includes enhanced article details."
+        };
+
+        // To secure v2 endpoints, copy the Components and Security setup from AddOpenApi("v1").
+        // Omitted here for brevity; the structure is identical.
+        return Task.CompletedTask;
+    });
+});
+
+// Register controller services so MVC can discover and activate controllers.
+builder.Services.AddControllers();
+
+var app = builder.Build();
+            </CodeSnippet>
+
+            <p>
+                A few important details about the security setup:
+            </p>
+
+            <ul>
+                <li>
+                    In <Highlight>Microsoft.OpenApi v2.0</Highlight> (which ships with .NET 10), the
+                    namespace is <Highlight>Microsoft.OpenApi</Highlight>, not
+                    <Highlight>Microsoft.OpenApi.Models</Highlight>.
+                </li>
+                <li>
+                    Use <Highlight>JwtBearerDefaults.AuthenticationScheme.ToLower()</Highlight> for the
+                    <code>Scheme</code> property — this keeps the value consistent with the framework
+                    constant rather than relying on the hard-coded string <code>"bearer"</code>.
+                </li>
+                <li>
+                    The <Highlight>OAuth2</Highlight> scheme uses <Highlight>OpenApiOAuthFlows</Highlight>
+                    with an <Highlight>AuthorizationCode</Highlight> flow. The authorization and token URLs
+                    must match the endpoints of your identity provider.
+                </li>
+            </ul>
+
+            <h4>Step 3: Map the OpenAPI JSON Endpoint and Scalar UI</h4>
+
+            <p>
+                Both middleware calls are wrapped in an <Highlight>IsDevelopment()</Highlight> guard —
+                this ensures the OpenAPI JSON spec and the Scalar UI are never exposed in production.
+                The custom <Highlight>/openapi/{documentName}.json</Highlight> pattern means a single
+                route serves <code>/openapi/v1.json</code> and <code>/openapi/v2.json</code>. When you
+                use a custom route pattern you must also pass it to
+                <Highlight>WithOpenApiRoutePattern()</Highlight> — otherwise Scalar cannot locate the
+                spec files and the UI will be blank.
+            </p>
+
+            <p>
+                <Highlight>AddAuthorizationCodeFlow()</Highlight> configures Scalar's built-in OAuth2
+                PKCE login panel, so developers can exchange a client ID for a real token without leaving
+                the browser. A root redirect to <Highlight>/scalar/v1</Highlight> is registered last so
+                hitting the app root opens the docs directly.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+if (app.Environment.IsDevelopment())
+{
+    // Expose the OpenAPI JSON docs: /openapi/v1.json and /openapi/v2.json
+    app.MapOpenApi("/openapi/{documentName}.json");
+
+    // Optional: also serve YAML if you prefer that format — /openapi/v1.yml and /openapi/v2.yml
+    app.MapOpenApi("/openapi/{documentName}.yml");
+
+    // Add Scalar interactive documentation UI at /scalar/v1 and /scalar/v2
+    app.MapScalarApiReference(options =>
+    {
+        options
+            .WithTitle("ILoveDotNet API")
+            .WithTheme(ScalarTheme.Solarized)
+            .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient)
+            .AddPreferredSecuritySchemes("OAuth2", JwtBearerDefaults.AuthenticationScheme)
+            .AddAuthorizationCodeFlow("OAuth2", flow =>
+            {
+                flow.ClientId = "ilovedotnetapiscalarclient";
+                flow.Pkce     = Pkce.Sha256;
+            })
+            .WithOpenApiRoutePattern("/openapi/{documentName}.json")
+            .SortTagsAlphabetically()
+            .HideDarkModeToggle();
+    });
+
+    // Redirect root to the Scalar UI for the default version
+    app.MapGet("/", () => Results.Redirect("/scalar/v1"))
+       .ExcludeFromDescription();
+}
+
+// Map attribute-routed controllers.
+app.MapControllers();
+            </CodeSnippet>
+
+            <p>
+                After this, navigate to <Highlight>/scalar/v1</Highlight> in the browser (or hit
+                the root URL <Highlight>/</Highlight> which redirects there automatically). A version
+                switcher lets you toggle between v1 and v2, and the authentication panel exposes both
+                the <Highlight>Bearer</Highlight> token field and the <Highlight>OAuth2</Highlight>
+                login button.
+            </p>
+
+            <figure>
+                <caption>Scalar UI overview — ILoveDotNet API with JWT Bearer and OAuth2 authentication</caption>
+                <img src="./image/blogs/webapi/documenting-webapi-with-openapi-and-scalar-in-dotnet/scalar-ui-overview.png" alt="scalar-ui-overview" class="[ w-full ]" />
+            </figure>
+
+            <p>
+                Clicking any endpoint expands a panel with the full description, parameter types,
+                expected response shapes (derived from <Highlight>[ProducesResponseType]</Highlight>
+                attributes), and a live <Highlight>Try it</Highlight> button that sends a real HTTP
+                request — JWT token included.
+            </p>
+
+            <figure>
+                <caption>Scalar UI endpoint detail — "Get all articles" with description, response types, and a live C# HttpClient code snippet</caption>
+                <img src="./image/blogs/webapi/documenting-webapi-with-openapi-and-scalar-in-dotnet/scalar-ui-endpoint-detail.png" alt="scalar-ui-endpoint-detail" class="[ w-full ]" />
+            </figure>
+
+            <h4>Step 4: Document Endpoints with XML Comments and Attributes</h4>
+
+            <p>
+                Decorate controller classes and action methods with attributes. The
+                <Highlight>triple-slash XML comments</Highlight> above each action drive the OpenAPI
+                description fields; the data annotation attributes control response types and content
+                negotiation:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+[Produces(MediaTypeNames.Application.Json)]
+[Consumes(MediaTypeNames.Application.Json)]
+[ApiController]
+[Tags("ArticleEndpoints")]                     // groups endpoints in Scalar sidebar
+public class ArticlesController : ControllerBase
+{
+    /// &lt;summary&gt;Retrieves all articles (v1).&lt;/summary&gt;
+    /// &lt;returns&gt;A list of articles.&lt;/returns&gt;
+    [HttpGet("api/v1/articles", Name = "GetArticlesV1")]
+    [ProducesResponseType(typeof(IEnumerable&lt;Article&gt;), StatusCodes.Status200OK)]
+    public ActionResult&lt;IEnumerable&lt;Article&gt;&gt; GetAll()
+    {
+        return Ok(ArticleStore.All);
+    }
+
+    /// &lt;summary&gt;Retrieves a single article by its identifier.&lt;/summary&gt;
+    /// &lt;param name="id"&gt;The article identifier.&lt;/param&gt;
+    /// &lt;returns&gt;The matching article, or 404 if not found.&lt;/returns&gt;
+    [HttpGet("api/v1/articles/{id:int}", Name = "GetArticleByIdV1")]
+    [ProducesResponseType(typeof(Article), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public ActionResult&lt;Article&gt; GetById(int id)
+    {
+        var article = ArticleStore.All.FirstOrDefault(a => a.Id == id);
+        return article is null ? NotFound() : Ok(article);
+    }
+}
+
+[Produces(MediaTypeNames.Application.Json)]
+[Consumes(MediaTypeNames.Application.Json)]
+[ApiController]
+[Tags("ArticleEndpoints")]
+public class ArticlesV2Controller : ControllerBase
+{
+    /// &lt;summary&gt;Retrieves all articles (v2 — with featured flag).&lt;/summary&gt;
+    /// &lt;returns&gt;A list of enriched articles.&lt;/returns&gt;
+    [HttpGet("api/v2/articles", Name = "GetArticlesV2")]
+    [ProducesResponseType(typeof(IEnumerable&lt;ArticleDetailDto&gt;), StatusCodes.Status200OK)]
+    public ActionResult&lt;IEnumerable&lt;ArticleDetailDto&gt;&gt; GetAll()
+    {
+        var enriched = ArticleStore.All
+            .Select(a => new ArticleDetailDto(
+                a.Id, a.Title, a.Author, a.Channel,
+                IsFeatured: a.Id == 1));
+        return Ok(enriched);
+    }
+}
+            </CodeSnippet>
+
+            <p>
+                <Highlight>[Tags("ArticleEndpoints")]</Highlight> applied at the controller class level
+                assigns every action inside it to a named tag. Scalar groups all tagged endpoints under
+                a collapsible sidebar section, and because <Highlight>SortTagsAlphabetically()</Highlight>
+                was enabled in Step 3, those sections appear in alphabetical order as the API grows.
+            </p>
+
+            <p>
+                The <Highlight>[ProducesResponseType(StatusCodes.Status400BadRequest)]</Highlight> on the
+                by-ID action documents the response produced automatically by the
+                <Highlight>{id:int}</Highlight> route constraint. When a caller passes a non-integer
+                value for <code>id</code>, ASP.NET Core short-circuits the pipeline and returns a
+                400 before the action is ever invoked — registering this status code makes that
+                behaviour visible in the Scalar UI.
+            </p>
+
+            <h4>Step 5: Define Models and an In-Memory Article Store</h4>
+
+            <p>
+                The final block defines the data model records and the static in-memory store used by
+                the endpoints registered in Step 4:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+record Article(int Id, string Title, string Author, string Channel);
+record ArticleDetailDto(int Id, string Title, string Author, string Channel, bool IsFeatured);
+
+static class ArticleStore
+{
+    public static readonly List&lt;Article&gt; All =
+    [
+        new(1, "Documenting Web API with OpenAPI and Scalar", "Abdul Rahman", "WebAPI"),
+        new(2, "Building AI Chat Applications with Microsoft Extensions AI", "Abdul Rahman", "AI"),
+        new(3, "Getting Started with Blazor WebAssembly", "Abdul Rahman", "Blazor"),
+    ];
+}
+            </CodeSnippet>
+
+            <h4>Step 6: Testing Authenticated Endpoints Directly from Scalar</h4>
+
+            <p>
+                One of Scalar's most useful features is the ability to test <Highlight>JWT-protected endpoints</Highlight>
+                without leaving the browser. First, generate a development token with
+                <Highlight>dotnet user-jwts</Highlight>:
+            </p>
+
+            <CodeSnippet CssClass="language-bash">
+# Create a token matching our API's issuer and audience
+dotnet user-jwts create --issuer "https://localhost:7001" --audience "ilovedotnetapi"
+
+# Retrieve the signing key for the token store
+dotnet user-jwts key --issuer "https://localhost:7001"
+
+# List all locally generated tokens
+dotnet user-jwts list
+
+# Print a previously generated token by its ID
+dotnet user-jwts print &lt;token-id&gt;
+
+# Remove a token
+dotnet user-jwts remove &lt;token-id&gt;
+
+# Clear all tokens
+dotnet user-jwts clear
+            </CodeSnippet>
+
+            <p>
+                Once you have the token, navigate to <Highlight>/scalar/v1</Highlight> in your browser. In
+                the <em>Authentication</em> section on the right, paste the token into the
+                <Highlight>Bearer</Highlight> field. From that point on, Scalar automatically includes the
+                <code>Authorization: Bearer &lt;token&gt;</code> header on every <em>Try it</em> request —
+                no manual header manipulation required.
+            </p>
+
+            <p>
+                If you prefer OAuth2, click the <Highlight>OAuth2</Highlight> button in the same
+                authentication panel. Scalar launches the Authorization Code + PKCE flow configured in
+                Step 3 — it opens the identity provider login page, exchanges the code for a token, and
+                injects it automatically. No separate token generation step is needed.
+            </p>
+        </How>
+
+        <Summary>
+            <ul>
+                <li>
+                    <Highlight>Microsoft.AspNetCore.OpenApi</Highlight> is a first-class, built-in package
+                    that generates an OpenAPI JSON spec from your route registrations at runtime —
+                    no manual YAML required.
+                </li>
+                <li>
+                    <Highlight>Scalar</Highlight> is the modern replacement for Swagger UI, added via a
+                    single NuGet package and one <code>MapScalarApiReference()</code> call.
+                </li>
+                <li>
+                    Call <Highlight>AddOpenApi()</Highlight> with a <em>literal string</em> per API
+                    version — one call per document you want to expose in the Scalar UI.
+                </li>
+                <li>
+                    Use <Highlight>AddDocumentTransformer</Highlight> to set the spec title,
+                    description, and global security (Bearer and OAuth2) without touching individual endpoints.
+                </li>
+                <li>
+                    Enable <Highlight>GenerateDocumentationFile</Highlight> in your project file so
+                    that triple-slash XML comments feed directly into the spec.
+                </li>
+                <li>
+                    When using a custom <Highlight>MapOpenApi()</Highlight> route pattern, always pair
+                    it with <Highlight>WithOpenApiRoutePattern()</Highlight> in the Scalar options.
+                </li>
+            </ul>
+
+            <p>
+                To go deeper on the JWT security configured in Step 2 and tested in Step 6, read
+                <NavLink href="blogs/securing-aspnet-webapi-with-jwt-bearer-token-authentication" Match="NavLinkMatch.All">Securing ASP.NET Web API with JWT Bearer Token Authentication</NavLink>.
+                For a comprehensive look at the versioning strategies that pair with this documentation
+                approach, see
+                <NavLink href="blogs/uri-based-api-versioning-in-aspnet-webapi" Match="NavLinkMatch.All">URI-Based API Versioning in ASP.NET Web API</NavLink>.
+            </p>
+        </Summary>
+    </ContentBody>
+</Content>
