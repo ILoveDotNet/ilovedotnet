@@ -41,32 +41,60 @@
                         response defined in RFC 7807 standard.
                     </p>
 
+                    <p>
+                        <Highlight>DomainException</Highlight> and <Highlight>UnauthorizedException</Highlight>
+                        are application-specific exception classes you define — they represent known, expected
+                        failure conditions that deserve a distinct, meaningful error response. Only well-known
+                        exception types should expose their message to callers; all others fall back to a safe
+                        generic message.
+                    </p>
+
                     <CodeSnippet CssClass="language-csharp">
+using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.EntityFrameworkCore; // DbUpdateException
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services
 .AddProblemDetails(options =>
     options.CustomizeProblemDetails = (ctx) =>
     {
-        var hostEnv = ctx.HttpContext.RequestServices.GetRequiredService&lt;IHostEnvironment&gt;();
-        var logger = ctx.HttpContext.RequestServices.GetRequiredService&lt;ILogger&lt;ProblemDetails&gt;&gt;();
+        var hostEnv   = ctx.HttpContext.RequestServices.GetRequiredService&lt;IHostEnvironment&gt;();
+        var logger    = ctx.HttpContext.RequestServices.GetRequiredService&lt;ILogger&lt;ProblemDetails&gt;&gt;();
 
-        // exception will hold the thrown exception
+        // Populated by UseExceptionHandler() — null if no exception was thrown
         var exception = ctx.HttpContext.Features.Get&lt;IExceptionHandlerFeature&gt;()?.Error;
-        
+
         if (ctx.ProblemDetails.Status == 500)
         {
-            logger.LogCritical(exception, exception!.Message);
-            
-            if (exception is DomainException domainException)
+            if (exception is null) return; // non-exception 500s are left as-is
+
+            logger.LogCritical(exception, "Unhandled exception of type {ExceptionType}",
+                exception.GetType().Name);
+
+            if (exception is DomainException domainEx)
             {
-                ctx.ProblemDetails.Title = "An error occurred in our API. Use the trace id when contacting us.";
-                ctx.ProblemDetails.Detail = domainException.Message;
+                // DomainException is assumed to carry only user-safe messages by design;
+                // add a hostEnv.IsDevelopment() guard here if yours could contain sensitive internals
+                ctx.ProblemDetails.Title  = "An error occurred in our API. Use the trace id when contacting us.";
+                ctx.ProblemDetails.Detail = domainEx.Message;
+            }
+            else if (exception is UnauthorizedException)
+            {
+                ctx.ProblemDetails.Title  = "An error occurred in our API. Use the trace id when contacting us.";
+                ctx.ProblemDetails.Detail = "User is not authorized to perform this action.";
+            }
+            else if (exception is DbUpdateException)
+            {
+                ctx.ProblemDetails.Title  = "An error occurred in our API. Use the trace id when contacting us.";
+                ctx.ProblemDetails.Detail = "An error occurred while saving data. Please try again later.";
             }
             else if (exception is Exception ex)
             {
-                ctx.ProblemDetails.Title = "An unexpected fault happened. Try again later.";
-                ctx.ProblemDetails.Detail = hostEnv.IsProduction() ? "An unexpected fault happened. Try again later." : ex.Message;
+                ctx.ProblemDetails.Title  = "An unexpected fault happened. Try again later.";
+                ctx.ProblemDetails.Detail = hostEnv.IsDevelopment()
+                    ? ex.Message
+                    : "An unexpected fault happened. Try again later.";
             }
         }
     }
@@ -134,7 +162,7 @@ public sealed class ExceptionHandlerMiddleware : IMiddleware
 
     private Task HandleDomainExceptionAsync(HttpContext context, DomainException exception)
 	{
-		logger.LogCritical(exception, exception.Message);
+		_logger.LogCritical(exception, "Unhandled domain exception of type {ExceptionType}", exception.GetType().Name);
 		string result = exception.Message;
 		context.Response.ContentType = MediaTypeNames.Application.Json;
 		context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
@@ -143,7 +171,7 @@ public sealed class ExceptionHandlerMiddleware : IMiddleware
 
     private Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
-        _logger.LogCritical(exception, exception.Message);
+        _logger.LogCritical(exception, "Unhandled exception of type {ExceptionType}", exception.GetType().Name);
         var result = _env.IsProduction() ? "An unexpected fault happened. Try again later." : exception.Message;
         context.Response.ContentType = MediaTypeNames.Application.Json;
         context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
@@ -198,9 +226,22 @@ app.Run();
 
         <Summary>
             <p>
-                In this article, we explored the <Highlight>simplest and easiest</Highlight> way to handle
-                exceptions globally in ASP.NET Web API using a <Highlight>custom middleware</Highlight>.
-                This approach centralizes exception handling, reduces code duplication, and improves maintainability.
+                In this article, we explored two approaches to handle exceptions globally in ASP.NET Web API.
+                The recommended approach uses <Highlight>AddProblemDetails</Highlight> with a
+                <Highlight>CustomizeProblemDetails</Highlight> callback to produce typed,
+                <Highlight>RFC 7807-compliant</Highlight> error responses — mapping
+                <Highlight>DomainException</Highlight>, <Highlight>UnauthorizedException</Highlight>,
+                <Highlight>DbUpdateException</Highlight>, and generic exceptions to distinct, safe error bodies.
+                The alternative uses a <Highlight>custom IMiddleware</Highlight> for full control over the
+                response format. Both approaches centralise exception handling, eliminate scattered try-catch
+                blocks, and protect callers from internal implementation details.
+            </p>
+
+            <p>
+                Once exceptions are handled globally, the next step is replacing the default console logger
+                with a production-grade solution. See
+                <NavLink href="blogs/structured-logging-with-serilog-in-asp-net-webapi" Match="NavLinkMatch.All">Structured Logging with Serilog in ASP.NET Web API</NavLink>
+                to add enriched, environment-aware logging alongside the exception handler you just built.
             </p>
         </Summary>
     </ContentBody>
