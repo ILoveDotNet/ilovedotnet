@@ -1,11 +1,12 @@
 ﻿@page "/blogs/structured-logging-with-serilog-in-asp-net-webapi"
+@using BaseComponents
 @inherits BasePage
 
 <Content FileName=@nameof(StructuredLoggingUsingSerilogInASPNET)>
     <ContentBody>
         <What>
             <p>
-                In this article, let's learn about how to do <Highlight>Structured Logging</Highlight> of errors using 
+                In this article, let's learn about how to do <Highlight>Structured Logging</Highlight> using 
                 <Highlight>Serilog</Highlight> in <Highlight>Web API</Highlight> in ASP.NET Core.
             </p>
 
@@ -79,8 +80,6 @@ dotnet add package Serilog.AspNetCore
 dotnet add package Serilog.Sinks.Console
 dotnet add package Serilog.Sinks.File
 dotnet add package Serilog.Enrichers.Environment      # WithMachineName, WithEnvironmentName
-dotnet add package Serilog.Enrichers.Process           # WithProcessId
-dotnet add package Serilog.Enrichers.Thread            # WithThreadId
 dotnet add package Serilog.Sinks.ApplicationInsights   # WriteTo.ApplicationInsights (production)
                     </CodeSnippet>
                 </li>
@@ -93,24 +92,13 @@ dotnet add package Serilog.Sinks.ApplicationInsights   # WriteTo.ApplicationInsi
                     <CodeSnippet CssClass="language-json">
 {
   "Serilog": {
-    "Using": [],
     "MinimumLevel": {
       "Default": "Information",
       "Override": {
         "Microsoft": "Warning",
         "System": "Warning"
       }
-    },
-    "WriteTo": [
-      {
-        "Name": "File",
-        "Args": {
-          "path": "logs/ilovedotnet-api_.log",
-          "rollingInterval": "Day",
-          "shared": true
-        }
-      }
-    ]
+    }
   }
 }
                     </CodeSnippet>
@@ -118,7 +106,10 @@ dotnet add package Serilog.Sinks.ApplicationInsights   # WriteTo.ApplicationInsi
                     
 
                     <p>
-                        The above configuration will create a Serilog logger with <Highlight>File</Highlight> sink.
+                        The above configuration controls minimum log levels. Sinks are configured in code
+                        in Step 3 so they can vary per environment — do not add a <Highlight>WriteTo</Highlight>
+                        section in appsettings.json alongside programmatic sink registration or you will get
+                        <Highlight>duplicate log output</Highlight>.
                     </p>
 
                     <p>
@@ -136,30 +127,38 @@ var config = new ConfigurationBuilder()
         optional: true)
     .Build();
 
-// 2. Reusable helper — attaches the same enrichers to every environment variant
-static LoggerConfiguration WithCommonEnrichers(LoggerConfiguration loggerConfig) =&gt;
+// 2. Reusable helper — only add enrichers you actually query;
+//    every enricher writes data to every log event and consumes resources.
+LoggerConfiguration WithCommonEnrichers(LoggerConfiguration loggerConfig) =&gt;
     loggerConfig
+        .ReadFrom.Configuration(config)
         .Enrich.FromLogContext()
         .Enrich.WithMachineName()
-        .Enrich.WithProcessId()
-        .Enrich.WithThreadId()
+        .Enrich.WithEnvironmentName()
         .Enrich.WithProperty("ApplicationName", "ILoveDotNet.Api");
 
-// 3. Bootstrap logger — active from this point until UseSerilog() takes over
-Log.Logger = WithCommonEnrichers(
-        new LoggerConfiguration().ReadFrom.Configuration(config))
-    .CreateLogger();
+// 3. Bootstrap logger — active from this point until AddSerilog() takes over
+Log.Logger = WithCommonEnrichers(new LoggerConfiguration())
+    .CreateBootstrapLogger();
 
-Log.Information("Starting {AssemblyName}", typeof(Program).Assembly.GetName().Name);
+// Using Warning (not Information) ensures this message is visible even when
+// the configured minimum level is Warning or above.
+Log.Warning("Starting {FullName}", typeof(Program).Assembly.FullName);
                     </CodeSnippet>
 
                     
                 </li>
                 <li>
                     <p>
-                        Finally wire Serilog into the host with <Highlight>UseSerilog()</Highlight>, clear the
-                        built-in providers with <Highlight>ClearProviders()</Highlight>, and wrap <Highlight>app.Run()</Highlight>
-                        in a <Highlight>try/catch/finally</Highlight> so startup failures and shutdown flushes are always captured:
+                        Finally, continuing in <Highlight>Program.cs</Highlight> directly after the bootstrap logger
+                        setup above, register Serilog via <Highlight>AddSerilog()</Highlight> — the recommended approach
+                        over <Highlight>UseSerilog()</Highlight>. Unlike <Highlight>UseSerilog()</Highlight>,
+                        <Highlight>AddSerilog()</Highlight> receives the DI <Highlight>serviceProvider</Highlight>
+                        so sinks and enrichers can consume registered services via
+                        <Highlight>ReadFrom.Services()</Highlight>. Wrap the entire host block in a
+                        <Highlight>try/catch/finally</Highlight> so the bootstrap logger captures any startup
+                        failure via <Highlight>Log.Fatal</Highlight> and <Highlight>Log.CloseAndFlush()</Highlight>
+                        always flushes before the process exits:
                     </p>
 
                     <CodeSnippet CssClass="language-csharp">
@@ -170,31 +169,37 @@ try
     // Remove built-in providers; Serilog becomes the sole logging backend
     builder.Logging.ClearProviders();
 
-    if (builder.Environment.IsDevelopment())
+    // AddSerilog is preferred over UseSerilog() — ReadFrom.Services(serviceProvider)
+    // lets sinks and enrichers consume DI-registered services.
+    builder.Services.AddSerilog((serviceProvider, loggerConfig) =&gt;
     {
-        // Development: structured console output + daily rolling log file
-        // WriteTo.Async is built into Serilog &gt;= 4.0; add Serilog.Sinks.Async for earlier versions
-        builder.Host.UseSerilog((ctx, loggerConfig) =&gt;
-            WithCommonEnrichers(loggerConfig.ReadFrom.Configuration(config))
+        // LoggerConfiguration mutates in place and returns 'this', so the
+        // chained result can be discarded — loggerConfig is fully configured.
+        WithCommonEnrichers(loggerConfig)
+            .ReadFrom.Services(serviceProvider);
+
+        if (builder.Environment.IsDevelopment())
+        {
+            loggerConfig
                 .WriteTo.Async(sink =&gt; sink.Console(
                     outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} &lt;s:{SourceContext}&gt;{NewLine}{Exception}"))
                 .WriteTo.Async(sink =&gt; sink.File(
                     path: Path.Combine("logs", "ilovedotnet-api_.log"),
                     rollingInterval: RollingInterval.Day, shared: true,
-                    outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} &lt;s:{SourceContext}&gt;{NewLine}{Exception}")));
-    }
-    else
-    {
-        // Production: ship structured telemetry to Application Insights
-        builder.Host.UseSerilog((ctx, loggerConfig) =&gt;
-            WithCommonEnrichers(loggerConfig.ReadFrom.Configuration(config))
-                .WriteTo.ApplicationInsights(
+                    outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} &lt;s:{SourceContext}&gt;{NewLine}{Exception}"));
+        }
+        else
+        {
+            // Production: ship structured telemetry to Application Insights
+            loggerConfig
+                .WriteTo.Async(sink =&gt; sink.ApplicationInsights(
                     new Microsoft.ApplicationInsights.Extensibility.TelemetryConfiguration
                     {
                         ConnectionString = builder.Configuration["ConnectionStrings:ApplicationInsights"]
                     },
                     TelemetryConverter.Traces));
-    }
+        }
+    });
 
     var app = builder.Build();
     app.Run();
@@ -215,31 +220,37 @@ finally
 
             <p>
                 Serilog <Highlight>enrichers</Highlight> are packages that <Highlight>add properties</Highlight> to log events —
-                things like the current machine name, process id, thread id, or any custom value. The
-                <Highlight>WithCommonEnrichers</Highlight> helper built in Step 2 already wires up all the
-                commonly needed enrichers in one place:
+                things like the current machine name, environment name, or any custom value. The
+                <Highlight>WithCommonEnrichers</Highlight> helper built in Step 2 wires them up in one place:
             </p>
 
             <CodeSnippet CssClass="language-csharp">
-static LoggerConfiguration WithCommonEnrichers(LoggerConfiguration loggerConfig) =&gt;
+LoggerConfiguration WithCommonEnrichers(LoggerConfiguration loggerConfig) =&gt;
     loggerConfig
-        .Enrich.FromLogContext()                            // &lt;-- log scope support
-        .Enrich.WithMachineName()                          // &lt;-- machine name
-        .Enrich.WithProcessId()                            // &lt;-- process id
-        .Enrich.WithThreadId()                             // &lt;-- thread id
-        .Enrich.WithProperty("ApplicationName", "ILoveDotNet.Api"); // &lt;-- custom data
+        .ReadFrom.Configuration(config)   // reads MinimumLevel overrides from appsettings.json (not an enricher)
+        .Enrich.FromLogContext()           // enables log scope support
+        .Enrich.WithMachineName()          // useful for multi-node deployments
+        .Enrich.WithEnvironmentName()      // tags every event with dev / staging / production
+        .Enrich.WithProperty("ApplicationName", "ILoveDotNet.Api");
             </CodeSnippet>
 
             <p>
-                Every log entry now carries <Highlight>MachineName</Highlight>, <Highlight>ProcessId</Highlight>,
-                <Highlight>ThreadId</Highlight>, and <Highlight>ApplicationName</Highlight> automatically —
-                enabling cross-machine log correlation from day one.
+                <strong>Only add enrichers you actually query.</strong> Every enricher writes additional
+                properties to every single log event and consumes CPU and memory. Resist the temptation
+                to add <Highlight>WithProcessId</Highlight>, <Highlight>WithThreadId</Highlight>, or others
+                "just in case" — if you never filter or alert on a property, it is pure overhead.
+            </p>
+
+            <p>
+                Every log entry now carries <Highlight>MachineName</Highlight>, <Highlight>EnvironmentName</Highlight>,
+                and <Highlight>ApplicationName</Highlight> automatically —
+                enabling cross-environment and cross-machine log correlation from day one.
             </p>
 
             <h4 id="log-scope-using-serilog">Log Scope using Serilog</h4>
 
             <p>
-                Now what if we want to add some properties to all the logs events in a request in a single place?? Serilog supports logging 
+                Now what if we want to add some properties to all the logs events in a request in a single place? Serilog supports logging 
                 <Highlight>scopes</Highlight>. Scopes are a way to add properties to log events that are in effect for a limited period of time. 
                 Scopes provide a global way to add properties to all log events in a particular request. For example, you can add a scope for a particular request 
                 with <Highlight>User ID</Highlight> or a <Highlight>Tenant ID</Highlight>. All log events within that scope will have the 
@@ -264,24 +275,46 @@ static LoggerConfiguration WithCommonEnrichers(LoggerConfiguration loggerConfig)
                 scope to all the log events in a request.
             </p>
 
+            <p>
+                The example below uses a <Highlight>Dictionary&lt;string, object&gt;</Highlight> as the scope payload so each
+                property appears as a named field in the log output rather than a positional string.
+                <Highlight>ITenantService</Highlight> is a placeholder — replace <code>GetCurrentUser()</code>
+                with your own user resolution logic. Be mindful of the
+                <strong>known limitation</strong> called out in the code comment: scope properties are lost
+                for exceptions because the <code>using</code> block is disposed before the
+                <Highlight>Global Exception Handler</Highlight> runs.
+            </p>
+
             <CodeSnippet CssClass="language-csharp">
-public sealed class LogScopeMiddleware : IMiddleware
+public sealed class LogScopeMiddleware(
+    ILogger&lt;LogScopeMiddleware&gt; logger,
+    ITenantService tenantService) : IMiddleware
 {
-    private readonly ILogger&lt;LogScopeMiddleware&gt; _logger;
-    private readonly ITenantService _tenantService;
-
-    public LogScopeMiddleware(ILogger&lt;LogScopeMiddleware&gt; logger, ITenantService tenantService)
-    {
-        _logger = logger;
-        _tenantService = tenantService;
-    }
-
     public async Task InvokeAsync(HttpContext context, RequestDelegate next)
     {
-        if (context.User.Identity.IsAuthenticated)
+        if (context.User.Identity is { IsAuthenticated: true })
         {
-            using (_logger.BeginScope("Request {RequestId}, Tenant {TenantId}, User {UserId}",
-            context.TraceIdentifier, _tenantService.GetTenantId(), _tenantService.GetCurrentUser()))
+            var user = context.User;
+
+            // Only include claims you actively filter or alert on —
+            // every scope property is attached to every log event in the request.
+            var claimsToInclude = new List&lt;string&gt; { "name", "username", "role" };
+
+            var scopeProperties = new Dictionary&lt;string, object&gt;();
+            foreach (var claimType in claimsToInclude)
+            {
+                scopeProperties[claimType] = string.Join(", ",
+                    user.Claims
+                        .Where(c =&gt; c.Type == claimType)
+                        .Select(c =&gt; c.Value));
+            }
+
+            scopeProperties["UserId"] = tenantService.GetCurrentUser();
+
+            // ⚠ Known limitation: scope properties are lost when an exception is thrown
+            // because the using block is disposed before the Global Exception Handler runs.
+            // See https://github.com/serilog/serilog/issues/895
+            using (logger.BeginScope(scopeProperties))
             {
                 await next(context);
             }
@@ -293,11 +326,16 @@ public sealed class LogScopeMiddleware : IMiddleware
     }
 }
 
+// Extension member syntax requires C# 14 (.NET 10+).
+// On earlier versions use: public static IApplicationBuilder UseLogScope(this IApplicationBuilder builder) => ...
 public static class LogScopeMiddlewareExtensions
 {
-    public static IApplicationBuilder UseLogScope(this IApplicationBuilder builder)
+    extension(IApplicationBuilder builder)
     {
-        return builder.UseMiddleware&lt;LogScopeMiddleware&gt;();
+        public IApplicationBuilder UseLogScope()
+        {
+            return builder.UseMiddleware&lt;LogScopeMiddleware&gt;();
+        }
     }
 }
 
@@ -362,13 +400,18 @@ app.UseLogScope();
             <p>
                 In this article, we learnt how to implement <Highlight>structured logging</Highlight> using
                 <Highlight>Serilog</Highlight> in ASP.NET Core. We saw how to install the required packages,
-                read configuration before <Highlight>CreateBuilder()</Highlight> using a bootstrap logger, and
-                consolidate enrichers into a reusable <Highlight>WithCommonEnrichers</Highlight> helper.
-                We learnt how to clear built-in providers with <Highlight>ClearProviders()</Highlight>, wire
-                environment-specific sinks — console and file in development,
-                <Highlight>Application Insights</Highlight> in production — and wrap <code>app.Run()</code> in
-                a <Highlight>try/catch/finally</Highlight> with <Highlight>Log.Fatal</Highlight> and
-                <Highlight>Log.CloseAndFlush()</Highlight>.
+                read configuration before <Highlight>CreateBuilder()</Highlight> with a bootstrap logger using
+                <Highlight>CreateBootstrapLogger()</Highlight>, and consolidate enrichers into a reusable
+                <Highlight>WithCommonEnrichers</Highlight> helper — including only the enrichers you actually
+                query, since every enricher adds data to every log event and consumes resources.
+                We learnt how to clear built-in providers with <Highlight>ClearProviders()</Highlight> and
+                register Serilog via the recommended <Highlight>AddSerilog()</Highlight> (preferred over
+                <Highlight>UseSerilog()</Highlight>), leveraging <Highlight>ReadFrom.Services()</Highlight>
+                for DI-aware sinks and enrichers, with environment-specific sinks — console and
+                file in development, <Highlight>Application Insights</Highlight> in production — and
+                wrap the host block in a <Highlight>try/catch/finally</Highlight> with
+                <Highlight>Log.Fatal</Highlight> and <Highlight>Log.CloseAndFlush()</Highlight> so the
+                bootstrap logger captures any startup failure and always flushes on exit.
                 We also explored <Highlight>Sinks</Highlight>, <Highlight>Enrichers</Highlight>, and
                 <Highlight>Scopes</Highlight> to add rich context to every log event.
             </p>
