@@ -84,6 +84,38 @@ Developers scan before they read. If the value is not visible in a 1-second scan
 - Keep individual prose paragraphs to 3–4 sentences maximum
 - Use numbered or bulleted lists for any multi-step or multi-item concept
 
+### Voice and Tone
+
+Apply these consistently throughout every article:
+
+- **Active voice**: "The function processes data" — not "Data is processed by the function"
+- **Direct address**: Use "you" when instructing
+- **Inclusive language**: "We discovered" not "I discovered" (unless sharing a personal story)
+- **Confident but humble**: "This approach works well" — not "This is the best approach ever"
+- **Define jargon on first use**: Never assume familiarity with acronyms or specialized terms
+
+### Audience Calibration
+
+Identify the primary audience before writing and calibrate accordingly:
+
+| Audience | What to emphasise |
+|----------|------------------|
+| **Junior developers** | More context, definitions, and explanations of "why" before "how" |
+| **Senior engineers** | Direct technical details, implementation patterns, performance tradeoffs |
+| **Technical leads** | Architectural implications, team impact, migration considerations |
+
+For iLoveDotNet, the default audience is **mid-level .NET developers**. Err toward more context rather than less — a senior developer can skim past definitions, but a junior developer cannot fill in missing context.
+
+### Blog Series Guidance
+
+Only create a series when the topic genuinely spans multiple publishable weeks. When writing a series:
+
+- Maintain consistent voice and terminology across all posts
+- Reference previous posts naturally with links, not just "in part 1 we covered…"
+- Each post must stand alone as valuable content — a reader who misses part 2 should still benefit from part 3
+- Build complexity progressively: fundamentals → patterns → advanced edge cases
+- Include series navigation at the end of each post (previous / next)
+
 ---
 
 ## Initial Assessment
@@ -97,6 +129,39 @@ Before starting, clarify:
    - There's a clear logical separation between parts
 
 If the user hasn't provided topic details or you need clarification on scope, ask before proceeding.
+
+## Writing Process
+
+Work through these phases in order. Do not skip phases — especially technical review before polish.
+
+### 1. Planning Phase
+- Identify the target audience and what they need to walk away with
+- Define the single core learning objective (what can the reader do after reading this?)
+- Sketch the outline with section targets: What (intro + hook), Why (problem + code evidence), How (implementation), Summary (takeaways + CTA)
+- Gather technical references, official docs, and real code examples before writing prose
+
+### 2. Drafting Phase
+- Write for completeness first, not perfection — get all technical details and code examples down
+- Mark areas that need verification with `[TODO: verify]`
+- Do not worry about perfect flow or sentence polish yet
+
+### 3. Technical Accuracy Review
+- Verify all code examples compile and run (test with `dotnet build`)
+- Confirm all version numbers and package references are current
+- Ensure security best practices are followed in examples — no hardcoded secrets, no SQL injection, etc.
+- Cross-reference claims against official Microsoft documentation
+
+### 4. Editing Phase
+- Improve flow and transitions between paragraphs
+- Simplify complex sentences — if a sentence requires two reads, rewrite it
+- Remove redundancy between sections (especially What vs How overlap)
+- Strengthen every topic sentence so it stands alone as the paragraph's key point
+
+### 5. Polish Phase
+- Verify all `<CodeSnippet CssClass="language-X">` tags have correct language attributes
+- Confirm all HTML entities are escaped in code blocks
+- Run `dotnet format --verbosity quiet whitespace --folder`
+- Run `dotnet build ILoveDotNet.slnx` — zero errors required
 
 ## Implementation Steps
 
@@ -218,6 +283,17 @@ Follow these steps in order:
    ✅ **Build Verification:**
    - [ ] Run `dotnet format --verbosity quiet whitespace --folder`
    - [ ] Run `dotnet build ILoveDotNet.slnx` with 0 errors
+
+   ✅ **Content Quality:**
+   - [ ] A junior developer can understand the main points without prior context
+   - [ ] All technical details and code examples are verified correct
+   - [ ] All promised topics in the intro are covered
+   - [ ] Readers can apply what they learned immediately after finishing
+   - [ ] Non-native English speakers can read this without confusion
+   - [ ] Readers can scan headers and bullet points and still extract value
+   - [ ] Active voice is used throughout — no passive voice walls
+   - [ ] No jargon or acronyms used without definition on first use
+   - [ ] Paragraphs are ≤ 4 sentences with the main point in the first sentence
    
    **DO NOT consider the task complete until ALL checkboxes are verified.**
 
@@ -236,6 +312,8 @@ Follow these steps in order:
 
 ## Common Pitfalls to Avoid
 
+### iLoveDotNet-Specific Pitfalls
+
 1. **Slug Mismatch**: Always derive the slug directly from the title. Don't create a different slug independently. 
    - ❌ Wrong: Title "Introduction to X" → Slug `x-introduction-guide`
    - ✅ Correct: Title "Introduction to X" → Slug `introduction-to-x`
@@ -247,3 +325,18 @@ Follow these steps in order:
 7. Keep each section focused on its purpose - no overlap between What, Why, and How
 8. Don't add unnecessary `@code` blocks - `@nameof()` uses the component class name directly
 9. Use `<Highlight>` directly without nesting `<code>` tags inside
+
+### Content Pitfalls
+
+10. **Implementation before problem**: Don't start with code before explaining what problem it solves — readers won't know why they should care
+11. **Assuming too much prior knowledge**: Define every non-obvious term on first use; a senior can skim a definition, a junior cannot fill in a gap
+12. **Missing the "so what?"**: Every code example needs a sentence explaining its implication or consequence, not just what it does
+13. **Overwhelming with options**: When multiple approaches exist, recommend the best one and briefly note alternatives — don't list all options equally and leave the reader to decide
+14. **Untested code examples**: Every snippet must compile and run as written — broken examples destroy credibility instantly
+
+### Writing Quality Pitfalls
+
+15. **Passive voice overuse**: Makes content feel distant and impersonal — rewrite to active voice ("the middleware processes the request" not "the request is processed by the middleware")
+16. **Walls of text**: No paragraph longer than 4 sentences; break long explanations into lists or sub-sections
+17. **Inconsistent terminology**: Pick one name for each concept and use it throughout — don't alternate between "endpoint", "route", and "action" to refer to the same thing
+18. **Weak topic sentences**: If the first sentence of a paragraph doesn't carry the paragraph's main idea, rewrite it — developers stop reading when they can't quickly judge relevance
