@@ -1,0 +1,363 @@
+@page "/blogs/structured-logging-in-aspnet-webapi-with-built-in-ilogger"
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(StructuredLoggingWithBuiltInILoggerInASPNET)>
+    <ContentBody>
+        <What>
+            <p>
+                Every ASP.NET project seems to start with the same ritual: add <Highlight>Serilog</Highlight>, wire up five enrichers
+                nobody queries, register a sink for a log platform you will configure "later." It is 2026 and <Highlight>.NET 10</Highlight>
+                is here — so let's ask the uncomfortable question: do you actually need Serilog?
+            </p>
+
+            <p>
+                <Highlight>ILogger&lt;T&gt;</Highlight> is Microsoft's first-class structured logging abstraction, built into
+                <Highlight>ASP.NET Core</Highlight> since day one. In <Highlight>.NET 10</Highlight>, the built-in logging stack
+                has closed virtually every gap that once made Serilog the obvious choice — structured JSON output, log scopes,
+                request logging, <NavLink href="blogs/improve-data-security-by-redacting-logs-in-dotnet" Match="NavLinkMatch.All">log redaction</NavLink>, Application Insights integration, and <Highlight>Aspire</Highlight> + OpenTelemetry
+                for the ultimate local development experience.
+            </p>
+
+            <p>
+                <strong>Note:</strong> If you have not done so already, I recommend you read the article on
+                <NavLink href="blogs/structured-logging-with-serilog-in-asp-net-webapi" Match="NavLinkMatch.All">Structured Logging with Serilog in ASP.NET WEB API</NavLink>
+                to understand what Serilog offers before deciding whether to replace it.
+            </p>
+
+            <p>
+                In this article, let's learn how to set up <Highlight>structured logging</Highlight> in an
+                <Highlight>ASP.NET Web API</Highlight> using only the built-in <Highlight>ILogger</Highlight> —
+                no Serilog packages — every dependency used stays within the Microsoft ecosystem.
+            </p>
+        </What>
+
+        <Why>
+            <p>
+                Serilog has become a <Highlight>cargo-cult addition</Highlight> to .NET projects. Developers reach for it
+                out of habit, and before long the codebase carries <Highlight>Serilog.AspNetCore</Highlight>,
+                <Highlight>Serilog.Enrichers.Environment</Highlight>, <Highlight>Serilog.Enrichers.Thread</Highlight>,
+                <Highlight>Serilog.Enrichers.Process</Highlight>, and half a dozen more packages — most of which write
+                data to every log event that nobody ever queries in your APM.
+            </p>
+
+            <p>
+                The hidden cost is real. <Highlight>WithThreadId</Highlight> and <Highlight>WithProcessId</Highlight>
+                call OS-level APIs on every log event — on hot paths that emit thousands of log lines per second,
+                this adds measurable CPU overhead. <Highlight>WithMachineName</Highlight> and
+                <Highlight>WithEnvironmentName</Highlight> are less expensive but still write properties to every
+                single event even when your query tool filters on neither. The enrichers you never query are
+                pure overhead.
+            </p>
+
+            <p>
+                Beyond performance, every extra NuGet package is a potential <Highlight>CVE</Highlight>, a version
+                conflict waiting to happen, and one more entry in your upgrade checklist when .NET 12 ships.
+                Most teams accept this without ever asking whether the functionality was already available
+                in the framework itself.
+            </p>
+
+            <p>
+                The built-in <Highlight>ILogger</Highlight> already supports everything you need — structured JSON output,
+                log scopes, request context logging, <NavLink href="blogs/improve-data-security-by-redacting-logs-in-dotnet" Match="NavLinkMatch.All">log redaction</NavLink>, Application Insights, and OpenTelemetry — with
+                no Serilog packages. The question is not whether Serilog works; it is whether you still need it.
+            </p>
+        </Why>
+
+        <How>
+            <h4 id="clear-providers-first">Clear Built-in Providers First</h4>
+
+            <p>
+                Start by clearing the default providers — the same first step you take with Serilog.
+                This ensures <Highlight>ILogger</Highlight> routes only to the sinks you explicitly register,
+                preventing duplicate output from the default Console provider:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Logging.ClearProviders();
+            </CodeSnippet>
+
+            <h4 id="structured-json-console-for-local-development">Structured JSON Console for Local Development</h4>
+
+            <p>
+                <Highlight>AddJsonConsole</Highlight> gives you structured JSON output in the terminal — the same
+                benefit Serilog's Console sink provides, without the extra package. Enable
+                <Highlight>IncludeScopes</Highlight> so log scope properties (covered below) appear in each event:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// IsLocal() and IsOffline() are custom IHostEnvironment extension methods — replace with your own environment names
+if (builder.Environment.IsLocal() || builder.Environment.IsOffline())
+{
+    builder.Logging.AddJsonConsole(options =&gt;
+    {
+        options.IncludeScopes = true;
+        options.TimestampFormat = "yyyy-MM-dd HH:mm:ss.fff zzz ";
+        options.JsonWriterOptions = new System.Text.Json.JsonWriterOptions
+        {
+            Indented = true
+        };
+    });
+}
+            </CodeSnippet>
+
+            <p>
+                The output is indented, timestamped, and fully structured — easy to read locally and parseable
+                by any log aggregator. No Serilog sink required.
+            </p>
+
+            <h4 id="application-insights-for-cloud-environments">Application Insights for Cloud Environments</h4>
+
+            <p>
+                For staging and production, wire <Highlight>AddApplicationInsights</Highlight> directly from
+                <Highlight>Microsoft.Extensions.Logging.ApplicationInsights</Highlight> — a first-party Microsoft
+                NuGet package, so your entire dependency tree stays within the Microsoft ecosystem:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+if (builder.Environment.IsDevelopment() || builder.Environment.IsProduction())
+{
+    builder.Logging.AddApplicationInsights(
+        configureTelemetryConfiguration: config =&gt;
+            config.ConnectionString = builder.Configuration.GetConnectionString("ApplicationInsights"),
+        configureApplicationInsightsLoggerOptions: options =&gt;
+            options.IncludeScopes = true);
+}
+            </CodeSnippet>
+
+            <h4 id="log-scope-with-ilogger">Log Scope with ILogger — Same as Serilog</h4>
+
+            <p>
+                <Highlight>ILogger.BeginScope</Highlight> works identically to Serilog's
+                <Highlight>LogContext.PushProperty</Highlight> — it enriches all log events emitted within
+                the scope with the provided properties. Create a middleware to push per-request context
+                (user, tenant, correlation ID) once and have it appear in every log event for that request:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+public sealed class LogScopeMiddleware(
+    ILogger&lt;LogScopeMiddleware&gt; logger,
+    ITenantService tenantService) : IMiddleware
+{
+    public async Task InvokeAsync(HttpContext context, RequestDelegate next)
+    {
+        if (context.User.Identity is { IsAuthenticated: true })
+        {
+            var user = context.User;
+            var claimsToInclude = new List&lt;string&gt; { "name", "username", "role" };
+
+            var scopeProperties = new Dictionary&lt;string, object&gt;();
+            foreach (var claimType in claimsToInclude)
+            {
+                scopeProperties[claimType] = string.Join(", ",
+                    user.Claims
+                        .Where(c =&gt; c.Type == claimType)
+                        .Select(c =&gt; c.Value));
+            }
+
+            scopeProperties["UserId"] = tenantService.GetCurrentUser();
+
+            using (logger.BeginScope(scopeProperties))
+            {
+                await next(context);
+            }
+        }
+        else
+        {
+            await next(context);
+        }
+    }
+}
+
+// Extension member syntax requires C# 14 (.NET 10+).
+public static class LogScopeMiddlewareExtensions
+{
+    extension(IApplicationBuilder builder)
+    {
+        public IApplicationBuilder UseLogScope()
+        {
+            return builder.UseMiddleware&lt;LogScopeMiddleware&gt;();
+        }
+    }
+}
+
+// Program.cs — register and use the middleware
+builder.Services.AddTransient&lt;LogScopeMiddleware&gt;();
+app.UseLogScope();
+            </CodeSnippet>
+
+            <h4 id="iis-hosted-offline-apps">IIS-Hosted / Offline Apps — stdout Logging via web.config</h4>
+
+            <p>
+                For on-premises apps hosted in <Highlight>IIS</Highlight>, enable stdout log capture in
+                <Highlight>web.config</Highlight> — no file sink package required:
+            </p>
+
+            <CodeSnippet CssClass="language-xml">
+&lt;?xml version="1.0" encoding="utf-8"?&gt;
+&lt;configuration&gt;
+  &lt;system.webServer&gt;
+    &lt;handlers&gt;
+      &lt;add name="aspNetCore" path="*" verb="*"
+           modules="AspNetCoreModuleV2" resourceType="Unspecified" /&gt;
+    &lt;/handlers&gt;
+    &lt;aspNetCore processPath="dotnet"
+                arguments=".\YourApi.dll"
+                stdoutLogEnabled="true"
+                stdoutLogFile=".\logs\stdout"
+                hostingModel="inprocess"&gt;
+      &lt;environmentVariables /&gt;
+    &lt;/aspNetCore&gt;
+  &lt;/system.webServer&gt;
+&lt;/configuration&gt;
+            </CodeSnippet>
+
+            <p>
+                Set <Highlight>stdoutLogEnabled="true"</Highlight> and point <Highlight>stdoutLogFile</Highlight>
+                to your preferred logs folder. ASP.NET Core Module captures all stdout output — including
+                the structured JSON from <Highlight>AddJsonConsole</Highlight> — into rolling log files.
+            </p>
+
+            <h4 id="aspire-and-opentelemetry-the-best-local-combo">Aspire + OpenTelemetry — The Best Local Developer Experience</h4>
+
+            <p>
+                The best local development combo is <Highlight>.NET Aspire</Highlight> with
+                <Highlight>OpenTelemetry</Highlight>. Call <Highlight>AddServiceDefaults()</Highlight>
+                in your local environment and Aspire's dashboard gives you structured logs, distributed
+                traces, and metrics — all in one UI, with zero extra configuration:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+if (builder.Environment.IsLocal())
+{
+    // Registers OpenTelemetry tracing + metrics + the Aspire dashboard exporter.
+    // The built-in ILogger automatically propagates to the OTEL log exporter.
+    builder.AddServiceDefaults();
+}
+            </CodeSnippet>
+
+            <p>
+                With <Highlight>Aspire</Highlight> running, open the dashboard at
+                <Highlight>http://localhost:18888</Highlight> to see all structured log events,
+                trace context, and per-service metrics — no Seq, no Serilog, no extra sink packages.
+            </p>
+
+            <h4 id="complete-program-cs">Complete Program.cs — No Serilog</h4>
+
+            <p>
+                Here is the full wiring in one place, combining everything above:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+var isTest = args.Any(a =&gt; a.Equals("--environment=Test", StringComparison.OrdinalIgnoreCase));
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Logging.ClearProviders();
+
+if (builder.Environment.IsLocal() || builder.Environment.IsOffline() || isTest)
+{
+    builder.Logging.AddJsonConsole(options =&gt;
+    {
+        options.IncludeScopes = true;
+        options.TimestampFormat = "yyyy-MM-dd HH:mm:ss.fff zzz ";
+        options.JsonWriterOptions = new System.Text.Json.JsonWriterOptions
+        {
+            Indented = true
+        };
+    });
+}
+
+if (builder.Environment.IsDevelopment() || builder.Environment.IsProduction())
+{
+    builder.Logging.AddApplicationInsights(
+        configureTelemetryConfiguration: config =&gt;
+            config.ConnectionString = builder.Configuration.GetConnectionString("ApplicationInsights"),
+        configureApplicationInsightsLoggerOptions: options =&gt;
+            options.IncludeScopes = true);
+}
+
+if (builder.Environment.IsLocal())
+{
+    builder.AddServiceDefaults(); // Aspire + OpenTelemetry
+}
+
+// ... rest of service registration
+// includes: builder.Services.AddTransient&lt;LogScopeMiddleware&gt;();
+
+var app = builder.Build();
+
+app.UseLogScope();
+
+app.Logger.LogWarning("Launching {AppName} on {MachineName}...",
+    builder.Environment.ApplicationName,
+    Environment.MachineName);
+
+await app.RunAsync();
+            </CodeSnippet>
+
+            <h4 id="log-redaction">Log Redaction</h4>
+
+            <p>
+                Masking PII — email addresses, phone numbers, national IDs — before they reach any log sink
+                is also handled within the Microsoft ecosystem via
+                <Highlight>Microsoft.Extensions.Compliance.Redaction</Highlight>. It works with the
+                source-generated <Highlight>[LoggerMessage]</Highlight> pattern and requires no Serilog dependency.
+                See <NavLink href="blogs/improve-data-security-by-redacting-logs-in-dotnet" Match="NavLinkMatch.All">Improve Data Security by Redacting Logs in .NET</NavLink>
+                for a complete walkthrough with custom redactors.
+            </p>
+
+            <h4 id="what-you-can-keep-using-serilog-for">When Serilog Still Makes Sense</h4>
+
+            <p>
+                The built-in logger does not cover every scenario. Consider keeping Serilog when you need:
+            </p>
+
+            <ul>
+                <li><Highlight>Seq</Highlight> — the Seq sink has no first-party equivalent in the built-in stack</li>
+                <li><Highlight>A niche or on-premises APM</Highlight> — if your vendor only offers a Serilog sink and has no official OTEL exporter</li>
+                <li><Highlight>Advanced destructuring policies</Highlight> — custom object serialization that <Highlight>JsonConsole</Highlight> does not support</li>
+                <li><Highlight>File sinks with rolling</Highlight> — if you cannot use stdout capture and need rolling log files without web.config</li>
+            </ul>
+
+            <p>
+                If none of these apply to your project, the built-in stack is enough. If you do decide Serilog is
+                the right fit, start with
+                <NavLink href="blogs/getting-started-with-serilog-in-dotnet-from-installation-to-production-ready-logging" Match="NavLinkMatch.All">Getting Started with Serilog in .NET — From Installation to Production-Ready Logging</NavLink>.
+            </p>
+        </How>
+
+        <Summary>
+            <p>
+                In this article, we saw how to replace <Highlight>Serilog</Highlight> with the built-in
+                <Highlight>ILogger</Highlight> in ASP.NET Web API — no Serilog packages, staying entirely within the Microsoft ecosystem.
+                Key takeaways:
+            </p>
+
+            <ul>
+                <li>Call <Highlight>ClearProviders()</Highlight> to silence the default console provider before adding your own sinks</li>
+                <li>Use <Highlight>AddJsonConsole</Highlight> with <Highlight>IncludeScopes = true</Highlight> for structured JSON output in local and offline environments</li>
+                <li>Use <Highlight>AddApplicationInsights</Highlight> from <Highlight>Microsoft.Extensions.Logging.ApplicationInsights</Highlight> for cloud environments — no Serilog sink needed</li>
+                <li>Implement <Highlight>ILogger.BeginScope</Highlight> in middleware to push per-request properties (user, tenant, correlation ID) to every log event — the same as Serilog's <Highlight>LogContext</Highlight></li>
+                <li>Enable <Highlight>stdoutLogEnabled</Highlight> in <Highlight>web.config</Highlight> for IIS-hosted on-prem apps instead of a file sink</li>
+                <li>Use <Highlight>AddServiceDefaults()</Highlight> with <Highlight>.NET Aspire</Highlight> for the best local developer experience — structured logs, traces, and metrics in one dashboard</li>
+                <li>Keep Serilog only if you need Seq, a vendor-specific sink without an OTEL exporter, or advanced destructuring policies</li>
+            </ul>
+
+            <p>
+                What to read next: learn how the core logging abstractions work under the hood in
+                <NavLink href="blogs/introduction-to-logging-in-dotnet-from-basics-to-best-practices" Match="NavLinkMatch.All">Introduction to Logging in .NET — From Basics to Best Practices</NavLink>,
+                go deeper on message templates and structured data in
+                <NavLink href="blogs/mastering-modern-dotnet-logging-structured-logging-and-advanced-concepts" Match="NavLinkMatch.All">Mastering Modern .NET Logging — Structured Logging and Advanced Concepts</NavLink>,
+                explore all built-in providers and how to build your own in
+                <NavLink href="blogs/understanding-dotnet-logging-providers-from-console-to-custom-implementations" Match="NavLinkMatch.All">Understanding .NET Logging Providers — From Console to Custom Implementations</NavLink>,
+                protect sensitive data with
+                <NavLink href="blogs/improve-data-security-by-redacting-logs-in-dotnet" Match="NavLinkMatch.All">Improve Data Security by Redacting Logs in .NET</NavLink>,
+                or squeeze every last allocation out of hot logging paths in
+                <NavLink href="blogs/high-performance-logging-in-dotnet" Match="NavLinkMatch.All">High Performance Logging in .NET</NavLink>.
+            </p>
+        </Summary>
+    </ContentBody>
+</Content>
