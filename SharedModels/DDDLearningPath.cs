@@ -21,8 +21,8 @@ public class DDDLearningPath
         IconUrl = "image/icons/ddd.webp",
         Channel = "DDD",
         Type = "blogs",
-        CreatedOn = new DateTime(2026, 8, 23, 22, 30, 0, DateTimeKind.Utc),
-        ModifiedOn = new DateTime(2026, 8, 23, 22, 30, 0, DateTimeKind.Utc),
+        CreatedOn = new DateTime(2026, 10, 4, 22, 30, 0, DateTimeKind.Utc),
+        ModifiedOn = new DateTime(2026, 10, 4, 22, 30, 0, DateTimeKind.Utc),
         Keywords = ["Domain-Driven Design", "DDD", "Value Objects", "Information Loss", "Primitive Obsession", ".NET", "C#", "Rich Domain Models", "Data Integrity", "Immutability"]
       },
       new ContentMetaData
@@ -157,8 +157,8 @@ public class DDDLearningPath
         IconUrl = "image/icons/ddd.webp",
         Channel = "DDD",
         Type = "blogs",
-        CreatedOn = new DateTime(2026, 5, 10, 22, 30, 0, DateTimeKind.Utc),
-        ModifiedOn = new DateTime(2026, 5, 10, 22, 30, 0, DateTimeKind.Utc),
+        CreatedOn = new DateTime(2026, 6, 21, 22, 30, 0, DateTimeKind.Utc),
+        ModifiedOn = new DateTime(2026, 6, 21, 22, 30, 0, DateTimeKind.Utc),
         Keywords = ["Domain-Driven Design", "DDD", "Entities", "Value Objects", "Tactical Patterns", ".NET", "C#", "Identity", "Equality", "Domain Modeling"]
       },
       new ContentMetaData
@@ -174,8 +174,8 @@ public class DDDLearningPath
         IconUrl = "image/icons/ddd.webp",
         Channel = "DDD",
         Type = "blogs",
-        CreatedOn = new DateTime(2026, 5, 17, 22, 30, 0, DateTimeKind.Utc),
-        ModifiedOn = new DateTime(2026, 5, 17, 22, 30, 0, DateTimeKind.Utc),
+        CreatedOn = new DateTime(2026, 6, 28, 22, 30, 0, DateTimeKind.Utc),
+        ModifiedOn = new DateTime(2026, 6, 28, 22, 30, 0, DateTimeKind.Utc),
         Keywords = ["Domain-Driven Design", "DDD", "Value Objects", "Money Pattern", "Primitive Obsession", ".NET", "C#", "Financial Calculations", "Immutability", "Type Safety"]
       },
       new ContentMetaData
@@ -191,8 +191,8 @@ public class DDDLearningPath
         IconUrl = "image/icons/ddd.webp",
         Channel = "DDD",
         Type = "blogs",
-        CreatedOn = new DateTime(2026, 5, 24, 22, 30, 0, DateTimeKind.Utc),
-        ModifiedOn = new DateTime(2026, 5, 24, 22, 30, 0, DateTimeKind.Utc),
+        CreatedOn = new DateTime(2026, 7, 5, 22, 30, 0, DateTimeKind.Utc),
+        ModifiedOn = new DateTime(2026, 7, 5, 22, 30, 0, DateTimeKind.Utc),
         Keywords = ["Domain-Driven Design", "DDD", "Anemic Models", "Rich Domain Models", "Encapsulation", ".NET", "C#", "Business Logic", "Entity Design", "Tell Don't Ask"]
       },
       new ContentMetaData
@@ -208,8 +208,8 @@ public class DDDLearningPath
         IconUrl = "image/icons/ddd.webp",
         Channel = "DDD",
         Type = "blogs",
-        CreatedOn = new DateTime(2026, 5, 31, 22, 30, 0, DateTimeKind.Utc),
-        ModifiedOn = new DateTime(2026, 5, 31, 22, 30, 0, DateTimeKind.Utc),
+        CreatedOn = new DateTime(2026, 7, 12, 22, 30, 0, DateTimeKind.Utc),
+        ModifiedOn = new DateTime(2026, 7, 12, 22, 30, 0, DateTimeKind.Utc),
         Keywords = ["Domain-Driven Design", "DDD", "Aggregates", "Aggregate Root", "Consistency Boundaries", "Transaction Boundaries", ".NET", "C#", "Domain Modeling", "Tactical Patterns"]
       },
       new ContentMetaData
@@ -225,8 +225,8 @@ public class DDDLearningPath
         IconUrl = "image/icons/ddd.webp",
         Channel = "DDD",
         Type = "blogs",
-        CreatedOn = new DateTime(2026, 6, 7, 22, 30, 0, DateTimeKind.Utc),
-        ModifiedOn = new DateTime(2026, 6, 7, 22, 30, 0, DateTimeKind.Utc),
+        CreatedOn = new DateTime(2026, 7, 19, 22, 30, 0, DateTimeKind.Utc),
+        ModifiedOn = new DateTime(2026, 7, 19, 22, 30, 0, DateTimeKind.Utc),
         Keywords = ["Domain-Driven Design", "DDD", "Aggregates", "Order Pattern", "E-commerce", ".NET", "C#", "Tactical DDD", "Business Rules", "Entity Framework"]
       },
       new ContentMetaData
@@ -242,8 +242,8 @@ public class DDDLearningPath
         IconUrl = "image/icons/ddd.webp",
         Channel = "DDD",
         Type = "blogs",
-        CreatedOn = new DateTime(2026, 6, 14, 22, 30, 0, DateTimeKind.Utc),
-        ModifiedOn = new DateTime(2026, 6, 14, 22, 30, 0, DateTimeKind.Utc),
+        CreatedOn = new DateTime(2026, 7, 26, 22, 30, 0, DateTimeKind.Utc),
+        ModifiedOn = new DateTime(2026, 7, 26, 22, 30, 0, DateTimeKind.Utc),
         Keywords = ["Domain-Driven Design", "DDD", "Domain Events", "Event-Driven Architecture", "Loose Coupling", ".NET", "C#", "Tactical Patterns", "Audit Trail", "Event Handlers"]
       },
       new ContentMetaData
@@ -259,8 +259,8 @@ public class DDDLearningPath
         IconUrl = "image/icons/ddd.webp",
         Channel = "DDD",
         Type = "blogs",
-        CreatedOn = new DateTime(2026, 6, 21, 22, 30, 0, DateTimeKind.Utc),
-        ModifiedOn = new DateTime(2026, 6, 21, 22, 30, 0, DateTimeKind.Utc),
+        CreatedOn = new DateTime(2026, 8, 2, 22, 30, 0, DateTimeKind.Utc),
+        ModifiedOn = new DateTime(2026, 8, 2, 22, 30, 0, DateTimeKind.Utc),
         Keywords = ["Domain-Driven Design", "DDD", "Domain Events", "Event Collection Pattern", "Application Service", "Event Handlers", "Idempotency", ".NET", "C#", "Event-Driven Architecture"]
       },
       new ContentMetaData
@@ -276,8 +276,8 @@ public class DDDLearningPath
         IconUrl = "image/icons/ddd.webp",
         Channel = "DDD",
         Type = "blogs",
-        CreatedOn = new DateTime(2026, 6, 28, 22, 30, 0, DateTimeKind.Utc),
-        ModifiedOn = new DateTime(2026, 6, 28, 22, 30, 0, DateTimeKind.Utc),
+        CreatedOn = new DateTime(2026, 8, 9, 22, 30, 0, DateTimeKind.Utc),
+        ModifiedOn = new DateTime(2026, 8, 9, 22, 30, 0, DateTimeKind.Utc),
         Keywords = ["Domain-Driven Design", "DDD", "Repository Pattern", "Aggregate Root", "Persistence", "Collection Abstraction", "Domain Interface", ".NET", "C#", "EF Core"]
       },
       new ContentMetaData
@@ -293,8 +293,8 @@ public class DDDLearningPath
         IconUrl = "image/icons/ddd.webp",
         Channel = "DDD",
         Type = "blogs",
-        CreatedOn = new DateTime(2026, 7, 5, 22, 30, 0, DateTimeKind.Utc),
-        ModifiedOn = new DateTime(2026, 7, 5, 22, 30, 0, DateTimeKind.Utc),
+        CreatedOn = new DateTime(2026, 8, 16, 22, 30, 0, DateTimeKind.Utc),
+        ModifiedOn = new DateTime(2026, 8, 16, 22, 30, 0, DateTimeKind.Utc),
         Keywords = ["Domain-Driven Design", "DDD", "Application Services", "Coordination Layer", "Transaction Boundary", "Separation of Concerns", ".NET", "C#", "Clean Architecture", "Domain Orchestration"]
       },
       new ContentMetaData
@@ -310,8 +310,8 @@ public class DDDLearningPath
         IconUrl = "image/icons/ddd.webp",
         Channel = "DDD",
         Type = "blogs",
-        CreatedOn = new DateTime(2026, 7, 12, 22, 30, 0, DateTimeKind.Utc),
-        ModifiedOn = new DateTime(2026, 7, 12, 22, 30, 0, DateTimeKind.Utc),
+        CreatedOn = new DateTime(2026, 8, 23, 22, 30, 0, DateTimeKind.Utc),
+        ModifiedOn = new DateTime(2026, 8, 23, 22, 30, 0, DateTimeKind.Utc),
         Keywords = ["Domain-Driven Design", "DDD", "Testing", "Given-When-Then", "Test Builders", "Domain Events", "Idempotency", "Test Fixtures", ".NET", "C#", "xUnit", "Unit Tests"]
       },
       new ContentMetaData
@@ -327,8 +327,8 @@ public class DDDLearningPath
         IconUrl = "image/icons/ddd.webp",
         Channel = "DDD",
         Type = "blogs",
-        CreatedOn = new DateTime(2026, 7, 19, 22, 30, 0, DateTimeKind.Utc),
-        ModifiedOn = new DateTime(2026, 7, 19, 22, 30, 0, DateTimeKind.Utc),
+        CreatedOn = new DateTime(2026, 8, 30, 22, 30, 0, DateTimeKind.Utc),
+        ModifiedOn = new DateTime(2026, 8, 30, 22, 30, 0, DateTimeKind.Utc),
         Keywords = ["Domain-Driven Design", "DDD", "Bounded Contexts", "Strategic Design", "Context Integration", "Domain Events", "System Design", ".NET", "C#", "Microservices"]
       },
       new ContentMetaData
@@ -344,8 +344,8 @@ public class DDDLearningPath
         IconUrl = "image/icons/ddd.webp",
         Channel = "DDD",
         Type = "blogs",
-        CreatedOn = new DateTime(2026, 7, 26, 22, 30, 0, DateTimeKind.Utc),
-        ModifiedOn = new DateTime(2026, 7, 26, 22, 30, 0, DateTimeKind.Utc),
+        CreatedOn = new DateTime(2026, 9, 6, 22, 30, 0, DateTimeKind.Utc),
+        ModifiedOn = new DateTime(2026, 9, 6, 22, 30, 0, DateTimeKind.Utc),
         Keywords = ["Domain-Driven Design", "DDD", "Context Maps", "Bounded Contexts", "Customer-Supplier", "Partnership", "Anti-Corruption Layer", "Strategic Design", ".NET", "C#"]
       },
       new ContentMetaData
@@ -361,8 +361,8 @@ public class DDDLearningPath
         IconUrl = "image/icons/ddd.webp",
         Channel = "DDD",
         Type = "blogs",
-        CreatedOn = new DateTime(2026, 8, 2, 22, 30, 0, DateTimeKind.Utc),
-        ModifiedOn = new DateTime(2026, 8, 2, 22, 30, 0, DateTimeKind.Utc),
+        CreatedOn = new DateTime(2026, 9, 13, 22, 30, 0, DateTimeKind.Utc),
+        ModifiedOn = new DateTime(2026, 9, 13, 22, 30, 0, DateTimeKind.Utc),
         Keywords = ["Domain-Driven Design", "DDD", "Anti-Corruption Layer", "ACL", "External Integration", "Ports and Adapters", "Domain Protection", ".NET", "C#", "Clean Architecture"]
       },
       new ContentMetaData
@@ -378,8 +378,8 @@ public class DDDLearningPath
         IconUrl = "image/icons/ddd.webp",
         Channel = "DDD",
         Type = "blogs",
-        CreatedOn = new DateTime(2026, 8, 9, 22, 30, 0, DateTimeKind.Utc),
-        ModifiedOn = new DateTime(2026, 8, 9, 22, 30, 0, DateTimeKind.Utc),
+        CreatedOn = new DateTime(2026, 9, 20, 22, 30, 0, DateTimeKind.Utc),
+        ModifiedOn = new DateTime(2026, 9, 20, 22, 30, 0, DateTimeKind.Utc),
         Keywords = ["Domain-Driven Design", "DDD", "Onion Architecture", "Clean Architecture", "Domain Layer", "Application Layer", "Infrastructure Layer", ".NET", "C#", "EF Core"]
       },
       new ContentMetaData
@@ -395,8 +395,8 @@ public class DDDLearningPath
         IconUrl = "image/icons/ddd.webp",
         Channel = "DDD",
         Type = "blogs",
-        CreatedOn = new DateTime(2026, 8, 16, 22, 30, 0, DateTimeKind.Utc),
-        ModifiedOn = new DateTime(2026, 8, 16, 22, 30, 0, DateTimeKind.Utc),
+        CreatedOn = new DateTime(2026, 9, 27, 22, 30, 0, DateTimeKind.Utc),
+        ModifiedOn = new DateTime(2026, 9, 27, 22, 30, 0, DateTimeKind.Utc),
         Keywords = ["Domain-Driven Design", "DDD", "Ports and Adapters", "Hexagonal Architecture", "Repository Pattern", "Contract Tests", "In-Memory Adapter", ".NET", "C#", "xUnit"]
       }
     ];

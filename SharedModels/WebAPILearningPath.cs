@@ -412,8 +412,8 @@ public class WebAPILearningPath
                 IconUrl = "image/icons/web api.webp",
                 Channel = "Web API",
                 Type = "blogs",
-                CreatedOn = new DateTime(2026, 8, 30, 22, 30, 0, DateTimeKind.Utc),
-                ModifiedOn = new DateTime(2026, 8, 30, 22, 30, 0, DateTimeKind.Utc),
+                CreatedOn = new DateTime(2026, 5, 10, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2026, 5, 10, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["OpenAPI", "Scalar", "API Documentation", "Swagger", "JWT Bearer"]
             },
             new ContentMetaData
@@ -429,8 +429,8 @@ public class WebAPILearningPath
                 IconUrl = "image/icons/web api.webp",
                 Channel = "Web API",
                 Type = "blogs",
-                CreatedOn = new DateTime(2026, 9, 6, 22, 30, 0, DateTimeKind.Utc),
-                ModifiedOn = new DateTime(2026, 9, 6, 22, 30, 0, DateTimeKind.Utc),
+                CreatedOn = new DateTime(2026, 5, 17, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2026, 5, 17, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["API Versioning", "URI Versioning", "Asp.Versioning.Mvc", "[ApiVersion]", "Breaking Change"]
             },
             new ContentMetaData
@@ -446,8 +446,8 @@ public class WebAPILearningPath
                 IconUrl = "image/icons/web api.webp",
                 Channel = "Web API",
                 Type = "blogs",
-                CreatedOn = new DateTime(2026, 9, 13, 22, 30, 0, DateTimeKind.Utc),
-                ModifiedOn = new DateTime(2026, 9, 13, 22, 30, 0, DateTimeKind.Utc),
+                CreatedOn = new DateTime(2026, 5, 24, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2026, 5, 24, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["JWT", "Authentication", "Bearer Token", "JwtBearer", "dotnet user-jwts", "ASP.NET Core"]
             },
             new ContentMetaData
@@ -463,8 +463,8 @@ public class WebAPILearningPath
                 IconUrl = "image/icons/web api.webp",
                 Channel = "Web API",
                 Type = "blogs",
-                CreatedOn = new DateTime(2026, 9, 20, 22, 30, 0, DateTimeKind.Utc),
-                ModifiedOn = new DateTime(2026, 9, 20, 22, 30, 0, DateTimeKind.Utc),
+                CreatedOn = new DateTime(2026, 5, 31, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2026, 5, 31, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Authorization", "Claims", "Policies", "ABAC", "CBAC", "AddAuthorizationBuilder", "ASP.NET Core"]
             },
             new ContentMetaData
@@ -480,8 +480,8 @@ public class WebAPILearningPath
                 IconUrl = "image/icons/web api.webp",
                 Channel = "Web API",
                 Type = "blogs",
-                CreatedOn = new DateTime(2026, 9, 27, 22, 30, 0, DateTimeKind.Utc),
-                ModifiedOn = new DateTime(2026, 9, 27, 22, 30, 0, DateTimeKind.Utc),
+                CreatedOn = new DateTime(2026, 6, 7, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2026, 6, 7, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["HTTP REPL", ".http Files", "Testing", "Endpoints Explorer", "Visual Studio", "ASP.NET Core"]
             },
             new ContentMetaData
@@ -497,8 +497,8 @@ public class WebAPILearningPath
                 IconUrl = "image/icons/web api.webp",
                 Channel = "Web API",
                 Type = "blogs",
-                CreatedOn = new DateTime(2026, 10, 4, 22, 30, 0, DateTimeKind.Utc),
-                ModifiedOn = new DateTime(2026, 10, 4, 22, 30, 0, DateTimeKind.Utc),
+                CreatedOn = new DateTime(2026, 6, 14, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2026, 6, 14, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Logging", "ILogger", "Structured Logging", "JsonConsole", "Application Insights", "Aspire", "OpenTelemetry"]
             },
         ];
