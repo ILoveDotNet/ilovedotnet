@@ -2,7 +2,7 @@
 
 public class WebAPILearningPath
 {
-  public readonly List<ContentMetaData> FullContents = new(23);
+  public readonly List<ContentMetaData> FullContents = new(29);
 
   public WebAPILearningPath()
   {
@@ -398,6 +398,108 @@ public class WebAPILearningPath
                 CreatedOn = new DateTime(2025, 8, 17, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2025, 8, 17, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["MediatR", "Mediator", "DI", "Dynamic Dispatch"]
+            },
+            new ContentMetaData
+            {
+                Order = 24,
+                Title = "Documenting Web API with OpenAPI and Scalar in ASP.NET",
+                Description = "In this post I will teach how to auto-generate interactive API documentation using .NET's built-in OpenAPI support and Scalar UI, covering XML comments, API versioning, and JWT Bearer security.",
+                Author = "Abdul Rahman",
+                Slug = "documenting-webapi-with-openapi-and-scalar-in-dotnet",
+                PosterUrl = "image/blogs/webapi/documenting-webapi-with-openapi-and-scalar-in-dotnet.webp",
+                ThumbnailUrl = "image/blogs/webapi/documenting-webapi-with-openapi-and-scalar-in-dotnet.webp",
+                ContentUrl = "blogs/documenting-webapi-with-openapi-and-scalar-in-dotnet",
+                IconUrl = "image/icons/web api.webp",
+                Channel = "Web API",
+                Type = "blogs",
+                CreatedOn = new DateTime(2026, 8, 30, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2026, 8, 30, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["OpenAPI", "Scalar", "API Documentation", "Swagger", "JWT Bearer"]
+            },
+            new ContentMetaData
+            {
+                Order = 25,
+                Title = "URI-Based API Versioning in ASP.NET Web API",
+                Description = "In this post I will teach how to implement URI-based API versioning in ASP.NET Core Web API using Asp.Versioning.Mvc, including controller decoration with [ApiVersion], route templates, and version deprecation.",
+                Author = "Abdul Rahman",
+                Slug = "uri-based-api-versioning-in-aspnet-webapi",
+                PosterUrl = "image/blogs/webapi/uri-based-api-versioning-in-aspnet-webapi.webp",
+                ThumbnailUrl = "image/blogs/webapi/uri-based-api-versioning-in-aspnet-webapi.webp",
+                ContentUrl = "blogs/uri-based-api-versioning-in-aspnet-webapi",
+                IconUrl = "image/icons/web api.webp",
+                Channel = "Web API",
+                Type = "blogs",
+                CreatedOn = new DateTime(2026, 9, 6, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2026, 9, 6, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["API Versioning", "URI Versioning", "Asp.Versioning.Mvc", "[ApiVersion]", "Breaking Change"]
+            },
+            new ContentMetaData
+            {
+                Order = 26,
+                Title = "Securing ASP.NET Web API with JWT Bearer Token Authentication",
+                Description = "In this post I will teach how to secure an ASP.NET Core Web API using JWT Bearer token authentication, including token creation, middleware configuration, and testing with dotnet user-jwts.",
+                Author = "Abdul Rahman",
+                Slug = "securing-aspnet-webapi-with-jwt-bearer-token-authentication",
+                PosterUrl = "image/blogs/webapi/securing-aspnet-webapi-with-jwt-bearer-token-authentication.webp",
+                ThumbnailUrl = "image/blogs/webapi/securing-aspnet-webapi-with-jwt-bearer-token-authentication.webp",
+                ContentUrl = "blogs/securing-aspnet-webapi-with-jwt-bearer-token-authentication",
+                IconUrl = "image/icons/web api.webp",
+                Channel = "Web API",
+                Type = "blogs",
+                CreatedOn = new DateTime(2026, 9, 13, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2026, 9, 13, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["JWT", "Authentication", "Bearer Token", "JwtBearer", "dotnet user-jwts", "ASP.NET Core"]
+            },
+            new ContentMetaData
+            {
+                Order = 27,
+                Title = "Authorization with Claims and Policies in ASP.NET Web API",
+                Description = "In this post I will teach how to implement claims-based authorization in ASP.NET Core Web API using authorization policies, AddAuthorizationBuilder, and RequireAuthorization.",
+                Author = "Abdul Rahman",
+                Slug = "authorization-with-claims-and-policies-in-aspnet-webapi",
+                PosterUrl = "image/blogs/webapi/authorization-with-claims-and-policies-in-aspnet-webapi.webp",
+                ThumbnailUrl = "image/blogs/webapi/authorization-with-claims-and-policies-in-aspnet-webapi.webp",
+                ContentUrl = "blogs/authorization-with-claims-and-policies-in-aspnet-webapi",
+                IconUrl = "image/icons/web api.webp",
+                Channel = "Web API",
+                Type = "blogs",
+                CreatedOn = new DateTime(2026, 9, 20, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2026, 9, 20, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Authorization", "Claims", "Policies", "ABAC", "CBAC", "AddAuthorizationBuilder", "ASP.NET Core"]
+            },
+            new ContentMetaData
+            {
+                Order = 28,
+                Title = "Testing ASP.NET Web API with HTTP REPL and HTTP Files",
+                Description = "In this post I will teach how to test ASP.NET Core Web API endpoints using HTTP REPL and .http files in Visual Studio, including authenticated requests, response chaining, and environment files.",
+                Author = "Abdul Rahman",
+                Slug = "testing-aspnet-webapi-with-http-repl-and-http-files",
+                PosterUrl = "image/blogs/webapi/testing-aspnet-webapi-with-http-repl-and-http-files.webp",
+                ThumbnailUrl = "image/blogs/webapi/testing-aspnet-webapi-with-http-repl-and-http-files.webp",
+                ContentUrl = "blogs/testing-aspnet-webapi-with-http-repl-and-http-files",
+                IconUrl = "image/icons/web api.webp",
+                Channel = "Web API",
+                Type = "blogs",
+                CreatedOn = new DateTime(2026, 9, 27, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2026, 9, 27, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["HTTP REPL", ".http Files", "Testing", "Endpoints Explorer", "Visual Studio", "ASP.NET Core"]
+            },
+            new ContentMetaData
+            {
+                Order = 29,
+                Title = "Structured Logging in ASP.NET Web API with Built-in ILogger",
+                Description = "In this post I will teach how to replace Serilog with the built-in ILogger in ASP.NET Web API using JsonConsole, ApplicationInsights, log scopes, and Aspire — zero third-party packages required.",
+                Author = "Abdul Rahman",
+                Slug = "structured-logging-in-aspnet-webapi-with-built-in-ilogger",
+                PosterUrl = "image/blogs/webapi/structured-logging-in-aspnet-webapi-with-built-in-ilogger.webp",
+                ThumbnailUrl = "image/blogs/webapi/structured-logging-in-aspnet-webapi-with-built-in-ilogger.webp",
+                ContentUrl = "blogs/structured-logging-in-aspnet-webapi-with-built-in-ilogger",
+                IconUrl = "image/icons/web api.webp",
+                Channel = "Web API",
+                Type = "blogs",
+                CreatedOn = new DateTime(2026, 10, 4, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2026, 10, 4, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Logging", "ILogger", "Structured Logging", "JsonConsole", "Application Insights", "Aspire", "OpenTelemetry"]
             },
         ];
   }
