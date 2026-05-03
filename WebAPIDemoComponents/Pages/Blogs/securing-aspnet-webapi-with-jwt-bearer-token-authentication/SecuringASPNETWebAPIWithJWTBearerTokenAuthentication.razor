@@ -1,0 +1,409 @@
+@page "/blogs/securing-aspnet-webapi-with-jwt-bearer-token-authentication"
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(SecuringASPNETWebAPIWithJWTBearerTokenAuthentication)>
+    <ContentBody>
+        <What>
+            <p>
+                Most APIs need some form of security. Sending the username and password on every request
+                is a non-starter — it's slow because credentials must be validated on each call, and it
+                is a massive security risk if the connection isn't encrypted. <Highlight>Token-based
+                authentication</Highlight> solves this elegantly.
+            </p>
+
+            <p>
+                In this article, we'll implement <Highlight>JWT Bearer token authentication</Highlight>
+                in an ASP.NET Core Web API step by step — creating a login endpoint that issues tokens,
+                validating those tokens with middleware, locking down controllers with
+                <Highlight>[Authorize]</Highlight>, and using the <Highlight>dotnet user-jwts</Highlight>
+                tool to generate development tokens without changing any code.
+            </p>
+        </What>
+
+        <Why>
+            <p>
+                Here's the fundamental problem with credentials-per-request:
+            </p>
+
+            <ul>
+                <li>
+                    <strong>Performance.</strong> Verifying a username/password means a database or LDAP
+                    lookup on every single request. At scale, that is expensive.
+                </li>
+                <li>
+                    <strong>Attack surface.</strong> Every request carries the plaintext password. One
+                    intercepted packet (if HTTPS is misconfigured) exposes the credentials permanently.
+                </li>
+                <li>
+                    <strong>Modern client diversity.</strong> Single-page apps, mobile apps, and
+                    server-to-server calls all need a single, interoperable mechanism. Bearer tokens
+                    work for all of them.
+                </li>
+            </ul>
+
+            <p>
+                With <Highlight>JWT (JSON Web Token)</Highlight> Bearer authentication the flow is simple:
+            </p>
+
+            <CodeSnippet CssClass="language-text">
+┌────────────────────────────────────────────────────────────────────────┐
+│  1. Client POSTs { username, password } to /api/auth/login             │
+│  2. API validates credentials and returns a signed JWT token           │
+│  3. Client stores the token (memory, localStorage, etc.)               │
+│  4. Client sends  Authorization: Bearer &lt;token&gt;  on every request│
+│  5. API validates the token signature and claims on every request      │
+│  6. If valid → handler executes. If not → 401 Unauthorized             │
+└────────────────────────────────────────────────────────────────────────┘
+            </CodeSnippet>
+
+            <p>
+                Tokens are <strong>signed</strong>, not encrypted. The payload is Base64-encoded JSON
+                that anyone can decode — but the <em>signature</em> ensures it cannot be tampered with
+                without the signing key. That is why <Highlight>HTTPS is mandatory</Highlight>: tokens
+                rely on transport-layer encryption for confidentiality.
+            </p>
+        </Why>
+
+        <How>
+            <h4>Step 1: Create the Login Endpoint</h4>
+
+            <p>
+                Add the <Highlight>System.IdentityModel.Tokens.Jwt</Highlight> and
+                <Highlight>Microsoft.AspNetCore.Authentication.JwtBearer</Highlight> NuGet packages:
+            </p>
+
+            <CodeSnippet CssClass="language-bash">
+dotnet add package System.IdentityModel.Tokens.Jwt
+dotnet add package Microsoft.AspNetCore.Authentication.JwtBearer
+            </CodeSnippet>
+
+            <p>
+                Store the signing secret and metadata in <Highlight>appsettings.Development.json</Highlight>
+                (never commit production secrets to source control):
+            </p>
+
+            <CodeSnippet CssClass="language-json">
+{
+  "Authentication": {
+    "SecretForKey": "supersecretkey-replace-in-production-min32chars!",
+    "Issuer":   "https://localhost:7001",
+    "Audience": "ilovedotnetapi"
+  }
+}
+            </CodeSnippet>
+
+            <p>
+                Create a login endpoint. In a real application you would look up credentials in a
+                database; here we hard-code a user for illustration:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+using Microsoft.IdentityModel.Tokens;
+
+app.MapPost("/api/auth/login", (LoginRequest request, IConfiguration config) =>
+{
+    // In production: validate credentials against your user store
+    if (request.UserName != "author" || request.Password != "Pa$$w0rd")
+        return Results.Unauthorized();
+
+    // Build the claims that will live inside the token
+    var claims = new List&lt;Claim&gt;
+    {
+        new(JwtRegisteredClaimNames.Sub,        "user-001"),        // unique user ID
+        new(JwtRegisteredClaimNames.GivenName,  "Abdul"),
+        new(JwtRegisteredClaimNames.FamilyName, "Rahman"),
+        new("channel", "WebAPI"),                                    // custom claim
+    };
+
+    // Create signing credentials from the configured secret
+    var key = new SymmetricSecurityKey(
+        Encoding.UTF8.GetBytes(config["Authentication:SecretForKey"]!));
+
+    var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+    var token = new JwtSecurityToken(
+        issuer:             config["Authentication:Issuer"],
+        audience:           config["Authentication:Audience"],
+        claims:             claims,
+        notBefore:          DateTime.UtcNow,
+        expires:            DateTime.UtcNow.AddHours(1),
+        signingCredentials: credentials);
+
+    var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
+
+    return Results.Ok(new { token = tokenString });
+});
+
+record LoginRequest(string UserName, string Password);
+            </CodeSnippet>
+
+            <p>
+                A JWT consists of three Base64url-encoded parts separated by dots: a
+                <Highlight>header</Highlight> (algorithm and token type), a <Highlight>payload</Highlight>
+                (claims), and a <Highlight>signature</Highlight>. Paste the token at
+                <Highlight>jwt.io</Highlight> to inspect the decoded payload — you'll see all the claims
+                we added, the issuer, audience, and expiry.
+            </p>
+
+            <h4>Step 2: Configure JWT Bearer Middleware</h4>
+
+            <p>
+                Tell ASP.NET Core to validate incoming Bearer tokens before reaching any handler.
+                Register this in <Highlight>Program.cs</Highlight> before <code>app.Build()</code>:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+using System.Text;
+
+builder.Services
+    .AddAuthentication("Bearer")
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer           = true,
+            ValidIssuer              = builder.Configuration["Authentication:Issuer"],
+
+            ValidateAudience         = true,
+            ValidAudience            = builder.Configuration["Authentication:Audience"],
+
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey         = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(
+                    builder.Configuration["Authentication:SecretForKey"]!)),
+        };
+        // Token expiry is validated automatically
+    });
+            </CodeSnippet>
+
+            <p>
+                Then add the middleware to the request pipeline — order matters:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+var app = builder.Build();
+
+app.UseAuthentication();   // must come before UseAuthorization
+app.UseAuthorization();
+
+// ... map endpoints
+app.Run();
+            </CodeSnippet>
+
+            <h4>Step 3: Require Authentication on Endpoints</h4>
+
+            <p>
+                Apply <Highlight>RequireAuthorization()</Highlight> on individual endpoints, or call
+                <Highlight>app.MapGroup()</Highlight> and add it to the entire group:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// Without a valid token → 401 Unauthorized
+app.MapGet("/api/articles", (ILogger&lt;Program&gt; logger) =>
+{
+    logger.LogInformation("Fetching all articles");
+    return Results.Ok(ArticleStore.All);
+})
+.RequireAuthorization();
+
+// The login endpoint must remain publicly accessible
+app.MapPost("/api/auth/login", ...)
+   .AllowAnonymous();
+            </CodeSnippet>
+
+            <p>
+                Now sending a request without a token returns:
+            </p>
+
+            <CodeSnippet CssClass="language-text">
+HTTP/1.1 401 Unauthorized
+WWW-Authenticate: Bearer
+            </CodeSnippet>
+
+            <p>
+                After authenticating and passing the token as a Bearer header:
+            </p>
+
+            <CodeSnippet CssClass="language-text">
+GET /api/articles HTTP/1.1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+HTTP/1.1 200 OK
+[ { "id": 1, "title": "..." }, ... ]
+            </CodeSnippet>
+
+            <h4>Step 4: Generating Development Tokens with dotnet user-jwts</h4>
+
+            <p>
+                In real-world projects, tokens are issued by a central identity provider. During
+                development you often need tokens with different claims to test permissions.
+                <Highlight>dotnet user-jwts</Highlight> is a built-in CLI tool that acts as a local,
+                per-project token factory:
+            </p>
+
+            <CodeSnippet CssClass="language-bash">
+# Generate a token with matching issuer and audience
+dotnet user-jwts create \
+    --issuer "https://localhost:7001" \
+    --audience "ilovedotnetapi"
+
+# Add custom claims for testing different user scenarios
+dotnet user-jwts create \
+    --issuer "https://localhost:7001" \
+    --audience "ilovedotnetapi" \
+    --claim channel=Blazor \
+    --claim given_name=TestUser
+
+# Retrieve the signing key that user-jwts uses (sync it with appsettings)
+dotnet user-jwts key
+
+# List all generated tokens for this project
+dotnet user-jwts list
+
+# Print a specific token by ID
+dotnet user-jwts print &lt;token-id&gt;
+
+# Remove a token / clear all tokens
+dotnet user-jwts remove &lt;token-id&gt;
+dotnet user-jwts clear
+            </CodeSnippet>
+
+            <p>
+                Copy the key from <code>dotnet user-jwts key</code> into
+                <Highlight>appsettings.Development.json</Highlight> as
+                <code>Authentication:SecretForKey</code>. From that point, tokens generated with
+                <code>user-jwts</code> are accepted by your API — no code changes required.
+            </p>
+
+            <p>
+                This is much safer than it sounds: <code>user-jwts</code> stores keys in the user's
+                secret store (not the repo). In production, the identity provider uses a different
+                private key that <code>user-jwts</code> can never replicate, so your production API
+                remains secure.
+            </p>
+
+            <h4>Full Program.cs Skeleton</h4>
+
+            <CodeSnippet CssClass="language-csharp">
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+using Microsoft.IdentityModel.Tokens;
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddProblemDetails();
+
+builder.Services
+    .AddAuthentication("Bearer")
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer           = true,
+            ValidIssuer              = builder.Configuration["Authentication:Issuer"],
+            ValidateAudience         = true,
+            ValidAudience            = builder.Configuration["Authentication:Audience"],
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey         = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(
+                    builder.Configuration["Authentication:SecretForKey"]!))
+        };
+    });
+
+var app = builder.Build();
+
+if (!app.Environment.IsDevelopment())
+    app.UseExceptionHandler();
+
+app.UseAuthentication();
+app.UseAuthorization();
+
+// Public login endpoint
+app.MapPost("/api/auth/login", (LoginRequest req, IConfiguration cfg) =>
+{
+    if (req.UserName != "author" || req.Password != "Pa$$w0rd")
+        return Results.Unauthorized();
+
+    var claims = new[]
+    {
+        new Claim(JwtRegisteredClaimNames.Sub,        "user-001"),
+        new Claim(JwtRegisteredClaimNames.GivenName,  "Abdul"),
+        new Claim(JwtRegisteredClaimNames.FamilyName, "Rahman"),
+        new Claim("channel", "WebAPI"),
+    };
+
+    var key = new SymmetricSecurityKey(
+        Encoding.UTF8.GetBytes(cfg["Authentication:SecretForKey"]!));
+
+    var token = new JwtSecurityToken(
+        issuer:             cfg["Authentication:Issuer"],
+        audience:           cfg["Authentication:Audience"],
+        claims:             claims,
+        notBefore:          DateTime.UtcNow,
+        expires:            DateTime.UtcNow.AddHours(1),
+        signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256));
+
+    return Results.Ok(new { token = new JwtSecurityTokenHandler().WriteToken(token) });
+})
+.AllowAnonymous();
+
+// Protected article endpoint
+app.MapGet("/api/articles", () => Results.Ok(ArticleStore.All))
+   .RequireAuthorization();
+
+app.Run();
+
+record LoginRequest(string UserName, string Password);
+record Article(int Id, string Title, string Author, string Channel);
+
+static class ArticleStore
+{
+    public static readonly List&lt;Article&gt; All =
+    [
+        new(1, "Logging in ASP.NET Web API",          "Abdul Rahman", "WebAPI"),
+        new(2, "JWT Authentication in ASP.NET Web API", "Abdul Rahman", "WebAPI"),
+    ];
+}
+            </CodeSnippet>
+        </How>
+
+        <Summary>
+            <ul>
+                <li>
+                    <Highlight>JWT Bearer tokens</Highlight> replace per-request credentials —
+                    authenticate once to get a token, then include it as
+                    <code>Authorization: Bearer &lt;token&gt;</code> on every subsequent request.
+                </li>
+                <li>
+                    A JWT has three parts: <Highlight>header</Highlight> (algorithm), <Highlight>payload</Highlight>
+                    (claims), and <Highlight>signature</Highlight> — it is Base64-encoded, not encrypted,
+                    so <Highlight>HTTPS is mandatory</Highlight>.
+                </li>
+                <li>
+                    Use <Highlight>AddAuthentication("Bearer").AddJwtBearer()</Highlight> to register the
+                    validation middleware, and call <Highlight>UseAuthentication()</Highlight> before
+                    <Highlight>UseAuthorization()</Highlight> in the pipeline.
+                </li>
+                <li>
+                    Protect endpoints with <Highlight>.RequireAuthorization()</Highlight>; keep the login
+                    endpoint public with <Highlight>.AllowAnonymous()</Highlight>.
+                </li>
+                <li>
+                    Use <Highlight>dotnet user-jwts</Highlight> during development to generate tokens with
+                    arbitrary claims — no code changes required, and it does not compromise production
+                    security.
+                </li>
+                <li>
+                    Never store signing secrets in the repository — use
+                    <Highlight>appsettings.Development.json</Highlight> locally, and a
+                    <Highlight>Key Vault</Highlight> or environment variable in production.
+                </li>
+            </ul>
+        </Summary>
+    </ContentBody>
+</Content>
