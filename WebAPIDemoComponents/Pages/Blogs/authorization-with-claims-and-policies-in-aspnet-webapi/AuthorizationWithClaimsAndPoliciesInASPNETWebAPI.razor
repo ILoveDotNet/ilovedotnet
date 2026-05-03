@@ -1,0 +1,250 @@
+@page "/blogs/authorization-with-claims-and-policies-in-aspnet-webapi"
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(AuthorizationWithClaimsAndPoliciesInASPNETWebAPI)>
+    <ContentBody>
+        <What>
+            <p>
+                Authentication answers <em>who are you?</em> Authorization answers
+                <em>what are you allowed to do?</em> Knowing that a token is valid does not mean the
+                user should have access to every endpoint. <Highlight>Claims-based authorization</Highlight>
+                — also known as <Highlight>ABAC</Highlight> (Attribute-Based Access Control),
+                <Highlight>CBAC</Highlight> (Claims-Based Access Control), or
+                <Highlight>PBAC</Highlight> (Policy-Based Access Control) — lets you express fine-grained
+                access rules using the information carried inside the JWT token.
+            </p>
+
+            <p>
+                In this article, we'll walk through reading user claims inside an endpoint, building
+                reusable <Highlight>authorization policies</Highlight>, and applying those policies to
+                protect the ILoveDotNet API so that only users from the right channel can manage articles.
+            </p>
+        </What>
+
+        <Why>
+            <p>
+                Consider what happens when you protect an endpoint with just
+                <Highlight>.RequireAuthorization()</Highlight>. Any authenticated user — regardless of
+                their role or claims — can call that endpoint. For a public blog API that's fine. For
+                an API where only certain users can publish or manage content, it is a problem:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// ❌ Any authenticated user can delete articles — that is wrong
+app.MapDelete("/api/articles/{id:int}", (int id) =>
+{
+    ArticleStore.Remove(id);
+    return Results.NoContent();
+})
+.RequireAuthorization();   // only checks "is a valid token present?"
+            </CodeSnippet>
+
+            <p>
+                The alternative — writing <code>if (User.Claims...)</code> inside every endpoint — is
+                tedious and error-prone. A missed check is a security hole. <Highlight>Authorization
+                policies</Highlight> centralise these rules so they are defined once and applied
+                declaratively:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// ✅ Only users with channel=WebAPI claim can delete articles
+app.MapDelete("/api/articles/{id:int}", ...)
+   .RequireAuthorization("MustBeWebAPIChannel");
+            </CodeSnippet>
+
+            <p>
+                ABAC is considered the preferred modern approach over the older
+                <Highlight>RBAC</Highlight> (Role-Based Access Control). RBAC assigns broad roles
+                (<em>admin</em>, <em>editor</em>). ABAC evaluates any combination of user
+                <em>attributes</em> at request time, which allows far more expressive rules without
+                managing role hierarchies.
+            </p>
+        </Why>
+
+        <How>
+            <h4>Step 1: Reading User Claims in an Endpoint</h4>
+
+            <p>
+                The JWT Bearer middleware automatically deserialises the token and converts it into a
+                <Highlight>ClaimsPrincipal</Highlight> available via <Highlight>HttpContext.User</Highlight>.
+                In minimal API handlers you can receive it directly as a parameter:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+app.MapGet("/api/articles", (ClaimsPrincipal user, ILogger&lt;Program&gt; logger) =>
+{
+    // Access any claim by the name you used when creating the token
+    var userName = user.FindFirstValue("sub");
+    var channel  = user.FindFirstValue("channel");   // custom claim
+
+    logger.LogInformation(
+        "Articles requested by {User} (channel: {Channel})", userName, channel);
+
+    return Results.Ok(ArticleStore.All);
+})
+.RequireAuthorization();
+            </CodeSnippet>
+
+            <p>
+                Use the same claim name string that was set when the token was created.
+                Custom claims (like <Highlight>channel</Highlight>) are never remapped by the middleware
+                and are always accessible by their original name.
+            </p>
+
+            <p>
+                You <em>could</em> check claims directly inside every endpoint handler this way, but
+                that is tedious and error-prone — a missed check is a security hole. The better approach
+                is to define rules once as <Highlight>authorization policies</Highlight> and apply them
+                declaratively.
+            </p>
+
+            <h4>Step 2: Building Authorization Policies</h4>
+
+            <p>
+                Define all policies in one place using <Highlight>AddAuthorizationBuilder()</Highlight>
+                in <Highlight>Program.cs</Highlight>. A policy is a set of requirements — all must pass
+                for the policy to be satisfied:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+builder.Services
+    .AddAuthorizationBuilder()
+
+    // Policy: user must be authenticated AND have channel = "WebAPI"
+    .AddPolicy("MustBeWebAPIChannel", policy =>
+        policy
+            .RequireAuthenticatedUser()
+            .RequireClaim("channel", "WebAPI"));
+            </CodeSnippet>
+
+            <h4>Step 3: Applying Policies to Endpoints</h4>
+
+            <p>
+                Pass the policy name to <Highlight>RequireAuthorization()</Highlight>. You can apply
+                different policies to different endpoints, or group endpoints and apply a policy to the
+                whole group:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// Read: any authenticated user
+app.MapGet("/api/articles", () => Results.Ok(ArticleStore.All))
+   .RequireAuthorization();
+
+// Create, Update, Delete: only WebAPI channel users
+app.MapPost("/api/articles", (Article article) =>
+{
+    ArticleStore.Add(article);
+    return Results.Created($"/api/articles/{article.Id}", article);
+})
+.RequireAuthorization("MustBeWebAPIChannel");
+
+app.MapDelete("/api/articles/{id:int}", (int id) =>
+{
+    ArticleStore.Remove(id);
+    return Results.NoContent();
+})
+.RequireAuthorization("MustBeWebAPIChannel");
+            </CodeSnippet>
+
+            <p>
+                Test the policy with <Highlight>dotnet user-jwts</Highlight> — generate tokens with
+                different <code>channel</code> claim values and observe the responses:
+            </p>
+
+            <CodeSnippet CssClass="language-bash">
+# Token with channel=Blazor  →  DELETE /api/articles → 403 Forbidden
+dotnet user-jwts create \
+    --issuer "https://localhost:7001" \
+    --audience "ilovedotnetapi" \
+    --claim channel=Blazor
+
+# Token with channel=WebAPI  →  DELETE /api/articles → 204 No Content
+dotnet user-jwts create \
+    --issuer "https://localhost:7001" \
+    --audience "ilovedotnetapi" \
+    --claim channel=WebAPI
+            </CodeSnippet>
+
+            <p>
+                A <Highlight>403 Forbidden</Highlight> means the user <em>is</em> authenticated but does
+                not satisfy the policy — exactly the right response. A 401 would mean the token itself
+                was invalid. Swap in the <code>channel=WebAPI</code> token and the same endpoint returns
+                <Highlight>204 No Content</Highlight>, confirming the policy is working correctly.
+            </p>
+
+            <h4>Step 4: Grouping Endpoints with a Shared Policy</h4>
+
+            <p>
+                Apply a policy to every endpoint in a route group using <Highlight>MapGroup()</Highlight>:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// All management endpoints require the WebAPI channel policy
+var adminGroup = app.MapGroup("/api/articles")
+                    .RequireAuthorization("MustBeWebAPIChannel");
+
+adminGroup.MapPost("/",         (Article article) => { ... });
+adminGroup.MapPut("/{id:int}",  (int id, Article article) => { ... });
+adminGroup.MapDelete("/{id:int}", (int id) => { ... });
+            </CodeSnippet>
+
+            <h4>Beyond Basic Policies: A Note on OAuth2 and OpenID Connect</h4>
+
+            <p>
+                The approach above — creating and validating tokens within your own API — is sufficient
+                for getting started and for simple internal APIs. For enterprise-grade applications or
+                consumer-facing APIs, this rudimentary approach has limitations:
+            </p>
+
+            <ul>
+                <li>
+                    <strong>OAuth2</strong> is a protocol that allows client applications to obtain access
+                    tokens from a dedicated <em>authorisation server</em> (e.g. Microsoft Entra ID, OKTA,
+                    IdentityServer). The API only validates the token — it doesn't issue them.
+                </li>
+                <li>
+                    <strong>OpenID Connect</strong> extends OAuth2 with an <em>identity token</em> that
+                    web applications can use for login flows.
+                </li>
+            </ul>
+
+            <p>
+                Adopting a proven identity provider dramatically reduces the attack surface — private
+                signing keys never leave the provider, and features like token rotation, revocation, and
+                MFA are handled out of the box.
+            </p>
+        </How>
+
+        <Summary>
+            <ul>
+                <li>
+                    <Highlight>Authentication</Highlight> (who are you?) and
+                    <Highlight>authorization</Highlight> (what are you allowed to do?) are separate
+                    concerns — authentication must come first.
+                </li>
+                <li>
+                    The JWT Bearer middleware populates <Highlight>HttpContext.User</Highlight> (a
+                    <Highlight>ClaimsPrincipal</Highlight>) automatically — no manual parsing required.
+                </li>
+                <li>
+                    Use <Highlight>AddAuthorizationBuilder().AddPolicy()</Highlight> to define
+                    reusable policies that evaluate one or more claim requirements.
+                </li>
+                <li>
+                    Apply policies declaratively with <Highlight>.RequireAuthorization("PolicyName")</Highlight>
+                    — never scatter claim checks across individual endpoint handlers.
+                </li>
+                <li>
+                    A <Highlight>403 Forbidden</Highlight> = authenticated but not authorised.
+                    A <Highlight>401 Unauthorized</Highlight> = not authenticated (missing or invalid token).
+                </li>
+                <li>
+                    For production systems, delegate token issuance to a proven identity provider
+                    (Entra ID, OKTA, Keycloak) and adopt
+                    <Highlight>OAuth2</Highlight> / <Highlight>OpenID Connect</Highlight>.
+                </li>
+            </ul>
+        </Summary>
+    </ContentBody>
+</Content>
