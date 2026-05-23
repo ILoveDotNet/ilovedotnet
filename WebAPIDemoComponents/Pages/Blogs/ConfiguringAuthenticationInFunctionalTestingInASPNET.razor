@@ -126,7 +126,9 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Security.Claims;
+using System.Text;
 using System.Text.Encodings.Web;
+using System.Text.Json;
 
 namespace FunctionalTest;
 public class TestAuthHandler(
@@ -136,11 +138,26 @@ public class TestAuthHandler(
     AuthClaimsProvider claimsProvider) : AuthenticationHandler&lt;AuthenticationSchemeOptions&gt;(options, logger, encoder)
 {
     public const string SchemeName = "Test";
+    public const string ClaimsHeader = "X-Test-Claims";
     private readonly IList&lt;Claim&gt; _claims = claimsProvider.Claims;
 
     protected override Task&lt;AuthenticateResult&gt; HandleAuthenticateAsync()
     {
-        var identity = new ClaimsIdentity(_claims, SchemeName);
+        IList&lt;Claim&gt; claims;
+
+        if (Request.Headers.TryGetValue(ClaimsHeader, out var headerValue)
+            &amp;&amp; !string.IsNullOrWhiteSpace(headerValue))
+        {
+            var json = Encoding.UTF8.GetString(Convert.FromBase64String(headerValue.ToString()));
+            var dtos = JsonSerializer.Deserialize&lt;ClaimDto[]&gt;(json) ?? [];
+            claims = dtos.Select(d =&gt; new Claim(d.Type, d.Value)).ToList();
+        }
+        else
+        {
+            claims = _claims;
+        }
+
+        var identity = new ClaimsIdentity(claims, SchemeName);
         var principal = new ClaimsPrincipal(identity);
         var ticket = new AuthenticationTicket(principal, SchemeName);
 
@@ -270,32 +287,54 @@ public class AuthClaimsProvider
             </li>
             <li>
                 <p>
-                    Now we need to add extension method to create <Highlight>HttpClient</Highlight> with required <Highlight>Claims</Highlight>. 
-                    This method will be used in tests to create <Highlight>HttpClient</Highlight> with required claims. The code for that is shown below.
+                    Now we need to add a <Highlight>ClaimDto</Highlight> record, a <Highlight>ClaimsInjectionHandler</Highlight> delegating 
+                    handler, and a simplified extension method to create <Highlight>HttpClient</Highlight> with the required <Highlight>Claims</Highlight>.
+                    Instead of spinning up a new <Highlight>TestServer</Highlight> via <Highlight CssClasses="[ break-all ]">WithWebHostBuilder</Highlight> 
+                    for every test, we stamp an <Highlight>X-Test-Claims</Highlight> header on each request so that <Highlight>TestAuthHandler</Highlight> 
+                    resolves per-request claims without any extra server initialization. The code for that is shown below.
                 </p>
 
                 <CodeSnippet CssClass="language-csharp">
+namespace FunctionalTest;
+
+internal sealed record ClaimDto(string Type, string Value);
+                </CodeSnippet>
+
+                <CodeSnippet CssClass="language-csharp">
+using System.Security.Claims;
+using System.Text;
+using System.Text.Json;
+
+namespace FunctionalTest;
+
+/// &lt;summary&gt;
+/// Stamps an &lt;c&gt;X-Test-Claims&lt;/c&gt; header on every outgoing request so that
+/// &lt;see cref="TestAuthHandler"/&gt; can resolve per-request claims without
+/// spinning up a new &lt;c&gt;TestServer&lt;/c&gt; via &lt;c&gt;WithWebHostBuilder&lt;/c&gt;.
+/// &lt;/summary&gt;
+internal sealed class ClaimsInjectionHandler(IList&lt;Claim&gt; claims) : DelegatingHandler
+{
+    protected override Task&lt;HttpResponseMessage&gt; SendAsync(
+        HttpRequestMessage request,
+        CancellationToken cancellationToken)
+    {
+        var dtos = claims.Select(c =&gt; new ClaimDto(c.Type, c.Value));
+        var json = JsonSerializer.Serialize(dtos);
+        var encoded = Convert.ToBase64String(Encoding.UTF8.GetBytes(json));
+        request.Headers.TryAddWithoutValidation(TestAuthHandler.ClaimsHeader, encoded);
+        return base.SendAsync(request, cancellationToken);
+    }
+}
+                </CodeSnippet>
+
+                <CodeSnippet CssClass="language-csharp">
+using Microsoft.AspNetCore.Mvc.Testing;
+
+namespace FunctionalTest;
 public static class WebApplicationFactoryExtensions 
 {
-	public static HttpClient CreateClientWithClaim(this WebApplicationFactory&lt;Program&gt; factory, AuthClaimsProvider claims)
-	{
-		var client = factory.WithWebHostBuilder(builder =&gt;
-		{
-			builder.ConfigureTestServices(services =&gt;
-			{
-				var descriptor = services.SingleOrDefault(d =&gt; d.ServiceType == typeof(AuthClaimsProvider));
-
-				if (descriptor != null)
-				{
-					services.Remove(descriptor);
-					services.AddScoped(_ =&gt; claims);
-				}
-			});
-		})
-		.CreateClient();
-		
-		return client;
-	}
+    public static HttpClient CreateClientWithClaim(this WebApplicationFactory&lt;Program&gt; factory, AuthClaimsProvider claims)
+        =&gt; factory.CreateDefaultClient(new ClaimsInjectionHandler(claims.Claims));
 }
                 </CodeSnippet>
 
