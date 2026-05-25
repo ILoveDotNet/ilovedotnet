@@ -130,8 +130,8 @@ public async Task&lt;SummaryDto&gt; Handle(
             </p>
 
             <p>
-                On top of the aggregation cost, timezone offset recalculation runs on every request —
-                <Highlight>TimeZoneInfo.ConvertTimeFromUtc</Highlight> and
+                A second hidden cost compounds the aggregation overhead: timezone offset recalculation runs on every
+                request — <Highlight>TimeZoneInfo.ConvertTimeFromUtc</Highlight> and
                 <Highlight>TimeZoneInfo.FindSystemTimeZoneById</Highlight> execute per handler call, adding CPU overhead
                 that compounds under concurrent load. When the dashboard is the first screen every user opens after login,
                 slow dashboards erode trust faster than slow reports: users expect dashboards to feel instant.
@@ -210,6 +210,20 @@ public class AppDbContext(DbContextOptions&lt;AppDbContext&gt; options) : DbCont
                 the result into the <Highlight>Data</Highlight> column. Use explicit
                 <Highlight>DateTimeOffset</Highlight> range boundaries — the Npgsql EF Core provider cannot translate
                 <Highlight>DateTimeOffset.Date</Highlight> comparisons for <Highlight>timestamptz</Highlight> columns.
+                The original handler called <Highlight>summary.Process()</Highlight> to derive improvement percentages —
+                <Highlight>SalesImprovement</Highlight>, <Highlight>OrdersImprovement</Highlight>, and similar fields —
+                from the raw aggregates. The sync handler inlines that logic explicitly, as shown with
+                <Highlight>salesImprovement</Highlight> below.
+            </p>
+
+            <p>
+                <strong>Timezone note</strong>: The sync handler below uses UTC day boundaries —
+                <Highlight>DateTime.UtcNow.Date</Highlight>. This matches the behaviour of a system where branch
+                operating hours align with UTC. If your branches operate in local timezones and <em>today's sales</em>
+                means the local calendar day, replace <Highlight>DateTime.UtcNow.Date</Highlight> with
+                <Highlight>TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById(branchTimeZoneId)).Date</Highlight>
+                and pass the timezone ID into the command. The timezone lookup then executes once at sync time rather
+                than on every read — which is the performance win — not UTC-forcing.
             </p>
 
             <CodeSnippet CssClass="language-csharp">
@@ -224,7 +238,7 @@ public async Task&lt;Result&lt;bool, BaseError&gt;&gt; Handle(
     var tomorrowStart  = todayStart.AddDays(1);
     var yesterdayStart = todayStart.AddDays(-1);
     var monthStart     = new DateTimeOffset(today.Year, today.Month, 1, 0, 0, 0, TimeSpan.Zero);
-    var nextMonthStart = monthStart.AddMonths(1);
+    var nextMonthStart = monthStart.AddMonths(1); // upper bound for month-scoped queries below
 
     // Use &gt;= / &lt; half-open intervals for timestamptz — AddSeconds(-1) misses microseconds
     var todaysSales = await context.Orders
@@ -313,10 +327,19 @@ public async Task&lt;Result&lt;SummaryDto, BaseError&gt;&gt; Handle(
 
     if (existing is null)
     {
-        // Read-through: first caller triggers the sync and populates the snapshot
-        await mediator.Send(
-            new SyncDashboardSnapshotCommand(request.BranchId, request.ClientId),
-            cancellationToken);
+        // Read-through: first caller triggers the sync and populates the snapshot.
+        // Guard against concurrent readers all triggering the sync simultaneously.
+        try
+        {
+            await mediator.Send(
+                new SyncDashboardSnapshotCommand(request.BranchId, request.ClientId),
+                cancellationToken);
+        }
+        catch (DbUpdateException ex)
+            when (ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
+        {
+            // Concurrent reader already won the insert; proceed to read.
+        }
 
         existing = await snapshotRepository.FirstOrDefaultAsync(
             s =&gt; s.BranchId == request.BranchId &amp;&amp; s.ClientId == request.ClientId,
@@ -374,7 +397,7 @@ catch (DbUpdateException ex)
 │ Database work             │ Every read                   │ Only on writes               │
 │ Stale data risk           │ None (always live)           │ Brief window possible        │
 │ Write complexity          │ Simple                       │ Sync logic required          │
-│ Schema migration per metric│ Required                    │ Not required (DTO change)    │
+│ Schema columns per new metric │ None needed (raw SQL subquery) │ None needed (DTO change)     │
 │ Infrastructure added      │ None                         │ None (same PostgreSQL)       │
 │ Timezone math             │ Every request                │ Once, at sync time           │
 └───────────────────────────┴──────────────────────────────┴──────────────────────────────┘
@@ -495,6 +518,12 @@ builder.Services.AddStackExchangeRedisCache(options =&gt;
 });
             </CodeSnippet>
 
+            <p>
+                <Highlight>InstanceName</Highlight> is prepended to every key by the cache provider, so the key
+                actually stored in Redis is <Highlight>dashboard:snapshot:{branchId}:{clientId}</Highlight>. Use this
+                full key when inspecting entries with <Highlight>redis-cli</Highlight> or a Redis GUI.
+            </p>
+
             <h3 id="step-9-cache-first-read">Step 9: Cache-first read handler</h3>
 
             <p>
@@ -527,9 +556,17 @@ public async Task&lt;Result&lt;SummaryDto, BaseError&gt;&gt; Handle(
 
     if (existing is null)
     {
-        await mediator.Send(
-            new SyncDashboardSnapshotCommand(request.BranchId, request.ClientId),
-            cancellationToken);
+        try
+        {
+            await mediator.Send(
+                new SyncDashboardSnapshotCommand(request.BranchId, request.ClientId),
+                cancellationToken);
+        }
+        catch (DbUpdateException ex)
+            when (ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
+        {
+            // Concurrent reader already won the insert; proceed to read.
+        }
 
         existing = await snapshotRepository.FirstOrDefaultAsync(
             s =&gt; s.BranchId == request.BranchId &amp;&amp; s.ClientId == request.ClientId,
@@ -569,9 +606,18 @@ public async Task&lt;Result&lt;SummaryDto, BaseError&gt;&gt; Handle(
 context.Orders.Add(newOrder);
 await context.SaveChangesAsync(cancellationToken);
 
-await mediator.Send(
-    new SyncDashboardSnapshotCommand(branchId, clientId),
-    cancellationToken);
+// Keep the try/catch from Step 5 — concurrent write syncs still race on first insert
+try
+{
+    await mediator.Send(
+        new SyncDashboardSnapshotCommand(branchId, clientId),
+        cancellationToken);
+}
+catch (DbUpdateException ex)
+    when (ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
+{
+    // Concurrent sync already owns the row; safe to swallow.
+}
 
 // Remove the stale Redis entry — next read will rebuild it
 var cacheKey = $"snapshot:{branchId}:{clientId}";
@@ -615,6 +661,7 @@ sequenceDiagram
     API-->>Client: SummaryDto (microseconds)
 
     Note over Client,OperationalDB: Warm path — Redis miss, snapshot hit
+    Client->>API: GET /dashboard
     API->>Redis: GET snapshot:{branchId}:{clientId}
     Redis-->>API: Miss
     API->>SnapshotTable: SELECT WHERE BranchId = ? AND ClientId = ? LIMIT 1
@@ -623,6 +670,9 @@ sequenceDiagram
     API-->>Client: SummaryDto (fast)
 
     Note over Client,OperationalDB: Cold path — first load read-through
+    Client->>API: GET /dashboard
+    API->>Redis: GET snapshot:{branchId}:{clientId}
+    Redis-->>API: Miss
     API->>SnapshotTable: SELECT ... (null)
     API->>OperationalDB: Run all 18 aggregations
     API->>SnapshotTable: UPSERT JSONB snapshot
