@@ -1,0 +1,690 @@
+@page "/blogs/pre-computed-snapshot-pattern-eliminate-subqueries-in-aspnet-webapi-dashboard"
+@using SharedModels
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(PreComputedSnapshotPatternEliminateSubqueriesInAspnetWebapiDashboard)>
+    <ContentBody>
+        <What>
+            <p>
+                Your dashboard fires 18 correlated subqueries against PostgreSQL on every single page load — and every user
+                who logs in re-runs every one of them. No cache, no read model, no shortcut: just raw aggregation from
+                scratch, every time, for every concurrent session. That is the situation this article is based on, and it
+                is far more common than most teams admit.
+            </p>
+
+            <p>
+                This article walks through a four-layer optimization applied to a real warehouse management dashboard.
+                Each layer solves a distinct problem on the same endpoint:
+            </p>
+
+            <ul>
+                <li>
+                    <strong>Layer 1 — Pre-computed snapshot</strong>: Move the 18 aggregation queries from every read to
+                    a single <Highlight>JSONB</Highlight> row persisted in <Highlight>PostgreSQL</Highlight>. No new
+                    infrastructure — just the database you already have.
+                </li>
+                <li>
+                    <strong>Layer 2 — Source generators</strong>: Eliminate runtime reflection on every
+                    serialize/deserialize call with <Highlight>System.Text.Json</Highlight> source generators.
+                </li>
+                <li>
+                    <strong>Layer 3 — Format choice</strong>: Understand when <Highlight>Protobuf</Highlight> is the right
+                    tool and when it is not — and why JSON wins for browser-facing APIs.
+                </li>
+                <li>
+                    <strong>Layer 4 — Redis cache</strong>: Add a time-boxed cache in front of the snapshot so repeated
+                    reads within the same window never touch PostgreSQL at all.
+                </li>
+            </ul>
+
+            <p>
+                Each layer is optional and independent — you can stop at any point. The article is structured so you can
+                adopt exactly as much as your application needs.
+            </p>
+        </What>
+
+        <Why>
+            <p>
+                Every dashboard refresh recomputes 18 aggregations from scratch: <Highlight>TodaysSales</Highlight>,
+                <Highlight>YesterdaysOrders</Highlight>, <Highlight>TotalInventoryValue</Highlight>,
+                <Highlight>ThisMonthTopSellingItem</Highlight>, and 14 more. The handler that produces this looks like this:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+public async Task&lt;SummaryDto&gt; Handle(
+    GetDashboardDetailsQuery request,
+    CancellationToken cancellationToken)
+{
+    var branchId = tenantService.GetBranchId().ToString().ToLower();
+    var timeZoneId = userContextAdapter.GetTimeZoneId();
+    var localStartDate = TimeZoneInfo.ConvertTimeFromUtc(
+        request.StartDate.UtcDateTime,
+        TimeZoneInfo.FindSystemTimeZoneById(timeZoneId));
+    var monthStart = new DateTimeOffset(
+        localStartDate.Year, localStartDate.Month, 1, 0, 0, 0, TimeSpan.Zero);
+    var monthEnd = monthStart.AddMonths(1).AddSeconds(-1);
+
+    var sql = $@@"
+        SELECT
+          (SELECT COALESCE(SUM(""BaseAmount"" - ""DiscountAmount"" - ""LoyaltyDiscountAmount""), 0)
+           FROM public.""Orders""
+           WHERE ""OrderDate"" &gt;= '{request.StartDate:O}'::timestamptz
+             AND ""OrderDate"" &lt;= '{request.EndDate:O}'::timestamptz
+             AND ""Active"" = true AND ""Type"" &lt;&gt; 'Complimentary'
+             AND ""BranchId"" = '{branchId}'::uuid) AS ""TodaysSales"",
+
+          (SELECT COALESCE(SUM(""BaseAmount"" - ""DiscountAmount"" - ""LoyaltyDiscountAmount""), 0)
+           FROM public.""Orders""
+           WHERE ""OrderDate"" &gt;= '{request.StartDate.AddDays(-1):O}'::timestamptz
+             AND ""OrderDate"" &lt;= '{request.EndDate.AddDays(-1):O}'::timestamptz
+             AND ""Active"" = true AND ""Type"" &lt;&gt; 'Complimentary'
+             AND ""BranchId"" = '{branchId}'::uuid) AS ""YesterdaysSales"",
+
+          (SELECT COUNT(*) FROM public.""Orders""
+           WHERE ""OrderDate"" &gt;= '{request.StartDate:O}'::timestamptz
+             AND ""OrderDate"" &lt;= '{request.EndDate:O}'::timestamptz
+             AND ""Active"" = true AND ""Type"" &lt;&gt; 'Complimentary'
+             AND ""BranchId"" = '{branchId}'::uuid) AS ""TodaysOrders"",
+
+          -- ... 15 more subqueries for YesterdaysOrders, ThisMonthTopSellingItem,
+          --     TotalCategories, TotalItems, TodaysPurchases, TotalServices,
+          --     TotalProducts, TotalRawMaterials, TotalItemsInStock,
+          --     TotalItemsNotInStock, TotalCustomers, TotalStaffs, TotalSuppliers,
+          --     TotalInventoryValue, TotalBranches
+        ";
+
+    var summary = (await readDashboardSummaryRepository
+        .FromSqlRawAsync(sql, cancellationToken))[0];
+    summary.Process();
+
+    return new SummaryDto { /* map all fields */ };
+}
+            </CodeSnippet>
+
+            <p>
+                The query re-runs even when no new orders arrived in the last 30 seconds — every dashboard open, every
+                refresh, every user session triggers the full 18-subquery execution. Each subquery is an independent
+                table scan across <Highlight>Orders</Highlight>, <Highlight>OrderItems</Highlight>,
+                <Highlight>Items</Highlight>, <Highlight>Customers</Highlight>, <Highlight>Staffs</Highlight>,
+                <Highlight>Suppliers</Highlight>, and <Highlight>Branches</Highlight>: 18 separate execution paths the
+                query planner has to evaluate and materialise on every single request.
+            </p>
+
+            <p>
+                On top of the aggregation cost, the raw SQL handler carries a secondary concern: <Highlight>branchId</Highlight>
+                is interpolated directly into the SQL string. PostgreSQL's <Highlight>::uuid</Highlight> cast rejects
+                non-UUID input with a parse error, which limits the injection surface in this specific case — but string
+                interpolation into raw SQL is a habit that does not stay safe across copy-paste refactors. The snapshot
+                approach eliminates this entirely: the read handler contains no raw SQL, and the sync handler uses typed
+                LINQ queries with parameterised predicates throughout.
+            </p>
+
+            <p>
+                There is also a subtle datetime bug hiding in the original: <Highlight>monthEnd = monthStart.AddMonths(1).AddSeconds(-1)</Highlight>
+                produces <Highlight>2024-01-31 23:59:59.000</Highlight>. On a <Highlight>timestamptz</Highlight> column with
+                microsecond precision this silently misses every order placed between <Highlight>23:59:59.000001</Highlight>
+                and <Highlight>23:59:59.999999</Highlight> on the last day of the month. The correct pattern is an exclusive
+                upper bound: <Highlight>&lt; monthStart.AddMonths(1)</Highlight>. The sync handler in this article
+                demonstrates this half-open interval approach throughout (<Highlight>&gt;= todayStart &amp;&amp; &lt; tomorrowStart</Highlight>).
+            </p>
+
+            <p>
+                On top of the aggregation cost, timezone offset recalculation runs on every request —
+                <Highlight>TimeZoneInfo.ConvertTimeFromUtc</Highlight> and
+                <Highlight>TimeZoneInfo.FindSystemTimeZoneById</Highlight> execute per handler call, adding CPU overhead
+                that compounds under concurrent load. When the dashboard is the first screen every user opens after login,
+                slow dashboards erode trust faster than slow reports: users expect dashboards to feel instant.
+            </p>
+
+            <p>
+                Each layer below removes a distinct cost from this endpoint — without changing what the dashboard sees.
+                Layer 1 eliminates the 18 subqueries with a JSONB snapshot. Layer 2 removes reflection overhead from
+                serialization. Layer 3 explains why the wire format choice matters. Layer 4 adds a Redis cache so the
+                database is not touched at all on the hot path.
+            </p>
+        </Why>
+
+        <How>
+            <h2 id="layer-1-snapshot">Layer 1: Pre-Computed Snapshot in PostgreSQL</h2>
+
+            <h3 id="step-1-define-the-snapshot-entity">Step 1: Define the snapshot entity with a JSONB column</h3>
+
+            <p>
+                Store the entire aggregated dashboard result as a single <Highlight>JSONB</Highlight> column in PostgreSQL.
+                This is more flexible than one column per metric — adding a new metric requires no schema migration, only
+                a change to the serialized DTO. The entity is deliberately thin: it carries the tenant identity, a
+                freshness timestamp, and the serialized payload.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+public class DashboardSnapshot
+{
+    public Guid Id { get; private set; } = Guid.NewGuid();
+    public Guid BranchId { get; set; }
+    public Guid ClientId { get; set; }
+    public DateTimeOffset SummaryDate { get; set; }
+
+    // Stores the serialized SummaryDto as PostgreSQL JSONB.
+    // Adding or removing metrics requires no migration — only a DTO change.
+    public string Data { get; set; } = "{}";
+}
+            </CodeSnippet>
+
+            <h3 id="step-2-register-with-ef-core">Step 2: Register the entity with EF Core</h3>
+
+            <p>
+                Configure the <Highlight>Data</Highlight> property with <Highlight>HasColumnType("jsonb")</Highlight> and
+                add a unique index on <Highlight>(BranchId, ClientId)</Highlight>. The unique index is not optional — the
+                upsert logic performs a read-then-write, and without it, two concurrent syncs can both read
+                <Highlight>null</Highlight> and both attempt to insert, creating duplicate rows.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+public class AppDbContext(DbContextOptions&lt;AppDbContext&gt; options) : DbContext(options)
+{
+    public DbSet&lt;DashboardSnapshot&gt; DashboardSnapshots =&gt; Set&lt;DashboardSnapshot&gt;();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity&lt;DashboardSnapshot&gt;(entity =&gt;
+        {
+            entity.ToTable("DashboardSnapshots");
+            entity.HasKey(e =&gt; e.Id);
+            // One row per branch per client — enforced at the database level.
+            // Without this, concurrent syncs race on first insert.
+            entity.HasIndex(e =&gt; new { e.BranchId, e.ClientId }).IsUnique();
+            // JSONB: schema-flexible, binary-indexed, no per-column precision needed
+            entity.Property(e =&gt; e.Data).HasColumnType("jsonb").IsRequired();
+        });
+    }
+}
+            </CodeSnippet>
+
+            <h3 id="step-3-sync-command">Step 3: Build the sync command — compute once, persist as JSONB</h3>
+
+            <p>
+                The <Highlight>SyncDashboardSnapshotCommand</Highlight> handler runs all 18 aggregations and serializes
+                the result into the <Highlight>Data</Highlight> column. Use explicit
+                <Highlight>DateTimeOffset</Highlight> range boundaries — the Npgsql EF Core provider cannot translate
+                <Highlight>DateTimeOffset.Date</Highlight> comparisons for <Highlight>timestamptz</Highlight> columns.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+public async Task&lt;Result&lt;bool, BaseError&gt;&gt; Handle(
+    SyncDashboardSnapshotCommand request,
+    CancellationToken cancellationToken)
+{
+    var branchId       = request.BranchId;
+    var clientId       = request.ClientId;
+    var today          = DateTime.UtcNow.Date;
+    var todayStart     = new DateTimeOffset(today, TimeSpan.Zero);
+    var tomorrowStart  = todayStart.AddDays(1);
+    var yesterdayStart = todayStart.AddDays(-1);
+    var monthStart     = new DateTimeOffset(today.Year, today.Month, 1, 0, 0, 0, TimeSpan.Zero);
+    var nextMonthStart = monthStart.AddMonths(1);
+
+    // Use &gt;= / &lt; half-open intervals for timestamptz — AddSeconds(-1) misses microseconds
+    var todaysSales = await context.Orders
+        .Where(o =&gt; o.BranchId == branchId
+                 &amp;&amp; o.Active
+                 &amp;&amp; o.Type != OrderType.Complimentary
+                 &amp;&amp; o.OrderDate &gt;= todayStart
+                 &amp;&amp; o.OrderDate &lt; tomorrowStart)
+        .SumAsync(o =&gt; o.BaseAmount - o.DiscountAmount - o.LoyaltyDiscountAmount,
+                  cancellationToken);
+
+    var yesterdaysSales = await context.Orders
+        .Where(o =&gt; o.BranchId == branchId
+                 &amp;&amp; o.Active
+                 &amp;&amp; o.Type != OrderType.Complimentary
+                 &amp;&amp; o.OrderDate &gt;= yesterdayStart
+                 &amp;&amp; o.OrderDate &lt; todayStart)
+        .SumAsync(o =&gt; o.BaseAmount - o.DiscountAmount - o.LoyaltyDiscountAmount,
+                  cancellationToken);
+
+    // ... compute remaining 16 metrics the same way
+
+    // Derived improvement percentages (formerly computed in Process())
+    var salesImprovement = yesterdaysSales == 0 ? 0
+        : Math.Round((todaysSales - yesterdaysSales) / yesterdaysSales * 100, 2);
+
+    // Serialize the full DTO shape into the JSONB column
+    var snapshotData = new SummaryDto
+    {
+        TodaysSales      = todaysSales,
+        YesterdaysSales  = yesterdaysSales,
+        SalesImprovement = salesImprovement,
+        // ... remaining fields
+        SummaryDate = DateTimeOffset.UtcNow,
+        BranchId    = branchId,
+        ClientId    = clientId
+    };
+
+    var json = JsonSerializer.Serialize(snapshotData);
+
+    // Upsert: one row per branch per client
+    var existing = await context.DashboardSnapshots
+        .FirstOrDefaultAsync(
+            s =&gt; s.BranchId == branchId &amp;&amp; s.ClientId == clientId,
+            cancellationToken);
+
+    if (existing is null)
+    {
+        context.DashboardSnapshots.Add(new DashboardSnapshot
+        {
+            BranchId    = branchId,
+            ClientId    = clientId,
+            SummaryDate = DateTimeOffset.UtcNow,
+            Data        = json
+        });
+    }
+    else
+    {
+        existing.Data        = json;
+        existing.SummaryDate = DateTimeOffset.UtcNow;
+    }
+
+    await context.SaveChangesAsync(cancellationToken);
+    return Result.Success&lt;bool, BaseError&gt;(true);
+}
+            </CodeSnippet>
+
+            <h3 id="step-4-read-handler">Step 4: The read handler with read-through</h3>
+
+            <p>
+                The read handler does a single-row lookup filtered by tenant identity. If no snapshot exists yet —
+                such as on first deployment or after a data reset — it runs the sync inline rather than returning an
+                error. This is the <Highlight>read-through</Highlight> pattern: the first caller pays the aggregation
+                cost once and populates the snapshot for everyone who follows.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+public async Task&lt;Result&lt;SummaryDto, BaseError&gt;&gt; Handle(
+    GetDashboardSnapshotQuery request,
+    CancellationToken cancellationToken)
+{
+    // Filter by branch and client — one row per branch per client
+    var existing = await snapshotRepository.FirstOrDefaultAsync(
+        s =&gt; s.BranchId == request.BranchId &amp;&amp; s.ClientId == request.ClientId,
+        cancellationToken);
+
+    if (existing is null)
+    {
+        // Read-through: first caller triggers the sync and populates the snapshot
+        await mediator.Send(
+            new SyncDashboardSnapshotCommand(request.BranchId, request.ClientId),
+            cancellationToken);
+
+        existing = await snapshotRepository.FirstOrDefaultAsync(
+            s =&gt; s.BranchId == request.BranchId &amp;&amp; s.ClientId == request.ClientId,
+            cancellationToken);
+
+        if (existing is null)
+            return Result.Failure&lt;SummaryDto, BaseError&gt;(
+                UnexpectedError.Create("Failed to initialize dashboard snapshot."));
+    }
+
+    var dto = JsonSerializer.Deserialize&lt;SummaryDto&gt;(existing.Data)!;
+    return Result.Success&lt;SummaryDto, BaseError&gt;(dto);
+}
+            </CodeSnippet>
+
+            <p>
+                For high-traffic deployments, pre-warm the snapshot with a <Highlight>BackgroundService</Highlight> that
+                calls <Highlight>SyncDashboardSnapshotCommand</Highlight> at startup — this removes the first-caller
+                latency spike entirely. The read-through remains as a fallback.
+            </p>
+
+            <h3 id="step-5-trigger-on-writes">Step 5: Trigger sync after every relevant write</h3>
+
+            <p>
+                Every write that changes a dashboard metric must dispatch <Highlight>SyncDashboardSnapshotCommand</Highlight>
+                after saving. One <Highlight>mediator.Send</Highlight> call per write keeps the snapshot current. Catch
+                the unique-constraint exception from concurrent syncs and treat it as a no-op — the winning insert
+                already owns the row, and it holds the correct values:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+context.Orders.Add(newOrder);
+await context.SaveChangesAsync(cancellationToken);
+
+try
+{
+    await mediator.Send(
+        new SyncDashboardSnapshotCommand(branchId, clientId),
+        cancellationToken);
+}
+catch (DbUpdateException ex)
+    when (ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
+{
+    // Concurrent sync already inserted the row; safe to swallow.
+}
+            </CodeSnippet>
+
+            <h3 id="step-6-tradeoffs">Step 6: The tradeoffs table</h3>
+
+            <CodeSnippet CssClass="language-plaintext">
+┌───────────────────────────┬──────────────────────────────┬──────────────────────────────┐
+│ Aspect                    │ Before (18 subqueries)       │ After (JSONB snapshot)       │
+├───────────────────────────┼──────────────────────────────┼──────────────────────────────┤
+│ Dashboard read            │ 18 subqueries per load       │ 1 row lookup + deserialize   │
+│ Database work             │ Every read                   │ Only on writes               │
+│ Stale data risk           │ None (always live)           │ Brief window possible        │
+│ Write complexity          │ Simple                       │ Sync logic required          │
+│ Schema migration per metric│ Required                    │ Not required (DTO change)    │
+│ Infrastructure added      │ None                         │ None (same PostgreSQL)       │
+│ Timezone math             │ Every request                │ Once, at sync time           │
+└───────────────────────────┴──────────────────────────────┴──────────────────────────────┘
+            </CodeSnippet>
+
+            <h3 id="step-7-staleness">Step 7: Choose your staleness strategy deliberately</h3>
+
+            <p>
+                Two strategies cover most scenarios. The choice depends on how fresh the dashboard data needs to be and
+                how tolerant the write path is to extra work:
+            </p>
+
+            <ul>
+                <li>
+                    <strong>Eager sync</strong> — dispatch <Highlight>SyncDashboardSnapshotCommand</Highlight> immediately
+                    after each write that changes a dashboard metric. Staleness window is milliseconds. If the sync throws
+                    a transient error the order remains correctly saved; the next write or scheduled job will bring the
+                    snapshot up to date.
+                </li>
+                <li>
+                    <strong>Scheduled sync</strong> — a <Highlight>BackgroundService</Highlight>, Hangfire, or
+                    Quartz.NET job runs the sync every one to five minutes. Simpler to implement and immune to write-path
+                    failures cascading into sync failures. The tradeoff is a predictable staleness window equal to the
+                    job interval.
+                </li>
+            </ul>
+
+            <h2 id="layer-2-source-generators">Layer 2: Eliminate Reflection with Source Generators</h2>
+
+            <p>
+                The JSONB snapshot removed 18 database queries from the read path. The remaining cost is
+                serialization — every <Highlight>JsonSerializer.Serialize</Highlight> in the sync command and
+                <Highlight>JsonSerializer.Deserialize</Highlight> in the read handler use reflection at runtime to
+                discover the shape of <Highlight>SummaryDto</Highlight>. At scale, reflection-based serialization
+                adds CPU pressure and extra allocations, and it prevents AOT compilation.
+            </p>
+
+            <p>
+                <Highlight>System.Text.Json</Highlight> source generators solve this by generating serialization
+                metadata at build time. The serializer no longer inspects the type on every call — the generated
+                code is a direct, allocation-efficient path that handles the same contract without reflection.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+[JsonSerializable(typeof(SummaryDto))]
+[JsonSourceGenerationOptions(
+    PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
+    GenerationMode = JsonSourceGenerationMode.Serialization | JsonSourceGenerationMode.Metadata)]
+public partial class DashboardJsonContext : JsonSerializerContext { }
+            </CodeSnippet>
+
+            <p>
+                Pass the context wherever <Highlight>SummaryDto</Highlight> is serialized or deserialized. Two changes —
+                one in the sync command, one in the read handler:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// SyncDashboardSnapshotCommand — serialize with generated metadata:
+var json = JsonSerializer.Serialize(snapshotData, DashboardJsonContext.Default.SummaryDto);
+
+// GetDashboardSnapshotQuery — deserialize with generated metadata:
+var dto = JsonSerializer.Deserialize&lt;SummaryDto&gt;(
+    existing.Data,
+    DashboardJsonContext.Default.SummaryDto)!;
+            </CodeSnippet>
+
+            <p>
+                The contract does not change — the JSON shape, property names, and values are identical. What changes
+                is that the runtime no longer discovers the type on every call. This is especially valuable when the same
+                endpoint is called hundreds of times per minute by multiple concurrent users, and is
+                <strong>required</strong> for AOT-compiled deployments.
+            </p>
+
+            <h2 id="layer-3-protobuf">Layer 3: Protobuf — Right Tool, Wrong Context Here</h2>
+
+            <p>
+                Protobuf produces a compact binary encoding of the same data. For the same <Highlight>SummaryDto</Highlight>
+                payload, Protobuf would be noticeably smaller than JSON — because JSON carries property names as text,
+                while Protobuf uses pre-agreed field numbers. For machine-to-machine communication — internal service
+                calls, background pipelines, export jobs — that size reduction is a genuine win.
+            </p>
+
+            <p>
+                For this dashboard endpoint the answer is different. The consumer is a browser. Browsers expect JSON.
+                Introducing Protobuf here means adding a content-negotiation layer, a binary-aware HTTP client, and a
+                decode step on the browser side — none of which the dashboard needs. The right tool for browser-facing
+                APIs is JSON with source generators, not binary wire formats.
+            </p>
+
+            <p>
+                Where Protobuf becomes appropriate in the same system: an internal sync job that pushes snapshot data
+                between services, or a mobile background refresh that operates over a metered connection. If
+                <Highlight>SyncDashboardSnapshotCommand</Highlight> were triggered by an event from a separate
+                microservice, that event payload is a strong Protobuf candidate — not the HTTP response the browser reads.
+            </p>
+
+            <h2 id="layer-4-redis">Layer 4: Redis Cache — Stop Hitting PostgreSQL on Every Request</h2>
+
+            <p>
+                The JSONB snapshot is already a single-row lookup. For most applications that is fast enough. But on a
+                dashboard opened by every user immediately after login — dozens of concurrent requests during a morning
+                rush — even single-row reads accumulate into database pressure. A Redis cache in front of the snapshot
+                absorbs those reads entirely.
+            </p>
+
+            <h3 id="step-8-register-redis">Step 8: Register IDistributedCache with Redis</h3>
+
+            <p>
+                Install the <Highlight>Microsoft.Extensions.Caching.StackExchangeRedis</Highlight> NuGet package and
+                register the distributed cache in <Highlight>Program.cs</Highlight>:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+builder.Services.AddStackExchangeRedisCache(options =&gt;
+{
+    options.Configuration = builder.Configuration.GetConnectionString("Redis");
+    options.InstanceName  = "dashboard:";
+});
+            </CodeSnippet>
+
+            <h3 id="step-9-cache-first-read">Step 9: Cache-first read handler</h3>
+
+            <p>
+                Check Redis before touching PostgreSQL. On a hit, the response is serialized JSON from in-memory Redis —
+                microseconds, not milliseconds. On a miss, fall through to the JSONB snapshot, then populate the cache
+                for subsequent requests:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+public async Task&lt;Result&lt;SummaryDto, BaseError&gt;&gt; Handle(
+    GetDashboardSnapshotQuery request,
+    CancellationToken cancellationToken)
+{
+    var cacheKey = $"snapshot:{request.BranchId}:{request.ClientId}";
+
+    // 1. Try Redis first
+    var cached = await distributedCache.GetStringAsync(cacheKey, cancellationToken);
+    if (cached is not null)
+    {
+        var cachedDto = JsonSerializer.Deserialize&lt;SummaryDto&gt;(
+            cached,
+            DashboardJsonContext.Default.SummaryDto)!;
+        return Result.Success&lt;SummaryDto, BaseError&gt;(cachedDto);
+    }
+
+    // 2. Try the JSONB snapshot (with read-through on first load)
+    var existing = await snapshotRepository.FirstOrDefaultAsync(
+        s =&gt; s.BranchId == request.BranchId &amp;&amp; s.ClientId == request.ClientId,
+        cancellationToken);
+
+    if (existing is null)
+    {
+        await mediator.Send(
+            new SyncDashboardSnapshotCommand(request.BranchId, request.ClientId),
+            cancellationToken);
+
+        existing = await snapshotRepository.FirstOrDefaultAsync(
+            s =&gt; s.BranchId == request.BranchId &amp;&amp; s.ClientId == request.ClientId,
+            cancellationToken);
+
+        if (existing is null)
+            return Result.Failure&lt;SummaryDto, BaseError&gt;(
+                UnexpectedError.Create("Failed to initialize dashboard snapshot."));
+    }
+
+    // 3. Populate Redis for subsequent requests (5-minute TTL)
+    await distributedCache.SetStringAsync(
+        cacheKey,
+        existing.Data,
+        new DistributedCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
+        },
+        cancellationToken);
+
+    var dto = JsonSerializer.Deserialize&lt;SummaryDto&gt;(
+        existing.Data,
+        DashboardJsonContext.Default.SummaryDto)!;
+    return Result.Success&lt;SummaryDto, BaseError&gt;(dto);
+}
+            </CodeSnippet>
+
+            <h3 id="step-10-cache-invalidation">Step 10: Invalidate on writes</h3>
+
+            <p>
+                The TTL handles time-based staleness automatically. For known writes — a new order, a purchase, an
+                inventory update — delete the cache key immediately after the snapshot sync succeeds. The next read
+                will re-populate both the snapshot and the cache from fresh data:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+context.Orders.Add(newOrder);
+await context.SaveChangesAsync(cancellationToken);
+
+await mediator.Send(
+    new SyncDashboardSnapshotCommand(branchId, clientId),
+    cancellationToken);
+
+// Remove the stale Redis entry — next read will rebuild it
+var cacheKey = $"snapshot:{branchId}:{clientId}";
+await distributedCache.RemoveAsync(cacheKey, cancellationToken);
+            </CodeSnippet>
+
+            <p>
+                The TTL is a safety net for cases where a write path skips invalidation — a bulk import, a migration
+                script, a background fix. The explicit <Highlight>RemoveAsync</Highlight> on known writes ensures the
+                dashboard is fresh within milliseconds of a change, not minutes.
+            </p>
+
+            <p>
+                To go deeper on cache expiration strategy, stampede prevention, and null-value handling, read
+                <NavigateTo Href="blogs/understanding-caching-fundamentals-in-dotnet"
+                            Text="Understanding Caching Fundamentals in .NET" />
+                and
+                <NavigateTo Href="blogs/avoiding-cache-stampede-and-handling-nulls-in-dotnet"
+                            Text="Avoiding Cache Stampede and Handling Nulls in .NET" />.
+            </p>
+
+            <h3 id="step-11-architecture">Step 11: The complete data flow</h3>
+
+            <p>
+                The diagram below shows all four layers working together — Redis cache, JSONB snapshot, read-through
+                aggregation, and the write-plus-sync-plus-invalidation path:
+            </p>
+
+            <CodeSnippet CssClass="language-mermaid">
+sequenceDiagram
+    participant Client
+    participant API
+    participant Redis
+    participant SnapshotTable as DashboardSnapshots (JSONB)
+    participant OperationalDB as Orders / Items / etc.
+
+    Note over Client,OperationalDB: Fast path — Redis hit
+    Client->>API: GET /dashboard
+    API->>Redis: GET snapshot:{branchId}:{clientId}
+    Redis-->>API: Hit → cached SummaryDto JSON
+    API-->>Client: SummaryDto (microseconds)
+
+    Note over Client,OperationalDB: Warm path — Redis miss, snapshot hit
+    API->>Redis: GET snapshot:{branchId}:{clientId}
+    Redis-->>API: Miss
+    API->>SnapshotTable: SELECT WHERE BranchId = ? AND ClientId = ? LIMIT 1
+    SnapshotTable-->>API: JSONB row
+    API->>Redis: SET snapshot:... (TTL 5 min)
+    API-->>Client: SummaryDto (fast)
+
+    Note over Client,OperationalDB: Cold path — first load read-through
+    API->>SnapshotTable: SELECT ... (null)
+    API->>OperationalDB: Run all 18 aggregations
+    API->>SnapshotTable: UPSERT JSONB snapshot
+    API->>Redis: SET snapshot:... (TTL 5 min)
+    API-->>Client: SummaryDto (one-time cost)
+
+    Note over Client,OperationalDB: Write path — keeps everything fresh
+    Client->>API: POST /orders
+    API->>OperationalDB: INSERT Order
+    API->>OperationalDB: Run aggregations
+    API->>SnapshotTable: UPSERT JSONB snapshot
+    API->>Redis: DEL snapshot:{branchId}:{clientId}
+            </CodeSnippet>
+        </How>
+
+        <Summary>
+            <p>
+                Four layers, one endpoint. The dashboard read path evolves from 18 correlated subqueries to a Redis hit
+                that takes microseconds — while staying within your existing PostgreSQL database and standard .NET tooling.
+            </p>
+
+            <ul>
+                <li>
+                    <strong>Layer 1 (Snapshot)</strong>: Store the aggregated result as a <Highlight>JSONB</Highlight>
+                    column in PostgreSQL — one row per branch per client, updated on every relevant write. No new
+                    database required. Adding a new metric to the dashboard requires no migration, only a DTO change.
+                </li>
+                <li>
+                    <strong>Read-through</strong>: The first caller after deployment populates the snapshot automatically.
+                    Pre-warm with a <Highlight>BackgroundService</Highlight> to eliminate the first-caller latency spike
+                    entirely. The read-through remains as a fallback.
+                </li>
+                <li>
+                    <strong>Layer 2 (Source generators)</strong>: Declare a
+                    <Highlight>JsonSerializerContext</Highlight> for <Highlight>SummaryDto</Highlight> to eliminate
+                    runtime reflection on every serialize/deserialize call. Required for AOT; beneficial everywhere.
+                </li>
+                <li>
+                    <strong>Layer 3 (Protobuf)</strong>: Right for internal service-to-machine communication. Wrong for
+                    browser-facing APIs — stay with JSON and source generators here.
+                </li>
+                <li>
+                    <strong>Layer 4 (Redis)</strong>: A 5-minute TTL cache in front of the snapshot absorbs repeated
+                    reads without touching PostgreSQL. Invalidate immediately on relevant writes; rely on TTL as a safety
+                    net for writes that bypass invalidation.
+                </li>
+                <li>
+                    Guard the unique index on <Highlight>(BranchId, ClientId)</Highlight> — concurrent syncs will race
+                    on first insert. Catch <Highlight>UniqueViolation</Highlight> at the call site and treat it as a
+                    no-op.
+                </li>
+            </ul>
+
+            <p>
+                The caching articles below cover the deeper edges: cache key design, stampede prevention when the
+                snapshot is missing under concurrent load, and safe null-value handling:
+                <NavigateTo Href="blogs/understanding-caching-fundamentals-in-dotnet"
+                            Text="Understanding Caching Fundamentals in .NET" />
+                and
+                <NavigateTo Href="blogs/avoiding-cache-stampede-and-handling-nulls-in-dotnet"
+                            Text="Avoiding Cache Stampede and Handling Nulls in .NET" />.
+            </p>
+        </Summary>
+    </ContentBody>
+</Content>
