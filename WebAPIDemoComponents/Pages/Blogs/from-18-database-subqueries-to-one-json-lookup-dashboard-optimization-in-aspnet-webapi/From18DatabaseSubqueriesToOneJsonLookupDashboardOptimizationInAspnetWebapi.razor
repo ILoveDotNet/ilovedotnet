@@ -320,6 +320,8 @@ if (snapshot is not null)
                 code is a direct, allocation-efficient path that handles the same contract without reflection.
             </p>
 
+            <h3 id="step-7-source-gen-context">Step 7: Declare the source-generation context</h3>
+
             <CodeSnippet CssClass="language-csharp">
 [JsonSerializable(typeof(SummaryDto))]
 [JsonSourceGenerationOptions(
@@ -478,7 +480,9 @@ await context.SaveChangesAsync(cancellationToken);
 var snapshot = await context.DashboardSnapshots.FirstOrDefaultAsync(cancellationToken);
 if (snapshot is not null)
 {
-    var dto          = JsonSerializer.Deserialize&lt;SummaryDto&gt;(snapshot.Data)!;
+    var dto          = JsonSerializer.Deserialize&lt;SummaryDto&gt;(
+        snapshot.Data,
+        DashboardJsonContext.Default.SummaryDto)!;
     dto.TodaysOrders += 1;
     dto.TodaysSales  += newOrder.BaseAmount - newOrder.DiscountAmount - newOrder.LoyaltyDiscountAmount;
     snapshot.Data        = JsonSerializer.Serialize(dto, DashboardJsonContext.Default.SummaryDto);
@@ -532,7 +536,7 @@ await distributedCache.RemoveAsync("snapshot", cancellationToken);
 │  ─────────────────────────────────────────────────────────────                 │
 │  Client ──GET /dashboard──▶ API ──GET snapshot──▶ Redis                        │
 │                             API ◀──────MISS─────── Redis                       │
-│                             API ──SELECT TOP 1──▶ JSONB Snapshot               │
+│                             API ──SELECT LIMIT 1──▶ JSONB Snapshot               │
 │                             API ◀───JSONB row────  JSONB Snapshot              │
 │                             API ──SET snapshot──▶ Redis (TTL 5 min)            │
 │  Client ◀───SummaryDto────── API                                               │
@@ -542,7 +546,7 @@ await distributedCache.RemoveAsync("snapshot", cancellationToken);
 │  ─────────────────────────────────────────────────────────────                 │
 │  Client ──GET /dashboard──▶ API ──GET snapshot──▶ Redis                        │
 │                             API ◀──────MISS─────── Redis                       │
-│                             API ──SELECT TOP 1──▶ JSONB Snapshot               │
+│                             API ──SELECT LIMIT 1──▶ JSONB Snapshot               │
 │                             API ◀────── null ─────  JSONB Snapshot             │
 │                             API ──18 aggregations──▶ DB (Orders/Items/…)       │
 │                             API ──UPSERT snapshot──▶ JSONB Snapshot            │
@@ -590,14 +594,6 @@ await distributedCache.RemoveAsync("snapshot", cancellationToken);
                     <strong>Layer 4 (Redis)</strong>: A 5-minute TTL cache in front of the snapshot absorbs repeated
                     reads without touching PostgreSQL. Invalidate immediately on relevant writes; rely on TTL as a safety
                     net for writes that bypass invalidation.
-                </li>
-                <li>
-                    Set a TTL on the Redis key — a 5-minute expiry is a sensible default for dashboard data. The
-                    TTL acts as a safety net for writes that bypass invalidation.
-                </li>
-                <li>
-                    On the first request, the cold path triggers the full aggregation inline. Pre-warm with a
-                    <Highlight>BackgroundService</Highlight> at startup to eliminate this cost for the first user.
                 </li>
             </ul>
 
