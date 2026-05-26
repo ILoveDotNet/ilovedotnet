@@ -2,7 +2,7 @@
 
 public class WebAPILearningPath
 {
-  public readonly List<ContentMetaData> FullContents = new(29);
+  public readonly List<ContentMetaData> FullContents = new(30);
 
   public WebAPILearningPath()
   {
@@ -500,6 +500,23 @@ public class WebAPILearningPath
                 CreatedOn = new DateTime(2026, 6, 14, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2026, 6, 14, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Logging", "ILogger", "Structured Logging", "JsonConsole", "Application Insights", "Aspire", "OpenTelemetry"]
+            },
+            new ContentMetaData
+            {
+                Order = 30,
+                Title = "From 18 Database Subqueries to One JSON Lookup: Dashboard Optimization in ASP.NET Web API",
+                Description = "In this post I will teach how to evolve a dashboard handler from 18 correlated subqueries to a four-layer optimized read path: a JSONB pre-computed snapshot in PostgreSQL, System.Text.Json source generators, a Protobuf discussion for browser-facing APIs, and a Redis cache with write-side invalidation.",
+                Author = "Abdul Rahman",
+                Slug = "from-18-database-subqueries-to-one-json-lookup-dashboard-optimization-in-aspnet-webapi",
+                PosterUrl = "image/blogs/webapi/from-18-database-subqueries-to-one-json-lookup-dashboard-optimization-in-aspnet-webapi.webp",
+                ThumbnailUrl = "image/blogs/webapi/from-18-database-subqueries-to-one-json-lookup-dashboard-optimization-in-aspnet-webapi.webp",
+                ContentUrl = "blogs/from-18-database-subqueries-to-one-json-lookup-dashboard-optimization-in-aspnet-webapi",
+                IconUrl = "image/icons/web api.webp",
+                Channel = "Web API",
+                Type = "blogs",
+                CreatedOn = new DateTime(2026, 6, 21, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2026, 6, 21, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Dashboard Performance", "Pre-Computed Snapshot", "EF Core", "PostgreSQL", "JSONB", "Read Model", "CQRS", "System.Text.Json Source Generators", "Redis Cache", "IDistributedCache", "Protobuf", "ASP.NET Core", "Web API Performance"]
             },
         ];
   }
