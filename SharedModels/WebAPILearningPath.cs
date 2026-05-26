@@ -504,13 +504,13 @@ public class WebAPILearningPath
             new ContentMetaData
             {
                 Order = 30,
-                Title = "Pre-Computed Snapshot Pattern: How I Eliminated 18 Subqueries from My ASP.NET Web API Dashboard",
+                Title = "From 18 Database Subqueries to One JSON Lookup: Dashboard Optimization in ASP.NET Web API",
                 Description = "In this post I will teach how to evolve a dashboard handler from 18 correlated subqueries to a four-layer optimized read path: a JSONB pre-computed snapshot in PostgreSQL, System.Text.Json source generators, a Protobuf discussion for browser-facing APIs, and a Redis cache with write-side invalidation.",
                 Author = "Abdul Rahman",
-                Slug = "pre-computed-snapshot-pattern-eliminate-subqueries-in-aspnet-webapi-dashboard",
-                PosterUrl = "image/blogs/webapi/pre-computed-snapshot-pattern-eliminate-subqueries-in-aspnet-webapi-dashboard.webp",
-                ThumbnailUrl = "image/blogs/webapi/pre-computed-snapshot-pattern-eliminate-subqueries-in-aspnet-webapi-dashboard.webp",
-                ContentUrl = "blogs/pre-computed-snapshot-pattern-eliminate-subqueries-in-aspnet-webapi-dashboard",
+                Slug = "from-18-database-subqueries-to-one-json-lookup-dashboard-optimization-in-aspnet-webapi",
+                PosterUrl = "image/blogs/webapi/from-18-database-subqueries-to-one-json-lookup-dashboard-optimization-in-aspnet-webapi.webp",
+                ThumbnailUrl = "image/blogs/webapi/from-18-database-subqueries-to-one-json-lookup-dashboard-optimization-in-aspnet-webapi.webp",
+                ContentUrl = "blogs/from-18-database-subqueries-to-one-json-lookup-dashboard-optimization-in-aspnet-webapi",
                 IconUrl = "image/icons/web api.webp",
                 Channel = "Web API",
                 Type = "blogs",

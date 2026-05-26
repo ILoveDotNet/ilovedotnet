@@ -1,9 +1,9 @@
-@page "/blogs/pre-computed-snapshot-pattern-eliminate-subqueries-in-aspnet-webapi-dashboard"
+@page "/blogs/from-18-database-subqueries-to-one-json-lookup-dashboard-optimization-in-aspnet-webapi"
 @using SharedModels
 @using BaseComponents
 @inherits BasePage
 
-<Content FileName=@nameof(PreComputedSnapshotPatternEliminateSubqueriesInAspnetWebapiDashboard)>
+<Content FileName=@nameof(From18DatabaseSubqueriesToOneJsonLookupDashboardOptimizationInAspnetWebapi)>
     <ContentBody>
         <What>
             <p>
@@ -91,7 +91,7 @@ public async Task&lt;SummaryDto&gt; Handle(
             </CodeSnippet>
 
             <p>
-                The query re-runs even when no new orders arrived in the last 30 seconds — every dashboard open, every
+                The query re-runs even when no new orders arrived — every dashboard open, every
                 refresh, every user session triggers the full 18-subquery execution. Each subquery is an independent
                 table scan across <Highlight>Orders</Highlight>, <Highlight>OrderItems</Highlight>,
                 <Highlight>Items</Highlight>, <Highlight>Customers</Highlight>, <Highlight>Staffs</Highlight>,
@@ -347,7 +347,10 @@ var dto = JsonSerializer.Deserialize&lt;SummaryDto&gt;(
                 The contract does not change — the JSON shape, property names, and values are identical. What changes
                 is that the runtime no longer discovers the type on every call. This is especially valuable when the same
                 endpoint is called hundreds of times per minute by multiple concurrent users, and is
-                <strong>required</strong> for AOT-compiled deployments.
+                <strong>required</strong> for AOT-compiled deployments. For a deeper dive into source generation and
+                custom converters, see
+                <NavigateTo Href="blogs/mastering-advanced-json-with-custom-converters-and-source-generation-in-dotnet"
+                            Text="Mastering Advanced JSON with Custom Converters and Source Generation in .NET" />.
             </p>
 
             <h2 id="layer-3-protobuf">Layer 3: Protobuf — Right Tool, Wrong Context Here</h2>
@@ -509,44 +512,51 @@ await distributedCache.RemoveAsync("snapshot", cancellationToken);
                 aggregation, and the write-plus-sync-plus-invalidation path:
             </p>
 
-            <CodeSnippet CssClass="language-mermaid">
-sequenceDiagram
-    participant Client
-    participant API
-    participant Redis
-    participant SnapshotTable as DashboardSnapshots (JSONB)
-    participant OperationalDB as Orders / Items / etc.
-
-    Note over Client,OperationalDB: Fast path — Redis hit
-    Client->>API: GET /dashboard
-    API->>Redis: GET snapshot
-    Redis-->>API: Hit → cached SummaryDto JSON
-    API-->>Client: SummaryDto (microseconds)
-
-    Note over Client,OperationalDB: Warm path — Redis miss, snapshot hit
-    Client->>API: GET /dashboard
-    API->>Redis: GET snapshot
-    Redis-->>API: Miss
-    API->>SnapshotTable: SELECT TOP 1
-    SnapshotTable-->>API: JSONB row
-    API->>Redis: SET snapshot (TTL 5 min)
-    API-->>Client: SummaryDto (fast)
-
-    Note over Client,OperationalDB: Cold path — first load read-through
-    Client->>API: GET /dashboard
-    API->>Redis: GET snapshot
-    Redis-->>API: Miss
-    API->>SnapshotTable: SELECT TOP 1 (null)
-    API->>OperationalDB: Run all 18 aggregations
-    API->>SnapshotTable: UPSERT JSONB snapshot
-    API->>Redis: SET snapshot (TTL 5 min)
-    API-->>Client: SummaryDto (one-time cost)
-
-    Note over Client,OperationalDB: Write path — keeps everything fresh
-    Client->>API: POST /orders
-    API->>OperationalDB: INSERT Order
-    API->>SnapshotTable: Update affected metrics in JSONB
-    API->>Redis: DEL snapshot
+            <CodeSnippet CssClass="language-plaintext">
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│  GET /dashboard                                                                 │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│  ┌────────┐        ┌──────────┐        ┌──────────────────┐   ┌─────────────┐  │
+│  │ Client │        │   API    │        │ Redis            │   │  JSONB      │  │
+│  └────────┘        └──────────┘        │ (5 min TTL)      │   │  Snapshot   │  │
+│                                        └──────────────────┘   └─────────────┘  │
+│                                                                                 │
+│  FAST PATH (Redis hit)                                                          │
+│  ─────────────────────────────────────────────────────────────────             │
+│  Client ──GET /dashboard──▶ API ──GET snapshot──▶ Redis                        │
+│  Client ◀───SummaryDto────── API ◀──HIT (JSON)─── Redis                        │
+│                              (microseconds)                                     │
+│                                                                                 │
+│  WARM PATH (Redis miss, snapshot hit)                                           │
+│  ─────────────────────────────────────────────────────────────                 │
+│  Client ──GET /dashboard──▶ API ──GET snapshot──▶ Redis                        │
+│                             API ◀──────MISS─────── Redis                       │
+│                             API ──SELECT TOP 1──▶ JSONB Snapshot               │
+│                             API ◀───JSONB row────  JSONB Snapshot              │
+│                             API ──SET snapshot──▶ Redis (TTL 5 min)            │
+│  Client ◀───SummaryDto────── API                                               │
+│                              (fast)                                             │
+│                                                                                 │
+│  COLD PATH (first load — read-through)                                         │
+│  ─────────────────────────────────────────────────────────────                 │
+│  Client ──GET /dashboard──▶ API ──GET snapshot──▶ Redis                        │
+│                             API ◀──────MISS─────── Redis                       │
+│                             API ──SELECT TOP 1──▶ JSONB Snapshot               │
+│                             API ◀────── null ─────  JSONB Snapshot             │
+│                             API ──18 aggregations──▶ DB (Orders/Items/…)       │
+│                             API ──UPSERT snapshot──▶ JSONB Snapshot            │
+│                             API ──SET snapshot──▶ Redis (TTL 5 min)            │
+│  Client ◀───SummaryDto────── API                                               │
+│                              (one-time cost)                                   │
+│                                                                                 │
+│  WRITE PATH (POST /orders — keeps everything fresh)                            │
+│  ─────────────────────────────────────────────────────────────                 │
+│  Client ──POST /orders────▶ API ──INSERT Order──▶ DB                           │
+│                             API ──Update metrics──▶ JSONB Snapshot             │
+│                             API ──DEL snapshot──▶ Redis                        │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
             </CodeSnippet>
         </How>
 
