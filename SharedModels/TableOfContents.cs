@@ -2,7 +2,7 @@
 
 public class TableOfContents
 {
-  public const int PageSize = 6;
+  public const int PageSize = 12;
   private readonly List<ContentMetaData> _fullContents = new(208);
   private readonly List<AuthorMetaData> _fullAuthors = new(1);
   private readonly List<SponsorMetaData> _fullSponsors = new(1);
