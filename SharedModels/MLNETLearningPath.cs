@@ -2,7 +2,7 @@
 
 public class MLNETLearningPath
 {
-  public readonly List<ContentMetaData> FullContents = new(2);
+  public readonly List<ContentMetaData> FullContents = new(3);
   public MLNETLearningPath()
   {
     FullContents =
@@ -40,6 +40,23 @@ public class MLNETLearningPath
                 CreatedOn = new DateTime(2025, 5, 11, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2025, 5, 11, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["ONNX", "Machine Learning", "Image Recognition", "AI", "Artificail Intelligence"]
+            },
+            new ContentMetaData
+            {
+                Order = 3,
+                Title = "ML.NET Without Python: Understanding the Learning Pipeline Architecture",
+                Description = "In this post I will teach you the ML.NET architecture, how its learning pipeline works, and how to build machine learning models natively in .NET without Python.",
+                Author = "Abdul Rahman",
+                Slug = "mlnet-without-python-understanding-the-learning-pipeline-architecture",
+                PosterUrl = "image/blogs/mlnet/mlnet-without-python-understanding-the-learning-pipeline-architecture.webp",
+                ThumbnailUrl = "image/blogs/mlnet/mlnet-without-python-understanding-the-learning-pipeline-architecture.webp",
+                ContentUrl = "blogs/mlnet-without-python-understanding-the-learning-pipeline-architecture",
+                IconUrl = "image/icons/mlnet.webp",
+                Channel = "MLNET",
+                Type = "blogs",
+                CreatedOn = new DateTime(2026, 10, 18, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2026, 10, 18, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Machine Learning", "Pipeline", "MLContext", "IDataView", "ML.NET Architecture"]
             }
     ];
   }

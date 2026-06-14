@@ -1,0 +1,449 @@
+@page "/blogs/mlnet-without-python-understanding-the-learning-pipeline-architecture"
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(MLNetPipelineArchitecture)>
+    <ContentBody>
+        <What>
+            <p>
+                Most .NET developers assume machine learning requires Python — Jupyter notebooks,
+                pandas, scikit-learn, and a completely foreign tech stack bolted onto their
+                C# application. That assumption has a cost: two codebases to maintain, messy
+                interop layers, and deployment pipelines that break in subtle ways.
+            </p>
+
+            <p>
+                <Highlight>ML.NET</Highlight> is Microsoft's open-source, cross-platform machine
+                learning framework built natively for .NET. It lets you train, evaluate, and deploy
+                ML models using familiar C# patterns — no Python runtime, no foreign libraries, no
+                context switching.
+            </p>
+
+            <p>
+                This article covers ML.NET's architecture, how its learning pipeline composes,
+                which ML tasks it supports out of the box, and how to build a working pipeline
+                inside a .NET application.
+            </p>
+        </What>
+
+        <Why>
+            <p>
+                Here is the reality: Python dominates machine learning because it was the
+                language scientists and researchers reached for when the field took off — not
+                because it is technically superior for production applications. The
+                <Highlight>scikit-learn</Highlight>, <Highlight>pandas</Highlight>, and
+                <Highlight>TensorFlow</Highlight> ecosystems followed from there, reinforcing
+                the habit. For pure experimentation and notebooks, that makes sense.
+                For enterprise .NET applications, it introduces serious friction.
+            </p>
+
+            <p>
+                Integrating a Python-trained model into a .NET application typically means
+                one of three things: wrapping the model in a REST or gRPC service (adding
+                a network hop and an extra process to maintain), using language bindings that
+                may not support your target platform, or serialising the model to the
+                <Highlight>ONNX</Highlight> format and loading it via a wrapper library.
+                Each path adds complexity that has nothing to do with your actual ML problem.
+            </p>
+
+            <p>
+                The production track record confirms the pain. Industry surveys consistently
+                show that a large portion of companies that experiment with machine learning
+                never reach a successful production deployment — and integration complexity
+                is a major reason. ML.NET changes the calculus: your training code, your
+                schema classes, and your inference logic all live in the same .NET solution,
+                built, deployed, and monitored the same way as the rest of your application.
+            </p>
+
+            <p>
+                Beyond deployment convenience, ML.NET's design feels intentional for .NET
+                developers. <Highlight>MLContext</Highlight> mirrors the role of Entity
+                Framework's <Highlight>DbContext</Highlight>. Pipelines compose the same
+                way <Highlight>LINQ</Highlight> chains operations on collections. Model
+                input and output types are plain C# classes with attributes — nothing exotic.
+                That familiarity matters: a team already fluent in C# can start building
+                and iterating on ML pipelines without switching cognitive modes.
+            </p>
+        </Why>
+
+        <How>
+            <h4>The Three-Project Solution Structure</h4>
+
+            <p>
+                A well-structured ML.NET solution typically contains three distinct projects,
+                each with a clear responsibility:
+            </p>
+
+            <CodeSnippet CssClass="language-plaintext">
+MySolution/
+├── MyApp.Trainer/          # Console app — orchestrates the ML pipeline,
+│                           # loads data, trains, evaluates, and saves the model
+├── MyApp.MLSchema/         # Class library — input/output data types shared
+│                           # between trainer and client
+└── MyApp.Web/              # Client app — loads the saved model and runs predictions
+</CodeSnippet>
+
+            <p>
+                The <Highlight>trainer project</Highlight> is not a one-off script — it
+                is production code you will run again whenever your data changes or your
+                model drifts. Design it to be configurable and re-runnable. The
+                <Highlight>schema library</Highlight> holds the C# types that describe
+                your data so both the trainer and the client agree on shape without
+                duplicating definitions. The <Highlight>client project</Highlight> is
+                your actual application: a web API, Blazor app, console tool, or anything
+                else that needs predictions.
+            </p>
+
+            <h4>MLContext: The Pipeline Entry Point</h4>
+
+            <p>
+                Every ML.NET pipeline starts with a single <Highlight>MLContext</Highlight>
+                instance. Think of it exactly as you would <Highlight>DbContext</Highlight>:
+                it provides access to all ML operations, manages the state of the pipeline,
+                and should be created once and shared across your training code.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+using Microsoft.ML;
+
+// Create one MLContext per pipeline — it is thread-safe for reads,
+// but create separate instances if you train multiple models concurrently.
+var mlContext = new MLContext(seed: 42);
+
+// seed makes random operations reproducible across runs —
+// useful when you need to compare model performance consistently.
+</CodeSnippet>
+
+            <p>
+                The <Highlight>seed</Highlight> parameter controls internal random number
+                generation. Fixing it means two training runs on the same data produce the
+                same model, which is essential when you are comparing algorithm configurations.
+            </p>
+
+            <h4>Defining Your Data Schema with C# Classes</h4>
+
+            <p>
+                ML.NET reads data into strongly-typed C# objects. You declare a class whose
+                properties map to columns in your data source using the
+                <Highlight>LoadColumnAttribute</Highlight>. The output class describes
+                what the model will predict.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+using Microsoft.ML.Data;
+
+// Input: one row from your CSV training file
+public class SentimentInput
+{
+    [LoadColumn(0)]
+    public string ReviewText { get; set; } = string.Empty;
+
+    [LoadColumn(1), ColumnName("Label")]
+    public bool Sentiment { get; set; }  // true = positive, false = negative
+}
+
+// Output: what the trained model returns for a prediction
+public class SentimentPrediction
+{
+    [ColumnName("PredictedLabel")]
+    public bool Prediction { get; set; }
+
+    public float Probability { get; set; }
+
+    public float Score { get; set; }
+}
+</CodeSnippet>
+
+            <p>
+                <Highlight>LoadColumn(index)</Highlight> maps the property to a zero-based
+                column position in the source file. <Highlight>ColumnName</Highlight>
+                overrides the name ML.NET uses internally for the column — "Label" is the
+                conventional name for the target column that the trainer learns to predict.
+            </p>
+
+            <h4>Loading Data with IDataView</h4>
+
+            <p>
+                ML.NET represents tabular data through the <Highlight>IDataView</Highlight>
+                interface — a lazy, cursor-based abstraction similar to a database result
+                set. You can load from CSV files, in-memory collections, databases, or
+                binary files. The view is not loaded into memory until the pipeline runs,
+                which keeps memory usage manageable for large datasets.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// Load from a CSV file — data stays lazy until the pipeline executes
+IDataView trainingData = mlContext.Data.LoadFromTextFile&lt;SentimentInput&gt;(
+    path: "data/reviews-train.csv",
+    hasHeader: true,
+    separatorChar: ',');
+
+// Or load from an in-memory list — useful for testing
+var reviews = new List&lt;SentimentInput&gt;
+{
+    new() { ReviewText = "Great product!", Sentiment = true },
+    new() { ReviewText = "Broken on arrival.", Sentiment = false }
+};
+IDataView inMemoryData = mlContext.Data.LoadFromEnumerable(reviews);
+</CodeSnippet>
+
+            <h4>Building a Transformation and Training Pipeline</h4>
+
+            <p>
+                The power of ML.NET is in how it composes data transformations and a
+                trainer into a single, reusable pipeline — the same way LINQ chains
+                operations. Each <Highlight>Append</Highlight> call adds a step to the
+                pipeline. Nothing executes until you call <Highlight>Fit</Highlight>.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// Step 1: featurise the raw text into a numeric vector
+var featuriseText = mlContext.Transforms.Text
+    .FeaturizeText(
+        outputColumnName: "Features",
+        inputColumnName: nameof(SentimentInput.ReviewText));
+
+// Step 2: choose a trainer suited to binary classification
+var trainer = mlContext.BinaryClassification.Trainers
+    .SdcaLogisticRegression(
+        labelColumnName: "Label",
+        featureColumnName: "Features");
+
+// Compose transformation + trainer into one pipeline
+var trainingPipeline = featuriseText.Append(trainer);
+
+// Fit executes the pipeline: transforms data and trains the model
+ITransformer trainedModel = trainingPipeline.Fit(trainingData);
+</CodeSnippet>
+
+            <p>
+                <Highlight>FeaturizeText</Highlight> converts raw strings into a
+                floating-point feature vector using n-gram analysis and normalisation —
+                all the preprocessing that would require manual NumPy operations in Python
+                happens in a single call. <Highlight>SdcaLogisticRegression</Highlight>
+                is Stochastic Dual Coordinate Ascent, a fast and accurate algorithm for
+                binary problems.
+            </p>
+
+            <h4>ML Tasks and Available Trainers</h4>
+
+            <p>
+                ML.NET organises algorithms by the type of ML problem they solve, called
+                a <Highlight>task</Highlight>. Each task exposes a
+                <Highlight>Trainers</Highlight> property with the supported algorithms.
+                Choosing the right task first narrows down which algorithms apply to your
+                problem.
+            </p>
+
+            <CodeSnippet CssClass="language-plaintext">
+Task                    | When to use it
+------------------------|-------------------------------------------------------
+BinaryClassification    | Two-category decisions (spam / not-spam, fraud / legit)
+MulticlassClassification| Three or more categories (topic labelling, intent detection)
+Regression              | Predicting a continuous value (price, duration, count)
+Clustering              | Grouping unlabelled data by similarity (customer segmentation)
+AnomalyDetection        | Spotting outliers and unusual events (server anomalies)
+Ranking                 | Ordering items by relevance (search results, recommendations)
+Forecasting             | Predicting future values in a time series (sales, demand)
+</CodeSnippet>
+
+            <p>
+                Access trainers directly from <Highlight>mlContext</Highlight>:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// Binary classification — SdcaLogisticRegression, FastTree, LightGbm, etc.
+var binaryTrainer = mlContext.BinaryClassification.Trainers
+    .SdcaLogisticRegression();
+
+// Regression — OnlineGradientDescent, FastForest, LightGbm, etc.
+var regressionTrainer = mlContext.Regression.Trainers
+    .OnlineGradientDescent();
+
+// Multiclass — SdcaMaximumEntropy, LbfgsMaximumEntropy, etc.
+var multiclassTrainer = mlContext.MulticlassClassification.Trainers
+    .SdcaMaximumEntropy();
+
+// Anomaly detection — RandomizedPca, SsaSpikeDetector, etc.
+var anomalyDetector = mlContext.AnomalyDetection.Trainers
+    .RandomizedPca(featureColumnName: "Features");
+</CodeSnippet>
+
+            <h4>Evaluating the Model</h4>
+
+            <p>
+                After training, you evaluate the model against held-out test data to measure
+                how well it generalises. ML.NET provides task-specific evaluation metrics so
+                you are always comparing meaningful numbers for your problem type.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// Hold out 20% of the data for evaluation
+var dataSplit = mlContext.Data.TrainTestSplit(trainingData, testFraction: 0.2);
+
+// Re-train on the training split
+ITransformer model = trainingPipeline.Fit(dataSplit.TrainSet);
+
+// Transform the test set through the trained model
+IDataView predictions = model.Transform(dataSplit.TestSet);
+
+// Evaluate binary classification metrics
+var metrics = mlContext.BinaryClassification
+    .Evaluate(predictions, labelColumnName: "Label");
+
+Console.WriteLine($"Accuracy:  {metrics.Accuracy:P2}");
+Console.WriteLine($"AUC:       {metrics.AreaUnderRocCurve:P2}");
+Console.WriteLine($"F1 Score:  {metrics.F1Score:P2}");
+
+// Example output:
+// Accuracy:  92.40%
+// AUC:       96.10%
+// F1 Score:  91.80%
+</CodeSnippet>
+
+            <h4>Saving and Loading the Trained Model</h4>
+
+            <p>
+                A trained model is a serialised computation graph. You save it to a
+                <Highlight>.zip</Highlight> file and load it in your client application
+                to run predictions — the same binary works in any .NET process, whether
+                a web API, background service, or Blazor WASM running on the server.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// In the trainer project — save after a successful evaluation
+mlContext.Model.Save(model, trainingData.Schema, "sentiment-model.zip");
+Console.WriteLine("Model saved to sentiment-model.zip");
+
+// ---
+
+// In the client project — load once at startup, reuse for every prediction
+var mlContextClient = new MLContext();
+ITransformer loadedModel = mlContextClient.Model.Load(
+    "sentiment-model.zip",
+    out DataViewSchema schema);
+
+// Create a reusable prediction engine (not thread-safe — use PredictionEnginePool in ASP.NET Core)
+var predictionEngine = mlContextClient.Model
+    .CreatePredictionEngine&lt;SentimentInput, SentimentPrediction&gt;(loadedModel);
+
+var sample = new SentimentInput { ReviewText = "Absolutely worth every penny!" };
+SentimentPrediction result = predictionEngine.Predict(sample);
+
+Console.WriteLine($"Positive: {result.Prediction}, Probability: {result.Probability:P1}");
+// Positive: True, Probability: 94.2%
+</CodeSnippet>
+
+            <p>
+                In ASP.NET Core, use <Highlight>PredictionEnginePool&lt;TIn, TOut&gt;</Highlight>
+                from the <Highlight>Microsoft.Extensions.ML</Highlight> NuGet package instead
+                of <Highlight>CreatePredictionEngine</Highlight>. The pool manages
+                <Highlight>PredictionEngine</Highlight> instances safely across concurrent
+                requests and supports hot-reload of updated model files without restarting
+                the process.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// Program.cs in an ASP.NET Core project
+builder.Services.AddPredictionEnginePool&lt;SentimentInput, SentimentPrediction&gt;()
+    .FromFile(
+        modelName: "SentimentModel",
+        filePath: "sentiment-model.zip",
+        watchForChanges: true);   // automatically reloads when the file changes
+
+// In a controller or minimal API endpoint
+app.MapPost("/predict", (
+    PredictionEnginePool&lt;SentimentInput, SentimentPrediction&gt; pool,
+    SentimentInput input) =&gt;
+{
+    var prediction = pool.Predict("SentimentModel", input);
+    return Results.Ok(new { prediction.Prediction, prediction.Probability });
+});
+</CodeSnippet>
+
+            <h4>How the Architecture Fits Together</h4>
+
+            <CodeSnippet CssClass="language-plaintext">
+┌─────────────────────────────────────────────────────────────────────┐
+│                        ML.NET Solution                              │
+│                                                                     │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │  Trainer Project (Console App)                               │   │
+│  │                                                              │   │
+│  │  MLContext ──► IDataView ──► Pipeline ──► ITransformer       │   │
+│  │                                │              │              │   │
+│  │                           (Transforms    (Evaluate +         │   │
+│  │                            + Trainer)     Save .zip)         │   │
+│  └────────────────────────────── │ ───────────────┘             │   │
+│                                  │  shared schema classes       │   │
+│  ┌────────────────────────────── ▼ ─────────────────────────┐   │   │
+│  │  Schema Library (Class Library)                          │   │   │
+│  │  SentimentInput / SentimentPrediction                    │   │   │
+│  └────────────────────────────── ▲ ─────────────────────────┘   │   │
+│                                  │  load + predict              │   │
+│  ┌────────────────────────────── │ ─────────────────────────┐   │   │
+│  │  Client App (Web API / Blazor / Worker)                  │   │   │
+│  │  MLContext ──► Model.Load(.zip) ──► PredictionEnginePool │   │   │
+│  └──────────────────────────────────────────────────────────┘   │   │
+└─────────────────────────────────────────────────────────────────────┘
+</CodeSnippet>
+        </How>
+
+        <Summary>
+            <p>
+                ML.NET gives .NET developers a first-class path to machine learning without
+                leaving the ecosystem they already know. Here is what you should take away
+                from this article:
+            </p>
+
+            <ul>
+                <li>
+                    <Highlight>MLContext</Highlight> is the single entry point for everything
+                    — treat it like <Highlight>DbContext</Highlight> and keep one instance
+                    per pipeline.
+                </li>
+                <li>
+                    <Highlight>IDataView</Highlight> provides lazy, cursor-based data access
+                    that keeps memory usage predictable even with large training sets.
+                </li>
+                <li>
+                    Pipelines compose with <Highlight>Append</Highlight> — chain transforms
+                    and a trainer, then call <Highlight>Fit</Highlight> once to execute
+                    everything.
+                </li>
+                <li>
+                    ML.NET organises algorithms by task:
+                    <Highlight>BinaryClassification</Highlight>,
+                    <Highlight>Regression</Highlight>,
+                    <Highlight>MulticlassClassification</Highlight>,
+                    <Highlight>AnomalyDetection</Highlight>,
+                    <Highlight>Clustering</Highlight>,
+                    <Highlight>Ranking</Highlight>, and
+                    <Highlight>Forecasting</Highlight>.
+                </li>
+                <li>
+                    In ASP.NET Core, use <Highlight>PredictionEnginePool</Highlight> from
+                    <Highlight>Microsoft.Extensions.ML</Highlight> to handle concurrent
+                    predictions safely and support model hot-reload.
+                </li>
+                <li>
+                    Structure your solution into three projects: trainer, schema library,
+                    and client — this keeps concerns clean and allows each to evolve independently.
+                </li>
+            </ul>
+
+            <p>
+                Now that you understand the architecture, a natural next step is seeing it
+                applied to a real scenario. Read
+                <NavLink href="blogs/ai-powered-language-detection-in-net-with-mlnet-and-automl">
+                    AI Powered Language Detection in .NET with ML.NET and AutoML
+                </NavLink>
+                to see how AutoML automates algorithm selection, or explore
+                <NavLink href="blogs/ai-powered-image-recognition-in-net-with-mlnet-and-onnx-runtime">
+                    AI Powered Image Recognition in .NET with ML.NET and ONNX Runtime
+                </NavLink>
+                for a deep-learning example that uses a pre-trained model.
+            </p>
+        </Summary>
+    </ContentBody>
+</Content>
