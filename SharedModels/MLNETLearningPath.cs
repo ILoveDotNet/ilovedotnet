@@ -44,13 +44,13 @@ public class MLNETLearningPath
             new ContentMetaData
             {
                 Order = 3,
-                Title = "ML.NET Without Python: Understanding the Learning Pipeline Architecture",
+                Title = "An Architectural View of ML.NET",
                 Description = "In this post I will teach you the ML.NET architecture, how its learning pipeline works, and how to build machine learning models natively in .NET without Python.",
                 Author = "Abdul Rahman",
-                Slug = "mlnet-without-python-understanding-the-learning-pipeline-architecture",
-                PosterUrl = "image/blogs/mlnet/mlnet-without-python-understanding-the-learning-pipeline-architecture.webp",
-                ThumbnailUrl = "image/blogs/mlnet/mlnet-without-python-understanding-the-learning-pipeline-architecture.webp",
-                ContentUrl = "blogs/mlnet-without-python-understanding-the-learning-pipeline-architecture",
+                Slug = "an-architectural-view-of-mlnet",
+                PosterUrl = "image/blogs/mlnet/an-architectural-view-of-mlnet.webp",
+                ThumbnailUrl = "image/blogs/mlnet/an-architectural-view-of-mlnet.webp",
+                ContentUrl = "blogs/an-architectural-view-of-mlnet",
                 IconUrl = "image/icons/mlnet.webp",
                 Channel = "MLNET",
                 Type = "blogs",
