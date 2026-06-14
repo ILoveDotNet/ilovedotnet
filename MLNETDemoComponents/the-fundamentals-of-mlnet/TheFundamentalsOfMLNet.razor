@@ -1,0 +1,507 @@
+@page "/blogs/the-fundamentals-of-mlnet"
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(TheFundamentalsOfMLNet)>
+    <ContentBody>
+        <What>
+            <p>
+                You can train a model in 15 lines of Python. But can you keep that model
+                running reliably in production — with fresh data, automated retraining, and
+                zero Python runtime in your deployment pipeline? That gap between a working
+                notebook and a working service is the domain of <Highlight>data engineering</Highlight>.
+            </p>
+
+            <p>
+                <Highlight>ML.NET</Highlight> is Microsoft's open-source machine learning
+                framework built natively for .NET. It lets .NET developers own the entire
+                machine learning lifecycle — from schema definition and data transformation
+                to training, evaluation, and serving predictions — entirely in C#.
+            </p>
+
+            <p>
+                This article covers the three professional roles that make ML projects succeed
+                in production, why data engineering is the hardest part of the job, and how to
+                build a complete ML.NET training pipeline step by step — from raw CSV data to a
+                saved regression model ready for an ASP.NET Core application.
+            </p>
+        </What>
+
+        <Why>
+            <p>
+                Most conversations about machine learning jump straight to algorithms.
+                Pick the right model, tune the hyperparameters, hit 95% accuracy. The end.
+                That framing obscures where projects actually fail: not in the model, but in
+                the infrastructure that feeds it.
+            </p>
+
+            <h4>The Three Roles Every ML Project Needs</h4>
+
+            <p>
+                A <Highlight>data scientist</Highlight> explores raw data, identifies patterns,
+                and builds prototype models. The output is a runnable experiment — often accurate,
+                rarely production-ready. Python is the natural habitat: Jupyter notebooks and
+                pandas make experimentation fast. The downside is that this code is typically
+                written at the quality level of a proof-of-concept, not a maintainable service.
+            </p>
+
+            <p>
+                A <Highlight>data engineer</Highlight> takes those findings and builds the
+                infrastructure to make them work at scale. That means automated
+                <Highlight>ETL</Highlight> (Extract-Transform-Load) pipelines, structured data
+                stores, scheduled retraining jobs, and versioned model artefacts. These are
+                engineering problems, not statistics problems — and they demand the same rigour
+                as any other production software component.
+            </p>
+
+            <p>
+                An <Highlight>ML engineer</Highlight> sits at the intersection: a software
+                developer with enough ML knowledge to incorporate a trained model into a
+                production application. They own the API endpoint that serves predictions, the
+                monitoring that detects model drift, and the retraining workflow when data
+                distributions shift.
+            </p>
+
+            <p>
+                In practice, these roles overlap considerably. A .NET developer who learns
+                ML.NET can grow into all three — without changing languages, runtimes, or
+                deployment strategies.
+            </p>
+
+            <h4>Why Data Quality Outweighs Algorithm Choice</h4>
+
+            <p>
+                The algorithm is rarely the bottleneck. Any reasonably chosen regression or
+                classification algorithm converges on a useful result when the data is clean,
+                complete, and representative. The bottleneck is almost always the pipeline
+                that prepares the data — especially in production, where data is live, noisy,
+                and changes over time.
+            </p>
+
+            <p>
+                Consider a concrete example: your company processes thousands of ride-sharing
+                transactions every day. The business wants to predict the fare before the trip
+                ends — useful for customer communication and revenue forecasting. The data
+                exists: timestamps, distances, passenger counts, payment types. Training a
+                model is straightforward. Keeping it accurate as data volumes grow and vendor
+                categories change is the hard part.
+            </p>
+
+            <h4>Why Python Falls Short in Production .NET Systems</h4>
+
+            <p>
+                Python fails here not because of the algorithms but because of the runtime.
+                Integrating a Python-trained model into a .NET application means one of three
+                things: a REST or gRPC wrapper (adding a network hop and a separate process
+                to manage), language bindings with limited platform support, or exporting to
+                <Highlight>ONNX</Highlight> format with its own serialisation trade-offs.
+                Each path adds accidental complexity that has nothing to do with the actual
+                ML problem.
+            </p>
+
+            <p>
+                ML.NET eliminates the impedance mismatch entirely. Your schema classes,
+                transformation logic, and inference code all live in the same .NET solution,
+                built and deployed the same way as every other component in your stack.
+            </p>
+        </Why>
+
+        <How>
+            <h4>The Dataset: Predicting Ride Fares</h4>
+
+            <p>
+                We will build a regression pipeline that predicts the fare for a ride-sharing
+                trip based on historical transaction data. Each row in the CSV represents a
+                completed trip with these columns:
+            </p>
+
+            <CodeSnippet CssClass="language-plaintext">
+Column              | Type    | Example
+--------------------|---------|------------------
+VendorId            | string  | "VendorA"
+RateCode            | string  | "Standard"
+PassengerCount      | float   | 2
+TripTimeSeconds     | float   | 1320
+TripDistanceMiles   | float   | 5.4
+PaymentType         | string  | "CreditCard"
+FareAmount          | float   | 18.50  &lt;-- predict this
+</CodeSnippet>
+
+            <p>
+                Three columns are categorical text: <Highlight>VendorId</Highlight>,
+                <Highlight>RateCode</Highlight>, and <Highlight>PaymentType</Highlight>.
+                ML algorithms require numbers — converting these correctly is a core data
+                engineering responsibility, not an afterthought.
+            </p>
+
+            <h4>Step 1: Define the Data Schema</h4>
+
+            <p>
+                ML.NET maps CSV columns to C# properties using the
+                <Highlight>LoadColumn</Highlight> attribute. The zero-based index matches
+                the column position in the source file. Define two classes: one for the
+                training input and one for the model's prediction output.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+using Microsoft.ML.Data;
+
+// Maps to one row in the training CSV file
+public class RideInput
+{
+    [LoadColumn(0)] public string VendorId          { get; set; } = string.Empty;
+    [LoadColumn(1)] public string RateCode          { get; set; } = string.Empty;
+    [LoadColumn(2)] public float  PassengerCount    { get; set; }
+    [LoadColumn(3)] public float  TripTimeSeconds   { get; set; }
+    [LoadColumn(4)] public float  TripDistanceMiles { get; set; }
+    [LoadColumn(5)] public string PaymentType       { get; set; } = string.Empty;
+    [LoadColumn(6)] public float  FareAmount        { get; set; }
+}
+
+// Holds the predicted result returned by the trained model
+public class RidePrediction
+{
+    [ColumnName("Score")]
+    public float PredictedFare { get; set; }
+}
+</CodeSnippet>
+
+            <p>
+                Place these classes in a separate class library so both the training console
+                app and the client application (e.g., an ASP.NET Core API) reference the same
+                schema — no duplication, no drift between the code that trains and the code
+                that serves.
+            </p>
+
+            <h4>Step 2: Load Data into IDataView</h4>
+
+            <p>
+                <Highlight>IDataView</Highlight> is ML.NET's core data abstraction — a lazy,
+                cursor-based interface. Loading a large CSV does not read the entire file into
+                memory. Data flows through row by row on demand, keeping memory pressure low
+                even for datasets with millions of rows.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+using Microsoft.ML;
+
+var mlContext = new MLContext(seed: 42);
+
+// No data is read from disk yet — the view is lazy
+IDataView rawData = mlContext.Data.LoadFromTextFile&lt;RideInput&gt;(
+    path: "data/rides-train.csv",
+    hasHeader: true,
+    separatorChar: ',');
+</CodeSnippet>
+
+            <p>
+                The <Highlight>seed</Highlight> parameter makes random operations
+                reproducible across runs — essential when you need to compare two pipeline
+                configurations fairly.
+            </p>
+
+            <h4>Step 3: Remove Outliers Before Transforming</h4>
+
+            <p>
+                Raw data almost always contains outliers — values so far outside the expected
+                range that they corrupt the model's learning signal. A
+                <Highlight>FareAmount</Highlight> below ₹1 or above ₹150 almost certainly
+                represents a data entry error or a test record. Filter these rows out before
+                any transformation runs.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// FilterRowsByColumn uses [lowerBound, upperBound) — lower inclusive, upper exclusive.
+// Keep rows where FareAmount is in [1.0, 150.0): ₹1 retained, ₹150 excluded.
+IDataView cleanedData = mlContext.Data.FilterRowsByColumn(
+    input: rawData,
+    columnName: nameof(RideInput.FareAmount),
+    lowerBound: 1.0,
+    upperBound: 150.0);
+</CodeSnippet>
+
+            <p>
+                Removing outliers is a data quality decision. No algorithm can compensate for
+                training on corrupt data — getting this step right is more valuable than
+                upgrading to a more sophisticated trainer.
+            </p>
+
+            <h4>Step 4: Encode Categorical Columns</h4>
+
+            <p>
+                <Highlight>OneHotEncoding</Highlight> converts each categorical column into
+                a set of binary columns — one per distinct category value. This preserves the
+                information without implying a numeric ordering that does not exist. "VendorA"
+                is not greater or lesser than "VendorB" — one-hot encoding respects that
+                distinction.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+var categoricalPipeline = mlContext.Transforms.Categorical
+    .OneHotEncoding(
+        outputColumnName: "VendorIdEncoded",
+        inputColumnName:  nameof(RideInput.VendorId))
+    .Append(mlContext.Transforms.Categorical.OneHotEncoding(
+        outputColumnName: "RateCodeEncoded",
+        inputColumnName:  nameof(RideInput.RateCode)))
+    .Append(mlContext.Transforms.Categorical.OneHotEncoding(
+        outputColumnName: "PaymentTypeEncoded",
+        inputColumnName:  nameof(RideInput.PaymentType)));
+</CodeSnippet>
+
+            <p>
+                Each <Highlight>Append</Highlight> call chains another transformation. Nothing
+                executes yet — you are declaring the recipe, not running it. That recipe will
+                replay identically on every future batch of incoming data.
+            </p>
+
+            <h4>Step 5: Normalise Numeric Columns</h4>
+
+            <p>
+                Numeric columns can have very different scales: <Highlight>PassengerCount</Highlight>
+                ranges from 1 to 6 while <Highlight>TripTimeSeconds</Highlight> ranges from
+                60 to 7200. <Highlight>NormalizeMeanVariance</Highlight> rescales each column
+                to have a mean of 0 and a standard deviation of 1. This prevents columns with
+                larger absolute values from dominating the trainer's learning signal.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+var numericPipeline = categoricalPipeline
+    .Append(mlContext.Transforms.NormalizeMeanVariance(
+        outputColumnName: nameof(RideInput.PassengerCount)))
+    .Append(mlContext.Transforms.NormalizeMeanVariance(
+        outputColumnName: nameof(RideInput.TripTimeSeconds)))
+    .Append(mlContext.Transforms.NormalizeMeanVariance(
+        outputColumnName: nameof(RideInput.TripDistanceMiles)));
+</CodeSnippet>
+
+            <h4>Step 6: Set Up the Label and Features Columns</h4>
+
+            <p>
+                ML.NET trainers follow a convention: the prediction target must be named
+                <Highlight>Label</Highlight> and all input values must be merged into a
+                single column named <Highlight>Features</Highlight>. Use
+                <Highlight>CopyColumns</Highlight> to rename the target and
+                <Highlight>Concatenate</Highlight> to merge all prepared feature columns
+                into one numeric vector.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+var featurePipeline = numericPipeline
+    // Rename the prediction target to the required "Label" column
+    .Append(mlContext.Transforms.CopyColumns(
+        outputColumnName: "Label",
+        inputColumnName:  nameof(RideInput.FareAmount)))
+    // Merge all prepared columns into a single "Features" vector
+    .Append(mlContext.Transforms.Concatenate(
+        outputColumnName: "Features",
+        "VendorIdEncoded",
+        "RateCodeEncoded",
+        "PaymentTypeEncoded",
+        nameof(RideInput.PassengerCount),
+        nameof(RideInput.TripTimeSeconds),
+        nameof(RideInput.TripDistanceMiles)));
+</CodeSnippet>
+
+            <p>
+                This <Highlight>Label</Highlight> / <Highlight>Features</Highlight> convention
+                is the contract between your transformation pipeline and the trainer. Once you
+                recognise this pattern, the shape of every ML.NET regression or classification
+                pipeline becomes predictable.
+            </p>
+
+            <h4>Step 7: Add a Regression Trainer</h4>
+
+            <p>
+                Predicting fare amount is a <Highlight>regression</Highlight> problem — you
+                are forecasting a continuous numeric value, not a category.
+                <Highlight>OnlineGradientDescent</Highlight> is a reliable baseline that ships
+                with the core ML.NET package. For higher accuracy on tabular data,
+                <Highlight>LightGbm</Highlight> (available via
+                <Highlight>Microsoft.ML.LightGbm</Highlight> — install with
+                <Highlight>dotnet add package Microsoft.ML.LightGbm</Highlight>) typically
+                converges faster and generalises better.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// Solid baseline — no extra packages required
+var trainer = mlContext.Regression.Trainers.OnlineGradientDescent(
+    labelColumnName:   "Label",
+    featureColumnName: "Features");
+
+// Complete pipeline: transformations + trainer in one composable object
+var trainingPipeline = featurePipeline.Append(trainer);
+</CodeSnippet>
+
+            <h4>Step 8: Train and Evaluate</h4>
+
+            <p>
+                Calling <Highlight>Fit</Highlight> executes the entire pipeline for the first
+                time: it applies all transformations, feeds the prepared data to the trainer,
+                and returns a trained <Highlight>ITransformer</Highlight>. Evaluation runs on
+                a held-out test split to measure how well the model generalises to data it has
+                never seen during training.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// Reserve 20% of the cleaned data for evaluation
+var split = mlContext.Data.TrainTestSplit(cleanedData, testFraction: 0.2);
+
+// Fit executes all transformations and trains the model
+ITransformer trainedModel = trainingPipeline.Fit(split.TrainSet);
+
+// Apply the trained model to the test split and compute metrics
+IDataView testPredictions = trainedModel.Transform(split.TestSet);
+
+var metrics = mlContext.Regression.Evaluate(
+    testPredictions,
+    labelColumnName: "Label",
+    scoreColumnName: "Score");
+
+Console.WriteLine($"R²   (closer to 1.0 is better): {metrics.RSquared:F4}");
+Console.WriteLine($"MAE  (lower is better):          {metrics.MeanAbsoluteError:F4}");
+Console.WriteLine($"RMSE (lower is better):          {metrics.RootMeanSquaredError:F4}");
+
+// Example output:
+// R²   (closer to 1.0 is better): 0.8721
+// MAE  (lower is better):          1.4230
+// RMSE (lower is better):          2.1850
+</CodeSnippet>
+
+            <p>
+                An <Highlight>R²</Highlight> of 0.87 means the model explains 87% of the
+                variance in fare amounts — a strong result for a first-pass baseline. If
+                accuracy is insufficient, the most productive next step is improving the data
+                by adding missing features (such as pick-up zone or traffic conditions) rather
+                than swapping algorithms.
+            </p>
+
+            <h4>Step 9: Save and Serve Predictions</h4>
+
+            <p>
+                A trained model is useless until the application that needs predictions can
+                load it. ML.NET serialises the entire pipeline — transformations and model
+                weights together — into a single binary file.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// ---- Trainer project: save the trained pipeline to disk ----
+mlContext.Model.Save(trainedModel, cleanedData.Schema, "ride-fare-model.zip");
+
+// ---- Client project (e.g. ASP.NET Core API): load and serve predictions ----
+var loadedModel = mlContext.Model.Load(
+    "ride-fare-model.zip",
+    out DataViewSchema inputSchema);
+
+// For a console app or single-threaded batch job, PredictionEngine is the simplest option.
+// In an ASP.NET Core service, replace it with PredictionEnginePool (Microsoft.Extensions.ML)
+// which manages a pool of thread-safe instances for concurrent request handling.
+var predictor = mlContext.Model
+    .CreatePredictionEngine&lt;RideInput, RidePrediction&gt;(loadedModel);
+
+var sampleRide = new RideInput
+{
+    VendorId          = "VendorA",
+    RateCode          = "Standard",
+    PassengerCount    = 1,
+    TripTimeSeconds   = 900,
+    TripDistanceMiles = 3.8f,
+    PaymentType       = "CreditCard",
+    FareAmount        = 0  // unknown — this is what we are predicting
+};
+
+RidePrediction result = predictor.Predict(sampleRide);
+Console.WriteLine($"Predicted fare: ${result.PredictedFare:F2}");
+// Predicted fare: ₹13.45
+</CodeSnippet>
+
+            <p>
+                The <Highlight>Predict</Highlight> call applies all stored transformations
+                from the saved pipeline automatically — your input does not need to be
+                pre-processed manually. The zip file contains everything: the
+                <Highlight>OneHotEncoding</Highlight> vocabulary, the normalisation
+                statistics, and the trained weights.
+            </p>
+
+            <h4>The Complete Pipeline at a Glance</h4>
+
+            <CodeSnippet CssClass="language-plaintext">
+Raw CSV data
+    │
+    ▼
+FilterRowsByColumn          ← Remove rows where FareAmount &lt; 1 or &gt; 150
+    │
+    ▼
+OneHotEncoding              ← VendorId, RateCode, PaymentType → binary columns
+    │
+    ▼
+NormalizeMeanVariance       ← PassengerCount, TripTimeSeconds, TripDistanceMiles
+    │
+    ▼
+CopyColumns                 ← FareAmount → "Label"
+    │
+    ▼
+Concatenate                 ← All encoded/normalised columns → "Features"
+    │
+    ▼
+OnlineGradientDescent       ← Regression trainer
+    │
+    ▼
+ITransformer (trained model)
+    ├── Evaluate → R², MAE, RMSE
+    └── Save     → ride-fare-model.zip
+</CodeSnippet>
+        </How>
+
+        <Summary>
+            <p>
+                Data engineering is the bridge between a prototype model and a production ML
+                system. Here is what we covered:
+            </p>
+
+            <ul>
+                <li>
+                    Machine learning projects involve three overlapping roles —
+                    <Highlight>data scientist</Highlight>, <Highlight>data engineer</Highlight>,
+                    and <Highlight>ML engineer</Highlight> — and .NET developers can grow into
+                    all three without leaving the C# ecosystem.
+                </li>
+                <li>
+                    <Highlight>IDataView</Highlight> is lazy and cursor-based, keeping memory
+                    usage low even for large datasets.
+                </li>
+                <li>
+                    Use <Highlight>OneHotEncoding</Highlight> for categorical text columns and
+                    <Highlight>NormalizeMeanVariance</Highlight> for numeric columns — skipping
+                    these steps weakens the model regardless of the algorithm chosen.
+                </li>
+                <li>
+                    <Highlight>FilterRowsByColumn</Highlight> removes outliers before training —
+                    data quality consistently outweighs algorithm choice.
+                </li>
+                <li>
+                    The <Highlight>Label</Highlight> / <Highlight>Features</Highlight> column
+                    convention is the contract between your transformation pipeline and the trainer.
+                </li>
+                <li>
+                    Save the trained pipeline as a <Highlight>.zip</Highlight> file so your
+                    client application can load and serve predictions without retraining. Use
+                    <Highlight>PredictionEnginePool</Highlight> from
+                    <Highlight>Microsoft.Extensions.ML</Highlight> when serving in ASP.NET Core.
+                </li>
+            </ul>
+
+            <p>
+                Want to explore further? Read
+                <NavLink href="blogs/an-architectural-view-of-mlnet">
+                    An Architectural View of ML.NET
+                </NavLink>
+                for a deeper look at <Highlight>MLContext</Highlight>, supported ML tasks, and
+                evaluation strategies. For a hands-on computer vision example, see
+                <NavLink href="blogs/ai-powered-image-recognition-in-net-with-mlnet-and-onnx-runtime">
+                    AI Powered Image Recognition in .NET with ML.NET and ONNX Runtime
+                </NavLink>.
+            </p>
+        </Summary>
+    </ContentBody>
+</Content>

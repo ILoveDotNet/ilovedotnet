@@ -2,14 +2,14 @@
 
 public class MLNETLearningPath
 {
-  public readonly List<ContentMetaData> FullContents = new(3);
+  public readonly List<ContentMetaData> FullContents = new(4);
   public MLNETLearningPath()
   {
     FullContents =
     [
         new ContentMetaData
             {
-                Order = 1,
+                Order = 3,
                 Title = "AI Powered Language Detection in .NET with ML.NET and AutoML",
                 Description = "In this post I will teach you detect language using ML.NET and AutoML in dotnet apps. All with live working demo.",
                 Author = "Abdul Rahman",
@@ -26,7 +26,7 @@ public class MLNETLearningPath
             },
             new ContentMetaData
             {
-                Order = 2,
+                Order = 4,
                 Title = "AI Powered Image Recognition in .NET with ML.NET and ONNX Runtime",
                 Description = "In this post I will teach you recognise image using ML.NET and onnx runtime in dotnet apps. All with live working demo.",
                 Author = "Abdul Rahman",
@@ -43,7 +43,7 @@ public class MLNETLearningPath
             },
             new ContentMetaData
             {
-                Order = 3,
+                Order = 1,
                 Title = "An Architectural View of ML.NET",
                 Description = "In this post I will teach you the ML.NET architecture, how its learning pipeline works, and how to build machine learning models natively in .NET without Python.",
                 Author = "Abdul Rahman",
@@ -57,6 +57,23 @@ public class MLNETLearningPath
                 CreatedOn = new DateTime(2026, 10, 18, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2026, 10, 18, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Machine Learning", "Pipeline", "MLContext", "IDataView", "ML.NET Architecture"]
+            },
+            new ContentMetaData
+            {
+                Order = 2,
+                Title = "The Fundamentals of ML.NET",
+                Description = "In this post I will teach you the three ML roles, how to load and transform data with IDataView, apply OneHotEncoding and normalization, and train a regression model end-to-end using ML.NET in C#.",
+                Author = "Abdul Rahman",
+                Slug = "the-fundamentals-of-mlnet",
+                PosterUrl = "image/blogs/mlnet/the-fundamentals-of-mlnet.webp",
+                ThumbnailUrl = "image/blogs/mlnet/the-fundamentals-of-mlnet.webp",
+                ContentUrl = "blogs/the-fundamentals-of-mlnet",
+                IconUrl = "image/icons/mlnet.webp",
+                Channel = "MLNET",
+                Type = "blogs",
+                CreatedOn = new DateTime(2026, 10, 25, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2026, 10, 25, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Machine Learning", "Data Engineering", "IDataView", "OneHotEncoding", "Regression", "ML.NET Training Pipeline"]
             }
     ];
   }
