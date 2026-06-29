@@ -599,8 +599,8 @@ public class BlazorLearningPath
                 IconUrl = "image/icons/blazor.webp",
                 Channel = "Blazor",
                 Type = "blogs",
-                CreatedOn = new DateTime(2026, 11, 1, 22, 30, 0, DateTimeKind.Utc),
-                ModifiedOn = new DateTime(2026, 11, 1, 22, 30, 0, DateTimeKind.Utc),
+                CreatedOn = new DateTime(2026, 7, 5, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2026, 7, 5, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Face Mesh", "pgvector", "Vector Search", "HNSW", "Blazor WASM", "Liveness Detection", "Biometric", "PostgreSQL", "Face Recognition"]
             },
         ];

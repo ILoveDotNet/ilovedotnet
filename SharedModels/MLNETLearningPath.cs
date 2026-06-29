@@ -54,8 +54,8 @@ public class MLNETLearningPath
                 IconUrl = "image/icons/mlnet.webp",
                 Channel = "MLNET",
                 Type = "blogs",
-                CreatedOn = new DateTime(2026, 10, 18, 22, 30, 0, DateTimeKind.Utc),
-                ModifiedOn = new DateTime(2026, 10, 18, 22, 30, 0, DateTimeKind.Utc),
+                CreatedOn = new DateTime(2026, 7, 12, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2026, 7, 12, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Machine Learning", "Pipeline", "MLContext", "IDataView", "ML.NET Architecture"]
             },
             new ContentMetaData
@@ -71,8 +71,8 @@ public class MLNETLearningPath
                 IconUrl = "image/icons/mlnet.webp",
                 Channel = "MLNET",
                 Type = "blogs",
-                CreatedOn = new DateTime(2026, 10, 25, 22, 30, 0, DateTimeKind.Utc),
-                ModifiedOn = new DateTime(2026, 10, 25, 22, 30, 0, DateTimeKind.Utc),
+                CreatedOn = new DateTime(2026, 7, 19, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2026, 7, 19, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Machine Learning", "Data Engineering", "IDataView", "OneHotEncoding", "Regression", "ML.NET Training Pipeline"]
             }
     ];
