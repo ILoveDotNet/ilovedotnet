@@ -1,0 +1,707 @@
+@page "/blogs/build-a-realtime-face-mesh-attendance-system-in-dotnet-with-pgvector-and-blazor-wasm"
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(FaceMeshAttendanceSystem)>
+    <ContentBody>
+        <What>
+            <p>
+                Your phone unlocks the moment it sees your face. But how do you build the same
+                thing — reliable, production-grade face recognition — entirely in
+                <Highlight>.NET</Highlight>, without wrapping a Python service or calling a paid
+                cloud API? In this article, we build a complete face mesh attendance system from
+                scratch: a <Highlight>Blazor WASM</Highlight> frontend that captures 478 facial
+                landmarks directly in the browser, a <Highlight>pgvector</Highlight>-backed
+                <Highlight>ASP.NET Core</Highlight> API that stores and searches those vectors in
+                sub-milliseconds, and a liveness detection layer that stops photos and screens
+                from tricking the system.
+            </p>
+
+            <p>
+                <Highlight>Face Mesh</Highlight> is a lightweight neural network (originally
+                developed by Google MediaPipe) that locates 478 three-dimensional landmarks on a
+                detected face in real time. Each landmark has an (x, y) coordinate normalised to
+                the inter-ocular distance (<Highlight>IOD</Highlight>), producing a
+                <Highlight>956-element float vector</Highlight> per frame (478 landmarks × x, y).
+                The Z-coordinate — which encodes facial depth — is used separately by the liveness
+                detection layer and is intentionally excluded from the recognition vector.
+                That 956-element vector is the facial biometric template we store, search, and match.
+            </p>
+
+            <p>
+                By the end of this article you will understand how to build the enrollment and
+                check-in pipeline end-to-end, configure an <Highlight>HNSW</Highlight>
+                nearest-neighbour index with <Highlight>pgvector</Highlight> for fast vector
+                similarity search, integrate a JS-interop face mesh component into a Blazor WASM
+                app, and add multi-mode liveness detection to prevent spoofing attacks.
+            </p>
+        </What>
+
+        <Why>
+            <p>
+                Every office with a sign-in sheet has the same problem: nobody trusts it.
+                Manual attendance records are forgeable in seconds, badge swipes are shareable,
+                and the five-minute window at the start of a class or shift sees people signing
+                in for absent colleagues — a practice known as <Highlight>buddy punching</Highlight>.
+            </p>
+
+            <p>
+                Buddy punching costs US employers an estimated $373 million per year according to
+                the American Payroll Association. Beyond the financial loss, incorrect attendance
+                data flows downstream into payroll, compliance reports, and emergency muster
+                lists — where a single wrong entry can have serious consequences. Traditional
+                biometric solutions (fingerprint scanners, iris readers, proprietary access
+                hardware) solve this but introduce procurement costs, vendor lock-in, and
+                hardware maintenance.
+            </p>
+
+            <p>
+                Face mesh attendance removes all of that. The camera is already built into every
+                laptop and phone. The inference runs entirely in the browser via
+                <Highlight>WebAssembly</Highlight> — no images or video ever leave the device;
+                only a compact 956-element float array is sent to the API. The
+                <Highlight>pgvector</Highlight> extension turns a standard
+                <Highlight>PostgreSQL</Highlight> database into a vector search engine with a
+                single <Highlight>HNSW</Highlight> index, delivering sub-millisecond L2
+                nearest-neighbour lookups regardless of how many enrolled persons are in the
+                database. And the entire backend and frontend are written in <Highlight>C#</Highlight>
+                — no Python, no ML framework installed on the server.
+            </p>
+
+            <h4>Why pgvector Instead of a Dedicated Vector Database?</h4>
+
+            <p>
+                Dedicated vector databases like Pinecone and Weaviate are powerful tools, but
+                they add a new operational dependency to your stack. If you already run
+                PostgreSQL — and most .NET shops do — the
+                <Highlight>pgvector</Highlight> extension gives you vector storage and
+                approximate nearest-neighbour search without a new database engine to provision,
+                monitor, or back up. Entity Framework Core talks to it through the
+                <Highlight>Pgvector.EntityFrameworkCore</Highlight> NuGet package using the
+                familiar <Highlight>DbContext</Highlight> API you already know.
+            </p>
+
+            <h4>Why Liveness Detection Matters</h4>
+
+            <p>
+                Without liveness detection, a printed photo or a phone screen showing
+                someone's face can fool a face recognition system. The demo supports four
+                configurable modes that trade friction for security: passive Z-depth analysis
+                (detects the flat geometry of a photo or screen without requiring the user to
+                do anything), active blink challenge (requires a deliberate blink, defeating
+                still images), both combined, or none for low-stakes scenarios. This is
+                production-ready anti-spoofing at zero additional hardware cost.
+            </p>
+        </Why>
+
+        <How>
+            <h4>System Architecture at a Glance</h4>
+
+            <p>
+                The system has three layers. The browser runs a <Highlight>FaceMesh</Highlight>
+                JavaScript component (built on MediaPipe) that streams landmark coordinates to a
+                Blazor WASM page via a .NET callback. The Blazor page calls the
+                <Highlight>ASP.NET Core minimal API</Highlight> with the captured vector. The API
+                persists the vector to <Highlight>PostgreSQL + pgvector</Highlight> on enrollment,
+                and runs an <Highlight>L2 nearest-neighbour</Highlight> query at check-in time.
+            </p>
+
+            <CodeSnippet CssClass="language-plaintext">
+┌──────────────────────────────────────────────────┐
+│  Browser                                         │
+│  ┌──────────────────────────────────────────┐    │
+│  │ MediaPipe FaceMesh (WASM)                │    │
+│  │  → 478 landmarks → 956-element float[]   │    │
+│  └────────────────────┬─────────────────────┘    │
+│  ┌──────────────────── ▼ ───────────────────┐    │
+│  │ Blazor WASM (C#)                         │    │
+│  │  Enroll.razor / Attendance.razor         │    │
+│  └────────────────────┬─────────────────────┘    │
+└───────────────────────│──────────────────────────┘
+                        │ HTTP (JSON)
+                        ▼
+          ┌─────────────────────────────-------┐
+          │ ASP.NET Core Minimal API           │
+          │  POST /api/mesh/persons/enroll.    │
+          │  POST /api/mesh/attendance/checkin │
+          │  GET  /api/mesh/persons            │
+          │  GET  /api/mesh/attendance         │
+          └──────────────┬──────────────-------┘
+                         │ EF Core
+                         ▼
+          ┌──────────────────────────────┐
+          │ PostgreSQL + pgvector        │
+          │  mesh_persons (vector(956))  │
+          │  HNSW index (L2 distance)    │
+          │  mesh_attendance_records     │
+          └──────────────────────────────┘
+            </CodeSnippet>
+
+            <h4>Step 1: Set Up the API Project</h4>
+
+            <p>
+                Create an ASP.NET Core minimal API project targeting
+                <Highlight>net10.0</Highlight> and add the required NuGet packages.
+            </p>
+
+            <CodeSnippet CssClass="language-bash">
+dotnet new webapi -n FaceMeshAttendanceApi
+cd FaceMeshAttendanceApi
+dotnet add package Npgsql.EntityFrameworkCore.PostgreSQL --version 10.0.2
+dotnet add package Pgvector.EntityFrameworkCore --version 0.3.0
+            </CodeSnippet>
+
+            <h4>Step 2: Define the EF Core Entities and DbContext</h4>
+
+            <p>
+                Two tables drive the system. <Highlight>mesh_persons</Highlight> holds the
+                enrolled biometric vectors, and
+                <Highlight>mesh_attendance_records</Highlight> records every check-in event.
+                The person's vector column is typed as <Highlight>vector(956)</Highlight> — the
+                native pgvector type that enables index-accelerated distance queries.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+using Microsoft.EntityFrameworkCore;
+using Pgvector;
+using Pgvector.EntityFrameworkCore;
+
+// ── EF Core entities ──────────────────────────────────────────────────────
+public class MeshPersonEntity
+{
+    public Guid    Id          { get; set; }
+    public string  Name        { get; set; } = "";
+    public Vector  Descriptor  { get; set; } = null!;  // vector(956) in Postgres
+    public DateTime EnrolledAt { get; set; }
+
+    public ICollection&lt;MeshAttendanceRecordEntity&gt; AttendanceRecords { get; set; } = [];
+}
+
+public class MeshAttendanceRecordEntity
+{
+    public Guid    Id          { get; set; }
+    public Guid    PersonId    { get; set; }
+    public MeshPersonEntity Person { get; set; } = null!;
+    public string  PersonName  { get; set; } = "";
+    public DateTime CheckedInAt { get; set; }
+}
+
+// ── DbContext ─────────────────────────────────────────────────────────────
+public class FaceMeshDbContext(DbContextOptions&lt;FaceMeshDbContext&gt; options)
+    : DbContext(options)
+{
+    public DbSet&lt;MeshPersonEntity&gt;          Persons          =&gt; Set&lt;MeshPersonEntity&gt;();
+    public DbSet&lt;MeshAttendanceRecordEntity&gt; AttendanceRecords =&gt; Set&lt;MeshAttendanceRecordEntity&gt;();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.HasPostgresExtension("vector");
+
+        modelBuilder.Entity&lt;MeshPersonEntity&gt;(e =&gt;
+        {
+            e.ToTable("mesh_persons");
+            e.Property(p =&gt; p.Descriptor).HasColumnType("vector(956)");
+
+            // HNSW index for sub-millisecond nearest-neighbour search
+            e.HasIndex(p =&gt; p.Descriptor)
+             .HasMethod("hnsw")
+             .HasOperators("vector_l2_ops");
+        });
+
+        modelBuilder.Entity&lt;MeshAttendanceRecordEntity&gt;(e =&gt;
+        {
+            e.ToTable("mesh_attendance_records");
+            e.HasOne(r =&gt; r.Person)
+             .WithMany(p =&gt; p.AttendanceRecords)
+             .HasForeignKey(r =&gt; r.PersonId);
+        });
+    }
+}
+            </CodeSnippet>
+
+            <p>
+                The <Highlight>HNSW</Highlight> (Hierarchical Navigable Small World) index is the
+                key to performance. Unlike a brute-force table scan that computes L2 distance to
+                every enrolled person, HNSW builds a multi-layer graph structure that narrows the
+                search logarithmically. With thousands of enrolled persons, HNSW still returns
+                the nearest neighbour in under a millisecond.
+            </p>
+
+            <h4>Step 3: Configure the API in Program.cs</h4>
+
+            <p>
+                Wire up the <Highlight>DbContext</Highlight> using the connection string provided
+                by your environment (Aspire injects this as
+                <Highlight>ConnectionStrings__facemesh-db</Highlight>), and enable CORS so the
+                Blazor WASM app can reach the API from the browser.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+var builder = WebApplication.CreateBuilder(args);
+
+var connectionString = builder.Configuration.GetConnectionString("facemesh-db")
+    ?? throw new InvalidOperationException(
+        "Connection string 'facemesh-db' not found.");
+
+builder.Services.AddDbContext&lt;FaceMeshDbContext&gt;(opts =&gt;
+    opts.UseNpgsql(connectionString, npgsql =&gt; npgsql.UseVector()));
+
+builder.Services.AddCors(options =&gt;
+    options.AddDefaultPolicy(p =&gt;
+        p.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader()));
+
+var app = builder.Build();
+app.UseCors();
+
+// Auto-create schema on first run (use migrations in production)
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService&lt;FaceMeshDbContext&gt;();
+    await db.Database.EnsureCreatedAsync();
+}
+
+// Map your endpoints here (Steps 4 and 5)
+
+app.Run();
+            </CodeSnippet>
+
+            <h4>Step 4: Build the Enrollment Endpoint</h4>
+
+            <p>
+                Enrollment stores a person's name alongside their
+                <Highlight>956-element landmark vector</Highlight>. The vector is the averaged
+                result of multiple captured frames — more samples means a more stable reference
+                descriptor and fewer false negatives at check-in time.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// POST /api/mesh/persons/enroll
+app.MapPost("/api/mesh/persons/enroll",
+    async (MeshEnrollRequest req, FaceMeshDbContext db) =&gt;
+    {
+        if (string.IsNullOrWhiteSpace(req.Name) || req.Vector is not { Length: 956 })
+            return Results.BadRequest(
+                "Name and a 956-element landmark vector are required.");
+
+        var person = new MeshPersonEntity
+        {
+            Id         = Guid.NewGuid(),
+            Name       = req.Name.Trim(),
+            Descriptor = new Vector(req.Vector),
+            EnrolledAt = DateTime.UtcNow
+        };
+
+        db.Persons.Add(person);
+        await db.SaveChangesAsync();
+
+        return Results.Created(
+            $"/api/mesh/persons/{person.Id}",
+            new { person.Id, person.Name });
+    });
+
+record MeshEnrollRequest(string Name, float[] Vector);
+            </CodeSnippet>
+
+            <h4>Step 5: Build the Check-In Endpoint</h4>
+
+            <p>
+                Check-in is where the vector magic happens. The incoming 956-element vector is
+                compared against every enrolled descriptor using
+                <Highlight>L2 distance</Highlight> (Euclidean distance in 956-dimensional space),
+                and the closest match is returned. If that distance exceeds the recognition
+                threshold, the face is unknown. The query is pushed entirely into
+                <Highlight>PostgreSQL</Highlight> via EF Core, so the HNSW index is used —
+                no vectors are loaded into .NET memory for comparison.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// Recognition threshold: L2 distance in IOD-normalised landmark space.
+// Within-person variation across frames: ~0.3–0.8
+// Between-person variation:              ~1.5–4.0
+const double RecognitionThreshold = 1.2;
+
+// POST /api/mesh/attendance/checkin
+app.MapPost("/api/mesh/attendance/checkin",
+    async (MeshCheckInRequest req, FaceMeshDbContext db) =&gt;
+    {
+        if (req.Vector is not { Length: 956 })
+            return Results.BadRequest("A 956-element landmark vector is required.");
+
+        var vec = new Vector(req.Vector);
+
+        // pgvector L2 nearest-neighbour — runs inside Postgres via HNSW index
+        var best = await db.Persons
+            .Select(p =&gt; new { Person = p, Distance = p.Descriptor.L2Distance(vec) })
+            .OrderBy(x =&gt; x.Distance)
+            .FirstOrDefaultAsync();
+
+        if (best == null || best.Distance &gt; RecognitionThreshold)
+            return Results.Ok(new MeshCheckInResponse(
+                false, null, null, (float)(best?.Distance ?? double.MaxValue)));
+
+        // Idempotent: one check-in per person per UTC day
+        var dayStart = DateTime.UtcNow.Date;
+        var dayEnd   = dayStart.AddDays(1);
+
+        bool alreadyIn = await db.AttendanceRecords
+            .AnyAsync(r =&gt; r.PersonId    == best.Person.Id
+                        &amp;&amp; r.CheckedInAt &gt;= dayStart
+                        &amp;&amp; r.CheckedInAt &lt;  dayEnd);
+
+        if (!alreadyIn)
+        {
+            db.AttendanceRecords.Add(new MeshAttendanceRecordEntity
+            {
+                Id          = Guid.NewGuid(),
+                PersonId    = best.Person.Id,
+                PersonName  = best.Person.Name,
+                CheckedInAt = DateTime.UtcNow
+            });
+            await db.SaveChangesAsync();
+        }
+
+        return Results.Ok(new MeshCheckInResponse(
+            true, best.Person.Id, best.Person.Name, (float)best.Distance));
+    });
+
+record MeshCheckInRequest(float[] Vector);
+record MeshCheckInResponse(
+    bool    Recognized,
+    Guid?   PersonId,
+    string? PersonName,
+    float   Distance);
+            </CodeSnippet>
+
+            <p>
+                Notice the <Highlight>idempotency guard</Highlight>: if someone walks through
+                the camera field twice in the same day, the second pass is recognised but no
+                duplicate record is created. This keeps the attendance log clean without any
+                client-side state management.
+            </p>
+
+            <h4>Step 6: Set Up the Blazor WASM Frontend</h4>
+
+            <p>
+                The frontend registers one default <Highlight>HttpClient</Highlight> scoped to
+                the app's own base address and one named <Highlight>HttpClient</Highlight>
+                specifically for the attendance API — so that base URLs are configured in one
+                place and every page can simply request the named client by key.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// Program.cs (Blazor WASM)
+var apiBaseUrl = builder.Configuration["FaceMeshAttendanceApi:BaseUrl"]
+    ?? "http://localhost:5236";
+
+builder.Services.AddHttpClient("facemesh",
+    client =&gt; client.BaseAddress = new Uri(apiBaseUrl));
+            </CodeSnippet>
+
+            <h4>Step 7: Build the Enrollment Page</h4>
+
+            <p>
+                The <Highlight>FaceMesh</Highlight> Razor component wraps the
+                <Highlight>MediaPipe</Highlight> JavaScript library via JS interop. It exposes
+                three key parameters: <Highlight>Mode</Highlight>
+                (<Highlight>enroll</Highlight> or <Highlight>checkin</Highlight>),
+                <Highlight>LivenessMode</Highlight> (the anti-spoofing strategy), and an
+                <Highlight>OnFeatureVectorCaptured</Highlight> event callback. The callback
+                delivers a <Highlight>FeatureVectorResult</Highlight> that carries the averaged
+                956-element vector, a sample count, and a liveness confirmation flag.
+            </p>
+
+            <p>
+                The enrollment page hosts a <Highlight>FaceMesh</Highlight> Razor component set
+                to <Highlight>Mode="enroll"</Highlight>. When the component fires
+                <Highlight>OnFeatureVectorCaptured</Highlight>, the page stores the averaged
+                vector and shows a name input field. The user types their name and clicks
+                Register — the vector and name travel to the API as a single JSON payload.
+            </p>
+
+            <CodeSnippet CssClass="language-razor">
+@@page "/"
+@@page "/enroll"
+@@inject IHttpClientFactory HttpFactory
+
+&lt;FaceMesh @@ref="_face"
+          Mode="enroll"
+          LivenessMode="@@_livenessMode"
+          OnFeatureVectorCaptured="HandleCapture" /&gt;
+
+@@if (_capturedVector != null)
+{
+    &lt;div class="card mt-3"&gt;
+        &lt;div class="card-body"&gt;
+            &lt;h5&gt;Face captured — @@_capturedSamples sample(s) averaged&lt;/h5&gt;
+            &lt;input placeholder="Full name" @@bind="_personName" /&gt;
+            &lt;button @@onclick="RegisterPerson"
+                    disabled="@@(string.IsNullOrWhiteSpace(_personName) || _busy)"&gt;
+                @@(_busy ? "Registering…" : "Register")
+            &lt;/button&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+}
+
+@@code {
+    private FaceMesh? _face;
+    private string    _livenessMode  = "blink";
+    private float[]?  _capturedVector;
+    private int       _capturedSamples;
+    private string    _personName    = "";
+    private bool      _busy;
+
+    private void HandleCapture(FeatureVectorResult result)
+    {
+        if (result.Detected &amp;&amp; result.Vector != null)
+        {
+            _capturedVector  = result.Vector;
+            _capturedSamples = result.SampleCount;
+        }
+    }
+
+    private async Task RegisterPerson()
+    {
+        if (_capturedVector is null || string.IsNullOrWhiteSpace(_personName)) return;
+
+        _busy = true;
+        StateHasChanged();
+
+        var http    = HttpFactory.CreateClient("facemesh");
+        var payload = new { name = _personName.Trim(), vector = _capturedVector };
+        await http.PostAsJsonAsync("/api/mesh/persons/enroll", payload);
+
+        _busy           = false;
+        _personName     = "";
+        _capturedVector = null;
+        StateHasChanged();
+    }
+}
+            </CodeSnippet>
+
+            <p>
+                The <Highlight>FaceMesh</Highlight> component averages multiple frames before
+                firing the event. More frames mean a more stable descriptor — the
+                <Highlight>SampleCount</Highlight> property tells you how many frames were
+                averaged, which you can surface in the UI so the user knows the capture quality.
+            </p>
+
+            <h4>Step 8: Build the Attendance Check-In Page</h4>
+
+            <p>
+                The attendance page works in a continuous loop: every 1.5 seconds the
+                <Highlight>FaceMesh</Highlight> component fires
+                <Highlight>OnFeatureVectorCaptured</Highlight>, and if the liveness check is
+                confirmed, the page posts the vector to the check-in endpoint. A recognised
+                face triggers a success alert and refreshes the today's log table. An
+                unrecognised face shows a distance-annotated warning so you know how far off
+                the match was.
+            </p>
+
+            <CodeSnippet CssClass="language-razor">
+@@page "/attendance"
+@@inject IHttpClientFactory HttpFactory
+
+&lt;FaceMesh @@ref="_face"
+          Mode="checkin"
+          LivenessMode="@@_livenessMode"
+          OnFeatureVectorCaptured="HandleCheckin" /&gt;
+
+@@code {
+    private FaceMesh? _face;
+    private string    _livenessMode = "blink";
+    private bool      _processing;
+
+    private async Task HandleCheckin(FeatureVectorResult result)
+    {
+        if (!result.Detected || result.Vector is null || _processing) return;
+
+        // Block until liveness is confirmed when a mode is active
+        if (_livenessMode != "none" &amp;&amp; !(_face?.LivenessConfirmed ?? false)) return;
+
+        _processing = true;
+        try
+        {
+            var http     = HttpFactory.CreateClient("facemesh");
+            var payload  = new { vector = result.Vector };
+            var response = await http.PostAsJsonAsync(
+                "/api/mesh/attendance/checkin", payload);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var data = await response.Content
+                    .ReadFromJsonAsync&lt;CheckInResponseDto&gt;();
+
+                if (data?.Recognized == true)
+                {
+                    _face?.ResetLiveness();
+                    // Show success alert and refresh log table
+                }
+            }
+        }
+        finally { _processing = false; }
+    }
+
+    private record CheckInResponseDto(
+        bool    Recognized,
+        Guid?   PersonId,
+        string? PersonName,
+        float   Distance);
+}
+            </CodeSnippet>
+
+            <h4>Step 9: Understand the Liveness Detection Modes</h4>
+
+            <p>
+                The <Highlight>FaceMesh</Highlight> component exposes four configurable liveness
+                modes via a dropdown select. Each mode trades user friction against spoofing
+                resistance.
+            </p>
+
+            <CodeSnippet CssClass="language-plaintext">
+Mode        | Mechanism                          | Defeats
+────────────┼────────────────────────────────────┼──────────────────────────
+none        | No check — live video assumed      | Nothing
+blink       | Active challenge: blink required   | Still photos
+depth       | Passive: Z-depth geometry check    | Flat photos, screens
+both        | Z-depth first, then blink          | Photos + screens + video
+            </CodeSnippet>
+
+            <p>
+                The <Highlight>depth</Highlight> mode analyses the
+                <Highlight>Z-coordinates</Highlight> of the 478 landmarks. A real face has a
+                characteristic depth distribution — a printed photo or a phone screen has a
+                near-zero Z variance. The <Highlight>blink</Highlight> mode detects the
+                landmark-level eye closure ratio drop and requires it to cross a threshold,
+                which static images and looped video clips cannot satisfy.
+            </p>
+
+            <p>
+                After a successful check-in, <Highlight>ResetLiveness()</Highlight> is called
+                on the component so the next person must pass the liveness check independently.
+                Without this reset, a single confirmed liveness event would allow an unlimited
+                number of subsequent check-ins without re-verification.
+            </p>
+
+            <h4>Step 10: Tune the Recognition Threshold</h4>
+
+            <p>
+                The threshold of <Highlight>1.2</Highlight> is the maximum L2 distance between
+                a probe vector and the closest stored descriptor for recognition to succeed.
+                The choice of 1.2 is empirical and reflects the IOD-normalised landmark space:
+            </p>
+
+            <CodeSnippet CssClass="language-plaintext">
+Scenario                              | Typical L2 Distance
+──────────────────────────────────────┼────────────────────
+Same person, different frames         | 0.3 – 0.8
+Same person, different lighting       | 0.5 – 1.0
+Same person, glasses on/off           | 0.8 – 1.1
+Different people                      | 1.5 – 4.0
+────────────────────────────────────────────────────────────
+Recognition threshold                 | 1.2
+            </CodeSnippet>
+
+            <p>
+                If you see false negatives (recognised people being rejected), raise the threshold
+                towards <Highlight>1.3 – 1.4</Highlight> to make the system more permissive.
+                If you see false positives (wrong people being accepted), lower it towards
+                <Highlight>1.0 – 1.1</Highlight> to make the system stricter.
+            </p>
+
+            <p>
+                The distance value is surfaced in both the success and failure responses so you
+                can calibrate against real data from your deployment environment.
+            </p>
+
+            <h4>Putting It All Together: The Full Flow</h4>
+
+            <CodeSnippet CssClass="language-plaintext">
+ENROLL FLOW
+───────────
+Browser         →  FaceMesh JS captures 478 landmarks × N frames
+FaceMesh WASM   →  Averages N frames → 956-element float[]
+Enroll.razor    →  POST /api/mesh/persons/enroll { name, vector }
+API             →  INSERT into mesh_persons (name, vector(956))
+                →  PostgreSQL creates HNSW index entry
+                →  Returns 201 Created { id, name }
+
+CHECK-IN FLOW
+─────────────
+Browser         →  FaceMesh JS captures landmarks continuously
+FaceMesh WASM   →  Checks liveness → fires OnFeatureVectorCaptured
+Attendance.razor→  POST /api/mesh/attendance/checkin { vector }
+API             →  SELECT … ORDER BY descriptor &lt;-&gt; vec LIMIT 1  (HNSW)
+                →  If distance ≤ 1.2 AND not already checked in today
+                →  INSERT into mesh_attendance_records
+                →  Returns { recognized: true, personName, distance }
+            </CodeSnippet>
+
+            <DemoSnippet Title="Face Mesh Attendance Demo">
+                <ol>
+                    <li>Go to the <strong>Enroll Person</strong> tab and choose a liveness mode.</li>
+                    <li>Click <strong>Enable Camera</strong>, then point your camera at your face.</li>
+                    <li>Click <strong>Capture Face</strong>, enter your name, and click <strong>Register</strong>.</li>
+                    <li>Switch to the <strong>Attendance Check-In</strong> tab — recognition runs automatically every 1.5 seconds.</li>
+                </ol>
+                <p>All data is stored in-memory in the browser; nothing is sent to a server.</p>
+                <p>
+                    &#x1F512; <strong>Privacy note:</strong> This is a pure in-browser demo.
+                    No video, images, or face vectors ever leave your device &mdash; all processing
+                    happens locally in <Highlight>WebAssembly</Highlight> and all data is discarded
+                    when you close or refresh the page.
+                </p>
+                <FaceMeshAttendanceDemoComponent />
+            </DemoSnippet>
+        </How>
+
+        <Summary>
+            <p>
+                In this article we built a complete face mesh attendance system in pure .NET —
+                no Python, no cloud AI APIs, no proprietary hardware. Here are the key takeaways:
+            </p>
+
+            <ul>
+                <li>
+                    The browser's <Highlight>MediaPipe FaceMesh</Highlight> model produces a
+                    <Highlight>956-element float vector</Highlight> (478 landmarks × x, y, IOD-normalised)
+                    that acts as a compact facial biometric template — only this vector is sent to the API,
+                    never raw video or images.
+                </li>
+                <li>
+                    <Highlight>pgvector</Highlight> with an <Highlight>HNSW index</Highlight>
+                    turns standard PostgreSQL into a sub-millisecond vector search engine — no
+                    dedicated vector database required, no new infrastructure to operate.
+                </li>
+                <li>
+                    The recognition threshold (<Highlight>L2 distance 1.2</Highlight>) sits
+                    between within-person variation (0.3–0.8) and between-person variation (1.5–4.0).
+                    Tune it up or down by reading the distance values in real deployment data.
+                </li>
+                <li>
+                    The idempotent check-in guard (one record per person per UTC day) keeps the
+                    attendance log clean without any client-side state.
+                </li>
+                <li>
+                    Four configurable <Highlight>liveness modes</Highlight> (none, blink, depth, both)
+                    let you balance user friction against spoofing resistance for your security context.
+                </li>
+                <li>
+                    The entire stack runs on <Highlight>net10.0</Highlight> using only
+                    <Highlight>Npgsql.EntityFrameworkCore.PostgreSQL</Highlight> and
+                    <Highlight>Pgvector.EntityFrameworkCore</Highlight> on the server side.
+                </li>
+            </ul>
+
+            <p>
+                If this sparked your interest in ML-powered .NET applications, read
+                <NavLink href="blogs/ai-powered-image-recognition-in-net-with-mlnet-and-onnx-runtime"
+                         Match="NavLinkMatch.All">
+                    AI Powered Image Recognition in .NET with ML.NET and ONNX Runtime
+                </NavLink>
+                to see how to run a ResNet50 model entirely inside a .NET process — another
+                pattern where keeping inference in-process eliminates a network hop and a
+                service boundary.
+            </p>
+        </Summary>
+    </ContentBody>
+</Content>

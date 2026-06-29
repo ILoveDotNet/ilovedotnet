@@ -1,0 +1,143 @@
+@namespace BlazorDemoComponents
+
+<div>
+    @if (Mode == "visualize")
+    {
+        <span>Face mesh via <a href="https://www.mediapipe.dev" target="_blank">MediaPipe</a>. Please allow your camera.</span>
+    }
+
+    @if (!WebcamEnabled)
+    {
+        <div class="[ flex flex-col items-center justify-center ] [ border-2 border-dashed border-gray-300 ] [ dark:border-gray-700 ] [ rounded-lg ] [ p-8 ] [ my-2 ] [ text-center ]">
+            <div style="font-size:3rem">&#x1F4F7;</div>
+            <p class="[ mt-2 mb-4 ] [ text-gray-600 ] [ dark:text-gray-400 ]">Camera is off &mdash; click below to enable your webcam</p>
+            <button class="[ bg-fuchsia-500 ] [ text-white ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ]"
+                    @onclick="StartCamera">
+                &#x1F4F7; Enable Camera
+            </button>
+        </div>
+    }
+
+    @if (WebcamEnabled)
+    {
+        <button class="[ bg-red-500 ] [ text-white ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ] [ mb-1 ]"
+                @onclick="StopCamera">
+            &#x1F6AB; Disable Camera
+        </button>
+    }
+
+    <div class="mesh-container" style="@(WebcamEnabled ? "" : "display:none;")">
+        <video class="input_video selfie" style="display:none;"></video>
+        <canvas class="output_canvas" width="1280px" height="720px" style="width:100%;display:block;"></canvas>
+        <div class="loading">
+            <div class="spinner"></div>
+            <div class="message">Loading</div>
+        </div>
+    </div>
+
+    @if (Mode == "visualize" && WebcamEnabled && DetectionResult != null)
+    {
+        if (DetectionResult.Faces != null && DetectionResult.Faces.Count > 0)
+        {
+            <ul>
+                @foreach (var face in DetectionResult.Faces)
+                {
+                    if (face.Landmarks.Count > 4)
+                    {
+                        var noseTip = face.Landmarks[4];
+                        int nx = (int)(noseTip.X * 100);
+                        int ny = (int)(noseTip.Y * 100);
+                        <li>Face @face.Index &mdash; nose tip at [@nx%, @ny%] &mdash; @face.Landmarks.Count landmarks</li>
+                    }
+                }
+            </ul>
+        }
+        else
+        {
+            <div>I don&rsquo;t see any faces.</div>
+        }
+    }
+
+    @if (Mode != "visualize" && WebcamEnabled)
+    {
+        <div class="mt-2">
+            @if (FaceDetected)
+            {
+                <div class="alert alert-success">&#x1F9D1; Face detected</div>
+            }
+            else
+            {
+                <div class="alert alert-warning">No face detected &mdash; please look at the camera</div>
+            }
+
+            @if (LivenessMode != "none" && FaceDetected)
+            {
+                <div class="alert @(LivenessConfirmed ? "alert-success" : "alert-info")">
+                    @if (LivenessConfirmed)
+                    {
+                        @if (LivenessMode == "blink")
+                        {
+                            <span>&#x2705; Liveness confirmed &mdash; blink detected</span>
+                        }
+                        else if (LivenessMode == "depth")
+                        {
+                            <span>&#x2705; Liveness confirmed &mdash; real 3D face detected</span>
+                        }
+                        else
+                        {
+                            <span>&#x2705; Liveness confirmed &mdash; depth + blink verified</span>
+                        }
+                    }
+                    else if (LivenessMode == "blink")
+                    {
+                        <span>&#x1F441;&#xFE0F; Please <strong>blink</strong> to confirm you&apos;re live</span>
+                    }
+                    else if (LivenessMode == "depth")
+                    {
+                        <span>&#x1F50D; Checking face depth&hellip;</span>
+                    }
+                    else @* both *@
+                    {
+                        @if (DepthConfirmed)
+                        {
+                            <span>&#x2705; Depth verified &mdash; now please <strong>blink once</strong></span>
+                        }
+                        else
+                        {
+                            <span>&#x1F50D; Checking face depth&hellip;</span>
+                        }
+                    }
+                </div>
+            }
+
+            @if (Mode == "enroll")
+            {
+                <button class="[ bg-fuchsia-500 ] [ text-white ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ] [ mt-1 ] [ disabled:opacity-50 ]"
+                        @onclick="CaptureFeatureVector"
+                        disabled="@(IsCapturing || (LivenessMode != "none" && !LivenessConfirmed))">
+                    @if (IsCapturing)
+                    {
+                        <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                        <span>Capturing 5 samples&hellip;</span>
+                    }
+                    else
+                    {
+                        <span>&#x1F4F8; Capture Face</span>
+                    }
+                </button>
+            }
+
+            @if (CurrentVector is { Length: > 0 } vec)
+            {
+                <div class="mt-2 p-2 border rounded" style="font-family:monospace;font-size:0.78rem;word-break:break-all;background:var(--bs-tertiary-bg);color:var(--bs-body-color);">
+                    <span class="text-muted">vector(956) &mdash; </span>[@string.Join(", ", vec.Take(6).Select(f => f.ToString("F4")))&hellip;]
+                    <span class="text-muted ms-1">(@vec.Length elements)</span>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    public FaceMeshResult? DetectionResult { get; set; }
+}

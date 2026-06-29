@@ -2,7 +2,7 @@
 
 public class BlazorLearningPath
 {
-  public readonly List<ContentMetaData> FullContents = new(34);
+  public readonly List<ContentMetaData> FullContents = new(35);
 
   public BlazorLearningPath()
   {
@@ -585,6 +585,23 @@ public class BlazorLearningPath
                 CreatedOn = new DateTime(2026, 2, 1, 22, 30, 0, DateTimeKind.Utc),
                 ModifiedOn = new DateTime(2026, 2, 1, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["2FA", "Two-Factor Authentication", "QR Code", "TOTP", "Identity", "Security", "Authenticator App"]
+            },
+            new ContentMetaData
+            {
+                Order = 35,
+                Title = "Build a Real-Time Face Mesh Attendance System in .NET with pgvector and Blazor WASM",
+                Description = "In this post I will teach you how to build a face mesh attendance system using 956-element landmark vectors, pgvector with HNSW index in PostgreSQL, ASP.NET Core minimal API, and Blazor WASM with liveness detection.",
+                Author = "Abdul Rahman",
+                Slug = "build-a-realtime-face-mesh-attendance-system-in-dotnet-with-pgvector-and-blazor-wasm",
+                PosterUrl = "image/blogs/blazor/wasm/build-a-realtime-face-mesh-attendance-system-in-dotnet-with-pgvector-and-blazor-wasm.webp",
+                ThumbnailUrl = "image/blogs/blazor/wasm/build-a-realtime-face-mesh-attendance-system-in-dotnet-with-pgvector-and-blazor-wasm.webp",
+                ContentUrl = "blogs/build-a-realtime-face-mesh-attendance-system-in-dotnet-with-pgvector-and-blazor-wasm",
+                IconUrl = "image/icons/blazor.webp",
+                Channel = "Blazor",
+                Type = "blogs",
+                CreatedOn = new DateTime(2026, 11, 1, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2026, 11, 1, 22, 30, 0, DateTimeKind.Utc),
+                Keywords = ["Face Mesh", "pgvector", "Vector Search", "HNSW", "Blazor WASM", "Liveness Detection", "Biometric", "PostgreSQL", "Face Recognition"]
             },
         ];
   }

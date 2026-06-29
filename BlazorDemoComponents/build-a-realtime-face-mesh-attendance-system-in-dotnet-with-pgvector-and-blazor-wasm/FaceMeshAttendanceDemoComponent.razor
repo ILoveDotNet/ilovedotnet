@@ -1,0 +1,308 @@
+<div class="face-mesh-demo">
+    <div class="demo-tabs mb-3">
+        <button class="[ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ border-2 ] [ mr-2 ] @(_activeTab == "enroll" ? "bg-blue-500 border-blue-700 text-white" : "bg-white border-gray-300 text-gray-600 dark:bg-black dark:border-gray-600 dark:text-gray-300")"
+                @onclick='() => SetTab("enroll")'>
+            &#x1F4DD; Enroll Person
+        </button>
+        <button class="[ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ border-2 ] [ disabled:opacity-50 ] @(_activeTab == "attend" ? "bg-blue-500 border-blue-700 text-white" : "bg-white border-gray-300 text-gray-600 dark:bg-black dark:border-gray-600 dark:text-gray-300")"
+                @onclick='() => SetTab("attend")'
+                disabled="@(_enrolled.Count == 0)">
+            &#x1F4CB; Attendance Check-In
+        </button>
+        <button class="[ bg-red-500 ] [ text-white ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ inline-flex ] [ space-x-1 ] [ disabled:opacity-50 ]"
+                @onclick="ResetAll"
+                disabled="@(_enrolled.Count == 0 && _todayCheckins.Count == 0)">
+            &#x1F5D1;&#xFE0F; Reset All
+        </button>
+    </div>
+
+    <div class="mb-3 liveness-select">
+        <label class="[ font-semibold ]">&#x1F6E1;&#xFE0F; Liveness mode</label>
+        <select class="[ w-full ] [ px-4 py-2 ] [ border-2 border-gray-200 ] [ focus:outline-hidden focus:border-gray-400 ] [ dark:bg-black dark:border-gray-800 dark:focus:border-b-white dark:text-white ]" @bind="_livenessMode" @bind:after="OnLivenessModeChanged">
+            <option value="none">None &mdash; no liveness check</option>
+            <option value="blink">Blink &mdash; active challenge (blink required)</option>
+            <option value="depth">Z-depth &mdash; passive check, detects flat photos/screens</option>
+            <option value="both">Both &mdash; Z-depth (passive) then Blink (active)</option>
+        </select>
+    </div>
+
+    @if (_activeTab == "enroll")
+    {
+        <FaceMesh @ref="_face"
+                  Mode="enroll"
+                  LivenessMode="@_livenessMode"
+                  OnFeatureVectorCaptured="HandleCapture" />
+
+        @if (_capturedVector != null)
+        {
+            <div class="card mt-3" style="max-width:480px">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        &#x2705; Face captured &mdash; @_capturedSamples sample@(_capturedSamples == 1 ? "" : "s") averaged
+                    </h5>
+                    <div class="mb-3">
+                        <label for="demoPersonName">Full name</label>
+                        <input id="demoPersonName"
+                               class="[ w-full ] [ px-4 py-2 ] [ border-2 border-gray-200 ] [ focus:outline-hidden focus:border-gray-400 ] [ dark:bg-black dark:border-gray-800 dark:focus:border-b-white dark:md:focus:border-blue-800 dark:caret-white dark:text-white ]"
+                               placeholder="e.g. Jane Smith"
+                               @bind="_personName"
+                               @bind:event="oninput" />
+                    </div>
+                    <button class="[ bg-green-500 ] [ text-white ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ] [ disabled:opacity-50 ]"
+                            @onclick="RegisterPerson"
+                            disabled="@(string.IsNullOrWhiteSpace(_personName) || _busy)">
+                        @(_busy ? "Registering\u2026" : "Register")
+                    </button>
+                    @if (_statusMessage != null)
+                    {
+                        <div class="alert @_statusCss mt-2 mb-0">@_statusMessage</div>
+                    }
+                </div>
+            </div>
+        }
+
+        @if (_enrolled.Count > 0)
+        {
+            <h6 class="mt-4">Enrolled people (@_enrolled.Count)</h6>
+            <table class="[ table-fixed border-collapse ] [ bg-white ] [ border-2 border-gray-200 ] [ dark:bg-black dark:border-slate-500 ] [ mt-2 ] [ max-w-lg ] [ w-full ]">
+                <thead>
+                    <tr class="[ bg-gray-100 ] [ dark:bg-slate-500 ]">
+                        <th class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Name</th>
+                        <th class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Enrolled at (UTC)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in _enrolled)
+                    {
+                        <tr>
+                            <td class="[ border-2 border-gray-200 ] [ dark:border-slate-700 ] [ p-2 ]">@p.Name</td>
+                            <td class="[ border-2 border-gray-200 ] [ dark:border-slate-700 ] [ p-2 ]">@p.EnrolledAt.ToString("yyyy-MM-dd HH:mm")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    }
+    else if (_activeTab == "attend")
+    {
+        @if (_recognitionMessage != null)
+        {
+            <div class="alert @_recognitionCss mb-3">@_recognitionMessage</div>
+        }
+
+        <FaceMesh @ref="_face"
+                  Mode="checkin"
+                  LivenessMode="@_livenessMode"
+                  OnFeatureVectorCaptured="HandleCheckin" />
+
+        @if (_todayCheckins.Count > 0)
+        {
+            <h6 class="mt-4">Today&rsquo;s check-ins (@_todayCheckins.Count)</h6>
+            <table class="[ table-fixed border-collapse ] [ bg-white ] [ border-2 border-gray-200 ] [ dark:bg-black dark:border-slate-500 ] [ mt-2 ] [ max-w-lg ] [ w-full ]">
+                <thead>
+                    <tr class="[ bg-gray-100 ] [ dark:bg-slate-500 ]">
+                        <th class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Name</th>
+                        <th class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Time (UTC)</th>
+                        <th class="[ border-2 border-gray-200 ] [ dark:border-slate-600 ] [ p-2 ]">Distance</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in _todayCheckins)
+                    {
+                        <tr>
+                            <td class="[ border-2 border-gray-200 ] [ dark:border-slate-700 ] [ p-2 ]">@r.PersonName</td>
+                            <td class="[ border-2 border-gray-200 ] [ dark:border-slate-700 ] [ p-2 ]">@r.CheckedInAt.ToString("HH:mm:ss")</td>
+                            <td class="[ border-2 border-gray-200 ] [ dark:border-slate-700 ] [ p-2 ]"><small>@r.Distance.ToString("F3")</small></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <p class="text-muted mt-3">No check-ins yet today. Face the camera to check in.</p>
+        }
+    }
+</div>
+
+@code {
+    // ── State ──────────────────────────────────────────────────────────────────
+    private FaceMesh? _face;
+    private string    _activeTab     = "enroll";
+    private string    _livenessMode  = "blink";
+
+    // Enroll tab
+    private float[]?  _capturedVector;
+    private int       _capturedSamples;
+    private string    _personName    = "";
+    private bool      _busy;
+    private string?   _statusMessage;
+    private string    _statusCss     = "alert-success";
+
+    // Attend tab
+    private string?   _recognitionMessage;
+    private string    _recognitionCss = "alert-success";
+    private bool      _processing;
+
+    // ── In-memory stores ───────────────────────────────────────────────────────
+    private const double RecognitionThreshold = 1.2;
+
+    private readonly List<EnrolledPerson>  _enrolled      = [];
+    private readonly List<CheckInRecord>   _todayCheckins = [];
+
+    // ── Tab switching ──────────────────────────────────────────────────────────
+    private void SetTab(string tab)
+    {
+        _activeTab          = tab;
+        _statusMessage      = null;
+        _recognitionMessage = null;
+        _capturedVector     = null;
+        _personName         = "";
+    }
+
+    private void ResetAll()
+    {
+        _enrolled.Clear();
+        _todayCheckins.Clear();
+        _activeTab          = "enroll";
+        _capturedVector     = null;
+        _personName         = "";
+        _statusMessage      = null;
+        _recognitionMessage = null;
+        _processing         = false;
+    }
+
+    private void OnLivenessModeChanged() => _face?.SetLivenessMode(_livenessMode);
+
+    // ── Enrollment handlers ────────────────────────────────────────────────────
+    private void HandleCapture(FeatureVectorResult result)
+    {
+        if (result.Detected && result.Vector != null)
+        {
+            _capturedVector  = result.Vector;
+            _capturedSamples = result.SampleCount;
+            _statusMessage   = null;
+        }
+        else
+        {
+            _statusMessage = "No face detected \u2014 please look at the camera and try again.";
+            _statusCss     = "alert-warning";
+            StateHasChanged();
+        }
+    }
+
+    private void RegisterPerson()
+    {
+        if (_capturedVector is null || string.IsNullOrWhiteSpace(_personName)) return;
+
+        _busy = true;
+        StateHasChanged();
+
+        _enrolled.Add(new EnrolledPerson(
+            Id:         Guid.NewGuid(),
+            Name:       _personName.Trim(),
+            Descriptor: _capturedVector,
+            EnrolledAt: DateTime.UtcNow));
+
+        _statusMessage  = $"\u2705 {_personName.Trim()} enrolled! Switch to the Check-In tab to try recognition.";
+        _statusCss      = "alert-success";
+        _personName     = "";
+        _capturedVector = null;
+        _busy           = false;
+    }
+
+    // ── Check-in handler ───────────────────────────────────────────────────────
+    private async Task HandleCheckin(FeatureVectorResult result)
+    {
+        if (!result.Detected || result.Vector is null || _processing) return;
+        if (_livenessMode != "none" && !(_face?.LivenessConfirmed ?? false)) return;
+
+        _processing = true;
+        try
+        {
+            // Run on thread pool so we don't block the render thread with the loop
+            var (recognized, match) = await Task.Run(
+                () => FindBestMatch(result.Vector));
+
+            if (recognized && match is not null)
+            {
+                _face?.ResetLiveness();
+
+                // Idempotent: one check-in per person per UTC day
+                var today = DateTime.UtcNow.Date;
+                bool alreadyIn = _todayCheckins
+                    .Any(r => r.PersonId == match.Id && r.CheckedInAt.Date == today);
+
+                if (!alreadyIn)
+                {
+                    _todayCheckins.Add(new CheckInRecord(
+                        PersonId:   match.Id,
+                        PersonName: match.Name,
+                        CheckedInAt: DateTime.UtcNow,
+                        Distance:   (float)L2Distance(match.Descriptor, result.Vector)));
+                }
+
+                _recognitionMessage = $"\u2705 Welcome, {match.Name}! Attendance marked.";
+                _recognitionCss     = "alert-success";
+            }
+            else
+            {
+                double dist = match is not null
+                    ? L2Distance(match.Descriptor, result.Vector)
+                    : double.MaxValue;
+
+                _recognitionMessage = $"\u2753 Face not recognised (distance: {dist:F3}). Please enrol first.";
+                _recognitionCss     = "alert-warning";
+            }
+        }
+        finally
+        {
+            _processing = false;
+            StateHasChanged();
+        }
+    }
+
+    // ── Vector similarity ─────────────────────────────────────────────────────
+    private (bool Recognized, EnrolledPerson? Match) FindBestMatch(float[] probe)
+    {
+        EnrolledPerson? best     = null;
+        double          bestDist = double.MaxValue;
+
+        foreach (var p in _enrolled)
+        {
+            double d = L2Distance(p.Descriptor, probe);
+            if (d < bestDist)
+            {
+                bestDist = d;
+                best     = p;
+            }
+        }
+
+        return (best is not null && bestDist <= RecognitionThreshold, best);
+    }
+
+    private static double L2Distance(float[] a, float[] b)
+    {
+        double sum = 0;
+        int    len = Math.Min(a.Length, b.Length);
+        for (int i = 0; i < len; i++)
+        {
+            double d = a[i] - b[i];
+            sum += d * d;
+        }
+        return Math.Sqrt(sum);
+    }
+
+    // ── Record types ───────────────────────────────────────────────────────────
+    private record EnrolledPerson(
+        Guid    Id,
+        string  Name,
+        float[] Descriptor,
+        DateTime EnrolledAt);
+
+    private record CheckInRecord(
+        Guid    PersonId,
+        string  PersonName,
+        DateTime CheckedInAt,
+        float   Distance);
+}
