@@ -589,13 +589,13 @@ public class BlazorLearningPath
             new ContentMetaData
             {
                 Order = 35,
-                Title = "Build a Real-Time Face Mesh Attendance System in .NET with pgvector and Blazor WASM",
+                Title = "Face Detection and Face Verification in ASP.NET Web API with pgvector and Blazor WASM",
                 Description = "In this post I will teach you how to build a face mesh attendance system using 956-element landmark vectors, pgvector with HNSW index in PostgreSQL, ASP.NET Core minimal API, and Blazor WASM with liveness detection.",
                 Author = "Abdul Rahman",
-                Slug = "build-a-realtime-face-mesh-attendance-system-in-dotnet-with-pgvector-and-blazor-wasm",
-                PosterUrl = "image/blogs/blazor/wasm/build-a-realtime-face-mesh-attendance-system-in-dotnet-with-pgvector-and-blazor-wasm.webp",
-                ThumbnailUrl = "image/blogs/blazor/wasm/build-a-realtime-face-mesh-attendance-system-in-dotnet-with-pgvector-and-blazor-wasm.webp",
-                ContentUrl = "blogs/build-a-realtime-face-mesh-attendance-system-in-dotnet-with-pgvector-and-blazor-wasm",
+                Slug = "face-detection-and-face-verification-in-aspnet-webapi-with-pgvector-and-blazor-wasm",
+                PosterUrl = "image/blogs/blazor/wasm/face-detection-and-face-verification-in-aspnet-webapi-with-pgvector-and-blazor-wasm.webp",
+                ThumbnailUrl = "image/blogs/blazor/wasm/face-detection-and-face-verification-in-aspnet-webapi-with-pgvector-and-blazor-wasm.webp",
+                ContentUrl = "blogs/face-detection-and-face-verification-in-aspnet-webapi-with-pgvector-and-blazor-wasm",
                 IconUrl = "image/icons/blazor.webp",
                 Channel = "Blazor",
                 Type = "blogs",

@@ -39,7 +39,7 @@ public partial class FaceMesh : IAsyncDisposable
   protected override async Task OnInitializedAsync()
   {
     _jsModule = await JSRuntime.InvokeAsync<IJSObjectReference>("import",
-        "/build-a-realtime-face-mesh-attendance-system-in-dotnet-with-pgvector-and-blazor-wasm/FaceMesh.razor.js");
+        "/face-detection-and-face-verification-in-aspnet-webapi-with-pgvector-and-blazor-wasm/FaceMesh.razor.js");
     _dotNetRef = DotNetObjectReference.Create(this);
     // Camera is NOT started automatically — user must click Enable Camera.
   }
