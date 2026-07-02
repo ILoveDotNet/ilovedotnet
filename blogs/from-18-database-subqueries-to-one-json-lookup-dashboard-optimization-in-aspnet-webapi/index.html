@@ -1,0 +1,1072 @@
+<!DOCTYPE html><html lang="en"><head>
+    <meta charset="utf-8"/>
+    <meta name="author" content="Abdul Rahman Shabeek Mohamed"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+    <meta name="copyright" content="I Love DotNet"/>
+    <meta name="language" content="EN"/>
+    <meta name="robots" content="index,follow"/>
+    <meta name="owner" content="Abdul Rahman Shabeek Mohamed"/>
+    <meta name="fediverse:creator" content="@thebhai@mastodon.social"/>
+    <!--<meta http-equiv="Content-Security-Policy"
+          content="base-uri 'self';
+               block-all-mixed-content;
+               img-src data: 'self'
+                       https://pagead2.googlesyndication.com;
+               object-src 'none';
+               script-src 'self'
+                          https://pagead2.googlesyndication.com
+                          https://www.googletagmanager.com
+                          https://gist.github.com
+                          'unsafe-eval'
+                          'unsafe-inline'
+                          data:;
+               style-src 'self'
+                         https://github.githubassets.com
+                         'unsafe-inline';
+               upgrade-insecure-requests;">-->
+    <title>From 18 Database Subqueries to One JSON Lookup: Dashboard Optimization in ASP.NET Web API - I ❤️ DotNet</title>
+    <base href="/"/>
+    
+<!--Blazor-WebAssembly:{"environmentName":"Production","environmentVariables":{}}--><!--Blazor:{"type":"webassembly","prerenderId":"ec987caf5f764e2a86fde551b3fb8f67","key":{"locationHash":"77D12F14A8105320B1AAED6AE7E689DA0EC4483270A645E84079EAA0FFDF550D:0","formattedComponentKey":""},"assembly":"Microsoft.AspNetCore.Components.Web","typeName":"Microsoft.AspNetCore.Components.Web.HeadOutlet","parameterDefinitions":"W10=","parameterValues":"W10="}--><script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "publisher": {
+        "@type": "Organization",
+        "name": "I Love DotNet",
+        "url": "https://ilovedotnet.org/",
+        "logo": {
+            "@type": "ImageObject",
+            "url": "https://ilovedotnet.org/favicon.ico",
+            "width": 16,
+            "height": 16
+        }
+    },
+    "author": {
+        "@type": "Person",
+        "name": "Abdul Rahman Shabeek Mohamed",
+        "image": {
+            "@type": "ImageObject",
+            "url": "//https://www.gravatar.com/avatar/6f221209a03c1800679fc684dea24bf2?s=250&d=mm&r=x",
+            "width": 250,
+            "height": 250
+        },
+        "url": "https://ilovedotnet.org/author/abdulrahman/",
+        "sameAs": [
+            "https://www.linkedin.com/in/fingers10",
+            "https://github.com/fingers10",
+            "https://stackoverflow.com/users/10851213/fingers10",
+            "https://www.youtube.com/channel/UCOS3wCw7SVXjXXffMPqid7A"
+        ]
+    },
+    "headline": "From 18 Database Subqueries to One JSON Lookup: Dashboard Optimization in ASP.NET Web API",
+    "url": "https://ilovedotnet.org/blogs/from-18-database-subqueries-to-one-json-lookup-dashboard-optimization-in-aspnet-webapi/",
+    "datePublished": "2026-06-21T22:30:00.000Z",
+    "dateModified": "2026-06-21T22:30:00.000Z",
+    "image": {
+        "@type": "ImageObject",
+        "url": "https://ilovedotnet.org/image/blogs/webapi/from-18-database-subqueries-to-one-json-lookup-dashboard-optimization-in-aspnet-webapi.png",
+        "width": 1265,
+        "height": 827
+    },
+    "keywords": ".NET, DotNet, I Love DotNet, I ❤️ DotNet, Blazor, Blazor (WebAssembly), Blazor Wasm, C#, Entity Framework, LINQ, ML.NET, Web API, TDD, OOPS, Middleware, JWT, Dependency Injection, Report, Design Pattern, SOLID, HTTP Client, OWASP, SignalR, Dashboard Performance, Pre-Computed Snapshot, EF Core, PostgreSQL, JSONB, Read Model, CQRS, System.Text.Json Source Generators, Redis Cache, IDistributedCache, Protobuf, ASP.NET Core, Web API Performance",
+    "description": "In this post I will teach how to evolve a dashboard handler from 18 correlated subqueries to a four-layer optimized read path: a JSONB pre-computed snapshot in PostgreSQL, System.Text.Json source generators, a Protobuf discussion for browser-facing APIs, and a Redis cache with write-side invalidation.",
+    "mainEntityOfPage": {
+        "@type": "WebPage",
+        "@id": "https://ilovedotnet.org/"
+    }
+}
+</script><!--Blazor:{"prerenderId":"ec987caf5f764e2a86fde551b3fb8f67"}-->
+
+    <script type="text/default-title">I ❤️ DotNet</script>
+    <script type="text/default-meta-elements">[[,"author",,,"Abdul Rahman Shabeek Mohamed"],[,"viewport",,,"width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"],[,"copyright",,,"I Love DotNet"],[,"language",,,"EN"],[,"robots",,,"index,follow"],[,"owner",,,"Abdul Rahman Shabeek Mohamed"],[,"fediverse:creator",,,"@thebhai@mastodon.social"]]</script>
+    <meta property="description" content="In this post I will teach how to evolve a dashboard handler from 18 correlated subqueries to a four-layer optimized read path: a JSONB pre-computed snapshot in PostgreSQL, System.Text.Json source generators, a Protobuf discussion for browser-facing APIs, and a Redis cache with write-side invalidation."/>
+    <meta property="keywords" content=".NET, DotNet, I Love DotNet, I ❤️ DotNet, Blazor, Blazor (WebAssembly), Blazor Wasm, C#, Entity Framework, LINQ, ML.NET, Web API, TDD, OOPS, Middleware, JWT, Dependency Injection, Report, Design Pattern, SOLID, HTTP Client, OWASP, SignalR, Dashboard Performance, Pre-Computed Snapshot, EF Core, PostgreSQL, JSONB, Read Model, CQRS, System.Text.Json Source Generators, Redis Cache, IDistributedCache, Protobuf, ASP.NET Core, Web API Performance"/>
+    <meta property="url" content="https://ilovedotnet.org/blogs/from-18-database-subqueries-to-one-json-lookup-dashboard-optimization-in-aspnet-webapi/"/>
+    <meta property="identifier-URL" content="https://ilovedotnet.org/blogs/from-18-database-subqueries-to-one-json-lookup-dashboard-optimization-in-aspnet-webapi/"/>
+    <meta property="og:site_name" content="I Love DotNet"/>
+    <meta property="og:type" content="article"/>
+    <meta property="og:title" content="From 18 Database Subqueries to One JSON Lookup: Dashboard Optimization in ASP.NET Web API"/>
+    <meta property="og:image" content="https://ilovedotnet.org/image/blogs/webapi/from-18-database-subqueries-to-one-json-lookup-dashboard-optimization-in-aspnet-webapi.png"/>
+    <meta property="og:image:alt" content="DotNet bot with heart and DotNet brand"/>
+    <meta property="og:description" content="In this post I will teach how to evolve a dashboard handler from 18 correlated subqueries to a four-layer optimized read path: a JSONB pre-computed snapshot in PostgreSQL, System.Text.Json source generators, a Protobuf discussion for browser-facing APIs, and a Redis cache with write-side invalidation."/>
+    <meta property="og:url" content="https://ilovedotnet.org/blogs/from-18-database-subqueries-to-one-json-lookup-dashboard-optimization-in-aspnet-webapi/"/>
+    <meta property="twitter:card" content="summary_large_image"/>
+    <meta property="twitter:title" content="From 18 Database Subqueries to One JSON Lookup: Dashboard Optimization in ASP.NET Web API"/>
+    <meta property="twitter:image" content="https://ilovedotnet.org/image/blogs/webapi/from-18-database-subqueries-to-one-json-lookup-dashboard-optimization-in-aspnet-webapi.png"/>
+    <meta property="twitter:image:alt" content="DotNet bot with heart and DotNet brand"/>
+    <meta property="twitter:description" content="In this post I will teach how to evolve a dashboard handler from 18 correlated subqueries to a four-layer optimized read path: a JSONB pre-computed snapshot in PostgreSQL, System.Text.Json source generators, a Protobuf discussion for browser-facing APIs, and a Redis cache with write-side invalidation."/>
+    <meta property="twitter:url" content="https://ilovedotnet.org/blogs/from-18-database-subqueries-to-one-json-lookup-dashboard-optimization-in-aspnet-webapi/"/>
+    <meta property="article:published_time" content="2026-06-21T22:30:00.000Z"/>
+    <meta property="article:modified_time" content="2026-06-21T22:30:00.000Z"/>
+    <meta property="article:tag" content="Web API Performance"/>
+    <script type="text/default-link-elements">[]</script>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-authors.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-blazor-wasm.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-dependency-injection.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-design-pattern.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-http-client.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-linq.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-maui.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-middleware.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-mlnet.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-msbuild.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-oops.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-owasp.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-python.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-regex.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-report.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-signalr.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-solid.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-tdd.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-testing.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-webapi.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-channels.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-talk.xml" type="application/xml" title="Sitemap"/>
+    <link rel="alternate" href="https://ilovedotnet.org/atom.xml" type="application/atom+xml"/>
+    <link rel="alternate" href="https://ilovedotnet.org/blogs/from-18-database-subqueries-to-one-json-lookup-dashboard-optimization-in-aspnet-webapi/" hreflang="en"/>
+    <link rel="alternate" href="https://ilovedotnet.org/blogs/from-18-database-subqueries-to-one-json-lookup-dashboard-optimization-in-aspnet-webapi/" hreflang="x-default"/>
+    <link rel="canonical" href="https://ilovedotnet.org/blogs/from-18-database-subqueries-to-one-json-lookup-dashboard-optimization-in-aspnet-webapi/"/>
+    <link rel="index" href="https://ilovedotnet.org/blogs/from-18-database-subqueries-to-one-json-lookup-dashboard-optimization-in-aspnet-webapi/" title="From 18 Database Subqueries to One JSON Lookup: Dashboard Optimization in ASP.NET Web API - I ❤️ DotNet"/>
+</head><body class="[ m-0 ] [ h-full ] [ dark:bg-stone-900 ] [ bg-gray-100 ]"><resourcepreloader>
+    <link href="css/charts.min.css" rel="stylesheet"/>
+    <link href="highlight.min.css" rel="stylesheet"/>
+    <link href="css/app.min.css" rel="stylesheet"/>
+    <link href="manifest.json" rel="manifest"/>
+    <link rel="icon" type="image/x-icon" href="favicon.ico"/>
+    <link rel="me" href="https://www.linkedin.com/in/thebhai" type="text/html"/>
+    <link rel="me" href="https://mastodon.social/@thebhai" type="text/html"/>
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="appicons/apple-touch-icon-144x144.png"/>
+    <link rel="apple-touch-icon-precomposed" sizes="152x152" href="appicons/apple-touch-icon-152x152.png"/>
+    <link rel="icon" type="image/png" href="appicons/favicon-196x196.png" sizes="196x196"/>
+    <link rel="preconnect" href="https://googleads.g.doubleclick.net"/>
+    <link rel="preconnect" href="https://pagead2.googlesyndication.com"/>
+    <link rel="preconnect" href="https://fundingchoicesmessages.google.com"/>
+    <link rel="icon" type="image/png" href="appicons/favicon-128.png" sizes="128x128"/>
+    <link href="_framework/dotnet.6b2l3uetqt.js" rel="preload" as="script" fetchpriority="high" crossorigin="anonymous" integrity="sha256-8jm5hQiZ9JxbKNlOCDEt9b+EFvwvc5E+4tiafbIq3vI="/>
+    <script type="importmap">{
+  "imports": {
+    "./_framework/blazor.webassembly.js": "./_framework/blazor.webassembly.958z1vx7fr.js",
+    "./_framework/dotnet.js": "./_framework/dotnet.6b2l3uetqt.js",
+    "./_framework/dotnet.native.js": "./_framework/dotnet.native.id7mhgxyq4.js",
+    "./_framework/dotnet.runtime.js": "./_framework/dotnet.runtime.a6jcqbs390.js"
+  },
+  "scopes": {},
+  "integrity": {
+    "./_framework/blazor.webassembly.958z1vx7fr.js": "sha256-A59Tr9HqEhHMu8kU7kruLI9ayw5MRS6Lvc6z7jCbghk=",
+    "./_framework/blazor.webassembly.js": "sha256-A59Tr9HqEhHMu8kU7kruLI9ayw5MRS6Lvc6z7jCbghk=",
+    "./_framework/dotnet.6b2l3uetqt.js": "sha256-8jm5hQiZ9JxbKNlOCDEt9b+EFvwvc5E+4tiafbIq3vI=",
+    "./_framework/dotnet.js": "sha256-8jm5hQiZ9JxbKNlOCDEt9b+EFvwvc5E+4tiafbIq3vI=",
+    "./_framework/dotnet.native.id7mhgxyq4.js": "sha256-1k9990zKNGEGhMN7fn/iX8jWenA5lshY2RU7g5edX40=",
+    "./_framework/dotnet.native.js": "sha256-1k9990zKNGEGhMN7fn/iX8jWenA5lshY2RU7g5edX40=",
+    "./_framework/dotnet.runtime.a6jcqbs390.js": "sha256-7i3usfTrnzC/9qWO4si5Bw4w7D9fUSnSBdhQ47blX2M=",
+    "./_framework/dotnet.runtime.js": "sha256-7i3usfTrnzC/9qWO4si5Bw4w7D9fUSnSBdhQ47blX2M="
+  }
+}</script>
+    <script type="text/javascript">
+        if (!window.location.host.includes('localhost')) {
+            (function(c,l,a,r,i,t,y){
+                c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+                t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+                y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+            })(window, document, "clarity", "script", "o0565ytixx");
+        }
+    </script>
+    <script async="" src="https://fundingchoicesmessages.google.com/i/pub-1536083653226834?ers=1" nonce="dOfxAvcES0_Mwd7YjKmn_Q"></script>
+    <script nonce="dOfxAvcES0_Mwd7YjKmn_Q">
+        if (!window.location.host.includes('localhost')) {
+            (function () { function signalGooglefcPresent() { if (!window.frames['googlefcPresent']) { if (document.body) { const iframe = document.createElement('iframe'); iframe.style = 'width: 0; height: 0; border: none; z-index: -1000; left: -1000px; top: -1000px;'; iframe.style.display = 'none'; iframe.name = 'googlefcPresent'; document.body.appendChild(iframe); } else { setTimeout(signalGooglefcPresent, 0); } } } signalGooglefcPresent(); })();
+        }
+    </script>
+    <script>
+        if (!window.location.host.includes('localhost')) {
+            (function () {
+                /*
+                Copyright The Closure Library Authors.
+                SPDX-License-Identifier: Apache-2.0
+                */
+                'use strict'; var aa = function (a) { var b = 0; return function () { return b < a.length ? { done: !1, value: a[b++] } : { done: !0 } } }, ba = "function" == typeof Object.create ? Object.create : function (a) { var b = function () { }; b.prototype = a; return new b }, k; if ("function" == typeof Object.setPrototypeOf) k = Object.setPrototypeOf; else { var m; a: { var ca = { a: !0 }, n = {}; try { n.__proto__ = ca; m = n.a; break a } catch (a) { } m = !1 } k = m ? function (a, b) { a.__proto__ = b; if (a.__proto__ !== b) throw new TypeError(a + " is not extensible"); return a } : null }
+                var p = k, q = function (a, b) { a.prototype = ba(b.prototype); a.prototype.constructor = a; if (p) p(a, b); else for (var c in b) if ("prototype" != c) if (Object.defineProperties) { var d = Object.getOwnPropertyDescriptor(b, c); d && Object.defineProperty(a, c, d) } else a[c] = b[c]; a.v = b.prototype }, r = this || self, da = function () { }, t = function (a) { return a }; var u; var w = function (a, b) { this.g = b === v ? a : "" }; w.prototype.toString = function () { return this.g + "" }; var v = {}, x = function (a) { if (void 0 === u) { var b = null; var c = r.trustedTypes; if (c && c.createPolicy) { try { b = c.createPolicy("goog#html", { createHTML: t, createScript: t, createScriptURL: t }) } catch (d) { r.console && r.console.error(d.message) } u = b } else u = b } a = (b = u) ? b.createScriptURL(a) : a; return new w(a, v) }; var A = function () { return Math.floor(2147483648 * Math.random()).toString(36) + Math.abs(Math.floor(2147483648 * Math.random()) ^ Date.now()).toString(36) }; var B = {}, C = null; var D = "function" === typeof Uint8Array; function E(a, b, c) { return "object" === typeof a ? D && !Array.isArray(a) && a instanceof Uint8Array ? c(a) : F(a, b, c) : b(a) } function F(a, b, c) { if (Array.isArray(a)) { for (var d = Array(a.length), e = 0; e < a.length; e++) { var f = a[e]; null != f && (d[e] = E(f, b, c)) } Array.isArray(a) && a.s && G(d); return d } d = {}; for (e in a) Object.prototype.hasOwnProperty.call(a, e) && (f = a[e], null != f && (d[e] = E(f, b, c))); return d }
+                function ea(a) {
+                    return F(a, function (b) { return "number" === typeof b ? isFinite(b) ? b : String(b) : b }, function (b) {
+                        var c; void 0 === c && (c = 0); if (!C) { C = {}; for (var d = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789".split(""), e = ["+/=", "+/", "-_=", "-_.", "-_"], f = 0; 5 > f; f++) { var h = d.concat(e[f].split("")); B[f] = h; for (var g = 0; g < h.length; g++) { var l = h[g]; void 0 === C[l] && (C[l] = g) } } } c = B[c]; d = Array(Math.floor(b.length / 3)); e = c[64] || ""; for (f = h = 0; h < b.length - 2; h += 3) {
+                            var y = b[h], z = b[h + 1]; l = b[h + 2]; g = c[y >> 2]; y = c[(y & 3) <<
+                                4 | z >> 4]; z = c[(z & 15) << 2 | l >> 6]; l = c[l & 63]; d[f++] = "" + g + y + z + l
+                        } g = 0; l = e; switch (b.length - h) { case 2: g = b[h + 1], l = c[(g & 15) << 2] || e; case 1: b = b[h], d[f] = "" + c[b >> 2] + c[(b & 3) << 4 | g >> 4] + l + e }return d.join("")
+                    })
+                } var fa = { s: { value: !0, configurable: !0 } }, G = function (a) { Array.isArray(a) && !Object.isFrozen(a) && Object.defineProperties(a, fa); return a }; var H; var J = function (a, b, c) {
+                    var d = H; H = null; a || (a = d); d = this.constructor.u; a || (a = d ? [d] : []); this.j = d ? 0 : -1; this.h = null; this.g = a; a: { d = this.g.length; a = d - 1; if (d && (d = this.g[a], !(null === d || "object" != typeof d || Array.isArray(d) || D && d instanceof Uint8Array))) { this.l = a - this.j; this.i = d; break a } void 0 !== b && -1 < b ? (this.l = Math.max(b, a + 1 - this.j), this.i = null) : this.l = Number.MAX_VALUE } if (c) for (b = 0; b < c.length; b++)a = c[b], a < this.l ? (a += this.j, (d = this.g[a]) ? G(d) : this.g[a] = I) : (d = this.l + this.j, this.g[d] || (this.i = this.g[d] = {}), (d = this.i[a]) ?
+                        G(d) : this.i[a] = I)
+                }, I = Object.freeze(G([])), K = function (a, b) { if (-1 === b) return null; if (b < a.l) { b += a.j; var c = a.g[b]; return c !== I ? c : a.g[b] = G([]) } if (a.i) return c = a.i[b], c !== I ? c : a.i[b] = G([]) }, M = function (a, b) { var c = L; if (-1 === b) return null; a.h || (a.h = {}); if (!a.h[b]) { var d = K(a, b); d && (a.h[b] = new c(d)) } return a.h[b] }; J.prototype.toJSON = function () { var a = N(this, !1); return ea(a) };
+                var N = function (a, b) { if (a.h) for (var c in a.h) if (Object.prototype.hasOwnProperty.call(a.h, c)) { var d = a.h[c]; if (Array.isArray(d)) for (var e = 0; e < d.length; e++)d[e] && N(d[e], b); else d && N(d, b) } return a.g }, O = function (a, b) { H = b = b ? JSON.parse(b) : null; a = new a(b); H = null; return a }; J.prototype.toString = function () { return N(this, !1).toString() }; var P = function (a) { J.call(this, a) }; q(P, J); function ha(a) { var b, c = (a.ownerDocument && a.ownerDocument.defaultView || window).document, d = null === (b = c.querySelector) || void 0 === b ? void 0 : b.call(c, "script[nonce]"); (b = d ? d.nonce || d.getAttribute("nonce") || "" : "") && a.setAttribute("nonce", b) }; var Q = function (a, b) { b = String(b); "application/xhtml+xml" === a.contentType && (b = b.toLowerCase()); return a.createElement(b) }, R = function (a) { this.g = a || r.document || document }; R.prototype.appendChild = function (a, b) { a.appendChild(b) }; var S = function (a, b, c, d, e, f) { try { var h = a.g, g = Q(a.g, "SCRIPT"); g.async = !0; g.src = b instanceof w && b.constructor === w ? b.g : "type_error:TrustedResourceUrl"; ha(g); h.head.appendChild(g); g.addEventListener("load", function () { e(); d && h.head.removeChild(g) }); g.addEventListener("error", function () { 0 < c ? S(a, b, c - 1, d, e, f) : (d && h.head.removeChild(g), f()) }) } catch (l) { f() } }; var ia = r.atob("aHR0cHM6Ly93d3cuZ3N0YXRpYy5jb20vaW1hZ2VzL2ljb25zL21hdGVyaWFsL3N5c3RlbS8xeC93YXJuaW5nX2FtYmVyXzI0ZHAucG5n"), ja = r.atob("WW91IGFyZSBzZWVpbmcgdGhpcyBtZXNzYWdlIGJlY2F1c2UgYWQgb3Igc2NyaXB0IGJsb2NraW5nIHNvZnR3YXJlIGlzIGludGVyZmVyaW5nIHdpdGggdGhpcyBwYWdlLg=="), ka = r.atob("RGlzYWJsZSBhbnkgYWQgb3Igc2NyaXB0IGJsb2NraW5nIHNvZnR3YXJlLCB0aGVuIHJlbG9hZCB0aGlzIHBhZ2Uu"), la = function (a, b, c) { this.h = a; this.j = new R(this.h); this.g = null; this.i = []; this.l = !1; this.o = b; this.m = c }, V = function (a) {
+                    if (a.h.body && !a.l) {
+                        var b =
+                            function () { T(a); r.setTimeout(function () { return U(a, 3) }, 50) }; S(a.j, a.o, 2, !0, function () { r[a.m] || b() }, b); a.l = !0
+                    }
+                }, T = function (a) {
+                    for (var b = W(1, 5), c = 0; c < b; c++) { var d = X(a); a.h.body.appendChild(d); a.i.push(d) } b = X(a); b.style.bottom = "0"; b.style.left = "0"; b.style.position = "fixed"; b.style.width = W(100, 110).toString() + "%"; b.style.zIndex = W(2147483544, 2147483644).toString(); b.style["background-color"] = ma(249, 259, 242, 252, 219, 229); b.style["box-shadow"] = "0 0 12px #888"; b.style.color = ma(0, 10, 0, 10, 0, 10); b.style.display =
+                        "flex"; b.style["justify-content"] = "center"; b.style["font-family"] = "Roboto, Arial"; c = X(a); c.style.width = W(80, 85).toString() + "%"; c.style.maxWidth = W(750, 775).toString() + "px"; c.style.margin = "24px"; c.style.display = "flex"; c.style["align-items"] = "flex-start"; c.style["justify-content"] = "center"; d = Q(a.j.g, "IMG"); d.className = A(); d.src = ia; d.style.height = "24px"; d.style.width = "24px"; d.style["padding-right"] = "16px"; var e = X(a), f = X(a); f.style["font-weight"] = "bold"; f.textContent = ja; var h = X(a); h.textContent = ka; Y(a,
+                            e, f); Y(a, e, h); Y(a, c, d); Y(a, c, e); Y(a, b, c); a.g = b; a.h.body.appendChild(a.g); b = W(1, 5); for (c = 0; c < b; c++)d = X(a), a.h.body.appendChild(d), a.i.push(d)
+                }, Y = function (a, b, c) { for (var d = W(1, 5), e = 0; e < d; e++) { var f = X(a); b.appendChild(f) } b.appendChild(c); c = W(1, 5); for (d = 0; d < c; d++)e = X(a), b.appendChild(e) }, W = function (a, b) { return Math.floor(a + Math.random() * (b - a)) }, ma = function (a, b, c, d, e, f) {
+                    return "rgb(" + W(Math.max(a, 0), Math.min(b, 255)).toString() + "," + W(Math.max(c, 0), Math.min(d, 255)).toString() + "," + W(Math.max(e, 0), Math.min(f,
+                        255)).toString() + ")"
+                }, X = function (a) { a = Q(a.j.g, "DIV"); a.className = A(); return a }, U = function (a, b) { 0 >= b || null != a.g && 0 != a.g.offsetHeight && 0 != a.g.offsetWidth || (na(a), T(a), r.setTimeout(function () { return U(a, b - 1) }, 50)) }, na = function (a) { var b = a.i; var c = "undefined" != typeof Symbol && Symbol.iterator && b[Symbol.iterator]; b = c ? c.call(b) : { next: aa(b) }; for (c = b.next(); !c.done; c = b.next())(c = c.value) && c.parentNode && c.parentNode.removeChild(c); a.i = []; (b = a.g) && b.parentNode && b.parentNode.removeChild(b); a.g = null }; var pa = function (a, b, c, d, e) { var f = oa(c), h = function (l) { l.appendChild(f); r.setTimeout(function () { f ? (0 !== f.offsetHeight && 0 !== f.offsetWidth ? b() : a(), f.parentNode && f.parentNode.removeChild(f)) : a() }, d) }, g = function (l) { document.body ? h(document.body) : 0 < l ? r.setTimeout(function () { g(l - 1) }, e) : b() }; g(3) }, oa = function (a) { var b = document.createElement("div"); b.className = a; b.style.width = "1px"; b.style.height = "1px"; b.style.position = "absolute"; b.style.left = "-10000px"; b.style.top = "-10000px"; b.style.zIndex = "-10000"; return b }; var L = function (a) { J.call(this, a) }; q(L, J); var qa = function (a) { J.call(this, a) }; q(qa, J); var ra = function (a, b) { this.l = a; this.m = new R(a.document); this.g = b; this.i = K(this.g, 1); b = M(this.g, 2); this.o = x(K(b, 4) || ""); this.h = !1; b = M(this.g, 13); b = x(K(b, 4) || ""); this.j = new la(a.document, b, K(this.g, 12)) }; ra.prototype.start = function () { sa(this) };
+                var sa = function (a) { ta(a); S(a.m, a.o, 3, !1, function () { a: { var b = a.i; var c = r.btoa(b); if (c = r[c]) { try { var d = O(P, r.atob(c)) } catch (e) { b = !1; break a } b = b === K(d, 1) } else b = !1 } b ? Z(a, K(a.g, 14)) : (Z(a, K(a.g, 8)), V(a.j)) }, function () { pa(function () { Z(a, K(a.g, 7)); V(a.j) }, function () { return Z(a, K(a.g, 6)) }, K(a.g, 9), K(a.g, 10), K(a.g, 11)) }) }, Z = function (a, b) { a.h || (a.h = !0, a = new a.l.XMLHttpRequest, a.open("GET", b, !0), a.send()) }, ta = function (a) { var b = r.btoa(a.i); a.l[b] && Z(a, K(a.g, 5)) }; (function (a, b) { r[a] = function (c) { for (var d = [], e = 0; e < arguments.length; ++e)d[e - 0] = arguments[e]; r[a] = da; b.apply(null, d) } })("__h82AlnkH6D91__", function (a) { "function" === typeof window.atob && (new ra(window, O(qa, window.atob(a)))).start() });
+            }).call(this);
+
+            window.__h82AlnkH6D91__("WyJwdWItMTUzNjA4MzY1MzIyNjgzNCIsW251bGwsbnVsbCxudWxsLCJodHRwczovL2Z1bmRpbmdjaG9pY2VzbWVzc2FnZXMuZ29vZ2xlLmNvbS9iL3B1Yi0xNTM2MDgzNjUzMjI2ODM0Il0sbnVsbCxudWxsLCJodHRwczovL2Z1bmRpbmdjaG9pY2VzbWVzc2FnZXMuZ29vZ2xlLmNvbS9lbC9BR1NLV3hYajNKNGktY00wVWloYjRfLVVJQXdrSHJ4Yl9EWXBFa3NXOW1WalVlRkVzZVNQVHhUOTAydzZ4MGd6b1E5NFA3OHFZZWhyV2FvU2gySWxfUEQ5eFRfQjVRXHUwMDNkXHUwMDNkP3RlXHUwMDNkVE9LRU5fRVhQT1NFRCIsImh0dHBzOi8vZnVuZGluZ2Nob2ljZXNtZXNzYWdlcy5nb29nbGUuY29tL2VsL0FHU0tXeFZSMWROcWh4V3lsVjRuNHJGQVVoRDR2ZjFNaGdFcHl5M2VoU3l2QndTQzF1c0dVWV9LbUVRSThEc1pyUk1hQ0NmYWdXNkNPVUN2ODNJbVVKTEJibTZ2TWdcdTAwM2RcdTAwM2Q/YWJcdTAwM2QxXHUwMDI2c2JmXHUwMDNkMSIsImh0dHBzOi8vZnVuZGluZ2Nob2ljZXNtZXNzYWdlcy5nb29nbGUuY29tL2VsL0FHU0tXeFZidGltVm5CbWlZa1lDMWFWR0ViMnQycGViNkxCMzZGOXhqOXZYYzRhbmdXcW5Ca0lnbkVuYXdvYnZyRU0xNWxBNlpyQ3JXOUNkTnkzZHFudkg4SmFUcGdcdTAwM2RcdTAwM2Q/YWJcdTAwM2QyXHUwMDI2c2JmXHUwMDNkMSIsImh0dHBzOi8vZnVuZGluZ2Nob2ljZXNtZXNzYWdlcy5nb29nbGUuY29tL2VsL0FHU0tXeFhrQWpIZ09OZHFJcW9DcXZHYlBDMmFMQnNGMzFDeHNTRWNtcEllOHNyak5wTkhfOC1jaEJ5WUlyRDFfT2JaWm9SSlAxRi1mOE9qQjBnMnpfaVRZYTdoaEFcdTAwM2RcdTAwM2Q/c2JmXHUwMDNkMiIsImRpdi1ncHQtYWQiLDIwLDEwMCwiY0hWaUxURTFNell3T0RNMk5UTXlNalk0TXpRXHUwMDNkIixbbnVsbCxudWxsLG51bGwsImh0dHBzOi8vd3d3LmdzdGF0aWMuY29tLzBlbW4vZi9wL3B1Yi0xNTM2MDgzNjUzMjI2ODM0LmpzP3VzcXBcdTAwM2RDQVEiXSwiaHR0cHM6Ly9mdW5kaW5nY2hvaWNlc21lc3NhZ2VzLmdvb2dsZS5jb20vZWwvQUdTS1d4VWt4c0lqNWhFcmJHb1g0RnZnY1F0TjVkcnVuWkxEbHNUY2FRTWx3V1kwR1oySm94bklBQkh0eE9wckxJeUxLSEhDRUtWUk52QlFPVm4xTkVDczRqN3F5Z1x1MDAzZFx1MDAzZCJd");
+        }
+    </script>
+    <script async="" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1536083653226834" crossorigin="anonymous"></script>
+    <script>
+        if (localStorage.DisplayMode === 'dark' || (!('DisplayMode' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
+
+
+
+    <div id="app" class="[ dark:text-white ]">
+<!-- %%-PRERENDERING-BEGIN-%% -->
+<!--Blazor:{"type":"webassembly","prerenderId":"e3539648bfcd472ca483b4f11ea06d03","key":{"locationHash":"5A77B35847144BFA5AAD4B6E75ECBFC65A5AF21F4F3ACA798E2BA892F3E88F38:0","formattedComponentKey":""},"assembly":"Web","typeName":"Web.App","parameterDefinitions":"W10=","parameterValues":"W10="}--><header id="header" class="[ flex items-center justify-between ] [ bg-white ] [ px-5 ] [ dark:bg-gray-800 dark:bg-gray-800/80 ] [ h-14 ] [ sticky top-0 ] [ backdrop-blur-xs bg-white/80 ] [ z-10 ]"><button type="button" class="[ hidden md:block ] [ mr-4 ]" aria-label="Toggle Menu"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-menu-2 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+           <line x1="4" y1="6" x2="20" y2="6"></line>
+           <line x1="4" y1="12" x2="20" y2="12"></line>
+           <line x1="4" y1="18" x2="20" y2="18"></line></svg></button>
+    <h1 id="brand" class="[  ]"><a href="/" class="[ font-bold ] [ flex items-center justify-between space-x-1 ] active" aria-current="page"><span class="[ dark:text-white ]">I</span>
+            <span class="animate-pulse">❤️</span>
+            <span class="[ text-indigo-600 ] [ dark:text-white ]">.NET</span></a></h1>
+    <section id="search" class="[ flex grow justify-end md:justify-center ]"><button type="button" aria-label="Exit Search" class="[ hidden ] [ bg-white ] [ h-10 w-10 ] [ border-2 border-gray-200 ] [ dark:bg-gray-800 dark:border-gray-800 ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-arrow-left ] [ inline ] [ text-gray-500 ] [ stroke-1 ] [ dark:text-white ]" width="25" height="25" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <line x1="5" y1="12" x2="11" y2="18"></line>
+            <line x1="5" y1="12" x2="11" y2="6"></line></svg></button>
+    <div class="[ dropdown ] [  ] [ w-1/2 ] [ hidden ] [  ]"><div class="[ dropdown-trigger ] [ w-full ]"><input type="search" placeholder="Type / to search" class="[ w-full h-full ] [ px-4 ] [ border-2 border-gray-200 ] [ focus:outline-hidden focus:border-gray-400 ] [ dark:bg-black dark:border-gray-800 dark:focus:border-b-white dark:md:focus:border-blue-800 dark:caret-white dark:text-white ]" autocapitalize="none" autocomplete="off" name="search" autocorrect="off" aria-haspopup="true" aria-controls="dropdown-menu" value=""/></div>
+        <div class="[ dropdown-menu ] [ bg-white dark:bg-black ] [ w-full ]" id="dropdown-menu" role="menu"><div class="[ dropdown-content ] [ dark:bg-black ] [ overflow-y-auto ]" style="max-height:50vh;"></div></div></div>
+    <button type="button" aria-label="Search" class="[ h-10 w-10 ] [  ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-search ] [ inline ] [ text-gray-500 ] [ stroke-1 ] [ dark:text-white ]" width="25" height="25" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <circle cx="10" cy="10" r="7"></circle>
+            <line x1="21" y1="21" x2="15" y2="15"></line></svg></button></section>
+    <div class="[ flex justify-end ] [ px-4 py-2 ]"><a href="https://whatsapp.com/channel/0029VaAGMV2LtOj5S5MHd23h" target="_blank" class="[ flex items-center space-x-1 ] [ px-3 py-1 ] [ rounded-full ] [ bg-green-500 text-white ] [ font-semibold text-sm ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-brand-whatsapp ]" width="18" height="18" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <path d="M3 21l1.65 -3.8a9 9 0 1 1 3.4 2.9l-5.05 .9"></path>
+            <path d="M9 10a.5 .5 0 0 0 1 0v-1a.5 .5 0 0 0 -1 0v1a5 5 0 0 0 5 5h1a.5 .5 0 0 0 0 -1h-1a.5 .5 0 0 0 0 1"></path></svg>
+        <span>Join</span></a></div>
+    <section id="display-and-social" class="[  ] [ flex items-center space-x-1.5 ]"><a href="https://github.com/ILoveDotNet/ilovedotnet" target="blank" aria-label="Give a Star in GitHub" class="[ flex items-center space-x-1 ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-star ] [ fill-yellow-400 stroke-yellow-400 ] [ animate-pulse ]" width="25" height="25" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                <path d="M12 17.75l-6.172 3.245l1.179 -6.873l-5 -4.867l6.9 -1l3.086 -6.253l3.086 6.253l6.9 1l-5 4.867l1.179 6.873z"></path></svg>
+            <span class="hidden md:block">Starred 153</span></a>
+        <section id="displaymode"><div class="dropdown is-right "><div class="dropdown-trigger"><button class="button [ flex items-center ]" aria-haspopup="true" aria-controls="displaymode-menu" aria-label="Theme Selector"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-device-desktop ] [ dark:text-white ]" width="25" height="25" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <rect x="3" y="4" width="18" height="12" rx="1"></rect>
+                        <line x1="7" y1="20" x2="17" y2="20"></line>
+                        <line x1="9" y1="16" x2="9" y2="20"></line>
+                        <line x1="15" y1="16" x2="15" y2="20"></line></svg></button></div>
+        <div class="dropdown-menu [ bg-white dark:bg-black ]" id="displaymode-menu" role="menu"><div class="dropdown-content [ dark:bg-black ]"><button type="button" class="dropdown-item [ flex items-center space-x-1 ] [ dark:hover:bg-gray-700 ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-device-desktop ] [ dark:text-white ]" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <rect x="3" y="4" width="18" height="12" rx="1"></rect>
+                        <line x1="7" y1="20" x2="17" y2="20"></line>
+                        <line x1="9" y1="16" x2="9" y2="20"></line>
+                        <line x1="15" y1="16" x2="15" y2="20"></line></svg>
+                    <p class="[ dark:text-white ]">System</p></button>
+                <button type="button" class="dropdown-item [ flex items-center space-x-1 ] [ dark:hover:bg-gray-700 ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-moon ] [ dark:text-white ]" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z"></path></svg>
+                    <p class="[ dark:text-white ]">Dark</p></button>
+                <button type="button" class="dropdown-item [ flex items-center space-x-1 ] [ dark:hover:bg-gray-700 ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-brightness-up ] [ dark:text-white ]" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <line x1="12" y1="5" x2="12" y2="3"></line>
+                        <line x1="17" y1="7" x2="18.4" y2="5.6"></line>
+                        <line x1="19" y1="12" x2="21" y2="12"></line>
+                        <line x1="17" y1="17" x2="18.4" y2="18.4"></line>
+                        <line x1="12" y1="19" x2="12" y2="21"></line>
+                        <line x1="7" y1="17" x2="5.6" y2="18.4"></line>
+                        <line x1="6" y1="12" x2="4" y2="12"></line>
+                        <line x1="7" y1="7" x2="5.6" y2="5.6"></line></svg>
+                    <p class="[ dark:text-white ]">Light</p></button></div></div></div></section>
+        <section id="others"><div class="dropdown is-right "><div class="dropdown-trigger"><button class="button [ flex items-center ]" aria-haspopup="true" aria-controls="others-menu" aria-label="Others"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-dots-vertical ] [ dark:text-white ]" width="20" height="20" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                    <circle cx="12" cy="12" r="1"></circle>
+                    <circle cx="12" cy="19" r="1"></circle>
+                    <circle cx="12" cy="5" r="1"></circle></svg></button></div>
+        <div class="dropdown-menu [ bg-white dark:bg-black ]" id="others-menu" role="menu"><div class="dropdown-content [ dark:bg-black ]"><a href="https://github.com/sponsors/fingers10" target="_blank" class="dropdown-item [ flex items-center space-x-1 ] [ dark:hover:bg-gray-700 ]" __internal_stoppropagation_onfocusout=""><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-heart ] [ text-red-500 ] [ fill-red-500 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428m0 0a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572"></path></svg>
+                    <p class="[ dark:text-white ]">Sponsor Us</p></a>
+                <hr class="dropdown-divider"/>
+                <a href="/disclaimer" __internal_stoppropagation_onfocusout="" class="dropdown-item [ flex items-center space-x-1 ] [ dark:hover:bg-gray-700 ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-hand-off ] [ text-yellow-500 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                       <line x1="3" y1="3" x2="21" y2="21"></line>
+                       <path d="M8 13.5v-5.5m.44 -3.562a1.5 1.5 0 0 1 2.56 1.062v1.5m0 4.008v.992m0 -6.5v-2a1.5 1.5 0 1 1 3 0v6.5m0 -4.5a1.5 1.5 0 0 1 3 0v6.5m0 -4.5a1.5 1.5 0 0 1 3 0v8.5a6 6 0 0 1 -6 6h-2c-2.114 -.292 -3.956 -1.397 -5 -3l-2.7 -5.25a1.7 1.7 0 0 1 2.75 -2l.9 1.75"></path></svg>
+                    <span class="[ dark:text-white ]">Disclaimer</span></a>
+                <a href="/privacy" __internal_stoppropagation_onfocusout="" class="dropdown-item [ flex items-center space-x-1 ] [ dark:hover:bg-gray-700 ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-lock-square ] [ text-orange-500 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <rect x="8" y="11" width="8" height="5" rx="1"></rect>
+                        <path d="M10 11v-2a2 2 0 1 1 4 0v2"></path>
+                        <rect x="4" y="4" width="16" height="16" rx="2"></rect></svg>
+                    <span class="[ dark:text-white ]">Privacy</span></a></div></div></div></section></section></header>
+<main id="main" class="[ [ pb-14 md:pb-0 md:pl-16 ] ]">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<section class="[ flex flex-col lg:flex-row ] [ p-1 md:p-5 lg:px-20 ] [ lg:space-x-5 space-y-5 lg:space-y-0 ]"><article class="[ lg:basis-3/4 ] [ space-y-5 ]"><header class="[ space-y-2 ]"><figure><img src="image/blogs/webapi/from-18-database-subqueries-to-one-json-lookup-dashboard-optimization-in-aspnet-webapi.webp" alt="From 18 Database Subqueries to One JSON Lookup: Dashboard Optimization in ASP.NET Web API" class="[ w-full ]" loading="lazy"/></figure><h2 class="[ dark:text-white ] [ font-semibold text-xl ]">From 18 Database Subqueries to One JSON Lookup: Dashboard Optimization in ASP.NET Web API</h2>
+    <section class="[ flex flex-col md:flex-row justify-between ] [ space-y-1 md:space-y-0 ] [ dark:text-white ] [ font-bold ]"><div><p>Author - <a href="authors/abdul-rahman" class="[ underline ]">Abdul Rahman (Bhai)</a></p>
+            <time datetime="2026-06-21 22:30:00">Last updated 10 days ago</time></div>
+        <div><section class="[ flex justify-between md:justify-start ]"><a href="https://github.com/sponsors/fingers10" target="_blank" aria-label="Sponsor Us"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-heart ] [ text-red-500 ] [ fill-red-500 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+           <path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428m0 0a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572"></path></svg></a>
+    <a href="https://api.whatsapp.com/send?text=From 18 Database Subqueries to One JSON Lookup: Dashboard Optimization in ASP.NET Web API%20https%3a%2f%2filovedotnet.org%2fblogs%2ffrom-18-database-subqueries-to-one-json-lookup-dashboard-optimization-in-aspnet-webapi%2f" target="_blank" aria-label="Share via Whatsapp"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-brand-whatsapp ] [ text-emerald-500 dark:text-emerald-300 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <path d="M3 21l1.65 -3.8a9 9 0 1 1 3.4 2.9l-5.05 .9"></path>
+            <path d="M9 10a0.5 .5 0 0 0 1 0v-1a0.5 .5 0 0 0 -1 0v1a5 5 0 0 0 5 5h1a0.5 .5 0 0 0 0 -1h-1a0.5 .5 0 0 0 0 1"></path></svg></a>
+    <a href="https://www.linkedin.com/shareArticle?mini=true&amp;url=https%3a%2f%2filovedotnet.org%2fblogs%2ffrom-18-database-subqueries-to-one-json-lookup-dashboard-optimization-in-aspnet-webapi%2f" target="_blank" aria-label="Share via Linkedin"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-brand-linkedin ] [ text-blue-500 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+            <line x1="8" y1="11" x2="8" y2="16"></line>
+            <line x1="8" y1="8" x2="8" y2="8.01"></line>
+            <line x1="12" y1="16" x2="12" y2="11"></line>
+            <path d="M16 16v-3a2 2 0 0 0 -4 0"></path></svg></a>
+    <a href="https://www.facebook.com/sharer.php?u=https%3a%2f%2filovedotnet.org%2fblogs%2ffrom-18-database-subqueries-to-one-json-lookup-dashboard-optimization-in-aspnet-webapi%2f" target="_blank" aria-label="Share via Facebook"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-brand-facebook ] [ text-blue-400 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <path d="M7 10v4h3v7h4v-7h3l1 -4h-4v-2a1 1 0 0 1 1 -1h3v-4h-3a5 5 0 0 0 -5 5v2h-3"></path></svg></a>
+    <a href="https://twitter.com/intent/tweet?url=https%3a%2f%2filovedotnet.org%2fblogs%2ffrom-18-database-subqueries-to-one-json-lookup-dashboard-optimization-in-aspnet-webapi%2f&amp;text=From 18 Database Subqueries to One JSON Lookup: Dashboard Optimization in ASP.NET Web API" target="_blank" aria-label="Share via Tweet"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-brand-twitter ] [ text-blue-700 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <path d="M22 4.01c-1 .49 -1.98 .689 -3 .99c-1.121 -1.265 -2.783 -1.335 -4.38 -.737s-2.643 2.06 -2.62 3.737v1c-3.245 .083 -6.135 -1.395 -8 -4c0 0 -4.182 7.433 4 11c-1.872 1.247 -3.739 2.088 -6 2c3.308 1.803 6.913 2.423 10.034 1.517c3.58 -1.04 6.522 -3.723 7.651 -7.742a13.84 13.84 0 0 0 .497 -3.753c-.002 -.249 1.51 -2.772 1.818 -4.013z"></path></svg></a></section></div></section>
+    <section class="[ flex items-center justify-between ]"><a href="channels/web-api" class="[ flex ]"><aside><figure class="[ mt-2 mr-2 ]"><img src="/image/icons/web api.webp" alt="Web API" loading="lazy" height="48" width="48" class="[ rounded-full ]"/></figure></aside>
+            <article class="[ flex flex-col justify-between ] [ dark:text-white ] [ mt-2 ]"><h2 class="[ font-medium break-words ] [ uppercase ]">Web API</h2>
+                <section class="[ flex justify-between ]"><p>30 Articles</p></section></article></a>
+        <a href="https://github.com/ILoveDotNet/ilovedotnet/blob/main/WebAPIDemoComponents/Pages/Blogs/From18DatabaseSubqueriesToOneJsonLookupDashboardOptimizationInAspnetWebapi.razor" target="_blank" class="[ md:bg-red-700 ] [ text-red-500 md:text-white uppercase ] [ px-3 py-2 ] [ font-semibold ]">Improve</a></section>
+    <hr class="[ dark:text-white my-1.5 ]"/></header>
+        <section class="[ dark:text-white ] [ space-y-2 ] [ prose dark:prose-invert ] [ min-w-full ]"><h3>Table of Contents</h3>
+            <ol><li><a href="blogs/from-18-database-subqueries-to-one-json-lookup-dashboard-optimization-in-aspnet-webapi#what" class="active" aria-current="page">
+                        What we gonna do?
+                    </a></li>
+                <li><a href="blogs/from-18-database-subqueries-to-one-json-lookup-dashboard-optimization-in-aspnet-webapi#why" class="active" aria-current="page">
+                        Why we gonna do?
+                    </a></li>
+                <li><a href="blogs/from-18-database-subqueries-to-one-json-lookup-dashboard-optimization-in-aspnet-webapi#how" class="active" aria-current="page">
+                        How we gonna do?
+                    </a></li>
+                <li><a href="blogs/from-18-database-subqueries-to-one-json-lookup-dashboard-optimization-in-aspnet-webapi#summary" class="active" aria-current="page">
+                        Summary
+                    </a></li></ol>
+            <h3 id="what">What we gonna do?</h3>
+
+<p>
+                Your dashboard fires 18 correlated subqueries against PostgreSQL on every single page load — and every user
+                who logs in re-runs every one of them. No cache, no read model, no shortcut: just raw aggregation from
+                scratch, every time, for every concurrent session. That is the situation this article is based on, and it
+                is far more common than most teams admit.
+            </p>
+
+            <p>
+                This article walks through a four-layer optimization applied to a real warehouse management dashboard.
+                Each layer solves a distinct problem on the same endpoint:
+            </p>
+
+            <ul><li><strong>Layer 1 — Pre-computed snapshot</strong>: Move the 18 aggregation queries from every read to
+                    a single <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">JSONB</span> row persisted in <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">PostgreSQL</span>. No new
+                    infrastructure — just the database you already have.
+                </li>
+                <li><strong>Layer 2 — Source generators</strong>: Eliminate runtime reflection on every
+                    serialize/deserialize call with <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">System.Text.Json</span> source generators.
+                </li>
+                <li><strong>Layer 3 — Format choice</strong>: Understand when <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Protobuf</span> is the right
+                    tool and when it is not — and why JSON wins for browser-facing APIs.
+                </li>
+                <li><strong>Layer 4 — Redis cache</strong>: Add a time-boxed cache in front of the snapshot so repeated
+                    reads within the same window never touch PostgreSQL at all.
+                </li></ul>
+
+            <p>
+                Each layer is optional and independent — you can stop at any point. The article is structured so you can
+                adopt exactly as much as your application needs.
+            </p>
+
+        <h3 id="why">Why we gonna do?</h3>
+
+<p>
+                Every dashboard refresh recomputes 18 aggregations from scratch: <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">TodaysSales</span>,
+                <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">YesterdaysOrders</span>, <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">TotalInventoryValue</span>,
+                <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">ThisMonthTopSellingItem</span>, and 14 more. The handler that produces this looks like this:
+            </p>
+
+            <pre><code id="d3ddab79-9ce6-4f1f-bda6-8f21a204fa1c" class="language-csharp">
+public async Task&lt;SummaryDto&gt; Handle(
+    GetDashboardDetailsQuery request,
+    CancellationToken cancellationToken)
+{
+    var sql = $@"
+        SELECT
+          (SELECT COALESCE(SUM(""BaseAmount"" - ""DiscountAmount"" - ""LoyaltyDiscountAmount""), 0)
+           FROM public.""Orders""
+           WHERE ""OrderDate"" &gt;= '{request.StartDate:O}'::timestamptz
+             AND ""OrderDate"" &lt;= '{request.EndDate:O}'::timestamptz
+             AND ""Active"" = true AND ""Type"" &lt;&gt; 'Complimentary') AS ""TodaysSales"",
+
+          (SELECT COALESCE(SUM(""BaseAmount"" - ""DiscountAmount"" - ""LoyaltyDiscountAmount""), 0)
+           FROM public.""Orders""
+           WHERE ""OrderDate"" &gt;= '{request.StartDate.AddDays(-1):O}'::timestamptz
+             AND ""OrderDate"" &lt;= '{request.EndDate.AddDays(-1):O}'::timestamptz
+             AND ""Active"" = true AND ""Type"" &lt;&gt; 'Complimentary') AS ""YesterdaysSales"",
+
+          (SELECT COUNT(*) FROM public.""Orders""
+           WHERE ""OrderDate"" &gt;= '{request.StartDate:O}'::timestamptz
+             AND ""OrderDate"" &lt;= '{request.EndDate:O}'::timestamptz
+             AND ""Active"" = true AND ""Type"" &lt;&gt; 'Complimentary') AS ""TodaysOrders"",
+
+          -- ... 15 more subqueries for YesterdaysOrders, ThisMonthTopSellingItem,
+          --     TotalCategories, TotalItems, TodaysPurchases, TotalServices,
+          --     TotalProducts, TotalRawMaterials, TotalItemsInStock,
+          --     TotalItemsNotInStock, TotalCustomers, TotalStaffs, TotalSuppliers,
+          --     TotalInventoryValue, TotalBranches
+        ";
+
+    var summary = (await readDashboardSummaryRepository
+        .FromSqlRawAsync(sql, cancellationToken))[0];
+    summary.Process();
+
+    return new SummaryDto { /* map all fields */ };
+}
+            </code></pre>
+
+            <p>
+                The query re-runs even when no new orders arrived — every dashboard open, every
+                refresh, every user session triggers the full 18-subquery execution. Each subquery is an independent
+                table scan across <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Orders</span>, <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">OrderItems</span>,
+                <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Items</span>, <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Customers</span>, <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Staffs</span>,
+                <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Suppliers</span>, and <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Branches</span>: 18 separate execution paths the
+                query planner has to evaluate and materialise on every single request.
+            </p>
+
+            <p>
+                The tradeoff is deliberate: reads become simpler and faster, but writes take on a little extra
+                responsibility. Every write that changes a dashboard metric now updates the snapshot. That is the cost
+                of moving work from the read path to the write path — and for a dashboard that is read far more often
+                than data changes, it is a trade worth making.
+            </p>
+
+            <p>
+                Each layer below removes a distinct cost from this endpoint — without changing what the dashboard sees.
+                Layer 1 eliminates the 18 subqueries with a JSONB snapshot. Layer 2 removes reflection overhead from
+                serialization. Layer 3 explains why the wire format choice matters. Layer 4 adds a Redis cache so the
+                database is not touched at all on the hot path.
+            </p>
+
+        <h3 id="how">How we gonna do?</h3>
+
+<h2 id="layer-1-snapshot">Layer 1: Pre-Computed Snapshot in PostgreSQL</h2>
+
+            <h3 id="step-1-define-the-snapshot-entity">Step 1: Define the snapshot entity with a JSONB column</h3>
+
+            <p>
+                Store the entire aggregated dashboard result as a single <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">JSONB</span> column in PostgreSQL.
+                This is more flexible than one column per metric — adding a new metric requires no schema migration, only
+                a change to the serialized DTO. The entity is deliberately thin: it carries a freshness timestamp and
+                the serialized payload.
+            </p>
+
+            <pre><code id="1eb0de51-ce26-4cd1-af06-05ffb726726c" class="language-csharp">
+public class DashboardSnapshot
+{
+    public Guid Id { get; private set; } = Guid.NewGuid();
+    public DateTimeOffset SummaryDate { get; set; }
+
+    // Stores the serialized SummaryDto as PostgreSQL JSONB.
+    // Adding or removing metrics requires no migration — only a DTO change.
+    public string Data { get; set; } = "{}";
+}
+            </code></pre>
+
+            <h3 id="step-2-register-with-ef-core">Step 2: Register the entity with EF Core</h3>
+
+            <p>
+                Configure the <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Data</span> property with <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">HasColumnType("jsonb")</span>.
+                That single configuration is what makes PostgreSQL store and index the column as a binary JSON document
+                rather than plain text.
+            </p>
+
+            <pre><code id="3f2579fa-eac2-4da0-8ade-0ba788517dc5" class="language-csharp">
+public class AppDbContext(DbContextOptions&lt;AppDbContext&gt; options) : DbContext(options)
+{
+    public DbSet&lt;DashboardSnapshot&gt; DashboardSnapshots =&gt; Set&lt;DashboardSnapshot&gt;();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity&lt;DashboardSnapshot&gt;(entity =&gt;
+        {
+            entity.ToTable("DashboardSnapshots");
+            entity.HasKey(e =&gt; e.Id);
+            // JSONB: schema-flexible, binary-indexed, queryable without full deserialization
+            entity.Property(e =&gt; e.Data).HasColumnType("jsonb").IsRequired();
+        });
+    }
+}
+            </code></pre>
+
+            <h3 id="step-3-populate-on-first-read">Step 3: Populate the snapshot on first read</h3>
+
+            <p>
+                On the first request the snapshot table is empty, so the read-through handler triggers the aggregation
+                inline. It runs all 18 queries, serializes the result into the <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Data</span> column, and
+                persists the row. Every request after that is a single row fetch and a deserialize.
+            </p>
+
+            <pre><code id="40672ff4-c822-443e-a705-7f147daf4422" class="language-csharp">
+public async Task&lt;Result&lt;bool, BaseError&gt;&gt; Handle(
+    SyncDashboardSnapshotCommand request,
+    CancellationToken cancellationToken)
+{
+    var todaysSales = await context.Orders
+        .Where(o =&gt; o.Active &amp;&amp; o.Type != OrderType.Complimentary
+                 &amp;&amp; o.OrderDate &gt;= todayStart &amp;&amp; o.OrderDate &lt; tomorrowStart)
+        .SumAsync(o =&gt; o.BaseAmount - o.DiscountAmount - o.LoyaltyDiscountAmount,
+                  cancellationToken);
+
+    var yesterdaysSales = await context.Orders
+        .Where(o =&gt; o.Active &amp;&amp; o.Type != OrderType.Complimentary
+                 &amp;&amp; o.OrderDate &gt;= yesterdayStart &amp;&amp; o.OrderDate &lt; todayStart)
+        .SumAsync(o =&gt; o.BaseAmount - o.DiscountAmount - o.LoyaltyDiscountAmount,
+                  cancellationToken);
+
+    // ... compute remaining 16 metrics the same way
+
+    var salesImprovement = yesterdaysSales == 0 ? 0
+        : Math.Round((todaysSales - yesterdaysSales) / yesterdaysSales * 100, 2);
+
+    // Serialize the full DTO shape into the JSONB column
+    var snapshotData = new SummaryDto
+    {
+        TodaysSales      = todaysSales,
+        YesterdaysSales  = yesterdaysSales,
+        SalesImprovement = salesImprovement,
+        // ... remaining fields
+        SummaryDate = DateTimeOffset.UtcNow
+    };
+
+    var json = JsonSerializer.Serialize(snapshotData);
+
+    var existing = await context.DashboardSnapshots
+        .FirstOrDefaultAsync(cancellationToken);
+
+    if (existing is null)
+        context.DashboardSnapshots.Add(new DashboardSnapshot { SummaryDate = DateTimeOffset.UtcNow, Data = json });
+    else
+    {
+        existing.Data        = json;
+        existing.SummaryDate = DateTimeOffset.UtcNow;
+    }
+
+    await context.SaveChangesAsync(cancellationToken);
+    return Result.Success&lt;bool, BaseError&gt;(true);
+}
+            </code></pre>
+
+            <h3 id="step-4-read-handler">Step 4: The read handler with read-through</h3>
+
+            <p>
+                On a cache miss the read handler looks up the snapshot row. If it is not there yet — first deployment
+                or after a data reset — it triggers the aggregation inline. This is the
+                <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">read-through</span> pattern: the first caller pays the cost once and every caller after
+                that gets the pre-computed result.
+            </p>
+
+            <pre><code id="032a382d-01e9-485a-8747-a8ae3d6c4282" class="language-csharp">
+public async Task&lt;Result&lt;SummaryDto, BaseError&gt;&gt; Handle(
+    GetDashboardSnapshotQuery request,
+    CancellationToken cancellationToken)
+{
+    var existing = await snapshotRepository.FirstOrDefaultAsync(cancellationToken);
+
+    if (existing is null)
+    {
+        // Read-through: first caller triggers aggregation and populates the snapshot
+        await mediator.Send(new SyncDashboardSnapshotCommand(), cancellationToken);
+
+        existing = await snapshotRepository.FirstOrDefaultAsync(cancellationToken);
+
+        if (existing is null)
+            return Result.Failure&lt;SummaryDto, BaseError&gt;(
+                UnexpectedError.Create("Failed to initialize dashboard snapshot."));
+    }
+
+    var dto = JsonSerializer.Deserialize&lt;SummaryDto&gt;(existing.Data)!;
+    return Result.Success&lt;SummaryDto, BaseError&gt;(dto);
+}
+            </code></pre>
+
+            <p>
+                For high-traffic deployments, pre-warm the snapshot with a <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">BackgroundService</span> that
+                calls <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">SyncDashboardSnapshotCommand</span> at startup — this removes the first-caller
+                latency spike entirely. The read-through remains as a fallback.
+            </p>
+
+            <h3 id="step-5-trigger-on-writes">Step 5: Keep the snapshot current on writes</h3>
+
+            <p>
+                Rather than re-running all 18 aggregations after every write, the snapshot is updated surgically.
+                When an order is placed, only the affected metrics change — the order count increments by one and the
+                sales value increases by the order amount. Reads stay fast; write handlers take on a small, targeted
+                update:
+            </p>
+
+            <pre><code id="01b2d25d-91ef-4feb-b688-6c8d2e80b524" class="language-csharp">
+context.Orders.Add(newOrder);
+await context.SaveChangesAsync(cancellationToken);
+
+// Update only the metrics affected by this write
+var snapshot = await context.DashboardSnapshots.FirstOrDefaultAsync(cancellationToken);
+if (snapshot is not null)
+{
+    var dto          = JsonSerializer.Deserialize&lt;SummaryDto&gt;(snapshot.Data)!;
+    dto.TodaysOrders += 1;
+    dto.TodaysSales  += newOrder.BaseAmount - newOrder.DiscountAmount - newOrder.LoyaltyDiscountAmount;
+    snapshot.Data        = JsonSerializer.Serialize(dto);
+    snapshot.SummaryDate = DateTimeOffset.UtcNow;
+    await context.SaveChangesAsync(cancellationToken);
+}
+            </code></pre>
+
+            <h3 id="step-6-tradeoffs">Step 6: The tradeoffs table</h3>
+
+            <pre><code id="ad8eafe0-05d0-4186-9efd-a6553b98fbfd" class="language-plaintext">
+┌───────────────────────────┬──────────────────────────────┬──────────────────────────────┐
+│ Aspect                    │ Before (18 subqueries)       │ After (JSONB snapshot)       │
+├───────────────────────────┼──────────────────────────────┼──────────────────────────────┤
+│ Dashboard read            │ 18 subqueries per load       │ 1 row lookup + deserialize   │
+│ Database work             │ Every read                   │ Only on writes               │
+│ Stale data risk           │ None (always live)           │ Brief window possible        │
+│ Write complexity          │ Simple                       │ Targeted metric update       │
+│ Schema columns per metric │ None needed (raw SQL)        │ None needed (DTO change)     │
+│ Infrastructure added      │ None                         │ None (same PostgreSQL)       │
+└───────────────────────────┴──────────────────────────────┴──────────────────────────────┘
+            </code></pre>
+
+            <h2 id="layer-2-source-generators">Layer 2: Eliminate Reflection with Source Generators</h2>
+
+            <p>
+                The JSONB snapshot removed 18 database queries from the read path. The remaining cost is
+                serialization — every <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">JsonSerializer.Serialize</span> in the sync command and
+                <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">JsonSerializer.Deserialize</span> in the read handler use reflection at runtime to
+                discover the shape of <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">SummaryDto</span>. At scale, reflection-based serialization
+                adds CPU pressure and extra allocations, and it prevents AOT compilation.
+            </p>
+
+            <p><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">System.Text.Json</span> source generators solve this by generating serialization
+                metadata at build time. The serializer no longer inspects the type on every call — the generated
+                code is a direct, allocation-efficient path that handles the same contract without reflection.
+            </p>
+
+            <h3 id="step-7-source-gen-context">Step 7: Declare the source-generation context</h3>
+
+            <pre><code id="541b5b8d-0b1c-4d47-bac3-1e945deceb7d" class="language-csharp">
+[JsonSerializable(typeof(SummaryDto))]
+[JsonSourceGenerationOptions(
+    PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
+    GenerationMode = JsonSourceGenerationMode.Serialization | JsonSourceGenerationMode.Metadata)]
+public partial class DashboardJsonContext : JsonSerializerContext { }
+            </code></pre>
+
+            <p>
+                Pass the context wherever <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">SummaryDto</span> is serialized or deserialized. Two changes —
+                one in the sync command, one in the read handler:
+            </p>
+
+            <pre><code id="011ea60d-d77b-4cb8-813e-4f58fd5dea52" class="language-csharp">
+// SyncDashboardSnapshotCommand — serialize with generated metadata:
+var json = JsonSerializer.Serialize(snapshotData, DashboardJsonContext.Default.SummaryDto);
+
+// GetDashboardSnapshotQuery — deserialize with generated metadata:
+var dto = JsonSerializer.Deserialize&lt;SummaryDto&gt;(
+    existing.Data,
+    DashboardJsonContext.Default.SummaryDto)!;
+            </code></pre>
+
+            <p>
+                The contract does not change — the JSON shape, property names, and values are identical. What changes
+                is that the runtime no longer discovers the type on every call. This is especially valuable when the same
+                endpoint is called hundreds of times per minute by multiple concurrent users, and is
+                <strong>required</strong> for AOT-compiled deployments. For a deeper dive into source generation and
+                custom converters, see
+                <navigateto href="blogs/mastering-advanced-json-with-custom-converters-and-source-generation-in-dotnet" text="Mastering Advanced JSON with Custom Converters and Source Generation in .NET"></navigateto>.
+            </p>
+
+            <h2 id="layer-3-protobuf">Layer 3: Protobuf — Right Tool, Wrong Context Here</h2>
+
+            <p>
+                Protobuf produces a compact binary encoding of the same data. For the same <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">SummaryDto</span>
+                payload, Protobuf would be noticeably smaller than JSON — because JSON carries property names as text,
+                while Protobuf uses pre-agreed field numbers. For machine-to-machine communication — internal service
+                calls, background pipelines, export jobs — that size reduction is a genuine win.
+            </p>
+
+            <p>
+                For this dashboard endpoint the answer is different. The consumer is a browser. Browsers expect JSON.
+                Introducing Protobuf here means adding a content-negotiation layer, a binary-aware HTTP client, and a
+                decode step on the browser side — none of which the dashboard needs. The right tool for browser-facing
+                APIs is JSON with source generators, not binary wire formats.
+            </p>
+
+            <p>
+                Where Protobuf becomes appropriate in the same system: an internal sync job that pushes snapshot data
+                between services, or a mobile background refresh that operates over a metered connection. If
+                <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">SyncDashboardSnapshotCommand</span> were triggered by an event from a separate
+                microservice, that event payload is a strong Protobuf candidate — not the HTTP response the browser reads.
+            </p>
+
+            <h2 id="layer-4-redis">Layer 4: Redis Cache — Stop Hitting PostgreSQL on Every Request</h2>
+
+            <p>
+                The JSONB snapshot is already a single-row lookup. For most applications that is fast enough. But on a
+                dashboard opened by every user immediately after login — dozens of concurrent requests during a morning
+                rush — even single-row reads accumulate into database pressure. A Redis cache in front of the snapshot
+                absorbs those reads entirely.
+            </p>
+
+            <h3 id="step-8-register-redis">Step 8: Register IDistributedCache with Redis</h3>
+
+            <p>
+                Install the <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Microsoft.Extensions.Caching.StackExchangeRedis</span> NuGet package and
+                register the distributed cache in <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Program.cs</span>:
+            </p>
+
+            <pre><code id="920fe0e8-8752-4c5b-bf04-8d70ff7242d5" class="language-csharp">
+builder.Services.AddStackExchangeRedisCache(options =&gt;
+{
+    options.Configuration = builder.Configuration.GetConnectionString("Redis");
+    options.InstanceName  = "dashboard:";
+});
+            </code></pre>
+
+            <p><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">InstanceName</span> is prepended to every key by the cache provider, so the key
+                actually stored in Redis is <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">dashboard:snapshot</span>. Use this full key when
+                inspecting entries with <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">redis-cli</span> or a Redis GUI.
+            </p>
+
+            <h3 id="step-9-cache-first-read">Step 9: Cache-first read handler</h3>
+
+            <p>
+                Check Redis before touching PostgreSQL. On a hit, the response is serialized JSON from in-memory Redis —
+                microseconds, not milliseconds. On a miss, fall through to the JSONB snapshot, then populate the cache
+                for subsequent requests:
+            </p>
+
+            <pre><code id="f86f9b88-9176-4721-9c48-221174b80a6a" class="language-csharp">
+public async Task&lt;Result&lt;SummaryDto, BaseError&gt;&gt; Handle(
+    GetDashboardSnapshotQuery request,
+    CancellationToken cancellationToken)
+{
+    const string cacheKey = "snapshot";
+
+    // 1. Try Redis first
+    var cached = await distributedCache.GetStringAsync(cacheKey, cancellationToken);
+    if (cached is not null)
+    {
+        var cachedDto = JsonSerializer.Deserialize&lt;SummaryDto&gt;(
+            cached,
+            DashboardJsonContext.Default.SummaryDto)!;
+        return Result.Success&lt;SummaryDto, BaseError&gt;(cachedDto);
+    }
+
+    // 2. Try the JSONB snapshot (with read-through on first load)
+    var existing = await snapshotRepository.FirstOrDefaultAsync(cancellationToken);
+
+    if (existing is null)
+    {
+        await mediator.Send(new SyncDashboardSnapshotCommand(), cancellationToken);
+
+        existing = await snapshotRepository.FirstOrDefaultAsync(cancellationToken);
+
+        if (existing is null)
+            return Result.Failure&lt;SummaryDto, BaseError&gt;(
+                UnexpectedError.Create("Failed to initialize dashboard snapshot."));
+    }
+
+    // 3. Populate Redis for subsequent requests (5-minute TTL)
+    await distributedCache.SetStringAsync(
+        cacheKey,
+        existing.Data,
+        new DistributedCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
+        },
+        cancellationToken);
+
+    var dto = JsonSerializer.Deserialize&lt;SummaryDto&gt;(
+        existing.Data,
+        DashboardJsonContext.Default.SummaryDto)!;
+    return Result.Success&lt;SummaryDto, BaseError&gt;(dto);
+}
+            </code></pre>
+
+            <h3 id="step-10-cache-invalidation">Step 10: Invalidate on writes</h3>
+
+            <p>
+                The TTL handles time-based staleness automatically. For known writes — a new order, a purchase, an
+                inventory update — delete the cache key immediately after the snapshot sync succeeds. The next read
+                will re-populate both the snapshot and the cache from fresh data:
+            </p>
+
+            <pre><code id="516daf04-7443-488c-8c5d-b21842672363" class="language-csharp">
+context.Orders.Add(newOrder);
+await context.SaveChangesAsync(cancellationToken);
+
+// Update only the affected snapshot metrics
+var snapshot = await context.DashboardSnapshots.FirstOrDefaultAsync(cancellationToken);
+if (snapshot is not null)
+{
+    var dto          = JsonSerializer.Deserialize&lt;SummaryDto&gt;(
+        snapshot.Data,
+        DashboardJsonContext.Default.SummaryDto)!;
+    dto.TodaysOrders += 1;
+    dto.TodaysSales  += newOrder.BaseAmount - newOrder.DiscountAmount - newOrder.LoyaltyDiscountAmount;
+    snapshot.Data        = JsonSerializer.Serialize(dto, DashboardJsonContext.Default.SummaryDto);
+    snapshot.SummaryDate = DateTimeOffset.UtcNow;
+    await context.SaveChangesAsync(cancellationToken);
+}
+
+// Remove the stale Redis entry — next read will rebuild it
+await distributedCache.RemoveAsync("snapshot", cancellationToken);
+            </code></pre>
+
+            <p>
+                The TTL is a safety net for cases where a write path skips invalidation — a bulk import, a migration
+                script, a background fix. The explicit <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">RemoveAsync</span> on known writes ensures the
+                dashboard is fresh within milliseconds of a change, not minutes.
+            </p>
+
+            <p>
+                To go deeper on cache expiration strategy, stampede prevention, and null-value handling, read
+                <navigateto href="blogs/understanding-caching-fundamentals-in-dotnet" text="Understanding Caching Fundamentals in .NET"></navigateto>
+                and
+                <navigateto href="blogs/avoiding-cache-stampede-and-handling-nulls-in-dotnet" text="Avoiding Cache Stampede and Handling Nulls in .NET"></navigateto>.
+            </p>
+
+            <h3 id="step-11-architecture">Step 11: The complete data flow</h3>
+
+            <p>
+                The diagram below shows all four layers working together — Redis cache, JSONB snapshot, read-through
+                aggregation, and the write-plus-sync-plus-invalidation path:
+            </p>
+
+            <pre><code id="caadee63-a8c1-4fee-9313-078767cc0472" class="language-plaintext">
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│  GET /dashboard                                                                 │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│  ┌────────┐        ┌──────────┐        ┌──────────────────┐   ┌─────────────┐  │
+│  │ Client │        │   API    │        │ Redis            │   │  JSONB      │  │
+│  └────────┘        └──────────┘        │ (5 min TTL)      │   │  Snapshot   │  │
+│                                        └──────────────────┘   └─────────────┘  │
+│                                                                                 │
+│  FAST PATH (Redis hit)                                                          │
+│  ─────────────────────────────────────────────────────────────────             │
+│  Client ──GET /dashboard──▶ API ──GET snapshot──▶ Redis                        │
+│  Client ◀───SummaryDto────── API ◀──HIT (JSON)─── Redis                        │
+│                              (microseconds)                                     │
+│                                                                                 │
+│  WARM PATH (Redis miss, snapshot hit)                                           │
+│  ─────────────────────────────────────────────────────────────                 │
+│  Client ──GET /dashboard──▶ API ──GET snapshot──▶ Redis                        │
+│                             API ◀──────MISS─────── Redis                       │
+│                             API ──SELECT LIMIT 1──▶ JSONB Snapshot               │
+│                             API ◀───JSONB row────  JSONB Snapshot              │
+│                             API ──SET snapshot──▶ Redis (TTL 5 min)            │
+│  Client ◀───SummaryDto────── API                                               │
+│                              (fast)                                             │
+│                                                                                 │
+│  COLD PATH (first load — read-through)                                         │
+│  ─────────────────────────────────────────────────────────────                 │
+│  Client ──GET /dashboard──▶ API ──GET snapshot──▶ Redis                        │
+│                             API ◀──────MISS─────── Redis                       │
+│                             API ──SELECT LIMIT 1──▶ JSONB Snapshot               │
+│                             API ◀────── null ─────  JSONB Snapshot             │
+│                             API ──18 aggregations──▶ DB (Orders/Items/…)       │
+│                             API ──UPSERT snapshot──▶ JSONB Snapshot            │
+│                             API ──SET snapshot──▶ Redis (TTL 5 min)            │
+│  Client ◀───SummaryDto────── API                                               │
+│                              (one-time cost)                                   │
+│                                                                                 │
+│  WRITE PATH (POST /orders — keeps everything fresh)                            │
+│  ─────────────────────────────────────────────────────────────                 │
+│  Client ──POST /orders────▶ API ──INSERT Order──▶ DB                           │
+│                             API ──Update metrics──▶ JSONB Snapshot             │
+│                             API ──DEL snapshot──▶ Redis                        │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+            </code></pre>
+
+        <h3 id="summary">Summary</h3>
+
+<p>
+                Four layers, one endpoint. The dashboard read path evolves from 18 correlated subqueries to a Redis hit
+                that takes microseconds — while staying within your existing PostgreSQL database and standard .NET tooling.
+            </p>
+
+            <ul><li><strong>Layer 1 (Snapshot)</strong>: Store the aggregated result as a <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">JSONB</span>
+                    column in PostgreSQL, updated on writes. No new database required. Adding a new metric to the
+                    dashboard requires no migration, only a DTO change.
+                </li>
+                <li><strong>Read-through</strong>: The first caller after deployment populates the snapshot automatically.
+                    Pre-warm with a <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">BackgroundService</span> to eliminate the first-caller latency spike
+                    entirely. The read-through remains as a fallback.
+                </li>
+                <li><strong>Layer 2 (Source generators)</strong>: Declare a
+                    <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">JsonSerializerContext</span> for <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">SummaryDto</span> to eliminate
+                    runtime reflection on every serialize/deserialize call. Required for AOT; beneficial everywhere.
+                </li>
+                <li><strong>Layer 3 (Protobuf)</strong>: Right for internal service-to-machine communication. Wrong for
+                    browser-facing APIs — stay with JSON and source generators here.
+                </li>
+                <li><strong>Layer 4 (Redis)</strong>: A 5-minute TTL cache in front of the snapshot absorbs repeated
+                    reads without touching PostgreSQL. Invalidate immediately on relevant writes; rely on TTL as a safety
+                    net for writes that bypass invalidation.
+                </li></ul>
+
+            <p>
+                The caching articles below cover the deeper edges: cache key design, stampede prevention when the
+                snapshot is missing under concurrent load, and safe null-value handling:
+                <navigateto href="blogs/understanding-caching-fundamentals-in-dotnet" text="Understanding Caching Fundamentals in .NET"></navigateto>
+                and
+                <navigateto href="blogs/avoiding-cache-stampede-and-handling-nulls-in-dotnet" text="Avoiding Cache Stampede and Handling Nulls in .NET"></navigateto>.
+            </p>
+            </section>
+        <footer class="[ grid justify-items-start ] [ overflow-x-scroll ]"><ul class="[ list-none ] [ flex items-center justify-start md:justify-center ] [ space-x-3 ] [ overflow-hidden ]"><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ]">Web API</li><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ] [ whitespace-nowrap ]">Dashboard Performance</li><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ] [ whitespace-nowrap ]">Pre-Computed Snapshot</li><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ] [ whitespace-nowrap ]">EF Core</li><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ] [ whitespace-nowrap ]">PostgreSQL</li><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ] [ whitespace-nowrap ]">JSONB</li><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ] [ whitespace-nowrap ]">Read Model</li><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ] [ whitespace-nowrap ]">CQRS</li><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ] [ whitespace-nowrap ]">System.Text.Json Source Generators</li><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ] [ whitespace-nowrap ]">Redis Cache</li><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ] [ whitespace-nowrap ]">IDistributedCache</li><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ] [ whitespace-nowrap ]">Protobuf</li><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ] [ whitespace-nowrap ]">ASP.NET Core</li><li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ] [ whitespace-nowrap ]">Web API Performance</li></ul></footer>
+        <hr class="[ dark:text-white my-1.5 ]"/></article>
+    <aside class="[ flex flex-col lg:basis-1/4 ] [ space-y-2 ]"><div><figure><a href="https://linkedin.com/in/thebhai" target="_blank"><img src="./image/authors/abdul rahman.webp" alt="Abdul Rahman" class="[ w-full ]"/></a>
+            <a href="https://mvp.microsoft.com/en-US/MVP/profile/b177819f-95fb-ed11-8f6d-000d3a560942" target="_blank"><img src="./image/authors/mvp-badge-horizontal.png" alt="MVP Badge Horizontal" class="[ w-full ]"/></a></figure></div>
+    <div class="[ lg:sticky lg:top-14 ]"></div><section class="[ flex flex-col justify-between ] [ transition duration-300 ] [ md:hover:scale-110 ] [ dark:bg-stone-900 ] [ bg-gray-100 ]"><header><a href="blogs/ddd-entities-vs-value-objects-in-dotnet"><figure><img src="image/blogs/ddd/ddd-entities-vs-value-objects-in-dotnet.webp" class="[ w-full ] [ rounded-md ]" alt="Entities vs Value Objects in DDD - Understanding Identity and Equality in .NET" loading="lazy"/></figure></a></header>
+    <main class="[ grow flex space-x-2 ]"><aside class="[ basis-1/6 flex items-center ]"><a href="channels/ddd"><figure class="mt-2"><img src="image/icons/ddd.webp" alt="DDD" loading="lazy" height="48" width="48" class="[ rounded-full ]"/></figure></a></aside>
+        <article class="[ grow flex flex-col justify-between basis-5/6 ] [ dark:text-white ] [ mt-2 ]"><a href="blogs/ddd-entities-vs-value-objects-in-dotnet"><h2 class="[ font-medium break-words hover:underline ]">Entities vs Value Objects in DDD - Understanding Identity and Equality in .NET</h2></a>
+            <section class="[ flex justify-between ]"><p>Abdul Rahman</p>
+                <time datetime="2026-06-28 22-30-00">3 days ago</time></section></article></main></section><section class="[ flex flex-col justify-between ] [ transition duration-300 ] [ md:hover:scale-110 ] [ dark:bg-stone-900 ] [ bg-gray-100 ]"><header><a href="blogs/structured-logging-in-aspnet-webapi-with-built-in-ilogger"><figure><img src="image/blogs/webapi/structured-logging-in-aspnet-webapi-with-built-in-ilogger.webp" class="[ w-full ] [ rounded-md ]" alt="Structured Logging in ASP.NET Web API with Built-in ILogger" loading="lazy"/></figure></a></header>
+    <main class="[ grow flex space-x-2 ]"><aside class="[ basis-1/6 flex items-center ]"><a href="channels/web-api"><figure class="mt-2"><img src="image/icons/web api.webp" alt="Web API" loading="lazy" height="48" width="48" class="[ rounded-full ]"/></figure></a></aside>
+        <article class="[ grow flex flex-col justify-between basis-5/6 ] [ dark:text-white ] [ mt-2 ]"><a href="blogs/structured-logging-in-aspnet-webapi-with-built-in-ilogger"><h2 class="[ font-medium break-words hover:underline ]">Structured Logging in ASP.NET Web API with Built-in ILogger</h2></a>
+            <section class="[ flex justify-between ]"><p>Abdul Rahman</p>
+                <time datetime="2026-06-14 22-30-00">17 days ago</time></section></article></main></section><section class="[ flex flex-col justify-between ] [ transition duration-300 ] [ md:hover:scale-110 ] [ dark:bg-stone-900 ] [ bg-gray-100 ]"><header><a href="blogs/testing-aspnet-webapi-with-http-repl-and-http-files"><figure><img src="image/blogs/webapi/testing-aspnet-webapi-with-http-repl-and-http-files.webp" class="[ w-full ] [ rounded-md ]" alt="Testing ASP.NET Web API with HTTP REPL and HTTP Files" loading="lazy"/></figure></a></header>
+    <main class="[ grow flex space-x-2 ]"><aside class="[ basis-1/6 flex items-center ]"><a href="channels/web-api"><figure class="mt-2"><img src="image/icons/web api.webp" alt="Web API" loading="lazy" height="48" width="48" class="[ rounded-full ]"/></figure></a></aside>
+        <article class="[ grow flex flex-col justify-between basis-5/6 ] [ dark:text-white ] [ mt-2 ]"><a href="blogs/testing-aspnet-webapi-with-http-repl-and-http-files"><h2 class="[ font-medium break-words hover:underline ]">Testing ASP.NET Web API with HTTP REPL and HTTP Files</h2></a>
+            <section class="[ flex justify-between ]"><p>Abdul Rahman</p>
+                <time datetime="2026-06-07 22-30-00">24 days ago</time></section></article></main></section><section class="[ flex flex-col justify-between ] [ transition duration-300 ] [ md:hover:scale-110 ] [ dark:bg-stone-900 ] [ bg-gray-100 ]"><header><a href="blogs/authorization-with-claims-and-policies-in-aspnet-webapi"><figure><img src="image/blogs/webapi/authorization-with-claims-and-policies-in-aspnet-webapi.webp" class="[ w-full ] [ rounded-md ]" alt="Authorization with Claims and Policies in ASP.NET Web API" loading="lazy"/></figure></a></header>
+    <main class="[ grow flex space-x-2 ]"><aside class="[ basis-1/6 flex items-center ]"><a href="channels/web-api"><figure class="mt-2"><img src="image/icons/web api.webp" alt="Web API" loading="lazy" height="48" width="48" class="[ rounded-full ]"/></figure></a></aside>
+        <article class="[ grow flex flex-col justify-between basis-5/6 ] [ dark:text-white ] [ mt-2 ]"><a href="blogs/authorization-with-claims-and-policies-in-aspnet-webapi"><h2 class="[ font-medium break-words hover:underline ]">Authorization with Claims and Policies in ASP.NET Web API</h2></a>
+            <section class="[ flex justify-between ]"><p>Abdul Rahman</p>
+                <time datetime="2026-05-31 22-30-00">one month ago</time></section></article></main></section><section class="[ flex flex-col justify-between ] [ transition duration-300 ] [ md:hover:scale-110 ] [ dark:bg-stone-900 ] [ bg-gray-100 ]"><header><a href="blogs/securing-aspnet-webapi-with-jwt-bearer-token-authentication"><figure><img src="image/blogs/webapi/securing-aspnet-webapi-with-jwt-bearer-token-authentication.webp" class="[ w-full ] [ rounded-md ]" alt="Securing ASP.NET Web API with JWT Bearer Token Authentication" loading="lazy"/></figure></a></header>
+    <main class="[ grow flex space-x-2 ]"><aside class="[ basis-1/6 flex items-center ]"><a href="channels/web-api"><figure class="mt-2"><img src="image/icons/web api.webp" alt="Web API" loading="lazy" height="48" width="48" class="[ rounded-full ]"/></figure></a></aside>
+        <article class="[ grow flex flex-col justify-between basis-5/6 ] [ dark:text-white ] [ mt-2 ]"><a href="blogs/securing-aspnet-webapi-with-jwt-bearer-token-authentication"><h2 class="[ font-medium break-words hover:underline ]">Securing ASP.NET Web API with JWT Bearer Token Authentication</h2></a>
+            <section class="[ flex justify-between ]"><p>Abdul Rahman</p>
+                <time datetime="2026-05-24 22-30-00">one month ago</time></section></article></main></section><section class="[ flex flex-col justify-between ] [ transition duration-300 ] [ md:hover:scale-110 ] [ dark:bg-stone-900 ] [ bg-gray-100 ]"><header><a href="blogs/uri-based-api-versioning-in-aspnet-webapi"><figure><img src="image/blogs/webapi/uri-based-api-versioning-in-aspnet-webapi.webp" class="[ w-full ] [ rounded-md ]" alt="URI-Based API Versioning in ASP.NET Web API" loading="lazy"/></figure></a></header>
+    <main class="[ grow flex space-x-2 ]"><aside class="[ basis-1/6 flex items-center ]"><a href="channels/web-api"><figure class="mt-2"><img src="image/icons/web api.webp" alt="Web API" loading="lazy" height="48" width="48" class="[ rounded-full ]"/></figure></a></aside>
+        <article class="[ grow flex flex-col justify-between basis-5/6 ] [ dark:text-white ] [ mt-2 ]"><a href="blogs/uri-based-api-versioning-in-aspnet-webapi"><h2 class="[ font-medium break-words hover:underline ]">URI-Based API Versioning in ASP.NET Web API</h2></a>
+            <section class="[ flex justify-between ]"><p>Abdul Rahman</p>
+                <time datetime="2026-05-17 22-30-00">one month ago</time></section></article></main></section><section class="[ flex flex-col justify-between ] [ transition duration-300 ] [ md:hover:scale-110 ] [ dark:bg-stone-900 ] [ bg-gray-100 ]"><header><a href="blogs/documenting-webapi-with-openapi-and-scalar-in-dotnet"><figure><img src="image/blogs/webapi/documenting-webapi-with-openapi-and-scalar-in-dotnet.webp" class="[ w-full ] [ rounded-md ]" alt="Documenting Web API with OpenAPI and Scalar in ASP.NET" loading="lazy"/></figure></a></header>
+    <main class="[ grow flex space-x-2 ]"><aside class="[ basis-1/6 flex items-center ]"><a href="channels/web-api"><figure class="mt-2"><img src="image/icons/web api.webp" alt="Web API" loading="lazy" height="48" width="48" class="[ rounded-full ]"/></figure></a></aside>
+        <article class="[ grow flex flex-col justify-between basis-5/6 ] [ dark:text-white ] [ mt-2 ]"><a href="blogs/documenting-webapi-with-openapi-and-scalar-in-dotnet"><h2 class="[ font-medium break-words hover:underline ]">Documenting Web API with OpenAPI and Scalar in ASP.NET</h2></a>
+            <section class="[ flex justify-between ]"><p>Abdul Rahman</p>
+                <time datetime="2026-05-10 22-30-00">one month ago</time></section></article></main></section><section class="[ flex flex-col justify-between ] [ transition duration-300 ] [ md:hover:scale-110 ] [ dark:bg-stone-900 ] [ bg-gray-100 ]"><header><a href="blogs/ddd-core-supporting-generic-domains"><figure><img src="image/blogs/ddd/ddd-core-supporting-generic-domains.webp" class="[ w-full ] [ rounded-md ]" alt="Core vs Supporting vs Generic Domains - Strategic Investment Framework" loading="lazy"/></figure></a></header>
+    <main class="[ grow flex space-x-2 ]"><aside class="[ basis-1/6 flex items-center ]"><a href="channels/ddd"><figure class="mt-2"><img src="image/icons/ddd.webp" alt="DDD" loading="lazy" height="48" width="48" class="[ rounded-full ]"/></figure></a></aside>
+        <article class="[ grow flex flex-col justify-between basis-5/6 ] [ dark:text-white ] [ mt-2 ]"><a href="blogs/ddd-core-supporting-generic-domains"><h2 class="[ font-medium break-words hover:underline ]">Core vs Supporting vs Generic Domains - Strategic Investment Framework</h2></a>
+            <section class="[ flex justify-between ]"><p>Abdul Rahman</p>
+                <time datetime="2026-05-03 22-30-00">2 months ago</time></section></article></main></section><section class="[ flex flex-col justify-between ] [ transition duration-300 ] [ md:hover:scale-110 ] [ dark:bg-stone-900 ] [ bg-gray-100 ]"><header><a href="blogs/ddd-event-storming-collaborative-workshop"><figure><img src="image/blogs/ddd/ddd-event-storming-collaborative-workshop.webp" class="[ w-full ] [ rounded-md ]" alt="Event Storming Workshop - Collaborative Domain Discovery in 60 Minutes" loading="lazy"/></figure></a></header>
+    <main class="[ grow flex space-x-2 ]"><aside class="[ basis-1/6 flex items-center ]"><a href="channels/ddd"><figure class="mt-2"><img src="image/icons/ddd.webp" alt="DDD" loading="lazy" height="48" width="48" class="[ rounded-full ]"/></figure></a></aside>
+        <article class="[ grow flex flex-col justify-between basis-5/6 ] [ dark:text-white ] [ mt-2 ]"><a href="blogs/ddd-event-storming-collaborative-workshop"><h2 class="[ font-medium break-words hover:underline ]">Event Storming Workshop - Collaborative Domain Discovery in 60 Minutes</h2></a>
+            <section class="[ flex justify-between ]"><p>Abdul Rahman</p>
+                <time datetime="2026-04-26 22-30-00">2 months ago</time></section></article></main></section><section class="[ flex flex-col justify-between ] [ transition duration-300 ] [ md:hover:scale-110 ] [ dark:bg-stone-900 ] [ bg-gray-100 ]"><header><a href="blogs/ddd-ubiquitous-language-quickstart"><figure><img src="image/blogs/ddd/ddd-ubiquitous-language-quickstart.webp" class="[ w-full ] [ rounded-md ]" alt="Ubiquitous Language QuickStart - Building a Shared Vocabulary for Your Domain" loading="lazy"/></figure></a></header>
+    <main class="[ grow flex space-x-2 ]"><aside class="[ basis-1/6 flex items-center ]"><a href="channels/ddd"><figure class="mt-2"><img src="image/icons/ddd.webp" alt="DDD" loading="lazy" height="48" width="48" class="[ rounded-full ]"/></figure></a></aside>
+        <article class="[ grow flex flex-col justify-between basis-5/6 ] [ dark:text-white ] [ mt-2 ]"><a href="blogs/ddd-ubiquitous-language-quickstart"><h2 class="[ font-medium break-words hover:underline ]">Ubiquitous Language QuickStart - Building a Shared Vocabulary for Your Domain</h2></a>
+            <section class="[ flex justify-between ]"><p>Abdul Rahman</p>
+                <time datetime="2026-04-19 22-30-00">2 months ago</time></section></article></main></section><section class="[ flex flex-col justify-between ] [ transition duration-300 ] [ md:hover:scale-110 ] [ dark:bg-stone-900 ] [ bg-gray-100 ]"><header><a href="blogs/ddd-core-principles-in-practice"><figure><img src="image/blogs/ddd/ddd-core-principles-in-practice.webp" class="[ w-full ] [ rounded-md ]" alt="Core DDD Principles in Practice - Transforming Procedural Code to Domain Models" loading="lazy"/></figure></a></header>
+    <main class="[ grow flex space-x-2 ]"><aside class="[ basis-1/6 flex items-center ]"><a href="channels/ddd"><figure class="mt-2"><img src="image/icons/ddd.webp" alt="DDD" loading="lazy" height="48" width="48" class="[ rounded-full ]"/></figure></a></aside>
+        <article class="[ grow flex flex-col justify-between basis-5/6 ] [ dark:text-white ] [ mt-2 ]"><a href="blogs/ddd-core-principles-in-practice"><h2 class="[ font-medium break-words hover:underline ]">Core DDD Principles in Practice - Transforming Procedural Code to Domain Models</h2></a>
+            <section class="[ flex justify-between ]"><p>Abdul Rahman</p>
+                <time datetime="2026-04-12 22-30-00">2 months ago</time></section></article></main></section><section class="[ flex flex-col justify-between ] [ transition duration-300 ] [ md:hover:scale-110 ] [ dark:bg-stone-900 ] [ bg-gray-100 ]"><header><a href="blogs/ddd-when-to-use-and-when-to-avoid"><figure><img src="image/blogs/ddd/ddd-when-to-use-and-when-to-avoid.webp" class="[ w-full ] [ rounded-md ]" alt="When to Use DDD and When to Keep It Simple" loading="lazy"/></figure></a></header>
+    <main class="[ grow flex space-x-2 ]"><aside class="[ basis-1/6 flex items-center ]"><a href="channels/ddd"><figure class="mt-2"><img src="image/icons/ddd.webp" alt="DDD" loading="lazy" height="48" width="48" class="[ rounded-full ]"/></figure></a></aside>
+        <article class="[ grow flex flex-col justify-between basis-5/6 ] [ dark:text-white ] [ mt-2 ]"><a href="blogs/ddd-when-to-use-and-when-to-avoid"><h2 class="[ font-medium break-words hover:underline ]">When to Use DDD and When to Keep It Simple</h2></a>
+            <section class="[ flex justify-between ]"><p>Abdul Rahman</p>
+                <time datetime="2026-04-05 22-30-00">2 months ago</time></section></article></main></section><div class="[ flex items-center justify-center ]"><button type="button" class="[ cursor-pointer ] [ px-3 py-1 ] [ rounded-md ] [ whitespace-nowrap ] [ flex items-center justify-center ] [ disabled:opacity-75 disabled:cursor-not-allowed ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-caret-down ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                <path d="M6 10l6 6l6 -6h-12"></path></svg>
+            <p>Show more</p></button></div>
+    </aside></section></main><nav class="[ fixed bottom-0 h-14 w-full md:top-14 md:left-0 md:h-full md:w-16 ] 
+            [ bg-white ] [ dark:bg-gray-800 dark:bg-gray-800/80 ] [ backdrop-blur-xs bg-white/80 ] [ md:pt-2 ]
+            [ flex justify-around items-center md:flex-col md:justify-start md:space-y-4 ]"><a href="/" class="[ flex flex-col items-center ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-home ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <polyline points="5 12 3 12 12 3 21 12 19 12"></polyline>
+            <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7"></path>
+            <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6"></path></svg>
+        <span class="[ text-xs text-center ]">Home</span></a>
+    <a href="/learningpath" class="[ flex flex-col items-center ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-compass ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <polyline points="8 16 10 10 16 8 14 14 8 16"></polyline>
+            <circle cx="12" cy="12" r="9"></circle>
+            <line x1="12" y1="3" x2="12" y2="5"></line>
+            <line x1="12" y1="19" x2="12" y2="21"></line>
+            <line x1="3" y1="12" x2="5" y2="12"></line>
+            <line x1="19" y1="12" x2="21" y2="12"></line></svg>
+        <span class="[ text-xs text-center ]">Learning Path</span></a>
+    <a href="/career" class="[ flex flex-col items-center ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icons-tabler-outline icon-tabler-briefcase ]" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <path d="M3 7m0 2a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v9a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2z"></path>
+            <path d="M8 7v-2a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v2"></path>
+            <path d="M12 12l0 .01"></path>
+            <path d="M3 13a20 20 0 0 0 18 0"></path></svg>
+        <span class="[ text-xs text-center ]">Career</span></a>
+    <a href="/analytics" class="[ flex flex-col items-center ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-graph ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <path d="M4 18v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z"></path>
+            <path d="M7 14l3 -3l2 2l3 -3l2 2"></path></svg>
+        <span class="[ text-xs text-center ]">Analytics</span></a>
+    <a href="/about" class="[ flex flex-col items-center ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-info-circle ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <circle cx="12" cy="12" r="9"></circle>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            <polyline points="11 12 12 12 12 16 13 16"></polyline></svg>
+        <span class="[ text-xs text-center ]">About</span></a></nav><aside class="[ fixed bottom-14 md:bottom-0 right-2 ]"><button type="button" aria-label="Scroll to Top"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-square-rounded-chevron-up-filled ]" width="40" height="40" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <path d="M12 2c-.218 0 -.432 .002 -.642 .005l-.616 .017l-.299 .013l-.579 .034l-.553 .046c-4.785 .464 -6.732 2.411 -7.196 7.196l-.046 .553l-.034 .579c-.005 .098 -.01 .198 -.013 .299l-.017 .616l-.004 .318l-.001 .324c0 .218 .002 .432 .005 .642l.017 .616l.013 .299l.034 .579l.046 .553c.464 4.785 2.411 6.732 7.196 7.196l.553 .046l.579 .034c.098 .005 .198 .01 .299 .013l.616 .017l.642 .005l.642 -.005l.616 -.017l.299 -.013l.579 -.034l.553 -.046c4.785 -.464 6.732 -2.411 7.196 -7.196l.046 -.553l.034 -.579c.005 -.098 .01 -.198 .013 -.299l.017 -.616l.005 -.642l-.005 -.642l-.017 -.616l-.013 -.299l-.034 -.579l-.046 -.553c-.464 -4.785 -2.411 -6.732 -7.196 -7.196l-.553 -.046l-.579 -.034a28.058 28.058 0 0 0 -.299 -.013l-.616 -.017l-.318 -.004l-.324 -.001zm-.707 7.293a1 1 0 0 1 1.32 -.083l.094 .083l3 3a1 1 0 0 1 -1.32 1.497l-.094 -.083l-2.293 -2.292l-2.293 2.292a1 1 0 0 1 -1.32 .083l-.094 -.083a1 1 0 0 1 -.083 -1.32l.083 -.094l3 -3z" fill="currentColor" stroke-width="0"></path></svg></button></aside>
+            <!--Blazor:{"prerenderId":"e3539648bfcd472ca483b4f11ea06d03"}-->
+<!-- %%-PRERENDERING-END-%% -->
+<!--Blazor-WebAssembly-Component-State:eyJzdGFycyI6Ik1UVXoiLCJNaWNyb3NvZnQuQXNwTmV0Q29yZS5Db21wb25lbnRzLkluZnJhc3RydWN0dXJlLlBlcnNpc3RlbnRTZXJ2aWNlc1JlZ2lzdHJ5IjoiVzNzaVlYTnpaVzFpYkhraU9pSk5hV055YjNOdlpuUXVRWE53VG1WMFEyOXlaUzVEYjIxd2IyNWxiblJ6TGtWdVpIQnZhVzUwY3lJc0ltWjFiR3hVZVhCbFRtRnRaU0k2SWsxcFkzSnZjMjltZEM1QmMzQk9aWFJEYjNKbExrTnZiWEJ2Ym1WdWRITXVVbVZ6YjNWeVkyVkRiMnhzWldOMGFXOXVVSEp2ZG1sa1pYSWlmU3g3SW1GemMyVnRZbXg1SWpvaVRXbGpjbTl6YjJaMExrRnpjRTVsZEVOdmNtVXVRMjl0Y0c5dVpXNTBjeTVYWldJaUxDSm1kV3hzVkhsd1pVNWhiV1VpT2lKTmFXTnliM052Wm5RdVFYTndUbVYwUTI5eVpTNURiMjF3YjI1bGJuUnpMa1p2Y20xekxrRnVkR2xtYjNKblpYSjVVM1JoZEdWUWNtOTJhV1JsY2lKOVhRPT0iLCJLU3p0VDg0Z0FpVjBJTy9VQlJScE9tOEs0anFFZlx1MDAyQjFKenZWT0NNQmxzaVU9IjoiZXlKMllXeDFaU0k2SWtObVJFbzRSSEZHYWkxVFlVdEtUa3RxYXpoUlpEQTNPV05WYW1GMGFscGZhakJQYW5OYVFXcEhXbFIxVlVoNFYxZFlTM0JuWkRSR2FVVkRWbVpFY25WbVZ5MUhMWEpvVkZWV1RWSjNMWFV3TldSNlZtMTVVRWxSZDNFNU4xUlJkVnBVVW5oWmRHTXhUWHBrZUdOb1VUbGFXbTVNVEc1R1dsTjROVVoyTjBacmJqQm9VSEpvYkdwSlkzSmZWV1Z2TFRGUmRFVm9OV3hzTm01Qklpd2labTl5YlVacFpXeGtUbUZ0WlNJNklsOWZVbVZ4ZFdWemRGWmxjbWxtYVdOaGRHbHZibFJ2YTJWdUluMD0ifQ==--></div>
+
+    <div id="blazor-error-ui" class="[ bg-red-500 ] [ text-white ] [ fixed bottom-0 ] [ w-full ] [ p-2 ]" style="display: none;">
+        An unhandled error has occurred. Please click on
+        <a href="javascript: void(0)" class="[ inline-block ] [ underline ] [ hover\:text-white ]" onclick="location.reload()">Reload</a>
+        to proceed.
+        <button class="[ dismiss ] [ fixed right-5 bottom-2 ]">
+            <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-x ] [ text-white ]" width="25" height="25" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
+    </div>
+
+    <script src="_content/Microsoft.AspNetCore.Components.WebAssembly.Authentication/AuthenticationService.js"></script>
+    <script src="_framework/blazor.webassembly.958z1vx7fr.js" autostart="false"></script>
+    <script src="_content/Blazor-Analytics/blazor-analytics.js"></script>
+    <script src="highlight.min.js"></script>
+    <script src="csharp.min.js"></script>
+    <script src="cshtml-razor.min.js"></script>
+    <!--<script>navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' } );</script>-->
+    <script src="brotliloader.min.js" type="module"></script>
+
+
+
+</resourcepreloader></body></html>
