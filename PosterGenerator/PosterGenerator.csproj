@@ -15,4 +15,15 @@
     <ProjectReference Include="..\SharedModels\SharedModels.csproj" />
   </ItemGroup>
 
+  <!-- Begin: Strip SkiaSharp native debug symbols to keep repo size small -->
+  <!-- SkiaSharp ships large native debug symbols (libSkiaSharp.pdb ~240MB across win-x86/x64/arm64) that get copied into the output on every build. Because BuildScope produces a separate bin folder per component, these accumulate into gigabytes. This tool is only run at build time to generate posters and never needs those symbols, so strip them after build. -->
+  <Target Name="RemoveNativeDebugSymbols" AfterTargets="Build;Publish">
+    <ItemGroup>
+      <_NativeDebugSymbols Include="$(OutputPath)runtimes\**\*.pdb" />
+      <_NativeDebugSymbols Include="$(PublishDir)runtimes\**\*.pdb" Condition="'$(PublishDir)' != ''" />
+    </ItemGroup>
+    <Delete Files="@(_NativeDebugSymbols)" />
+  </Target>
+  <!-- End: Strip SkiaSharp native debug symbols to keep repo size small -->
+
 </Project>
