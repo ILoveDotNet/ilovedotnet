@@ -13,11 +13,14 @@ public class LazyLoaderService(
     NavigationManager navigationManager,
     ILogger<LazyLoaderService> logger)
 {
+  private HashSet<string> _loadedAssemblies = [];
   public List<Assembly> AdditionalAssemblies { get; } = [typeof(AppState).Assembly];
 
+  [RequiresUnreferencedCode("The following members are used by lazyAssemblyLoader.LoadAsync")]
   public async Task OnNavigateAsync(NavigationContext context) =>
       await OnNavigateAsync(context.Path.Trim('/'));
 
+  [RequiresUnreferencedCode("The following members are used by lazyAssemblyLoader.LoadAsync")]
   public async Task PreloadAsync()
   {
     var uri = new Uri(navigationManager.Uri);
@@ -31,182 +34,169 @@ public class LazyLoaderService(
     {
       if (path.Contains("blogs", StringComparison.OrdinalIgnoreCase))
       {
-        await lazyAssemblyLoader.LoadAssembliesAsync(["BaseComponents.wasm"]);
+        await LoadAssembliesAsync("BaseComponents.wasm", addAdditionalAssemblies: false);
 
         if (path.Contains("ai", StringComparison.OrdinalIgnoreCase))
         {
-          var assemblies = await lazyAssemblyLoader.LoadAssembliesAsync(["AIDemoComponents.wasm"]);
-          AdditionalAssemblies.AddRange(assemblies);
+          await LoadAssembliesAsync("AIDemoComponents.wasm");
         }
 
         if (path.Contains("blazor", StringComparison.OrdinalIgnoreCase))
         {
-          var assemblies = await lazyAssemblyLoader.LoadAssembliesAsync(["BlazorDemoComponents.wasm"]);
-          AdditionalAssemblies.AddRange(assemblies);
+          await LoadAssembliesAsync("BlazorDemoComponents.wasm");
         }
 
         if (path.Contains("cache", StringComparison.OrdinalIgnoreCase) || path.Contains("caching", StringComparison.OrdinalIgnoreCase))
         {
-          var assemblies = await lazyAssemblyLoader.LoadAssembliesAsync(["CachingDemoComponents.wasm"]);
-          AdditionalAssemblies.AddRange(assemblies);
+          await LoadAssembliesAsync("CachingDemoComponents.wasm");
         }
 
         if (path.Contains("database", StringComparison.OrdinalIgnoreCase))
         {
-          var assemblies = await lazyAssemblyLoader.LoadAssembliesAsync(["DatabaseDemoComponents.wasm"]);
-          AdditionalAssemblies.AddRange(assemblies);
+          await LoadAssembliesAsync("DatabaseDemoComponents.wasm");
         }
 
         if (path.Contains("ddd", StringComparison.OrdinalIgnoreCase))
         {
-          var assemblies = await lazyAssemblyLoader.LoadAssembliesAsync(["DDDDemoComponents.wasm"]);
-          AdditionalAssemblies.AddRange(assemblies);
+          await LoadAssembliesAsync("DDDDemoComponents.wasm");
         }
 
         if (path.Contains("dependency-injection", StringComparison.OrdinalIgnoreCase))
         {
-          var assemblies = await lazyAssemblyLoader.LoadAssembliesAsync(["DependencyInjectionDemoComponents.wasm"]);
-          AdditionalAssemblies.AddRange(assemblies);
+          await LoadAssembliesAsync("DependencyInjectionDemoComponents.wasm");
         }
 
         if (path.Contains("design-pattern", StringComparison.OrdinalIgnoreCase))
         {
-          var assemblies = await lazyAssemblyLoader.LoadAssembliesAsync(["DesignPatternDemoComponents.wasm"]);
-          AdditionalAssemblies.AddRange(assemblies);
+          await LoadAssembliesAsync("DesignPatternDemoComponents.wasm");
         }
 
         if (path.Contains("http-client", StringComparison.OrdinalIgnoreCase))
         {
-          var assemblies = await lazyAssemblyLoader.LoadAssembliesAsync(["HTTPClientDemoComponents.wasm"]);
-          AdditionalAssemblies.AddRange(assemblies);
+          await LoadAssembliesAsync("HTTPClientDemoComponents.wasm");
         }
 
         if (path.Contains("json", StringComparison.OrdinalIgnoreCase))
         {
-          var assemblies = await lazyAssemblyLoader.LoadAssembliesAsync(["JSONDemoComponents.wasm"]);
-          AdditionalAssemblies.AddRange(assemblies);
+          await LoadAssembliesAsync("JSONDemoComponents.wasm");
         }
 
         if (path.Contains("linq", StringComparison.OrdinalIgnoreCase))
         {
-          var assemblies = await lazyAssemblyLoader.LoadAssembliesAsync(["LINQDemoComponents.wasm"]);
-          AdditionalAssemblies.AddRange(assemblies);
+          await LoadAssembliesAsync("LINQDemoComponents.wasm");
         }
 
         if (path.Contains("logging", StringComparison.OrdinalIgnoreCase))
         {
-          var assemblies = await lazyAssemblyLoader.LoadAssembliesAsync(["LoggingDemoComponents.wasm"]);
-          AdditionalAssemblies.AddRange(assemblies);
+          await LoadAssembliesAsync("LoggingDemoComponents.wasm");
         }
 
         if (path.Contains("mlnet", StringComparison.OrdinalIgnoreCase))
         {
-          var assemblies = await lazyAssemblyLoader.LoadAssembliesAsync(["MLNETDemoComponents.wasm"]);
-          AdditionalAssemblies.AddRange(assemblies);
+          await LoadAssembliesAsync("MLNETDemoComponents.wasm");
         }
 
         if (path.Contains("maui", StringComparison.OrdinalIgnoreCase))
         {
-          var assemblies = await lazyAssemblyLoader.LoadAssembliesAsync(["MAUIDemoComponents.wasm"]);
-          AdditionalAssemblies.AddRange(assemblies);
+          await LoadAssembliesAsync("MAUIDemoComponents.wasm");
         }
 
         if (path.Contains("mcp", StringComparison.OrdinalIgnoreCase))
         {
-          var assemblies = await lazyAssemblyLoader.LoadAssembliesAsync(["MCPDemoComponents.wasm"]);
-          AdditionalAssemblies.AddRange(assemblies);
+          await LoadAssembliesAsync("MCPDemoComponents.wasm");
         }
 
         if (path.Contains("middleware", StringComparison.OrdinalIgnoreCase))
         {
-          var assemblies = await lazyAssemblyLoader.LoadAssembliesAsync(["MiddlewareDemoComponents.wasm"]);
-          AdditionalAssemblies.AddRange(assemblies);
+          await LoadAssembliesAsync("MiddlewareDemoComponents.wasm");
         }
 
         if (path.Contains("msbuild", StringComparison.OrdinalIgnoreCase))
         {
-          var assemblies = await lazyAssemblyLoader.LoadAssembliesAsync(["MSBuildDemoComponents.wasm"]);
-          AdditionalAssemblies.AddRange(assemblies);
+          await LoadAssembliesAsync("MSBuildDemoComponents.wasm");
         }
 
         if (path.Contains("oops", StringComparison.OrdinalIgnoreCase))
         {
-          var assemblies = await lazyAssemblyLoader.LoadAssembliesAsync(["OOPSDemoComponents.wasm"]);
-          AdditionalAssemblies.AddRange(assemblies);
+          await LoadAssembliesAsync("OOPSDemoComponents.wasm");
         }
 
         if (path.Contains("owasp", StringComparison.OrdinalIgnoreCase))
         {
-          var assemblies = await lazyAssemblyLoader.LoadAssembliesAsync(["OWASPDemoComponents.wasm"]);
-          AdditionalAssemblies.AddRange(assemblies);
+          await LoadAssembliesAsync("OWASPDemoComponents.wasm");
         }
 
         if (path.Contains("python", StringComparison.OrdinalIgnoreCase))
         {
-          var assemblies = await lazyAssemblyLoader.LoadAssembliesAsync(["PythonDemoComponents.wasm"]);
-          AdditionalAssemblies.AddRange(assemblies);
+          await LoadAssembliesAsync("PythonDemoComponents.wasm");
         }
 
         if (path.Contains("regex", StringComparison.OrdinalIgnoreCase))
         {
-          var assemblies = await lazyAssemblyLoader.LoadAssembliesAsync(["RegexDemoComponents.wasm"]);
-          AdditionalAssemblies.AddRange(assemblies);
+          await LoadAssembliesAsync("RegexDemoComponents.wasm");
         }
 
         if (path.Contains("report", StringComparison.OrdinalIgnoreCase))
         {
-          var assemblies = await lazyAssemblyLoader.LoadAssembliesAsync(["ReportDemoComponents.wasm"]);
-          AdditionalAssemblies.AddRange(assemblies);
+          await LoadAssembliesAsync("ReportDemoComponents.wasm");
         }
 
         if (path.Contains("security", StringComparison.OrdinalIgnoreCase))
         {
-          var assemblies = await lazyAssemblyLoader.LoadAssembliesAsync(["SecurityDemoComponents.wasm"]);
-          AdditionalAssemblies.AddRange(assemblies);
+          await LoadAssembliesAsync("SecurityDemoComponents.wasm");
         }
 
         if (path.Contains("signalr", StringComparison.OrdinalIgnoreCase))
         {
-          var assemblies = await lazyAssemblyLoader.LoadAssembliesAsync(["SignalRDemoComponents.wasm"]);
-          AdditionalAssemblies.AddRange(assemblies);
+          await LoadAssembliesAsync("SignalRDemoComponents.wasm");
         }
 
         if (path.Contains("solid", StringComparison.OrdinalIgnoreCase))
         {
-          var assemblies = await lazyAssemblyLoader.LoadAssembliesAsync(["SOLIDDemoComponents.wasm"]);
-          AdditionalAssemblies.AddRange(assemblies);
+          await LoadAssembliesAsync("SOLIDDemoComponents.wasm");
         }
 
         if (path.Contains("testing", StringComparison.OrdinalIgnoreCase))
         {
-          var assemblies = await lazyAssemblyLoader.LoadAssembliesAsync(["TestingDemoComponents.wasm"]);
-          AdditionalAssemblies.AddRange(assemblies);
+          await LoadAssembliesAsync("TestingDemoComponents.wasm");
         }
 
         if (path.Contains("tdd", StringComparison.OrdinalIgnoreCase))
         {
-          var assemblies = await lazyAssemblyLoader.LoadAssembliesAsync(["TDDDemoComponents.wasm"]);
-          AdditionalAssemblies.AddRange(assemblies);
+          await LoadAssembliesAsync("TDDDemoComponents.wasm");
         }
 
         if (path.Contains("webapi", StringComparison.OrdinalIgnoreCase))
         {
-          var assemblies = await lazyAssemblyLoader.LoadAssembliesAsync(["WebAPIDemoComponents.wasm"]);
-          AdditionalAssemblies.AddRange(assemblies);
+          await LoadAssembliesAsync("WebAPIDemoComponents.wasm");
         }
       }
 
       if (path.Contains("talks", StringComparison.OrdinalIgnoreCase))
       {
-        await lazyAssemblyLoader.LoadAssembliesAsync(["BaseComponents.wasm"]);
+        await LoadAssembliesAsync("BaseComponents.wasm");
 
-        var assemblies = await lazyAssemblyLoader.LoadAssembliesAsync(["TalkDemoComponents.wasm"]);
-        AdditionalAssemblies.AddRange(assemblies);
+        await LoadAssembliesAsync("TalkDemoComponents.wasm");
       }
     }
     catch (Exception ex)
     {
       logger.LogError("Error: {Message}", ex.Message);
+    }
+  }
+
+  [RequiresUnreferencedCode("The following members are used by lazyAssemblyLoader.LoadAsync")]
+  private async ValueTask LoadAssembliesAsync(string assemblyName, bool addAdditionalAssemblies = true)
+  {
+    if (_loadedAssemblies.Contains(assemblyName))
+      return;
+    
+    _loadedAssemblies.Add(assemblyName);
+
+    var assemblies = await lazyAssemblyLoader.LoadAssembliesAsync([assemblyName]);
+    if (addAdditionalAssemblies)
+    {
+      AdditionalAssemblies.AddRange(assemblies);
     }
   }
 }
