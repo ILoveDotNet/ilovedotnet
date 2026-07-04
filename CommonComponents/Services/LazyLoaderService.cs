@@ -190,7 +190,7 @@ public class LazyLoaderService(
   {
     if (_loadedAssemblies.Contains(assemblyName))
       return;
-    
+
     _loadedAssemblies.Add(assemblyName);
 
     var assemblies = await lazyAssemblyLoader.LoadAssembliesAsync([assemblyName]);
