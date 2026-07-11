@@ -1,0 +1,388 @@
+@page "/blogs/how-to-find-nuget-dependency-vulnerabilities-before-they-find-you-in-dotnet"
+@using SharedModels
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(NugetDependencyAudit)>
+    <ContentBody>
+        <What>
+            <p>
+                Your .NET project has five <Highlight>PackageReference</Highlight> entries in its <Highlight>.csproj</Highlight>. 
+                How many NuGet packages are actually running in your app? The answer is rarely five — it's often fifty or more. 
+                Every package you reference brings its own dependencies, and those bring theirs. This invisible supply chain is 
+                called your <Highlight>transitive dependency tree</Highlight>, and most teams cannot tell you what's in it.
+            </p>
+            <p>
+                <Highlight>NuGet dependency auditing</Highlight> is the practice of systematically inspecting your entire package 
+                graph — direct and transitive — to identify vulnerabilities, deprecated packages, and outdated versions before 
+                they cause incidents. Since .NET 8, the SDK ships with <Highlight>NuGet Audit</Highlight> built in, making this 
+                something every .NET team can do for free, right now.
+            </p>
+            <p>
+                In this article, you will learn how to inventory your full dependency tree, find packages with known 
+                <Highlight>CVEs</Highlight> (Common Vulnerabilities and Exposures), spot deprecated and outdated packages, 
+                and configure your build pipeline to catch these issues automatically.
+            </p>
+        </What>
+
+        <Why>
+            <h4>You Are Shipping Code You Did Not Write — And Probably Did Not Review</h4>
+            <p>
+                Consider a typical .NET Web API project. You add five packages: <Highlight>FluentValidation</Highlight>, 
+                <Highlight>Dapper</Highlight>, <Highlight>Serilog</Highlight>, <Highlight>AutoMapper</Highlight>, and 
+                <Highlight>Polly</Highlight>. Running <Highlight>dotnet list package --include-transitive</Highlight> reveals 
+                the real picture — often 60 to 100+ packages loaded at runtime, chosen by third parties, not your team.
+            </p>
+            <p>
+                Here is the critical distinction: with <strong>direct dependencies</strong>, your team chose the package and 
+                reviewed its implications. With <strong>transitive dependencies</strong>, a third-party maintainer made that 
+                choice for you — including which version to pin, and whether to update when vulnerabilities are disclosed. 
+                That inherited risk accumulates silently over months.
+            </p>
+            <p>
+                The consequences are concrete. A transitive dependency with a high-severity CVE can expose your application 
+                to remote code execution, data exfiltration, or denial-of-service — even if you never wrote a single line 
+                that directly uses the vulnerable package. When a security scan flags it, the burden of the fix falls on you.
+            </p>
+
+            <h4>The Three Dimensions of Dependency Risk</h4>
+            <p>
+                Not all dependency problems look like active exploits. There are three categories to monitor:
+            </p>
+            <ul>
+                <li>
+                    <strong>Vulnerabilities (CVEs):</strong> Known security flaws catalogued in the 
+                    <Highlight>National Vulnerability Database (NVD)</Highlight>. GitHub maintains a 
+                    <Highlight>Security Advisory Database (GHSA)</Highlight> — populated from CVEs and 
+                    directly from package maintainers — which NuGet's advisory feed consumes. 
+                    NuGet Audit surfaces them at build time.
+                </li>
+                <li>
+                    <strong>Deprecation:</strong> A package maintainer has formally declared the package end-of-life 
+                    or superseded. Continuing to use it means no further security patches — even if no CVE exists today.
+                </li>
+                <li>
+                    <strong>Staleness:</strong> A package has not been updated in years, and newer versions of its 
+                    dependencies have shipped fixes your version will never receive. Not flagged as deprecated, but 
+                    equally problematic.
+                </li>
+            </ul>
+            <p>
+                The tools built into the .NET SDK let you detect all three. Here's how.
+            </p>
+        </Why>
+
+        <How>
+            <h4>Step 1: Inventory Your Full Dependency Tree</h4>
+            <p>
+                Run this command from your project or solution root to see every package — direct and transitive — 
+                that your application loads at runtime:
+            </p>
+            <CodeSnippet CssClass="language-bash">
+# List only direct dependencies
+dotnet list package
+
+# Include transitive dependencies (the full picture)
+dotnet list package --include-transitive
+
+# Output as JSON for tooling integration
+dotnet list package --include-transitive --format json
+            </CodeSnippet>
+            <p>
+                The output separates <Highlight>Top-level Packages</Highlight> (what your team added) from 
+                <Highlight>Transitive Packages</Highlight> (what they pulled in). Pay attention to the 
+                <strong>Resolved</strong> column — NuGet's version resolution can differ from what you requested, 
+                particularly when multiple packages require different versions of the same dependency.
+            </p>
+            <CodeSnippet CssClass="language-plaintext">
+Project 'OrderApi' has the following package references
+
+   [net10.0]:
+   Top-level Packages:
+                         Requested   Resolved
+   &gt; Dapper              2.1.35      2.1.35
+   &gt; FluentValidation    11.10.0     11.10.0
+   &gt; Polly               8.5.2       8.5.2
+
+   Transitive Packages:
+                                    Resolved
+   &gt; Microsoft.Bcl.AsyncInterfaces  9.0.4
+   &gt; System.Threading.Tasks.Extensions 4.5.4
+   ... (50+ more entries)
+            </CodeSnippet>
+
+            <h4>Step 2: Find Vulnerable Packages With NuGet Audit</h4>
+            <p>
+                As of .NET 8, <Highlight>NuGet Audit</Highlight> runs automatically during <Highlight>dotnet restore</Highlight> 
+                and emits warnings for packages with known vulnerabilities. You can also query it explicitly:
+            </p>
+            <CodeSnippet CssClass="language-bash">
+# Report vulnerable packages (direct only, by default)
+dotnet list package --vulnerable
+
+# Include transitive packages in the vulnerability scan
+dotnet list package --vulnerable --include-transitive
+            </CodeSnippet>
+            <p>
+                The output identifies each vulnerable package, its severity level, and a link to the advisory:
+            </p>
+            <CodeSnippet CssClass="language-plaintext">
+Project 'OrderApi' has the following vulnerable packages
+
+   [net10.0]:
+   Top-level Packages:
+                         Requested   Resolved   Severity   Advisory URL
+   &gt; SomeOldPackage       1.2.0       1.2.0      High       https://github.com/advisories/GHSA-xxxx-yyyy-zzzz
+
+   Transitive Packages:
+                                    Resolved   Severity   Advisory URL
+   &gt; AnotherTransitivePkg  3.1.0      High       https://github.com/advisories/GHSA-aaaa-bbbb-cccc
+            </CodeSnippet>
+            <p>
+                Severity levels follow the standard <Highlight>Low / Moderate / High / Critical</Highlight> classification 
+                from the NVD's CVSS scores. A <Highlight>Critical</Highlight> vulnerability in a transitive package 
+                demands the same urgency as one in a direct dependency — your runtime doesn't care about the distinction.
+            </p>
+
+            <h4>Step 3: Configure NuGet Audit in Your Build</h4>
+            <p>
+                By default, NuGet Audit emits warnings. In a security-conscious CI pipeline, you want vulnerabilities 
+                to fail the build. The correct place for solution-wide audit configuration is 
+                <Highlight>Directory.Build.props</Highlight> at the solution root — 
+                this file applies MSBuild properties to every project automatically:
+            </p>
+            <CodeSnippet CssClass="language-xml">
+&lt;!-- Directory.Build.props — place at your solution root, applies to all projects --&gt;
+&lt;Project&gt;
+  &lt;PropertyGroup&gt;
+    &lt;!-- Audit both direct and transitive packages (default is 'direct' only) --&gt;
+    &lt;NuGetAuditMode&gt;all&lt;/NuGetAuditMode&gt;
+    &lt;!-- Minimum severity to warn about: low, moderate, high, critical --&gt;
+    &lt;NuGetAuditLevel&gt;high&lt;/NuGetAuditLevel&gt;
+    &lt;!-- Treat audit warnings as errors so the build actually fails --&gt;
+    &lt;TreatWarningsAsErrors&gt;true&lt;/TreatWarningsAsErrors&gt;
+  &lt;/PropertyGroup&gt;
+&lt;/Project&gt;
+            </CodeSnippet>
+            <p>
+                Two properties are doing the real work here. <Highlight>NuGetAuditMode</Highlight> defaults to 
+                <Highlight>direct</Highlight>, meaning the automatic restore only flags vulnerabilities in your 
+                directly referenced packages — transitive packages are silently skipped. Setting it to 
+                <Highlight>all</Highlight> closes that gap. <Highlight>TreatWarningsAsErrors</Highlight> is 
+                what actually <em>breaks the build</em> — without it, audit warnings are just warnings that 
+                get scrolled past in CI output.
+            </p>
+            <p>
+                You can override these solution-wide defaults per-project in the <Highlight>.csproj</Highlight> file, 
+                which is useful when different projects in a solution have different risk tolerances:
+            </p>
+            <CodeSnippet CssClass="language-xml">
+&lt;PropertyGroup&gt;
+  &lt;!-- Enable or disable audit for this specific project --&gt;
+  &lt;NuGetAudit&gt;true&lt;/NuGetAudit&gt;
+
+  &lt;!-- Minimum severity that triggers a warning: low, moderate, high, critical --&gt;
+  &lt;NuGetAuditLevel&gt;moderate&lt;/NuGetAuditLevel&gt;
+
+  &lt;!-- Audit direct packages only, or all (includes transitive) --&gt;
+  &lt;NuGetAuditMode&gt;all&lt;/NuGetAuditMode&gt;
+&lt;/PropertyGroup&gt;
+            </CodeSnippet>
+            <p>
+                With <Highlight>NuGetAuditLevel</Highlight> set to <Highlight>moderate</Highlight>, any restore that 
+                resolves a package with a moderate-or-higher CVE will emit a build warning (or error, if you set 
+                <Highlight>TreatWarningsAsErrors</Highlight>). This gives you a go/no-go gate in your CI without 
+                needing a separate third-party scanner.
+            </p>
+
+            <h4>Step 4: Detect Deprecated Packages</h4>
+            <p>
+                Deprecated packages are those formally marked end-of-life by their maintainers on NuGet.org. 
+                They will receive no further security patches. Find them with:
+            </p>
+            <CodeSnippet CssClass="language-bash">
+# Direct deprecated packages
+dotnet list package --deprecated
+
+# Include transitive
+dotnet list package --deprecated --include-transitive
+            </CodeSnippet>
+            <CodeSnippet CssClass="language-plaintext">
+Project 'OrderApi' has the following deprecated packages
+
+   [net10.0]:
+   Transitive Packages:
+                                Resolved   Reason(s)         Alternative
+   &gt; OldAuthLibrary             2.0.1      Legacy, Critical  NewAuthLibrary
+   &gt; UnmaintainedHelper         1.5.0      Legacy            (none suggested)
+            </CodeSnippet>
+            <p>
+                The <Highlight>Reason(s)</Highlight> column distinguishes between packages deprecated as 
+                <strong>Legacy</strong> (superseded by a newer alternative) and those marked <strong>Critical</strong> 
+                (have security issues with no planned fix). The <Highlight>Alternative</Highlight> column 
+                points you to the recommended replacement when one exists.
+            </p>
+
+            <h4>Step 5: Identify Outdated Packages</h4>
+            <p>
+                <em>Outdated</em> is different from <em>deprecated</em>. An outdated package still receives 
+                updates, but you are behind. Newer versions may have patched vulnerabilities that affect you 
+                even though no CVE was filed against your current version. Find them with:
+            </p>
+            <CodeSnippet CssClass="language-bash">
+dotnet list package --outdated
+
+# Include transitive packages that have newer versions available
+dotnet list package --outdated --include-transitive
+            </CodeSnippet>
+            <CodeSnippet CssClass="language-plaintext">
+Project 'OrderApi' has the following updates available
+
+   [net10.0]:
+   Top-level Packages:
+                     Requested   Resolved   Latest
+   &gt; Dapper           2.1.35      2.1.35     2.1.44
+   &gt; FluentValidation 11.10.0     11.10.0    11.11.0
+
+   Transitive Packages:
+                                    Resolved   Latest
+   &gt; System.Text.Json               8.0.5      10.0.1
+            </CodeSnippet>
+            <p>
+                The <Highlight>Latest</Highlight> column shows what is available on NuGet.org today. 
+                For transitive packages, you cannot update them directly — you must update the direct 
+                dependency that pulls them in (or add an explicit <Highlight>PackageReference</Highlight> 
+                to override the transitive version, which is a deliberate version pinning strategy).
+            </p>
+
+            <h4>Step 6: Override a Vulnerable Transitive Dependency</h4>
+            <p>
+                When a transitive package has a vulnerability and you cannot wait for the upstream direct 
+                dependency to release a fix, you can force a specific version by adding an explicit reference 
+                in your <Highlight>.csproj</Highlight>:
+            </p>
+            <CodeSnippet CssClass="language-xml">
+&lt;ItemGroup&gt;
+  &lt;!-- Force a safe version of a transitive dependency --&gt;
+  &lt;!-- Use this only when the upstream package cannot be updated yet --&gt;
+  &lt;PackageReference Include="System.Text.Json" Version="10.0.1" /&gt;
+&lt;/ItemGroup&gt;
+            </CodeSnippet>
+            <p>
+                This tells NuGet to resolve <Highlight>System.Text.Json</Highlight> to the version you 
+                specify, overriding whatever the transitive graph would normally resolve. Add a comment 
+                explaining why, and track it as technical debt to remove once the upstream package ships 
+                the fix.
+            </p>
+
+            <h4>Putting It All Together: A CI Health Check Script</h4>
+            <p>
+                Combine all three checks into a single CI step that reports the full dependency health 
+                of your solution before every merge:
+            </p>
+            <CodeSnippet CssClass="language-bash">
+#!/bin/bash
+# nuget-audit.sh — Run as a CI step before build
+
+echo "=== Checking for vulnerable packages ==="
+dotnet list package --vulnerable --include-transitive
+
+echo ""
+echo "=== Checking for deprecated packages ==="
+dotnet list package --deprecated --include-transitive
+
+echo ""
+echo "=== Checking for outdated packages ==="
+dotnet list package --outdated
+
+# Exit non-zero if vulnerabilities are found (for CI gate)
+VULN_COUNT=$(dotnet list package --vulnerable --include-transitive 2>&amp;1 | grep -c "^   &gt;")
+if [ "$VULN_COUNT" -gt 0 ]; then
+  echo "ERROR: $VULN_COUNT vulnerable package(s) found. Resolve before merging."
+  exit 1
+fi
+            </CodeSnippet>
+            <p>
+                This script is intentionally simple — it uses only the .NET SDK and standard shell tools. 
+                No additional tooling required, no external services, no tokens. Run it in GitHub Actions, 
+                Azure Pipelines, or any CI system that has the .NET SDK installed.
+            </p>
+
+            <h4>Understanding the Vulnerability Pipeline</h4>
+            <p>
+                Knowing <em>where</em> vulnerability data comes from helps you understand its reliability 
+                and lag time. The flow is:
+            </p>
+            <CodeSnippet CssClass="language-plaintext">
+Researcher discovers flaw
+        │
+        ▼
+CVE filed with MITRE / NVD
+(National Vulnerability Database)  ──or── Maintainer files directly
+        │                                          │
+        └─────────────────┬────────────────────────┘
+                          ▼
+     GitHub Security Advisory Database (GHSA)
+                          │
+        ▼
+NuGet ingests GHSA into its Advisory Feed
+        │
+        ▼
+dotnet restore / dotnet list package --vulnerable
+surfaces it in your build
+            </CodeSnippet>
+            <p>
+                The lag between a CVE being filed and NuGet surfacing it is typically hours to days, 
+                not weeks. This means <Highlight>dotnet list package --vulnerable</Highlight> reflects 
+                the current state of known advisories — making it suitable as a daily or per-PR check.
+            </p>
+        </How>
+
+        <Summary>
+            <p>
+                Dependency vulnerabilities are not a niche concern — they are one of the most common 
+                vectors for supply chain attacks on .NET applications. Here are the key takeaways:
+            </p>
+            <ul>
+                <li>
+                    Your application's real package count is far larger than the <Highlight>PackageReference</Highlight> 
+                    entries in your <Highlight>.csproj</Highlight>. Use <Highlight>dotnet list package --include-transitive</Highlight> 
+                    to see the full picture.
+                </li>
+                <li>
+                    <Highlight>NuGet Audit</Highlight> runs automatically since .NET 8 — check your build output 
+                    for vulnerability warnings after every <Highlight>dotnet restore</Highlight>.
+                </li>
+                <li>
+                    Use <Highlight>dotnet list package --vulnerable</Highlight>, <Highlight>--deprecated</Highlight>, 
+                    and <Highlight>--outdated</Highlight> as three distinct health checks covering active CVEs, 
+                    end-of-life packages, and version staleness respectively.
+                </li>
+                <li>
+                    Configure <Highlight>NuGetAuditLevel</Highlight>, <Highlight>NuGetAuditMode</Highlight>, 
+                    and <Highlight>TreatWarningsAsErrors</Highlight> in <Highlight>Directory.Build.props</Highlight> 
+                    or your <Highlight>.csproj</Highlight> to make vulnerability detection a CI gate, 
+                    not just a warning you scroll past.
+                </li>
+                <li>
+                    When a transitive dependency is vulnerable and an upstream fix is not yet available, 
+                    you can force a safe version using an explicit <Highlight>PackageReference</Highlight> override.
+                </li>
+            </ul>
+            <p>
+                Security hygiene for packages is the same as security hygiene for your own code — you 
+                need to check it regularly, not just once during onboarding. Add the audit step to your 
+                CI pipeline today, before you need it.
+            </p>
+            <p>
+                Now that you can find vulnerabilities, the next skill is deciding what to do about them. 
+                Read 
+                <NavLink href="blogs/introduction-to-logging-in-dotnet-from-basics-to-best-practices">Introduction to Logging in .NET</NavLink> 
+                to make sure you are capturing enough runtime context to investigate issues when they do occur, 
+                or explore 
+                <NavLink href="blogs/owasp-secure-your-dotnet-app-by-scanning-for-vulnerable-nuget-dependency-in-ci-pipelines">OWASP — Secure Your App by Scanning for Vulnerable NuGet Dependencies in CI</NavLink> 
+                for the broader security posture story.
+            </p>
+        </Summary>
+    </ContentBody>
+</Content>

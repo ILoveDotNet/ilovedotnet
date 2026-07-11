@@ -35,7 +35,7 @@ Choosing a project idea could be difficult. We need to ensure stability and main
 11. [Regex](https://github.com/orgs/ILoveDotNet/projects/12)
 12. [OOPS](https://github.com/orgs/ILoveDotNet/projects/13)
 13. [Expression Trees](https://github.com/orgs/ILoveDotNet/projects/14)
-14. [Swagger](https://github.com/orgs/ILoveDotNet/projects/15)
+14. [NuGet](https://github.com/orgs/ILoveDotNet/projects/15)
 15. [Middlewares](https://github.com/orgs/ILoveDotNet/projects/16)
 16. [JWT](https://github.com/orgs/ILoveDotNet/projects/17)
 17. [Dependency Injection](https://github.com/orgs/ILoveDotNet/projects/18)

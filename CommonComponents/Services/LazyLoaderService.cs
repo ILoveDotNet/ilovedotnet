@@ -116,6 +116,11 @@ public class LazyLoaderService(
           await LoadAssembliesAsync("MSBuildDemoComponents.wasm");
         }
 
+        if (path.Contains("nuget", StringComparison.OrdinalIgnoreCase))
+        {
+          await LoadAssembliesAsync("NugetDemoComponents.wasm");
+        }
+
         if (path.Contains("oops", StringComparison.OrdinalIgnoreCase))
         {
           await LoadAssembliesAsync("OOPSDemoComponents.wasm");

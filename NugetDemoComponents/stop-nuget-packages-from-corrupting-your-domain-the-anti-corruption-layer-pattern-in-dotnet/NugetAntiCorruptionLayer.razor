@@ -1,0 +1,411 @@
+@page "/blogs/stop-nuget-packages-from-corrupting-your-domain-the-anti-corruption-layer-pattern-in-dotnet"
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(NugetAntiCorruptionLayer)>
+    <ContentBody>
+        <What>
+            <p>
+                Six months after shipping a feature that fetches live currency exchange rates, a senior engineer opens
+                a pull request titled "upgrade FxRatesClient to v3". The PR has forty-two file changes. The package's
+                constructor signature changed, several return types were renamed, and the exception hierarchy was
+                restructured. Every service that ever touched the package now needs updating — and every one of those
+                changes is a chance to introduce a regression in production-critical pricing logic.
+            </p>
+            <p>
+                This is not an upgrade problem. It is a <Highlight>boundary problem</Highlight>. When a NuGet
+                package's types are allowed to leak directly into domain code, the package becomes load-bearing — its
+                types, exceptions, and naming conventions are embedded throughout the application. What should be a
+                one-file change becomes a multi-sprint undertaking.
+            </p>
+            <p>
+                The solution is an <Highlight>Anti-Corruption Layer</Highlight> (ACL): a deliberate architectural
+                boundary that prevents third-party code from spreading into your domain. Originating in
+                <Highlight>Domain-Driven Design</Highlight> (DDD), an ACL defines a seam in the codebase where your
+                application's own model ends and an external system begins. Inside that seam, everything speaks your
+                domain language. Outside it, a single <Highlight>adapter</Highlight> handles all the translation.
+                In this article, you will learn what an ACL is, why it is an architectural decision rather than just
+                a coding convenience, and how to implement a complete, project-level ACL for a NuGet dependency in
+                .NET — with the build system itself enforcing the boundary.
+            </p>
+        </What>
+
+        <Why>
+            <h4>When a NuGet Package Leaks, the Damage Spreads Farther Than You Expect</h4>
+            <p>
+                Consider a fictional currency library, <Highlight>FxRatesClient</Highlight>, referenced directly
+                across three domain services. The <Highlight>FxRatesFetcher</Highlight> type and
+                <Highlight>FxRate</Highlight> return type from the package appear inside business logic:
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+// ❌ Dependency leaked — FxRatesClient types appear directly in domain code
+using FxRatesClient; // the NuGet package
+
+public class PricingService
+{
+    private readonly FxRatesFetcher _fetcher; // NuGet type in domain constructor
+
+    public PricingService(FxRatesFetcher fetcher) =&gt; _fetcher = fetcher;
+
+    public decimal ConvertToBaseCurrency(decimal amount, string currencyCode)
+    {
+        FxRate rate = _fetcher.GetLatestRate(currencyCode); // returns NuGet type
+        return amount * (decimal)rate.Multiplier;
+    }
+}
+            </CodeSnippet>
+            <p>
+                The same pattern appears in <Highlight>QuoteService</Highlight> and
+                <Highlight>InvoiceService</Highlight>. <Highlight>FxRate</Highlight>,
+                <Highlight>FxRatesFetcher</Highlight>, and <Highlight>FxNetworkException</Highlight> are now
+                referenced across eight files in three projects. When <Highlight>FxRatesClient v2</Highlight>
+                renames <Highlight>FxRate.Multiplier</Highlight> to <Highlight>FxRate.ConversionFactor</Highlight>
+                and restructures its exception hierarchy, every one of those eight files breaks at compile time.
+            </p>
+
+            <h4>Dependency Sprawl Turns Routine Maintenance Into a Risk Event</h4>
+            <p>
+                When a third-party package's types embed themselves across multiple projects, the pattern is called
+                <Highlight>dependency sprawl</Highlight>. The affected files are not always the obvious ones: unit
+                tests that construct mock <Highlight>FxRate</Highlight> objects, integration test helpers that
+                configure <Highlight>FxRatesFetcher</Highlight>, and catch blocks that handle
+                <Highlight>FxNetworkException</Highlight> all become part of the upgrade surface. A sprawled
+                dependency makes even a minor version bump feel like major surgery.
+            </p>
+            <p>
+                Teams defer the upgrade and reach for a temporary patch instead. Security vulnerabilities in the
+                old version accumulate, and the technical debt grows with each release cycle. The longer the
+                deferral, the larger the eventual blast radius — and the higher the probability that the upgrade is
+                cancelled entirely, leaving a known vulnerability in production for months or years.
+            </p>
+
+            <h4>An ACL Is an Architectural Decision, Not Just a Refactoring</h4>
+            <p>
+                Introducing an ACL requires designing a deliberate project boundary — not merely extracting a
+                class. That makes it worth recording as an <Highlight>Architectural Decision Record</Highlight>
+                (ADR): a short document that captures why the boundary was created, which package it isolates, and
+                where the adapter project lives. Without this record, future engineers are likely to bypass the
+                boundary, re-introducing the sprawl the ACL was created to prevent.
+            </p>
+            <p>
+                The ACL differs from simply "putting an interface in front of something" in one critical way: the
+                <strong>build system enforces the boundary</strong>. The adapter project is the only project in the
+                solution with a <Highlight>PackageReference</Highlight> to the external library. Domain projects
+                carry no such reference. If a domain project were to import a type from the package directly, the
+                project would fail to build — not because of a code-review comment, but because the dependency
+                declaration is absent from its <Highlight>.csproj</Highlight> file.
+            </p>
+        </Why>
+
+        <How>
+            <h4>The Scenario: A Currency Converter Backed by a Third-Party NuGet Package</h4>
+            <p>
+                Your <Highlight>PricingService</Highlight>, <Highlight>QuoteService</Highlight>, and
+                <Highlight>InvoiceService</Highlight> all convert amounts to a base currency by directly consuming
+                the fictional <Highlight>FxRatesClient</Highlight> NuGet package. The goal is to place a complete
+                ACL around that dependency without changing any of those three services after the refactoring.
+            </p>
+            <p>
+                The implementation has four concrete steps: define an abstraction, build an isolated adapter,
+                update domain service constructors, and wire everything together in the DI composition root.
+            </p>
+
+            <h4>Step 1 — Define the Abstraction in a Project With Zero NuGet References</h4>
+            <p>
+                Create an interface in a project whose <Highlight>.csproj</Highlight> has
+                <strong>no PackageReference entries at all</strong>. Every type in this interface must be from the
+                .NET base class library or your own domain — no NuGet types are allowed to cross this boundary:
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+// Project: Pricing.Application.Abstractions
+// .csproj has NO &lt;PackageReference&gt; entries — pure domain contract
+
+namespace Pricing.Application.Abstractions;
+
+public interface ICurrencyConverter
+{
+    /// &lt;summary&gt;
+    /// Converts the specified amount from the given ISO 4217 currency code
+    /// to the application's configured base currency.
+    /// &lt;/summary&gt;
+    decimal ConvertToBase(decimal amount, string isoCurrencyCode);
+}
+            </CodeSnippet>
+            <p>
+                Notice that <Highlight>FxRate</Highlight>, <Highlight>FxRatesFetcher</Highlight>, and every
+                other type from the package are absent. The interface is written entirely in your application's
+                vocabulary — it is part of your domain, not an extension of the external library.
+            </p>
+
+            <h4>Step 2 — Create an Isolated Adapter as the Sole Consumer of the NuGet Package</h4>
+            <p>
+                Create a separate infrastructure project. This is the <strong>only project in the solution</strong>
+                that references <Highlight>FxRatesClient</Highlight>. The adapter translates between your domain
+                contract and the package's API — including translating third-party exceptions into domain-specific
+                ones so they never leak across the seam:
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+// Project: Pricing.Infrastructure.Currency
+// .csproj: &lt;PackageReference Include="FxRatesClient" Version="1.9.4" /&gt;
+// This is the ONLY project allowed to reference FxRatesClient.
+
+using FxRatesClient;
+using FxRatesClient.Exceptions;
+using Pricing.Application.Abstractions;
+
+namespace Pricing.Infrastructure.Currency;
+
+public sealed class FxRatesClientAdapter : ICurrencyConverter
+{
+    private readonly FxRatesFetcher _fetcher;
+
+    public FxRatesClientAdapter(FxRatesFetcher fetcher)
+        =&gt; _fetcher = fetcher;
+
+    public decimal ConvertToBase(decimal amount, string isoCurrencyCode)
+    {
+        try
+        {
+            FxRate rate = _fetcher.GetLatestRate(isoCurrencyCode);
+            return amount * (decimal)rate.Multiplier;
+        }
+        catch (FxNetworkException ex)
+        {
+            // Translate the NuGet exception into a domain exception.
+            // FxNetworkException must never cross the ACL seam into the domain.
+            throw new CurrencyConversionException(
+                $"Unable to retrieve exchange rate for '{isoCurrencyCode}'.", ex);
+        }
+    }
+}
+            </CodeSnippet>
+            <p>
+                The <Highlight>CurrencyConversionException</Highlight> lives in your domain project and carries
+                no reference to <Highlight>FxRatesClient</Highlight>:
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+// Project: Pricing.Application (domain, no NuGet references)
+
+namespace Pricing.Application;
+
+public sealed class CurrencyConversionException : Exception
+{
+    public CurrencyConversionException(string message, Exception innerException)
+        : base(message, innerException) { }
+}
+            </CodeSnippet>
+
+            <h4>Step 3 — Update Domain Services to Depend on the Abstraction</h4>
+            <p>
+                Replace every direct injection of <Highlight>FxRatesFetcher</Highlight> with
+                <Highlight>ICurrencyConverter</Highlight>. This is a one-time change — after it, no domain service
+                will ever mention the NuGet package again:
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+// ✅ Domain code depends only on the abstraction — no NuGet types here
+using Pricing.Application.Abstractions;
+
+public class PricingService
+{
+    private readonly ICurrencyConverter _currencyConverter;
+
+    public PricingService(ICurrencyConverter currencyConverter)
+        =&gt; _currencyConverter = currencyConverter;
+
+    public decimal ConvertToBaseCurrency(decimal amount, string currencyCode)
+        =&gt; _currencyConverter.ConvertToBase(amount, currencyCode);
+}
+            </CodeSnippet>
+            <p>
+                Apply the same change to <Highlight>QuoteService</Highlight> and
+                <Highlight>InvoiceService</Highlight>. All three services now depend on a .NET interface, not
+                on a NuGet package. The upgrade surface for any future change to <Highlight>FxRatesClient</Highlight>
+                shrinks to a single file: <Highlight>FxRatesClientAdapter.cs</Highlight>.
+            </p>
+
+            <h4>Step 4 — Register the Adapter via a DI Extension Method in the Infrastructure Project</h4>
+            <p>
+                To keep the boundary airtight all the way to the composition root, add a DI registration
+                extension method <em>inside</em> <Highlight>Pricing.Infrastructure.Currency</Highlight>. This
+                ensures that <Highlight>Program.cs</Highlight> never needs to import
+                <Highlight>FxRatesClient</Highlight> — only the infrastructure project does:
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+// Project: Pricing.Infrastructure.Currency
+// Same project that already holds FxRatesClientAdapter — no new PackageReference needed.
+
+using FxRatesClient;
+using Microsoft.Extensions.DependencyInjection;
+using Pricing.Application.Abstractions;
+
+namespace Pricing.Infrastructure.Currency;
+
+public static class ServiceCollectionExtensions
+{
+    public static IServiceCollection AddFxRatesAdapter(
+        this IServiceCollection services, string apiKey)
+    {
+        services.AddSingleton(new FxRatesFetcher(apiKey));
+        services.AddScoped&lt;ICurrencyConverter, FxRatesClientAdapter&gt;();
+        return services;
+    }
+}
+            </CodeSnippet>
+            <p>
+                <Highlight>Program.cs</Highlight> now references only the infrastructure project — it imports
+                nothing from <Highlight>FxRatesClient</Highlight> directly:
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+// Program.cs — zero FxRatesClient imports; the boundary holds here too.
+using Pricing.Infrastructure.Currency;
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddFxRatesAdapter(builder.Configuration["FxRates:ApiKey"]!);
+builder.Services.AddScoped&lt;PricingService&gt;();
+builder.Services.AddScoped&lt;QuoteService&gt;();
+builder.Services.AddScoped&lt;InvoiceService&gt;();
+            </CodeSnippet>
+
+            <h4>Project Structure: How the Build System Enforces the Boundary</h4>
+            <p>
+                The structure below shows where the <Highlight>PackageReference</Highlight> to
+                <Highlight>FxRatesClient</Highlight> lives and, crucially, where it does not. Any attempt to use
+                a type from the package in a domain project fails at build time because the dependency is not
+                declared in that project's <Highlight>.csproj</Highlight>:
+            </p>
+            <CodeSnippet CssClass="language-plaintext">
+Solution
+├── Pricing.Application.Abstractions   (no PackageReference entries)
+│     └── ICurrencyConverter.cs
+│
+├── Pricing.Application                (no PackageReference entries)
+│     ├── PricingService.cs            → depends on ICurrencyConverter
+│     ├── QuoteService.cs              → depends on ICurrencyConverter
+│     ├── InvoiceService.cs            → depends on ICurrencyConverter
+│     └── CurrencyConversionException.cs
+│
+├── Pricing.Infrastructure.Currency    ← ONLY project with FxRatesClient ref
+│     ├── FxRatesClientAdapter.cs      → implements ICurrencyConverter
+│     └── ServiceCollectionExtensions.cs → AddFxRatesAdapter() DI helper
+│
+└── Pricing.Api (composition root)
+      └── Program.cs                   → calls AddFxRatesAdapter(); no FxRatesClient import
+            </CodeSnippet>
+
+            <h4>Swapping the Implementation Requires a Single Line Change</h4>
+            <p>
+                With the ACL in place, replacing <Highlight>FxRatesClient</Highlight> — whether with a newer
+                package, a different provider, or a no-dependency fallback — requires zero changes to domain
+                code. Only the DI registration and the adapter project change. Here is a pure-.NET fallback that
+                uses a fixed rate table and needs no NuGet package whatsoever:
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+// Project: Pricing.Application (no PackageReference entries required)
+
+using Pricing.Application;
+using Pricing.Application.Abstractions;
+
+namespace Pricing.Application.Currency;
+
+public sealed class FixedRateCurrencyConverter : ICurrencyConverter
+{
+    // Extend this table from configuration or a database in production
+    private static readonly Dictionary&lt;string, decimal&gt; Rates =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["USD"] = 0.79m,
+            ["EUR"] = 0.86m,
+            ["JPY"] = 0.0053m,
+            ["AUD"] = 0.52m,
+        };
+
+    public decimal ConvertToBase(decimal amount, string isoCurrencyCode)
+    {
+        if (!Rates.TryGetValue(isoCurrencyCode, out var rate))
+            throw new CurrencyConversionException(
+                $"No fixed rate is configured for currency '{isoCurrencyCode}'.",
+                new NotSupportedException(isoCurrencyCode));
+
+        return amount * rate;
+    }
+}
+            </CodeSnippet>
+            <p>
+                To activate the fallback, change one line in <Highlight>Program.cs</Highlight>:
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+// Before (uses FxRatesClient via the infrastructure adapter):
+// builder.Services.AddFxRatesAdapter(builder.Configuration["FxRates:ApiKey"]!);
+
+// After — add this using and swap the registration:
+// using Pricing.Application.Currency;
+builder.Services.AddScoped&lt;ICurrencyConverter, FixedRateCurrencyConverter&gt;();
+            </CodeSnippet>
+            <p>
+                <Highlight>PricingService</Highlight>, <Highlight>QuoteService</Highlight>, and
+                <Highlight>InvoiceService</Highlight> do not know — and do not need to know — which
+                implementation is active. The abstraction is the contract; the adapter is the interchangeable detail.
+            </p>
+
+            <h4>ACL vs. Adapter Pattern: Why the Distinction Matters</h4>
+            <p>
+                The terms "ACL" and "adapter" are related but not the same. An
+                <Highlight>adapter</Highlight> (Gang of Four structural pattern) handles translation at the
+                <em>code level</em> — it converts one interface signature to another. An
+                <Highlight>Anti-Corruption Layer</Highlight> is an <em>architectural-level</em> concept from DDD.
+                It defines and enforces a seam in the solution structure, not just in a class. An ACL is typically
+                implemented using an adapter, but the adapter alone does not enforce the project-level boundary.
+                It is the combination of the interface-only abstraction project, the isolated infrastructure
+                project, and the disciplined DI wiring that forms the complete ACL — and the ADR that documents it
+                is what ensures future engineers respect it.
+            </p>
+        </How>
+
+        <Summary>
+            <p>
+                An Anti-Corruption Layer is the most durable protection you can place between your domain code and
+                a third-party NuGet package. It is not reserved for large enterprise systems — any application
+                that will outlive the current version of its dependencies benefits from one.
+            </p>
+            <ul>
+                <li>
+                    When NuGet types appear directly in domain code, every version upgrade or replacement becomes
+                    a wide-impact refactoring across potentially dozens of files — a pattern called
+                    <Highlight>dependency sprawl</Highlight>.
+                </li>
+                <li>
+                    An <Highlight>Anti-Corruption Layer</Highlight> is a deliberate project-level seam that
+                    confines third-party types to a single adapter project. The build system enforces this by
+                    ensuring domain projects carry no <Highlight>PackageReference</Highlight> to the external library.
+                </li>
+                <li>
+                    The four steps are: define a domain interface with no NuGet types, create an isolated
+                    infrastructure adapter project as the sole consumer of the package, update domain services to
+                    inject the interface, and register the adapter in the DI composition root.
+                </li>
+                <li>
+                    Always catch third-party exceptions <em>inside</em> the adapter and re-throw domain-specific
+                    exceptions. Third-party exception types must never cross the ACL seam.
+                </li>
+                <li>
+                    Replacing the underlying package later requires a single DI registration change with zero
+                    modifications to domain code — because domain code was never coupled to the package in the
+                    first place.
+                </li>
+                <li>
+                    An ACL is an architectural decision worth recording in an
+                    <Highlight>Architectural Decision Record</Highlight> (ADR) so that future engineers understand
+                    the boundary and do not inadvertently bypass it.
+                </li>
+            </ul>
+            <p>
+                To see how the ACL pattern fits into a broader NuGet dependency risk management strategy — including
+                identifying CVEs before they reach production and applying the Wrap-Replace-Rewrite ladder — read
+                <NavLink href="blogs/how-to-find-nuget-dependency-vulnerabilities-before-they-find-you-in-dotnet">How to Find NuGet Dependency Vulnerabilities Before They Find You in .NET</NavLink>
+                and
+                <NavLink href="blogs/swap-out-a-vulnerable-nuget-package-without-touching-your-domain-code-in-dotnet">Swap Out a Vulnerable NuGet Package Without Touching Your Domain Code in .NET</NavLink>.
+            </p>
+        </Summary>
+    </ContentBody>
+</Content>

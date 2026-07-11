@@ -1,0 +1,551 @@
+@page "/blogs/characterization-tests-the-safety-net-every-nuget-package-swap-needs-in-dotnet"
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(NugetCharacterizationTests)>
+    <ContentBody>
+        <What>
+            <p>
+                You have identified a vulnerable NuGet package. You have found a suitable replacement. You have
+                read the migration guide, updated the reference, and run the build — everything compiles. Then
+                you deploy to staging and a downstream integration test starts returning subtly wrong data.
+                The replacement package serializes <Highlight>DateTime</Highlight> fields in a slightly different
+                format than the old one, and three consumers of your API silently break.
+            </p>
+            <p>
+                The compiler could not catch this. Your unit tests could not catch it either, because unit tests
+                assert what code <em>should</em> do — they have no way to compare what the old code
+                <em>actually did</em> against what the new code does. That gap is precisely where
+                <Highlight>characterization tests</Highlight> live.
+            </p>
+            <p>
+                A characterization test records the real, verified output of a piece of code at a known-good
+                point in time — before any replacement happens — and commits that record as a
+                <Highlight>golden master</Highlight>. When you swap the dependency, the same test runs against the
+                new code and compares its output byte-for-byte against the golden master. Any divergence is a
+                test failure, and you know exactly what changed before it reaches production. In this article you
+                will learn what characterization tests are, how they differ from unit tests, and how to implement
+                them in .NET using the <Highlight>Verify</Highlight> library to protect every NuGet package
+                replacement you ever make.
+            </p>
+        </What>
+
+        <Why>
+            <h4>The Silent Breakage Problem With NuGet Replacements</h4>
+            <p>
+                Imagine your application uses a fictional JSON library, <Highlight>LegacyJson</Highlight>, to
+                serialize invoice records. The library has a known vulnerability, and you replace it with
+                <Highlight>System.Text.Json</Highlight>. Both libraries serialize C# objects to JSON strings, so
+                the replacement feels mechanical. But serialization is not a single universal behavior — it is a
+                collection of decisions: How are <Highlight>null</Highlight> properties handled? Are property
+                names camel-cased or Pascal-cased? Is <Highlight>DateTime</Highlight> emitted as ISO 8601 or
+                a custom format? Are empty collections serialized as <Highlight>[]</Highlight> or omitted
+                entirely?
+            </p>
+            <p>
+                These differences are invisible until something downstream depends on the exact shape of the
+                output. An external partner consuming your invoice feed may rely on the specific date format.
+                An event bus may reject messages with unexpected property casing. A legacy mobile client may
+                fail to deserialize a payload where <Highlight>null</Highlight> fields are now omitted. None of
+                these failures are loud — they manifest as data anomalies hours or days after a seemingly
+                successful deployment.
+            </p>
+
+            <h4>Unit Tests Cannot Protect You Here — and That Is Not Their Job</h4>
+            <p>
+                A unit test for an invoice serializer typically looks like this:
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+[Fact]
+public void Serialize_BasicInvoice_ReturnsValidJson()
+{
+    var serializer = new InvoiceSerializer();
+    var invoice = new Invoice { Id = 1, CustomerName = "Acme Corp", Amount = 250.00m };
+
+    var json = serializer.Serialize(invoice);
+
+    Assert.False(string.IsNullOrWhiteSpace(json));
+    Assert.Contains("Acme Corp", json);
+}
+            </CodeSnippet>
+            <p>
+                This test passes whether the serializer produces
+                <Highlight>&#123;"customerName":"Acme Corp"&#125;</Highlight> or
+                <Highlight>&#123;"CustomerName":"Acme Corp"&#125;</Highlight>. It tells you the
+                serializer ran without throwing. It says nothing about the exact shape of the output. When you
+                swap the serializer library, this test continues to pass — and gives you a false sense of safety
+                while the casing difference silently breaks a downstream consumer.
+            </p>
+            <p>
+                Unit tests assert <em>correctness against a specification</em>. Characterization tests assert
+                <em>stability of output across a replacement</em>. The two are complementary — you need both.
+            </p>
+
+            <h4>The Golden Master Concept</h4>
+            <p>
+                A <Highlight>golden master</Highlight> is a committed, version-controlled snapshot of what your
+                code actually produced at a known-good point in time. It is the authoritative reference every
+                future run is compared against. When the replacement library produces output that is
+                byte-for-byte identical to the golden master, you have strong evidence that the swap is safe.
+                When it diverges, the test fails and tells you exactly what changed — before you deploy.
+            </p>
+            <p>
+                The process is intentionally a two-phase loop:
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+  Phase 1 — Create the golden master (run against the old package)
+  ──────────────────────────────────────────────────────────────────
+  Run test → Verify creates *.received.txt (actual output)
+           → Test FAILS (no *.verified.txt exists yet)
+  Inspect received.txt → if the output looks correct, accept it
+  Copy contents into *.verified.txt → commit to source control
+  Delete received.txt
+
+  Phase 2 — Guard the replacement (run against the new package)
+  ──────────────────────────────────────────────────────────────────
+  Swap the NuGet reference → rerun the test
+  Verify creates *.received.txt for the new output
+  Verify diffs received.txt against *.verified.txt
+  → Match: test PASSES, received.txt is deleted
+  → Mismatch: test FAILS, diff opens showing exactly what changed
+            </CodeSnippet>
+        </Why>
+
+        <How>
+            <h4>The Scenario: Replacing a Serialization Library Without Breaking Invoice Output</h4>
+            <p>
+                Your application serializes <Highlight>Invoice</Highlight> records to JSON before publishing
+                them to a message queue. Today the serializer is backed by a fictional package called
+                <Highlight>LegacyJson</Highlight>. You need to replace it with
+                <Highlight>System.Text.Json</Highlight> from the .NET base class library. Before you touch the
+                reference, you will capture a golden master so the test suite can guarantee the replacement
+                produces identical output.
+            </p>
+
+            <h4>Step 1 — Define the Domain Model and Serializer Interface</h4>
+            <p>
+                Start with the domain types. These belong to your application and do not change when you swap
+                the library:
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+// Domain/Invoice.cs
+namespace InvoiceQueue.Domain;
+
+public sealed record Invoice(
+    int Id,
+    string CustomerName,
+    decimal Amount,
+    DateTimeOffset DueDate,
+    IReadOnlyList&lt;InvoiceLineItem&gt; LineItems);
+
+public sealed record InvoiceLineItem(
+    string Description,
+    int Quantity,
+    decimal UnitPrice);
+            </CodeSnippet>
+            <p>
+                Define a serializer interface in a project with <strong>no NuGet package references</strong>.
+                Both the legacy implementation and the replacement will satisfy this contract:
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+// Application/IInvoiceSerializer.cs
+namespace InvoiceQueue.Application;
+
+public interface IInvoiceSerializer
+{
+    string Serialize(Invoice invoice);
+    Invoice Deserialize(string json);
+}
+            </CodeSnippet>
+
+            <h4>Step 2 — Write the Legacy Serializer (the One You Are Replacing)</h4>
+            <p>
+                Implement the interface using the fictional <Highlight>LegacyJson</Highlight> library.
+                This is the code you want to characterize before discarding it:
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+// Infrastructure/LegacyJsonInvoiceSerializer.cs
+// &lt;PackageReference Include="LegacyJson" Version="5.2.1" /&gt;
+
+using LegacyJson;
+using InvoiceQueue.Application;
+using InvoiceQueue.Domain;
+
+namespace InvoiceQueue.Infrastructure;
+
+public sealed class LegacyJsonInvoiceSerializer : IInvoiceSerializer
+{
+    // LegacyJson uses Pascal-case by default, includes null fields,
+    // and formats DateTimeOffset as "yyyy-MM-ddTHH:mm:sszzz".
+    private static readonly JsonSerializerSettings Settings = new()
+    {
+        NullValueHandling = NullValueHandling.Include,
+        Formatting = Formatting.Indented,
+        DateFormatString = "yyyy-MM-ddTHH:mm:sszzz"
+    };
+
+    public string Serialize(Invoice invoice) =&gt;
+        JsonConvert.SerializeObject(invoice, Settings);
+
+    public Invoice Deserialize(string json) =&gt;
+        JsonConvert.DeserializeObject&lt;Invoice&gt;(json, Settings)!;
+}
+            </CodeSnippet>
+
+            <h4>Step 3 — Add the Verify NuGet Package to the Test Project</h4>
+            <p>
+                <Highlight>Verify</Highlight> is a snapshot-testing library that automates the golden master
+                workflow. Add it to your xUnit test project alongside the standard test dependencies:
+            </p>
+            <CodeSnippet CssClass="language-xml">
+&lt;!-- InvoiceQueue.Tests.csproj --&gt;
+&lt;ItemGroup&gt;
+    &lt;PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" /&gt;
+    &lt;PackageReference Include="xunit" Version="2.9.0" /&gt;
+    &lt;PackageReference Include="xunit.runner.visualstudio" Version="2.8.2"&gt;
+        &lt;PrivateAssets&gt;all&lt;/PrivateAssets&gt;
+    &lt;/PackageReference&gt;
+    &lt;PackageReference Include="Verify.Xunit" Version="26.5.0" /&gt;
+&lt;/ItemGroup&gt;
+            </CodeSnippet>
+
+            <h4>Step 4 — Write the Characterization Tests Against the Legacy Serializer</h4>
+            <p>
+                Create the test class. Inherit from <Highlight>VerifyBase</Highlight> — the recommended
+                approach in Verify v22 and later — to wire Verify into the xUnit pipeline without any
+                per-class attribute. Each test method returns <Highlight>Task</Highlight> rather than
+                <Highlight>void</Highlight> because <Highlight>Verify()</Highlight> is asynchronous:
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+// InvoiceSerializerCharacterizationTests.cs
+using InvoiceQueue.Domain;
+using InvoiceQueue.Infrastructure;
+using VerifyXunit;
+
+namespace InvoiceQueue.Tests;
+
+public class InvoiceSerializerCharacterizationTests : VerifyBase
+{
+    // ── Shared factory ───────────────────────────────────────────────────────
+    private static Invoice BuildFullInvoice() =&gt; new Invoice(
+        Id: 42,
+        CustomerName: "Contoso Retail",
+        Amount: 1_850.75m,
+        DueDate: new DateTimeOffset(2026, 3, 31, 0, 0, 0, TimeSpan.Zero),
+        LineItems:
+        [
+            new InvoiceLineItem("Standing desk", 2, 599.99m),
+            new InvoiceLineItem("Ergonomic chair", 1, 649.77m),
+        ]);
+
+    private static Invoice BuildInvoiceWithNullCustomer() =&gt; new Invoice(
+        Id: 7,
+        CustomerName: null!,
+        Amount: 0m,
+        DueDate: DateTimeOffset.MinValue,
+        LineItems: []);
+
+    // ── Characterization tests ────────────────────────────────────────────────
+
+    [Fact]
+    public Task Serialize_FullInvoice_MatchesGoldenMaster()
+    {
+        var serializer = new LegacyJsonInvoiceSerializer();
+        var result = serializer.Serialize(BuildFullInvoice());
+        return Verify(result);
+    }
+
+    [Fact]
+    public Task Serialize_EmptyLineItems_MatchesGoldenMaster()
+    {
+        var serializer = new LegacyJsonInvoiceSerializer();
+        var invoice = BuildFullInvoice() with { LineItems = [] };
+        var result = serializer.Serialize(invoice);
+        return Verify(result);
+    }
+
+    [Fact]
+    public Task Serialize_NullCustomerName_MatchesGoldenMaster()
+    {
+        var serializer = new LegacyJsonInvoiceSerializer();
+        var result = serializer.Serialize(BuildInvoiceWithNullCustomer());
+        return Verify(result);
+    }
+
+    [Fact]
+    public Task Roundtrip_FullInvoice_SurvivesSerializeDeserialize()
+    {
+        var serializer = new LegacyJsonInvoiceSerializer();
+        var original = BuildFullInvoice();
+        var json = serializer.Serialize(original);
+        var restored = serializer.Deserialize(json);
+        // Re-serialize the restored object through the same serializer so the
+        // golden master captures the serializer's output, not Verify's own renderer.
+        var roundtrippedJson = serializer.Serialize(restored);
+        return Verify(roundtrippedJson);
+    }
+}
+            </CodeSnippet>
+            <p>
+                Notice there are no <Highlight>Assert</Highlight> calls. Verify handles the assertion by
+                diffing the actual output against the golden master file. If no golden master exists, Verify
+                creates a <Highlight>.received.txt</Highlight> file and fails the test — prompting you to
+                inspect and accept the output.
+            </p>
+
+            <h4>Step 5 — Accept the First Run to Create the Golden Master</h4>
+            <p>
+                Run the tests for the first time. Every test fails because no
+                <Highlight>.verified.txt</Highlight> files exist yet. Verify places the actual output in
+                <Highlight>*.received.txt</Highlight> files alongside the test class. For the
+                <Highlight>Serialize_FullInvoice_MatchesGoldenMaster</Highlight> test, the received file
+                looks like this:
+            </p>
+            <CodeSnippet CssClass="language-json">
+// InvoiceSerializerCharacterizationTests.Serialize_FullInvoice_MatchesGoldenMaster.received.txt
+
+{
+  "Id": 42,
+  "CustomerName": "Contoso Retail",
+  "Amount": 1850.75,
+  "DueDate": "2026-03-31T00:00:00+00:00",
+  "LineItems": [
+    {
+      "Description": "Standing desk",
+      "Quantity": 2,
+      "UnitPrice": 599.99
+    },
+    {
+      "Description": "Ergonomic chair",
+      "Quantity": 1,
+      "UnitPrice": 649.77
+    }
+  ]
+}
+            </CodeSnippet>
+            <p>
+                Inspect this output carefully. Check the date format, the casing of property names, the
+                presence of <Highlight>null</Highlight> fields, and the shape of nested objects. If everything
+                looks correct, accept it: rename the file from <Highlight>.received.txt</Highlight> to
+                <Highlight>.verified.txt</Highlight> and commit it to source control. This is your golden
+                master — the authoritative record of what the legacy serializer produces.
+            </p>
+            <p>
+                Verify provides a CLI tool to accept all received files in one step:
+            </p>
+            <CodeSnippet CssClass="language-bash">
+dotnet tool install -g verify.tool
+dotnet verify accept --directory Tests/
+            </CodeSnippet>
+            <p>
+                Re-run the tests. All four tests now pass because the received output matches the
+                verified files. The <Highlight>.received.txt</Highlight> files are deleted automatically.
+            </p>
+
+            <h4>Step 6 — Implement the Replacement Serializer</h4>
+            <p>
+                Now write the <Highlight>SystemTextJsonInvoiceSerializer</Highlight> that you want to
+                promote to production. Implement the same interface:
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+// Infrastructure/SystemTextJsonInvoiceSerializer.cs
+// No additional PackageReference needed — System.Text.Json ships with .NET
+
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using InvoiceQueue.Application;
+using InvoiceQueue.Domain;
+
+namespace InvoiceQueue.Infrastructure;
+
+public sealed class SystemTextJsonInvoiceSerializer : IInvoiceSerializer
+{
+    // System.Text.Json defaults to camel-case property names and
+    // omits null properties unless configured otherwise.
+    private static readonly JsonSerializerOptions Options = new()
+    {
+        WriteIndented = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        Converters = { new JsonStringEnumConverter() }
+    };
+
+    public string Serialize(Invoice invoice) =&gt;
+        JsonSerializer.Serialize(invoice, Options);
+
+    public Invoice Deserialize(string json) =&gt;
+        JsonSerializer.Deserialize&lt;Invoice&gt;(json, Options)!;
+}
+            </CodeSnippet>
+
+            <h4>Step 7 — Swap the Serializer in the Characterization Tests and Run</h4>
+            <p>
+                Change the one line in your test class that instantiates the serializer:
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+// Before
+var serializer = new LegacyJsonInvoiceSerializer();
+
+// After
+var serializer = new SystemTextJsonInvoiceSerializer();
+            </CodeSnippet>
+            <p>
+                Run the tests. The output reveals exactly what the <Highlight>Serialize_FullInvoice_MatchesGoldenMaster</Highlight>
+                test actually found:
+            </p>
+            <CodeSnippet CssClass="language-text">
+// Diff: received vs verified
+
+  {
+-   "Id": 42,
+-   "CustomerName": "Contoso Retail",
+-   "Amount": 1850.75,
+-   "DueDate": "2026-03-31T00:00:00+00:00",
+-   "LineItems": [ ... ]
++   "id": 42,
++   "customerName": "Contoso Retail",
++   "amount": 1850.75,
++   "dueDate": "2026-03-31T00:00:00+00:00",
++   "lineItems": [ ... ]
+  }
+            </CodeSnippet>
+            <p>
+                The characterization test caught two categories of divergence before any deployment:
+            </p>
+            <ul>
+                <li>
+                    <strong>Property name casing</strong> — <Highlight>LegacyJson</Highlight> used
+                    Pascal-case; <Highlight>System.Text.Json</Highlight> with
+                    <Highlight>CamelCase</Highlight> policy emits camel-case. Any consumer expecting
+                    <Highlight>CustomerName</Highlight> will now receive <Highlight>customerName</Highlight>.
+                </li>
+                <li>
+                    <strong>Null handling</strong> — <Highlight>Serialize_NullCustomerName_MatchesGoldenMaster</Highlight>
+                    fails because the old library serialized null fields as
+                    <Highlight>"CustomerName": null</Highlight>, while the new serializer omits them
+                    entirely under <Highlight>WhenWritingNull</Highlight>.
+                </li>
+            </ul>
+            <p>
+                These are not hypothetical edge cases — they are real behavioral differences between two
+                production-grade serializers. The characterization test made them visible in seconds.
+            </p>
+
+            <h4>Step 8 — Resolve the Divergence Before Accepting</h4>
+            <p>
+                You now have two choices. Either configure the replacement serializer to produce
+                identical output (matching the golden master), or consciously decide the output change is
+                acceptable and update the golden master to reflect the new behaviour.
+            </p>
+            <p>
+                To match the existing golden master, configure <Highlight>System.Text.Json</Highlight> to
+                use Pascal-case names and include null fields:
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+private static readonly JsonSerializerOptions Options = new()
+{
+    WriteIndented = true,
+    // Remove CamelCase policy — Pascal-case is the default in System.Text.Json
+    DefaultIgnoreCondition = JsonIgnoreCondition.Never, // include null fields
+    Converters = { new JsonStringEnumConverter() }
+};
+            </CodeSnippet>
+            <p>
+                Rerun the tests after the configuration change. When all four pass, the replacement produces
+                output that is byte-for-byte identical to the golden master and you can proceed to swap the
+                production reference with confidence.
+            </p>
+
+            <h4>Characterization Tests vs Unit Tests: A Quick Reference</h4>
+            <CodeSnippet CssClass="language-text">
+┌─────────────────────────────────┬──────────────────────────────────────┬──────────────────────────────────────┐
+│ Dimension                       │ Unit Test                            │ Characterization Test                │
+├─────────────────────────────────┼──────────────────────────────────────┼──────────────────────────────────────┤
+│ Purpose                         │ Verify new code meets specification  │ Record what code actually does       │
+│ Written when                    │ While writing code                   │ Before changing a dependency         │
+│ Passes when                     │ Output matches expected assertion    │ Output matches golden master         │
+│ First run result                │ Pass or Fail                         │ Always Fails (creates golden master) │
+│ Assertion style                 │ Assert.Equal / FluentAssertions      │ Verify(result) — snapshot diff       │
+│ Granularity                     │ Single method or class               │ Observable output across methods     │
+│ Guards against                  │ Logic errors in new code             │ Behavioural changes in replacements  │
+└─────────────────────────────────┴──────────────────────────────────────┴──────────────────────────────────────┘
+            </CodeSnippet>
+
+            <h4>Practical Guidelines for Effective Characterization Tests</h4>
+            <ul>
+                <li>
+                    <strong>Cover edge cases, not just the happy path.</strong> Serialization differences most
+                    often surface at the boundaries — <Highlight>null</Highlight> values, empty collections,
+                    large decimals, extreme date ranges, and Unicode characters. Include a test for each.
+                </li>
+                <li>
+                    <strong>Commit the verified files to source control.</strong> The
+                    <Highlight>.verified.txt</Highlight> files are your test fixtures. They must travel with
+                    the code or the tests are worthless on another developer's machine.
+                </li>
+                <li>
+                    <strong>Do not accept a golden master without inspecting it.</strong> The entire value of
+                    the approach collapses if the golden master is incorrect. Verify deliberately fails the
+                    first run to force this inspection.
+                </li>
+                <li>
+                    <strong>Delete received files after each run.</strong> Verify handles this automatically
+                    on a passing run. If a received file lingers, a previous run failed — investigate before
+                    accepting.
+                </li>
+                <li>
+                    <strong>Add <Highlight>*.received.txt</Highlight> to your <Highlight>.gitignore</Highlight>.</strong>
+                    Received files are ephemeral diff artifacts — committing them would pollute history and
+                    cause false failures on other machines. Only <Highlight>*.verified.txt</Highlight> files
+                    belong in source control.
+                </li>
+                <li>
+                    <strong>Keep characterization tests separate from unit tests.</strong> Place them in a
+                    distinct folder or assembly so the team can identify their purpose at a glance.
+                </li>
+            </ul>
+        </How>
+
+        <Summary>
+            <ul>
+                <li>
+                    A <Highlight>characterization test</Highlight> records what code <em>actually does</em>
+                    rather than asserting what it <em>should</em> do — making it the right tool for
+                    guarding NuGet package replacements.
+                </li>
+                <li>
+                    A <Highlight>golden master</Highlight> is a committed snapshot of real output created by
+                    running the old implementation. Every future run is diffed against it.
+                </li>
+                <li>
+                    The <Highlight>Verify</Highlight> NuGet library automates the golden master workflow
+                    in .NET: it creates <Highlight>.received.txt</Highlight> files on first run, lets you
+                    accept them as <Highlight>.verified.txt</Highlight> golden masters, and diffs on every
+                    subsequent run.
+                </li>
+                <li>
+                    A first run always fails by design — this is Verify prompting you to inspect the
+                    output before committing it as authoritative.
+                </li>
+                <li>
+                    Characterization tests complement unit tests. They guard behavioural stability across
+                    replacements; unit tests guard correctness against specifications. You need both.
+                </li>
+                <li>
+                    When a characterization test fails after a swap, you have two options: configure the
+                    replacement to produce identical output, or consciously accept the change and update
+                    the golden master.
+                </li>
+            </ul>
+            <p>
+                If you are working through building a safe NuGet dependency management strategy, the previous
+                articles in this series cover how to
+                <a href="/blogs/how-to-find-nuget-dependency-vulnerabilities-before-they-find-you-in-dotnet" target="_blank" rel="noopener noreferrer">audit your full dependency tree for vulnerabilities</a>,
+                how to <a href="/blogs/swap-out-a-vulnerable-nuget-package-without-touching-your-domain-code-in-dotnet" target="_blank" rel="noopener noreferrer">swap out a vulnerable package without touching domain code</a>,
+                and how to enforce an
+                <a href="/blogs/stop-nuget-packages-from-corrupting-your-domain-the-anti-corruption-layer-pattern-in-dotnet" target="_blank" rel="noopener noreferrer">Anti-Corruption Layer so package types never leak into your domain</a>.
+                Characterization tests are the final safety net that ties those strategies together.
+            </p>
+        </Summary>
+    </ContentBody>
+</Content>
