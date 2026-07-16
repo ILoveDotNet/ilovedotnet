@@ -142,7 +142,7 @@ public class PosterGenerator(TableOfContents tableOfContents,
     var x = PosterWidth - bounds.Width - 40;
     var y = 40 + Math.Abs(bounds.Top);
 
-    canvas.DrawText(upperCaseChannel, x, y, font, paint);
+    canvas.DrawText(upperCaseChannel, x, y, SKTextAlign.Center, font, paint);
   }
 
   private void DrawWebsiteBrand(SKCanvas canvas)
