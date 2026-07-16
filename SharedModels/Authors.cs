@@ -28,6 +28,13 @@ public class Authors
                     new(SocialLink.Instagram, new Uri("https://www.instagram.com/abdulrahman.smsi")),
                     new(SocialLink.Mastodon, new Uri("https://mastodon.social/@thebhai")),
                     new(SocialLink.BuyMeACoffee, new Uri("https://www.buymeacoffee.com/thebhai")),
+                ],
+                Badges =
+                [
+                    "af85bef9-38af-40c2-afbc-68ca189c06aa",
+                    "4abd7deb-67a1-47db-b16b-f9860ebdd765",
+                    "2e6468ea-beae-4c9e-a032-67d2306933bb",
+                    "d435946f-0a4c-4d9d-b4b8-f0e3bf302850"
                 ]
             },
             new AuthorMetaData
