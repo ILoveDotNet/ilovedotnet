@@ -1,0 +1,421 @@
+@page "/blogs/garbage-collection-fundamentals-in-dotnet"
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(GarbageCollectionFundamentals)>
+    <ContentBody>
+        <What>
+            <p>
+                C# developers never write <Highlight>free(pointer)</Highlight>. That is not a missing feature — it is the entire
+                point. Every object you create in a .NET application is automatically tracked and eventually reclaimed by a runtime
+                subsystem called the <Highlight>Garbage Collector (GC)</Highlight>. Understanding how the GC works is the
+                foundation for writing .NET code that is both fast and memory-efficient.
+            </p>
+
+            <p>
+                The GC is a component of the <Highlight>Common Language Runtime (CLR)</Highlight> that runs alongside your
+                application. Its responsibility is to monitor which objects on the heap are still reachable from live code and to
+                reclaim memory occupied by those that are not. Before examining what the GC does, you need to understand the two
+                memory regions it operates with: the <Highlight>stack</Highlight> and the <Highlight>heap</Highlight>.
+            </p>
+
+            <p>
+                This article covers the fundamentals every .NET developer should know: how the CLR divides memory between stack
+                and heap, how value types and reference types behave differently on assignment, how the GC's three-phase
+                mark-sweep-compact algorithm locates and reclaims unreachable objects, what memory fragmentation is and why it
+                degrades performance, and how virtual memory gives each process an isolated address space.
+            </p>
+        </What>
+
+        <Why>
+            <p>
+                Every memory allocation is a contract: something allocates memory, and something must eventually release it. In
+                languages without a GC — such as C or C++ — that contract belongs entirely to the developer. Forget to release an
+                allocation and the process consumes memory indefinitely. Release an allocation too early and subsequent code reads
+                corrupted data or crashes. Release the same block twice and the allocator's internal bookkeeping is damaged,
+                producing failures that are nearly impossible to reproduce.
+            </p>
+
+            <p>
+                These two categories of bugs — <Highlight>memory leaks</Highlight> and <Highlight>use-after-free errors</Highlight>
+                — are among the most expensive defects in production software. They surface as gradual memory growth visible only
+                under sustained load, or as random crashes in rarely executed code paths. Entire tooling ecosystems (Valgrind,
+                AddressSanitizer) exist solely because these bugs are so difficult to find after the fact.
+            </p>
+
+            <p>
+                Beyond correctness, the physical layout of objects in memory affects performance. As objects are created and
+                released over the life of a running process, the heap develops gaps — freed regions scattered between live objects.
+                A new allocation that cannot fit into any existing gap forces the heap to grow, consuming more virtual memory than
+                necessary. This <Highlight>memory fragmentation</Highlight> worsens over time, increasing both the resident memory
+                footprint of the process and the time spent searching for a suitable free block.
+            </p>
+
+            <p>
+                The CLR's GC eliminates the entire manual-deallocation category of bugs and manages fragmentation through
+                <Highlight>compaction</Highlight>. Developers who understand the underlying model write code that generates less GC pressure, avoids
+                unnecessary allocations, and cooperates with the runtime rather than working against it.
+            </p>
+        </Why>
+
+        <How>
+            <h3 id="the-stack">The Stack: Fixed-Size and Fast</h3>
+            <p>
+                The <Highlight>stack</Highlight> is a contiguous region of memory that operates exactly like its namesake data
+                structure: last in, first out. When a method is called, the runtime pushes a <Highlight>stack frame</Highlight>
+                onto it containing the method's local variables and parameters. When the method returns, that frame is popped off
+                in a single operation — releasing all of its memory instantly.
+            </p>
+
+            <p>
+                The stack works this efficiently because every item it stores has a <em>known, fixed size at compile time</em>.
+                Primitive value types such as <Highlight>int</Highlight> (4 bytes), <Highlight>long</Highlight> (8 bytes),
+                <Highlight>double</Highlight> (8 bytes), and <Highlight>bool</Highlight> (1 byte), along with custom
+                <Highlight>struct</Highlight> types, qualify — a struct's size is always fixed at compile time regardless of
+                its fields. Because the compiler knows exactly how much space each one needs, the runtime allocates and reclaims
+                them with pointer arithmetic alone — no searching, no bookkeeping, no GC involvement. Note that if a struct
+                contains a reference-type field, the reference (pointer) lives on the stack while the referenced object still
+                lives on the heap.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+// All three variables live on the stack.
+// Their sizes are fixed at compile time.
+int activeConnections = 0;
+double averageLatencyMs = 14.7;
+bool isCircuitOpen = false;
+            </CodeSnippet>
+
+            <h3 id="the-heap">The Heap: Dynamic and GC-Managed</h3>
+            <p>
+                The <Highlight>heap</Highlight> is a pool of memory that grows and shrinks dynamically at runtime. It stores
+                objects whose size cannot be determined at compile time — primarily instances of <Highlight>class</Highlight>
+                types, arrays, and strings. A string, for example, can hold a single character or the entire contents of a
+                configuration file. Because its size is not known until execution, it cannot live on the stack.
+            </p>
+
+            <p>
+                When you write <Highlight>new SomeClass()</Highlight>, the CLR carves out a contiguous block on the heap sized
+                to hold that object's fields, writes the object header, and returns a reference to the caller. The GC tracks
+                every such allocation. Periodically — triggered by allocation pressure and configurable thresholds — it
+                identifies objects that are no longer reachable from any live reference and reclaims their space.
+            </p>
+
+            <h3 id="value-types-copy-on-assignment">Value Types: Copy on Assignment</h3>
+            <p>
+                When you assign one value-type variable to another, the runtime copies the entire value at that moment. The two
+                variables then hold independent data — changing one has no effect on the other.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+int requestsHandled = 250;
+int checkpoint = requestsHandled;   // checkpoint receives a copy of 250
+
+requestsHandled = 0;                // reset the live counter
+
+Console.WriteLine(checkpoint);      // 250
+// checkpoint was not affected. It holds its own independent copy.
+            </CodeSnippet>
+
+            <p>
+                The stack state after these three statements shows two completely separate slots — neither shares data with the
+                other:
+            </p>
+
+            <CodeSnippet CssClass="language-plaintext">
+Stack
+────────────────────────────
+ requestsHandled │   0
+ checkpoint      │  250
+────────────────────────────
+Two independent slots.
+            </CodeSnippet>
+
+            <h3 id="reference-types-copy-the-reference">Reference Types: Copying the Reference, Not the Object</h3>
+            <p>
+                Reference types behave differently. When you assign a reference-type variable to another, the runtime copies the
+                <em>reference</em> — the heap address — not the object itself. Both variables then point at the same object.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+public class Invoice
+{
+    public decimal Amount { get; set; }
+}
+
+var invoice = new Invoice { Amount = 500m };
+var copy = invoice;             // copy holds the same heap address as invoice
+
+invoice.Amount = 0m;            // modifying through invoice...
+
+Console.WriteLine(copy.Amount); // 0
+// ...is visible through copy because only one Invoice object exists on the heap.
+            </CodeSnippet>
+
+            <CodeSnippet CssClass="language-plaintext">
+Stack                              Heap
+──────────────────────             ─────────────────────────────────
+invoice  ──────────────────────►   Invoice
+copy     ──────────────────────►   ┌─────────────────────────────┐
+                                   │  Amount = 0                 │
+                                   └─────────────────────────────┘
+
+Both variables point to the same heap object.
+"var copy = invoice" copied the address, not the Invoice itself.
+            </CodeSnippet>
+
+            <p>
+                This same behaviour applies when passing class instances to methods. The method receives the same heap reference
+                the caller holds, so mutations inside the method are visible to the caller. Passing a struct, by contrast, gives
+                the method its own independent copy — the caller's original is unaffected.
+            </p>
+
+            <h3 id="mark-sweep-compact">How the GC Collects: Mark, Sweep, and Compact</h3>
+            <p>
+                Every GC collection runs a three-phase algorithm. Understanding each phase explains why pauses occur and what
+                the runtime is doing during them.
+            </p>
+
+            <h4>Phase 1 — Mark: find what is still alive</h4>
+            <p>
+                The GC begins from a fixed set of <Highlight>GC roots</Highlight> — entry points guaranteed to be live.
+                Roots include local variables on all active thread stacks, static fields, CPU registers holding references,
+                and entries in the <Highlight>finalization queue</Highlight>. Starting from each root, the GC traverses
+                every reference recursively and marks each reachable object. Any object not reachable from a root by the end
+                of traversal is dead.
+            </p>
+
+            <CodeSnippet CssClass="language-plaintext">
+Phase 1 — Mark: trace all reachable objects from GC roots
+
+  GC Roots
+  (stack locals, static fields, GC handles)
+    │
+    ├──► [A] ──► [C] ──► [E]     ← reachable → marked ✓
+    │
+    └──► [B] ──► [D]              ← reachable → marked ✓
+
+          [F]        [G]           ← no root path → NOT marked ✗
+            </CodeSnippet>
+
+            <h4>Phase 2 — Sweep: reclaim dead objects</h4>
+            <p>
+                Once marking is complete, every unmarked object is dead. The GC reclaims those memory regions,
+                making them available for future allocations. Objects are not moved yet — the heap now has gaps
+                where the dead objects were.
+            </p>
+
+            <CodeSnippet CssClass="language-plaintext">
+Phase 2 — Sweep: dead objects' memory is reclaimed
+
+  Before:
+  ┌────┬────┬────┬────┬────┬────┐
+  │ A✓ │ F✗ │ B✓ │ G✗ │ C✓ │ E✓ │
+  └────┴────┴────┴────┴────┴────┘
+
+  After:
+  ┌────┬────┬────┬────┬────┬────┐
+  │ A  │FREE│ B  │FREE│ C  │ E  │
+  └────┴────┴────┴────┴────┴────┘
+  Live objects stay in place. Gaps appear where F and G were.
+            </CodeSnippet>
+
+            <h4>Phase 3 — Compact: close the gaps and update references</h4>
+            <p>
+                Scattered free gaps cause <Highlight>memory fragmentation</Highlight> — two 40 KB gaps cannot satisfy
+                a single 60 KB allocation. <Highlight>Compaction</Highlight> solves this by sliding all surviving objects toward the low end of
+                the heap. Every reference that pointed to a moved object is updated to its new address. The result is a
+                single contiguous free block.
+            </p>
+
+            <CodeSnippet CssClass="language-plaintext">
+Phase 3 — Compact: slide survivors together; update all references
+
+  Before:
+  ┌────┬────┬────┬────┬────┬────┐
+  │ A  │FREE│ B  │FREE│ C  │ E  │
+  └────┴────┴────┴────┴────┴────┘
+
+  After:
+  ┌────┬────┬────┬────┬──────────┐
+  │ A  │ B  │ C  │ E  │   FREE   │
+  └────┴────┴────┴────┴──────────┘
+                            ▲
+                   next allocation pointer
+
+  All references to B, C, and E are updated to their new addresses.
+            </CodeSnippet>
+
+            <p>
+                Compaction requires briefly suspending all application threads —
+                a <Highlight>Stop-the-World</Highlight> pause — so no thread reads a stale reference while objects are
+                moving. The GC minimises pause duration through its <Highlight>generational model</Highlight>: objects
+                are promoted through <Highlight>Gen 0</Highlight>, <Highlight>Gen 1</Highlight>, and
+                <Highlight>Gen 2</Highlight> based on survival time, and Gen 0 is collected far more frequently because
+                most allocations are short-lived. The <Highlight>Large Object Heap (LOH)</Highlight> — for objects at or
+                above 85,000 bytes — skips compaction by default; it can be compacted on demand by setting
+                <Highlight>GCSettings.LargeObjectHeapCompactionMode</Highlight> before triggering a full collection.
+            </p>
+
+            <h3 id="memory-fragmentation-and-compaction">Memory Fragmentation: A Concrete Example</h3>
+            <p>
+                As code runs and objects are collected, the heap accumulates gaps — freed regions scattered between surviving
+                objects. A fragmented heap looks like this:
+            </p>
+
+            <CodeSnippet CssClass="language-plaintext">
+Heap after several allocations and collections:
+
+Offset:   0        100      200      300      400      500 KB
+          ┌────────┬────────┬────────┬────────┬────────┐
+          │   A    │  FREE  │   B    │  FREE  │   C    │
+          │ 100 KB │ 100 KB │ 100 KB │ 100 KB │ 100 KB │
+          └────────┴────────┴────────┴────────┴────────┘
+
+Total free : 200 KB  |  Largest contiguous block: 100 KB
+A new 150 KB allocation fails — no single gap is large enough.
+            </CodeSnippet>
+
+            <p>
+                After the compact phase, the gaps are closed and a single contiguous free block is restored:
+            </p>
+
+            <CodeSnippet CssClass="language-plaintext">
+After GC compaction:
+
+Offset:   0        100      200      300      400      500 KB
+          ┌────────┬────────┬────────┬──────────────────────┐
+          │   A    │   B    │   C    │         FREE         │
+          │ 100 KB │ 100 KB │ 100 KB │        200 KB        │
+          └────────┴────────┴────────┴──────────────────────┘
+
+The 150 KB allocation now succeeds in the unified free block.
+            </CodeSnippet>
+
+            <h3 id="virtual-memory">Virtual Memory: Each Process Has Its Own Space</h3>
+            <p>
+                The memory .NET allocates is not raw physical RAM. The operating system presents each running process with a
+                private <Highlight>virtual address space</Highlight> — a range of addresses the process believes it owns
+                exclusively. The OS kernel maps virtual addresses to physical memory frames behind the scenes, enforcing strict
+                isolation: one process cannot read or write another process's virtual space.
+            </p>
+
+            <CodeSnippet CssClass="language-plaintext">
+Physical RAM
+┌─────────────────────────────────────────────────────────────────┐
+│                                                                 │
+│  Your .NET API process                                          │
+│  Virtual space: 0x0000_0000 - 0xFFFF_FFFF                       │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │  Stack  │  Managed Heap  │  JIT Code  │  Metadata  │ ...  │  │
+│  └───────────────────────────────────────────────────────────┘  │
+│                                                                 │
+│  Your SQL Server process                                        │
+│  Virtual space: 0x0000_0000 - 0xFFFF_FFFF                       │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │  Stack  │  Managed Heap  │  JIT Code  │  Metadata  │ ...  │  │
+│  └───────────────────────────────────────────────────────────┘  │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+Each process sees its own addresses starting at zero.
+The OS maps virtual pages to physical frames independently.
+            </CodeSnippet>
+
+            <p>
+                For .NET developers this has a direct practical consequence: the <Highlight>managed heap</Highlight> is a
+                CLR-controlled region within the process's virtual address space. Diagnostics tools such as
+                <Highlight>dotnet-counters</Highlight> and PerfView report memory pressure in terms of this region — not the
+                machine's total physical RAM. A process can commit more virtual memory than it has physical RAM backing because
+                the OS can page infrequently accessed regions to disk. Accessing a paged-out region incurs a costly
+                <Highlight>page fault</Highlight>, however. Keeping the heap compact and avoiding large sparse allocations
+                keeps hot data in physical memory and avoids these penalties.
+            </p>
+
+            <h3 id="stack-heap-and-gc-in-action">Stack, Heap, and GC in Action</h3>
+            <p>
+                Every method call illustrates the full picture. Value-type locals live on the stack and are reclaimed the
+                instant the method returns. Reference-type objects live on the heap and become eligible for collection once no
+                live reference points to them.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+public void ProcessOrder(int orderId)
+{
+    // Stack: int and bool are allocated here;
+    // popped off automatically when ProcessOrder returns.
+    int retryCount = 0;
+    bool dispatched = false;
+
+    // Heap: Order is a class — the CLR allocates it on the managed heap.
+    var order = new Order(orderId);
+
+    // When ProcessOrder returns:
+    //   retryCount and dispatched  → stack frame popped instantly
+    //   order (the reference)      → popped off the stack
+    //   Order object on the heap   → no live reference remains;
+    //                                eligible for the next GC collection
+}
+            </CodeSnippet>
+
+            <p>
+                The GC does not collect objects the moment they become unreachable — it runs on its own schedule, triggered by
+                allocation pressure. This non-deterministic timing is why .NET provides the <Highlight>IDisposable</Highlight>
+                pattern and <Highlight>using</Highlight> blocks for resources — database connections, file handles, network
+                sockets — that must be released <em>immediately</em> regardless of when the next collection cycle runs.
+            </p>
+        </How>
+
+        <Summary>
+            <p>
+                Memory management in .NET is automatic but not invisible. A solid mental model of the stack, heap, and GC helps
+                you write code that runs efficiently and avoids the most common memory pitfalls.
+            </p>
+
+            <ul>
+                <li>
+                    The <Highlight>Garbage Collector</Highlight> is a CLR component that automatically tracks heap allocations
+                    and reclaims objects no longer reachable from live code, eliminating the manual-deallocation burden of
+                    languages like C and C++.
+                </li>
+                <li>
+                    The <Highlight>stack</Highlight> stores <Highlight>value types</Highlight> and local variables with compile-time-known sizes and
+                    is reclaimed automatically when a method returns. The <Highlight>heap</Highlight> stores dynamically sized
+                    <Highlight>reference types</Highlight> managed by the GC.
+                </li>
+                <li>
+                    Assigning a value type copies the <em>value</em> — the two variables are fully independent. Assigning a
+                    reference type copies the <em>reference</em> — both variables point at the same heap object.
+                </li>
+                <li>
+                    Each collection runs three phases: <Highlight>Mark</Highlight> (traverse all live references from <Highlight>GC roots</Highlight>),
+                    <Highlight>Sweep</Highlight> (reclaim dead objects' memory, leaving gaps), and
+                    <Highlight>Compact</Highlight> (slide survivors together and update all references). The compact phase causes
+                    the <Highlight>Stop-the-World</Highlight> pause; the <Highlight>generational model</Highlight> keeps most pauses short by
+                    collecting <Highlight>Gen 0</Highlight> far more often than <Highlight>Gen 1</Highlight> or <Highlight>Gen 2</Highlight>.
+                </li>
+                <li>
+                    <Highlight>Memory fragmentation</Highlight> scatters free gaps across the heap. The compact phase closes
+                    them, producing a single contiguous free block that satisfies large allocations efficiently.
+                </li>
+                <li>
+                    Each .NET process runs inside an isolated <Highlight>virtual address space</Highlight>. The <Highlight>managed heap</Highlight> is
+                    a CLR-controlled region within that space; memory diagnostics tools report pressure relative to this region,
+                    not total physical RAM.
+                </li>
+                <li>
+                    GC collection is non-deterministic. Use <Highlight>IDisposable</Highlight> and <Highlight>using</Highlight>
+                    blocks for resources — file handles, database connections, and network sockets — that require prompt,
+                    deterministic release.
+                </li>
+            </ul>
+
+            <p>
+                These fundamentals underpin everything that follows in this series. Once you understand why objects land on
+                the stack versus the heap and why compaction pauses occur, the GC's generational collection model —
+                generations 0, 1, and 2 plus the Large Object Heap — will make immediate sense. For a related perspective on
+                how object lifetimes interact with service registration in real applications, read
+                <NavLink href="blogs/introducing-dependency-injection-in-dotnet" Match="NavLinkMatch.All">Introducing Dependency Injection in .NET</NavLink>.
+            </p>
+        </Summary>
+    </ContentBody>
+</Content>

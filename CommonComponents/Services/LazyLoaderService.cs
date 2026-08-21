@@ -106,6 +106,11 @@ public class LazyLoaderService(
           await LoadAssembliesAsync("MCPDemoComponents.wasm");
         }
 
+        if (path.Contains("memory", StringComparison.OrdinalIgnoreCase))
+        {
+          await LoadAssembliesAsync("MemoryDemoComponents.wasm");
+        }
+
         if (path.Contains("middleware", StringComparison.OrdinalIgnoreCase))
         {
           await LoadAssembliesAsync("MiddlewareDemoComponents.wasm");
