@@ -21,8 +21,8 @@ public class NugetLearningPath
           IconUrl = "image/icons/nuget.webp",
           Channel = "NuGet",
           Type = "blogs",
-          CreatedOn = new DateTime(2026, 11, 8, 22, 30, 0, DateTimeKind.Utc),
-          ModifiedOn = new DateTime(2026, 11, 8, 22, 30, 0, DateTimeKind.Utc),
+          CreatedOn = new DateTime(2026, 11, 15, 22, 30, 0, DateTimeKind.Utc),
+          ModifiedOn = new DateTime(2026, 11, 15, 22, 30, 0, DateTimeKind.Utc),
           Keywords = [ "NuGet Audit", "Dependency Audit", "CVE", "Vulnerabilities", "Transitive Dependencies", "dotnet list package", "NuGetAuditLevel", "Supply Chain Security", ".NET"]
         },
       new ContentMetaData
@@ -38,8 +38,8 @@ public class NugetLearningPath
           IconUrl = "image/icons/nuget.webp",
           Channel = "NuGet",
           Type = "blogs",
-          CreatedOn = new DateTime(2026, 11, 15, 22, 30, 0, DateTimeKind.Utc),
-          ModifiedOn = new DateTime(2026, 11, 15, 22, 30, 0, DateTimeKind.Utc),
+          CreatedOn = new DateTime(2026, 11, 22, 22, 30, 0, DateTimeKind.Utc),
+          ModifiedOn = new DateTime(2026, 11, 22, 22, 30, 0, DateTimeKind.Utc),
           Keywords = [ "Wrap", "Replace", "Rewrite", "Anti-Corruption Layer", "Dependency Abstraction", "Refactoring", "Vulnerability", "Dependency Injection", ".NET"]
         },
       new ContentMetaData
@@ -55,8 +55,8 @@ public class NugetLearningPath
           IconUrl = "image/icons/nuget.webp",
           Channel = "NuGet",
           Type = "blogs",
-          CreatedOn = new DateTime(2026, 11, 22, 22, 30, 0, DateTimeKind.Utc),
-          ModifiedOn = new DateTime(2026, 11, 22, 22, 30, 0, DateTimeKind.Utc),
+          CreatedOn = new DateTime(2026, 11, 29, 22, 30, 0, DateTimeKind.Utc),
+          ModifiedOn = new DateTime(2026, 11, 29, 22, 30, 0, DateTimeKind.Utc),
           Keywords = [ "Anti-Corruption Layer", "ACL", "Dependency Sprawl", "Domain-Driven Design", "DDD", "Adapter Pattern", "Dependency Injection", "Architectural Decision Record", ".NET"]
         },
       new ContentMetaData
@@ -72,8 +72,8 @@ public class NugetLearningPath
           IconUrl = "image/icons/nuget.webp",
           Channel = "NuGet",
           Type = "blogs",
-          CreatedOn = new DateTime(2026, 11, 29, 22, 30, 0, DateTimeKind.Utc),
-          ModifiedOn = new DateTime(2026, 11, 29, 22, 30, 0, DateTimeKind.Utc),
+          CreatedOn = new DateTime(2026, 12, 6, 22, 30, 0, DateTimeKind.Utc),
+          ModifiedOn = new DateTime(2026, 12, 6, 22, 30, 0, DateTimeKind.Utc),
           Keywords = [ "Characterization Tests", "Golden Master", "Verify", "Snapshot Testing", "Package Replacement", "Dependency Safety", "xUnit", "Testing", ".NET"]
         },
       new ContentMetaData
@@ -89,8 +89,8 @@ public class NugetLearningPath
           IconUrl = "image/icons/nuget.webp",
           Channel = "NuGet",
           Type = "blogs",
-          CreatedOn = new DateTime(2026, 12, 6, 22, 30, 0, DateTimeKind.Utc),
-          ModifiedOn = new DateTime(2026, 12, 6, 22, 30, 0, DateTimeKind.Utc),
+          CreatedOn = new DateTime(2026, 12, 13, 22, 30, 0, DateTimeKind.Utc),
+          ModifiedOn = new DateTime(2026, 12, 13, 22, 30, 0, DateTimeKind.Utc),
           Keywords = [ "Contract Tests", "Abstract Test Base", "Behavioral Equivalence", "BenchmarkDotNet", "Rollback Criteria", "Performance Regression", "xUnit", "Package Replacement", ".NET"]
         },
       new ContentMetaData
@@ -106,8 +106,8 @@ public class NugetLearningPath
           IconUrl = "image/icons/nuget.webp",
           Channel = "NuGet",
           Type = "blogs",
-          CreatedOn = new DateTime(2026, 12, 13, 22, 30, 0, DateTimeKind.Utc),
-          ModifiedOn = new DateTime(2026, 12, 13, 22, 30, 0, DateTimeKind.Utc),
+          CreatedOn = new DateTime(2026, 12, 20, 22, 30, 0, DateTimeKind.Utc),
+          ModifiedOn = new DateTime(2026, 12, 20, 22, 30, 0, DateTimeKind.Utc),
           Keywords = [ "Technical Debt", "Architectural Decision Record", "ADR", "Dependency Ownership", "Dependabot", "dotnet list package", "Upgrade SLA", "CVE", "Version Lag", ".NET"]
         },
     ];

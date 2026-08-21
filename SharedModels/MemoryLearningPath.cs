@@ -21,8 +21,8 @@ public class MemoryLearningPath
           IconUrl = "image/icons/memory.webp",
           Channel = "Memory",
           Type = "blogs",
-          CreatedOn = new DateTime(2026, 12, 20, 22, 30, 0, DateTimeKind.Utc),
-          ModifiedOn = new DateTime(2026, 12, 20, 22, 30, 0, DateTimeKind.Utc),
+          CreatedOn = new DateTime(2026, 8, 23, 22, 30, 0, DateTimeKind.Utc),
+          ModifiedOn = new DateTime(2026, 8, 23, 22, 30, 0, DateTimeKind.Utc),
           Keywords = ["Garbage Collection", "GC", "Stack", "Heap", "Value Types", "Reference Types", "Memory Fragmentation", "Virtual Memory", "Mark Sweep Compact", "GC Roots", "Stop-the-World", "Generational GC", "CLR", ".NET"]
         },
     ];
