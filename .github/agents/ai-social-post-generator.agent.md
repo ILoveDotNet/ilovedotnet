@@ -58,14 +58,14 @@ Each variant must use a **different post pattern** so they are meaningfully dist
 Choose the two patterns that best fit the blog content and label each variant with its pattern name.
 
 ### Step 7: Polish & Quality Check
-Before presenting any post, verify the following for each LinkedIn post:
-1. The first 210 characters create curiosity — this is the "see more" threshold; if not, rewrite the hook
-2. Character count is within 1,300 (LinkedIn) and 700 (WhatsApp)
-3. No Markdown syntax anywhere in either post — only Unicode characters
+Before presenting any post, run this checklist top-to-bottom and fix every violation before outputting:
+1. **Markdown syntax scan (copy-paste safety)** — Read every character of the post. If you find `**`, `*`, `_`, `__`, `##`, or any other Markdown syntax, replace it immediately with the correct Unicode equivalent (𝗯𝗼𝗹𝗱, 𝘪𝘵𝘢𝘭𝘪𝘤, etc.) before proceeding. LinkedIn does not render Markdown — literal asterisks and underscores will appear in the published post.
+2. The first 210 characters create curiosity — this is the "see more" threshold; if not, rewrite the hook
+3. Character count is within 1,300 (LinkedIn) and 700 (WhatsApp)
 4. One blank line between paragraphs — LinkedIn collapses multiple blank lines, do not use two or more consecutive blank lines
 5. Blog URL appears only in the CTA line, not mid-post
 6. Hashtags are on the final line only — no hashtags mid-post
-7. Present each final post inside a fenced code block for easy copy-paste
+7. Present each final post inside a fenced code block for easy copy-paste — always use the code block's copy button, not manual selection, to preserve blank lines
 
 ---
 
