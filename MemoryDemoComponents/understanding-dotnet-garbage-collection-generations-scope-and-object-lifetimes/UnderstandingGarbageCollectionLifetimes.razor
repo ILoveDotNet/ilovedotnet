@@ -1,0 +1,288 @@
+@page "/blogs/understanding-dotnet-garbage-collection-generations-scope-and-object-lifetimes"
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(UnderstandingGarbageCollectionLifetimes)>
+    <ContentBody>
+        <What>
+            <p>
+                Your method can finish in a few microseconds, but the objects it created may remain on the managed heap long
+                after the closing brace. That is not a leak by itself. It is the difference between a reference disappearing and
+                the <Highlight>.NET Garbage Collector (GC)</Highlight> getting an opportunity to reclaim the object.
+            </p>
+
+            <p>
+                The GC is the runtime's automatic memory manager. Instead of asking you to free every managed object, it follows
+                references from known <Highlight>GC roots</Highlight>, identifies the objects that are still reachable, and reuses
+                the space occupied by everything else. The important question is not "which method created this object?" but
+                "can live code still reach it?"
+            </p>
+
+            <p>
+                This article builds that mental model from the ground up. You will connect lexical scope to reachability, see why
+                temporary allocations usually disappear in generation 0, understand promotion into generations 1 and 2, and learn
+                where finalizers and the large object heap fit without relying on misleading stack-versus-heap shortcuts.
+            </p>
+
+            <p>
+                <Highlight>Scope</Highlight> is the region of code where a name can be accessed. A variable declared inside a
+                method or pair of braces is available only there. A field name belongs to its declaring type, and its access
+                modifier controls which other code can use it. The owning object's reachability determines whether the field's
+                value can still be reached. Scope answers "where can I use this name?"; garbage collection answers "can the object
+                still be reached?"
+            </p>
+
+            <p>
+                You should be comfortable with basic C# classes, methods, references, and collections before starting. The code
+                examples target the .NET 10 SDK. To run them, create a console application with <Highlight>dotnet new console</Highlight>,
+                replace its <Highlight>Program.cs</Highlight> contents with one example at a time, and run it with
+                <Highlight>dotnet run</Highlight>.
+            </p>
+        </What>
+
+        <Why>
+            <p>
+                A local variable going out of scope does not instantly erase the object it referenced. The variable may be gone,
+                while another object, static field, collection, or runtime handle still points to the same object.
+            </p>
+
+            <p>
+                This distinction matters because a busy application can allocate thousands of short-lived objects while processing
+                requests, parsing input, or formatting output. The GC normally handles that pattern efficiently, but objects held by
+                long-lived references are more likely to survive collections and be promoted into older generations, increasing
+                memory pressure and making full collections more costly. Calling <Highlight>GC.Collect()</Highlight> after every
+                operation only adds work and hides the retention problem.
+            </p>
+
+            <p>
+                Resource lifetime creates a second trap. The GC manages managed memory, but it does not know when an operating-system
+                file handle, socket, or database connection should be released. The solution is to understand reachability for
+                memory and use <Highlight>IDisposable</Highlight> for resources that need deterministic cleanup; the implementation
+                sections show both boundaries in code.
+            </p>
+        </Why>
+
+        <How>
+            <h3 id="follow-references-not-braces">Follow references, not braces, to determine eligibility</h3>
+            <p>
+                A scope controls where a name can be used; it does not, by itself, decide whether the referenced object is alive.
+                When a method returns, its local reference normally stops being a root. The object becomes eligible for collection
+                only when no other reachable object points to it.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+public sealed record SessionSnapshot(string UserName, DateTime CreatedAt);
+
+public static class SnapshotDemo
+{
+    public static void Main()
+    {
+        SessionSnapshot? current = BuildSnapshot();
+
+        // The BuildSnapshot local is gone, but current still reaches the object.
+        Console.WriteLine(current!.UserName);
+
+        current = null;
+        // The snapshot is now eligible for collection, but collection is not immediate.
+    }
+
+    private static SessionSnapshot BuildSnapshot()
+        => new("Mina", DateTime.UtcNow);
+}
+            </CodeSnippet>
+
+            <p>
+                The runtime starts tracing from roots such as active stack references, static fields, and GC handles. It follows
+                each reference to build a graph of reachable objects. An object with no path from any root is unreachable and may be
+                reclaimed during a future collection.
+            </p>
+
+            <CodeSnippet CssClass="language-plaintext">
+Reachability at one instant
+
+GC roots                 Managed heap
+─────────                ─────────────────────────────
+current ───────────────► SessionSnapshot ✓ reachable
+
+                         OldSnapshot     ✗ unreachable
+                         (no GC root references it)
+            </CodeSnippet>
+
+            <h3 id="watch-lifetimes-with-runtime-data">Observe lifetime and generation changes with runtime data</h3>
+            <p>
+                You can inspect the generation of an object for experiments and diagnostics. A newly allocated small object starts
+                in generation 0, but promotion depends on surviving collections, so the exact output is runtime-dependent rather
+                than a promise that every object will visit every generation.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+var sample = new byte[1024];
+var before = GC.GetGeneration(sample);
+var collectionsBefore = GC.CollectionCount(0);
+
+Console.WriteLine($"Initial generation: {before}");
+
+// This is useful for a controlled experiment, not normal application flow.
+GC.Collect(0);
+// This waits only for finalizers queued by the GC. This sample has no finalizable
+// objects, so the call does not affect the generation measurement.
+GC.WaitForPendingFinalizers();
+
+var after = GC.GetGeneration(sample);
+var collectionsAfter = GC.CollectionCount(0);
+
+Console.WriteLine($"Generation after test collection: {after}");
+Console.WriteLine($"Gen 0 collections observed: " +
+                  $"{collectionsAfter - collectionsBefore}");
+            </CodeSnippet>
+
+            <p>
+                A typical run prints generation 0 before the collection, generation 1 afterward, and at least one new Gen 0
+                collection. The exact generation and collection count can vary by runtime and execution environment, so success
+                means observing a collection while <Highlight>sample</Highlight> remains reachable—not matching one fixed output.
+            </p>
+
+            <CodeSnippet CssClass="language-plaintext">
+Initial generation: 0
+Generation after test collection: 1
+Gen 0 collections observed: 1
+            </CodeSnippet>
+
+            <p>
+                <Highlight>GC.WaitForPendingFinalizers()</Highlight> is shown here to make its purpose clear: it waits for queued
+                finalizers, not for every aspect of garbage collection to finish. This experiment creates no finalizable objects,
+                so the call has no useful effect on the measurement and should not be copied into ordinary allocation code.
+            </p>
+
+            <p>
+                The generational strategy is based on a practical observation: most new objects die young. The GC therefore checks
+                generation 0 frequently, uses generation 1 as a buffer, and checks generation 2 less often for objects that have
+                survived longer. A collection of an older generation also includes its younger generations.
+            </p>
+
+            <CodeSnippet CssClass="language-plaintext">
+Allocation and promotion model
+
+new small object ──► Gen 0 ──survives──► Gen 1 ──survives──► Gen 2
+       │                 │                  │                  │
+       └─ usually dies ──┴─ collected more often ──────────────┘
+
+Large allocations at or above the runtime's LOH threshold ──► LOH
+LOH objects are collected with generation 2 and are not normally compacted.
+            </CodeSnippet>
+
+            <h3 id="build-a-lifetime-experiment">Build an experiment that separates short-lived and retained data</h3>
+            <p>
+                The following example creates a temporary array and a retained array. The local variable for each allocation has a
+                similar scope, but the static list keeps one array reachable after the method returns. This is why a memory profile
+                should look for retaining paths, not just the line that allocated the object.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+using System;
+using System.Collections.Generic;
+
+public static class LifetimeDemo
+{
+    private static readonly List&lt;byte[]&gt; RetainedBuffers = [];
+
+    public static void Main()
+    {
+        CreateBuffers();
+        Console.WriteLine($"Retained buffers before clear: {RetainedBuffers.Count}");
+
+        // temporary has no remaining reference after CreateBuffers returns.
+        // RetainedBuffers still reaches the second array.
+        RetainedBuffers.Clear();
+        Console.WriteLine($"Retained buffers after clear: {RetainedBuffers.Count}");
+    }
+
+    private static void CreateBuffers()
+    {
+        var temporary = new byte[4_096];
+        RetainedBuffers.Add(new byte[4_096]);
+
+        Console.WriteLine($"Temporary: {temporary.Length} bytes");
+        Console.WriteLine($"Retained: {RetainedBuffers[^1].Length} bytes");
+    }
+}
+            </CodeSnippet>
+
+            <p>
+                The output looks identical because both arrays have the same size, but their lifetime graphs differ. This is the
+                pattern behind many accidental memory-retention bugs: an event subscription, cache, static collection, or long-lived
+                service keeps a reference that the developer no longer expects.
+            </p>
+
+            <CodeSnippet CssClass="language-plaintext">
+Temporary: 4096 bytes
+Retained: 4096 bytes
+Retained buffers before clear: 1
+Retained buffers after clear: 0
+            </CodeSnippet>
+
+            <p>
+                The success criteria are simple: both arrays report the same size, the list contains one retained array before
+                <Highlight>Clear</Highlight>, and the list contains none afterward. Comment out <Highlight>Clear</Highlight> and
+                call <Highlight>CreateBuffers</Highlight> repeatedly to see how a static collection can keep accumulating arrays.
+            </p>
+
+            <h3 id="separate-memory-from-resources">Use deterministic cleanup for external resources</h3>
+            <p>
+                The GC eventually reclaims managed objects, but it does not provide a deadline for cleanup. Use a <Highlight>using</Highlight>
+                declaration or an explicit <Highlight>Dispose</Highlight> call for objects that wrap external resources.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+using var stream = File.OpenRead("report.json");
+
+// Read from stream here.
+// Dispose runs at the end of this scope, independently of the next GC.
+            </CodeSnippet>
+
+            <p>
+                Finalizers are a last-resort safety net for types that wrap unmanaged resources; they are not a general-purpose
+                notification that an object has died. A finalizable object needs extra runtime work and may survive one collection
+                before its memory can be reclaimed. Prefer safe handles and the dispose pattern when you own unmanaged resources.
+            </p>
+
+            <h3 id="avoid-forcing-the-collector">Measure allocation pressure instead of forcing collections</h3>
+            <p>
+                Production code should almost never call <Highlight>GC.Collect()</Highlight> to solve a memory symptom. First measure
+                allocation rate, collection counts, generation sizes, and retaining references with tools such as
+                <Highlight>dotnet-counters</Highlight>, a profiler, or a memory dump. Then reduce unnecessary allocations, bound
+                caches, unsubscribe from events, and dispose external resources at their ownership boundary.
+            </p>
+
+            <h3 id="troubleshoot-unexpected-results">Troubleshoot results that differ from the examples</h3>
+            <ul>
+                <li>If the generation number does not change, that is valid: promotion depends on the runtime and collection timing.</li>
+                <li>If the retained-buffer count stays at zero, check that <Highlight>CreateBuffers</Highlight> adds to the static list before it is cleared.</li>
+                <li>If the file example fails, create <Highlight>report.json</Highlight> in the application's working directory or replace the path with an existing file.</li>
+                <li>If memory remains allocated after an object becomes unreachable, remember that eligibility is not an immediate collection guarantee.</li>
+            </ul>
+        </How>
+
+        <Summary>
+            <p>
+                Garbage collection becomes predictable once you reason about reachability instead of assuming that scope equals
+                lifetime. Keep these principles close when diagnosing memory behaviour:
+            </p>
+
+            <ul>
+                <li>A local reference leaving scope makes an object eligible only when no other GC root can reach it.</li>
+                <li>New small objects begin in <Highlight>generation 0</Highlight>; survivors can promote to generations 1 and 2.</li>
+                <li>Generation 1 buffers short-lived and long-lived data, while generation 2 contains objects that have survived longer.</li>
+                <li>The <Highlight>Large Object Heap</Highlight> is collected with generation 2 and is normally not compacted.</li>
+                <li>Use <Highlight>IDisposable</Highlight> and <Highlight>using</Highlight> for prompt external-resource cleanup; do not wait for GC.</li>
+                <li>Use measurements to diagnose allocation pressure and retention instead of forcing collections as a workaround.</li>
+            </ul>
+
+            <p>
+                For the next layer of detail, read
+                <NavLink href="blogs/garbage-collection-fundamentals-in-dotnet" Match="NavLinkMatch.All">Garbage Collection Fundamentals in .NET</NavLink>
+                to explore stack and heap concepts, compaction, fragmentation, and virtual memory.
+            </p>
+        </Summary>
+    </ContentBody>
+</Content>
