@@ -53,6 +53,9 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore ./Web/Web.csproj
 
+      - name: Restore UI test dependencies
+        run: dotnet restore ./UITests/UITests.csproj
+
       # Commented out the below steps as it is handled by NugitAudit properties in the csproj file starting .NET 8.0
       # - name: Checking Vulnerable Nuget Packages
       #   run: |
@@ -80,13 +83,13 @@ jobs:
 
       - name: Build Blazor Project
         run: dotnet build ./Web/Web.csproj --configuration Release --no-restore
+
+      - name: Run UI tests
+        run: dotnet test ./UITests/UITests.csproj --configuration Release --no-restore --results-directory ./Test/Report --report-trx
         
       - name: Install .NET Report Generator
         run: dotnet tool install -g dotnet-reportgenerator-globaltool
         
-      # - name: Run Test
-      #   run: dotnet test --project ./UITests/UITests.csproj --configuration Release --verbosity normal --report-trx
-
       #- name: Test Reporter
       #  uses: dorny/test-reporter@v1.7.0
       #  if: success() || failure()
