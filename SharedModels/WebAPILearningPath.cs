@@ -28,8 +28,8 @@ public class WebAPILearningPath
             new ContentMetaData
             {
                 Order = 6,
-                Title = "Profiling Web API with Mini Profiler",
-                Description = "In this post I will teach you how to profile Web API with Mini Profiler. All with live working demo.",
+                Title = "MiniProfiler in ASP.NET Core: Profile Web API Performance",
+                Description = "Learn how to use MiniProfiler with ASP.NET Core Web API and Entity Framework to find slow requests, queries, and code paths.",
                 Author = "Abdul Rahman",
                 Slug = "profiling-webapi-with-mini-profiler",
                 PosterUrl = "image/blogs/webapi/profiling-webapi-with-mini-profiler.webp",

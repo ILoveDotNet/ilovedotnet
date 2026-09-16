@@ -42,6 +42,7 @@ public class RssFeed
     }
 
     var author = new SyndicationPerson("abdulrahman.smsi+ilovedotnet@gmail.com", "Abdul Rahman", "https://linkedin.com/in/thebhai");
+    var feedContents = _tableOfContents.AllContents;
 
     var feed = new SyndicationFeed(
                     "I Love .NET",
@@ -53,8 +54,7 @@ public class RssFeed
       TimeToLive = TimeSpan.FromHours(24),
       Copyright = new TextSyndicationContent($"Copyright {_lastPublishedDateTime.Year}"),
       Language = "en",
-      Items = _tableOfContents
-                .AllContents
+      Items = feedContents
                 .OrderByDescending(content => content.ModifiedOn)
                 .Select(content => new SyndicationItem(
                     content.Title,
@@ -90,22 +90,31 @@ public class RssFeed
 
   public bool IsAnyContentUpdatedAndRepublished()
   {
-    if (_feed != null)
+    if (_feed is null)
     {
-      var existingItemsCount = _feed.Items.Count();
-      var isAnyContentUpdatedAndRepublished = _feed
-          .Items.Any(existingItem => _tableOfContents
-                                      .AllContents
-                        .Any(content => existingItem.Id.EndsWith(content.Slug)
-                            && (content.ModifiedOn != existingItem.LastUpdatedTime.DateTime
-                              || existingItem.Links.All(link => link.Uri.AbsoluteUri != $"https://ilovedotnet.org/{content.ContentUrl}"))));
-
-      if (existingItemsCount == _tableOfContents.AllContents.Count && !isAnyContentUpdatedAndRepublished)
-      {
-        return false;
-      }
+      return true;
     }
 
-    return true;
+    var feedContents = _tableOfContents.AllContents;
+    var existingItems = _feed.Items.ToList();
+
+    if (existingItems.Count != feedContents.Count)
+    {
+      return true;
+    }
+
+    return feedContents.Any(content =>
+    {
+      var canonicalUrl = $"https://ilovedotnet.org/{content.ContentUrl}";
+      var existingItem = existingItems.FirstOrDefault(item =>
+          item.Links.Any(link => link.Uri.AbsoluteUri == canonicalUrl)
+          || item.Id.EndsWith(content.Slug, StringComparison.OrdinalIgnoreCase));
+
+      return existingItem is null
+          || existingItem.Title?.Text != content.Title
+          || existingItem.Summary?.Text != content.Description
+          || existingItem.LastUpdatedTime.DateTime != content.ModifiedOn
+          || existingItem.Links.All(link => link.Uri.AbsoluteUri != canonicalUrl);
+    });
   }
 }

@@ -28,8 +28,8 @@ public class LINQLearningPath
             new ContentMetaData
             {
                 Order = 2,
-                Title = "Using LINQ to Select and Project Data",
-                Description = "In this post I will teach you how to select data within collections using LINQ in .NET. All with live working demo.",
+                Title = "LINQ Select in C#: Project Data with Practical Examples",
+                Description = "Learn how to use LINQ Select in C# to project collections into anonymous types, DTOs, and transformed results with practical examples.",
                 Author = "Abdul Rahman",
                 Slug = "using-linq-to-select-and-project-data",
                 PosterUrl = "image/blogs/linq/using-linq-to-select-and-project-data.webp",
@@ -45,8 +45,8 @@ public class LINQLearningPath
             new ContentMetaData
             {
                 Order = 3,
-                Title = "Using LINQ OrderBy to Sort Data",
-                Description = "In this post I will teach you how to sort data within collections using LINQ in .NET. All with live working demo.",
+                Title = "LINQ OrderBy in C#: Sort by One or Multiple Fields",
+                Description = "Learn how to sort C# collections with LINQ OrderBy, ThenBy, OrderByDescending, and ThenByDescending using practical examples.",
                 Author = "Abdul Rahman",
                 Slug = "using-linq-orderby-to-sort-data",
                 PosterUrl = "image/blogs/linq/using-linq-orderby-to-sort-data.webp",
@@ -130,8 +130,8 @@ public class LINQLearningPath
             new ContentMetaData
             {
                 Order = 8,
-                Title = "Using LINQ Take to Select Specific Data",
-                Description = "In this post I will teach you how to select specific data within collections using LINQ in .NET. All with live working demo.",
+                Title = "LINQ Take in C#: Select the First N Results",
+                Description = "Learn how LINQ Take and TakeWhile select a limited number of items from C# collections, with pagination and practical examples.",
                 Author = "Abdul Rahman",
                 Slug = "using-linq-take-to-select-specific-data",
                 PosterUrl = "image/blogs/linq/using-linq-take-to-select-specific-data.webp",
@@ -385,8 +385,8 @@ public class LINQLearningPath
             new ContentMetaData
             {
                Order = 23,
-               Title = "Using LINQ Group By to group data",
-               Description = "In this post I will teach you how to group data in collections using LINQ in .NET. All with live working demo.",
+               Title = "LINQ GroupBy in C#: Group and Aggregate Data",
+               Description = "Learn how to use LINQ GroupBy in C# to group records, project grouped results, and calculate aggregates with practical examples.",
                Author = "Abdul Rahman",
                Slug = "using-linq-group-by-to-group-data",
                PosterUrl = "image/blogs/linq/using-linq-group-by-to-group-data.webp",

@@ -11,8 +11,8 @@ public class MSBuildLearningPath
       new ContentMetaData
         {
           Order = 1,
-          Title = "Automating Git Hook Setup in .NET Projects with MSBuild",
-          Description = "In this post I will introduce how to automate setting up git hooks using MSBuild in dotnet apps. All with live working demo.",
+          Title = "What Is a Git Hook? Automate Setup with .NET MSBuild",
+          Description = "Learn what Git hooks are and how to automate pre-commit hook setup in .NET projects using MSBuild with a practical team-friendly example.",
           Author = "Abdul Rahman",
           Slug = "automating-git-hook-setup-in-dotnet-with-msbuild",
           PosterUrl = "image/blogs/msbuild/automating-git-hook-setup-in-dotnet-with-msbuild.webp",
