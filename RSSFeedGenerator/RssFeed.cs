@@ -59,8 +59,8 @@ public class RssFeed
                 .Select(content => new SyndicationItem(
                     content.Title,
                     content.Description,
-                    new Uri($"https://ilovedotnet.org/{content.Type}/{content.Slug}"),
-                    $"https://ilovedotnet.org/{content.Type}/{content.Slug}",
+                    new Uri($"https://ilovedotnet.org/{content.ContentUrl}"),
+                    $"https://ilovedotnet.org/{content.ContentUrl}",
                     new DateTime(content.ModifiedOn.Year, content.ModifiedOn.Month, content.ModifiedOn.Day, content.ModifiedOn.Hour, content.ModifiedOn.Minute, content.ModifiedOn.Second))
                 {
                   PublishDate = new DateTime(content.CreatedOn.Year, content.CreatedOn.Month, content.CreatedOn.Day, content.CreatedOn.Hour, content.CreatedOn.Minute, content.CreatedOn.Second),
@@ -96,8 +96,9 @@ public class RssFeed
       var isAnyContentUpdatedAndRepublished = _feed
           .Items.Any(existingItem => _tableOfContents
                                       .AllContents
-                                      .Any(content => existingItem.Id.EndsWith(content.Slug)
-                                              && content.ModifiedOn != existingItem.LastUpdatedTime.DateTime));
+                        .Any(content => existingItem.Id.EndsWith(content.Slug)
+                            && (content.ModifiedOn != existingItem.LastUpdatedTime.DateTime
+                              || existingItem.Links.All(link => link.Uri.AbsoluteUri != $"https://ilovedotnet.org/{content.ContentUrl}"))));
 
       if (existingItemsCount == _tableOfContents.AllContents.Count && !isAnyContentUpdatedAndRepublished)
       {
