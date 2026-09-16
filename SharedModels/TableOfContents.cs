@@ -38,6 +38,18 @@ public class TableOfContents
               .ThenByDescending(content => content.CreatedOn)
               .Take(skip..take)];
 
+  public IReadOnlyList<ContentMetaData> GetRelatedContents(string slug, int take = 6)
+  {
+    var currentContent = GetContentBySlug(slug);
+
+    return [.. Contents
+                .Where(content => content.Channel.Equals(currentContent.Channel, StringComparison.OrdinalIgnoreCase)
+                                                                                        && !content.Slug.Equals(slug, StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(content => content.ModifiedOn)
+                .ThenByDescending(content => content.CreatedOn)
+                .Take(take)];
+  }
+
   public ContentMetaData GetContentBySlug(string slug)
           => _fullContents
               .Single(content => content.Slug.Equals(slug, StringComparison.OrdinalIgnoreCase));
