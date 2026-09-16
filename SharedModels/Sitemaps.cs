@@ -38,5 +38,5 @@ public class Sitemaps
       "sitemap-talk.xml"
   ];
 
-      public string IndexFile => "sitemap.xml";
+  public string IndexFile => "sitemap.xml";
 }
