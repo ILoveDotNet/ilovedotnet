@@ -11,7 +11,7 @@ public class ChannelBase : ComponentBase
   protected string Title => $"{ContentType} - I ❤️ DotNet";
   protected string Description => $"This is a .NET {ContentType} knowledge sharing channel with live demos crafted by developers for developers with love.";
   protected string BaseUrl => Configuration.GetValue<string>("baseUrl")!;
-  protected string Url => $"{BaseUrl}channels/{Name.ToLower()}";
+  protected string Url => $"{BaseUrl}channels/{Name.ToLower()}/";
   protected List<ContentMetaData> Contents = [];
   protected List<ContentMetaData> LearningPathContents = [];
   protected bool ShowArticleTab = true;
