@@ -9,7 +9,11 @@ public class ContentMetaData
   public required string Slug { get; set; }
   public required string PosterUrl { get; set; }
   public required string ThumbnailUrl { get; set; }
-  public required string ContentUrl { get; set; }
+  public required string ContentUrl
+  {
+    get;
+    set => field = value.EndsWith('/') ? value : $"{value}/";
+  }
   public required string IconUrl { get; set; }
   public required string Channel { get; set; }
   public required string Type { get; set; }
