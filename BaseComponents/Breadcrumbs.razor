@@ -1,0 +1,78 @@
+@using System.Text.Json
+@using Microsoft.AspNetCore.Components.Web
+@using Toolbelt.Blazor.HeadElement
+
+<nav aria-label="Breadcrumb" class="[ text-sm ] [ dark:text-gray-300 text-gray-600 ]">
+    <ol class="[ flex flex-wrap items-center gap-2 ]">
+        <li>
+            <a href="/" class="[ underline hover:no-underline ]">Home</a>
+        </li>
+        <li aria-hidden="true">/</li>
+        @if (!string.IsNullOrWhiteSpace(ParentTitle) && !string.IsNullOrWhiteSpace(ParentUrl))
+        {
+            <li>
+                <a href="@ParentUrl" class="[ underline hover:no-underline ]">@ParentTitle</a>
+            </li>
+            <li aria-hidden="true">/</li>
+        }
+        <li aria-current="page">@CurrentTitle</li>
+    </ol>
+</nav>
+
+<HeadContent>
+    <script type="application/ld+json">@JsonLd</script>
+</HeadContent>
+
+@code {
+    [Parameter, EditorRequired] public string CurrentTitle { get; set; } = default!;
+    [Parameter, EditorRequired] public string CurrentUrl { get; set; } = default!;
+    [Parameter] public string? ParentTitle { get; set; }
+    [Parameter] public string? ParentUrl { get; set; }
+
+    private string JsonLd => JsonSerializer.Serialize(new Dictionary<string, object?>
+    {
+        ["@context"] = "https://schema.org",
+        ["@type"] = "BreadcrumbList",
+        ["itemListElement"] = BuildItems()
+    });
+
+    private object[] BuildItems()
+    {
+        var items = new List<object>
+        {
+            new Dictionary<string, object?>
+            {
+                ["@type"] = "ListItem",
+                ["position"] = 1,
+                ["name"] = "Home",
+                ["item"] = AbsoluteUrl("/")
+            }
+        };
+
+        var position = 2;
+        if (!string.IsNullOrWhiteSpace(ParentTitle) && !string.IsNullOrWhiteSpace(ParentUrl))
+        {
+            items.Add(new Dictionary<string, object?>
+            {
+                ["@type"] = "ListItem",
+                ["position"] = position,
+                ["name"] = ParentTitle,
+                ["item"] = ParentUrl
+            });
+            position++;
+        }
+
+        items.Add(new Dictionary<string, object?>
+        {
+            ["@type"] = "ListItem",
+            ["position"] = position,
+            ["name"] = CurrentTitle,
+            ["item"] = CurrentUrl
+        });
+
+        return [.. items];
+    }
+
+    private string AbsoluteUrl(string path)
+        => new Uri(new Uri("https://ilovedotnet.org/"), path.TrimStart('/')).ToString();
+}
