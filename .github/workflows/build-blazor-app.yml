@@ -52,9 +52,6 @@ jobs:
       - name: Lint
         run: dotnet format --verify-no-changes --verbosity quiet whitespace --folder
       
-      - name: Restore dependencies
-        run: dotnet restore ./Web/Web.csproj
-
       - name: Restore UI test dependencies
         run: dotnet restore ./UITests/UITests.csproj
 
@@ -82,9 +79,6 @@ jobs:
 
       - name: Generate SBOM
         run: sbom-tool generate -b ./ -bc ./ -pn ILoveDotNet -pv 1.0.0 -ps ILoveDotNet -pm
-
-      - name: Build Blazor Project
-        run: dotnet build ./Web/Web.csproj --configuration Release --no-restore
 
       - name: Run UI tests
         run: dotnet test ./UITests/UITests.csproj --configuration Release --no-restore --results-directory ./Test/Report --report-trx
@@ -163,7 +157,7 @@ jobs:
       #   run: rm -rf ./*Tests/**/TestResults
 
       - name: Publish Blazor Project
-        run: dotnet publish ./Web/Web.csproj -c:Release -p:GHPages=true --no-restore -o dist/Web --nologo
+        run: dotnet publish ./Web/Web.csproj -c:Release -p:GHPages=true -o dist/Web --nologo
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v7
