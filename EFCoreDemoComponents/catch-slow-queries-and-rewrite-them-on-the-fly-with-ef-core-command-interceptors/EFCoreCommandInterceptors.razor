@@ -1,0 +1,187 @@
+@page "/blogs/catch-slow-queries-and-rewrite-them-on-the-fly-with-ef-core-command-interceptors"
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(EFCoreCommandInterceptors)>
+    <ContentBody>
+        <What>
+            <p>
+                <Highlight>DbContext</Highlight> is deliberately a black box - you ask for a list of orders and it hands one back, without you ever seeing the SQL in between. Underneath that box, though, EF Core is issuing plain <Highlight>ADO.NET</Highlight> calls: <Highlight>DbConnection</Highlight>, <Highlight>DbCommand</Highlight>, and <Highlight>DbDataReader</Highlight>. A <Highlight>DbCommandInterceptor</Highlight> gives you a hook into that exact layer, so you can watch - or rewrite - the actual command before and after it reaches the database.
+            </p>
+            <p>
+                That matters because plenty of production incidents live in that gap between "the LINQ query looked fine" and "the SQL it generated was not." This article covers the command interceptor variants that let you close that gap: catching slow commands, injecting hints, centralizing failure telemetry, and spotting the query-per-row pattern that quietly kills throughput.
+            </p>
+        </What>
+
+        <Why>
+            <p>
+                A repository method that loops over orders and calls <Highlight>order.Items.Sum(...)</Highlight> on a lazily-loaded navigation property looks like ordinary C# - a single in-memory calculation. In reality, if lazy loading is enabled, each access to <Highlight>Items</Highlight> is a separate round trip to the database. With ten orders that's ten extra queries nobody notices in a demo. With ten thousand orders in production, that's ten thousand extra round trips stacked on top of whatever the original query already cost.
+            </p>
+            <p>
+                The same blind spot shows up with individual slow commands - a query that takes 15 seconds under real data volume runs in milliseconds against a small local database, so it never gets flagged until customers complain. And when a command does fail outright, the exception surfaces wherever the calling code happens to catch it, which means there's rarely one place that sees every database failure across the whole application.
+            </p>
+            <p>
+                A <Highlight>DbCommandInterceptor</Highlight> sits at the one layer that sees every command regardless of which repository issued it, which makes it the right place to catch all three of these problems before they reach production.
+            </p>
+        </Why>
+
+        <How>
+            <h4>Detect slow-running commands after execution</h4>
+            <p>
+                Overriding <Highlight>ReaderExecutedAsync</Highlight> lets you inspect how long a command took immediately after it finishes, without changing anything about the result. The same threshold check is worth reusing for <Highlight>ScalarExecutedAsync</Highlight> and <Highlight>NonQueryExecutedAsync</Highlight> too, since not every database call goes through <Highlight>ExecuteReader</Highlight> - schema checks and raw counts often go through <Highlight>ExecuteScalar</Highlight> or <Highlight>ExecuteNonQuery</Highlight> instead:
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+public class SlowCommandInterceptor(ILogger&lt;SlowCommandInterceptor&gt; logger) : DbCommandInterceptor
+{
+    private static readonly TimeSpan SlowThreshold = TimeSpan.FromSeconds(5);
+
+    public override async ValueTask&lt;DbDataReader&gt; ReaderExecutedAsync(
+        DbCommand command,
+        CommandExecutedEventData eventData,
+        DbDataReader result,
+        CancellationToken cancellationToken = default)
+    {
+        var reader = await base.ReaderExecutedAsync(command, eventData, result, cancellationToken);
+        WarnIfSlow(command, eventData.Duration);
+        return reader;
+    }
+
+    public override async ValueTask&lt;object?&gt; ScalarExecutedAsync(
+        DbCommand command,
+        CommandExecutedEventData eventData,
+        object? result,
+        CancellationToken cancellationToken = default)
+    {
+        var status = await base.ScalarExecutedAsync(command, eventData, result, cancellationToken);
+        WarnIfSlow(command, eventData.Duration);
+        return status;
+    }
+
+    public override async ValueTask&lt;int&gt; NonQueryExecutedAsync(
+        DbCommand command,
+        CommandExecutedEventData eventData,
+        int result,
+        CancellationToken cancellationToken = default)
+    {
+        var resultValue = await base.NonQueryExecutedAsync(command, eventData, result, cancellationToken);
+        WarnIfSlow(command, eventData.Duration);
+        return resultValue;
+    }
+
+    private void WarnIfSlow(DbCommand command, TimeSpan duration)
+    {
+        if (duration &gt; SlowThreshold)
+        {
+            logger.LogWarning("Slow command detected ({Duration}): {CommandText}", duration, command.CommandText);
+        }
+    }
+}
+            </CodeSnippet>
+            <p>
+                <Highlight>DbCommandInterceptor</Highlight> doesn't implement <Highlight>ISingletonInterceptor</Highlight>, so register it scoped, matching your <Highlight>DbContext</Highlight> lifetime.
+            </p>
+
+            <h4>Inject query hints before a command executes</h4>
+            <p>
+                Overriding <Highlight>ReaderExecutingAsync</Highlight> instead gives you the command <Highlight>before</Highlight> it runs, which means you can rewrite <Highlight>CommandText</Highlight> itself. This is provider-specific - the example below adds a SQL Server join hint - but the same technique applies to any hint your database engine supports:
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+public class JoinHintInterceptor : DbCommandInterceptor
+{
+    public override ValueTask&lt;InterceptionResult&lt;DbDataReader&gt;&gt; ReaderExecutingAsync(
+        DbCommand command,
+        CommandEventData eventData,
+        InterceptionResult&lt;DbDataReader&gt; result,
+        CancellationToken cancellationToken = default)
+    {
+        if (command.CommandText.Contains("JOIN", StringComparison.OrdinalIgnoreCase))
+        {
+            command.CommandText += " OPTION (FORCE ORDER)";
+        }
+
+        return base.ReaderExecutingAsync(command, eventData, result, cancellationToken);
+    }
+}
+            </CodeSnippet>
+            <p>
+                Because this overrides the same method family used for reads and writes, it catches hints for updates and deletes too, not just <Highlight>SELECT</Highlight> statements - something a LINQ-level interceptor can't do.
+            </p>
+
+            <h4>Centralize command failure telemetry</h4>
+            <p>
+                <Highlight>CommandFailedAsync</Highlight> fires whenever any command throws, regardless of which repository issued it - a natural place to feed a single telemetry pipeline instead of relying on scattered try/catch blocks:
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+public class CommandFailureInterceptor(ILogger&lt;CommandFailureInterceptor&gt; logger) : DbCommandInterceptor
+{
+    public override async Task CommandFailedAsync(
+        DbCommand command,
+        CommandErrorEventData eventData,
+        CancellationToken cancellationToken = default)
+    {
+        logger.LogError(
+            "Command failed. Source: {Source}, Error: {Message}",
+            eventData.CommandSource,
+            eventData.Exception.Message);
+
+        return await base.CommandFailedAsync(command, eventData, cancellationToken);
+    }
+}
+            </CodeSnippet>
+            <p>
+                This doesn't replace normal exception handling in your application - the exception still propagates as usual. It just guarantees that every command failure is observed in one place as well, even if the calling code swallows it.
+            </p>
+
+            <h4>Watch for the same pattern on scalar and non-query commands</h4>
+            <p>
+                The <Highlight>SlowCommandInterceptor</Highlight> shown above already covers this by overriding all three <Highlight>Executed</Highlight> methods, so a slow schema check or a slow bulk update gets flagged exactly the same way a slow <Highlight>SELECT</Highlight> does - no separate interceptor needed.
+            </p>
+
+            <h4>Flag repeated identical commands as a Cartesian-explosion warning sign</h4>
+            <p>
+                Lazy loading executes synchronously, so this check overrides the synchronous <Highlight>ReaderExecuting</Highlight> instead of the async version. Tracking the previous command's text is a blunt but effective way to flag the exact pattern from the earlier example - the same query shape firing over and over inside a loop:
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+public class RepeatedCommandInterceptor(ILogger&lt;RepeatedCommandInterceptor&gt; logger) : DbCommandInterceptor
+{
+    private string _previousCommandText = string.Empty;
+
+    public override InterceptionResult&lt;DbDataReader&gt; ReaderExecuting(
+        DbCommand command,
+        CommandEventData eventData,
+        InterceptionResult&lt;DbDataReader&gt; result)
+    {
+        if (_previousCommandText == command.CommandText)
+        {
+            logger.LogWarning(
+                "Possible Cartesian explosion from lazy loading. Repeated command: {CommandText}",
+                command.CommandText);
+        }
+
+        _previousCommandText = command.CommandText;
+        return base.ReaderExecuting(command, eventData, result);
+    }
+}
+            </CodeSnippet>
+            <p>
+                This heuristic won't catch every N+1 pattern, but it's enough to surface the ones that matter most - the ones firing inside a loop over a result set that's only going to get bigger in production.
+            </p>
+        </How>
+
+        <Summary>
+            <p>
+                Key takeaways from this article:
+            </p>
+            <ul>
+                <li><Highlight>DbCommandInterceptor</Highlight> operates at the ADO.NET layer, below LINQ, so it sees every command regardless of which repository or code path issued it</li>
+                <li><Highlight>ReaderExecutedAsync</Highlight> (and its scalar/non-query siblings) let you measure duration after execution without touching the result</li>
+                <li><Highlight>ReaderExecutingAsync</Highlight> lets you rewrite <Highlight>CommandText</Highlight> before it runs - useful for provider-specific hints on both reads and writes</li>
+                <li><Highlight>CommandFailedAsync</Highlight> is a single seam for centralizing failure telemetry across the whole application</li>
+                <li>Tracking repeated commands is a simple, effective way to catch Cartesian explosions caused by lazy loading</li>
+            </ul>
+            <p>
+                What to read next: if you haven't already, start the series from <NavLink href="blogs/add-cross-cutting-concerns-to-ef-core-without-touching-your-repositories">Add Cross-Cutting Concerns to EF Core Without Touching Your Repositories</NavLink>, or lock down your schema with <NavLink href="blogs/enforce-database-schema-standards-automatically-with-ef-core-conventions">Enforce Database Schema Standards Automatically With EF Core Conventions</NavLink>.
+            </p>
+        </Summary>
+    </ContentBody>
+</Content>

@@ -11,6 +11,7 @@ public class Sitemaps
       "sitemap-blog-ddd.xml",
       "sitemap-blog-dependency-injection.xml",
       "sitemap-blog-design-pattern.xml",
+      "sitemap-blog-efcore.xml",
       "sitemap-blog-http-client.xml",
       "sitemap-blog-json.xml",
       "sitemap-blog-linq.xml",

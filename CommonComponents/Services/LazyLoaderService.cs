@@ -71,6 +71,11 @@ public class LazyLoaderService(
           await LoadAssembliesAsync("DesignPatternDemoComponents.wasm");
         }
 
+        if (path.Contains("ef-core", StringComparison.OrdinalIgnoreCase))
+        {
+          await LoadAssembliesAsync("EFCoreDemoComponents.wasm");
+        }
+
         if (path.Contains("http-client", StringComparison.OrdinalIgnoreCase))
         {
           await LoadAssembliesAsync("HTTPClientDemoComponents.wasm");

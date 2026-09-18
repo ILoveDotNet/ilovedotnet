@@ -1,0 +1,182 @@
+@page "/blogs/enforce-database-schema-standards-automatically-with-ef-core-conventions"
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(EFCoreSchemaConventions)>
+    <ContentBody>
+        <What>
+            <p>
+                Ask three developers on the same team to add a new entity to an <Highlight>EF Core</Highlight> model, and you'll often get three different table names, three different string column lengths, and at least one forgotten cascade-delete rule. <Highlight>EF Core conventions</Highlight> let you bake those decisions into the model-building pipeline itself, so every entity gets the same treatment whether or not the developer adding it remembers the team's standards.
+            </p>
+            <p>
+                A convention is a class that implements <Highlight>IConvention</Highlight> and runs automatically while EF Core builds your model. Instead of writing the same <Highlight>Fluent API</Highlight> configuration on every entity, you write the rule once and EF Core applies it everywhere it's relevant.
+            </p>
+        </What>
+
+        <Why>
+            <p>
+                By default, EF Core names a table after its <Highlight>DbSet</Highlight> property, leaves string columns at whatever the provider's maximum is, and does nothing special with enums or delete behavior unless you configure each entity individually. On a small model that's fine. On a model with sixty entities added by a rotating cast of contributors, it isn't.
+            </p>
+            <p>
+                A concrete example: a <Highlight>Product</Highlight> entity with a <Highlight>Name</Highlight> and <Highlight>Category</Highlight> property compiles perfectly well without any Fluent configuration. But without an explicit <Highlight>HasMaxLength</Highlight>, <Highlight>Name</Highlight> becomes an unbounded <Highlight>nvarchar(max)</Highlight> column, <Highlight>Category</Highlight> gets stored as a raw integer that means nothing when you query the database directly, and the foreign key to <Highlight>Order</Highlight> has whatever default delete behavior the provider picked. Multiply that by every entity added over two years by a team that never wrote it down anywhere, and your schema drifts entity by entity until nobody can describe the "standard" anymore.
+            </p>
+            <p>
+                <Highlight>Conventions</Highlight> turn those unwritten rules into code that runs for every entity, every time, with no code review required to catch the ones that slipped through.
+            </p>
+        </Why>
+
+        <How>
+            <h4>How a convention plugs into model building</h4>
+            <p>
+                Most schema-wide rules implement <Highlight>IModelFinalizingConvention</Highlight>, which EF Core calls once the model is fully defined but before it's frozen. You register conventions in <Highlight>ConfigureConventions</Highlight>, and because that method wants a factory delegate rather than an instance, you typically loop over an injected collection and hand back a delegate for each one:
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+public class OrderContext(
+    DbContextOptions&lt;OrderContext&gt; options,
+    IEnumerable&lt;IConvention&gt; conventions) : DbContext(options)
+{
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        foreach (var convention in conventions)
+        {
+            configurationBuilder.Conventions.Add(_ =&gt; convention);
+        }
+    }
+}
+            </CodeSnippet>
+            <p>
+                You're not limited to adding conventions - you can also remove one of EF Core's built-in conventions if you want to replace its behavior entirely, for example <Highlight>configurationBuilder.Conventions.Remove(typeof(TableNameFromDbSetConvention))</Highlight> if the naming convention below should be the only source of truth for table names.
+            </p>
+
+            <h4>Standardize table names and schema</h4>
+            <p>
+                This convention gives every entity a lowercase table name inside a dedicated schema, unless a developer has already configured one explicitly with the Fluent API or a data annotation - in which case their choice wins:
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+public class TableNamingConvention : IModelFinalizingConvention
+{
+    private const string Schema = "ordering";
+
+    public void ProcessModelFinalizing(IConventionModelBuilder modelBuilder, IConventionContext&lt;IConventionModelBuilder&gt; context)
+    {
+        foreach (var entityType in modelBuilder.Metadata.GetEntityTypes())
+        {
+            if (entityType.Builder.CanSetTable(entityType.Name))
+            {
+                var tableName = entityType.GetTableName() ?? entityType.Name;
+                var name = tableName.ToLowerInvariant();
+                entityType.Builder.ToTable(name, "cake");
+            }
+        }
+    }
+}
+            </CodeSnippet>
+
+            <h4>Cap default string lengths</h4>
+            <p>
+                Any string property without an explicit <Highlight>HasMaxLength</Highlight> falls back to a sensible default instead of an unbounded column:
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+public class DefaultStringLengthConvention : IModelFinalizingConvention
+{
+    private const int DefaultMaxLength = 200;
+
+    public void ProcessModelFinalizing(IConventionModelBuilder modelBuilder, IConventionContext&lt;IConventionModelBuilder&gt; context)
+    {
+        foreach (var entityType in modelBuilder.Metadata.GetEntityTypes())
+        {
+            foreach (var property in entityType.GetProperties())
+            {
+                if (property.ClrType == typeof(string) &amp;&amp; property.GetMaxLength() is null)
+                {
+                    property.SetMaxLength(DefaultMaxLength);
+                }
+            }
+        }
+    }
+}
+            </CodeSnippet>
+
+            <h4>Default every foreign key to cascade delete</h4>
+            <p>
+                Rather than relying on every developer to remember <Highlight>OnDelete</Highlight> on every relationship, an <Highlight>IForeignKeyAddedConvention</Highlight> sets the default the moment a relationship is added to the model:
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+public class CascadeDeleteConvention : IForeignKeyAddedConvention
+{
+    public void ProcessForeignKeyAdded(
+        IConventionForeignKeyBuilder foreignKeyBuilder,
+        IConventionContext&lt;IConventionForeignKeyBuilder&gt; context)
+    {
+        foreignKeyBuilder.OnDelete(DeleteBehavior.Cascade);
+    }
+}
+            </CodeSnippet>
+            <p>
+                Individual relationships can still override this with their own Fluent configuration - the convention only sets the default, it doesn't lock the choice.
+            </p>
+
+            <h4>Store enums as readable strings, not raw integers</h4>
+            <p>
+                Querying a database directly and seeing <Highlight>Category = 2</Highlight> instead of <Highlight>Category = 'Electronics'</Highlight> makes ad-hoc debugging painful. A materialization convention converts every enum property to a string automatically:
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+public class EnumAsStringConvention : IModelFinalizingConvention
+{
+    public void ProcessModelFinalizing(IConventionModelBuilder modelBuilder, IConventionContext&lt;IConventionModelBuilder&gt; context)
+    {
+        foreach (var entityType in modelBuilder.Metadata.GetEntityTypes())
+        {
+            foreach (var property in entityType.GetProperties())
+            {
+                var underlyingType = Nullable.GetUnderlyingType(property.ClrType) ?? property.ClrType;
+                if (!underlyingType.IsEnum)
+                {
+                    continue;
+                }
+
+                // Instead of 1 for OrderStatus.Processing, it will serialize it as "Processing".
+                property.Builder.HasConversion(typeof(string));
+                property.Builder.HasMaxLength(64);
+            }
+        }
+    }
+}
+            </CodeSnippet>
+
+            <h4>Register the conventions and generate a migration</h4>
+            <p>
+                Register each convention the same way you registered interceptors, and add them all as scoped services alongside your context:
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+builder.Services.AddScoped&lt;IConvention, TableNamingConvention&gt;();
+builder.Services.AddScoped&lt;IConvention, DefaultStringLengthConvention&gt;();
+builder.Services.AddScoped&lt;IConvention, CascadeDeleteConvention&gt;();
+builder.Services.AddScoped&lt;IConvention, EnumAsStringConvention&gt;();
+            </CodeSnippet>
+            <p>
+                Because these conventions change how the model is built, EF Core will report pending model changes the next time you run <Highlight>dotnet ef migrations has-pending-model-changes</Highlight>, even though you didn't touch a single entity class. Generate one migration to apply all four standards across the whole model at once:
+            </p>
+            <CodeSnippet CssClass="language-bash">
+dotnet ef migrations add ApplySchemaConventions
+dotnet ef database update
+            </CodeSnippet>
+        </How>
+
+        <Summary>
+            <p>
+                Key takeaways from this article:
+            </p>
+            <ul>
+                <li><Highlight>Conventions</Highlight> implement <Highlight>IConvention</Highlight> and run automatically while EF Core builds the model, so schema standards apply to every entity without manual Fluent configuration</li>
+                <li><Highlight>IModelFinalizingConvention</Highlight> is the workhorse for schema-wide rules like table naming, string length defaults, and enum storage</li>
+                <li>A dedicated convention interface like <Highlight>IForeignKeyAddedConvention</Highlight> lets you react the moment a specific kind of model element is added</li>
+                <li>You can remove or replace any of EF Core's built-in conventions the same way you add your own</li>
+                <li>Convention changes affect the model, so they need a migration just like any other schema change</li>
+            </ul>
+            <p>
+                What to read next: pair these schema-wide guardrails with <NavLink href="blogs/add-cross-cutting-concerns-to-ef-core-without-touching-your-repositories">Add Cross-Cutting Concerns to EF Core Without Touching Your Repositories</NavLink> for auditing and connection diagnostics, or go a level deeper with <NavLink href="blogs/catch-slow-queries-and-rewrite-them-on-the-fly-with-ef-core-command-interceptors">Catch Slow Queries and Rewrite Them on the Fly With EF Core Command Interceptors</NavLink> to see how EF Core's generated SQL can be inspected and rewritten at runtime.
+            </p>
+        </Summary>
+    </ContentBody>
+</Content>
