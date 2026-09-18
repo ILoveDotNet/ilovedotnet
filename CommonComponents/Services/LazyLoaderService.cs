@@ -188,6 +188,11 @@ public class LazyLoaderService(
         await LoadAssembliesAsync("BaseComponents.wasm");
       }
 
+      if (path.Contains("learningpath", StringComparison.OrdinalIgnoreCase))
+      {
+        await LoadAssembliesAsync("BaseComponents.wasm");
+      }
+
       if (path.Contains("talks", StringComparison.OrdinalIgnoreCase))
       {
         await LoadAssembliesAsync("BaseComponents.wasm");
