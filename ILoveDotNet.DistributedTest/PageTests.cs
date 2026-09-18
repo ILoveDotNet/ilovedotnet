@@ -13,6 +13,7 @@ public class PageTests(AppFixture fixture) : PageTest
     RecordVideoDir = "videos/page-tests",
     RecordVideoSize = new RecordVideoSize { Width = 1280, Height = 720 },
     ViewportSize = new ViewportSize { Width = 1280, Height = 720 },
+    IgnoreHTTPSErrors = true, // AppHost serves a self-signed dev cert in CI
   };
 
   public override async ValueTask DisposeAsync()

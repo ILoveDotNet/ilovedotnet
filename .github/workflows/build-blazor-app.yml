@@ -88,7 +88,19 @@ jobs:
 
       - name: Run UI tests
         run: dotnet test ./UITests/UITests.csproj --configuration Release --no-restore --results-directory ./Test/Report --report-trx
-        
+
+      - name: Restore Distributed Test dependencies
+        run: dotnet restore ./ILoveDotNet.DistributedTest/ILoveDotNet.DistributedTest.csproj
+
+      - name: Build Distributed Test Project
+        run: dotnet build ./ILoveDotNet.DistributedTest/ILoveDotNet.DistributedTest.csproj --configuration Release --no-restore
+
+      - name: Install Playwright Browsers
+        run: pwsh ./ILoveDotNet.DistributedTest/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
+
+      - name: Run Distributed tests
+        run: dotnet test ./ILoveDotNet.DistributedTest/ILoveDotNet.DistributedTest.csproj --configuration Release --no-restore --no-build --results-directory ./Test/DistributedReport --report-trx
+
       - name: Install .NET Report Generator
         run: dotnet tool install -g dotnet-reportgenerator-globaltool
         
@@ -134,6 +146,15 @@ jobs:
         with:
           name: ilovedotnet-test-report
           path: ./Test/Report
+          retention-days: 1
+        # Use always() to always run this step to publish test results when there are test failures
+        if: ${{ always() }}
+
+      - name: Upload Distributed Test Result
+        uses: actions/upload-artifact@v7
+        with:
+          name: ilovedotnet-distributed-test-report
+          path: ./Test/DistributedReport
           retention-days: 1
         # Use always() to always run this step to publish test results when there are test failures
         if: ${{ always() }}
