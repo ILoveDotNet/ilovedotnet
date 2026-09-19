@@ -18,6 +18,19 @@
     <ProjectReference Include="..\SharedModels\SharedModels.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <SearchIndexInput Include="$(MSBuildThisFileDirectory)..\SharedModels\**\*.cs" />
+  </ItemGroup>
+
+  <Target Name="GenerateContentVectorIndex" BeforeTargets="ResolveProjectStaticWebAssets" Inputs="@(SearchIndexInput)" Outputs="wwwroot\search\index.json;wwwroot\search\index.vec">
+    <Exec Command="dotnet run --project &quot;$(MSBuildThisFileDirectory)..\VectorSearchIndexGenerator\VectorSearchIndexGenerator.csproj&quot; -- &quot;$(MSBuildThisFileDirectory)wwwroot\search&quot;" />
+
+    <ItemGroup>
+      <Content Remove="wwwroot\search\index.json;wwwroot\search\index.vec" />
+      <Content Include="wwwroot\search\index.json;wwwroot\search\index.vec" />
+    </ItemGroup>
+  </Target>
+
   <!-- <ItemGroup Condition="'$(Configuration)'=='Release'">
   	<Content Remove="wwwroot\css\app.css" />
   	<None Include="wwwroot\css\app.css" />

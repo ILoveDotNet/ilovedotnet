@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
+using CommonComponents.Services;
 using SharedModels;
 using Toolbelt.Blazor.HotKeys2;
 
@@ -11,6 +12,8 @@ public class SearchBase : ComponentBase, IAsyncDisposable
   private IJSObjectReference? module;
   private short _selectedListItemIndex = -1;
   private string _searchText = string.Empty;
+  private List<ContentMetaData> _filteredContents = [];
+  private CancellationTokenSource? _searchCancellationTokenSource;
   private HotKeysContext HotKeysContext = default!;
 
   protected bool HideNonSearchItems;
@@ -27,13 +30,11 @@ public class SearchBase : ComponentBase, IAsyncDisposable
       {
         _selectedListItemIndex = -1;
       }
-
-      ShowSuggestions = _searchText.Length > 0 && FilteredContents.Count > 0;
     }
   }
   protected bool ShowSuggestions { get; set; }
 
-  [Inject] private TableOfContents TableOfContents { get; set; } = default!;
+  [Inject] private IContentSearchService ContentSearchService { get; set; } = default!;
   [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
   [Inject] private NavigationManager NavigationManager { get; set; } = default!;
   [Inject] private HotKeys HotKeys { get; set; } = default!;
@@ -51,10 +52,40 @@ public class SearchBase : ComponentBase, IAsyncDisposable
     }
   }
 
-  protected List<ContentMetaData> FilteredContents => TableOfContents.Contents
-      .Where(content => SearchText.Split(" ", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
-                                  .Any(searchTerm => content.Title.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)))
-      .ToList();
+  protected IReadOnlyList<ContentMetaData> FilteredContents => _filteredContents;
+
+  protected async Task SearchTextChangedAsync(ChangeEventArgs eventArgs)
+  {
+    SearchText = eventArgs.Value?.ToString() ?? string.Empty;
+    if (_searchCancellationTokenSource is not null)
+    {
+      await _searchCancellationTokenSource.CancelAsync();
+    }
+    _searchCancellationTokenSource?.Dispose();
+    _searchCancellationTokenSource = new CancellationTokenSource();
+
+    if (string.IsNullOrWhiteSpace(SearchText))
+    {
+      _filteredContents = [];
+      ShowSuggestions = false;
+      return;
+    }
+
+    try
+    {
+      _filteredContents = [.. await ContentSearchService.SearchAsync(SearchText, _searchCancellationTokenSource.Token)];
+      ShowSuggestions = _filteredContents.Count > 0;
+    }
+    catch (OperationCanceledException)
+    {
+      return;
+    }
+    catch
+    {
+      _filteredContents = [];
+      ShowSuggestions = false;
+    }
+  }
 
   protected async Task SearchAsync()
   {
@@ -105,7 +136,7 @@ public class SearchBase : ComponentBase, IAsyncDisposable
   {
     // to avoid race between mouse click of item in suggestion with OnSelect. without this delay OnSelect
     // is not getting executed when item is clicked from mouse
-    await Task.Delay(250);
+    await Task.Delay(250, CancellationToken.None);
     ShowSuggestions = _selectedListItemIndex != -1;
     if (!ShowSuggestions)
     {
@@ -116,6 +147,7 @@ public class SearchBase : ComponentBase, IAsyncDisposable
   protected void OnSelect(ContentMetaData content)
   {
     SearchText = content.Title.ToLower();
+    _filteredContents = [];
     _selectedListItemIndex = -1;
     ShowSuggestions = false;
     NavigationManager.NavigateTo(content.ContentUrl);
@@ -123,13 +155,12 @@ public class SearchBase : ComponentBase, IAsyncDisposable
 
   private void OnEnterKey()
   {
-    if (ShowSuggestions == false)
+    if (!ShowSuggestions)
       return;
     if (FilteredContents.Count == 0)
       return;
     if (_selectedListItemIndex >= 0 && _selectedListItemIndex < FilteredContents.Count)
       OnSelect(FilteredContents[_selectedListItemIndex]);
-    return;
   }
 
   private async Task SelectNextItemAsync(short increment)
@@ -148,6 +179,11 @@ public class SearchBase : ComponentBase, IAsyncDisposable
 
   async ValueTask IAsyncDisposable.DisposeAsync()
   {
+    if (_searchCancellationTokenSource is not null)
+    {
+      await _searchCancellationTokenSource.CancelAsync();
+    }
+    _searchCancellationTokenSource?.Dispose();
     await HotKeysContext.DisposeAsync();
 
     if (module is not null)
