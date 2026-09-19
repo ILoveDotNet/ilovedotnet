@@ -1,6 +1,7 @@
 @using System.Text.Json
 @using Microsoft.AspNetCore.Components.Web
 @using Toolbelt.Blazor.HeadElement
+@inject IConfiguration Configuration
 
 <nav aria-label="Breadcrumb" class="[ text-sm ] [ dark:text-gray-300 text-gray-600 ]">
     <ol class="[ flex flex-wrap items-center gap-2 ]">
@@ -20,7 +21,7 @@
 </nav>
 
 <HeadContent>
-    <script type="application/ld+json">@JsonLd</script>
+    <script type="application/ld+json">@((MarkupString)JsonLd)</script>
 </HeadContent>
 
 @code {
@@ -57,7 +58,7 @@
                 ["@type"] = "ListItem",
                 ["position"] = position,
                 ["name"] = ParentTitle,
-                ["item"] = ParentUrl
+                ["item"] = AbsoluteUrl(ParentUrl)
             });
             position++;
         }
@@ -67,12 +68,21 @@
             ["@type"] = "ListItem",
             ["position"] = position,
             ["name"] = CurrentTitle,
-            ["item"] = CurrentUrl
+            ["item"] = AbsoluteUrl(CurrentUrl)
         });
 
         return [.. items];
     }
 
     private string AbsoluteUrl(string path)
-        => new Uri(new Uri("https://ilovedotnet.org/"), path.TrimStart('/')).ToString();
+    {
+        var configuredBaseUrl = Configuration["baseUrl"] ?? "https://ilovedotnet.org/";
+        var baseUri = new Uri(configuredBaseUrl.EndsWith('/') ? configuredBaseUrl : $"{configuredBaseUrl}/");
+        if (Uri.TryCreate(path, UriKind.Absolute, out var absoluteUri))
+        {
+            return new Uri(baseUri, absoluteUri.PathAndQuery.TrimStart('/')).ToString();
+        }
+
+        return new Uri(baseUri, path.TrimStart('/')).ToString();
+    }
 }
