@@ -51,6 +51,8 @@ static void ConfigureServices(IServiceCollection services, IWebAssemblyHostEnvir
 {
   services.AddScoped<LazyLoaderService>();
 
+  services.AddScoped<IContentSearchService, VectorContentSearchService>();
+
   services.AddTransient<CustomHeaderMessageHandlerDemo>(sp => new(new HttpClientHandler()));
 
   services.AddScoped(sp =>

@@ -33,6 +33,8 @@ public static class MauiProgram
 
     builder.Services.AddScoped<LazyLoaderService>();
 
+    builder.Services.AddScoped<IContentSearchService, VectorContentSearchService>();
+
     builder.Services.AddTransient<CustomHeaderMessageHandlerDemo>(sp => new(new HttpClientHandler()));
 
     //builder.Services.AddScoped(sp =>
