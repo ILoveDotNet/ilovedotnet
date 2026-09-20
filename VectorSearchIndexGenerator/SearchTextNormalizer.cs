@@ -5,8 +5,11 @@ namespace VectorSearchIndexGenerator;
 internal static partial class SearchTextNormalizer
 {
   public static string Normalize(string text)
-    => SeparatorRegex().Replace(text, " ").Trim();
+    => WhitespaceRegex().Replace(SymbolRegex().Replace(text, " "), " ").Trim();
 
-  [GeneratedRegex(@"[^\p{L}\p{N}]+")]
-  private static partial Regex SeparatorRegex();
+  [GeneratedRegex(@"\p{S}")]
+  private static partial Regex SymbolRegex();
+
+  [GeneratedRegex(@"\s+")]
+  private static partial Regex WhitespaceRegex();
 }
