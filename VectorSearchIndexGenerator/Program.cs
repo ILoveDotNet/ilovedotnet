@@ -1,13 +1,17 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Globalization;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text.Json;
-using System.Globalization;
 using SharedModels;
 using VectorSearchIndexGenerator;
+
+const string ModelId = "Xenova/all-MiniLM-L6-v2";
+const string ModelRevision = "751bff37182d3f1213fa05d7196b954e230abad9";
 
 var outputDirectory = args.Length == 1
   ? Path.GetFullPath(args[0])
   : Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "CommonComponents", "wwwroot", "search"));
-var modelDirectory = Path.Combine(AppContext.BaseDirectory, ".model-cache");
+var modelDirectory = Path.Combine(DefaultModelDirectory(), ModelRevision);
 var metadataPath = Path.Combine(outputDirectory, "index.json");
 var vectorsPath = Path.Combine(outputDirectory, "index.vec");
 
@@ -17,10 +21,10 @@ Directory.CreateDirectory(modelDirectory);
 var modelPath = Path.Combine(modelDirectory, "model_quantized.onnx");
 var vocabularyPath = Path.Combine(modelDirectory, "vocab.txt");
 await DownloadIfMissingAsync(
-  "https://huggingface.co/Xenova/all-MiniLM-L6-v2/resolve/main/onnx/model_quantized.onnx",
+  $"https://huggingface.co/{ModelId}/resolve/{ModelRevision}/onnx/model_quantized.onnx",
   modelPath);
 await DownloadIfMissingAsync(
-  "https://huggingface.co/Xenova/all-MiniLM-L6-v2/resolve/main/vocab.txt",
+  $"https://huggingface.co/{ModelId}/resolve/{ModelRevision}/vocab.txt",
   vocabularyPath);
 
 var contents = new TableOfContents().AllContents;
@@ -31,28 +35,39 @@ if (contents.Count == 0)
 
 using var embedder = new MiniLmEmbedder(modelPath, vocabularyPath);
 var entries = new List<SearchIndexEntry>(contents.Count);
-await using var vectorStream = File.Create(vectorsPath);
-
-foreach (var content in contents)
+var temporaryVectorsPath = $"{vectorsPath}.tmp";
+var temporaryMetadataPath = $"{metadataPath}.tmp";
+await using (var vectorStream = File.Create(temporaryVectorsPath))
 {
-  var vector = embedder.Embed(CreateSearchDocument(content));
-  if (vector.Length != 384)
+  foreach (var content in contents)
   {
-    throw new InvalidOperationException($"Expected a 384-dimensional vector for '{content.Slug}', but received {vector.Length} dimensions.");
+    var vector = embedder.Embed(CreateSearchDocument(content));
+    if (vector.Length != MiniLmEmbedder.Dimensions)
+    {
+      throw new InvalidOperationException($"Expected a {MiniLmEmbedder.Dimensions}-dimensional vector for '{content.Slug}', but received {vector.Length} dimensions.");
+    }
+
+    vectorStream.Write(MemoryMarshal.AsBytes(vector.AsSpan()));
+    entries.Add(new SearchIndexEntry(
+      content.Slug,
+      content.ModifiedOn.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)));
   }
 
-  vectorStream.Write(MemoryMarshal.AsBytes(vector.AsSpan()));
-  entries.Add(new SearchIndexEntry(
-    content.Slug,
-    content.ModifiedOn.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)));
+  await vectorStream.FlushAsync();
 }
 
-await File.WriteAllTextAsync(metadataPath, JsonSerializer.Serialize(entries, SearchIndexJsonContext.Default.ListSearchIndexEntry));
-Console.WriteLine($"Generated {entries.Count} normalized 384-dimensional vectors in '{outputDirectory}'.");
+var index = new SearchIndexFile(ModelId, ModelRevision, MiniLmEmbedder.Dimensions, entries.Count, entries);
+await File.WriteAllTextAsync(temporaryMetadataPath, JsonSerializer.Serialize(index, SearchIndexJsonContext.Default.SearchIndexFile));
+File.Move(temporaryVectorsPath, vectorsPath, true);
+File.Move(temporaryMetadataPath, metadataPath, true);
+Console.WriteLine($"Generated {entries.Count} normalized {MiniLmEmbedder.Dimensions}-dimensional vectors in '{outputDirectory}'.");
 
 static string CreateSearchDocument(ContentMetaData content)
   => SearchTextNormalizer.Normalize(
     $"{content.Title} {content.Description} Keywords {string.Join(" ", content.Keywords)} Channel {content.Channel}");
+
+static string DefaultModelDirectory([CallerFilePath] string sourceFilePath = "")
+  => Path.Combine(Path.GetDirectoryName(sourceFilePath) ?? Directory.GetCurrentDirectory(), ".model-cache");
 
 static async Task DownloadIfMissingAsync(string url, string path)
 {
@@ -62,9 +77,14 @@ static async Task DownloadIfMissingAsync(string url, string path)
   }
 
   Console.WriteLine($"Downloading {url}...");
+  var temporaryPath = $"{path}.tmp";
   using var httpClient = new HttpClient();
   await using var source = await httpClient.GetStreamAsync(url);
-  await using var destination = File.Create(path);
-  await source.CopyToAsync(destination);
+  await using (var destination = File.Create(temporaryPath))
+  {
+    await source.CopyToAsync(destination);
+    await destination.FlushAsync();
+  }
+  File.Move(temporaryPath, path, true);
 }
 

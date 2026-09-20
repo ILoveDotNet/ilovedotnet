@@ -13,9 +13,12 @@ public class SearchBase : ComponentBase, IAsyncDisposable
   private short _selectedListItemIndex = -1;
   private string _searchText = string.Empty;
   private List<ContentMetaData> _filteredContents = [];
+  private int _searchVersion;
   private CancellationTokenSource? _searchCancellationTokenSource;
-  private readonly CancellationTokenSource _warmUpCancellationTokenSource = new();
-  private HotKeysContext HotKeysContext = default!;
+  private readonly CancellationTokenSource _lifetimeCancellationTokenSource = new();
+  private readonly CancellationTokenSource _warmUpDelayCancellationTokenSource = new();
+  private HotKeysContext? HotKeysContext;
+  private bool _disposed;
 
   protected bool HideNonSearchItems;
   protected Guid _componentId = Guid.NewGuid();
@@ -47,10 +50,17 @@ public class SearchBase : ComponentBase, IAsyncDisposable
   {
     if (firstRender)
     {
+      var importedModule = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/search.js");
+      if (_disposed)
+      {
+        await importedModule.DisposeAsync();
+        return;
+      }
+
+      module = importedModule;
       HotKeysContext = HotKeys.CreateContext()
                               .Add(Key.Slash, () => SearchInput.FocusAsync());
-      module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/search.js");
-      _ = WarmUpSearchAsync(_warmUpCancellationTokenSource.Token);
+      _ = WarmUpSearchAsync();
     }
   }
 
@@ -59,12 +69,16 @@ public class SearchBase : ComponentBase, IAsyncDisposable
   protected async Task SearchTextChangedAsync(ChangeEventArgs eventArgs)
   {
     SearchText = eventArgs.Value?.ToString() ?? string.Empty;
-    if (_searchCancellationTokenSource is not null)
+    var searchText = SearchText;
+    var searchVersion = ++_searchVersion;
+    var cancellationTokenSource = new CancellationTokenSource();
+    var cancellationToken = cancellationTokenSource.Token;
+    var previousCancellationTokenSource = Interlocked.Exchange(ref _searchCancellationTokenSource, cancellationTokenSource);
+    if (previousCancellationTokenSource is not null)
     {
-      await _searchCancellationTokenSource.CancelAsync();
+      await previousCancellationTokenSource.CancelAsync();
+      previousCancellationTokenSource.Dispose();
     }
-    _searchCancellationTokenSource?.Dispose();
-    _searchCancellationTokenSource = new CancellationTokenSource();
 
     if (string.IsNullOrWhiteSpace(SearchText))
     {
@@ -75,8 +89,14 @@ public class SearchBase : ComponentBase, IAsyncDisposable
 
     try
     {
-      await Task.Delay(400, _searchCancellationTokenSource.Token);
-      _filteredContents = [.. await ContentSearchService.SearchAsync(SearchText, _searchCancellationTokenSource.Token)];
+      await Task.Delay(400, cancellationToken);
+      var results = await ContentSearchService.SearchAsync(searchText, cancellationToken);
+      if (searchVersion != _searchVersion || !searchText.Equals(SearchText, StringComparison.Ordinal))
+      {
+        return;
+      }
+
+      _filteredContents = [.. results];
       ShowSuggestions = _filteredContents.Count > 0;
     }
     catch (OperationCanceledException)
@@ -85,22 +105,39 @@ public class SearchBase : ComponentBase, IAsyncDisposable
     }
     catch (Exception exception)
     {
-      _filteredContents = [];
-      ShowSuggestions = false;
+      if (searchVersion == _searchVersion)
+      {
+        _filteredContents = [];
+        ShowSuggestions = false;
+      }
       System.Diagnostics.Debug.WriteLine(exception.Message);
     }
   }
 
-  private async Task WarmUpSearchAsync(CancellationToken cancellationToken)
+  protected async Task FocusHandlerAsync()
+  {
+    await _warmUpDelayCancellationTokenSource.CancelAsync();
+  }
+
+  private async Task WarmUpSearchAsync()
   {
     try
     {
-      await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
-      await ContentSearchService.WarmUpAsync(cancellationToken);
+      await Task.Delay(TimeSpan.FromSeconds(1), _warmUpDelayCancellationTokenSource.Token);
     }
     catch (OperationCanceledException)
     {
-      return;
+      if (_lifetimeCancellationTokenSource.IsCancellationRequested)
+      {
+        return;
+      }
+
+      System.Diagnostics.Debug.WriteLine("Vector search warm-up started early because the search box received focus.");
+    }
+
+    try
+    {
+      await ContentSearchService.WarmUpAsync(_lifetimeCancellationTokenSource.Token);
     }
     catch (Exception exception)
     {
@@ -200,14 +237,22 @@ public class SearchBase : ComponentBase, IAsyncDisposable
 
   async ValueTask IAsyncDisposable.DisposeAsync()
   {
-    await _warmUpCancellationTokenSource.CancelAsync();
-    _warmUpCancellationTokenSource.Dispose();
-    if (_searchCancellationTokenSource is not null)
+    _disposed = true;
+    ++_searchVersion;
+    await _lifetimeCancellationTokenSource.CancelAsync();
+    await _warmUpDelayCancellationTokenSource.CancelAsync();
+    _warmUpDelayCancellationTokenSource.Dispose();
+    _lifetimeCancellationTokenSource.Dispose();
+    var searchCancellationTokenSource = Interlocked.Exchange(ref _searchCancellationTokenSource, null);
+    if (searchCancellationTokenSource is not null)
     {
-      await _searchCancellationTokenSource.CancelAsync();
+      await searchCancellationTokenSource.CancelAsync();
+      searchCancellationTokenSource.Dispose();
     }
-    _searchCancellationTokenSource?.Dispose();
-    await HotKeysContext.DisposeAsync();
+    if (HotKeysContext is not null)
+    {
+      await HotKeysContext.DisposeAsync();
+    }
 
     if (module is not null)
     {

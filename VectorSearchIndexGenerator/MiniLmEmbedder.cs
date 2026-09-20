@@ -6,8 +6,8 @@ namespace VectorSearchIndexGenerator;
 
 internal sealed class MiniLmEmbedder : IDisposable
 {
-  private const int Dimensions = 384;
-  private const int MaxTokens = 256;
+  public const int Dimensions = 384;
+  public const int MaxTokens = 256;
 
   private readonly InferenceSession _session;
   private readonly BertTokenizer _tokenizer;
@@ -49,7 +49,7 @@ internal sealed class MiniLmEmbedder : IDisposable
       NamedOnnxValue.CreateFromTensor("token_type_ids", tokenTypeIds)
     ]);
 
-    var hidden = results.First().AsTensor<float>();
+    var hidden = results[0].AsTensor<float>();
     var vector = new float[Dimensions];
     for (var token = 0; token < length; token++)
     {
