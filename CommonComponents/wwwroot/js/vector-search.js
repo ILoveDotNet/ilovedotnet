@@ -3,8 +3,8 @@ import { env, pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers
 const dimensions = 384;
 const assetPath = 'search/';
 
-let extractor;
 let indexPromise;
+let modelPromise;
 
 env.allowLocalModels = false;
 env.allowRemoteModels = true;
@@ -34,24 +34,59 @@ async function initializeIndex() {
     return { entries, vectors };
 }
 
-async function initializeModel() {
-    if (!extractor) {
-        extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
+function initializeModel() {
+    if (!modelPromise) {
+        modelPromise = pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
     }
+
+    return modelPromise;
+}
+
+function getIndex() {
+    if (!indexPromise) {
+        indexPromise = initializeIndex();
+    }
+
+    return indexPromise;
+}
+
+function normalizeText(text) {
+    return text.replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+}
+
+function localDate() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+export async function warmUp() {
+    await Promise.all([initializeModel(), getIndex()]);
 }
 
 export async function search(text, maximumResults) {
-    await initializeModel();
-    indexPromise ??= initializeIndex();
+    const normalizedText = normalizeText(text);
+    if (!normalizedText) {
+        return [];
+    }
 
-    const [{ entries, vectors }, output] = await Promise.all([
-        indexPromise,
-        extractor(text, { pooling: 'mean', normalize: true }),
+    const [extractor, { entries, vectors }] = await Promise.all([
+        initializeModel(),
+        getIndex(),
     ]);
+    const output = await extractor(normalizedText, { pooling: 'mean', normalize: true });
     const queryVector = output.data;
+    const today = localDate();
 
     return entries
-        .map((entry, entryIndex) => ({ slug: entry.Slug, score: dotProduct(queryVector, vectors, entryIndex) }))
+        .map((entry, entryIndex) => ({ entry, entryIndex }))
+        .filter(candidate => candidate.entry.PublishOn <= today)
+        .map(candidate => ({
+            slug: candidate.entry.Slug,
+            score: dotProduct(queryVector, vectors, candidate.entryIndex),
+        }))
         .sort((left, right) => right.score - left.score)
         .slice(0, maximumResults)
         .map(result => result.slug);
