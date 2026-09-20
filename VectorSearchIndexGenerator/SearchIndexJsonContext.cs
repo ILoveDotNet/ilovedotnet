@@ -2,5 +2,5 @@
 
 namespace VectorSearchIndexGenerator;
 
-[JsonSerializable(typeof(List<SearchIndexEntry>))]
+[JsonSerializable(typeof(SearchIndexFile))]
 internal sealed partial class SearchIndexJsonContext : JsonSerializerContext;

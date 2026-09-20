@@ -7,14 +7,15 @@ public sealed class VectorContentSearchService(
   IJSRuntime javaScriptRuntime,
   TableOfContents tableOfContents) : IContentSearchService, IAsyncDisposable
 {
-  private readonly Lazy<Task<IJSObjectReference>> _moduleTask = new(() =>
-    javaScriptRuntime.InvokeAsync<IJSObjectReference>("import", "./js/vector-search.js").AsTask());
+  private readonly Lock _moduleLock = new();
+  private Task<IJSObjectReference>? _moduleTask;
+  private bool _disposed;
   private readonly IReadOnlyDictionary<string, ContentMetaData> _contentsBySlug = tableOfContents.AllContents
     .ToDictionary(content => content.Slug, StringComparer.OrdinalIgnoreCase);
 
   public async Task WarmUpAsync(CancellationToken cancellationToken = default)
   {
-    var module = await _moduleTask.Value;
+    var module = await GetModuleAsync();
     await module.InvokeVoidAsync("warmUp", cancellationToken);
   }
 
@@ -25,7 +26,7 @@ public sealed class VectorContentSearchService(
       return [];
     }
 
-    var module = await _moduleTask.Value;
+    var module = await GetModuleAsync();
     var slugs = await module.InvokeAsync<string[]>("search", cancellationToken, searchText, 10);
     return
     [
@@ -38,19 +39,68 @@ public sealed class VectorContentSearchService(
 
   public async ValueTask DisposeAsync()
   {
-    if (!_moduleTask.IsValueCreated)
+    Task<IJSObjectReference>? moduleTask;
+    lock (_moduleLock)
     {
-      return;
+      if (_disposed)
+      {
+        return;
+      }
+
+      _disposed = true;
+      moduleTask = _moduleTask;
+      _moduleTask = null;
     }
+
+    if (moduleTask is null) return;
 
     try
     {
-      var module = await _moduleTask.Value;
+      var module = await moduleTask;
       await module.DisposeAsync();
     }
     catch (JSDisconnectedException exception)
     {
       System.Diagnostics.Debug.WriteLine(exception.Message);
+    }
+    catch (Exception exception)
+    {
+      System.Diagnostics.Debug.WriteLine(exception.Message);
+    }
+  }
+
+  private async Task<IJSObjectReference> GetModuleAsync()
+  {
+    Task<IJSObjectReference> moduleTask;
+    lock (_moduleLock)
+    {
+      ObjectDisposedException.ThrowIf(_disposed, this);
+      moduleTask = _moduleTask ??= javaScriptRuntime
+        .InvokeAsync<IJSObjectReference>("import", "./js/vector-search.js")
+        .AsTask();
+    }
+
+    try
+    {
+      var module = await moduleTask;
+      lock (_moduleLock)
+      {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+      }
+
+      return module;
+    }
+    catch
+    {
+      lock (_moduleLock)
+      {
+        if (!_disposed && ReferenceEquals(_moduleTask, moduleTask))
+        {
+          _moduleTask = null;
+        }
+      }
+
+      throw;
     }
   }
 }
