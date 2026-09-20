@@ -1,4 +1,4 @@
-import { env, pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
+import { env, pipeline } from '../lib/transformers/transformers.min.js';
 
 const dimensions = 384;
 const minimumScore = 0.25;
