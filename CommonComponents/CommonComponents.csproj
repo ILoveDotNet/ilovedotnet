@@ -18,6 +18,31 @@
     <ProjectReference Include="..\SharedModels\SharedModels.csproj" />
   </ItemGroup>
 
+  <PropertyGroup>
+    <TransformersBundleDirectory>$(MSBuildThisFileDirectory)..\TransformersBundle\</TransformersBundleDirectory>
+    <TransformersBundleOutput>wwwroot\lib\transformers\transformers.min.js</TransformersBundleOutput>
+    <TransformersLicenseOutput>wwwroot\lib\transformers\LICENSE.txt</TransformersLicenseOutput>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <TransformersBundleInput Include="$(TransformersBundleDirectory)src\**\*" />
+    <TransformersBundleInput Include="$(TransformersBundleDirectory)package.json" />
+    <TransformersBundleInput Include="$(TransformersBundleDirectory)package-lock.json" />
+  </ItemGroup>
+
+  <Target Name="BuildTransformersBundle" BeforeTargets="Restore;Build" Inputs="@(TransformersBundleInput)" Outputs="$(TransformersBundleOutput);$(TransformersLicenseOutput)">
+    <Exec Command="npm ci --include=dev" WorkingDirectory="$(TransformersBundleDirectory)" Condition="!Exists('$(TransformersBundleDirectory)node_modules\@xenova\transformers') OR !Exists('$(TransformersBundleDirectory)node_modules\esbuild')" />
+    <Exec Command="npm run build" WorkingDirectory="$(TransformersBundleDirectory)" />
+    <MakeDir Directories="$([System.IO.Path]::GetDirectoryName('$(MSBuildProjectDirectory)\$(TransformersBundleOutput)'))" />
+    <Copy SourceFiles="$(TransformersBundleDirectory)dist\transformers.min.js" DestinationFiles="$(TransformersBundleOutput)" />
+    <Copy SourceFiles="$(TransformersBundleDirectory)node_modules\@xenova\transformers\LICENSE" DestinationFiles="$(TransformersLicenseOutput)" />
+
+    <ItemGroup>
+      <Content Remove="$(TransformersBundleOutput);$(TransformersLicenseOutput)" />
+      <Content Include="$(TransformersBundleOutput);$(TransformersLicenseOutput)" />
+    </ItemGroup>
+  </Target>
+
   <ItemGroup>
     <SearchIndexInput Include="$(MSBuildThisFileDirectory)..\SharedModels\**\*.cs" />
     <SearchIndexInput Include="$(MSBuildThisFileDirectory)..\VectorSearchIndexGenerator\**\*.cs" Exclude="$(MSBuildThisFileDirectory)..\VectorSearchIndexGenerator\bin\**;$(MSBuildThisFileDirectory)..\VectorSearchIndexGenerator\obj\**" />
