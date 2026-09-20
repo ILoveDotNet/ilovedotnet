@@ -1,5 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 using System.Text.Json;
+using System.Globalization;
 using SharedModels;
 using VectorSearchIndexGenerator;
 
@@ -22,7 +23,7 @@ await DownloadIfMissingAsync(
   "https://huggingface.co/Xenova/all-MiniLM-L6-v2/resolve/main/vocab.txt",
   vocabularyPath);
 
-var contents = new TableOfContents().Contents;
+var contents = new TableOfContents().AllContents;
 if (contents.Count == 0)
 {
   throw new InvalidOperationException("The search index cannot be generated because there is no published content.");
@@ -41,14 +42,17 @@ foreach (var content in contents)
   }
 
   vectorStream.Write(MemoryMarshal.AsBytes(vector.AsSpan()));
-  entries.Add(new SearchIndexEntry(content.Slug));
+  entries.Add(new SearchIndexEntry(
+    content.Slug,
+    content.ModifiedOn.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)));
 }
 
 await File.WriteAllTextAsync(metadataPath, JsonSerializer.Serialize(entries, SearchIndexJsonContext.Default.ListSearchIndexEntry));
 Console.WriteLine($"Generated {entries.Count} normalized 384-dimensional vectors in '{outputDirectory}'.");
 
 static string CreateSearchDocument(ContentMetaData content)
-  => $"{content.Title}\n{content.Description}\nKeywords: {string.Join(", ", content.Keywords)}\nChannel: {content.Channel}";
+  => SearchTextNormalizer.Normalize(
+    $"{content.Title} {content.Description} Keywords {string.Join(" ", content.Keywords)} Channel {content.Channel}");
 
 static async Task DownloadIfMissingAsync(string url, string path)
 {

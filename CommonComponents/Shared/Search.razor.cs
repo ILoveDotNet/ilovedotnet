@@ -14,6 +14,7 @@ public class SearchBase : ComponentBase, IAsyncDisposable
   private string _searchText = string.Empty;
   private List<ContentMetaData> _filteredContents = [];
   private CancellationTokenSource? _searchCancellationTokenSource;
+  private readonly CancellationTokenSource _warmUpCancellationTokenSource = new();
   private HotKeysContext HotKeysContext = default!;
 
   protected bool HideNonSearchItems;
@@ -49,6 +50,7 @@ public class SearchBase : ComponentBase, IAsyncDisposable
       HotKeysContext = HotKeys.CreateContext()
                               .Add(Key.Slash, () => SearchInput.FocusAsync());
       module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/search.js");
+      _ = WarmUpSearchAsync(_warmUpCancellationTokenSource.Token);
     }
   }
 
@@ -73,6 +75,7 @@ public class SearchBase : ComponentBase, IAsyncDisposable
 
     try
     {
+      await Task.Delay(400, _searchCancellationTokenSource.Token);
       _filteredContents = [.. await ContentSearchService.SearchAsync(SearchText, _searchCancellationTokenSource.Token)];
       ShowSuggestions = _filteredContents.Count > 0;
     }
@@ -80,10 +83,28 @@ public class SearchBase : ComponentBase, IAsyncDisposable
     {
       return;
     }
-    catch
+    catch (Exception exception)
     {
       _filteredContents = [];
       ShowSuggestions = false;
+      System.Diagnostics.Debug.WriteLine(exception.Message);
+    }
+  }
+
+  private async Task WarmUpSearchAsync(CancellationToken cancellationToken)
+  {
+    try
+    {
+      await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
+      await ContentSearchService.WarmUpAsync(cancellationToken);
+    }
+    catch (OperationCanceledException)
+    {
+      return;
+    }
+    catch (Exception exception)
+    {
+      System.Diagnostics.Debug.WriteLine(exception.Message);
     }
   }
 
@@ -179,6 +200,8 @@ public class SearchBase : ComponentBase, IAsyncDisposable
 
   async ValueTask IAsyncDisposable.DisposeAsync()
   {
+    await _warmUpCancellationTokenSource.CancelAsync();
+    _warmUpCancellationTokenSource.Dispose();
     if (_searchCancellationTokenSource is not null)
     {
       await _searchCancellationTokenSource.CancelAsync();

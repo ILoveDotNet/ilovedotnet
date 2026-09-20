@@ -1,4 +1,4 @@
-using Microsoft.JSInterop;
+﻿using Microsoft.JSInterop;
 using SharedModels;
 
 namespace CommonComponents.Services;
@@ -9,8 +9,14 @@ public sealed class VectorContentSearchService(
 {
   private readonly Lazy<Task<IJSObjectReference>> _moduleTask = new(() =>
     javaScriptRuntime.InvokeAsync<IJSObjectReference>("import", "./js/vector-search.js").AsTask());
-  private readonly IReadOnlyDictionary<string, ContentMetaData> _contentsBySlug = tableOfContents.Contents
+  private readonly IReadOnlyDictionary<string, ContentMetaData> _contentsBySlug = tableOfContents.AllContents
     .ToDictionary(content => content.Slug, StringComparer.OrdinalIgnoreCase);
+
+  public async Task WarmUpAsync(CancellationToken cancellationToken = default)
+  {
+    var module = await _moduleTask.Value;
+    await module.InvokeVoidAsync("warmUp", cancellationToken);
+  }
 
   public async Task<IReadOnlyList<ContentMetaData>> SearchAsync(string searchText, CancellationToken cancellationToken = default)
   {
@@ -25,7 +31,7 @@ public sealed class VectorContentSearchService(
     [
       .. slugs
         .Select(slug => _contentsBySlug.GetValueOrDefault(slug))
-        .Where(content => content is not null)
+        .Where(content => content is not null && content.ModifiedOn.Date <= DateTime.Today)
         .Cast<ContentMetaData>()
     ];
   }
