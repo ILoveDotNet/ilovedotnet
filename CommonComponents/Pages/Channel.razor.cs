@@ -13,6 +13,7 @@ public class ChannelBase : ComponentBase
     "linq" => "LINQ Tutorial in C# - I ❤️ DotNet",
     "blazor" => "Blazor Tutorial - I ❤️ DotNet",
     "web api" => ".NET Core Web API Tutorial - I ❤️ DotNet",
+    "efcore" => "EF Core Tutorial in C# - Entity Framework Core, SQL Server & LINQ - I ❤️ DotNet",
     _ => $"{ContentType} - I ❤️ DotNet"
   };
   protected string Description => Name.ToLowerInvariant() switch
@@ -20,6 +21,7 @@ public class ChannelBase : ComponentBase
     "linq" => "LINQ tutorial in C# with practical examples for Select, OrderBy, GroupBy, joins, filtering, and aggregation.",
     "blazor" => "Blazor tutorial guides for building .NET WebAssembly applications with practical examples and live demos.",
     "web api" => ".NET Core Web API tutorial guides covering authentication, testing, performance, OpenAPI, and production practices.",
+    "efcore" => "EF Core tutorial in C# covering Entity Framework Core with SQL Server, LINQ, Code First, migrations, relationships, and practical examples.",
     _ => $"Practical .NET {ContentType} tutorials with live demos, examples, and learning resources for developers."
   };
   protected string BaseUrl => Configuration.GetValue<string>("baseUrl")!;
