@@ -21,25 +21,27 @@
   <PropertyGroup>
     <TransformersBundleDirectory>$(MSBuildThisFileDirectory)..\TransformersBundle\</TransformersBundleDirectory>
     <TransformersBundleOutput>wwwroot\lib\transformers\transformers.min.js</TransformersBundleOutput>
-    <TransformersLicenseOutput>wwwroot\lib\transformers\LICENSE.txt</TransformersLicenseOutput>
+    <ThirdPartyNoticesSource>$(MSBuildThisFileDirectory)..\THIRD-PARTY-NOTICES.txt</ThirdPartyNoticesSource>
+    <ThirdPartyNoticesOutput>wwwroot\THIRD-PARTY-NOTICES.txt</ThirdPartyNoticesOutput>
   </PropertyGroup>
 
   <ItemGroup>
     <TransformersBundleInput Include="$(TransformersBundleDirectory)src\**\*" />
     <TransformersBundleInput Include="$(TransformersBundleDirectory)package.json" />
     <TransformersBundleInput Include="$(TransformersBundleDirectory)package-lock.json" />
+    <TransformersBundleInput Include="$(ThirdPartyNoticesSource)" />
   </ItemGroup>
 
-  <Target Name="BuildTransformersBundle" BeforeTargets="Restore;Build" Inputs="@(TransformersBundleInput)" Outputs="$(TransformersBundleOutput);$(TransformersLicenseOutput)">
+  <Target Name="BuildTransformersBundle" BeforeTargets="Restore;Build" Inputs="@(TransformersBundleInput)" Outputs="$(TransformersBundleOutput);$(ThirdPartyNoticesOutput)">
     <Exec Command="npm ci --include=dev" WorkingDirectory="$(TransformersBundleDirectory)" Condition="!Exists('$(TransformersBundleDirectory)node_modules\@xenova\transformers') OR !Exists('$(TransformersBundleDirectory)node_modules\esbuild')" />
     <Exec Command="npm run build" WorkingDirectory="$(TransformersBundleDirectory)" />
     <MakeDir Directories="$([System.IO.Path]::GetDirectoryName('$(MSBuildProjectDirectory)\$(TransformersBundleOutput)'))" />
     <Copy SourceFiles="$(TransformersBundleDirectory)dist\transformers.min.js" DestinationFiles="$(TransformersBundleOutput)" />
-    <Copy SourceFiles="$(TransformersBundleDirectory)node_modules\@xenova\transformers\LICENSE" DestinationFiles="$(TransformersLicenseOutput)" />
+    <Copy SourceFiles="$(ThirdPartyNoticesSource)" DestinationFiles="$(ThirdPartyNoticesOutput)" />
 
     <ItemGroup>
-      <Content Remove="$(TransformersBundleOutput);$(TransformersLicenseOutput)" />
-      <Content Include="$(TransformersBundleOutput);$(TransformersLicenseOutput)" />
+      <Content Remove="$(TransformersBundleOutput);$(ThirdPartyNoticesOutput)" />
+      <Content Include="$(TransformersBundleOutput);$(ThirdPartyNoticesOutput)" />
     </ItemGroup>
   </Target>
 
