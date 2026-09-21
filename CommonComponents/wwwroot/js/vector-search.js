@@ -29,17 +29,19 @@ async function initializeIndex() {
     const index = await metadataResponse.json();
     const buffer = await vectorResponse.arrayBuffer();
     const vectors = new Float32Array(buffer);
+    const entries = index.Entries;
 
     if (index.Model !== model
         || index.ModelRevision !== modelRevision
         || index.Dimensions !== dimensions
-        || index.Count !== index.Entries?.length
-        || !index.Entries.every(isValidEntry)
+        || !Array.isArray(entries)
+        || index.Count !== entries.length
+        || !entries.every(isValidEntry)
         || vectors.length !== index.Count * dimensions) {
         throw new Error('The vector search index is incompatible with the configured embedding model.');
     }
 
-    return { entries: index.Entries, vectors };
+    return { entries, vectors };
 }
 
 function isValidEntry(entry) {
