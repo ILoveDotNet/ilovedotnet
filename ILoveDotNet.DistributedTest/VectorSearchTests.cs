@@ -50,6 +50,52 @@ public class VectorSearchTests(AppFixture fixture) : PageTest
     Assert.Equal((long)index.Count * index.Dimensions * sizeof(float), (await vectors.BodyAsync()).LongLength);
   }
 
+  [Fact]
+  public async Task SearchBox_ReturnsTheClosestArticleAsync()
+  {
+    const string expectedSlug = "using-github-copilot-ai-for-navigating-new-codebase";
+    const string expectedTitle = "using github copilot ai for navigating new codebase";
+
+    var metadata = await GetSuccessfulResponseAsync("search/index.json");
+    var index = JsonSerializer.Deserialize<SearchIndexFile>(await metadata.TextAsync());
+    Assert.NotNull(index);
+
+    var entryIndex = Array.FindIndex(index.Entries, entry => entry.Slug == expectedSlug);
+    Assert.True(entryIndex >= 0, $"Expected the search index to contain '{expectedSlug}'.");
+
+    var vectors = await GetSuccessfulResponseAsync("search/index.vec");
+    var vectorBytes = await vectors.BodyAsync();
+    var queryVector = new float[index.Dimensions];
+    Buffer.BlockCopy(
+        vectorBytes,
+        entryIndex * index.Dimensions * sizeof(float),
+        queryVector,
+        0,
+        index.Dimensions * sizeof(float));
+
+    var fakeTransformersModule = $$"""
+        export const env = {};
+        export async function pipeline() {
+          return async function() {
+            return { data: new Float32Array({{JsonSerializer.Serialize(queryVector)}}) };
+          };
+        }
+        """;
+    await Page.RouteAsync("**/lib/transformers/transformers.min.js", route =>
+        route.FulfillAsync(new()
+        {
+          Status = 200,
+          ContentType = "text/javascript",
+          Body = fakeTransformersModule,
+        }));
+
+    await Page.GotoAsync(WebBaseUrl.AbsoluteUri);
+    await Page.Locator("input[name='search']").FillAsync("find an article about navigating a new codebase with copilot");
+
+    var firstResult = Page.Locator("#dropdown-menu .dropdown-item").First;
+    await Expect(firstResult).ToHaveTextAsync(expectedTitle, new() { Timeout = 15_000 });
+  }
+
   private async Task<IAPIResponse> GetSuccessfulResponseAsync(string path)
   {
     var response = await Page.Context.APIRequest.GetAsync(new Uri(WebBaseUrl, path).AbsoluteUri);
