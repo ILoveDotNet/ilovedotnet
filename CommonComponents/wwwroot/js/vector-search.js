@@ -121,6 +121,11 @@ export async function search(text, maximumResults) {
     if (queryVector.length !== dimensions) {
         throw new Error(`The embedding model returned ${queryVector.length} dimensions instead of ${dimensions}.`);
     }
+
+    return rank(queryVector, entries, vectors, maximumResults);
+}
+
+function rank(queryVector, entries, vectors, maximumResults) {
     const today = localDate();
 
     return entries
