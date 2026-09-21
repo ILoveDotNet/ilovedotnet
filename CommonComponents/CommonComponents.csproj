@@ -32,12 +32,12 @@
     <TransformersBundleInput Include="$(ThirdPartyNoticesSource)" />
   </ItemGroup>
 
-  <Target Name="BuildTransformersBundle" BeforeTargets="Restore;Build" Inputs="@(TransformersBundleInput)" Outputs="$(TransformersBundleOutput);$(ThirdPartyNoticesOutput)">
+  <Target Name="BuildTransformersBundle" BeforeTargets="ResolveProjectStaticWebAssets" Inputs="@(TransformersBundleInput)" Outputs="$(TransformersBundleOutput);$(ThirdPartyNoticesOutput)">
     <Exec Command="npm ci --include=dev" WorkingDirectory="$(TransformersBundleDirectory)" Condition="!Exists('$(TransformersBundleDirectory)node_modules\@xenova\transformers') OR !Exists('$(TransformersBundleDirectory)node_modules\esbuild')" />
     <Exec Command="npm run build" WorkingDirectory="$(TransformersBundleDirectory)" />
     <MakeDir Directories="$([System.IO.Path]::GetDirectoryName('$(MSBuildProjectDirectory)\$(TransformersBundleOutput)'))" />
-    <Copy SourceFiles="$(TransformersBundleDirectory)dist\transformers.min.js" DestinationFiles="$(TransformersBundleOutput)" />
-    <Copy SourceFiles="$(ThirdPartyNoticesSource)" DestinationFiles="$(ThirdPartyNoticesOutput)" />
+    <Copy SourceFiles="$(TransformersBundleDirectory)dist\transformers.min.js" DestinationFiles="$(MSBuildProjectDirectory)\$(TransformersBundleOutput)" />
+    <Copy SourceFiles="$(ThirdPartyNoticesSource)" DestinationFiles="$(MSBuildProjectDirectory)\$(ThirdPartyNoticesOutput)" />
 
     <ItemGroup>
       <Content Remove="$(TransformersBundleOutput);$(ThirdPartyNoticesOutput)" />
