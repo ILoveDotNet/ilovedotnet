@@ -1,0 +1,539 @@
+@page "/blogs/building-local-ai-vector-search-in-dotnet"
+@using SharedModels
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(BuildLocalAIVectorSearchInDotnet)>
+  <ContentBody>
+    <What>
+      <p>
+        A search box that only finds the exact words a reader typed makes useful content surprisingly hard to discover.
+        <Highlight>Vector search</Highlight>, also called <Highlight>semantic search</Highlight>, solves that problem by comparing meaning rather than spelling.
+        A query such as “how do I make my app search by meaning?” can therefore find content about embeddings even when it never uses that exact sentence.
+      </p>
+
+      <p>
+        This site replaces traditional keyword matching with a small, local-first <Highlight>AI vector search pipeline</Highlight>.
+        It turns each article’s title, description, keywords, and channel into a <Highlight>384-dimensional embedding</Highlight> at build time,
+        then ranks the static vectors in the reader’s browser when they search.
+        The result is a semantic search experience without a search API, server-side query processing, or a vector database.
+      </p>
+
+      <p>
+        The internet shows sustained interest in <Highlight>what is vector search</Highlight>,
+        <Highlight>semantic search</Highlight>, <Highlight>vector database</Highlight>, and <Highlight>RAG</Highlight> (retrieval-augmented generation).
+        Those terms describe a broad AI retrieval landscape; this article focuses on the deliberately smaller and more controllable static-site pattern used here.
+      </p>
+    </What>
+
+    <Why>
+      <p>
+        Keyword search fails whenever a reader and an author choose different words for the same idea.
+        A title about “cancellation while accessing APIs” may be the right result for “stop HTTP requests when the user leaves,”
+        but a literal token comparison has little evidence that the phrases belong together.
+      </p>
+
+      <p>
+        This mismatch becomes costly as a learning site grows because tags become inconsistent and every new synonym demands another manual keyword.
+        Sending each keystroke to a hosted search service also adds latency, operational cost, and a new place where reader queries can leave the device.
+        For a static catalogue, adding a remote database merely to compare a few hundred documents is often a rather expensive way to solve a small problem.
+      </p>
+
+      <p>
+        A local <Highlight>vector index</Highlight> gives the browser enough semantic context to rank the existing catalogue itself.
+        The following implementation creates compatible normalized vectors for content and queries, then uses their <Highlight>dot product</Highlight> as a similarity score.
+        In short: it makes search more forgiving while keeping the content index under the site’s deployment control.
+      </p>
+
+      <h4>Understand what “local” protects and what it does not</h4>
+
+      <p>
+        The generated <Highlight>index.json</Highlight> and <Highlight>index.vec</Highlight> files are shipped as static assets, so article vectors and ranking happen locally after download.
+        The index also records the <Highlight>model identifier</Highlight>, immutable <Highlight>model revision</Highlight>, dimensions, entry count, and publish dates; browser code rejects incompatible metadata and invalid vector lengths before ranking.
+      </p>
+
+      <p>
+        However, “local index” is not automatically “fully offline model supply chain.”
+        The current browser configuration permits the pinned embedding model to download remotely, while the build generator caches its pinned <Highlight>ONNX model</Highlight> and vocabulary locally after first use.
+        That pin prevents an unreviewed latest-version change, but full offline control additionally requires serving reviewed model files from your own static assets and disabling remote model access.
+      </p>
+    </Why>
+
+    <How>
+      <h4>Step 1: Define the search contract</h4>
+
+      <p>
+        Start with an interface so the <Highlight>Razor component</Highlight> does not know whether search uses keywords, vectors, or a remote provider.
+        This repository keeps the contract deliberately small: warm the model and index, then search for article metadata.
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+namespace CommonComponents.Services;
+
+// Keep the UI independent from the concrete keyword or vector-search implementation.
+public interface IContentSearchService
+{
+  // Warm the model and index before the first interactive search when possible.
+  Task WarmUpAsync(CancellationToken cancellationToken = default);
+
+  // Return article metadata so the UI never handles vector storage directly.
+  Task&lt;IReadOnlyList&lt;ContentMetaData&gt;&gt; SearchAsync(
+    string searchText,
+    CancellationToken cancellationToken = default);
+}
+      </CodeSnippet>
+
+      <p>
+        Return <Highlight>ContentMetaData</Highlight> rather than raw vectors from this contract.
+        The UI needs a title and URL, while the embedding dimensions and binary storage remain implementation details.
+      </p>
+
+      <h4>Step 2: Add a deterministic embedding index project</h4>
+
+      <p>
+        Create a console project that runs during the build and reference the project containing your content metadata.
+        The generator in this repository uses <Highlight>ONNX Runtime</Highlight> for inference and <Highlight>Microsoft.ML.Tokenizers</Highlight> for <Highlight>BERT tokenization</Highlight>.
+        Central package management keeps these versions controlled in <Highlight>Directory.Packages.props</Highlight>.
+      </p>
+
+      <CodeSnippet CssClass="language-xml">
+&lt;Project Sdk="Microsoft.NET.Sdk"&gt;
+  &lt;PropertyGroup&gt;
+    &lt;!-- Run this project as a build-time console tool. --&gt;
+    &lt;OutputType&gt;Exe&lt;/OutputType&gt;
+    &lt;IsPackable&gt;false&lt;/IsPackable&gt;
+  &lt;/PropertyGroup&gt;
+
+  &lt;ItemGroup&gt;
+    &lt;!-- Read the shared article catalogue while generating vectors. --&gt;
+    &lt;ProjectReference Include="..\SharedModels\SharedModels.csproj" /&gt;
+    &lt;!-- Run the pinned embedding model locally during the build. --&gt;
+    &lt;PackageReference Include="Microsoft.ML.OnnxRuntime" /&gt;
+    &lt;PackageReference Include="Microsoft.ML.Tokenizers" /&gt;
+  &lt;/ItemGroup&gt;
+&lt;/Project&gt;
+      </CodeSnippet>
+
+      <p>
+        Pin the model identity and revision in one place shared by the generator and browser module.
+        This example uses <Highlight>Xenova/all-MiniLM-L6-v2</Highlight>, a <Highlight>MiniLM embedding model</Highlight>, revision <Highlight>751bff37182d3f1213fa05d7196b954e230abad9</Highlight>,
+        and 384 output dimensions.
+      </p>
+
+      <h4>Step 3: Convert metadata into normalized vectors</h4>
+
+      <p>
+        Build one searchable string from each article’s title, description, keywords, and channel.
+        Normalize whitespace and symbols before <Highlight>tokenization</Highlight> so equivalent metadata produces stable input.
+        The embedder truncates input to 256 tokens, <Highlight>mean-pools</Highlight> the token representations, and normalizes the result to unit length.
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+internal sealed class MiniLmEmbedder : IDisposable
+{
+  public const int Dimensions = 384;
+  public const int MaxTokens = 256;
+
+  private readonly InferenceSession _session;
+  private readonly BertTokenizer _tokenizer;
+
+  public MiniLmEmbedder(string onnxModelPath, string vocabularyPath)
+  {
+    // Load the pinned ONNX model and its matching BERT vocabulary.
+    _session = new InferenceSession(onnxModelPath);
+    _tokenizer = BertTokenizer.Create(vocabularyPath, new BertOptions
+    {
+      LowerCaseBeforeTokenization = true,
+      ApplyBasicTokenization = true
+    });
+  }
+
+  public float[] Embed(string text)
+  {
+    // Convert normalized text into BERT token IDs.
+    var tokenIds = _tokenizer.EncodeToIds(text).ToArray();
+    if (tokenIds.Length &gt; MaxTokens)
+    {
+      // Preserve the separator token after truncating long metadata.
+      tokenIds = tokenIds[..MaxTokens];
+      tokenIds[^1] = _tokenizer.SeparatorTokenId;
+    }
+
+    var length = tokenIds.Length;
+    // ONNX Runtime expects three BERT tensors with matching lengths.
+    var inputIds = new DenseTensor&lt;long&gt;([1, length]);
+    var attentionMask = new DenseTensor&lt;long&gt;([1, length]);
+    var tokenTypeIds = new DenseTensor&lt;long&gt;([1, length]);
+
+    for (var index = 0; index &lt; length; index++)
+    {
+      inputIds[0, index] = tokenIds[index];
+      // Mark every token as active; token type IDs remain zero for one sequence.
+      attentionMask[0, index] = 1;
+    }
+
+    // Execute the pinned MiniLM ONNX model.
+    using var results = _session.Run([
+      NamedOnnxValue.CreateFromTensor("input_ids", inputIds),
+      NamedOnnxValue.CreateFromTensor("attention_mask", attentionMask),
+      NamedOnnxValue.CreateFromTensor("token_type_ids", tokenTypeIds)
+    ]);
+
+    var hidden = results[0].AsTensor&lt;float&gt;();
+    var vector = new float[Dimensions];
+    // Mean-pool token states into one document embedding.
+    for (var token = 0; token &lt; length; token++)
+    {
+      for (var dimension = 0; dimension &lt; Dimensions; dimension++)
+      {
+        vector[dimension] += hidden[0, token, dimension];
+      }
+    }
+
+    for (var dimension = 0; dimension &lt; Dimensions; dimension++)
+    {
+      vector[dimension] /= length;
+    }
+
+    var norm = MathF.Sqrt(vector.Sum(value =&gt; value * value));
+    // Unit-normalize so the dot product represents cosine similarity.
+    for (var dimension = 0; dimension &lt; Dimensions; dimension++)
+    {
+      vector[dimension] /= norm;
+    }
+
+    return vector;
+  }
+}
+      </CodeSnippet>
+
+      <p>
+        The shortened snippet highlights the algorithm; the complete implementation must populate all three tensors and perform the <Highlight>ONNX inference call</Highlight>.
+        Do not replace mean pooling or normalization independently for documents and queries: both sides must use the same <Highlight>embedding procedure</Highlight>.
+      </p>
+
+      <p>
+        Create the document text from the same metadata that identifies the article in the catalogue.
+        Including keywords and the channel gives the embedding model additional semantic signals without storing the article body in the vector index.
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+static string CreateSearchDocument(ContentMetaData content)
+  // Combine searchable metadata; article bodies are not stored in the vector index.
+  =&gt; SearchTextNormalizer.Normalize(
+    $"{content.Title} {content.Description} " +
+    $"Keywords {string.Join(" ", content.Keywords)} " +
+    $"Channel {content.Channel}");
+      </CodeSnippet>
+
+      <h4>Step 4: Write metadata and binary vectors together</h4>
+
+      <p>
+        Store vector values as contiguous <Highlight>float32</Highlight> values and store only the slug and publication date in <Highlight>JSON metadata</Highlight>.
+        The array position is the join key: entry zero in <Highlight>index.json</Highlight> owns the first 384 floats in <Highlight>index.vec</Highlight>.
+        Temporary files and final moves prevent a partially written index from becoming the deployed asset.
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+var contents = new TableOfContents().AllContents;
+var entries = new List&lt;SearchIndexEntry&gt;(contents.Count);
+
+// Keep vector order and metadata order identical: one slug owns 384 floats.
+await using (var vectorStream = File.Create(temporaryVectorsPath))
+{
+  foreach (var content in contents)
+  {
+    // Generate one normalized vector for the article metadata.
+    var vector = embedder.Embed(CreateSearchDocument(content));
+    vectorStream.Write(MemoryMarshal.AsBytes(vector.AsSpan()));
+    // Store only the lookup key and publication date in JSON metadata.
+    entries.Add(new SearchIndexEntry(
+      content.Slug,
+      content.ModifiedOn.ToString(
+        "yyyy-MM-dd",
+        CultureInfo.InvariantCulture)));
+  }
+}
+
+// Record the model contract so the browser can reject incompatible assets.
+var index = new SearchIndexFile(
+  ModelId,
+  ModelRevision,
+  MiniLmEmbedder.Dimensions,
+  entries.Count,
+  entries);
+
+// Serialize metadata separately from the compact binary vector file.
+await File.WriteAllTextAsync(
+  temporaryMetadataPath,
+  JsonSerializer.Serialize(
+    index,
+    SearchIndexJsonContext.Default.SearchIndexFile));
+
+// Replace final files only after generation succeeds.
+File.Move(temporaryVectorsPath, vectorsPath, true);
+File.Move(temporaryMetadataPath, metadataPath, true);
+      </CodeSnippet>
+
+      <h4>Step 5: Run the generator automatically from MSBuild</h4>
+
+      <p>
+        Add the generator source, project file, metadata sources, package versions, and browser module to the <Highlight>MSBuild input list</Highlight>.
+        The target then reruns whenever one of those inputs changes and includes the generated files as <Highlight>static web assets</Highlight>.
+      </p>
+
+      <CodeSnippet CssClass="language-xml">
+&lt;ItemGroup&gt;
+  &lt;!-- Rebuild when catalogue, generator, package, or browser code changes. --&gt;
+  &lt;SearchIndexInput Include="$(MSBuildThisFileDirectory)..\SharedModels\**\*.cs" /&gt;
+  &lt;SearchIndexInput Include="$(MSBuildThisFileDirectory)..\VectorSearchIndexGenerator\**\*.cs"
+                    Exclude="$(MSBuildThisFileDirectory)..\VectorSearchIndexGenerator\bin\**;$(MSBuildThisFileDirectory)..\VectorSearchIndexGenerator\obj\**" /&gt;
+  &lt;SearchIndexInput Include="$(MSBuildThisFileDirectory)..\VectorSearchIndexGenerator\VectorSearchIndexGenerator.csproj" /&gt;
+  &lt;SearchIndexInput Include="$(MSBuildThisFileDirectory)..\Directory.Packages.props" /&gt;
+  &lt;SearchIndexInput Include="wwwroot\js\vector-search.js" /&gt;
+&lt;/ItemGroup&gt;
+
+&lt;Target Name="GenerateContentVectorIndex"
+  BeforeTargets="ResolveProjectStaticWebAssets"
+  Inputs="@@(SearchIndexInput)"
+  Outputs="wwwroot\search\index.json;wwwroot\search\index.vec"&gt;
+  &lt;!-- Generate the index before static web assets are resolved. --&gt;
+  &lt;Exec Command="dotnet run --project &amp;quot;$(MSBuildThisFileDirectory)..\VectorSearchIndexGenerator\VectorSearchIndexGenerator.csproj&amp;quot; -- &amp;quot;$(MSBuildThisFileDirectory)wwwroot\search&amp;quot;" /&gt;
+&lt;/Target&gt;
+      </CodeSnippet>
+
+      <p>
+        Run <Highlight>dotnet build Web/Web.csproj</Highlight> after adding or editing content.
+        Inspect <Highlight>CommonComponents/wwwroot/search/index.json</Highlight> to confirm the article slug and model revision, and keep the binary index beside it.
+      </p>
+
+      <h4>Step 6: Load and validate the index in the browser</h4>
+
+      <p>
+        Import the repository’s bundled <Highlight>Transformers.js module</Highlight> and cache both the model promise and index promise.
+        Validate the model identity, revision, dimensions, entry count, dates, and vector length before calculating a score.
+        This fails fast instead of silently ranking vectors generated by a different model.
+      </p>
+
+      <CodeSnippet CssClass="language-javascript">
+import { env, pipeline } from '../lib/transformers/transformers.min.js';
+
+// These values must match the build-time generator exactly.
+const dimensions = 384;
+const model = 'Xenova/all-MiniLM-L6-v2';
+const modelRevision = '751bff37182d3f1213fa05d7196b954e230abad9';
+
+// The current repository allows the pinned model to be fetched remotely.
+env.allowLocalModels = false;
+env.allowRemoteModels = true;
+
+async function initializeIndex() {
+  // Load metadata and binary vectors together from static web assets.
+    const [metadataResponse, vectorResponse] = await Promise.all([
+        fetch(new URL('search/index.json', document.baseURI)),
+        fetch(new URL('search/index.vec', document.baseURI)),
+    ]);
+
+    if (!metadataResponse.ok || !vectorResponse.ok) {
+      throw new Error('The vector search index could not be loaded.');
+    }
+
+    const index = await metadataResponse.json();
+    const vectors = new Float32Array(
+        await vectorResponse.arrayBuffer());
+
+    // Reject assets generated with another model or incompatible dimensions.
+    if (index.Model !== model
+        || index.ModelRevision !== modelRevision
+        || index.Dimensions !== dimensions
+      || !Array.isArray(index.Entries)
+      || index.Count !== index.Entries.length
+        || vectors.length !== index.Count * dimensions) {
+        throw new Error('The vector index is incompatible.');
+    }
+
+    return { entries: index.Entries, vectors };
+}
+      </CodeSnippet>
+
+      <h4>Step 7: Embed the query and rank the top results</h4>
+
+      <p>
+        Embed the normalized query with the same model and options used for the document vectors.
+        Filter future publication dates, calculate the <Highlight>dot product</Highlight> against each 384-value slice, discard scores below 0.25,
+        sort descending, and return the requested maximum number of slugs.
+      </p>
+
+      <CodeSnippet CssClass="language-javascript">
+// Embed the query with the same pooling and normalization as documents.
+const output = await extractor(
+    normalizedText,
+    { pooling: 'mean', normalize: true });
+const queryVector = output.data;
+
+// Rank published entries, apply the threshold, and cap the result count.
+return entries
+    .map((entry, entryIndex) =&gt; ({ entry, entryIndex }))
+    .filter(candidate =&gt; candidate.entry.PublishOn &lt;= localDate())
+    .map(candidate =&gt; ({
+        slug: candidate.entry.Slug,
+        score: dotProduct(
+            queryVector,
+            vectors,
+            candidate.entryIndex),
+    }))
+    .filter(candidate =&gt; candidate.score &gt;= 0.25)
+    .sort((left, right) =&gt; right.score - left.score)
+    .slice(0, maximumResults)
+    .map(result =&gt; result.slug);
+      </CodeSnippet>
+
+      <CodeSnippet CssClass="language-text">
+Query: "find articles about semantic retrieval"
+
+Candidate article                         Similarity       Outcome
+---------------------------------------   ----------       ----------------
+Local AI vector search in .NET              0.82           show first
+Building an AI chat application              0.43           show later
+Introduction to logging                     0.11           below threshold
+      </CodeSnippet>
+
+      <h4>Step 8: Bridge JavaScript results back to .NET</h4>
+
+      <p>
+        Keep JavaScript responsible for numerical work and return only slugs through <Highlight>JavaScript interop</Highlight>.
+        The .NET service resolves those slugs against <Highlight>TableOfContents.AllContents</Highlight>, applies a second future-date check,
+        and returns complete <Highlight>ContentMetaData</Highlight> objects to the component.
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+public async Task&lt;IReadOnlyList&lt;ContentMetaData&gt;&gt; SearchAsync(
+  string searchText,
+  CancellationToken cancellationToken = default)
+{
+  // Avoid loading the model for an empty query.
+  if (string.IsNullOrWhiteSpace(searchText))
+  {
+    return [];
+  }
+
+  // Call the cached browser module and request at most ten slugs.
+  var module = await GetModuleAsync();
+  var slugs = await module.InvokeAsync&lt;string[]&gt;(
+    "search",
+    cancellationToken,
+    searchText,
+    10);
+
+  // Resolve slugs to trusted catalogue metadata and hide scheduled content.
+  return [
+    .. slugs
+      .Select(slug =&gt; _contentsBySlug.GetValueOrDefault(slug))
+      .Where(content =&gt; content is not null
+        &amp;&amp; content.ModifiedOn.Date &lt;= DateTime.Today)
+      .Cast&lt;ContentMetaData&gt;()
+  ];
+}
+      </CodeSnippet>
+
+      <p>
+        Register the implementation in both application entry points so <Highlight>Blazor WebAssembly</Highlight> and <Highlight>.NET MAUI</Highlight> use the same service.
+        The existing applications do this with a <Highlight>scoped lifetime</Highlight> because the JavaScript module and content lookup belong to one app session.
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+    // Use the same implementation in both WebAssembly and MAUI entry points.
+services.AddScoped&lt;IContentSearchService, VectorContentSearchService&gt;();
+      </CodeSnippet>
+
+      <h4>Connect the search box without racing requests</h4>
+
+      <p>
+        In <Highlight>Search.razor.cs</Highlight>, <Highlight>debounce</Highlight> input for 400 milliseconds, cancel the previous token, and increment a search version.
+        Only the latest version may update the suggestions list; this prevents a slow query from replacing results for newer text.
+        Warm the model after the first render, or earlier when the input receives focus.
+      </p>
+
+      <CodeSnippet CssClass="language-csharp">
+// Debounce keystrokes so every character does not start an embedding operation.
+await Task.Delay(400, cancellationToken);
+var results = await ContentSearchService.SearchAsync(
+  searchText,
+  cancellationToken);
+
+// Ignore an older query that completed after newer input arrived.
+if (searchVersion != _searchVersion
+    || !searchText.Equals(
+      SearchText,
+      StringComparison.Ordinal))
+{
+  return;
+}
+
+_filteredContents = [.. results];
+ShowSuggestions = _filteredContents.Count &gt; 0;
+      </CodeSnippet>
+
+      <CodeSnippet CssClass="language-text">
+                         BUILD TIME
+
+  TableOfContents --&gt; VectorSearchIndexGenerator
+        |                    |
+        |                    +-- pinned ONNX model + vocabulary
+        v                    v
+  article metadata --&gt; index.json + index.vec --&gt; static deployment
+
+                         SEARCH TIME
+
+  Search.razor.cs --&gt; IContentSearchService --&gt; vector-search.js
+        ^                                             |
+        |                                             +-- query embedding
+        |                                             +-- local index loading
+        |                                             +-- score, filter, sort
+        +----------- article slugs &lt;------------------+
+      </CodeSnippet>
+
+      <h4>Harden the local supply chain before calling it fully offline</h4>
+
+      <p>
+        The current repository pins the model revision and <Highlight>package lockfile</Highlight>, but its browser module sets <Highlight>allowRemoteModels</Highlight> to true.
+        For a fully local runtime, vendor the reviewed model files under the application’s static assets, set <Highlight>allowLocalModels</Highlight> to true,
+        set <Highlight>allowRemoteModels</Highlight> to false, verify hashes in CI, and test with the model host blocked.
+        Keep the build-time model cache and browser model revision identical so document and query vectors remain compatible.
+      </p>
+
+      <CodeSnippet CssClass="language-javascript">
+env.allowLocalModels = true;
+env.allowRemoteModels = false;
+// Point Transformers.js at model files reviewed and deployed by your application.
+env.localModelPath = new URL(
+    './models/',
+    document.baseURI).toString();
+      </CodeSnippet>
+
+      <p>
+        Exact scoring scans every vector, which is appropriate for this site’s modest catalogue.
+        If the catalogue becomes large, replace the <Highlight>linear scan</Highlight> with an <Highlight>approximate-nearest-neighbour index</Highlight> or a dedicated <Highlight>vector store</Highlight>,
+        but regenerate every document vector whenever the embedding model changes.
+      </p>
+    </How>
+
+    <Summary>
+      <p>
+        Local AI vector search gives a static .NET site a useful semantic retrieval layer without sending every query to a search API or server-side query processor.
+        It works because documents and queries use the same embedding model, normalization makes scores comparable, and the browser can rank the published static index directly.
+      </p>
+      <ul>
+        <li><Highlight>Embeddings</Highlight> represent the meaning of content as numeric vectors rather than literal keywords.</li>
+        <li><Highlight>Normalized dot products</Highlight> rank semantic similarity and let a threshold discard weak matches.</li>
+        <li><Highlight>Build-time indexing</Highlight> keeps search data static, deployable, and independent of a vector database.</li>
+        <li><Highlight>Revision pinning and validation</Highlight> protect compatibility, but locally hosting model assets is required for fully offline model delivery.</li>
+        <li><Highlight>Debouncing, cancellation, and publish-date checks</Highlight> keep the reader experience responsive and correct.</li>
+      </ul>
+      <p>
+        What to read next: explore <a href="blogs/building-ai-chat-applications-in-dotnet-with-microsoft-extensions-ai">AI chat applications in .NET with Microsoft.Extensions.AI</a>
+        or learn how <a href="blogs/using-github-copilot-ai-for-navigating-new-codebase">GitHub Copilot can help you navigate a new codebase</a>.
+      </p>
+    </Summary>
+  </ContentBody>
+</Content>

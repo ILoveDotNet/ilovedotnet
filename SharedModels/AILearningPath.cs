@@ -2,7 +2,7 @@
 
 public class AILearningPath
 {
-  public readonly List<ContentMetaData> FullContents = new(7);
+  public readonly List<ContentMetaData> FullContents = new(8);
 
   public AILearningPath()
   {
@@ -126,6 +126,23 @@ public class AILearningPath
           CreatedOn = new DateTime(2026, 2, 15, 22, 30, 0, DateTimeKind.Utc),
           ModifiedOn = new DateTime(2026, 2, 15, 22, 30, 0, DateTimeKind.Utc),
           Keywords = ["Copilot", "GitHub", "AI Skill", "NuGet", "Package Management", "MCP", "Breaking Changes"]
+        },
+      new ContentMetaData
+        {
+          Order = 8,
+          Title = "Building Local AI Vector Search in .NET",
+          Description = "Learn what vector search is and how this .NET site builds a locally ranked semantic search index with pinned AI model revisions, ONNX embeddings, and browser-side similarity scoring.",
+          Author = "Abdul Rahman",
+          Slug = "building-local-ai-vector-search-in-dotnet",
+          PosterUrl = "image/blogs/ai/building-local-ai-vector-search-in-dotnet.webp",
+          ThumbnailUrl = "image/blogs/ai/building-local-ai-vector-search-in-dotnet.webp",
+          ContentUrl = "blogs/building-local-ai-vector-search-in-dotnet",
+          IconUrl = "image/icons/ai.webp",
+          Channel = "AI",
+          Type = "blogs",
+          CreatedOn = new DateTime(2027, 1, 24, 22, 30, 0, DateTimeKind.Utc),
+          ModifiedOn = new DateTime(2027, 1, 24, 22, 30, 0, DateTimeKind.Utc),
+          Keywords = ["AI", "Vector Search", "Semantic Search", "Embeddings", "ONNX", "Local Search", "RAG", ".NET"]
         }
     ];
   }
