@@ -10,6 +10,9 @@ public class AppFixture : IAsyncLifetime
 
   public async ValueTask InitializeAsync()
   {
+    // Blazor WASM cold boot on CI runners easily exceeds Playwright's 5s default.
+    Assertions.SetDefaultExpectTimeout(30_000);
+
     var cancellationToken = new CancellationTokenSource(_defaultTimeout).Token;
     var appHost = await DistributedApplicationTestingBuilder
         .CreateAsync<Projects.ILoveDotNet_AppHost>(
