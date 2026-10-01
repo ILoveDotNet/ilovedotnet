@@ -52,7 +52,7 @@ public class PageTests(AppFixture fixture) : PageTest
   public async Task CareerPage_Loads_Successfully()
   {
     await Page.GotoAsync($"{WebBaseUrl.AbsoluteUri}career");
-    await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "Career" })).ToBeVisibleAsync();
+    await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "Career", Exact = true })).ToBeVisibleAsync();
   }
 
   [Fact]
