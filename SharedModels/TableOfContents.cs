@@ -3,9 +3,9 @@
 public class TableOfContents
 {
   public const int PageSize = 12;
-  private readonly List<ContentMetaData> _fullContents = [with(223)];
-  private readonly List<AuthorMetaData> _fullAuthors = [with(1)];
-  private readonly List<SponsorMetaData> _fullSponsors = [with(1)];
+  private readonly List<ContentMetaData> _fullContents = new(223);
+  private readonly List<AuthorMetaData> _fullAuthors = new(1);
+  private readonly List<SponsorMetaData> _fullSponsors = new(1);
 
   public IReadOnlyList<ContentMetaData> AllContents => _fullContents;
   public IReadOnlyList<AuthorMetaData> Authors => _fullAuthors;
