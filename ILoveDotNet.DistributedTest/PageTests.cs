@@ -56,6 +56,14 @@ public class PageTests(AppFixture fixture) : PageTest
   }
 
   [Fact]
+  public async Task InterviewPage_Loads_Successfully()
+  {
+    await Page.GotoAsync($"{WebBaseUrl.AbsoluteUri}interview");
+    await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "Interview Readiness", Exact = true })).ToBeVisibleAsync();
+    await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "14. Contributions beyond project work" })).ToBeVisibleAsync();
+  }
+
+  [Fact]
   public async Task AnalyticsPage_Loads_Successfully()
   {
     await Page.GotoAsync($"{WebBaseUrl.AbsoluteUri}analytics");

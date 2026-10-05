@@ -42,6 +42,18 @@ public class NavigationTests
                                     </svg>
                                     <span class="[ text-xs text-center ]">Learning Path</span>
                                 </a>
+                                <a class="[ flex flex-col items-center ]" href="/interview">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-microphone ]" width="30" height="30"
+                                        viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round"
+                                        stroke-linejoin="round">
+                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                                        <rect x="9" y="2" width="6" height="12" rx="3"></rect>
+                                        <path d="M5 10v2a7 7 0 0 0 14 0v-2"></path>
+                                        <line x1="12" y1="19" x2="12" y2="22"></line>
+                                        <line x1="8" y1="22" x2="16" y2="22"></line>
+                                    </svg>
+                                    <span class="[ text-xs text-center ]">Interview</span>
+                                </a>
                                 <a class="[ flex flex-col items-center ]" href="/career">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icons-tabler-outline icon-tabler-briefcase ]"
                                         width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"

@@ -36,6 +36,7 @@ public class SeoTests(AppFixture fixture) : PageTest
       "privacy/",
       "disclaimer/",
       "career/",
+      "interview/",
     })
     {
       await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, path);
@@ -74,6 +75,7 @@ public class SeoTests(AppFixture fixture) : PageTest
       "blogs/using-github-copilot-ai-for-navigating-new-codebase/",
       "channels/testing/",
       "learningpath/",
+      "interview/",
     })
     {
       await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, path);
