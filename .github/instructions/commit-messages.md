@@ -43,7 +43,7 @@ Please analyze my staged changes and study how it is implemented. Take your time
 
 This is must at the bottom of the message, include:
 
-Author: `git config user.name` Co-Author: Copilot
+Author: Bhai Co-Author: Copilot
 
 
 ---
