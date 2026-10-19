@@ -42,7 +42,7 @@ public class NavigationTests
                                     </svg>
                                     <span class="[ text-xs text-center ]">Learning Path</span>
                                 </a>
-                                <a class="[ flex flex-col items-center ]" href="/interview">
+                                <a class="[ flex flex-col items-center ]" href="/interview/">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-microphone ]" width="30" height="30"
                                         viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round"
                                         stroke-linejoin="round">

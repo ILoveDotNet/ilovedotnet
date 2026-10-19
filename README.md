@@ -81,6 +81,25 @@ As an open-source project without funding, I cannot afford advertising I ❤️ 
 5. Try to keep content simple and short.
 6. Any ideas to improve content are welcome.
 
+## Interview preparation guide
+
+The [C# and .NET interview guide](https://ilovedotnet.org/interview/) combines
+questions and answers, system design exercises, and a 14-point production-readiness
+checklist. Its source is [Interview.razor](./CommonComponents/Pages/Interview.razor).
+Keep its section anchors stable, link to canonical trailing-slash URLs, and keep
+the `CollectionPage` structured data consistent with the visible sections.
+The page must be included in the published prerendered HTML so crawlers that do
+not execute JavaScript can read its answers. `SeoTests` in the
+[distributed test suite](./ILoveDotNet.DistributedTest/SeoTests.cs) covers the
+content, topic links, structured data, and inbound links.
+
+After deployment, inspect `https://ilovedotnet.org/interview/` in Google Search
+Console, check the rendered HTML and canonical URL, and request indexing.
+Compare clicks, impressions, CTR, and query groups for C#, .NET, and system design
+over 28- and 90-day periods. Trends scores are normalized interest, not search
+volume; independently exported keyword series cannot establish relative demand.
+Neither structured data nor crawl access guarantees rankings or AI citations.
+
 # Star History (THANK YOU SO MUCH ❤️)
 [![Star History Chart](https://api.star-history.com/svg?repos=ILoveDotNet/ilovedotnet&type=Date)](https://star-history.com/#ILoveDotNet/ilovedotnet&Date)
 

@@ -58,6 +58,138 @@ public class SeoTests(AppFixture fixture) : PageTest
   }
 
   [Fact]
+  public async Task PublicPages_HaveSinglePageSpecificH1Async()
+  {
+    foreach (var path in new[]
+    {
+      "",
+      "blogs/using-github-copilot-ai-for-navigating-new-codebase/",
+      "channels/testing/",
+      "learningpath/",
+      "authors/abdul-rahman/",
+      "about/",
+      "privacy/",
+      "disclaimer/",
+      "career/",
+      "analytics/",
+      "interview/",
+    })
+    {
+      await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, path);
+      var headings = Page.Locator("h1");
+      await Expect(headings).ToHaveCountAsync(1);
+      var text = (await headings.InnerTextAsync()).Trim();
+      Assert.False(string.IsNullOrWhiteSpace(text), $"H1 on '{path}' should not be empty.");
+      Assert.Equal(0, await Page.Locator("#brand h1, h1#brand").CountAsync());
+    }
+  }
+
+  [Fact]
+  public async Task InterviewPage_HasAnswerContentAndWorkingTopicLinksAsync()
+  {
+    await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, "interview/");
+    await Expect(Page.Locator("h1")).ToHaveTextAsync("C# and .NET Interview Questions and Answers");
+
+    foreach (var (sectionId, answerCount) in new[]
+    {
+      ("csharp-interview-questions", 6),
+      ("dotnet-interview-questions", 6),
+      ("system-design-interview", 3),
+    })
+    {
+      var section = Page.Locator($"section[aria-labelledby='{sectionId}']");
+      await Expect(section.Locator("article")).ToHaveCountAsync(answerCount);
+      foreach (var answer in await section.Locator("article p").AllTextContentsAsync())
+      {
+        Assert.True(answer.Length >= 200, $"Expected a substantive answer in {sectionId}.");
+      }
+    }
+
+    var topicLinks = Page.Locator("nav[aria-label='Interview preparation topics'] a");
+    await Expect(topicLinks).ToHaveCountAsync(6);
+    for (var index = 0; index < await topicLinks.CountAsync(); index++)
+    {
+      var href = await topicLinks.Nth(index).GetAttributeAsync("href");
+      Assert.NotNull(href);
+      Assert.StartsWith("interview/#", href, StringComparison.Ordinal);
+      var target = new Uri(WebBaseUrl, href);
+      Assert.Equal("/interview/", target.AbsolutePath);
+      await Expect(Page.Locator(target.Fragment)).ToHaveCountAsync(1);
+    }
+
+    await topicLinks.First.ClickAsync();
+    Assert.Equal("/interview/", new Uri(Page.Url).AbsolutePath);
+    Assert.Equal("#csharp-interview-questions", new Uri(Page.Url).Fragment);
+    await Expect(Page.Locator("#csharp-interview-questions")).ToBeInViewportAsync();
+    var headingBox = await Page.Locator("#csharp-interview-questions").BoundingBoxAsync();
+    var headerBox = await Page.Locator("#header").BoundingBoxAsync();
+    Assert.NotNull(headingBox);
+    Assert.NotNull(headerBox);
+    Assert.True(headingBox.Y >= headerBox.Y + headerBox.Height,
+        "Topic headings should not be hidden beneath the sticky header.");
+
+    await Page.SetViewportSizeAsync(390, 844);
+    Assert.True(await Page.EvaluateAsync<bool>(
+        "() => document.documentElement.scrollWidth <= window.innerWidth"),
+        "Interview content should not introduce horizontal scrolling on mobile.");
+  }
+
+  [Fact]
+  public async Task InterviewPage_HasCollectionAndBreadcrumbStructuredDataAsync()
+  {
+    await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, "interview/");
+    await Expect(Page.Locator("script[type='application/ld+json']")).ToHaveCountAsync(2);
+    var documents = await SeoTestHelpers.GetJsonLdDocumentsAsync(Page);
+    try
+    {
+      var collection = GetSchema(documents, "CollectionPage").RootElement;
+      var canonical = await SeoTestHelpers.GetRequiredAttributeAsync(Page, "link[rel='canonical']", "href");
+      Assert.Equal(canonical, collection.GetProperty("@id").GetString());
+      Assert.Equal(canonical, collection.GetProperty("url").GetString());
+      Assert.Equal(await Page.TitleAsync(), collection.GetProperty("name").GetString());
+      Assert.Equal("I ❤️ DotNet", collection.GetProperty("publisher").GetProperty("name").GetString());
+      Assert.Equal("en", collection.GetProperty("inLanguage").GetString());
+      Assert.True(collection.GetProperty("isAccessibleForFree").GetBoolean());
+
+      var items = collection.GetProperty("mainEntity").GetProperty("itemListElement");
+      Assert.Equal(4, items.GetArrayLength());
+      var position = 1;
+      foreach (var item in items.EnumerateArray())
+      {
+        Assert.Equal(position++, item.GetProperty("position").GetInt32());
+        var url = new Uri(item.GetProperty("url").GetString()!);
+        Assert.Equal(canonical, url.GetLeftPart(UriPartial.Path));
+        await Expect(Page.Locator(url.Fragment)).ToHaveTextAsync(item.GetProperty("name").GetString()!);
+      }
+
+      AssertBreadcrumbSchema(GetSchema(documents, "BreadcrumbList"));
+      await AssertSocialMetadataAsync(canonical, "website", "summary");
+    }
+    finally
+    {
+      foreach (var document in documents)
+      {
+        document.Dispose();
+      }
+    }
+  }
+
+  [Fact]
+  public async Task InterviewPage_IsLinkedFromHomeAndLearningPathAsync()
+  {
+    foreach (var path in new[] { "", "learningpath/" })
+    {
+      await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, path);
+      var link = Page.Locator("a[href='interview/']");
+      await Expect(link).ToHaveCountAsync(1);
+      await Expect(link).ToContainTextAsync("C# and .NET interview");
+      await link.ClickAsync();
+      await Expect(Page.Locator("h1")).ToHaveTextAsync("C# and .NET Interview Questions and Answers");
+      await Expect(Page.Locator("script[type='application/ld+json']")).ToHaveCountAsync(2);
+    }
+  }
+
+  [Fact]
   public async Task AnalyticsPage_IsMarkedNoIndexAsync()
   {
     await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, "analytics/");
