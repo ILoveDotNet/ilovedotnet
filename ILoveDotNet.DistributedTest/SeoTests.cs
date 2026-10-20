@@ -180,9 +180,14 @@ public class SeoTests(AppFixture fixture) : PageTest
     foreach (var path in new[] { "", "learningpath/" })
     {
       await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, path);
-      var link = Page.Locator("a[href='interview/']");
+      var link = Page.GetByRole(AriaRole.Link, new()
+      {
+        Name = "Start preparing for your C# and .NET interview",
+        Exact = true,
+      });
       await Expect(link).ToHaveCountAsync(1);
-      await Expect(link).ToContainTextAsync("C# and .NET interview");
+      await Expect(link).ToHaveAttributeAsync("href", "interview/");
+      await Expect(link).ToHaveTextAsync("Start preparing");
       await link.ClickAsync();
       await Expect(Page.Locator("h1")).ToHaveTextAsync("C# and .NET Interview Questions and Answers");
       await Expect(Page.Locator("script[type='application/ld+json']")).ToHaveCountAsync(2);
