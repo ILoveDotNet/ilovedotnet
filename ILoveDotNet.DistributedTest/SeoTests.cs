@@ -195,6 +195,34 @@ public class SeoTests(AppFixture fixture) : PageTest
   }
 
   [Fact]
+  public async Task HomePage_ShowsPublishedLearningStatsAsync()
+  {
+    await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, "");
+    var stats = Page.GetByRole(AriaRole.Region, new() { Name = "Learning at I Love .NET" });
+    var publishedContents = new SharedModels.TableOfContents().Contents;
+    var values = stats.Locator("dd");
+    await Expect(values).ToHaveTextAsync(new[]
+    {
+      publishedContents.Count.ToString(),
+      publishedContents.Select(content => content.Channel).Distinct(StringComparer.OrdinalIgnoreCase).Count().ToString(),
+      "6+",
+      "10+",
+    });
+    await Expect(stats).ToContainTextAsync("100% free to learn");
+    await Expect(stats).ToContainTextAsync("A new article every Sunday");
+
+    foreach (var width in new[] { 320, 390, 768, 1280 })
+    {
+      await Page.SetViewportSizeAsync(width, 900);
+      var columns = await stats.Locator("dl").EvaluateAsync<int>(
+          "element => getComputedStyle(element).gridTemplateColumns.split(' ').length");
+      Assert.Equal(width >= 1024 ? 4 : 2, columns);
+      Assert.True(await stats.Locator("dl").EvaluateAsync<bool>(
+          "element => element.scrollWidth <= element.clientWidth"));
+    }
+  }
+
+  [Fact]
   public async Task AnalyticsPage_IsMarkedNoIndexAsync()
   {
     await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, "analytics/");

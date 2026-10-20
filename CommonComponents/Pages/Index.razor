@@ -115,6 +115,34 @@
     </div>
 </section>
 
+<section aria-labelledby="learning-stats-title" class="[ dark:bg-stone-900 ] [ p-3 md:p-5 ] [ border-b-2 ] [ dark:border-gray-800 ]">
+    <div class="[ rounded-2xl border border-stone-200 bg-stone-50 p-5 md:p-8 ] [ dark:border-stone-800 dark:bg-stone-950 ]">
+        <h2 id="learning-stats-title" class="[ sr-only ]">Learning at I Love .NET</h2>
+        <dl class="[ grid grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-7 ] [ text-center ]">
+            <div class="[ flex min-w-0 flex-col gap-2 ]">
+                <dt class="[ order-2 text-sm text-stone-600 dark:text-stone-300 ]">Published articles</dt>
+                <dd class="[ text-3xl md:text-4xl font-bold tabular-nums text-indigo-700 dark:text-violet-300 ]">@PublishedArticleCount</dd>
+            </div>
+            <div class="[ flex min-w-0 flex-col gap-2 ]">
+                <dt class="[ order-2 text-sm text-stone-600 dark:text-stone-300 ]">.NET topic channels</dt>
+                <dd class="[ text-3xl md:text-4xl font-bold tabular-nums text-indigo-700 dark:text-violet-300 ]">@PublishedChannelCount</dd>
+            </div>
+            <div class="[ flex min-w-0 flex-col gap-2 ]">
+                <dt class="[ order-2 text-sm text-stone-600 dark:text-stone-300 ]">Years sharing .NET knowledge</dt>
+                <dd class="[ text-3xl md:text-4xl font-bold tabular-nums text-indigo-700 dark:text-violet-300 ]">6+</dd>
+            </div>
+            <div class="[ flex min-w-0 flex-col gap-2 ]">
+                <dt class="[ order-2 text-sm text-stone-600 dark:text-stone-300 ]">Years of author industry experience</dt>
+                <dd class="[ text-3xl md:text-4xl font-bold tabular-nums text-indigo-700 dark:text-violet-300 ]">10+</dd>
+            </div>
+        </dl>
+        <ul role="list" class="[ mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 border-t border-stone-200 pt-5 ] [ text-center text-sm text-stone-600 ] [ dark:border-stone-800 dark:text-stone-300 ]">
+            <li><strong class="[ font-semibold text-stone-900 dark:text-white ]">100% free</strong> to learn</li>
+            <li>A new article every <strong class="[ font-semibold text-stone-900 dark:text-white ]">Sunday</strong></li>
+        </ul>
+    </div>
+</section>
+
 <section class="[ dark:bg-stone-900 ] [ flex flex-col ] [ space-y-5 ] [ p-5 ] [ border-b-2 ] [ dark:border-gray-800 ]">
     <header class="[ flex ] [ space-x-2 ]">
         <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-writing-sign ] [ text-fuchsia-600 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
@@ -156,11 +184,16 @@
     private string BaseUrl => configuration.GetValue<string>("baseUrl")!;
     private IEnumerable<ContentMetaData> Contents = Enumerable.Empty<ContentMetaData>();
     private string? SelectedContentType;
+    private int PublishedArticleCount;
+    private int PublishedChannelCount;
     private int Count = 1;
     private int Take => TableOfContents.PageSize * Count;
 
     protected override void OnInitialized()
     {
+        var publishedContents = tableOfContents.Contents;
+        PublishedArticleCount = publishedContents.Count;
+        PublishedChannelCount = publishedContents.Select(content => content.Channel).Distinct(StringComparer.OrdinalIgnoreCase).Count();
         Contents = tableOfContents.FilteredAndPagedContents();
     }
 
