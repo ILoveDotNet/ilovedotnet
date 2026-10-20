@@ -13,13 +13,10 @@ This is knowledge sharing platform maintained by [Microsoft MVP](https://mvp.mic
 # Sponsors
 If you want to support my project and help me grow it, you can <a href="https://www.buymeacoffee.com/thebhai" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a> or [become a sponsor on GitHub](https://github.com/sponsors/fingers10) or just [donate on PayPal](https://www.paypal.com/paypalme/arsmtb) and your logo will show up here with a link to your website :)
 
-# Please help by giving a ⭐
-We appreciate your ⭐. It Helps!! That will not only help strengthen our .NET community but also improve development skills for .NET developers in around the world. Thank you very much 👍. 
+# Support the project
+Found the tutorials useful? Star this repository to show your support, or share [I ❤️ .NET](https://ilovedotnet.org/) with another developer.
 
-Choosing a project idea could be difficult. We need to ensure stability and maintainability of our projects. Surveys show that GitHub stars count play an important factor when assessing quality.
-
-⭐ Please give this repository a star. It takes seconds and help thousands of developers! ⭐
-![star-request](./CommonComponents/wwwroot/image/brand/star-request.png)
+Your support helps more developers discover free .NET learning resources.
 
 # Road Map
 1. [Blazor WASM](https://github.com/orgs/ILoveDotNet/projects/2)
@@ -60,9 +57,6 @@ Choosing a project idea could be difficult. We need to ensure stability and main
 36. [Logging](https://github.com/orgs/ILoveDotNet/projects/40)
 37. [DDD](https://github.com/orgs/ILoveDotNet/projects/41)
 38. [EF Core](https://github.com/orgs/ILoveDotNet/projects/42)
-
-# Please share with the community
-As an open-source project without funding, I cannot afford advertising I ❤️ .NET in a typical way. Instead, the project relies on community interactions. Please consider sharing a post about I ❤️ .NET and the value it provides. It really does help!
 
 # Our Official Network
 | Platform  | Link                                      | Status                                                                                                                                                                                                                               |
