@@ -52,7 +52,7 @@ public class PageTests(AppFixture fixture) : PageTest
   public async Task CareerPage_Loads_Successfully()
   {
     await Page.GotoAsync($"{WebBaseUrl.AbsoluteUri}career");
-    await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "Career", Exact = true })).ToBeVisibleAsync();
+    await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "Developer career growth", Exact = true })).ToBeVisibleAsync();
   }
 
   [Fact]
@@ -60,7 +60,7 @@ public class PageTests(AppFixture fixture) : PageTest
   {
     await Page.GotoAsync($"{WebBaseUrl.AbsoluteUri}interview");
     await Expect(Page.Locator("h1")).ToHaveTextAsync("C# and .NET Interview Questions and Answers");
-    await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "Interview Readiness", Exact = true })).ToBeVisibleAsync();
+    await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "14-point interview readiness checklist", Exact = true })).ToBeVisibleAsync();
     await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "14. Contributions beyond project work" })).ToBeVisibleAsync();
   }
 
