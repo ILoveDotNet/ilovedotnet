@@ -59,9 +59,6 @@
         """"
         ))
 
-    <style type="text/css">
-        
-    </style>
 </HeadContent>
 
 <section class="[ dark:bg-stone-900 ] [ flex flex-col ] [ space-y-5 ] [ p-5 ]">
@@ -71,76 +68,153 @@
     <h1 class="[ dark:text-white ] [ font-semibold text-xl ]">Analytics</h1>
 
     <p>
-        This page is for analytics purpose only. Here you can see the progress we are making in terms of page views and visitors. This is because of the support from community. 
-        Thank you for your support.
+        Explore recorded Google Search impressions and historical click milestones, made possible by the support of our community.
+        Impressions are appearances in search results and clicks are visits from those results; neither measures unique readers or total page views.
     </p>
 
-    <h3 class="[ dark:text-white ] [ font-semibold text-lg ]">Achievements</h3>
-
-    <div class="[ w-full ]">
-        <table class="[ charts-css bar show-heading show-labels show-data-axes show-primary-axis data-spacing-5 datasets-spacing-4 multiple ]">
-            <caption> Google Search Impact </caption>
-            <thead>
-                <tr>
-                    <th scope="col"> Achieved On </th>
-                    <th scope="col"> Clicks </th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var groupedGoogleSearchImpact in GroupedImpacts)
-                {
-                    <tr>
-                        <th scope="row"> @($"{groupedGoogleSearchImpact.Key:MMM yy}") </th>
-                        @foreach(var googleSearchImpact in groupedGoogleSearchImpact )
+    <section aria-labelledby="search-impressions-title" class="[ flex min-w-0 flex-col gap-5 rounded-xl border border-stone-200 bg-white p-4 dark:border-stone-700 dark:bg-stone-800 sm:p-5 ]">
+        <header class="[ flex flex-wrap items-start justify-between gap-4 ]">
+            <div class="[ flex min-w-0 flex-col gap-2 ]">
+                <h2 id="search-impressions-title" class="[ text-2xl font-semibold dark:text-white ]">Google Search impressions</h2>
+                <p class="[ text-sm text-stone-600 dark:text-stone-300 ]">Monthly appearances in Google Search results—not visitors or page views.</p>
+            </div>
+            <div class="[ flex min-w-0 max-w-full flex-col gap-2 ]">
+                <label for="impressions-period" class="[ text-sm font-semibold dark:text-white ]">Reporting period</label>
+                <select id="impressions-period" @bind="SelectedPeriod" class="[ min-h-11 max-w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-800 dark:border-stone-600 dark:bg-stone-900 dark:text-stone-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ]">
+                    <option value="recent">Last 12 recorded months</option>
+                    <option value="all">All recorded months</option>
+                    @foreach (var year in Impressions.Select(x => x.Date.Year).Distinct().OrderDescending())
+                    {
+                        <option value="@year">@year</option>
+                    }
+                </select>
+            </div>
+        </header>
+        @if (VisibleImpressions.Count > 0)
+        {
+            var maximum = VisibleImpressions.Max(x => x.Impressions);
+            <p aria-live="polite" class="[ text-sm text-stone-600 dark:text-stone-300 ]">
+                @VisibleImpressions[0].Date.ToString("MMMM yyyy")–@VisibleImpressions[^1].Date.ToString("MMMM yyyy") · @VisibleImpressions.Count recorded months
+            </p>
+            <p id="impressions-chart-help" class="[ text-sm text-stone-600 dark:text-stone-300 ]">Each column shows one recorded month. Scroll horizontally for more months; expand the table below for exact values.</p>
+            <div role="region" aria-label="Monthly impressions chart" aria-describedby="impressions-chart-help" tabindex="0" class="[ min-w-0 overflow-x-auto rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ]">
+                <ol role="list" class="[ flex min-w-full w-max gap-3 pb-3 ]">
+                    @foreach (var record in VisibleImpressions)
+                    {
+                        <li class="[ flex min-w-14 flex-1 flex-col gap-2 text-center ]">
+                            <div class="[ pt-8 ]">
+                                <div class="[ flex h-56 items-end border-b border-stone-300 px-1 dark:border-stone-600 ]">
+                                    <div style="@($"height: {(maximum > 0 ? 100m * record.Impressions / maximum : 0).ToString(System.Globalization.CultureInfo.InvariantCulture)}%")" class="[ relative w-full rounded-t bg-indigo-500 dark:bg-indigo-400 ]">
+                                        <span aria-hidden="true" class="[ absolute bottom-full left-0 mb-2 w-full text-xs font-semibold text-stone-600 dark:text-stone-300 ]">@record.Impressions.ToMetric()</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <time datetime="@record.Date.ToString("yyyy-MM")" class="[ text-xs text-stone-600 dark:text-stone-300 ]">@record.Date.ToString("MMM")<br />@record.Date.Year</time>
+                            <span class="sr-only">@record.Impressions.ToString("N0") impressions</span>
+                        </li>
+                    }
+                </ol>
+            </div>
+            <details class="[ border-t border-stone-200 pt-3 dark:border-stone-700 ]">
+                <summary class="[ cursor-pointer py-2 font-semibold dark:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ]">View exact data for selected period</summary>
+                <table class="[ mt-3 w-full text-left text-sm ]">
+                    <caption class="[ pb-3 text-left text-stone-600 dark:text-stone-300 ]">Monthly Google Search impressions · @VisibleImpressions.Count records</caption>
+                    <thead><tr><th scope="col" class="[ p-2 ]">Month</th><th scope="col" class="[ p-2 text-right ]">Impressions</th></tr></thead>
+                    <tbody>
+                        @foreach (var record in VisibleImpressions)
                         {
-                            var clicks = googleSearchImpact.Clicks;
-                            <td style="--size: calc( @clicks / @CurrentImpact )" class="[ bg-gradient-to-b from-indigo-500 via-purple-500 to-pink-500 ]"> 
-                                <span class="data"> @clicks.ToMetric() </span> 
-                            </td>
+                            <tr class="[ border-t border-stone-200 dark:border-stone-700 ]">
+                                <th scope="row" class="[ p-2 font-normal ]">@record.Date.ToString("MMMM yyyy")</th>
+                                <td class="[ p-2 text-right tabular-nums ]">@record.Impressions.ToString("N0")</td>
+                            </tr>
                         }
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
+                    </tbody>
+                </table>
+            </details>
+        }
+        else
+        {
+            <p>No impressions have been recorded for this period.</p>
+        }
+    </section>
 
-    <div class="[ w-full ]">
-        <table class="[ charts-css bar show-heading show-labels show-data-axes show-primary-axis data-spacing-5 ]">
-            <caption> Google Search Impression </caption>
-            <thead>
-                <tr>
-                    <th scope="col"> Achieved On </th>
-                    <th scope="col"> Impressions </th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var groupedGoogleSearchImpression in GroupedImpressions)
-                {
-                    <tr>
-                        <th scope="row"> @($"{groupedGoogleSearchImpression.Key:MMM yy}") </th>
-                        @foreach(var googleSearchImpression in groupedGoogleSearchImpression )
-                        {
-                            var impressions = googleSearchImpression.Impressions;
-                            <td style="--size: calc( @impressions / @CurrentImpression )" class="[ bg-gradient-to-b from-indigo-500 via-purple-500 to-pink-500 ]"> 
-                                <span class="data"> @impressions.ToMetric() </span> 
-                            </td>
-                        }
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
+    <section aria-labelledby="search-click-milestones" class="[ flex min-w-0 flex-col gap-4 ]">
+        <h2 id="search-click-milestones" class="[ font-semibold text-2xl dark:text-white ]">Historical Google Search click milestones</h2>
+        @if (ClickMilestones.Count > 0)
+        {
+            <p>Recorded @ClickMilestones[^1].Date.ToString("MMMM yyyy")–@ClickMilestones[0].Date.ToString("MMMM yyyy") · @ClickMilestones.Count milestones</p>
+            <p class="[ text-sm text-stone-600 dark:text-stone-300 ]">
+                These are historical achievement records; their reporting windows are not specified.
+                They are not monthly totals and should not be added together.
+            </p>
+            @MilestoneTimeline(ClickMilestones.Take(5), true)
+            @if (ClickMilestones.Count > 5)
+            {
+                <details class="[ rounded-xl border border-stone-200 bg-white p-4 dark:border-stone-700 dark:bg-stone-800 sm:p-5 ]">
+                    <summary class="[ cursor-pointer py-2 font-semibold dark:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-indigo-500 ]">
+                        View @(ClickMilestones.Count - 5) earlier milestones
+                    </summary>
+                    <div class="[ mt-5 ]">
+                        @MilestoneTimeline(ClickMilestones.Skip(5), false)
+                    </div>
+                </details>
+            }
+        }
+        else
+        {
+            <p>No search-click milestones have been recorded yet.</p>
+        }
+    </section>
+
 
 </section>
 
 @code {
     private string Title = "Analytics - I ❤️ DotNet";
-    private string Description = "This is a .NET knowledge sharing platform with live demos crafted by developers for developers with love.";
+    private string Description = "Explore recorded Google Search impressions and historical search-click milestones for I Love .NET, with dates and context for the community's support.";
     private string BaseUrl => configuration.GetValue<string>("baseUrl")!;
     private string PageUrl => $"{BaseUrl}analytics/";
-    private IEnumerable<IGrouping<DateOnly, GoogleSearchImpact>> GroupedImpacts => achievements.GoogleSearchImpacts.GroupBy(x => new DateOnly(x.Date.Year, x.Date.Month, 1));
-    private long CurrentImpact => GroupedImpacts.Max(x => x.Max(y => y.Clicks));
+    private List<GoogleSearchImpact> ClickMilestones = [];
+    private List<GoogleSearchImpression> Impressions = [];
+    private string SelectedPeriod = "recent";
+    private List<GoogleSearchImpression> VisibleImpressions => SelectedPeriod switch
+    {
+        "recent" => Impressions.TakeLast(12).ToList(),
+        "all" => Impressions,
+        _ => Impressions.Where(x => x.Date.Year.ToString() == SelectedPeriod).ToList(),
+    };
 
-    private IEnumerable<IGrouping<DateOnly, GoogleSearchImpression>> GroupedImpressions => achievements.GoogleSearchImpressions.GroupBy(x => new DateOnly(x.Date.Year, x.Date.Month, 1));
-    private long CurrentImpression => GroupedImpressions.Max(x => x.Max(y => y.Impressions));
+    protected override void OnInitialized()
+    {
+        ClickMilestones = achievements.GoogleSearchImpacts.OrderByDescending(x => x.Date).ToList();
+        Impressions = achievements.GoogleSearchImpressions.OrderBy(x => x.Date).ToList();
+    }
+
+    private RenderFragment MilestoneTimeline(IEnumerable<GoogleSearchImpact> milestones, bool showLatest) => @<ol role="list" class="[ flex flex-col gap-4 border-l-2 border-indigo-200 pl-4 dark:border-indigo-900 sm:pl-6 ]">
+        @{
+            int? year = null;
+            var first = true;
+        }
+        @foreach (var milestone in milestones)
+        {
+            <li class="[ relative min-w-0 ]">
+                <span aria-hidden="true" class="[ absolute -left-6 top-6 h-3.5 w-3.5 rounded-full border-2 border-white bg-indigo-500 dark:border-stone-900 sm:-left-8 ]"></span>
+                @if (year != milestone.Date.Year)
+                {
+                    <h3 class="[ mb-3 font-semibold text-stone-600 dark:text-stone-300 ]">@milestone.Date.Year</h3>
+                }
+                <article class="[ flex min-w-0 flex-col gap-2 rounded-xl border border-stone-200 bg-white p-4 dark:border-stone-700 dark:bg-stone-800 sm:p-5 ]">
+                    <h4 class="[ text-xl font-bold text-indigo-700 dark:text-indigo-200 ]">@milestone.Clicks.ToString("N0") clicks</h4>
+                    <time datetime="@milestone.Date.ToString("yyyy-MM-dd")" class="[ text-sm text-stone-600 dark:text-stone-300 ]">@milestone.Date.ToString("d MMMM yyyy")</time>
+                    @if (showLatest && first)
+                    {
+                        <span class="[ self-start rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-800 dark:bg-indigo-950 dark:text-indigo-200 ]">Latest recorded milestone</span>
+                    }
+                </article>
+            </li>
+            year = milestone.Date.Year;
+            first = false;
+        }
+    </ol>;
+
 }
