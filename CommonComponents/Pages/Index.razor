@@ -178,15 +178,41 @@
             <path d="M20 17v-12c0 -1.121 -.879 -2 -2 -2s-2 .879 -2 2v12l2 2l2 -2z"></path>
             <path d="M16 7h4"></path>
         </svg>
-        <h2 class="[ text-2xl font-bold ] [ dark:text-gray-200 ]">Authors</h2>
+        <h2 id="homepage-authors-title" class="[ text-2xl font-bold ] [ dark:text-gray-200 ]">@(tableOfContents.Authors.Count == 1 ? "Meet the author" : "Meet the authors")</h2>
     </header>
     <div class="[ max-w-full ]">
-        <ul class="[ list-none ] [ flex items-center justify-start ] [ space-x-3 ] [ overflow-hidden overflow-x-auto ]">
+        <ul aria-labelledby="homepage-authors-title" role="list" class="[ grid grid-cols-1 gap-4 ]">
             @foreach (var author in tableOfContents.Authors)
             {
-                <li @key="@(author.Name)" class="[ flex flex-col items-center justify-center ] [ bg-gradient-to-b from-pink-500 to-yellow-500 ]
-                           [ h-[250px] md:h-[500px] ] [ px-[100px] ] [ rounded-md ] [ text-white text-center ] [ font-bold ]">
-                    <NavLink href="@($"/authors/{author.Name.ToLower().ApplyHyphen()}")" class="[ break-words ]">@author.Name</NavLink>
+                <li @key="author.Name" class="[ min-w-0 ]">
+                    <NavLink href="@($"/authors/{author.Name.ToLower().ApplyHyphen()}/")"
+                             class="[ flex flex-col items-start gap-5 rounded-xl border border-stone-200 bg-white p-5 text-stone-900 no-underline sm:flex-row sm:items-center md:p-6 ] [ dark:border-stone-700 dark:bg-stone-800 dark:text-white ] [ hover:border-indigo-400 hover:bg-indigo-50 dark:hover:border-violet-400 dark:hover:bg-stone-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ]">
+                        <img src="@($"image/authors/{author.Name.ToLowerInvariant()}.webp")" alt="" loading="lazy" width="96" height="96"
+                             class="[ h-24 w-24 shrink-0 rounded-full object-cover ]" />
+                        <div class="[ flex min-w-0 flex-col gap-3 ]">
+                            <h3 class="[ break-words text-xl font-bold ]">@author.Name</h3>
+                            <div class="[ flex flex-wrap items-center gap-2 text-sm ]">
+                                @if (!string.IsNullOrWhiteSpace(author.Role))
+                                {
+                                    <span class="[ text-stone-600 dark:text-stone-300 ]">@author.Role</span>
+                                }
+                                @if (author.IsMVP)
+                                {
+                                    <span class="[ rounded-full bg-indigo-50 px-3 py-1 font-semibold text-indigo-800 dark:bg-indigo-950 dark:text-indigo-200 ]">Microsoft MVP</span>
+                                }
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(author.Introduction))
+                            {
+                                <p class="[ max-w-3xl leading-relaxed text-stone-600 dark:text-stone-300 ]">@author.Introduction</p>
+                            }
+                            <span class="[ inline-flex items-center gap-2 text-sm font-semibold text-indigo-700 dark:text-violet-300 ]">
+                                View author profile
+                                <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M5 12h14m-6-6 6 6-6 6"></path>
+                                </svg>
+                            </span>
+                        </div>
+                    </NavLink>
                 </li>
             }
         </ul>

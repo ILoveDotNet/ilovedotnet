@@ -8,6 +8,9 @@ namespace CommonComponents.Pages;
 public class AuthorBase : ComponentBase
 {
   protected AuthorMetaData Author = AuthorMetaData.NullAuthor;
+  protected IReadOnlyList<ContentMetaData> LatestArticles = [];
+  protected int PublishedArticleCount;
+  protected int PublishedTopicCount;
   protected string ContentType => $"{CultureInfo.CurrentUICulture.TextInfo.ToTitleCase(Name)}";
   protected string Title => $"{ContentType} - I ❤️ DotNet";
   protected string Description => $"This is a .NET {ContentType} knowledge sharing channel with live demos crafted by developers for developers with love.";
@@ -20,7 +23,7 @@ public class AuthorBase : ComponentBase
 
   [Parameter, EditorRequired, SupplyParameterFromQuery] public string Name { get; set; } = default!;
 
-  protected override void OnInitialized()
+  protected override void OnParametersSet()
   {
     Name = Name.Replace("-", " ");
 
@@ -30,6 +33,18 @@ public class AuthorBase : ComponentBase
     if (Author.Order == 0)
     {
       NavigationManager.NavigateTo("/");
+      return;
     }
+
+    var publishedArticles = TableOfContents.Contents
+        .Where(content => content.Author.Equals(Author.Name, StringComparison.OrdinalIgnoreCase))
+        .ToList();
+    PublishedArticleCount = publishedArticles.Count;
+    PublishedTopicCount = publishedArticles.Select(content => content.Channel).Distinct(StringComparer.OrdinalIgnoreCase).Count();
+    LatestArticles = publishedArticles
+        .OrderByDescending(content => content.ModifiedOn)
+        .ThenByDescending(content => content.CreatedOn)
+        .Take(6)
+        .ToList();
   }
 }

@@ -8,6 +8,9 @@ public class AuthorMetaData
     Name = string.Empty,
     Description = string.Empty,
     ImageUrl = string.Empty,
+    Role = string.Empty,
+    Introduction = string.Empty,
+    IndustryExperienceYears = 0,
     IsMVP = false,
     SocialUrls = [],
     Badges = []
@@ -17,6 +20,9 @@ public class AuthorMetaData
   public required string Name { get; set; }
   public required string Description { get; set; }
   public required string ImageUrl { get; set; }
+  public required string Role { get; set; }
+  public required string Introduction { get; set; }
+  public int IndustryExperienceYears { get; set; }
   public bool IsMVP { get; set; }
   public required List<SocialUrl> SocialUrls { get; set; } = [];
   public List<string> Badges = [];
