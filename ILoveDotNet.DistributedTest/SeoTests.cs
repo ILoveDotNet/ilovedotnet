@@ -223,6 +223,40 @@ public class SeoTests(AppFixture fixture) : PageTest
   }
 
   [Fact]
+  public async Task HomePage_ChannelShelfSupportsScrollingAndNavigationAsync()
+  {
+    await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, "");
+    var shelf = Page.GetByRole(AriaRole.List, new() { Name = "Browse topic channels" });
+    var metadata = new SharedModels.TableOfContents();
+    var channels = metadata.AvailableContentTypes;
+    var cards = shelf.GetByRole(AriaRole.Link);
+    await Expect(cards).ToHaveCountAsync(channels.Count);
+    for (var index = 0; index < channels.Count; index++)
+    {
+      var channel = channels[index];
+      var count = metadata.Contents.Count(content => content.Channel == channel);
+      await Expect(cards.Nth(index)).ToContainTextAsync(channel);
+      await Expect(cards.Nth(index)).ToContainTextAsync($"{count} {(count == 1 ? "article" : "articles")}");
+    }
+
+    await Page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
+    await Page.GetByRole(AriaRole.Button, new() { Name = "Next channels", Exact = true }).ClickAsync();
+    Assert.True(await shelf.EvaluateAsync<bool>("element => element.scrollLeft > 0"));
+    await Page.GetByRole(AriaRole.Button, new() { Name = "Previous channels", Exact = true }).ClickAsync();
+    await Expect(shelf).ToHaveJSPropertyAsync("scrollLeft", 0);
+
+    await Page.SetViewportSizeAsync(320, 900);
+    await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Next channels", Exact = true })).ToBeHiddenAsync();
+    Assert.True(await shelf.EvaluateAsync<bool>("element => element.scrollWidth > element.clientWidth"));
+    Assert.True(await cards.First.EvaluateAsync<bool>("element => element.getBoundingClientRect().height < 200"));
+    await cards.Last.FocusAsync();
+    Assert.True(await shelf.EvaluateAsync<bool>("element => element.scrollLeft > 0"));
+    await Expect(cards.Last).ToBeInViewportAsync();
+    await cards.First.ClickAsync();
+    await Expect(Page.Locator("h1")).ToHaveTextAsync(channels[0], new() { IgnoreCase = true });
+  }
+
+  [Fact]
   public async Task AnalyticsPage_IsMarkedNoIndexAsync()
   {
     await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, "analytics/");
