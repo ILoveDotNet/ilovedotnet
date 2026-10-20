@@ -37,18 +37,6 @@ public class Authors
                     "d435946f-0a4c-4d9d-b4b8-f0e3bf302850"
                 ]
             },
-            new AuthorMetaData
-            {
-                Order = 2,
-                Name = "Regina Sharon",
-                Description = "Graphic Designer",
-                ImageUrl = "image/talks/blazor-spa-from-aspnet-family.png",
-                IsMVP = false,
-                SocialUrls =
-                [
-                    new(SocialLink.LinkedIn, new Uri("https://www.linkedin.com/in/regina-sharon"))
-                ]
-            },
     };
   }
 }
