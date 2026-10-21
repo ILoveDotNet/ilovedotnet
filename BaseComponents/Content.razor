@@ -1,67 +1,87 @@
-﻿@using System.Globalization;
-@inject NavigationManager navigationManager
-@inject SlugService slugService
-@inject TableOfContents tableOfContents
+@inject SlugService SlugService
+@inject TableOfContents TableOfContents
+@inject IConfiguration Configuration
 
-<ContentHead />
+<ContentHead Metadata="@contentMetaData" />
 
-<section class="[ flex flex-col lg:flex-row ] [ p-1 md:p-5 lg:px-20 ] [ lg:space-x-5 space-y-5 lg:space-y-0 ]">
-    <article class="[ lg:basis-3/4 ] [ space-y-5 ]">
-        <Breadcrumbs CurrentTitle="@contentMetaData!.Title"
-                     CurrentUrl="@($"blogs/{slug}/")"
+<section class="[ mx-auto grid w-full min-w-0 max-w-7xl gap-8 p-4 md:p-6 xl:grid-cols-[minmax(0,1fr)_18rem] ]">
+    <article class="[ min-w-0 space-y-6 ]" aria-labelledby="article-title">
+        <Breadcrumbs CurrentTitle="@contentMetaData.Title"
+                     CurrentUrl="@($"/{contentMetaData.ContentUrl.Trim('/')}/")"
                      ParentTitle="@contentMetaData.Channel"
-                     ParentUrl="@($"channels/{contentMetaData.Channel.ToLower().ApplyHyphen()}/")" />
-        <ContentHeader FileName=@FileName>
-        </ContentHeader>
-        <section class="[ dark:text-white ] [ space-y-2 ] [ prose dark:prose-invert ] [ min-w-full ]">
-            <h3>Table of Contents</h3>
-            <ol>
-                <li>
-                    <NavLink href="@($"blogs/{slug}/#what")" Match="NavLinkMatch.All">
-                        What we gonna do?
-                    </NavLink>
-                </li>
-                <li>
-                    <NavLink href="@($"blogs/{slug}/#why")" Match="NavLinkMatch.All">
-                        Why we gonna do?
-                    </NavLink>
-                </li>
-                <li>
-                    <NavLink href="@($"blogs/{slug}/#how")" Match="NavLinkMatch.All">
-                        How we gonna do?
-                    </NavLink>
-                </li>
-                <li>
-                    <NavLink href="@($"blogs/{slug}/#summary")" Match="NavLinkMatch.All">
-                        Summary
-                    </NavLink>
-                </li>
-            </ol>
+                     ParentUrl="@ChannelUrl" />
+        <ContentHeader Metadata="@contentMetaData" FileName="@FileName" PublishedCount="@channelContents.Count" />
+        <details class="[ rounded-xl border border-indigo-200 bg-indigo-50 p-4 dark:border-indigo-900 dark:bg-indigo-950 xl:hidden ]">
+            <summary class="[ min-h-11 cursor-pointer content-center font-semibold ]">On this page</summary>
+            <ContentNavigation Slug="@contentMetaData.Slug" />
+        </details>
+        <section class="[ prose max-w-none min-w-0 [overflow-wrap:anywhere] dark:prose-invert [&_p]:max-w-[75ch] [&_ul]:max-w-[75ch] [&_ol]:max-w-[75ch] [&_h3]:scroll-mt-24 [&_h4]:scroll-mt-24 ]" aria-label="Article body">
             @ContentBody
-            <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965"></GoogleAdSense>
+            <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965" />
         </section>
-        <footer class="[ grid justify-items-start ] [ overflow-x-scroll ]">
-            <ul class="[ list-none ] [ flex items-center justify-start md:justify-center ] [ space-x-3 ] [ overflow-hidden ]">
-                <li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ]">@(CultureInfo.CurrentUICulture.TextInfo.ToTitleCase(contentMetaData!.Channel))</li>
-                @foreach(var keyword in contentMetaData!.Keywords)
+        <footer class="[ min-w-0 space-y-6 border-t border-stone-200 pt-6 dark:border-stone-700 ]">
+            <nav aria-label="Continue this learning path" class="[ space-y-3 ]">
+                <h2 class="[ text-xl font-semibold ]">Continue this learning path</h2>
+                <p class="[ text-sm text-stone-600 dark:text-stone-300 ]">Explore @contentMetaData.Channel in the suggested order, or choose the tutorial you need.</p>
+                <div class="[ grid min-w-0 gap-3 sm:grid-cols-2 ]">
+                    @if (previous is not null)
+                    {
+                        <a href="@($"/{previous.ContentUrl.Trim('/')}/")" rel="prev" class="[ flex min-w-0 flex-col gap-2 rounded-xl border border-stone-200 bg-white p-4 no-underline focus-visible:outline-2 focus-visible:outline-indigo-500 dark:border-stone-700 dark:bg-stone-800 ]">
+                            <span class="[ text-sm text-stone-600 dark:text-stone-300 ]">← Previous tutorial</span>
+                            <span class="[ font-semibold hover:underline ]">@previous.Title</span>
+                        </a>
+                    }
+                    @if (next is not null)
+                    {
+                        <a href="@($"/{next.ContentUrl.Trim('/')}/")" rel="next" class="[ flex min-w-0 flex-col gap-2 rounded-xl border border-stone-200 bg-white p-4 no-underline focus-visible:outline-2 focus-visible:outline-indigo-500 dark:border-stone-700 dark:bg-stone-800 ]">
+                            <span class="[ text-sm text-stone-600 dark:text-stone-300 ]">Next tutorial →</span>
+                            <span class="[ font-semibold hover:underline ]">@next.Title</span>
+                        </a>
+                    }
+                </div>
+                <a href="@ChannelUrl" class="[ inline-flex min-h-11 items-center font-semibold text-indigo-700 underline dark:text-indigo-300 ]">View all @contentMetaData.Channel tutorials →</a>
+            </nav>
+            <section aria-label="Share and support" class="[ space-y-3 ]">
+                <h2 class="[ text-lg font-semibold ]">Share this article</h2>
+                <SocialShare Title="@contentMetaData.Title" Url="@($"{Configuration["baseUrl"]}{contentMetaData.ContentUrl}")" />
+                <a href="https://github.com/sponsors/fingers10" target="_blank" rel="noopener noreferrer" class="[ inline-flex min-h-11 items-center underline ]">Support the project <span class="sr-only">(opens in a new tab)</span></a>
+            </section>
+            <ul aria-label="Article topics" class="[ flex min-w-0 flex-wrap gap-2 text-sm ]">
+                <li><a href="@ChannelUrl" class="[ inline-flex min-h-11 items-center rounded-lg bg-indigo-50 px-3 py-2 text-indigo-800 underline dark:bg-indigo-950 dark:text-indigo-200 ]">@contentMetaData.Channel</a></li>
+                @foreach (var keyword in contentMetaData.Keywords)
                 {
-                    <li class="[ px-3 py-1 ] [ rounded-md ] [ bg-black text-white dark:bg-white dark:text-black ] [ whitespace-nowrap ]">@keyword</li>
+                    <li class="[ min-w-0 break-words rounded-lg bg-stone-200 px-3 py-2 dark:bg-stone-800 ]">@keyword</li>
                 }
             </ul>
         </footer>
-        <hr class="[ dark:text-white my-1.5 ]" />
     </article>
-    <ContentRecommendation />
+    <aside aria-label="Article resources" class="[ min-w-0 space-y-6 ]">
+        <div class="[ hidden rounded-xl border border-indigo-200 bg-indigo-50 p-3 dark:border-indigo-900 dark:bg-indigo-950 xl:block ]">
+            <h2 class="[ font-semibold ]">On this page</h2>
+            <ContentNavigation Slug="@contentMetaData.Slug" />
+        </div>
+        <ContentRecommendation @key="contentMetaData.Slug" Metadata="@contentMetaData" />
+    </aside>
 </section>
 
 @code {
-    private ContentMetaData? contentMetaData = default!;
-    private string? slug = default!;
+    private ContentMetaData contentMetaData = default!;
+    private List<ContentMetaData> channelContents = [];
+    private ContentMetaData? previous;
+    private ContentMetaData? next;
+    private string ChannelUrl => $"/channels/{contentMetaData.Channel.ToLowerInvariant().ApplyHyphen()}/";
+
     [Parameter, EditorRequired] public RenderFragment ContentBody { get; set; } = default!;
     [Parameter, EditorRequired] public string FileName { get; set; } = default!;
-    override protected void OnInitialized()
+
+    protected override void OnParametersSet()
     {
-        slug = slugService.GetSlug();
-        contentMetaData = tableOfContents.GetContentBySlug(slug);
+        contentMetaData = TableOfContents.GetContentBySlug(SlugService.GetSlug());
+        channelContents = TableOfContents.Contents
+            .Where(content => content.Channel.Equals(contentMetaData.Channel, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(content => content.Order).ToList();
+        var index = channelContents.FindIndex(content => content.Slug == contentMetaData.Slug);
+        previous = index > 0 ? channelContents[index - 1] : null;
+        next = index >= 0 && index + 1 < channelContents.Count ? channelContents[index + 1] : null;
     }
 }

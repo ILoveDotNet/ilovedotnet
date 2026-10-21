@@ -1,8 +1,5 @@
 ﻿@inject IConfiguration configuration
-@inject NavigationManager navigationManager
 @inject Sitemaps sitemap
-@inject SlugService slugService
-@inject TableOfContents tableOfContents
 
 <Title>@contentMetaData!.Title - I ❤️ DotNet</Title>
 
@@ -13,16 +10,14 @@
 <Meta Property="og:site_name" Content="I Love DotNet" />
 <Meta Property="og:type" Content="article" />
 <Meta Property="og:title" Content="@contentMetaData.Title" />
-<Meta Property="og:image" Content="@($"{BaseUrl}image/brand/mini-logo.png")" />
 <Meta Property="og:image" Content="@($"{BaseUrl}{normalizedPosterPath.Replace("webp", "png")}")" />
-<Meta Property="og:image:alt" Content="DotNet bot with heart and DotNet brand" />
+<Meta Property="og:image:alt" Content="@contentMetaData.Title" />
 <Meta Property="og:description" Content="@contentMetaData.Description" />
 <Meta Property="og:url" Content="@($"{BaseUrl}{contentMetaData.Type}/{slug}/")" />
 <Meta Property="twitter:card" Content="summary_large_image" />
 <Meta Property="twitter:title" Content="@contentMetaData.Title" />
-<Meta Property="twitter:image" Content="@($"{BaseUrl}image/brand/mini-logo.png")" />
 <Meta Property="twitter:image" Content="@($"{BaseUrl}{normalizedPosterPath.Replace("webp", "png")}")" />
-<Meta Property="twitter:image:alt" Content="DotNet bot with heart and DotNet brand" />
+<Meta Property="twitter:image:alt" Content="@contentMetaData.Title" />
 <Meta Property="twitter:description" Content="@contentMetaData.Description" />
 <Meta Property="twitter:url" Content="@($"{BaseUrl}{contentMetaData.Type}/{slug}/")" />
 <Meta Property="article:published_time" Content="@contentMetaData.CreatedOn.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")" />
@@ -86,7 +81,7 @@
                     "https://www.youtube.com/channel/UCOS3wCw7SVXjXXffMPqid7A"
                 ]
             },
-            "headline": "{{contentMetaData.Title}}",
+            "headline": "{{System.Text.Json.JsonEncodedText.Encode(contentMetaData.Title)}}",
             "url": "{{BaseUrl}}{{contentMetaData.Type}}/{{slug}}/",
             "datePublished": "{{contentMetaData.CreatedOn:yyyy-MM-ddTHH:mm:ss.fffZ}}",
             "dateModified": "{{contentMetaData.ModifiedOn:yyyy-MM-ddTHH:mm:ss.fffZ}}",
@@ -96,8 +91,8 @@
                 "width": 1265,
                 "height": 827
             },
-            "keywords": ".NET, DotNet, I Love DotNet, I ❤️ DotNet, Blazor, Blazor (WebAssembly), Blazor Wasm, C#, Entity Framework, LINQ, ML.NET, Web API, TDD, OOPS, Middleware, JWT, Dependency Injection, Report, Design Pattern, SOLID, HTTP Client, OWASP, SignalR, {{string.Join(", ", contentMetaData.Keywords)}}",
-            "description": "{{contentMetaData.Description}}",
+            "keywords": "{{System.Text.Json.JsonEncodedText.Encode($".NET, DotNet, I Love DotNet, I ❤️ DotNet, Blazor, Blazor (WebAssembly), Blazor Wasm, C#, Entity Framework, LINQ, ML.NET, Web API, TDD, OOPS, Middleware, JWT, Dependency Injection, Report, Design Pattern, SOLID, HTTP Client, OWASP, SignalR, {string.Join(", ", contentMetaData.Keywords)}")}}",
+            "description": "{{System.Text.Json.JsonEncodedText.Encode(contentMetaData.Description)}}",
             "mainEntityOfPage": {
                 "@type": "WebPage",
                 "@id": "{{BaseUrl}}{{contentMetaData.Type}}/{{slug}}/"
@@ -109,14 +104,10 @@
 </HeadContent>
 
 @code {
-    private string? slug;
-    private ContentMetaData? contentMetaData = default!;
+    [Parameter, EditorRequired] public ContentMetaData Metadata { get; set; } = default!;
+    private string slug => Metadata.Slug;
+    private ContentMetaData contentMetaData => Metadata;
     private string BaseUrl => configuration.GetValue<string>("baseUrl")!;
     private string normalizedPosterPath => contentMetaData!.PosterUrl.ToLower();
 
-    override protected void OnInitialized()
-    {
-        slug = slugService.GetSlug();
-        contentMetaData = tableOfContents.GetContentBySlug(slug);
-    }
 }

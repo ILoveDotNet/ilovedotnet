@@ -179,6 +179,10 @@ Each blog post must include these four sections in this specific order:
 
 ### 1. What Section
 
+The shared article layout renders the title, description, author, update date, media, and responsive "On this page" navigation. Do not duplicate these in the article body. Keep using `<What>`, `<Why>`, `<How>`, and `<Summary>`: their visible headings are "What you’ll learn", "Why it matters", "Implementation", and "Summary", with stable `what`, `why`, `how`, and `summary` anchors. Continue using `<h4>` for subsections within these shared sections.
+
+The desktop sidebar orders compact navigation, the labelled advertisement, related articles, and compact author information without internal scrolling. ContentRecommendation owns the advertisement above the related articles and retains the original `lg:sticky lg:top-14` behavior: at widths of at least 64rem it sticks 3.5rem below the viewport top, bounded by the recommendation section rather than permanently viewport-fixed. Smaller viewports keep the ad in normal flow. Related cards reuse the shared `Thumbnail` component with `Sidebar="true"` for wrapping h3 titles and metadata without hover enlargement; other usages retain the default presentation. Full-width thumbnails appear above the channel icon, title, author, and relative date; image dimensions reserve space before loading. Published-only filtering and six-at-a-time pagination are retained. No automatic ad refresh is introduced. On mobile, the sidebar follows the article while the expandable navigation remains near the beginning. Keep shared ad placements in the layout rather than duplicating them inside blog content.
+
 - Introduces the topic and sets expectations
 - Should be concise but informative
 - Highlight key terms with `<Highlight>` tags
@@ -265,6 +269,8 @@ Each blog post must include these four sections in this specific order:
 ### Code Snippets
 
 Use the `<CodeSnippet>` component for all code blocks:
+
+It provides the language label, syntax highlighting, keyboard-scrollable code region, and copy action. Do not add a separate copy button or manually wrap it in `<pre>`. Use `<DemoSnippet Title="...">` for live interactive examples; provide a descriptive title and keep the demo expanded.
 
 ```html
 <CodeSnippet CssClass="language-csharp">

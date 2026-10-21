@@ -1,70 +1,69 @@
-@using Humanizer
-@inject AdSpaceService adSpaceService
-@inject NavigationManager navigationManager
-@inject SlugService slugService
-@inject TableOfContents tableOfContents
+@inject AdSpaceService AdSpaceService
+@inject TableOfContents TableOfContents
 
-<aside class="[ flex flex-col lg:basis-1/4 ] [ space-y-2 ]">
-    <div>
-        <figure>
-            <a href="https://linkedin.com/in/thebhai" target="_blank"><img src="./image/authors/abdul rahman.webp" alt="Abdul Rahman" class="[ w-full ]" width="393" height="393" /></a>
-            <a href="https://mvp.microsoft.com/en-US/MVP/profile/b177819f-95fb-ed11-8f6d-000d3a560942" target="_blank"><img src="./image/authors/mvp-badge-horizontal.webp" alt="MVP Badge Horizontal" class="[ w-full ]" width="1440" height="540" /></a>
-        </figure>
-        <aside class="[ flex flex-col items-center ]">
-            <div data-iframe-width="150" data-iframe-height="270" data-share-badge-id="af85bef9-38af-40c2-afbc-68ca189c06aa" data-share-badge-host="https://www.credly.com"></div><script type="text/javascript" async src="//cdn.credly.com/assets/utilities/embed.js"></script>
-        </aside>
-    </div>
-    <div class="[ lg:sticky lg:top-14 ]">
-        <GoogleAdSense Type="GoogleAdSenseAdType.InFeed" Format="GoogleAdSenseAdFormat.Fluid" LayoutKey="-7m+de+1z+n+3" Slot="2741354693"></GoogleAdSense>
-    </div>
-    <h2 class="[ dark:text-white ] [ font-semibold text-xl ]">Related articles</h2>
-    @foreach (var (content, index) in Contents.SelectWithIndex())
+<section aria-labelledby="related-articles" class="[ min-w-0 space-y-4 ]">
+    <section aria-label="Advertisement" class="[ space-y-2 lg:sticky lg:top-14 ]">
+        <p class="[ text-xs text-stone-600 dark:text-stone-300 ]">Advertisements</p>
+        <GoogleAdSense Type="GoogleAdSenseAdType.InFeed" Format="GoogleAdSenseAdFormat.Fluid" LayoutKey="-7m+de+1z+n+3" Slot="2741354693" />
+    </section>
+    <h2 id="related-articles" class="[ text-xl font-semibold ]">Related articles</h2>
+    @if (relatedContents.Count == 0)
     {
-        @if (adSpaceService.CanDisplayAd(index + 1))
-        {
-            <GoogleAdSense Type="GoogleAdSenseAdType.InFeed" Format="GoogleAdSenseAdFormat.Fluid" LayoutKey="-7m+de+1z+n+3" Slot="2741354693"></GoogleAdSense>
-        }
-
-        <Thumbnail @key="@index" PosterUrl="@content.ThumbnailUrl" 
-                ContentUrl="@content.ContentUrl"
-                Title="@content.Title"
-                AltText="@content.Title"
-                IconUrl="@content.IconUrl"
-                IconAlt="@content.Channel"
-                CreatedOn="@content.ModifiedOn"
-                Author="@content.Author">
-        </Thumbnail>    
+        <p class="[ text-sm text-stone-600 dark:text-stone-300 ]">More tutorials are on the way. Explore the other learning paths for now.</p>
+        <a href="/learningpath/" class="[ inline-flex min-h-11 items-center underline ]">Browse learning paths →</a>
     }
-    <div class="[ flex items-center justify-center ]">
-        <button type="button" 
-                class="[ cursor-pointer ] [ px-3 py-1 ] [ rounded-md ] [ whitespace-nowrap ] [ flex items-center justify-center ] [ disabled:opacity-75 disabled:cursor-not-allowed ]"
-                @onclick="ShowMoreContents"
-                disabled="@(Take >= tableOfContents.Contents.Count - 1)">
-            <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-caret-down ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                <path d="M6 10l6 6l6 -6h-12"></path>
-            </svg>
-            <p>Show more</p>
-        </button>
+    <div class="[ min-w-0 space-y-4 ]" aria-live="polite">
+        @foreach (var (content, index) in relatedContents.Take(take).Select((content, index) => (content, index)))
+        {
+            @if (AdSpaceService.CanDisplayAd(index + 1))
+            {
+                <GoogleAdSense Type="GoogleAdSenseAdType.InFeed" Format="GoogleAdSenseAdFormat.Fluid" LayoutKey="-7m+de+1z+n+3" Slot="2741354693" />
+            }
+            <div @key="content.Slug" class="[ min-w-0 border-b border-stone-200 pb-4 dark:border-stone-700 ]">
+                <Thumbnail PosterUrl="@content.ThumbnailUrl"
+                           ContentUrl="@content.ContentUrl"
+                           Title="@content.Title"
+                           AltText="@($"{content.Title} tutorial thumbnail")"
+                           IconUrl="@content.IconUrl"
+                           IconAlt="@content.Channel"
+                           CreatedOn="@content.ModifiedOn"
+                           Author="@content.Author"
+                           Sidebar="true" />
+            </div>
+        }
     </div>
-    <GoogleAdSense Type="GoogleAdSenseAdType.InFeed" Format="GoogleAdSenseAdFormat.Fluid" LayoutKey="-7m+de+1z+n+3" Slot="2741354693"></GoogleAdSense>
-</aside>
+    @if (take < relatedContents.Count)
+    {
+        <button type="button" @onclick="ShowMoreContents" class="[ min-h-11 rounded-lg border border-stone-300 px-3 py-2 underline focus-visible:outline-2 focus-visible:outline-indigo-500 dark:border-stone-600 ]">Show more related articles</button>
+    }
+    <section aria-label="About the author" class="[ flex items-center gap-3 rounded-xl border border-stone-200 p-4 dark:border-stone-700 ]">
+        <img src="/image/authors/abdul rahman.webp" alt="Abdul Rahman" loading="lazy" width="393" height="393" class="[ h-14 w-14 shrink-0 rounded-full object-cover ]" />
+        <div class="[ min-w-0 space-y-1 text-sm ]">
+            <p class="[ font-semibold ]">@Metadata.Author</p>
+            <p class="[ text-stone-600 dark:text-stone-300 ]">Microsoft MVP</p>
+            <a href="/authors/abdul-rahman/" class="[ inline-flex min-h-11 items-center underline ]">About the author →</a>
+        </div>
+    </section>
+    <GoogleAdSense Type="GoogleAdSenseAdType.InFeed" Format="GoogleAdSenseAdFormat.Fluid" LayoutKey="-7m+de+1z+n+3" Slot="2741354693" />
+</section>
 
 @code {
+    private const int PageSize = 6;
     private string? slug;
-    private IEnumerable<ContentMetaData> Contents = Enumerable.Empty<ContentMetaData>();
-    private int Count = 1;
-    private int Take => TableOfContents.PageSize * Count;
+    private int take = PageSize;
+    private IReadOnlyList<ContentMetaData> relatedContents = [];
 
-    protected override void OnInitialized()
+    [Parameter, EditorRequired] public ContentMetaData Metadata { get; set; } = default!;
+
+    protected override void OnParametersSet()
     {
-        slug = slugService.GetSlug();
-        Contents = tableOfContents.GetRelatedContents(slug!);
+        if (slug != Metadata.Slug)
+        {
+            slug = Metadata.Slug;
+            take = PageSize;
+            relatedContents = TableOfContents.GetRelatedContents(slug, int.MaxValue);
+        }
     }
 
-    private void ShowMoreContents()
-    {
-        Count++;
-        Contents = tableOfContents.GetRelatedContents(slug!, Take);
-    }
+    private void ShowMoreContents() => take += PageSize;
 }

@@ -12,4 +12,5 @@ public class ThumbnailBase : ComponentBase
   [Parameter, EditorRequired] public string IconAlt { get; set; } = "stack logo";
   [Parameter, EditorRequired] public DateTime CreatedOn { get; set; } = DateTime.Now;
   [Parameter, EditorRequired] public string Author { get; set; } = default!;
+  [Parameter] public bool Sidebar { get; set; }
 }
