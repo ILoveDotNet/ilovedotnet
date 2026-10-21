@@ -1,41 +1,40 @@
 ﻿@inherits ThumbnailBase
 @using Humanizer
 
-<section class="@((Sidebar ? "[ min-w-0 ]" : "[ transition duration-300 md:hover:scale-110 ]") + " [ flex flex-col justify-between dark:bg-stone-900 bg-gray-100 ]")">
+<article data-thumbnail class="[ flex min-w-0 flex-col gap-3 rounded-lg bg-gray-100 dark:bg-stone-900 [&_a]:no-underline [&_a]:focus-visible:outline-2 [&_a]:focus-visible:outline-offset-2 [&_a]:focus-visible:outline-indigo-500 ]">
     <header>
-        <NavLink href="@CanonicalContentUrl">
+        <NavLink href="@CanonicalContentUrl" aria-label="@Title" class="[ block rounded-lg ]">
             <figure>
-                <img src="@PosterUrl" class="[ w-full ] [ rounded-md ]" alt="@AltText" loading="lazy" width="1265" height="827" />
+                <img src="@PosterUrl" class="[ block aspect-[1265/827] w-full rounded-lg object-contain ]" alt="@AltText" loading="lazy" width="1265" height="827" />
             </figure>
         </NavLink>
     </header>
-    <main class="[ min-w-0 grow flex space-x-2 ]">
-        <aside class="[ basis-1/6 flex items-center ]">
-            <NavLink href="@($"channels/{IconAlt.ToLower().ApplyHyphen()}/")">
-                <figure class="mt-2">
-                    <img src="@IconUrl" alt="@IconAlt" loading="lazy" height="48" width="48" class="[ rounded-full ]" />
-                </figure>
-            </NavLink>
-        </aside>
-        <article class="[ min-w-0 grow flex flex-col justify-between basis-5/6 ] [ dark:text-white ] [ mt-2 ]">
+    <div class="[ flex min-w-0 items-start gap-3 ]">
+        <NavLink href="@($"/channels/{Channel.ToLowerInvariant().ApplyHyphen()}/")" aria-label="@($"Explore {Channel} tutorials")" class="[ shrink-0 rounded-full ]">
+            <img src="@IconUrl" alt="@IconAlt" loading="lazy" height="48" width="48" class="[ h-10 w-10 rounded-full object-contain ]" />
+        </NavLink>
+        <div class="[ min-w-0 flex-1 space-y-2 text-stone-900 dark:text-white ]">
             <NavLink href="@CanonicalContentUrl">
-                @if (Sidebar)
+                @if (HeadingLevel == 3)
                 {
-                    <h3 class="[ break-words text-sm font-semibold hover:underline ]">@Title</h3>
+                    <h3 class="@TitleClass">@Title</h3>
                 }
                 else
                 {
-                    <h2 class="[ font-medium line-clamp-1 hover:underline ]">@Title</h2>
+                    <h2 class="@TitleClass">@Title</h2>
                 }
             </NavLink>
-            <section class="@(Sidebar ? "[ flex flex-wrap justify-between gap-x-3 gap-y-1 text-xs text-stone-600 dark:text-stone-300 ]" : "[ flex justify-between ]")">
+            <div class="[ flex flex-wrap items-baseline gap-x-3 gap-y-1 text-xs text-stone-600 dark:text-stone-300 ]">
                 <p>@Author</p>
-                <time datetime="@CreatedOn.ToString("yyyy-MM-dd")">@CreatedOn.Humanize()</time>
-            </section>
-        </article>
-    </main>
-</section>
+                <time datetime="@CreatedOn.ToString("yyyy-MM-dd")" title="@CreatedOn.ToString("d MMM yyyy")" aria-label="@CreatedOn.ToString("d MMM yyyy")">@CreatedOn.Humanize()</time>
+            </div>
+        </div>
+    </div>
+</article>
 
 @code {
     private string CanonicalContentUrl => $"/{ContentUrl.Trim('/')}/";
+    private string TitleClass => Sidebar
+        ? "[ break-words text-sm font-semibold leading-5 hover:underline ]"
+        : "[ min-h-10 line-clamp-2 break-words text-sm font-semibold leading-5 hover:underline ]";
 }

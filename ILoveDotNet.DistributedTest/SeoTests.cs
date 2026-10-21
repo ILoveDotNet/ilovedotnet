@@ -70,7 +70,7 @@ public class SeoTests(AppFixture fixture) : PageTest
       await Expect(ad).ToHaveCSSAsync("position", width >= 1024 ? "sticky" : "static");
       var card = Page.Locator("section[aria-labelledby='related-articles'] > div[aria-live] > div").First;
       Assert.True(await card.EvaluateAsync<bool>("element => { const poster = element.querySelector('header img').getBoundingClientRect(); const title = element.querySelector('h3'); const bounds = title.getBoundingClientRect(); return Math.abs(poster.width - element.getBoundingClientRect().width) < 1 && bounds.top >= poster.bottom && getComputedStyle(title).webkitLineClamp === 'none'; }"));
-      await Expect(card.Locator(":scope > section")).Not.ToHaveClassAsync(new System.Text.RegularExpressions.Regex("md:hover:scale-110"));
+      await Expect(card.Locator(":scope > article")).Not.ToHaveClassAsync(new System.Text.RegularExpressions.Regex("md:hover:scale-110"));
       await Expect(card.Locator("img")).ToHaveCountAsync(2);
       await Expect(card.Locator("time")).ToHaveAttributeAsync("datetime", new System.Text.RegularExpressions.Regex(@"^\d{4}-\d{2}-\d{2}$"));
       Assert.True(await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= innerWidth"));
@@ -929,6 +929,46 @@ public class SeoTests(AppFixture fixture) : PageTest
     await Expect(cards.Last).ToBeInViewportAsync();
     await cards.First.ClickAsync();
     await Expect(Page.Locator("h1")).ToHaveTextAsync(channels[0], new() { IgnoreCase = true });
+  }
+
+  [Fact]
+  public async Task ThumbnailCards_KeepPostersReadableAndFitAllSharedSurfacesAsync()
+  {
+    foreach (var (path, heading, clamped) in new[]
+    {
+      ("", "h2", true),
+      ("authors/abdul-rahman/", "h3", true),
+      ("blogs/dependency-injection-lifetimes-in-dotnet/", "h3", false),
+    })
+    {
+      await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, path);
+      var card = Page.Locator("[data-thumbnail]").First;
+      await Expect(card).ToBeVisibleAsync();
+      await Expect(card.Locator("main, aside, article")).ToHaveCountAsync(0);
+      await Expect(card.Locator(heading)).ToHaveCountAsync(1);
+      await Expect(card.Locator("time")).ToHaveAttributeAsync("title", new System.Text.RegularExpressions.Regex(@"^\d{1,2} \w+ \d{4}$"));
+      await Expect(card.Locator("a[aria-label^='Explore']")).ToHaveAttributeAsync("href",
+          new System.Text.RegularExpressions.Regex(@"^/channels/[^/]+/$"));
+      foreach (var dark in new[] { false, true })
+      {
+        await Page.EvaluateAsync("dark => document.documentElement.classList.toggle('dark', dark)", dark);
+        foreach (var width in new[] { 320, 375, 768, 1280, 1440 })
+        {
+          await Page.SetViewportSizeAsync(width, 900);
+          Assert.True(await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= innerWidth"));
+          Assert.True(await card.EvaluateAsync<bool>(
+              "element => element.scrollWidth <= element.clientWidth && getComputedStyle(element).transform === 'none'"));
+          Assert.True(await card.Locator("header img").EvaluateAsync<bool>(
+              "image => { const bounds = image.getBoundingClientRect(); return Math.abs(bounds.width / bounds.height - 1265 / 827) < 0.02; }"));
+          Assert.Equal(clamped ? "2" : "none", await card.Locator(heading).EvaluateAsync<string>(
+              "element => getComputedStyle(element).webkitLineClamp"));
+          await Expect(card.Locator("div > a > img")).ToHaveCSSAsync("width", "40px");
+        }
+      }
+      await card.Locator("header a").FocusAsync();
+      await Expect(card.Locator("header a")).ToBeFocusedAsync();
+      await Expect(card.Locator("header a")).ToHaveCSSAsync("outline-style", "solid");
+    }
   }
 
   [Fact]
