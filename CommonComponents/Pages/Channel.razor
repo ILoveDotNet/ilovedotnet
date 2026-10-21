@@ -36,8 +36,8 @@
             "@type": "WebSite",
             "publisher": {
                 "@type": "Organization",
-                "name": "{{Title}}",
-                "url": "{{Url}}",
+                "name": {{System.Text.Json.JsonSerializer.Serialize(Title)}},
+                "url": {{System.Text.Json.JsonSerializer.Serialize(Url)}},
                 "logo": {
                     "@type": "ImageObject",
                     "url": "{{BaseUrl}}favicon.ico",
@@ -45,77 +45,102 @@
                     "height": 16
                 }
             },
-            "url": "{{Url}}",
+            "url": {{System.Text.Json.JsonSerializer.Serialize(Url)}},
             "mainEntityOfPage": {
                 "@type": "WebPage",
-                "@id": "{{Url}}"
+                "@id": {{System.Text.Json.JsonSerializer.Serialize(Url)}}
             },
-            "description": "{{Description}}"
+            "description": {{System.Text.Json.JsonSerializer.Serialize(Description)}}
         }
         </script>
         """"
     ))
 </HeadContent>
 
-<section class="[ dark:bg-stone-900 ] [ flex flex-col ] [ space-y-5 ]">
-    <div class="[ p-1 md:p-5 ]">
-        <Breadcrumbs CurrentTitle="@ContentType" CurrentUrl="@Url" />
-    </div>
-    <div class="[ flex items-center justify-around ] [ w-full ] [ h-52 ] [ bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 ]">
-        <h1 class="[ text-4xl md:text-9xl uppercase break-words ]">@ContentType</h1>
-    </div>
-    <div class="[ mx-auto md:mx-24 ] [ flex flex-col md:flex-row items-center justify-between ] [ space-y-1 md:space-y-0 ]">
-        <main class="[ flex ]">
-            <aside>
-                <figure class="[ mt-2 mr-2 ]">
-                    <img src="@($"/image/icons/{Name}.webp")" alt="@Name" loading="lazy" height="48" width="48" class="[ rounded-full ]" />
-                </figure>
-            </aside>
-            <article class="[ flex flex-col justify-between ] [ dark:text-white ] [ mt-2 ]">
-                <h2 class="[ font-medium break-words ]">@ContentType</h2>
-                <section class="[ flex justify-between ]">
-                    <p>@Contents.Count Articles</p>
-                </section>
-            </article>
-        </main>
-        <NavLink href="https://github.com/ILoveDotNet/ilovedotnet/blob/main/CommonComponents/Pages/Channel.razor" target="_blank" class="[ md:bg-red-700 ] [ text-red-500 md:text-white uppercase ] [ px-3 py-2 ] [ font-semibold ]">Improve</NavLink>
-    </div>
-    <section class="[ px-1 md:px-5 ]">
-        <ul class="[ flex justify-start ]">
-            <li class="[ p-3 ] [ cursor-pointer ] [ uppercase ] [ @(ShowArticleTab ? "border-b-2 text-white font-bold bg-slate-800" : "text-zinc-400") ]" @onclick="OnArticleTabClick">Articles</li>
-            <li class="[ p-3 ] [ cursor-pointer ] [ uppercase ] [ @(ShowLearningPathTab ? "border-b-2 text-white font-bold bg-slate-800" : "text-zinc-400") ]"@onclick="OnLearningPathTabClick">Learning Path</li>
-        </ul>
-        <div class="@(ShowArticleTab ? null : "hidden")">
-            <div class="[ grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 ]">
-                @foreach (var (content, index) in Contents.SelectWithIndex())
-                {
-                    <Thumbnail PosterUrl="@content.ThumbnailUrl"
-                           ContentUrl="@content.ContentUrl"
-                           Title="@content.Title"
-                           AltText="@content.Title"
-                           IconUrl="@content.IconUrl"
-                           IconAlt="@content.Channel"
-                           CreatedOn="@content.ModifiedOn"
-                           Author="@content.Author">
-                    </Thumbnail>
-                }
-            </div>
+<section class="[ flex min-w-0 flex-col gap-5 p-5 dark:bg-stone-900 ]">
+    <Breadcrumbs CurrentTitle="@ContentType" CurrentUrl="@Url" />
+    <header class="[ flex min-w-0 flex-col gap-4 rounded-xl border border-indigo-200 bg-indigo-50 p-4 dark:border-indigo-900 dark:bg-indigo-950 sm:p-6 ]">
+        <div class="[ flex min-w-0 items-center gap-3 ]">
+            @if (IconUrl is not null)
+            {
+                <img src="@IconUrl" alt="@($"{ContentType} channel icon")" width="48" height="48" class="[ h-12 w-12 shrink-0 rounded-full ]" />
+            }
+            <h1 class="[ min-w-0 break-words text-3xl font-bold dark:text-white ]">@ContentType</h1>
         </div>
-        <div class="@(ShowLearningPathTab ? null : "hidden")">
-            <div class="[ grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 ]">
-                @foreach (var (content, index) in LearningPathContents.SelectWithIndex())
-                {
-                    <Thumbnail PosterUrl="@content.ThumbnailUrl"
-                           ContentUrl="@content.ContentUrl"
-                           Title="@content.Title"
-                           AltText="@content.Title"
-                           IconUrl="@content.IconUrl"
-                           IconAlt="@content.Channel"
-                           CreatedOn="@content.ModifiedOn"
-                           Author="@content.Author">
-                    </Thumbnail>
-                }
-            </div>
+        <p class="[ max-w-3xl leading-relaxed ]">@Description</p>
+        <p class="[ text-sm text-stone-600 dark:text-stone-300 ]">@Contents.Count published articles</p>
+        <div class="[ flex flex-wrap items-center gap-4 ]">
+            @if (Contents.Count > 0)
+            {
+                <a href="@($"channels/{ContentType.ToLowerInvariant().ApplyHyphen()}/#channel-results")" @onclick="OnLearningPathTabClick" class="[ inline-flex min-h-11 items-center rounded-lg bg-indigo-700 px-4 py-2 font-semibold text-white no-underline hover:bg-indigo-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ]">Start learning →</a>
+            }
+            <a href="https://github.com/ILoveDotNet/ilovedotnet/blob/main/CommonComponents/Pages/Channel.razor" target="_blank" rel="noopener noreferrer" class="[ inline-flex min-h-11 items-center text-sm underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ]">Contribute on GitHub</a>
         </div>
-    </section>
+    </header>
+
+    @if (!KnownChannel)
+    {
+        <p role="status">This channel was not found. Browse the learning paths to choose an available topic.</p>
+    }
+    else if (Contents.Count == 0)
+    {
+        <p role="status">No articles have been published in this channel yet. Explore another learning path while new content is prepared.</p>
+    }
+    else
+    {
+        <div role="group" aria-label="Article view" class="[ flex flex-wrap gap-2 border-b border-stone-200 pb-3 dark:border-stone-700 ]">
+            <button type="button" aria-pressed="@ShowArticleTab.ToString().ToLowerInvariant()" @onclick="OnArticleTabClick" class="[ min-h-11 rounded-lg border px-4 py-2 font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ] @(ShowArticleTab ? "bg-indigo-700 text-white border-indigo-700" : "border-stone-300 dark:border-stone-600")">Latest articles</button>
+            <button type="button" aria-pressed="@((!ShowArticleTab).ToString().ToLowerInvariant())" @onclick="OnLearningPathTabClick" class="[ min-h-11 rounded-lg border px-4 py-2 font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ] @(!ShowArticleTab ? "bg-indigo-700 text-white border-indigo-700" : "border-stone-300 dark:border-stone-600")">Learning sequence</button>
+        </div>
+        <div class="[ flex min-w-0 flex-col gap-2 ]">
+            <label for="channel-search" class="[ text-sm font-semibold ]">Search @ContentType tutorials</label>
+            <input id="channel-search" type="search" @bind="SearchText" @bind:event="oninput" class="[ min-h-11 w-full max-w-xl rounded-lg border border-stone-300 bg-white px-3 py-2 dark:border-stone-600 dark:bg-stone-800 dark:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ]" />
+            <p aria-live="polite" class="[ text-sm text-stone-600 dark:text-stone-300 ]">@FilteredContents.Count() of @Contents.Count published articles</p>
+            @if (!string.IsNullOrEmpty(SearchText))
+            {
+                <button type="button" @onclick="() => SearchText = string.Empty" class="[ min-h-11 self-start underline ]">Clear search</button>
+            }
+        </div>
+        <section aria-labelledby="channel-results" class="[ flex min-w-0 flex-col gap-4 ]">
+            <h2 id="channel-results" class="[ scroll-mt-20 text-xl font-semibold dark:text-white ]">@(ShowArticleTab ? "Latest articles" : "Learning sequence")</h2>
+            @if (!FilteredContents.Any())
+            {
+                <p role="status">No matching tutorials. Try another search or clear the search to see all articles.</p>
+            }
+            else if (ShowArticleTab)
+            {
+                <div class="[ grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 ]">
+                    @foreach (var content in FilteredContents)
+                    {
+                        <article class="[ flex min-w-0 flex-col gap-3 rounded-xl border border-stone-200 bg-white p-3 dark:border-stone-700 dark:bg-stone-800 ]">
+                            <a href="@($"/{content.ContentUrl.Trim('/')}/")" class="[ flex min-w-0 flex-col gap-3 no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ]">
+                                <img src="@content.ThumbnailUrl" alt="@($"{content.Title} tutorial thumbnail")" loading="lazy" width="1265" height="827" class="[ aspect-video w-full rounded-md object-contain ]" />
+                                <h3 class="[ line-clamp-2 font-semibold dark:text-white hover:underline ]">@content.Title</h3>
+                            </a>
+                            <p class="[ text-sm text-stone-600 dark:text-stone-300 ]">@content.Author</p>
+                            <time datetime="@content.ModifiedOn.ToString("yyyy-MM-dd")" class="[ text-xs text-stone-600 dark:text-stone-300 ]">Updated @content.ModifiedOn.ToString("d MMM yyyy")</time>
+                        </article>
+                    }
+                </div>
+            }
+            else
+            {
+                <p>Follow the suggested order or jump to a tutorial you need. This sequence is not a complete course or a prerequisite checklist.</p>
+                <ol role="list" class="[ flex flex-col gap-3 ]">
+                    @foreach (var (content, step) in FilteredSequence)
+                    {
+                        <li class="[ flex min-w-0 items-start gap-3 rounded-xl border border-stone-200 bg-white p-4 dark:border-stone-700 dark:bg-stone-800 ]">
+                            <span class="[ shrink-0 rounded-lg bg-indigo-50 px-2 py-2 text-sm font-bold text-indigo-800 dark:bg-indigo-950 dark:text-indigo-200 ]">Step @step</span>
+                            <article class="[ flex min-w-0 flex-col gap-2 ]">
+                                <h3 class="[ font-semibold dark:text-white ]"><a href="@($"/{content.ContentUrl.Trim('/')}/")" class="[ underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ]">@content.Title</a></h3>
+                                <p class="[ text-sm leading-relaxed ]">@content.Description</p>
+                                <time datetime="@content.ModifiedOn.ToString("yyyy-MM-dd")" class="[ text-xs text-stone-600 dark:text-stone-300 ]">Updated @content.ModifiedOn.ToString("d MMM yyyy")</time>
+                            </article>
+                        </li>
+                    }
+                </ol>
+            }
+        </section>
+    }
+    <a href="learningpath/" class="[ inline-flex min-h-11 items-center self-start font-semibold underline text-indigo-700 dark:text-indigo-200 ]">Browse all learning paths →</a>
 </section>
