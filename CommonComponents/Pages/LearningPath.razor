@@ -60,36 +60,85 @@
 </HeadContent>
 
 <section class="[ dark:bg-stone-900 ] [ flex flex-col ] [ space-y-5 ] [ p-5 ]">
-    <Breadcrumbs CurrentTitle="@Title" CurrentUrl="@PageUrl" />
+    <Breadcrumbs CurrentTitle=".NET Tutorial Learning Paths" CurrentUrl="@PageUrl" />
     <h1 class="[ dark:text-white ] [ font-bold text-3xl ]">.NET Tutorial Learning Paths</h1>
+    <p class="[ max-w-3xl leading-relaxed ]">Choose a topic and learn in sequence. Explore free .NET tutorials with working examples. Follow the suggested order within each topic, or jump to the concept you need.</p>
+
+    <section aria-labelledby="starting-points-title" class="[ flex min-w-0 flex-col gap-4 rounded-xl border border-indigo-200 bg-indigo-50 p-4 dark:border-indigo-900 dark:bg-indigo-950 sm:p-5 ]">
+        <h2 id="starting-points-title" class="[ text-xl font-semibold dark:text-white ]">Not sure where to start?</h2>
+        <p class="[ text-sm text-stone-700 dark:text-stone-300 ]">These are suggested starting points, not prerequisites or complete courses. Each topic has its own sequence.</p>
+        <div class="[ grid grid-cols-1 gap-4 sm:grid-cols-2 ]">
+            @foreach (var suggestion in StartingPoints)
+            {
+                <div class="[ flex min-w-0 flex-col gap-2 ]">
+                    <h3 class="[ font-semibold dark:text-white ]">@suggestion.Goal</h3>
+                    <p class="[ flex flex-wrap items-center gap-2 text-sm ]">
+                        @foreach (var topic in suggestion.Topics)
+                        {
+                            <a class="[ min-h-11 inline-flex items-center underline text-indigo-800 dark:text-indigo-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ]" href="@($"channels/{TopicSlug(topic)}/")">@topic</a>
+                        }
+                    </p>
+                </div>
+            }
+        </div>
+    </section>
+
+    <section aria-labelledby="browse-topics-title" class="[ flex min-w-0 flex-col gap-3 ]">
+        <h2 id="browse-topics-title" class="[ text-xl font-semibold dark:text-white ]">Find a learning path</h2>
+        <label for="learning-path-search" class="[ text-sm font-semibold ]">Search topics</label>
+        <input id="learning-path-search" type="search" @bind="TopicSearch" @bind:event="oninput" placeholder="Try LINQ, testing, or Web API"
+               class="[ min-h-11 w-full max-w-xl rounded-lg border border-stone-300 bg-white px-3 py-2 dark:border-stone-600 dark:bg-stone-800 dark:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ]" />
+        <p aria-live="polite" class="[ text-sm text-stone-600 dark:text-stone-300 ]">@VisibleChannels.Count topics · @VisibleChannels.Sum(channel => channel.Count()) published articles</p>
+        <details class="[ rounded-lg border border-stone-200 p-3 dark:border-stone-700 ]">
+            <summary class="[ cursor-pointer py-2 font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ]">Browse topics and article counts</summary>
+            <nav aria-label="Learning path topics" class="[ mt-3 ]">
+                <ul role="list" class="[ flex flex-wrap gap-2 ]">
+                    @foreach (var channel in VisibleChannels)
+                    {
+                        <li><a href="@($"learningpath/#path-{TopicSlug(channel.Key)}")" class="[ inline-flex min-h-11 items-center gap-2 rounded-full border border-stone-200 bg-white px-3 py-2 text-sm no-underline dark:border-stone-700 dark:bg-stone-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ]">@channel.Key <span class="[ text-stone-600 dark:text-stone-300 ]">(@channel.Count())</span></a></li>
+                    }
+                </ul>
+            </nav>
+        </details>
+    </section>
+
+    @if (VisibleChannels.Count == 0)
+    {
+        <p role="status" class="[ rounded-lg border border-stone-200 p-5 dark:border-stone-700 ]">No matching topics. Try another topic name or clear your search.</p>
+    }
+    @foreach (var channel in VisibleChannels)
+    {
+        <section aria-labelledby="@($"path-{TopicSlug(channel.Key)}")" class="[ flex min-w-0 flex-col gap-4 border-t border-stone-200 pt-6 dark:border-stone-700 ]">
+            <header class="[ flex flex-wrap items-center justify-between gap-3 ]">
+                <div class="[ flex min-w-0 items-center gap-3 ]">
+                    <img src="@channel.First().IconUrl" alt="@($"{channel.Key} topic icon")" loading="lazy" height="48" width="48" class="[ h-12 w-12 shrink-0 rounded-full ]" />
+                    <div class="[ min-w-0 ]">
+                        <h2 id="@($"path-{TopicSlug(channel.Key)}")" class="[ scroll-mt-20 break-words text-2xl font-bold text-gray-900 dark:text-white ]">@channel.Key</h2>
+                        <p class="[ text-sm text-stone-600 dark:text-stone-300 ]">@channel.Count() published articles</p>
+                    </div>
+                </div>
+                <a href="@($"channels/{TopicSlug(channel.Key)}/")" aria-label="@($"View {channel.Key} channel")" class="[ inline-flex min-h-11 items-center font-semibold underline text-indigo-700 dark:text-indigo-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ]">View channel →</a>
+            </header>
+            <div role="region" aria-label="@($"{channel.Key} learning sequence")" tabindex="0" class="[ relative min-w-0 overflow-x-auto rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ]">
+                <ol role="list" class="[ grid grid-flow-col auto-cols-[80%] gap-4 p-1 pb-3 snap-x snap-mandatory scroll-p-1 sm:auto-cols-[45%] lg:auto-cols-[30%] xl:auto-cols-[23%] ]">
+                    @foreach (var (content, index) in channel.OrderBy(content => content.Order).Select((content, index) => (content, index)))
+                    {
+                        <li class="[ min-w-0 snap-start ]">
+                            <a href="@content.ContentUrl" class="[ flex h-full min-w-0 flex-col gap-2 rounded-lg p-1 no-underline hover:bg-stone-100 dark:hover:bg-stone-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ]">
+                                <img src="@content.ThumbnailUrl" alt="@($"{content.Title} tutorial thumbnail")" loading="lazy" width="1265" height="827" class="[ aspect-video w-full rounded-md object-contain ]" />
+                                <span class="[ text-xs font-semibold text-indigo-700 dark:text-indigo-200 ]">Step @(index + 1)</span>
+                                <h3 class="[ line-clamp-2 font-semibold text-gray-900 dark:text-white ]">@content.Title</h3>
+                                <time datetime="@content.ModifiedOn.ToString("yyyy-MM-dd")" class="[ text-xs text-stone-600 dark:text-stone-300 ]">Updated @content.ModifiedOn.ToString("d MMM yyyy")</time>
+                            </a>
+                        </li>
+                    }
+                </ol>
+            </div>
+        </section>
+    }
+
     <InterviewPreparationBanner Heading="Turn your learning into interview confidence."
                                 Description="Put these tutorials into practice with C# and .NET questions, system design exercises, and a readiness checklist." />
-    
-   @foreach (var channel in tableOfContents.AllContents.GroupBy(content => content.Channel).OrderBy(channel => channel.Key))
-   {
-        <article class="[ flex flex-col ] [ space-y-4 ]">
-            <header class="[ flex items-center ] [ space-x-2 ]">
-                <NavLink href="@($"channels/{channel.Key.ToLower().ApplyHyphen()}/")">
-                    <figure>
-                        <img src="@channel.First().IconUrl" alt="@channel.Key" loading="lazy" height="48" width="48" class="[ rounded-full ]" />
-                    </figure>
-                </NavLink>
-                <h2 class="[ text-3xl ] [ text-center ] [ text-gray-900 dark:text-white ] [ font-bold ]">@channel.Key</h2>
-            </header>
-            <div class="[ grid gap-4 grid-flow-col auto-cols-[calc(75%_-_4rem)] md:auto-cols-[calc(25%_-_4rem)] ] [ overflow-x-auto ]">
-                @foreach (var content in channel.OrderBy(content => content.Order))
-                {
-                    <NavLink href="@content.ContentUrl" Match="NavLinkMatch.All">
-                        <figure>
-                            <img src="@content.ThumbnailUrl" alt="@content.Title" loading="lazy" width="1265" height="827" class="[ rounded-md ]">
-                        </figure>
-                        <figcaption class="[ text-gray-900 dark:text-white ] [ line-clamp-1 ] [ font-bold ]">@content.Title</figcaption>
-                        <time datetime="@content.ModifiedOn.ToString("yyyy-MM-dd HH:mm:ss")" class="[ text-sm ]">Released @content.ModifiedOn.Humanize()</time>
-                    </NavLink>
-                }
-            </div>
-        </article>
-   }
 </section>
 
 @code {
@@ -97,4 +146,23 @@
     private string Description = "Follow structured .NET tutorial learning paths for C#, LINQ, Blazor, Web API, testing, security, AI, and modern application development.";
     private string BaseUrl => configuration.GetValue<string>("baseUrl")!;
     private string PageUrl => $"{BaseUrl}learningpath/";
+    private string TopicSearch = "";
+    private List<IGrouping<string, ContentMetaData>> Channels = [];
+    private List<IGrouping<string, ContentMetaData>> VisibleChannels =>
+        Channels.Where(channel => channel.Key.Contains(TopicSearch.Trim(), StringComparison.OrdinalIgnoreCase)).ToList();
+
+    protected override void OnInitialized()
+    {
+        Channels = tableOfContents.Contents.GroupBy(content => content.Channel).OrderBy(channel => channel.Key).ToList();
+    }
+
+    private static string TopicSlug(string topic) => topic.ToLowerInvariant().ApplyHyphen();
+
+    private static readonly (string Goal, string[] Topics)[] StartingPoints =
+    [
+        ("Strengthen fundamentals", ["OOPS", "LINQ", "SOLID"]),
+        ("Build web applications", ["Web API", "Dependency Injection", "EFCore"]),
+        ("Improve engineering practices", ["Testing", "TDD", "Design Pattern"]),
+        ("Explore AI tooling", ["AI", "MCP"]),
+    ];
 }
