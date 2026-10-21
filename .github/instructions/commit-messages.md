@@ -7,6 +7,7 @@ Please analyze my staged changes and study how it is implemented. Take your time
 ## 🧠 General Rules
 
 - Focus on **communicating the purpose** of the change, not what changed.
+- Understand the **context and purpose and intent** of the changes before writing the commit message.
 - Use **past tense** in the body.
 - Use the **imperative mood** in the summary (e.g., "Fix login bug").
 - If a file is **renamed or moved**, mention only that and ignore other details.
