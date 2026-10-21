@@ -178,11 +178,8 @@ public class SeoTests(AppFixture fixture) : PageTest
               $"The chart panel should fit at {width}px in {(dark ? "dark" : "light")} mode.");
           Assert.True(await Page.Locator("main").EvaluateAsync<bool>("element => element.scrollWidth <= element.clientWidth"),
               $"Chart contents must not widen the main page at {width}px.");
-          if (width >= 375)
-          {
-            Assert.True(await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= innerWidth"),
-                $"The page must not scroll horizontally at {width}px.");
-          }
+          Assert.True(await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= innerWidth"),
+              $"The page must not scroll horizontally at {width}px.");
         }
       }
     }
