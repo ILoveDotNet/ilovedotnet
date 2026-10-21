@@ -35,6 +35,8 @@
                 </li>
                 <li>Using <Highlight>window.print()</Highlight>
                 </li>
+                <li>Using a dedicated .NET PDF library (<Highlight>IronPDF</Highlight>)
+                </li>
             </ol>
 
             <h4>Using <Highlight>wkhtmltopdf</Highlight>
@@ -340,6 +342,92 @@ export function printWindow() {
                 <li>Faster</li>
                 <li>Supports all the latest CSS properties.</li>
             </ol>
+
+            <h4>Using a Dedicated .NET PDF Library (<Highlight>IronPDF</Highlight>)</h4>
+
+            <p>
+                Another option for converting HTML to PDF in .NET is a dedicated library that includes its own
+                rendering engine. For example, <a href="https://ironpdf.com/" target="_blank"
+                    rel="sponsored noopener noreferrer">IronPDF</a> provides a Chromium-based HTML-to-PDF API for C#
+                applications. Unlike manually launching Chrome Headless or using Selenium WebDriver, IronPDF manages
+                its rendering dependencies through its .NET package and does not require a separately installed Chrome
+                browser or ChromeDriver for typical deployments.
+            </p>
+
+            <p>Install IronPDF using NuGet:</p>
+
+            <CodeSnippet CssClass="language-powershell">
+Install-Package IronPdf
+            </CodeSnippet>
+
+            <p>Generate a PDF from HTML with a custom footer:</p>
+
+            <CodeSnippet CssClass="language-csharp">
+using IronPdf;
+
+var renderer = new ChromePdfRenderer();
+
+renderer.RenderingOptions.HtmlFooter = new HtmlHeaderFooter
+{
+    MaxHeight = 15,
+    HtmlFragment =
+        "&lt;div style='text-align:center'&gt;Page {page} of {total-pages}&lt;/div&gt;"
+};
+
+renderer.RenderingOptions.MarginBottom = 25;
+
+var pdf = renderer.RenderHtmlAsPdf(
+    "&lt;h1&gt;Monthly Report&lt;/h1&gt;&lt;p&gt;Report content&lt;/p&gt;"
+);
+
+pdf.SaveAs("report.pdf");
+            </CodeSnippet>
+
+            <p>Advantages:</p>
+
+            <ul>
+                <li>
+                    <strong>Modern HTML and CSS:</strong> Chromium-based rendering supports CSS Grid, Flexbox,
+                    JavaScript, and web fonts, addressing limitations of wkhtmltopdf's older rendering engine.
+                </li>
+                <li>
+                    <strong>Simpler browser dependency management:</strong> Developers do not need to maintain a
+                    separate ChromeDriver installation or manually launch Chrome for each PDF conversion.
+                </li>
+                <li>
+                    <strong>Server-side PDF generation:</strong> Reports can be generated from HTML strings, local
+                    files, or URLs without requiring users to open a browser print dialog.
+                </li>
+                <li>
+                    <strong>Headers, footers, and page numbers:</strong> Built-in rendering options provide reusable
+                    page numbering and custom report layouts.
+                </li>
+                <li>
+                    <strong>Asynchronous and concurrent rendering:</strong> IronPDF supports asynchronous rendering
+                    and multithreaded workloads, although resource usage and concurrency limits still need to be
+                    managed.
+                </li>
+            </ul>
+
+            <h5>When should you use it?</h5>
+
+            <p>
+                For frontend printing, <Highlight>window.print()</Highlight> remains a simple free option. Selenium or
+                Chrome Headless can also work well for backend PDF generation, especially when browser automation
+                infrastructure already exists.
+            </p>
+
+            <p>
+                IronPDF is worth considering when an application needs server-side PDF generation, modern CSS support,
+                built-in report formatting, and a managed .NET API without manually maintaining a separate browser
+                and driver installation.
+            </p>
+
+            <p>
+                <strong>Sponsored:</strong> This section is sponsored by IronPDF. See the
+                <a href="https://ironpdf.com/tutorials/html-to-pdf/" target="_blank"
+                    rel="sponsored noopener noreferrer">IronPDF HTML-to-PDF tutorial</a> for additional examples.
+            </p>
         </How>
 
         <Summary>
