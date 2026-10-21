@@ -1,11 +1,11 @@
-﻿<div class="[ grid justify-items-start ] [ overflow-x-scroll ]">
-    <ul class="[ list-none ] [ flex items-center justify-start ] [ space-x-3 ] [ overflow-hidden ]">
-        <li class="@($"[ cursor-pointer ] [ px-3 py-1 ] [ rounded-md ] [ whitespace-nowrap ] [ {(selectedContentType is null ? activeClass : inActiveClass)} ]")"
-            onclick="@(() => SelectedContentType(null))">All</li>
+﻿<div role="group" aria-label="Filter tutorials by topic" class="[ min-w-0 max-w-full overflow-x-auto p-1 ]">
+    <ul class="[ flex w-max list-none items-center gap-3 ]">
+        <li><button type="button" aria-pressed="@((selectedContentType is null).ToString().ToLowerInvariant())" class="@ChipClass(selectedContentType is null)"
+            @onclick="@(() => SelectedContentType(null))">All</button></li>
         @foreach (var contentType in TableOfContents.AvailableContentTypes)
         {
-            <li class="@($"[ cursor-pointer ] [ px-3 py-1 ] [ rounded-md ] [ whitespace-nowrap ] [ {(selectedContentType is not null && selectedContentType.Equals(contentType, StringComparison.OrdinalIgnoreCase) ? activeClass : inActiveClass)} ]")"
-            @onclick="@(() => SelectedContentType(@contentType))">@contentType</li>
+            <li><button type="button" aria-pressed="@((selectedContentType == contentType).ToString().ToLowerInvariant())" class="@ChipClass(selectedContentType == contentType)"
+            @onclick="@(() => SelectedContentType(contentType))">@contentType</button></li>
         }
     </ul>
 </div>
@@ -14,6 +14,7 @@
     private string? selectedContentType = null;
     private string activeClass = "bg-black text-white dark:bg-white dark:text-black";
     private string inActiveClass = "bg-gray-200 text-black dark:bg-gray-600 dark:text-white";
+    private string ChipClass(bool selected) => $"[ min-h-11 cursor-pointer whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ] [ {(selected ? activeClass : inActiveClass)} ]";
 
     [Inject] private TableOfContents TableOfContents { get; set; } = default!;
 

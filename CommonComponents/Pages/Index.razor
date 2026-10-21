@@ -59,14 +59,30 @@
     ))
 </HeadContent>
 
-<h1 class="[ sr-only ]">I ❤️ .NET: free .NET, C# and Blazor tutorials</h1>
+<header class="[ space-y-3 p-4 dark:bg-stone-900 md:p-5 ]">
+    <h1 class="[ text-2xl font-bold tracking-tight dark:text-white md:text-3xl ]">Learn .NET by building.</h1>
+    <p class="[ max-w-3xl leading-relaxed text-stone-600 dark:text-stone-300 ]">Practical .NET tutorials, working examples, and learning paths for developers.</p>
+    <nav aria-label="Start learning" class="[ flex flex-wrap gap-x-6 gap-y-2 text-sm font-semibold text-indigo-700 dark:text-indigo-300 ]">
+        <a href="/learningpath/" class="[ inline-flex min-h-11 items-center underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-indigo-500 ]">Explore learning paths</a>
+        <a href="/interview/" class="[ inline-flex min-h-11 items-center underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-indigo-500 ]">Prepare for interviews</a>
+    </nav>
+</header>
 
-<section class="[ dark:bg-stone-900 ] [ flex flex-col ] [ space-y-5 ] [ p-1 md:p-5 ] [ border-b-2 ] [ dark:border-gray-800 ]">
+<section aria-labelledby="latest-tutorials-title" class="[ min-w-0 dark:bg-stone-900 flex flex-col space-y-5 p-4 md:p-5 border-b-2 dark:border-gray-800 ]">
+    <header class="[ space-y-2 ]">
+        <h2 id="latest-tutorials-title" class="[ text-2xl font-bold dark:text-white ]">@(SelectedContentType is null ? "Latest tutorials" : $"Latest {SelectedContentType} tutorials")</h2>
+        <p class="[ text-sm text-stone-600 dark:text-stone-300 ]">Browse tutorials by most recently updated.</p>
+    </header>
     <ContentTypes OnSelectedContentType="FilterContent"></ContentTypes>
-    <div class="[ grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 ]">
-        @foreach (var (content, index) in Contents.SelectWithIndex())
+    <p role="status" class="[ text-sm text-stone-600 dark:text-stone-300 ]">Showing @Contents.Count() of @MatchingArticleCount tutorials</p>
+    @if (!Contents.Any())
+    {
+        <p class="[ rounded-lg border border-stone-200 p-4 dark:border-stone-700 ]">No published tutorials in this topic yet. Choose All or explore another topic.</p>
+    }
+    <div class="[ grid min-w-0 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 ]">
+        @foreach (var content in Contents)
         {
-            <Thumbnail @key="@index" PosterUrl="@content.ThumbnailUrl" 
+            <Thumbnail @key="@content.Slug" PosterUrl="@content.ThumbnailUrl"
                     ContentUrl="@content.ContentUrl"
                     Title="@content.Title"
                     AltText="@content.Title"
@@ -74,22 +90,21 @@
                     IconAlt="@content.Channel"
                     Channel="@content.Channel"
                     CreatedOn="@content.ModifiedOn"
-                    Author="@content.Author">
-            </Thumbnail>           
+                    Author="@content.Author"
+                    HeadingLevel="3">
+            </Thumbnail>
         }
     </div>
-    <div class="[ flex items-center justify-center ]">
-        <button type="button" 
-                class="[ cursor-pointer ] [ px-3 py-1 ] [ rounded-md ] [ whitespace-nowrap ] [ flex items-center justify-center ] [ disabled:opacity-75 disabled:cursor-not-allowed ]"
-                @onclick="ShowMoreContents"
-                disabled="@(Take >= tableOfContents.SelectedContentTypeTotalCount(SelectedContentType))">
-            <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-caret-down ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                <path d="M6 10l6 6l6 -6h-12"></path>
-            </svg>
-            <p>Show more</p>
-        </button>
-    </div>
+    @if (Contents.Count() < MatchingArticleCount)
+    {
+        <div class="[ flex items-center justify-center ]">
+            <button type="button"
+                    class="[ inline-flex min-h-11 cursor-pointer items-center justify-center rounded-lg border border-stone-300 px-4 py-2 font-semibold hover:bg-stone-100 dark:border-stone-600 dark:hover:bg-stone-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ]"
+                    @onclick="ShowMoreContents">
+                Show more tutorials
+            </button>
+        </div>
+    }
 </section>
 
 <div class="[ dark:bg-stone-900 ] [ p-3 md:p-5 ] [ border-b-2 ] [ dark:border-gray-800 ]">
@@ -97,12 +112,13 @@
 </div>
 
 <section aria-labelledby="channels-title" class="[ dark:bg-stone-900 ] [ flex min-w-0 flex-col ] [ space-y-5 ] [ p-5 ] [ border-b-2 ] [ dark:border-gray-800 ]">
-    <header class="[ flex items-center gap-2 ]">
+    <header class="[ flex flex-wrap items-center gap-2 ]">
         <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-track ] [ text-red-600 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
             <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
             <path d="M4 15l11 -11m5 5l-11 11m-4 -8l7 7m-3.5 -10.5l7 7m-3.5 -10.5l7 7"></path>
         </svg>
         <h2 id="channels-title" class="[ text-2xl font-bold ] [ dark:text-gray-200 ]">Channels</h2>
+        <a href="/learningpath/" class="[ inline-flex min-h-11 items-center px-2 text-sm font-semibold text-indigo-700 underline dark:text-indigo-300 focus-visible:outline-2 focus-visible:outline-indigo-500 ]">View all learning paths</a>
         <div class="[ ml-auto hidden gap-2 md:flex ]">
             <button type="button" aria-label="Previous channels" aria-controls="channel-shelf"
                     class="[ flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border border-stone-300 ] [ dark:border-stone-700 ] [ hover:bg-stone-100 dark:hover:bg-stone-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ]"
@@ -131,7 +147,7 @@
                         <img src="@channel.IconUrl" alt="" loading="lazy" width="40" height="40" class="[ h-10 w-10 rounded-lg object-contain ]" />
                         <span class="[ break-words text-base font-bold ]">@channel.Name</span>
                         <span class="[ mt-auto flex items-center justify-between gap-2 text-sm text-stone-600 dark:text-stone-300 ]">
-                            <span>@channel.ArticleCount @(channel.ArticleCount == 1 ? "article" : "articles")</span>
+                            <span>@(channel.ArticleCount == 0 ? "Coming soon" : $"{channel.ArticleCount} {(channel.ArticleCount == 1 ? "article" : "articles")}")</span>
                             <svg aria-hidden="true" class="[ shrink-0 ]" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M5 12h14m-6-6 6 6-6 6"></path>
                             </svg>
@@ -220,18 +236,6 @@
     </div>
 </section>
 
-<section class="[ dark:bg-stone-900 ] [ flex flex-col ] [ space-y-5 ] [ p-5 ] [ border-b-2 ] [ dark:border-gray-800 ]">
-    <header class="[ flex ] [ space-x-2 ]">
-        <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-speakerphone ] [ text-green-600 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
-            <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-            <path d="M18 8a3 3 0 0 1 0 6"></path>
-            <path d="M10 8v11a1 1 0 0 1 -1 1h-1a1 1 0 0 1 -1 -1v-5"></path>
-            <path d="M12 8h0l4.524 -3.77a.9 .9 0 0 1 1.476 .692v12.156a.9 .9 0 0 1 -1.476 .692l-4.524 -3.77h-8a1 1 0 0 1 -1 -1v-4a1 1 0 0 1 1 -1h8"></path>
-        </svg>
-        <h2 class="[ text-2xl font-bold ] [ dark:text-gray-200 ]">Announcements</h2>
-    </header>
-</section>
-
 @code {
     private string Title = "I ❤️ DotNet | .NET Tutorials, C# and Blazor";
     private string Description = "Practical .NET tutorials, C# examples, Blazor guides, and hands-on learning paths for developers building real applications.";
@@ -244,6 +248,7 @@
     private IReadOnlyList<(string Name, string IconUrl, int ArticleCount)> Channels = [];
     private int Count = 1;
     private int Take => TableOfContents.PageSize * Count;
+    private int MatchingArticleCount => tableOfContents.SelectedContentTypeTotalCount(SelectedContentType);
 
     protected override void OnInitialized()
     {

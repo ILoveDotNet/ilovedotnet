@@ -898,6 +898,54 @@ public class SeoTests(AppFixture fixture) : PageTest
   }
 
   [Fact]
+  public async Task HomePage_FiltersAndPaginatesAccessibleTutorialFeedAsync()
+  {
+    await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, "");
+    var table = new SharedModels.TableOfContents();
+    var feed = Page.Locator("section[aria-labelledby='latest-tutorials-title']");
+    var filters = Page.GetByRole(AriaRole.Group, new() { Name = "Filter tutorials by topic" });
+    await Expect(feed.Locator("[data-thumbnail]")).ToHaveCountAsync(12);
+    await Expect(feed.Locator("h2")).ToHaveTextAsync("Latest tutorials");
+    await feed.GetByRole(AriaRole.Button, new() { Name = "Show more tutorials" }).ClickAsync();
+    await Expect(feed.Locator("[data-thumbnail]")).ToHaveCountAsync(24);
+    await filters.GetByRole(AriaRole.Button, new() { Name = "LINQ", Exact = true }).FocusAsync();
+    await Page.Keyboard.PressAsync("Enter");
+    await Expect(filters.GetByRole(AriaRole.Button, new() { Name = "LINQ", Exact = true })).ToHaveAttributeAsync("aria-pressed", "true");
+    await Expect(feed.Locator("[data-thumbnail]")).ToHaveCountAsync(Math.Min(12, table.SelectedContentTypeTotalCount("LINQ")));
+    var expected = table.FilteredAndPagedContents("LINQ", 0, int.MaxValue);
+    await Expect(feed.Locator("h2")).ToHaveTextAsync("Latest LINQ tutorials");
+    while (await feed.GetByRole(AriaRole.Button, new() { Name = "Show more tutorials" }).CountAsync() > 0)
+    {
+      await feed.GetByRole(AriaRole.Button, new() { Name = "Show more tutorials" }).ClickAsync();
+    }
+    await Expect(feed.Locator("[data-thumbnail] h3")).ToHaveTextAsync(expected.Select(content => content.Title).ToArray());
+    await Expect(feed.GetByRole(AriaRole.Status)).ToHaveTextAsync($"Showing {expected.Count} of {expected.Count} tutorials");
+    await filters.GetByRole(AriaRole.Button, new() { Name = "All", Exact = true }).ClickAsync();
+    await Expect(feed.Locator("[data-thumbnail]")).ToHaveCountAsync(12);
+    await Expect(filters.GetByRole(AriaRole.Button, new() { Name = "All", Exact = true })).ToHaveAttributeAsync("aria-pressed", "true");
+    foreach (var dark in new[] { false, true })
+    {
+      await Page.EvaluateAsync("dark => document.documentElement.classList.toggle('dark', dark)", dark);
+      foreach (var width in new[] { 320, 375, 768, 1024, 1440, 1600 })
+      {
+        await Page.SetViewportSizeAsync(width, 900);
+        Assert.True(await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= innerWidth"));
+        Assert.True(await filters.EvaluateAsync<bool>("element => element.getBoundingClientRect().right <= innerWidth"));
+        var columns = await feed.Locator("div.grid").EvaluateAsync<int>("element => getComputedStyle(element).gridTemplateColumns.split(' ').length");
+        Assert.Equal(width >= 1536 ? 5 : width >= 1280 ? 4 : width >= 1024 ? 3 : width >= 768 ? 2 : 1, columns);
+      }
+    }
+    foreach (var channel in table.AvailableContentTypes.Where(channel => table.SelectedContentTypeTotalCount(channel) == 0))
+    {
+      await filters.GetByRole(AriaRole.Button, new() { Name = channel, Exact = true }).ClickAsync();
+      await Expect(feed.Locator("[data-thumbnail]")).ToHaveCountAsync(0);
+      await Expect(feed).ToContainTextAsync("No published tutorials in this topic yet.");
+      await Expect(feed.GetByRole(AriaRole.Button, new() { Name = "Show more tutorials" })).ToHaveCountAsync(0);
+    }
+    await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "Announcements", Exact = true })).ToHaveCountAsync(0);
+  }
+
+  [Fact]
   public async Task HomePage_ChannelShelfSupportsScrollingAndNavigationAsync()
   {
     await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, "");
@@ -911,7 +959,7 @@ public class SeoTests(AppFixture fixture) : PageTest
       var channel = channels[index];
       var count = metadata.Contents.Count(content => content.Channel == channel);
       await Expect(cards.Nth(index)).ToContainTextAsync(channel);
-      await Expect(cards.Nth(index)).ToContainTextAsync($"{count} {(count == 1 ? "article" : "articles")}");
+      await Expect(cards.Nth(index)).ToContainTextAsync(count == 0 ? "Coming soon" : $"{count} {(count == 1 ? "article" : "articles")}");
     }
 
     await Page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
@@ -973,7 +1021,7 @@ public class SeoTests(AppFixture fixture) : PageTest
   {
     foreach (var (path, heading, clamped) in new[]
     {
-      ("", "h2", true),
+      ("", "h3", true),
       ("authors/abdul-rahman/", "h3", true),
       ("blogs/dependency-injection-lifetimes-in-dotnet/", "h3", false),
     })
