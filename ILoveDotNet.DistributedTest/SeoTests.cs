@@ -164,16 +164,26 @@ public class SeoTests(AppFixture fixture) : PageTest
         Assert.InRange(Math.Abs(heights[index] / heights.Max() - (double)expected[index].Impressions / maximum), 0, 0.01);
       }
     }
-    await period.SelectOptionAsync("all");
-    foreach (var width in new[] { 320, 390, 768, 1280 })
+    foreach (var selection in new[] { "recent", "all" })
     {
-      await Page.SetViewportSizeAsync(width, 844);
-      foreach (var dark in new[] { false, true })
+      await period.SelectOptionAsync(selection);
+      foreach (var width in new[] { 320, 375, 390, 414, 768, 1280 })
       {
-        await Page.EvaluateAsync("dark => document.documentElement.classList.toggle('dark', dark)", dark);
-        Assert.True(await panel.EvaluateAsync<bool>(
-            "element => element.scrollWidth <= element.clientWidth && element.getBoundingClientRect().right <= innerWidth"),
-            $"The chart panel should fit at {width}px in {(dark ? "dark" : "light")} mode.");
+        await Page.SetViewportSizeAsync(width, 844);
+        foreach (var dark in new[] { false, true })
+        {
+          await Page.EvaluateAsync("dark => document.documentElement.classList.toggle('dark', dark)", dark);
+          Assert.True(await panel.EvaluateAsync<bool>(
+              "element => element.scrollWidth <= element.clientWidth && element.getBoundingClientRect().right <= innerWidth"),
+              $"The chart panel should fit at {width}px in {(dark ? "dark" : "light")} mode.");
+          Assert.True(await Page.Locator("main").EvaluateAsync<bool>("element => element.scrollWidth <= element.clientWidth"),
+              $"Chart contents must not widen the main page at {width}px.");
+          if (width >= 375)
+          {
+            Assert.True(await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= innerWidth"),
+                $"The page must not scroll horizontally at {width}px.");
+          }
+        }
       }
     }
     await chart.FocusAsync();
