@@ -26,4 +26,12 @@ public class AuthorMetaData
   public bool IsMVP { get; set; }
   public required List<SocialUrl> SocialUrls { get; set; } = [];
   public List<string> Badges = [];
+
+  public IReadOnlyList<string> SameAs
+          => [.. SocialUrls
+              .Where(socialUrl => socialUrl.Type is not SocialLink.WhatsApp
+                  and not SocialLink.BuyMeACoffee
+                  and not SocialLink.Blog
+                  and not SocialLink.WebSite)
+              .Select(socialUrl => socialUrl.Url.AbsoluteUri)];
 }

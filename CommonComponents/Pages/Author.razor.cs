@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Configuration;
 using SharedModels;
@@ -11,9 +12,56 @@ public class AuthorBase : ComponentBase
   protected IReadOnlyList<ContentMetaData> LatestArticles = [];
   protected int PublishedArticleCount;
   protected int PublishedTopicCount;
+  protected string ProfileStructuredData
+  {
+    get
+    {
+      var knowsAbout = new JsonArray();
+      foreach (var topic in TableOfContents.Contents
+          .Where(content => content.Author.Equals(Author.Name, StringComparison.OrdinalIgnoreCase))
+          .Select(content => content.Channel)
+          .Distinct(StringComparer.OrdinalIgnoreCase)
+          .Order())
+      {
+        knowsAbout.Add(topic);
+      }
+
+      var sameAs = new JsonArray();
+      foreach (var profileUrl in Author.SameAs)
+      {
+        sameAs.Add(profileUrl);
+      }
+
+      var person = new JsonObject
+      {
+        ["@type"] = "Person",
+        ["@id"] = $"{Url}#person",
+        ["name"] = Author.Name,
+        ["url"] = Url,
+        ["image"] = new Uri(new Uri(BaseUrl), Author.ImageUrl).AbsoluteUri,
+        ["description"] = Author.Description,
+        ["jobTitle"] = Author.Role,
+        ["sameAs"] = sameAs,
+        ["knowsAbout"] = knowsAbout
+      };
+
+      if (Author.IsMVP)
+      {
+        person["award"] = "Microsoft MVP";
+      }
+
+      return new JsonObject
+      {
+        ["@context"] = "https://schema.org",
+        ["@type"] = "ProfilePage",
+        ["url"] = Url,
+        ["mainEntity"] = person
+      }.ToJsonString();
+    }
+  }
   protected string ContentType => $"{CultureInfo.CurrentUICulture.TextInfo.ToTitleCase(Name)}";
   protected string Title => $"{ContentType} - I ❤️ DotNet";
-  protected string Description => $"This is a .NET {ContentType} knowledge sharing channel with live demos crafted by developers for developers with love.";
+  protected string Description => Author.Introduction;
   protected string BaseUrl => Configuration.GetValue<string>("baseUrl")!;
   protected string Url => $"{BaseUrl}authors/{Name.ToLower().ApplyHyphen()}/";
 

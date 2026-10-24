@@ -1181,6 +1181,13 @@ public class SeoTests(AppFixture fixture) : PageTest
       var articleUrl = article.RootElement.GetProperty("mainEntityOfPage").GetProperty("@id").GetString();
       Assert.Equal(SeoTestHelpers.ExpectedUrl(ExpectedCanonicalBaseUrl, path), articleUrl);
 
+      var author = article.RootElement.GetProperty("author");
+      var authorUrl = SeoTestHelpers.ExpectedUrl(ExpectedCanonicalBaseUrl, "authors/abdul-rahman/");
+      Assert.Equal("Person", author.GetProperty("@type").GetString());
+      Assert.Equal("Abdul Rahman", author.GetProperty("name").GetString());
+      Assert.Equal(authorUrl, author.GetProperty("url").GetString());
+      Assert.Equal($"{authorUrl}#person", author.GetProperty("@id").GetString());
+
       var image = article.RootElement.GetProperty("image");
       Assert.True(image.GetProperty("width").GetInt32() > 0);
       Assert.True(image.GetProperty("height").GetInt32() > 0);
@@ -1222,7 +1229,7 @@ public class SeoTests(AppFixture fixture) : PageTest
   [Fact]
   public async Task PublicWebsitePages_HaveValidWebsiteStructuredDataAsync()
   {
-    foreach (var path in new[] { "", "about/", "authors/abdul-rahman/", "privacy/", "disclaimer/" })
+    foreach (var path in new[] { "", "about/", "privacy/", "disclaimer/" })
     {
       await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, path);
       await Expect(Page.Locator("script[type='application/ld+json']")).ToHaveCountAsync(1);
@@ -1247,6 +1254,36 @@ public class SeoTests(AppFixture fixture) : PageTest
         {
           document.Dispose();
         }
+      }
+    }
+  }
+
+  [Fact]
+  public async Task AuthorProfilePage_HasValidProfileStructuredDataAsync()
+  {
+    const string path = "authors/abdul-rahman/";
+    var expectedUrl = SeoTestHelpers.ExpectedUrl(ExpectedCanonicalBaseUrl, path);
+
+    await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, path);
+    await Expect(Page.Locator("script[type='application/ld+json']")).ToHaveCountAsync(1);
+    var documents = await SeoTestHelpers.GetJsonLdDocumentsAsync(Page);
+    try
+    {
+      var profile = GetSchema(documents, "ProfilePage");
+      Assert.Equal(expectedUrl, profile.RootElement.GetProperty("url").GetString());
+
+      var person = profile.RootElement.GetProperty("mainEntity");
+      Assert.Equal("Person", person.GetProperty("@type").GetString());
+      Assert.Equal($"{expectedUrl}#person", person.GetProperty("@id").GetString());
+      Assert.Equal("Abdul Rahman", person.GetProperty("name").GetString());
+      Assert.Equal(expectedUrl, person.GetProperty("url").GetString());
+      Assert.NotEmpty(person.GetProperty("sameAs").EnumerateArray());
+    }
+    finally
+    {
+      foreach (var document in documents)
+      {
+        document.Dispose();
       }
     }
   }

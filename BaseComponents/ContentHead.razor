@@ -1,5 +1,7 @@
-﻿@inject IConfiguration configuration
+﻿@using System.Text.Json.Nodes
+@inject IConfiguration configuration
 @inject Sitemaps sitemap
+@inject TableOfContents tableOfContents
 
 <Title>@contentMetaData!.Title - I ❤️ DotNet</Title>
 
@@ -47,67 +49,73 @@
 <Link Rel="canonical" Href="@($"{BaseUrl}{contentMetaData.Type}/{slug}/")" />
 <Link Rel="index" Href="@($"{BaseUrl}{contentMetaData.Type}/{slug}/")" title="@($"{contentMetaData.Title} - I ❤️ DotNet")" />
 <HeadContent>
-    @(new MarkupString(
-        $$""""
-        <script type="application/ld+json">
-        {
-            "@context": "https://schema.org",
-            "@type": "Article",
-            "publisher": {
-                "@type": "Organization",
-                "name": "I Love DotNet",
-                "url": "{{BaseUrl}}",
-                "logo": {
-                    "@type": "ImageObject",
-                    "url": "{{BaseUrl}}favicon.ico",
-                    "width": 16,
-                    "height": 16
-                }
-            },
-            "author": {
-                "@type": "Person",
-                "name": "Abdul Rahman Shabeek Mohamed",
-                "image": {
-                    "@type": "ImageObject",
-                    "url": "https://www.gravatar.com/avatar/6f221209a03c1800679fc684dea24bf2?s=250&d=mm&r=x",
-                    "width": 250,
-                    "height": 250
-                },
-                "url": "{{BaseUrl}}authors/abdul-rahman/",
-                "sameAs": [
-                    "https://www.linkedin.com/in/fingers10",
-                    "https://github.com/fingers10",
-                    "https://stackoverflow.com/users/10851213/fingers10",
-                    "https://www.youtube.com/channel/UCOS3wCw7SVXjXXffMPqid7A"
-                ]
-            },
-            "headline": "{{System.Text.Json.JsonEncodedText.Encode(contentMetaData.Title)}}",
-            "url": "{{BaseUrl}}{{contentMetaData.Type}}/{{slug}}/",
-            "datePublished": "{{contentMetaData.CreatedOn:yyyy-MM-ddTHH:mm:ss.fffZ}}",
-            "dateModified": "{{contentMetaData.ModifiedOn:yyyy-MM-ddTHH:mm:ss.fffZ}}",
-            "image": {
-                "@type": "ImageObject",
-                "url": "{{BaseUrl}}{{normalizedPosterPath.Replace("webp", "png")}}",
-                "width": 1265,
-                "height": 827
-            },
-            "keywords": "{{System.Text.Json.JsonEncodedText.Encode($".NET, DotNet, I Love DotNet, I ❤️ DotNet, Blazor, Blazor (WebAssembly), Blazor Wasm, C#, Entity Framework, LINQ, ML.NET, Web API, TDD, OOPS, Middleware, JWT, Dependency Injection, Report, Design Pattern, SOLID, HTTP Client, OWASP, SignalR, {string.Join(", ", contentMetaData.Keywords)}")}}",
-            "description": "{{System.Text.Json.JsonEncodedText.Encode(contentMetaData.Description)}}",
-            "mainEntityOfPage": {
-                "@type": "WebPage",
-                "@id": "{{BaseUrl}}{{contentMetaData.Type}}/{{slug}}/"
-            }
-        }
-        </script>
-        """"
-    ))
+    <script type="application/ld+json">@((MarkupString)ArticleStructuredData)</script>
 </HeadContent>
 
 @code {
     [Parameter, EditorRequired] public ContentMetaData Metadata { get; set; } = default!;
     private string slug => Metadata.Slug;
     private ContentMetaData contentMetaData => Metadata;
+    private AuthorMetaData authorMetaData => tableOfContents.Authors
+        .Single(author => author.Name.Equals(contentMetaData.Author, StringComparison.OrdinalIgnoreCase));
     private string BaseUrl => configuration.GetValue<string>("baseUrl")!;
     private string normalizedPosterPath => contentMetaData!.PosterUrl.ToLower();
+    private string ArticleStructuredData
+    {
+        get
+        {
+            var keywords = new JsonArray();
+            foreach (var keyword in new[] { ".NET", "DotNet", "I Love DotNet", "I ❤️ DotNet", "Blazor", "Blazor (WebAssembly)", "Blazor Wasm", "C#", "Entity Framework", "LINQ", "ML.NET", "Web API", "TDD", "OOPS", "Middleware", "JWT", "Dependency Injection", "Report", "Design Pattern", "SOLID", "HTTP Client", "OWASP", "SignalR" }.Concat(contentMetaData.Keywords))
+            {
+                keywords.Add(keyword);
+            }
+
+            var publisher = new JsonObject
+            {
+                ["@type"] = "Organization",
+                ["name"] = "I Love DotNet",
+                ["url"] = BaseUrl,
+                ["logo"] = new JsonObject
+                {
+                    ["@type"] = "ImageObject",
+                    ["url"] = $"{BaseUrl}favicon.ico",
+                    ["width"] = 16,
+                    ["height"] = 16
+                }
+            };
+
+            return new JsonObject
+            {
+                ["@context"] = "https://schema.org",
+                ["@type"] = "Article",
+                ["publisher"] = publisher,
+                ["author"] = new JsonObject
+                {
+                    ["@type"] = "Person",
+                    ["@id"] = $"{BaseUrl}authors/{authorMetaData.Name.ToLowerInvariant().ApplyHyphen()}/#person",
+                    ["name"] = authorMetaData.Name,
+                    ["url"] = $"{BaseUrl}authors/{authorMetaData.Name.ToLowerInvariant().ApplyHyphen()}/"
+                },
+                ["headline"] = contentMetaData.Title,
+                ["url"] = $"{BaseUrl}{contentMetaData.Type}/{slug}/",
+                ["datePublished"] = contentMetaData.CreatedOn.ToString("O", System.Globalization.CultureInfo.InvariantCulture),
+                ["dateModified"] = contentMetaData.ModifiedOn.ToString("O", System.Globalization.CultureInfo.InvariantCulture),
+                ["image"] = new JsonObject
+                {
+                    ["@type"] = "ImageObject",
+                    ["url"] = $"{BaseUrl}{normalizedPosterPath.Replace("webp", "png")}",
+                    ["width"] = 1265,
+                    ["height"] = 827
+                },
+                ["keywords"] = keywords,
+                ["description"] = contentMetaData.Description,
+                ["mainEntityOfPage"] = new JsonObject
+                {
+                    ["@type"] = "WebPage",
+                    ["@id"] = $"{BaseUrl}{contentMetaData.Type}/{slug}/"
+                }
+            }.ToJsonString();
+        }
+    }
 
 }
