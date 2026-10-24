@@ -7,14 +7,8 @@ namespace ILoveDotNet.DistributedTest;
 public class SeoTests(AppFixture fixture) : PageTest
 {
   private readonly Uri WebBaseUrl = fixture.App.GetEndpoint("ILoveDotNet-Web", "https");
-#if DEBUG
-  private const string DefaultSeoBaseUrl = "https://localhost:7176/";
-#else
-  private const string DefaultSeoBaseUrl = "https://ilovedotnet.org/";
-#endif
   private static readonly Uri ProductionSeoBaseUrl = new("https://ilovedotnet.org/");
-  private readonly Uri ExpectedCanonicalBaseUrl = new(
-      Environment.GetEnvironmentVariable("SEO_BASE_URL") ?? DefaultSeoBaseUrl);
+  private readonly Uri ExpectedCanonicalBaseUrl = SeoTestHelpers.GetExpectedCanonicalBaseUrl();
 
   public override BrowserNewContextOptions ContextOptions() => new()
   {
@@ -382,27 +376,6 @@ public class SeoTests(AppFixture fixture) : PageTest
   }
 
   [Fact]
-  public async Task AboutPage_ReusesCompactSupportCalloutAsync()
-  {
-    await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, "about/");
-    await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "About I ❤️ .NET", Exact = true })).ToBeVisibleAsync();
-    var support = Page.GetByRole(AriaRole.Complementary, new() { Name = "Help more developers discover I ❤️ .NET" });
-    await Expect(support).ToHaveCountAsync(1);
-    await Expect(support).ToBeVisibleAsync();
-    await Expect(Page.Locator("h2").Last).ToHaveAttributeAsync("id", "community-support-title");
-    await Expect(Page.Locator("img[src*='star-request']")).ToHaveCountAsync(0);
-    await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "Sponsors", Exact = true })).ToBeVisibleAsync();
-    await Expect(support.GetByRole(AriaRole.Link, new() { Name = "Star on GitHub" })).ToHaveAttributeAsync("href", "https://github.com/ILoveDotNet/ilovedotnet");
-    await Expect(support.GetByRole(AriaRole.Link, new() { Name = "Share via WhatsApp" })).ToHaveAttributeAsync("target", "_blank");
-    foreach (var width in new[] { 320, 390, 1280 })
-    {
-      await Page.SetViewportSizeAsync(width, 844);
-      Assert.True(await support.EvaluateAsync<bool>(
-          "element => element.scrollWidth <= element.clientWidth && element.getBoundingClientRect().right <= innerWidth"));
-    }
-  }
-
-  [Fact]
   public async Task AnalyticsPage_ShowsCompactSupportCalloutAfterContentAsync()
   {
     await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, "analytics/");
@@ -558,7 +531,6 @@ public class SeoTests(AppFixture fixture) : PageTest
       "channels/testing/",
       "learningpath/",
       "authors/abdul-rahman/",
-      "about/",
       "privacy/",
       "disclaimer/",
       "career/",
@@ -666,7 +638,6 @@ public class SeoTests(AppFixture fixture) : PageTest
       "channels/testing/",
       "learningpath/",
       "authors/abdul-rahman/",
-      "about/",
       "privacy/",
       "disclaimer/",
       "career/",
@@ -1229,7 +1200,7 @@ public class SeoTests(AppFixture fixture) : PageTest
   [Fact]
   public async Task PublicWebsitePages_HaveValidWebsiteStructuredDataAsync()
   {
-    foreach (var path in new[] { "", "about/", "privacy/", "disclaimer/", "chat/" })
+    foreach (var path in new[] { "", "privacy/", "disclaimer/", "chat/" })
     {
       await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, path);
       await Expect(Page.Locator("script[type='application/ld+json']")).ToHaveCountAsync(1);

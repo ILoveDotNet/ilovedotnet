@@ -5,6 +5,16 @@ namespace ILoveDotNet.DistributedTest.Utils;
 
 public static class SeoTestHelpers
 {
+  public static Uri GetExpectedCanonicalBaseUrl()
+  {
+#if DEBUG
+    const string defaultSeoBaseUrl = "https://localhost:7176/";
+#else
+    const string defaultSeoBaseUrl = "https://ilovedotnet.org/";
+#endif
+    return new Uri(Environment.GetEnvironmentVariable("SEO_BASE_URL") ?? defaultSeoBaseUrl);
+  }
+
   public static async Task<IResponse> GotoSuccessfulPageAsync(IPage page, Uri baseUrl, string path)
   {
     var response = await page.GotoAsync(new Uri(baseUrl, path.TrimStart('/')).AbsoluteUri);

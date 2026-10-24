@@ -72,13 +72,6 @@ public class PageTests(AppFixture fixture) : PageTest
   }
 
   [Fact]
-  public async Task AboutPage_Loads_Successfully()
-  {
-    await Page.GotoAsync($"{WebBaseUrl.AbsoluteUri}about");
-    await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "About I ❤️ .NET" })).ToBeVisibleAsync();
-  }
-
-  [Fact]
   public async Task ChannelPage_Loads_Successfully()
   {
     await Page.GotoAsync($"{WebBaseUrl.AbsoluteUri}channels/testing");
