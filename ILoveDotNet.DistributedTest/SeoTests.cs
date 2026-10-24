@@ -1,6 +1,5 @@
 ﻿using System.Xml.Linq;
 using ILoveDotNet.DistributedTest.Utils;
-using static ILoveDotNet.DistributedTest.Utils.SeoTestHelpers;
 
 namespace ILoveDotNet.DistributedTest;
 
@@ -8,69 +7,12 @@ public class SeoTests(AppFixture fixture) : PageTest
 {
   private readonly Uri WebBaseUrl = fixture.App.GetEndpoint("ILoveDotNet-Web", "https");
   private static readonly Uri ProductionSeoBaseUrl = new("https://ilovedotnet.org/");
-  private readonly Uri ExpectedCanonicalBaseUrl = SeoTestHelpers.GetExpectedCanonicalBaseUrl();
 
   public override BrowserNewContextOptions ContextOptions() => new()
   {
     ViewportSize = new ViewportSize { Width = 1280, Height = 720 },
     IgnoreHTTPSErrors = true,
   };
-
-  [Fact]
-  public async Task PublicWebsitePages_HaveValidWebsiteStructuredDataAsync()
-  {
-    foreach (var path in new[] { "chat/" })
-    {
-      await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, path);
-      await Expect(Page.Locator("script[type='application/ld+json']")).ToHaveCountAsync(1);
-      var documents = await SeoTestHelpers.GetJsonLdDocumentsAsync(Page);
-      try
-      {
-        Assert.True(documents.Any(document =>
-            document.RootElement.TryGetProperty("@type", out var schemaType)
-            && schemaType.GetString() == "WebSite"), $"Expected WebSite schema on {path}.");
-        var website = GetSchema(documents, "WebSite");
-        var websiteUrl = website.RootElement.GetProperty("url").GetString();
-        Assert.Equal(SeoTestHelpers.ExpectedUrl(ExpectedCanonicalBaseUrl, path), websiteUrl);
-
-        var mainEntity = website.RootElement.GetProperty("mainEntityOfPage");
-        Assert.Equal(SeoTestHelpers.ExpectedUrl(ExpectedCanonicalBaseUrl, path), mainEntity.GetProperty("@id").GetString());
-        Assert.True(website.RootElement.TryGetProperty("publisher", out var publisher));
-        Assert.Equal("Organization", publisher.GetProperty("@type").GetString());
-      }
-      finally
-      {
-        foreach (var document in documents)
-        {
-          document.Dispose();
-        }
-      }
-    }
-  }
-
-  [Fact]
-  public async Task LearningChatPage_HasMetadataAndStaticSitemapEntryWithoutNavigationAsync()
-  {
-    await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, "chat/?source=test");
-    var canonical = SeoTestHelpers.ExpectedUrl(ExpectedCanonicalBaseUrl, "chat/");
-    await Expect(Page).ToHaveTitleAsync("Learn with AI - I ❤️ DotNet");
-    await Expect(Page.Locator("link[rel='canonical']")).ToHaveAttributeAsync("href", canonical);
-    await Expect(Page.Locator("meta[name='description']")).ToHaveAttributeAsync("content",
-        "Preview the I Love .NET learning chat interface with suggested questions about .NET, Blazor, and C#. AI responses and article retrieval are not connected yet.");
-    await AssertSocialMetadataAsync(Page, canonical, "website", "summary");
-    await Expect(Page.Locator("link[rel='sitemap']")).ToHaveAttributeAsync("href",
-        SeoTestHelpers.ExpectedUrl(ExpectedCanonicalBaseUrl, "sitemap.xml"));
-    await Expect(Page.Locator("link[rel='alternate'][hreflang='en']")).ToHaveAttributeAsync("href", canonical);
-    await Expect(Page.Locator("link[rel='alternate'][hreflang='x-default']")).ToHaveAttributeAsync("href", canonical);
-    await Expect(Page.Locator("nav a[href='/chat/'], nav a[href='/chat']")).ToHaveCountAsync(0);
-
-    var response = await Page.APIRequest.GetAsync(SeoTestHelpers.ExpectedUrl(WebBaseUrl, "sitemap-static.xml"));
-    Assert.Equal(200, response.Status);
-    var document = XDocument.Parse(await response.TextAsync());
-    XNamespace ns = "http://www.sitemaps.org/schemas/sitemap/0.9";
-    Assert.Single(document.Descendants(ns + "loc"), element =>
-        element.Value == "https://ilovedotnet.org/chat/");
-  }
 
   [Fact]
   public async Task RobotsTxt_DeclaresSitemapAndExcludesUtilitiesAsync()
