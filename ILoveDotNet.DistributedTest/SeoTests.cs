@@ -531,7 +531,6 @@ public class SeoTests(AppFixture fixture) : PageTest
       "channels/testing/",
       "learningpath/",
       "authors/abdul-rahman/",
-      "disclaimer/",
       "career/",
       "interview/",
     })
@@ -555,45 +554,6 @@ public class SeoTests(AppFixture fixture) : PageTest
   }
 
   [Fact]
-  public async Task DisclaimerPage_HasReadableSectionsAndResponsiveRelatedLinksAsync()
-  {
-    await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, "disclaimer/");
-    var document = Page.Locator("section[aria-labelledby='disclaimer-title']");
-    var terms = document.GetByRole(AriaRole.Article, new() { Name = "Disclaimer terms" });
-    await Expect(Page.Locator("h1")).ToHaveTextAsync("Disclaimer");
-    await Expect(terms.Locator("h2")).ToHaveTextAsync(
-        ["Information and responsibility", "External websites", "Consent", "Updates"]);
-    await Expect(terms).ToContainTextAsync("By using our website, you hereby consent to our disclaimer and agree to its terms.");
-    await Expect(document.GetByRole(AriaRole.Link, new() { Name = "Contact Us", Exact = true }))
-        .ToHaveAttributeAsync("href", "https://www.linkedin.com/in/fingers10");
-    var related = document.GetByRole(AriaRole.Navigation, new() { Name = "Related pages" });
-    await Expect(related.GetByRole(AriaRole.Link, new() { Name = "Privacy Policy", Exact = true }))
-        .ToHaveAttributeAsync("href", "/privacy/");
-    await Expect(related.GetByRole(AriaRole.Link, new() { Name = "About I Love DotNet", Exact = true }))
-        .ToHaveAttributeAsync("href", "/about/");
-    await Expect(Page.Locator("link[rel='canonical']")).ToHaveAttributeAsync("href", $"{ExpectedCanonicalBaseUrl}disclaimer/");
-    await Expect(Page.Locator("meta[name='description']")).ToHaveAttributeAsync("content",
-        "Read the I Love DotNet disclaimer covering informational content, external website links, responsibility, and updates.");
-    await Expect(Page.Locator("meta[property='og:image']")).ToHaveAttributeAsync("content", $"{ExpectedCanonicalBaseUrl}image/brand/mini-logo.png");
-    Assert.True(await document.EvaluateAsync<bool>(
-        "element => element.querySelector('header').getBoundingClientRect().bottom <= element.querySelector('article').getBoundingClientRect().top"));
-    foreach (var dark in new[] { false, true })
-    {
-      await Page.EvaluateAsync("dark => document.documentElement.classList.toggle('dark', dark)", dark);
-      foreach (var width in new[] { 320, 375, 768, 1280, 1440 })
-      {
-        await Page.SetViewportSizeAsync(width, 900);
-        Assert.True(await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= innerWidth"),
-            $"Disclaimer must fit at {width}px in {(dark ? "dark" : "light")} mode.");
-        Assert.True(await terms.Locator("p").First.EvaluateAsync<bool>(
-            "element => element.getBoundingClientRect().width <= parseFloat(getComputedStyle(element).maxWidth) + 1"));
-      }
-    }
-    await related.GetByRole(AriaRole.Link, new() { Name = "Privacy Policy", Exact = true }).ClickAsync();
-    await Expect(Page.Locator("h1")).ToHaveTextAsync("Privacy Policy");
-  }
-
-  [Fact]
   public async Task PublicPages_HaveSinglePageSpecificH1Async()
   {
     foreach (var path in new[]
@@ -603,7 +563,6 @@ public class SeoTests(AppFixture fixture) : PageTest
       "channels/testing/",
       "learningpath/",
       "authors/abdul-rahman/",
-      "disclaimer/",
       "career/",
       "analytics/",
       "interview/",
@@ -1164,7 +1123,7 @@ public class SeoTests(AppFixture fixture) : PageTest
   [Fact]
   public async Task PublicWebsitePages_HaveValidWebsiteStructuredDataAsync()
   {
-    foreach (var path in new[] { "", "disclaimer/", "chat/" })
+    foreach (var path in new[] { "", "chat/" })
     {
       await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, path);
       await Expect(Page.Locator("script[type='application/ld+json']")).ToHaveCountAsync(1);
