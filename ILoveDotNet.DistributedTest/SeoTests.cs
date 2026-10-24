@@ -1229,7 +1229,7 @@ public class SeoTests(AppFixture fixture) : PageTest
   [Fact]
   public async Task PublicWebsitePages_HaveValidWebsiteStructuredDataAsync()
   {
-    foreach (var path in new[] { "", "about/", "privacy/", "disclaimer/" })
+    foreach (var path in new[] { "", "about/", "privacy/", "disclaimer/", "chat/" })
     {
       await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, path);
       await Expect(Page.Locator("script[type='application/ld+json']")).ToHaveCountAsync(1);
@@ -1256,6 +1256,30 @@ public class SeoTests(AppFixture fixture) : PageTest
         }
       }
     }
+  }
+
+  [Fact]
+  public async Task LearningChatPage_HasMetadataAndStaticSitemapEntryWithoutNavigationAsync()
+  {
+    await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, "chat/?source=test");
+    var canonical = SeoTestHelpers.ExpectedUrl(ExpectedCanonicalBaseUrl, "chat/");
+    await Expect(Page).ToHaveTitleAsync("Learn with AI - I ❤️ DotNet");
+    await Expect(Page.Locator("link[rel='canonical']")).ToHaveAttributeAsync("href", canonical);
+    await Expect(Page.Locator("meta[name='description']")).ToHaveAttributeAsync("content",
+        "Preview the I Love .NET learning chat interface with suggested questions about .NET, Blazor, and C#. AI responses and article retrieval are not connected yet.");
+    await AssertSocialMetadataAsync(canonical, "website", "summary");
+    await Expect(Page.Locator("link[rel='sitemap']")).ToHaveAttributeAsync("href",
+        SeoTestHelpers.ExpectedUrl(ExpectedCanonicalBaseUrl, "sitemap.xml"));
+    await Expect(Page.Locator("link[rel='alternate'][hreflang='en']")).ToHaveAttributeAsync("href", canonical);
+    await Expect(Page.Locator("link[rel='alternate'][hreflang='x-default']")).ToHaveAttributeAsync("href", canonical);
+    await Expect(Page.Locator("nav a[href='/chat/'], nav a[href='/chat']")).ToHaveCountAsync(0);
+
+    var response = await Page.APIRequest.GetAsync(SeoTestHelpers.ExpectedUrl(WebBaseUrl, "sitemap-static.xml"));
+    Assert.Equal(200, response.Status);
+    var document = XDocument.Parse(await response.TextAsync());
+    XNamespace ns = "http://www.sitemaps.org/schemas/sitemap/0.9";
+    Assert.Single(document.Descendants(ns + "loc"), element =>
+        element.Value == "https://ilovedotnet.org/chat/");
   }
 
   [Fact]

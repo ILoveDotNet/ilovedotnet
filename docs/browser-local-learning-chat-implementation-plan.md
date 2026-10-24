@@ -5,6 +5,12 @@
 > Scope: the Blazor WebAssembly website only; a dedicated chat page backed by repository articles.  
 > This document proposes changes. It does not indicate that the feature, benchmarks, or tests already exist.
 
+**UI preview (2026-10-24):** The `/chat/` shell lives in `CommonComponents/Pages/LearningChat.razor`, using the existing global Tailwind utilities and shared-page convention. The composer stays at the bottom of the available viewport while the conversation scrolls independently on mobile and desktop. No navigation entry, article retrieval, or AI runtime is connected; the browser-local feature below remains proposed.
+
+The preview scrolls to the latest reply after sending. Enter sends a question, Shift+Enter inserts a new line, and input-method composition does not submit a question.
+
+The shell includes standard page metadata, social previews, canonical/language/feed/sitemap links, JSON-LD, and a `/chat/` entry in the static sitemap. Its public description identifies it as a UI preview; navigation remains unchanged.
+
 ## 1. Objective
 
 Add a dedicated **Learn with AI** page where readers can ask questions, receive explanations grounded in published iLoveDotNet blog articles, follow up conversationally, and open the supporting article passages.

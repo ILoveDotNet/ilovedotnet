@@ -1,4 +1,5 @@
-using Microsoft.AspNetCore.Components;
+﻿using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Configuration;
 using Microsoft.JSInterop;
 
 namespace CommonComponents.Pages;
@@ -6,6 +7,11 @@ namespace CommonComponents.Pages;
 public class LearningChatBase : ComponentBase, IAsyncDisposable
 {
   private const string PreviewReply = "This is a UI preview. Article retrieval and local AI responses will be connected in a later phase.";
+
+  protected string Title => "Learn with AI - I ❤️ DotNet";
+  protected string Description => "Preview the I Love .NET learning chat interface with suggested questions about .NET, Blazor, and C#. AI responses and article retrieval are not connected yet.";
+  protected string BaseUrl => Configuration.GetValue<string>("baseUrl")!;
+  protected string PageUrl => $"{BaseUrl}chat/";
 
   protected readonly string[] SuggestedPrompts =
   [
@@ -24,6 +30,7 @@ public class LearningChatBase : ComponentBase, IAsyncDisposable
   private bool disposed;
 
   [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
+  [Inject] private IConfiguration Configuration { get; set; } = default!;
 
   protected override async Task OnAfterRenderAsync(bool firstRender)
   {
