@@ -23,6 +23,38 @@ public static class SeoTestHelpers
     return response;
   }
 
+  public static async Task AssertWebsiteMetadataAsync(IPage page, string path)
+  {
+    await GetRequiredTitleAsync(page);
+    var description = await GetRequiredAttributeAsync(page, "meta[name='description']", "content");
+    Assert.InRange(description.Length, 50, 320);
+    var canonical = await GetRequiredAttributeAsync(page, "link[rel='canonical']", "href");
+    AssertCanonicalUrl(canonical, GetExpectedCanonicalBaseUrl(), path);
+    foreach (var hreflang in new[] { "en", "x-default" })
+    {
+      var href = await GetRequiredAttributeAsync(page, $"link[rel='alternate'][hreflang='{hreflang}']", "href");
+      Assert.Equal(canonical, href);
+    }
+
+    await Assertions.Expect(page.Locator("script[type='application/ld+json']")).ToHaveCountAsync(1);
+    var documents = await GetJsonLdDocumentsAsync(page);
+    try
+    {
+      var website = Assert.Single(documents).RootElement;
+      Assert.Equal("WebSite", website.GetProperty("@type").GetString());
+      Assert.Equal(canonical, website.GetProperty("url").GetString());
+      Assert.Equal(canonical, website.GetProperty("mainEntityOfPage").GetProperty("@id").GetString());
+      Assert.Equal("Organization", website.GetProperty("publisher").GetProperty("@type").GetString());
+    }
+    finally
+    {
+      foreach (var document in documents)
+      {
+        document.Dispose();
+      }
+    }
+  }
+
   public static async Task<string> GetRequiredAttributeAsync(IPage page, string selector, string attribute)
   {
     var locator = page.Locator(selector);

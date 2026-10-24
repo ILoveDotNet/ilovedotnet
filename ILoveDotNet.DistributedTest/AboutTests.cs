@@ -20,35 +20,7 @@ public class AboutTests(AppFixture fixture) : PageTest
     await Expect(Page.Locator("h1")).ToHaveTextAsync("About I ❤️ .NET");
     await Expect(Page.Locator("h1")).ToBeVisibleAsync();
     await Expect(Page.Locator("#brand h1, h1#brand")).ToHaveCountAsync(0);
-    await SeoTestHelpers.GetRequiredTitleAsync(Page);
-
-    var description = await SeoTestHelpers.GetRequiredAttributeAsync(Page, "meta[name='description']", "content");
-    Assert.InRange(description.Length, 50, 320);
-    var canonical = await SeoTestHelpers.GetRequiredAttributeAsync(Page, "link[rel='canonical']", "href");
-    SeoTestHelpers.AssertCanonicalUrl(canonical, SeoTestHelpers.GetExpectedCanonicalBaseUrl(), path);
-    foreach (var hreflang in new[] { "en", "x-default" })
-    {
-      var href = await SeoTestHelpers.GetRequiredAttributeAsync(Page, $"link[rel='alternate'][hreflang='{hreflang}']", "href");
-      Assert.Equal(canonical, href);
-    }
-
-    await Expect(Page.Locator("script[type='application/ld+json']")).ToHaveCountAsync(1);
-    var documents = await SeoTestHelpers.GetJsonLdDocumentsAsync(Page);
-    try
-    {
-      var website = Assert.Single(documents).RootElement;
-      Assert.Equal("WebSite", website.GetProperty("@type").GetString());
-      Assert.Equal(canonical, website.GetProperty("url").GetString());
-      Assert.Equal(canonical, website.GetProperty("mainEntityOfPage").GetProperty("@id").GetString());
-      Assert.Equal("Organization", website.GetProperty("publisher").GetProperty("@type").GetString());
-    }
-    finally
-    {
-      foreach (var document in documents)
-      {
-        document.Dispose();
-      }
-    }
+    await SeoTestHelpers.AssertWebsiteMetadataAsync(Page, path);
 
     var support = Page.GetByRole(AriaRole.Complementary, new() { Name = "Help more developers discover I ❤️ .NET" });
     await Expect(support).ToHaveCountAsync(1);
