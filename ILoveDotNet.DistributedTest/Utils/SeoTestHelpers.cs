@@ -99,6 +99,36 @@ public static class SeoTestHelpers
   public static string ExpectedUrl(Uri baseUrl, string path)
     => new Uri(baseUrl, path.TrimStart('/')).AbsoluteUri;
 
+  public static async Task AssertResponsiveThumbnailCardAsync(IPage page, bool clamped)
+  {
+    var card = page.Locator("[data-thumbnail]").First;
+    await Assertions.Expect(card).ToBeVisibleAsync();
+    await Assertions.Expect(card.Locator("main, aside, article")).ToHaveCountAsync(0);
+    await Assertions.Expect(card.Locator("h3")).ToHaveCountAsync(1);
+    await Assertions.Expect(card.Locator("time")).ToHaveAttributeAsync("title", new System.Text.RegularExpressions.Regex(@"^\d{1,2} \w+ \d{4}$"));
+    await Assertions.Expect(card.Locator("a[aria-label^='Explore']")).ToHaveAttributeAsync("href",
+        new System.Text.RegularExpressions.Regex(@"^/channels/[^/]+/$"));
+    foreach (var dark in new[] { false, true })
+    {
+      await page.EvaluateAsync("dark => document.documentElement.classList.toggle('dark', dark)", dark);
+      foreach (var width in new[] { 320, 375, 768, 1280, 1440 })
+      {
+        await page.SetViewportSizeAsync(width, 900);
+        Assert.True(await page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= innerWidth"));
+        Assert.True(await card.EvaluateAsync<bool>(
+            "element => element.scrollWidth <= element.clientWidth && getComputedStyle(element).transform === 'none'"));
+        Assert.True(await card.Locator("header img").EvaluateAsync<bool>(
+            "image => { const bounds = image.getBoundingClientRect(); return Math.abs(bounds.width / bounds.height - 1265 / 827) < 0.02; }"));
+        Assert.Equal(clamped ? "2" : "none", await card.Locator("h3").EvaluateAsync<string>(
+            "element => getComputedStyle(element).webkitLineClamp"));
+        await Assertions.Expect(card.Locator("div > a > img")).ToHaveCSSAsync("width", "40px");
+      }
+    }
+    await card.Locator("header a").FocusAsync();
+    await Assertions.Expect(card.Locator("header a")).ToBeFocusedAsync();
+    await Assertions.Expect(card.Locator("header a")).ToHaveCSSAsync("outline-style", "solid");
+  }
+
   public static void AssertCanonicalUrl(string actualUrl, Uri baseUrl, string expectedPath)
   {
     Assert.Equal(ExpectedUrl(baseUrl, expectedPath), actualUrl);

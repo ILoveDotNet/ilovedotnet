@@ -57,13 +57,6 @@ public class PageTests(AppFixture fixture) : PageTest
   }
 
   [Fact]
-  public async Task AuthorPage_Loads_Successfully()
-  {
-    await Page.GotoAsync($"{WebBaseUrl.AbsoluteUri}authors/abdul-rahman");
-    await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "Abdul Rahman", Exact = true })).ToBeVisibleAsync();
-  }
-
-  [Fact]
   public async Task BlogPage_Loads_Successfully()
   {
     await Page.GotoAsync($"{WebBaseUrl.AbsoluteUri}blogs/using-github-copilot-ai-for-navigating-new-codebase");

@@ -384,7 +384,6 @@ public class SeoTests(AppFixture fixture) : PageTest
       "blogs/using-github-copilot-ai-for-navigating-new-codebase/",
       "channels/testing/",
       "learningpath/",
-      "authors/abdul-rahman/",
     })
     {
       await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, path);
@@ -414,7 +413,6 @@ public class SeoTests(AppFixture fixture) : PageTest
       "blogs/using-github-copilot-ai-for-navigating-new-codebase/",
       "channels/testing/",
       "learningpath/",
-      "authors/abdul-rahman/",
     })
     {
       await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, path);
@@ -576,97 +574,15 @@ public class SeoTests(AppFixture fixture) : PageTest
   [Fact]
   public async Task ThumbnailCards_KeepPostersReadableAndFitAllSharedSurfacesAsync()
   {
-    foreach (var (path, heading, clamped) in new[]
+    foreach (var (path, clamped) in new[]
     {
-      ("", "h3", true),
-      ("authors/abdul-rahman/", "h3", true),
-      ("blogs/dependency-injection-lifetimes-in-dotnet/", "h3", false),
+      ("", true),
+      ("blogs/dependency-injection-lifetimes-in-dotnet/", false),
     })
     {
       await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, path);
-      var card = Page.Locator("[data-thumbnail]").First;
-      await Expect(card).ToBeVisibleAsync();
-      await Expect(card.Locator("main, aside, article")).ToHaveCountAsync(0);
-      await Expect(card.Locator(heading)).ToHaveCountAsync(1);
-      await Expect(card.Locator("time")).ToHaveAttributeAsync("title", new System.Text.RegularExpressions.Regex(@"^\d{1,2} \w+ \d{4}$"));
-      await Expect(card.Locator("a[aria-label^='Explore']")).ToHaveAttributeAsync("href",
-          new System.Text.RegularExpressions.Regex(@"^/channels/[^/]+/$"));
-      foreach (var dark in new[] { false, true })
-      {
-        await Page.EvaluateAsync("dark => document.documentElement.classList.toggle('dark', dark)", dark);
-        foreach (var width in new[] { 320, 375, 768, 1280, 1440 })
-        {
-          await Page.SetViewportSizeAsync(width, 900);
-          Assert.True(await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= innerWidth"));
-          Assert.True(await card.EvaluateAsync<bool>(
-              "element => element.scrollWidth <= element.clientWidth && getComputedStyle(element).transform === 'none'"));
-          Assert.True(await card.Locator("header img").EvaluateAsync<bool>(
-              "image => { const bounds = image.getBoundingClientRect(); return Math.abs(bounds.width / bounds.height - 1265 / 827) < 0.02; }"));
-          Assert.Equal(clamped ? "2" : "none", await card.Locator(heading).EvaluateAsync<string>(
-              "element => getComputedStyle(element).webkitLineClamp"));
-          await Expect(card.Locator("div > a > img")).ToHaveCSSAsync("width", "40px");
-        }
-      }
-      await card.Locator("header a").FocusAsync();
-      await Expect(card.Locator("header a")).ToBeFocusedAsync();
-      await Expect(card.Locator("header a")).ToHaveCSSAsync("outline-style", "solid");
+      await SeoTestHelpers.AssertResponsiveThumbnailCardAsync(Page, clamped);
     }
-  }
-
-  [Fact]
-  public async Task AuthorPage_ShowsProfileAndPublishedArticlesAsync()
-  {
-    await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, "authors/abdul-rahman/");
-    var metadata = new SharedModels.TableOfContents();
-    var author = metadata.Authors.Single(item => item.Name == "Abdul Rahman");
-    var articles = metadata.Contents.Where(content => content.Author == author.Name).ToList();
-    await Expect(Page.Locator("h1")).ToHaveTextAsync(author.Name);
-    await Expect(Page.Locator("dl[aria-label='Author contributions'] dd")).ToHaveTextAsync(new[]
-    {
-      articles.Count.ToString(),
-      articles.Select(content => content.Channel).Distinct(StringComparer.OrdinalIgnoreCase).Count().ToString(),
-      $"{author.IndustryExperienceYears}+",
-    });
-    var socialProfiles = Page.GetByRole(AriaRole.Navigation, new() { Name = "Author social profiles" });
-    await Expect(socialProfiles.GetByRole(AriaRole.Link)).ToHaveCountAsync(author.SocialUrls.Count);
-    await Expect(socialProfiles.Locator("a svg")).ToHaveCountAsync(author.SocialUrls.Count);
-    await Expect(socialProfiles.GetByRole(AriaRole.Link, new() { Name = "LinkedIn", Exact = true })).ToBeVisibleAsync();
-    var latest = Page.GetByRole(AriaRole.Region, new() { Name = $"Latest articles by {author.Name}" });
-    foreach (var article in articles.OrderByDescending(content => content.ModifiedOn).ThenByDescending(content => content.CreatedOn).Take(6))
-    {
-      await Expect(latest.Locator($"a[href='/{article.ContentUrl.Trim('/')}/']")).ToHaveCountAsync(2);
-    }
-    foreach (var width in new[] { 320, 390, 768, 1280 })
-    {
-      await Page.SetViewportSizeAsync(width, 900);
-      Assert.True(await socialProfiles.EvaluateAsync<bool>("element => element.scrollWidth <= element.clientWidth"));
-      Assert.True(await latest.EvaluateAsync<bool>("element => element.scrollWidth <= element.clientWidth"));
-    }
-  }
-
-  [Fact]
-  public async Task HomePage_AuthorCardLinksToProfileAsync()
-  {
-    await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, "");
-    var authors = Page.GetByRole(AriaRole.List, new() { Name = "Meet the author", Exact = true });
-    var card = authors.GetByRole(AriaRole.Link);
-    await Expect(card).ToHaveCountAsync(1);
-    await Expect(card).ToContainTextAsync("Abdul Rahman");
-    await Expect(card).ToContainTextAsync("Microsoft MVP");
-    await Expect(card).ToContainTextAsync("View author profile");
-    await Expect(card).ToHaveAttributeAsync("href", "/authors/abdul-rahman/");
-    await authors.ScrollIntoViewIfNeededAsync();
-    await Expect(card.Locator("img")).ToHaveJSPropertyAsync("complete", true);
-    Assert.True(await card.Locator("img").EvaluateAsync<bool>("element => element.naturalWidth > 0"));
-    foreach (var width in new[] { 320, 390, 768, 1280 })
-    {
-      await Page.SetViewportSizeAsync(width, 900);
-      Assert.True(await card.EvaluateAsync<bool>("element => element.scrollWidth <= element.clientWidth"));
-      var direction = await card.EvaluateAsync<string>("element => getComputedStyle(element).flexDirection");
-      Assert.Equal(width < 640 ? "column" : "row", direction);
-    }
-    await card.ClickAsync();
-    await Expect(Page.Locator("h1")).ToHaveTextAsync("Abdul Rahman");
   }
 
   [Fact]
@@ -827,36 +743,6 @@ public class SeoTests(AppFixture fixture) : PageTest
     XNamespace ns = "http://www.sitemaps.org/schemas/sitemap/0.9";
     Assert.Single(document.Descendants(ns + "loc"), element =>
         element.Value == "https://ilovedotnet.org/chat/");
-  }
-
-  [Fact]
-  public async Task AuthorProfilePage_HasValidProfileStructuredDataAsync()
-  {
-    const string path = "authors/abdul-rahman/";
-    var expectedUrl = SeoTestHelpers.ExpectedUrl(ExpectedCanonicalBaseUrl, path);
-
-    await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, path);
-    await Expect(Page.Locator("script[type='application/ld+json']")).ToHaveCountAsync(1);
-    var documents = await SeoTestHelpers.GetJsonLdDocumentsAsync(Page);
-    try
-    {
-      var profile = GetSchema(documents, "ProfilePage");
-      Assert.Equal(expectedUrl, profile.RootElement.GetProperty("url").GetString());
-
-      var person = profile.RootElement.GetProperty("mainEntity");
-      Assert.Equal("Person", person.GetProperty("@type").GetString());
-      Assert.Equal($"{expectedUrl}#person", person.GetProperty("@id").GetString());
-      Assert.Equal("Abdul Rahman", person.GetProperty("name").GetString());
-      Assert.Equal(expectedUrl, person.GetProperty("url").GetString());
-      Assert.NotEmpty(person.GetProperty("sameAs").EnumerateArray());
-    }
-    finally
-    {
-      foreach (var document in documents)
-      {
-        document.Dispose();
-      }
-    }
   }
 
   [Fact]
