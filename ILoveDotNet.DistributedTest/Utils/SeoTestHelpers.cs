@@ -105,4 +105,49 @@ public static class SeoTestHelpers
     Assert.StartsWith(baseUrl.Scheme + "://", actualUrl, StringComparison.Ordinal);
     Assert.EndsWith("/", new Uri(actualUrl).AbsolutePath, StringComparison.Ordinal);
   }
+
+  public static JsonDocument GetSchema(IEnumerable<JsonDocument> documents, string type)
+  {
+    var document = documents.SingleOrDefault(document =>
+        document.RootElement.TryGetProperty("@type", out var schemaType)
+        && schemaType.GetString() == type);
+    Assert.NotNull(document);
+    return document;
+  }
+
+  public static async Task AssertSocialMetadataAsync(IPage page, string canonical, string expectedOpenGraphType, string expectedTwitterCard)
+  {
+    var openGraphType = await GetRequiredAttributeAsync(page, "meta[property='og:type']", "content");
+    Assert.Equal(expectedOpenGraphType, openGraphType);
+    foreach (var property in new[] { "og:title", "og:description", "twitter:title", "twitter:description" })
+    {
+      await GetRequiredAttributeAsync(page, $"meta[property='{property}']", "content");
+    }
+    foreach (var property in new[] { "og:url", "twitter:url" })
+    {
+      var url = await GetRequiredAttributeAsync(page, $"meta[property='{property}']", "content");
+      Assert.Equal(canonical, url);
+    }
+    foreach (var property in new[] { "og:image", "twitter:image" })
+    {
+      var image = await GetRequiredAttributeAsync(page, $"meta[property='{property}']", "content");
+      Assert.StartsWith("https://", image, StringComparison.Ordinal);
+    }
+    var twitterCard = await GetRequiredAttributeAsync(page, "meta[property='twitter:card']", "content");
+    Assert.Equal(expectedTwitterCard, twitterCard);
+  }
+
+  public static void AssertBreadcrumbSchema(JsonDocument document)
+  {
+    var items = document.RootElement.GetProperty("itemListElement");
+    Assert.True(items.GetArrayLength() >= 2);
+    var baseUrl = GetExpectedCanonicalBaseUrl();
+    for (var index = 0; index < items.GetArrayLength(); index++)
+    {
+      var item = items[index];
+      Assert.Equal(index + 1, item.GetProperty("position").GetInt32());
+      Assert.False(string.IsNullOrWhiteSpace(item.GetProperty("name").GetString()));
+      Assert.StartsWith(baseUrl.AbsoluteUri, item.GetProperty("item").GetString(), StringComparison.Ordinal);
+    }
+  }
 }

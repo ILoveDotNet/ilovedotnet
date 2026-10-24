@@ -1,6 +1,6 @@
-﻿using System.Text.Json;
-using System.Xml.Linq;
+﻿using System.Xml.Linq;
 using ILoveDotNet.DistributedTest.Utils;
+using static ILoveDotNet.DistributedTest.Utils.SeoTestHelpers;
 
 namespace ILoveDotNet.DistributedTest;
 
@@ -385,7 +385,6 @@ public class SeoTests(AppFixture fixture) : PageTest
       "channels/testing/",
       "learningpath/",
       "authors/abdul-rahman/",
-      "interview/",
     })
     {
       await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, path);
@@ -416,7 +415,6 @@ public class SeoTests(AppFixture fixture) : PageTest
       "channels/testing/",
       "learningpath/",
       "authors/abdul-rahman/",
-      "interview/",
     })
     {
       await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, path);
@@ -425,172 +423,6 @@ public class SeoTests(AppFixture fixture) : PageTest
       var text = (await headings.InnerTextAsync()).Trim();
       Assert.False(string.IsNullOrWhiteSpace(text), $"H1 on '{path}' should not be empty.");
       Assert.Equal(0, await Page.Locator("#brand h1, h1#brand").CountAsync());
-    }
-  }
-
-  [Fact]
-  public async Task InterviewPage_HasAnswerContentAndWorkingTopicLinksAsync()
-  {
-    await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, "interview/");
-    await Expect(Page.Locator("h1")).ToHaveTextAsync("C# and .NET Interview Questions and Answers");
-
-    foreach (var (sectionId, answerCount) in new[]
-    {
-      ("csharp-interview-questions", 6),
-      ("dotnet-interview-questions", 6),
-      ("system-design-interview", 3),
-    })
-    {
-      var section = Page.Locator($"section[aria-labelledby='{sectionId}']");
-      await Expect(section.Locator("details")).ToHaveCountAsync(answerCount);
-      foreach (var answer in await section.Locator("details p").AllTextContentsAsync())
-      {
-        Assert.True(answer.Length >= 200, $"Expected a substantive answer in {sectionId}.");
-      }
-      var disclosure = section.Locator("details").First;
-      await Expect(disclosure.Locator("p")).ToBeHiddenAsync();
-      await disclosure.Locator("summary").FocusAsync();
-      await Page.Keyboard.PressAsync("Enter");
-      await Expect(disclosure.Locator("p")).ToBeVisibleAsync();
-      await disclosure.Locator("summary").ClickAsync();
-      await Expect(disclosure.Locator("p")).ToBeHiddenAsync();
-    }
-
-    var topicLinks = Page.Locator("nav[aria-label='Interview preparation topics'] a");
-    await Expect(topicLinks).ToHaveCountAsync(6);
-    for (var index = 0; index < await topicLinks.CountAsync(); index++)
-    {
-      var href = await topicLinks.Nth(index).GetAttributeAsync("href");
-      Assert.NotNull(href);
-      Assert.StartsWith("interview/#", href, StringComparison.Ordinal);
-      var target = new Uri(WebBaseUrl, href);
-      Assert.Equal("/interview/", target.AbsolutePath);
-      await Expect(Page.Locator(target.Fragment)).ToHaveCountAsync(1);
-    }
-
-    await topicLinks.Nth(2).ClickAsync();
-    Assert.Equal("/interview/", new Uri(Page.Url).AbsolutePath);
-    Assert.Equal("#csharp-interview-questions", new Uri(Page.Url).Fragment);
-    await Expect(Page.Locator("#csharp-interview-questions")).ToBeInViewportAsync();
-    var headingBox = await Page.Locator("#csharp-interview-questions").BoundingBoxAsync();
-    var headerBox = await Page.Locator("#header").BoundingBoxAsync();
-    Assert.NotNull(headingBox);
-    Assert.NotNull(headerBox);
-    Assert.True(headingBox.Y >= headerBox.Y + headerBox.Height,
-        "Topic headings should not be hidden beneath the sticky header.");
-
-    await Page.SetViewportSizeAsync(390, 844);
-    Assert.True(await Page.EvaluateAsync<bool>(
-        "() => document.documentElement.scrollWidth <= window.innerWidth"),
-        "Interview content should not introduce horizontal scrolling on mobile.");
-  }
-
-  [Fact]
-  public async Task InterviewPage_HasCollectionAndBreadcrumbStructuredDataAsync()
-  {
-    await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, "interview/");
-    await Expect(Page.Locator("script[type='application/ld+json']")).ToHaveCountAsync(2);
-    var documents = await SeoTestHelpers.GetJsonLdDocumentsAsync(Page);
-    try
-    {
-      var collection = GetSchema(documents, "CollectionPage").RootElement;
-      var canonical = await SeoTestHelpers.GetRequiredAttributeAsync(Page, "link[rel='canonical']", "href");
-      Assert.Equal(canonical, collection.GetProperty("@id").GetString());
-      Assert.Equal(canonical, collection.GetProperty("url").GetString());
-      Assert.Equal(await Page.TitleAsync(), collection.GetProperty("name").GetString());
-      Assert.Equal("I ❤️ DotNet", collection.GetProperty("publisher").GetProperty("name").GetString());
-      Assert.Equal("en", collection.GetProperty("inLanguage").GetString());
-      Assert.True(collection.GetProperty("isAccessibleForFree").GetBoolean());
-
-      var items = collection.GetProperty("mainEntity").GetProperty("itemListElement");
-      Assert.Equal(6, items.GetArrayLength());
-      var topicHrefs = await Page.Locator("nav[aria-label='Interview preparation topics'] a").EvaluateAllAsync<string[]>(
-          "links => links.map(link => new URL(link.href).hash)");
-      var headingIds = await Page.Locator("h2").EvaluateAllAsync<string[]>(
-          "headings => headings.map(heading => '#' + heading.id)");
-      Assert.Equal(topicHrefs, headingIds);
-      var position = 1;
-      foreach (var item in items.EnumerateArray())
-      {
-        Assert.Equal(position++, item.GetProperty("position").GetInt32());
-        var url = new Uri(item.GetProperty("url").GetString()!);
-        Assert.Equal(topicHrefs[position - 2], url.Fragment);
-        Assert.Equal(canonical, url.GetLeftPart(UriPartial.Path));
-        await Expect(Page.Locator(url.Fragment)).ToHaveTextAsync(item.GetProperty("name").GetString()!);
-      }
-
-      AssertBreadcrumbSchema(GetSchema(documents, "BreadcrumbList"));
-      await AssertSocialMetadataAsync(canonical, "website", "summary");
-    }
-    finally
-    {
-      foreach (var document in documents)
-      {
-        document.Dispose();
-      }
-    }
-  }
-
-  [Fact]
-  public async Task InterviewPage_HasActionFirstResponsiveLayoutAsync()
-  {
-    await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, "interview/");
-    var readiness = Page.Locator("section[aria-labelledby='interview-readiness']");
-    await Expect(readiness.Locator("article")).ToHaveCountAsync(14);
-    await Expect(readiness.Locator("h3")).ToHaveCountAsync(3);
-    await Expect(Page.Locator("section[aria-labelledby='preparation-plan'] li")).ToHaveCountAsync(7);
-    Assert.Equal("interview-readiness", await Page.Locator("h2").First.GetAttributeAsync("id"));
-    Assert.Equal("preparation-plan", await Page.Locator("h2").Nth(1).GetAttributeAsync("id"));
-    var faq = Page.Locator("section[aria-labelledby='interview-faq'] details");
-    await Expect(faq).ToHaveCountAsync(3);
-    await faq.First.Locator("summary").ClickAsync();
-    await Expect(faq.First.Locator("p")).ToBeVisibleAsync();
-
-    await Expect(Page.Locator("main h1")).ToBeVisibleAsync();
-    foreach (var width in new[] { 320, 390, 768, 1280 })
-    {
-      await Page.SetViewportSizeAsync(width, 844);
-      foreach (var darkMode in new[] { false, true })
-      {
-        await Page.EvaluateAsync("dark => document.documentElement.classList.toggle('dark', dark)", darkMode);
-        Assert.True(await Page.EvaluateAsync<bool>(
-            "() => { const main = document.querySelector('main'); return main.scrollWidth <= main.clientWidth && main.getBoundingClientRect().right <= innerWidth; }"),
-            $"Interview should not overflow at {width}px in {(darkMode ? "dark" : "light")} mode.");
-        var cards = Page.Locator("section[aria-labelledby='delivery-readiness-title'] article");
-        var first = await cards.Nth(0).BoundingBoxAsync();
-        var second = await cards.Nth(1).BoundingBoxAsync();
-        Assert.NotNull(first);
-        Assert.NotNull(second);
-        if (width < 768)
-        {
-          Assert.True(second.Y > first.Y, "Substantial cards should stack on mobile.");
-        }
-        else
-        {
-          Assert.Equal(first.Y, second.Y);
-          Assert.True(second.X > first.X, "Substantial cards should use two columns on larger screens.");
-        }
-      }
-    }
-  }
-
-  [Fact]
-  public async Task InterviewPage_IsLinkedFromHomeAndLearningPathAsync()
-  {
-    foreach (var path in new[] { "", "learningpath/" })
-    {
-      await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, path);
-      var link = Page.GetByRole(AriaRole.Link, new()
-      {
-        Name = "Start preparing for your C# and .NET interview",
-        Exact = true,
-      });
-      await Expect(link).ToHaveCountAsync(1);
-      await Expect(link).ToHaveAttributeAsync("href", "interview/");
-      await Expect(link).ToHaveTextAsync("Start preparing");
-      await link.ClickAsync();
-      await Expect(Page.Locator("h1")).ToHaveTextAsync("C# and .NET Interview Questions and Answers");
-      await Expect(Page.Locator("script[type='application/ld+json']")).ToHaveCountAsync(2);
     }
   }
 
@@ -846,7 +678,6 @@ public class SeoTests(AppFixture fixture) : PageTest
       "blogs/using-github-copilot-ai-for-navigating-new-codebase/",
       "channels/testing/",
       "learningpath/",
-      "interview/",
     })
     {
       await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, path);
@@ -866,7 +697,7 @@ public class SeoTests(AppFixture fixture) : PageTest
     await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, path);
 
     var canonical = await SeoTestHelpers.GetRequiredAttributeAsync(Page, "link[rel='canonical']", "href");
-    await AssertSocialMetadataAsync(canonical, "article", "summary_large_image");
+    await AssertSocialMetadataAsync(Page, canonical, "article", "summary_large_image");
   }
 
   [Fact]
@@ -875,7 +706,7 @@ public class SeoTests(AppFixture fixture) : PageTest
     await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, "channels/testing/");
 
     var canonical = await SeoTestHelpers.GetRequiredAttributeAsync(Page, "link[rel='canonical']", "href");
-    await AssertSocialMetadataAsync(canonical, "website", "summary");
+    await AssertSocialMetadataAsync(Page, canonical, "website", "summary");
   }
 
   [Fact]
@@ -983,7 +814,7 @@ public class SeoTests(AppFixture fixture) : PageTest
     await Expect(Page.Locator("link[rel='canonical']")).ToHaveAttributeAsync("href", canonical);
     await Expect(Page.Locator("meta[name='description']")).ToHaveAttributeAsync("content",
         "Preview the I Love .NET learning chat interface with suggested questions about .NET, Blazor, and C#. AI responses and article retrieval are not connected yet.");
-    await AssertSocialMetadataAsync(canonical, "website", "summary");
+    await AssertSocialMetadataAsync(Page, canonical, "website", "summary");
     await Expect(Page.Locator("link[rel='sitemap']")).ToHaveAttributeAsync("href",
         SeoTestHelpers.ExpectedUrl(ExpectedCanonicalBaseUrl, "sitemap.xml"));
     await Expect(Page.Locator("link[rel='alternate'][hreflang='en']")).ToHaveAttributeAsync("href", canonical);
@@ -1261,55 +1092,4 @@ public class SeoTests(AppFixture fixture) : PageTest
     }
   }
 
-  private static JsonDocument GetSchema(IEnumerable<JsonDocument> documents, string type)
-  {
-    var document = documents.SingleOrDefault(document =>
-        document.RootElement.TryGetProperty("@type", out var schemaType)
-        && schemaType.GetString() == type);
-    Assert.NotNull(document);
-    return document;
-  }
-
-  private async Task AssertSocialMetadataAsync(string canonical, string expectedOpenGraphType, string expectedTwitterCard)
-  {
-    Assert.Equal(1, await Page.Locator("meta[property='og:type']").CountAsync());
-    Assert.Equal(expectedOpenGraphType, await Page.Locator("meta[property='og:type']").GetAttributeAsync("content"));
-
-    foreach (var property in new[] { "og:title", "og:description", "twitter:title", "twitter:description" })
-    {
-      var content = await SeoTestHelpers.GetRequiredAttributeAsync(Page, $"meta[property='{property}']", "content");
-      Assert.False(string.IsNullOrWhiteSpace(content));
-    }
-
-    foreach (var property in new[] { "og:url", "twitter:url" })
-    {
-      var url = await SeoTestHelpers.GetRequiredAttributeAsync(Page, $"meta[property='{property}']", "content");
-      Assert.Equal(canonical, url);
-    }
-
-    foreach (var property in new[] { "og:image", "twitter:image" })
-    {
-      var image = await SeoTestHelpers.GetRequiredAttributeAsync(Page, $"meta[property='{property}']", "content");
-      Assert.StartsWith("https://", image, StringComparison.Ordinal);
-    }
-
-    var twitterCard = await SeoTestHelpers.GetRequiredAttributeAsync(Page, "meta[property='twitter:card']", "content");
-    Assert.Equal(expectedTwitterCard, twitterCard);
-  }
-
-  private void AssertBreadcrumbSchema(JsonDocument document)
-  {
-    var items = document.RootElement.GetProperty("itemListElement");
-    Assert.True(items.GetArrayLength() >= 2);
-
-    for (var index = 0; index < items.GetArrayLength(); index++)
-    {
-      var item = items[index];
-      Assert.Equal(index + 1, item.GetProperty("position").GetInt32());
-      Assert.False(string.IsNullOrWhiteSpace(item.GetProperty("name").GetString()));
-
-      var url = item.GetProperty("item").GetString();
-      Assert.StartsWith(ExpectedCanonicalBaseUrl.AbsoluteUri, url, StringComparison.Ordinal);
-    }
-  }
 }
