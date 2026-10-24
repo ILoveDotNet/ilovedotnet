@@ -41,14 +41,6 @@ public class PageTests(AppFixture fixture) : PageTest
   }
 
   [Fact]
-  public async Task LearningPathPage_Loads_Successfully()
-  {
-    await Page.GotoAsync($"{WebBaseUrl.AbsoluteUri}learningpath");
-    await Expect(Page.Locator("li[aria-current='page']"))
-        .ToContainTextAsync(".NET Tutorial Learning Paths");
-  }
-
-  [Fact]
   public async Task ChannelPage_Loads_Successfully()
   {
     await Page.GotoAsync($"{WebBaseUrl.AbsoluteUri}channels/testing");

@@ -129,6 +129,48 @@ public static class SeoTestHelpers
     await Assertions.Expect(card.Locator("header a")).ToHaveCSSAsync("outline-style", "solid");
   }
 
+  public static async Task AssertImageAttributesAsync(IPage page, string path)
+  {
+    var images = page.Locator("img");
+    await images.First.WaitForAsync(new() { State = WaitForSelectorState.Attached });
+    var attributes = await images.EvaluateAllAsync<string?[][]>(
+        "images => images.map(image => ['src', 'alt', 'width', 'height'].map(name => image.getAttribute(name)))");
+    Assert.NotEmpty(attributes);
+    for (var index = 0; index < attributes.Length; index++)
+    {
+      var image = attributes[index];
+      Assert.False(string.IsNullOrWhiteSpace(image[1]), $"Image {index} ({image[0]}) on {path} must have alt text.");
+      Assert.True(int.TryParse(image[2], out var width) && width > 0, $"Image {index} ({image[0]}) on {path} must have a positive width.");
+      Assert.True(int.TryParse(image[3], out var height) && height > 0, $"Image {index} ({image[0]}) on {path} must have a positive height.");
+    }
+  }
+
+  public static async Task AssertCanonicalInternalLinksAsync(IPage page, Uri baseUrl, string path)
+  {
+    var hrefs = await page.Locator("a[href]").EvaluateAllAsync<string?[]>(
+        "links => links.map(link => link.getAttribute('href'))");
+    foreach (var href in hrefs)
+    {
+      if (string.IsNullOrWhiteSpace(href) || href.StartsWith("#", StringComparison.Ordinal))
+      {
+        continue;
+      }
+      var uri = new Uri(new Uri(ExpectedUrl(baseUrl, path)), href);
+      if (!string.Equals(uri.Host, baseUrl.Host, StringComparison.OrdinalIgnoreCase))
+      {
+        continue;
+      }
+      Assert.Empty(uri.Query);
+      if (uri.AbsolutePath.StartsWith("/blogs/", StringComparison.OrdinalIgnoreCase)
+          || uri.AbsolutePath.StartsWith("/channels/", StringComparison.OrdinalIgnoreCase)
+          || uri.AbsolutePath.StartsWith("/authors/", StringComparison.OrdinalIgnoreCase))
+      {
+        Assert.EndsWith("/", uri.AbsolutePath, StringComparison.Ordinal);
+        Assert.DoesNotContain(" ", uri.AbsolutePath, StringComparison.Ordinal);
+      }
+    }
+  }
+
   public static void AssertCanonicalUrl(string actualUrl, Uri baseUrl, string expectedPath)
   {
     Assert.Equal(ExpectedUrl(baseUrl, expectedPath), actualUrl);
