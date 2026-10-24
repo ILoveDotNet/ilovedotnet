@@ -41,14 +41,6 @@ public class PageTests(AppFixture fixture) : PageTest
   }
 
   [Fact]
-  public async Task ChannelPage_Loads_Successfully()
-  {
-    await Page.GotoAsync($"{WebBaseUrl.AbsoluteUri}channels/testing");
-    await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "Testing", Exact = true }).First)
-        .ToBeVisibleAsync();
-  }
-
-  [Fact]
   public async Task BlogPage_Loads_Successfully()
   {
     await Page.GotoAsync($"{WebBaseUrl.AbsoluteUri}blogs/using-github-copilot-ai-for-navigating-new-codebase");

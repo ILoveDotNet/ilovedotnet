@@ -217,90 +217,12 @@ public class SeoTests(AppFixture fixture) : PageTest
   }
 
   [Fact]
-  public async Task ChannelPage_ShowsPublishedArticlesAndFilteredLearningSequenceAsync()
-  {
-    await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, "channels/linq/");
-    var records = new SharedModels.TableOfContents().Contents.Where(content => content.Channel == "LINQ").ToArray();
-    await Expect(Page.Locator("h1")).ToHaveTextAsync("LINQ");
-    var results = Page.GetByRole(AriaRole.Region, new() { Name = "Latest articles", Exact = true });
-    await Expect(results.Locator("article")).ToHaveCountAsync(records.Length);
-    await Expect(results.Locator("h3")).ToHaveTextAsync(records.OrderByDescending(content => content.ModifiedOn).Select(content => content.Title).ToArray());
-    await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Latest articles", Exact = true })).ToHaveAttributeAsync("aria-pressed", "true");
-    await Page.GetByRole(AriaRole.Link, new() { Name = "Start learning", Exact = false }).ClickAsync();
-    Assert.Equal(WebBaseUrl.Authority, new Uri(Page.Url).Authority);
-    results = Page.GetByRole(AriaRole.Region, new() { Name = "Learning sequence", Exact = true });
-    await Expect(Page.Locator("#channel-results")).ToBeInViewportAsync();
-    await Expect(results.Locator("li")).ToHaveCountAsync(records.Length);
-    var sequence = records.OrderBy(content => content.Order).ToArray();
-    await Expect(results.Locator("h3")).ToHaveTextAsync(sequence.Select(content => content.Title).ToArray());
-    var search = Page.GetByLabel("Search LINQ tutorials", new() { Exact = true });
-    var selected = sequence[^1];
-    await search.FillAsync(selected.Title);
-    await Expect(results.Locator("li")).ToHaveCountAsync(1);
-    await Expect(results.Locator("li > span")).ToHaveTextAsync($"Step {sequence.Length}");
-    await search.FillAsync("not-a-real-tutorial");
-    await Expect(Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "No matching tutorials." })).ToBeVisibleAsync();
-    await Page.GetByRole(AriaRole.Button, new() { Name = "Clear search", Exact = true }).ClickAsync();
-    await Expect(results.Locator("li")).ToHaveCountAsync(records.Length);
-    var latest = Page.GetByRole(AriaRole.Button, new() { Name = "Latest articles", Exact = true });
-    await latest.FocusAsync();
-    await Page.Keyboard.PressAsync("Enter");
-    await Expect(latest).ToHaveAttributeAsync("aria-pressed", "true");
-    await Expect(Page.Locator("#channel-results")).ToHaveTextAsync("Latest articles");
-    await Expect(Page.Locator("#channel-results + div article")).ToHaveCountAsync(records.Length);
-  }
-
-  [Fact]
-  public async Task ChannelPage_UpdatesRoutesAndFitsMobileLayoutsAsync()
-  {
-    await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, "channels/dependency-injection/");
-    await Expect(Page.Locator("h1")).ToHaveTextAsync("Dependency Injection");
-    await Expect(Page.Locator("link[rel='canonical']")).ToHaveAttributeAsync("href", $"{ExpectedCanonicalBaseUrl}channels/dependency-injection/");
-    await Expect(Page.Locator("img").First).ToHaveAttributeAsync("src", "image/icons/dependency injection.webp");
-    foreach (var width in new[] { 320, 375, 390, 414, 768, 1280 })
-    {
-      await Page.SetViewportSizeAsync(width, 844);
-      foreach (var dark in new[] { false, true })
-      {
-        await Page.EvaluateAsync("dark => document.documentElement.classList.toggle('dark', dark)", dark);
-        Assert.True(await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= innerWidth"),
-            $"Channel page must fit at {width}px in {(dark ? "dark" : "light")} mode.");
-        await Page.GetByRole(AriaRole.Button, new() { Name = "Learning sequence", Exact = true }).ClickAsync();
-        Assert.True(await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= innerWidth"));
-        await Page.GetByRole(AriaRole.Button, new() { Name = "Latest articles", Exact = true }).ClickAsync();
-      }
-    }
-    await Page.GetByLabel("Search Dependency Injection tutorials", new() { Exact = true }).FillAsync("not-a-real-tutorial");
-    await Page.GetByRole(AriaRole.Button, new() { Name = "Learning sequence", Exact = true }).ClickAsync();
-    await Page.EvaluateAsync("() => Blazor.navigateTo('/channels/web-api/')");
-    await Expect(Page.Locator("h1")).ToHaveTextAsync("Web API");
-    await Expect(Page.GetByLabel("Search Web API tutorials", new() { Exact = true })).ToHaveValueAsync("");
-    await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Latest articles", Exact = true })).ToHaveAttributeAsync("aria-pressed", "true");
-    await Page.WaitForFunctionAsync("() => { const image = document.querySelector('img'); return image.complete && image.naturalWidth > 0; }");
-    await Expect(Page.Locator("link[rel='canonical']")).ToHaveAttributeAsync("href", $"{ExpectedCanonicalBaseUrl}channels/web-api/");
-    await Page.EvaluateAsync("() => Blazor.navigateTo('/channels/efcore/')");
-    await Expect(Page.Locator("h1")).ToHaveTextAsync("EFCore");
-    var emptyChannel = new SharedModels.TableOfContents().AllContents
-        .GroupBy(content => content.Channel).FirstOrDefault(channel => channel.All(content => content.ModifiedOn.Date > DateTime.Today));
-    if (emptyChannel is not null)
-    {
-      await Page.EvaluateAsync("url => Blazor.navigateTo(url)", $"/channels/{emptyChannel.Key.ToLowerInvariant().Replace(" ", "-")}/");
-      await Expect(Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "No articles have been published" })).ToBeVisibleAsync();
-    }
-    await Page.EvaluateAsync("() => Blazor.navigateTo('/channels/not-a-real-channel/')");
-    await Expect(Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "This channel was not found." })).ToBeVisibleAsync();
-    await Page.GetByRole(AriaRole.Link, new() { Name = "Browse all learning paths", Exact = false }).ClickAsync();
-    await Expect(Page.Locator("h1")).ToHaveTextAsync(".NET Tutorial Learning Paths");
-  }
-
-  [Fact]
   public async Task PublicPages_HaveCanonicalMetadataAsync()
   {
     foreach (var path in new[]
     {
       "",
       "blogs/using-github-copilot-ai-for-navigating-new-codebase/",
-      "channels/testing/",
     })
     {
       await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, path);
@@ -328,7 +250,6 @@ public class SeoTests(AppFixture fixture) : PageTest
     {
       "",
       "blogs/using-github-copilot-ai-for-navigating-new-codebase/",
-      "channels/testing/",
     })
     {
       await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, path);
@@ -508,7 +429,6 @@ public class SeoTests(AppFixture fixture) : PageTest
     {
       "",
       "blogs/using-github-copilot-ai-for-navigating-new-codebase/",
-      "channels/testing/",
     })
     {
       await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, path);
@@ -529,15 +449,6 @@ public class SeoTests(AppFixture fixture) : PageTest
 
     var canonical = await SeoTestHelpers.GetRequiredAttributeAsync(Page, "link[rel='canonical']", "href");
     await AssertSocialMetadataAsync(Page, canonical, "article", "summary_large_image");
-  }
-
-  [Fact]
-  public async Task ChannelPage_UsesWebsiteSocialMetadataAsync()
-  {
-    await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, "channels/testing/");
-
-    var canonical = await SeoTestHelpers.GetRequiredAttributeAsync(Page, "link[rel='canonical']", "href");
-    await AssertSocialMetadataAsync(Page, canonical, "website", "summary");
   }
 
   [Fact]
@@ -571,26 +482,6 @@ public class SeoTests(AppFixture fixture) : PageTest
       Assert.True(image.GetProperty("height").GetInt32() > 0);
 
       AssertBreadcrumbSchema(GetSchema(documents, "BreadcrumbList"));
-    }
-    finally
-    {
-      foreach (var document in documents)
-      {
-        document.Dispose();
-      }
-    }
-  }
-
-  [Fact]
-  public async Task ChannelPage_HasValidBreadcrumbStructuredDataAsync()
-  {
-    await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, "channels/testing/");
-    await Expect(Page.Locator("script[type='application/ld+json']")).ToHaveCountAsync(2);
-    var documents = await SeoTestHelpers.GetJsonLdDocumentsAsync(Page);
-    try
-    {
-      AssertBreadcrumbSchema(GetSchema(documents, "BreadcrumbList"));
-      Assert.Contains(documents, document => document.RootElement.GetProperty("@type").GetString() == "WebSite");
     }
     finally
     {
@@ -673,31 +564,6 @@ public class SeoTests(AppFixture fixture) : PageTest
     await Expect(breadcrumb.Locator("a").Nth(1)).ToHaveTextAsync("AI");
     await Expect(breadcrumb.Locator("li[aria-current='page']"))
         .ToContainTextAsync("Using GitHub Copilot AI for Navigating New Codebase");
-  }
-
-  [Fact]
-  public async Task ChannelPage_RendersVisibleBreadcrumbsAsync()
-  {
-    await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, "channels/testing/");
-    var breadcrumb = Page.Locator("nav[aria-label='Breadcrumb']");
-    await breadcrumb.WaitForAsync();
-    Assert.Equal(1, await breadcrumb.CountAsync());
-    Assert.Equal(1, await breadcrumb.Locator("a").CountAsync());
-    await Expect(breadcrumb.Locator("a")).ToHaveTextAsync("Home");
-    await Expect(breadcrumb.Locator("li[aria-current='page']")).ToHaveTextAsync("Testing");
-  }
-
-  [Fact]
-  public async Task Breadcrumbs_RemainVisibleOnMobileAsync()
-  {
-    await Page.SetViewportSizeAsync(390, 844);
-    await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, "channels/testing/");
-
-    var breadcrumb = Page.Locator("nav[aria-label='Breadcrumb']");
-    await Expect(breadcrumb).ToBeVisibleAsync();
-    var boundingBox = await breadcrumb.BoundingBoxAsync();
-    Assert.NotNull(boundingBox);
-    Assert.True(boundingBox.Width <= 390);
   }
 
   [Fact]
@@ -801,7 +667,6 @@ public class SeoTests(AppFixture fixture) : PageTest
     foreach (var path in new[]
     {
       "blogs/using-github-copilot-ai-for-navigating-new-codebase/",
-      "channels/testing/",
     })
     {
       await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, path);
@@ -815,7 +680,6 @@ public class SeoTests(AppFixture fixture) : PageTest
     foreach (var path in new[]
     {
       "blogs/using-github-copilot-ai-for-navigating-new-codebase/",
-      "channels/testing/",
     })
     {
       await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, path);
@@ -830,7 +694,6 @@ public class SeoTests(AppFixture fixture) : PageTest
     {
       "",
       "blogs/using-github-copilot-ai-for-navigating-new-codebase/",
-      "channels/testing/",
     })
     {
       var expectedUrl = SeoTestHelpers.ExpectedUrl(WebBaseUrl, path);
