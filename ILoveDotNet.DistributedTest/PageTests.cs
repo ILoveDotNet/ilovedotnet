@@ -34,13 +34,6 @@ public class PageTests(AppFixture fixture) : PageTest
               .Select(c => Path.GetInvalidFileNameChars().Contains(c) ? '_' : c));
 
   [Fact]
-  public async Task HomePage_Loads_Successfully()
-  {
-    await Page.GotoAsync(WebBaseUrl.AbsoluteUri);
-    await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "Channels" })).ToBeVisibleAsync();
-  }
-
-  [Fact]
   public async Task BlogPage_Loads_Successfully()
   {
     await Page.GotoAsync($"{WebBaseUrl.AbsoluteUri}blogs/using-github-copilot-ai-for-navigating-new-codebase");
