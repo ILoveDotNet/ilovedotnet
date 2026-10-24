@@ -385,7 +385,6 @@ public class SeoTests(AppFixture fixture) : PageTest
       "channels/testing/",
       "learningpath/",
       "authors/abdul-rahman/",
-      "career/",
       "interview/",
     })
     {
@@ -417,7 +416,6 @@ public class SeoTests(AppFixture fixture) : PageTest
       "channels/testing/",
       "learningpath/",
       "authors/abdul-rahman/",
-      "career/",
       "interview/",
     })
     {
@@ -534,7 +532,7 @@ public class SeoTests(AppFixture fixture) : PageTest
   }
 
   [Fact]
-  public async Task CareerAndInterviewGuides_HaveActionFirstResponsiveLayoutsAsync()
+  public async Task InterviewPage_HasActionFirstResponsiveLayoutAsync()
   {
     await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, "interview/");
     var readiness = Page.Locator("section[aria-labelledby='interview-readiness']");
@@ -548,52 +546,32 @@ public class SeoTests(AppFixture fixture) : PageTest
     await faq.First.Locator("summary").ClickAsync();
     await Expect(faq.First.Locator("p")).ToBeVisibleAsync();
 
-    foreach (var path in new[] { "interview/", "career/" })
+    await Expect(Page.Locator("main h1")).ToBeVisibleAsync();
+    foreach (var width in new[] { 320, 390, 768, 1280 })
     {
-      await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, path);
-      await Expect(Page.Locator("main h1")).ToBeVisibleAsync();
-      foreach (var width in new[] { 320, 390, 768, 1280 })
+      await Page.SetViewportSizeAsync(width, 844);
+      foreach (var darkMode in new[] { false, true })
       {
-        await Page.SetViewportSizeAsync(width, 844);
-        foreach (var darkMode in new[] { false, true })
+        await Page.EvaluateAsync("dark => document.documentElement.classList.toggle('dark', dark)", darkMode);
+        Assert.True(await Page.EvaluateAsync<bool>(
+            "() => { const main = document.querySelector('main'); return main.scrollWidth <= main.clientWidth && main.getBoundingClientRect().right <= innerWidth; }"),
+            $"Interview should not overflow at {width}px in {(darkMode ? "dark" : "light")} mode.");
+        var cards = Page.Locator("section[aria-labelledby='delivery-readiness-title'] article");
+        var first = await cards.Nth(0).BoundingBoxAsync();
+        var second = await cards.Nth(1).BoundingBoxAsync();
+        Assert.NotNull(first);
+        Assert.NotNull(second);
+        if (width < 768)
         {
-          await Page.EvaluateAsync("dark => document.documentElement.classList.toggle('dark', dark)", darkMode);
-          Assert.True(await Page.EvaluateAsync<bool>(
-              "() => { const main = document.querySelector('main'); return main.scrollWidth <= main.clientWidth && main.getBoundingClientRect().right <= innerWidth; }"),
-              $"{path} should not overflow at {width}px in {(darkMode ? "dark" : "light")} mode.");
-          var cards = Page.Locator(path == "interview/" ?
-              "section[aria-labelledby='delivery-readiness-title'] article" :
-              "section[aria-labelledby='career-growth-title'] article");
-          var first = await cards.Nth(0).BoundingBoxAsync();
-          var second = await cards.Nth(1).BoundingBoxAsync();
-          Assert.NotNull(first);
-          Assert.NotNull(second);
-          if (width < 768)
-          {
-            Assert.True(second.Y > first.Y, "Substantial cards should stack on mobile.");
-          }
-          else
-          {
-            Assert.Equal(first.Y, second.Y);
-            Assert.True(second.X > first.X, "Substantial cards should use two columns on larger screens.");
-          }
+          Assert.True(second.Y > first.Y, "Substantial cards should stack on mobile.");
+        }
+        else
+        {
+          Assert.Equal(first.Y, second.Y);
+          Assert.True(second.X > first.X, "Substantial cards should use two columns on larger screens.");
         }
       }
     }
-
-    var careerHeadingIds = await Page.Locator("h2").EvaluateAllAsync<string[]>(
-        "headings => headings.map(heading => heading.id)");
-    Assert.Equal(new[] { "career-action-title", "career-foundations-title", "career-growth-title", "career-interview-title" }, careerHeadingIds);
-    await Expect(Page.Locator("section[aria-labelledby='career-growth-title'] article")).ToHaveCountAsync(7);
-    await Expect(Page.GetByRole(AriaRole.Complementary, new() { Name = "Conversation starter" })).ToBeVisibleAsync();
-    foreach (var link in await Page.Locator("nav[aria-label='Career guide topics'] a").AllAsync())
-    {
-      await link.ClickAsync();
-      var target = new Uri(Page.Url).Fragment;
-      await Expect(Page.Locator(target)).ToBeInViewportAsync();
-    }
-    await Page.GetByRole(AriaRole.Link, new() { Name = "Explore the .NET interview preparation guide" }).ClickAsync();
-    await Expect(Page.Locator("h1")).ToHaveTextAsync("C# and .NET Interview Questions and Answers");
   }
 
   [Fact]

@@ -23,7 +23,7 @@ public static class SeoTestHelpers
     return response;
   }
 
-  public static async Task AssertWebsiteMetadataAsync(IPage page, string path)
+  public static async Task<string> AssertCanonicalMetadataAsync(IPage page, string path)
   {
     await GetRequiredTitleAsync(page);
     var description = await GetRequiredAttributeAsync(page, "meta[name='description']", "content");
@@ -35,7 +35,12 @@ public static class SeoTestHelpers
       var href = await GetRequiredAttributeAsync(page, $"link[rel='alternate'][hreflang='{hreflang}']", "href");
       Assert.Equal(canonical, href);
     }
+    return canonical;
+  }
 
+  public static async Task AssertWebsiteMetadataAsync(IPage page, string path)
+  {
+    var canonical = await AssertCanonicalMetadataAsync(page, path);
     await Assertions.Expect(page.Locator("script[type='application/ld+json']")).ToHaveCountAsync(1);
     var documents = await GetJsonLdDocumentsAsync(page);
     try

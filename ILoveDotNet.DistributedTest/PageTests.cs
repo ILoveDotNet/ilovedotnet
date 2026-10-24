@@ -49,13 +49,6 @@ public class PageTests(AppFixture fixture) : PageTest
   }
 
   [Fact]
-  public async Task CareerPage_Loads_Successfully()
-  {
-    await Page.GotoAsync($"{WebBaseUrl.AbsoluteUri}career");
-    await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "Developer career growth", Exact = true })).ToBeVisibleAsync();
-  }
-
-  [Fact]
   public async Task InterviewPage_Loads_Successfully()
   {
     await Page.GotoAsync($"{WebBaseUrl.AbsoluteUri}interview");
