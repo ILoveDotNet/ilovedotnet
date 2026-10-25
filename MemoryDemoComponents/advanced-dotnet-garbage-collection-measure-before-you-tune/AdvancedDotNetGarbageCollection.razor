@@ -1,0 +1,1018 @@
+@page "/blogs/advanced-dotnet-garbage-collection-measure-before-you-tune"
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(AdvancedDotNetGarbageCollection)>
+    <ContentBody>
+        <What>
+            <p>
+                The .NET garbage collector can clean up objects your program no longer uses, but your application may still
+                appear to use a lot of memory. That is because cleaning up an object, returning memory to Windows or Linux, and
+                closing a file or network connection are different things.
+            </p>
+
+            <p>
+                The <Highlight>garbage collector (GC)</Highlight> is the .NET runtime feature that manages memory for objects
+                created by your C# code. It follows references from places your running program can access, such as local
+                variables and static fields. It can reuse memory when no reachable code can get to an object, but it does not
+                promise to return that memory to the operating system straight away.
+            </p>
+
+            <CodeSnippet CssClass="language-plaintext">
+ STACK (current method)        MANAGED HEAP
+┌──────────────────────┐      ┌──────────────────────────────┐
+│ order ───────────────┼─────&gt;│ Order ─────&gt; Item[]          │ reachable
+│ count = 3            │      │                              │
+└──────────────────────┘      │ "old draft"  (no references) │ unreachable
+ static field ───────────────&gt;│ PriceCache                   │ reachable
+                              └──────────────────────────────┘
+ The GC starts at roots (locals, static fields) and keeps only what it
+ can reach from them. The "old draft" string's memory can be reused.
+            </CodeSnippet>
+
+            <p>
+                This article shows how to check what the GC is doing before changing settings. You will compare how much memory
+                two small pieces of code allocate, learn why large objects and GC settings matter, see how disposal, finalizers,
+                and events affect how long objects stay alive, and see when special features such as LOH compaction or a no-GC
+                region may help. You do not need prior experience tuning the GC; basic C# and .NET knowledge is enough.
+            </p>
+
+            <p>
+                The article moves in three stages, in the order you should work: first measure and reduce allocations, then
+                control how long objects and operating-system resources stay alive, and only then consider GC settings such as
+                server mode, DATAS, LOH compaction, and no-GC regions.
+            </p>
+        </What>
+
+        <Why>
+            <p>
+                Creating many temporary objects can make an application do extra cleanup work. For example, each change to a C#
+                string creates a new string, so repeatedly building a long string can create many temporary copies.
+            </p>
+
+            <p>
+                A GC collection may briefly pause your C# code while it checks objects. Large objects use a special area called
+                the <Highlight>large object heap (LOH)</Highlight>. Objects that stay reachable for a long time also remain in
+                memory. Meanwhile, files and network connections need to be closed by your code. These problems can all look
+                like “high memory use,” but each needs a different fix.
+            </p>
+
+            <p>
+                Calling <Highlight>GC.Collect()</Highlight> does not tell you what caused high memory use. It can pause your
+                application, and it cannot remove objects your code can still reach. Measure first, then fix the specific cause.
+            </p>
+
+            <p>
+                Some collections pause your application more than others. Generation 0 and generation 1 collections are always
+                foreground (blocking) collections: .NET pauses your application threads while it checks memory, but these
+                collections are usually short. Background GC applies only to generation 2 collections. It does much of its work
+                on a dedicated GC thread while your application continues running, but it still needs brief pauses.
+            </p>
+
+            <p>
+                One short pause rarely hurts. The cost comes from how often pauses happen: if a busy request path allocates so
+                quickly that small collections start again and again, those short pauses add up to time your users can notice.
+                That is why lowering the allocation rate often helps more than changing a GC setting. A collection count by
+                itself does not tell you how long users waited.
+            </p>
+        </Why>
+
+        <How>
+            <h4 id="measure-allocation-pressure-before-tuning">Measure allocation pressure before tuning GC settings</h4>
+            <p>
+                Start by measuring how much memory your code creates instead of forcing a collection. This console example
+                compares creating a new 1-kilobyte buffer 500 times with creating one buffer and reusing it. It runs each method
+                once before measuring to avoid counting the first run as the only result. Treat the numbers as a simple example,
+                not as a formal performance test.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+using System;
+
+var allocationBytes = Measure(AllocateEachTime);
+var reuseBytes = Measure(ReuseBuffer);
+
+Console.WriteLine("Strategy               Allocated bytes");
+Console.WriteLine($"New buffer per item    {allocationBytes,15:N0}");
+Console.WriteLine($"Reuse one buffer       {reuseBytes,15:N0}");
+
+long Measure(Func&lt;int&gt; operation)
+{
+    _ = operation();
+    var before = GC.GetAllocatedBytesForCurrentThread();
+    _ = operation();
+    return GC.GetAllocatedBytesForCurrentThread() - before;
+}
+            </CodeSnippet>
+
+            <p>
+                Add the two strategies below the helper in the same <Highlight>Program.cs</Highlight> file. Both do the same
+                work; only the buffer handling differs:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+int AllocateEachTime()
+{
+    var total = 0;
+    for (var i = 0; i &lt; 500; i++)
+    {
+        var buffer = new byte[1024];
+        buffer[0] = (byte)i;
+        total += buffer[0];
+    }
+
+    return total;
+}
+
+int ReuseBuffer()
+{
+    var buffer = new byte[1024];
+    var total = 0;
+    for (var i = 0; i &lt; 500; i++)
+    {
+        buffer[0] = (byte)i;
+        total += buffer[0];
+    }
+
+    return total;
+}
+            </CodeSnippet>
+
+            <p>
+                The console prints the number of bytes allocated by each method. On a 64-bit runtime the output looks like this:
+            </p>
+
+            <CodeSnippet CssClass="language-plaintext">
+Strategy               Allocated bytes
+New buffer per item            524,000
+Reuse one buffer                 1,048
+            </CodeSnippet>
+
+            <p>
+                Each <Highlight>byte[1024]</Highlight> takes 1,048 bytes on the heap: the 1,024 data bytes plus 24 bytes for
+                the object header, type pointer, and array length. Creating 500 of them costs 500 × 1,048 = 524,000 bytes,
+                while the reuse version pays for just one array. Your numbers can differ slightly between runtimes, but the gap
+                is what matters.
+            </p>
+
+            <CodeSnippet CssClass="language-plaintext">
+ New buffer per item                  Reuse one buffer
+ STACK         HEAP                   STACK         HEAP
+┌────────┐    ┌───────────────┐      ┌────────┐    ┌───────────────┐
+│ buffer─┼─┐  │ byte[] #1   x │      │ buffer─┼───&gt;│ byte[] (only) │
+└────────┘ │  │ byte[] #2   x │      └────────┘    └───────────────┘
+           │  │ ...         x │
+           └─&gt;│ byte[] #500   │       1 array  =     1,048 bytes
+              └───────────────┘
+               500 arrays = 524,000 bytes   x = garbage for the GC
+            </CodeSnippet>
+
+            <p>
+                <Highlight>GC.GetAllocatedBytesForCurrentThread()</Highlight> counts bytes allocated by the current thread.
+                It does not tell you how much memory is still in use, how much memory the whole process uses, or what other
+                threads allocated. For careful performance comparisons, use a benchmark tool such as BenchmarkDotNet.
+            </p>
+
+            <h4 id="watch-gc-activity-in-a-running-app">Watch GC activity in a running app</h4>
+            <p>
+                Runtime counters show how your app behaves while it runs. Useful values include how quickly it allocates memory,
+                the size of its managed heap, how often it runs a full (generation 2) collection, and how much time it spends
+                doing GC work. To use these counters, install the <Highlight>dotnet-counters</Highlight> tool if needed:
+            </p>
+
+            <CodeSnippet CssClass="language-bash">
+dotnet tool install --global dotnet-counters
+            </CodeSnippet>
+
+            <p>
+                Then start monitoring your app. Replace <Highlight>1234</Highlight> with your app's process ID:
+            </p>
+
+            <CodeSnippet CssClass="language-bash">
+dotnet-counters monitor --process-id 1234 System.Runtime
+            </CodeSnippet>
+
+            <p>
+                The
+                <a href="https://learn.microsoft.com/en-us/dotnet/core/diagnostics/dotnet-counters" target="_blank" rel="noopener noreferrer">
+                    dotnet-counters documentation
+                </a>
+                explains how to find the process ID and read each counter.
+            </p>
+
+            <p>
+                These counters show overall GC activity, not how long each pause lasts. To inspect pauses, collect a runtime
+                trace while the app handles a representative workload. Install <Highlight>dotnet-trace</Highlight> if needed,
+                then collect GC events with a built-in profile:
+            </p>
+
+            <CodeSnippet CssClass="language-bash">
+dotnet tool install --global dotnet-trace
+dotnet-trace collect --process-id 1234 --profile gc-collect
+            </CodeSnippet>
+
+            <p>
+                The <Highlight>gc-collect</Highlight> profile records only GC collection events, so its overhead is very low.
+                Use <Highlight>--profile gc-verbose</Highlight> when you also want sampled allocation events and can accept
+                more overhead. Run <Highlight>dotnet-trace list-profiles</Highlight> to see every profile your version
+                supports.
+            </p>
+
+            <p>
+                Replace <Highlight>1234</Highlight> with the process ID. Open the resulting trace in PerfView or a compatible
+                .NET trace viewer and inspect the GC pause events. The trace helps identify individual pauses; use a load test
+                or production telemetry to understand how those pauses affect request latency.
+            </p>
+
+            <h4 id="reduce-avoidable-allocations">Reduce avoidable allocations</h4>
+            <p>
+                Reducing unnecessary objects can reduce GC work, but “zero allocations” is not always the right goal. Reuse a
+                buffer only when doing so is safe for your code. If measurement shows a hot part of your app needs improvement,
+                <Highlight>stackalloc</Highlight> and <Highlight>Span&lt;T&gt;</Highlight> can work for small, short-lived
+                buffers. <Highlight>ArrayPool&lt;T&gt;</Highlight> can reuse larger arrays; return a rented array in a
+                <Highlight>finally</Highlight> block so it is returned even if an error occurs.
+            </p>
+
+            <p>
+                The next two examples show these ideas. <Highlight>FormatOrderCode</Highlight> builds a short text value in a
+                stack buffer and allocates only the final string:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+using System;
+
+Console.WriteLine(FormatOrderCode(42)); // ORD-42
+
+static string FormatOrderCode(int id)
+{
+    Span&lt;char&gt; chars = stackalloc char[16];
+    "ORD-".AsSpan().CopyTo(chars);
+    id.TryFormat(chars[4..], out var written);
+    return new string(chars[..(4 + written)]);
+}
+            </CodeSnippet>
+
+            <p>
+                <Highlight>ChecksumOfLength</Highlight> borrows a larger array from the shared pool instead of creating a new
+                one on every call:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+using System;
+using System.Buffers;
+
+Console.WriteLine(ChecksumOfLength(10_000)); // 1273080
+
+static int ChecksumOfLength(int length)
+{
+    var buffer = ArrayPool&lt;byte&gt;.Shared.Rent(length);
+    try
+    {
+        var data = buffer.AsSpan(0, length);
+        for (var i = 0; i &lt; data.Length; i++)
+        {
+            data[i] = (byte)i;
+        }
+
+        var sum = 0;
+        foreach (var value in data)
+        {
+            sum += value;
+        }
+
+        return sum;
+    }
+    finally
+    {
+        ArrayPool&lt;byte&gt;.Shared.Return(buffer);
+    }
+}
+            </CodeSnippet>
+
+            <p>
+                <Highlight>Rent</Highlight> can return an array larger than you asked for, so slice it to the length you need.
+                Once you return an array to the pool, do not keep using it. Keep <Highlight>stackalloc</Highlight> buffers small
+                because stack space is limited.
+            </p>
+
+            <CodeSnippet CssClass="language-plaintext">
+ FormatOrderCode                ChecksumOfLength
+ STACK FRAME                    STACK        HEAP (shared pool)
+┌───────────────────────┐      ┌────────┐   ┌──────────────────────┐
+│ chars: O R D - 4 2 ...│      │ buffer─┼──&gt;│ byte[16384]  rented  │
+│ freed when the method │      └────────┘   │ byte[...]    waiting │
+│ returns               │                   └──────────────────────┘
+└───────────────────────┘       Return puts the array back, so the next
+ HEAP: only the final "ORD-42"  call reuses it instead of allocating
+            </CodeSnippet>
+
+            <p>
+                The same idea applies to building strings. C# strings cannot be changed after creation, so repeatedly joining
+                strings with <Highlight>+</Highlight> can create a new intermediate string on each iteration. For repeated
+                appends, <Highlight>StringBuilder</Highlight> reuses its internal buffer and creates the final string when
+                you call <Highlight>ToString</Highlight>.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+using System.Text;
+
+var parts = new[] { "GC", " ", "measures", " ", "memory" };
+var builder = new StringBuilder();
+
+foreach (var part in parts)
+{
+    builder.Append(part);
+}
+
+var message = builder.ToString();
+            </CodeSnippet>
+
+            <p>
+                <Highlight>StringBuilder</Highlight> still allocates its builder and final string. It is useful when you append
+                repeatedly; for a small, fixed number of parts, ordinary concatenation may be clearer. Measure before changing
+                code just to reduce allocations.
+            </p>
+
+            <h4 id="let-the-jit-avoid-heap-allocations">Let the JIT avoid heap allocations, but do not depend on it</h4>
+            <p>
+                <Highlight>Escape analysis</Highlight> is how the JIT compiler checks whether an object stays inside a method or
+                is passed somewhere that may keep using it later. An object <Highlight>escapes</Highlight> when the method
+                returns it, stores it in a field, or passes it to code the JIT cannot fully see. If the JIT can prove an object
+                does not escape, it can put that object on the stack instead of the managed heap, so the GC never has to track it.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+static int Largest(int a, int b, int c)
+{
+    int[] candidates = { a, b, c }; // never leaves this method
+    var largest = candidates[0];
+    foreach (var value in candidates)
+    {
+        largest = Math.Max(largest, value);
+    }
+
+    return largest;
+}
+
+static int[] KeepForLater(int a, int b, int c) =&gt; new[] { a, b, c }; // escapes: the caller receives it
+            </CodeSnippet>
+
+            <p>
+                Starting with .NET 10, the JIT can stack-allocate small, fixed-size arrays such as
+                <Highlight>candidates</Highlight> when it proves they do not escape. The array returned by
+                <Highlight>KeepForLater</Highlight> must live on the heap because the caller can keep using it.
+            </p>
+
+            <CodeSnippet CssClass="language-plaintext">
+ Largest (optimized, .NET 10)     KeepForLater
+ STACK FRAME                      STACK (caller)      HEAP
+┌──────────────────────────┐     ┌──────────────┐    ┌──────────┐
+│ candidates: [ a, b, c ]  │     │ result ──────┼───&gt;│ int[3]   │
+│ largest                  │     └──────────────┘    └──────────┘
+└──────────────────────────┘      The array outlives the method,
+ Gone when the method returns,    so it must live on the heap.
+ so the GC never sees it.
+            </CodeSnippet>
+
+            <p>
+                Treat this as a bonus, not a design tool. It applies only to optimized code, so a method's first runs and Debug
+                builds still allocate on the heap. Large arrays, such as <Highlight>new byte[1024]</Highlight> in a loop, are
+                still heap allocations. When a small buffer must stay off the heap, use <Highlight>stackalloc</Highlight>
+                explicitly.
+            </p>
+
+            <p>
+                A lambda that uses a local variable from outside the lambda is called a <Highlight>capturing lambda</Highlight>.
+                The compiler moves the captured variable into a hidden helper object (often called a closure) so the lambda can
+                keep using it, and creating that helper is an allocation. A lambda that captures nothing does not need this
+                helper, and the compiler can cache its delegate and reuse it. Adding the <Highlight>static</Highlight> keyword
+                does not create that caching; it makes the compiler reject any accidental capture.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+int offset = 10;
+
+Func&lt;int, int&gt; addOffset = value =&gt; value + offset;
+Func&lt;int, int&gt; doubleValue = static value =&gt; value * 2;
+            </CodeSnippet>
+
+            <p>
+                <Highlight>addOffset</Highlight> captures <Highlight>offset</Highlight>; the static lambda cannot capture it.
+                This difference matters when code creates delegates repeatedly in a performance-sensitive loop. In .NET 10 the
+                JIT can sometimes stack-allocate a delegate that does not escape, but the closure object is still a heap
+                allocation. Keep the delegate or move the work out of the loop when that fits the design, then check allocations
+                with a profiler.
+            </p>
+
+            <CodeSnippet CssClass="language-plaintext">
+ STACK              HEAP
+┌───────────────┐  ┌────────────────────┐  ┌──────────────────┐
+│ addOffset ────┼─&gt;│ Func&lt;int, int&gt;     │─&gt;│ closure object   │
+│               │  │ (new delegate)     │  │   offset = 10    │
+│ doubleValue ──┼┐ └────────────────────┘  └──────────────────┘
+└───────────────┘│ ┌────────────────────┐
+                 └&gt;│ cached delegate    │  created once, reused,
+                   │ (no captured data) │  no closure needed
+                   └────────────────────┘
+            </CodeSnippet>
+
+            <h4 id="separate-managed-objects-from-operating-system-resources">Separate managed objects from operating-system resources</h4>
+            <p>
+                A <Highlight>managed object</Highlight> is an object whose memory is tracked by the .NET runtime, such as a
+                string, list, or <Highlight>FileStream</Highlight>. The stream object is managed, but the open file handle it
+                uses belongs to the operating system. The GC can reclaim the stream object's memory when your code can no longer
+                reach it. The handle may then be released later through finalization, but the timing is unpredictable; use
+                <Highlight>Dispose</Highlight> when you need to close the file promptly.
+            </p>
+
+            <CodeSnippet CssClass="language-plaintext">
+ STACK        MANAGED HEAP (tracked by the GC)        OPERATING SYSTEM
+┌────────┐   ┌────────────┐   ┌────────────────┐     ┌─────────────┐
+│ stream─┼──&gt;│ FileStream │──&gt;│ SafeFileHandle │────&gt;│ file handle │
+└────────┘   └────────────┘   └────────────────┘     └─────────────┘
+              The GC reclaims these objects'          Dispose closes
+              memory when they are unreachable        this right away
+            </CodeSnippet>
+
+            <p>
+                <Highlight>IDisposable</Highlight> lets an object expose a <Highlight>Dispose</Highlight> method so your code
+                can release resources at a predictable time. Calling <Highlight>Dispose</Highlight> does not tell the GC to
+                collect the object or remove it from memory. It releases resources the object owns; the GC reclaims the object's
+                memory later, when your code can no longer reach it.
+            </p>
+
+            <p>
+                Use a <Highlight>using</Highlight> statement for disposable objects. C# calls
+                <Highlight>Dispose</Highlight> when execution leaves the block, including when an exception occurs.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+using System.IO;
+
+using (var stream = File.OpenRead("report.json"))
+{
+    // Read the file here.
+}
+
+// Dispose has run here, so the file handle can be released.
+            </CodeSnippet>
+
+            <p>
+                The compiler turns a <Highlight>using</Highlight> block into a <Highlight>try/finally</Highlight> block that
+                calls <Highlight>Dispose</Highlight> in <Highlight>finally</Highlight>. You can also write a using
+                declaration, such as <Highlight>using var stream = File.OpenRead("report.json");</Highlight>, which
+                disposes the object at the end of the enclosing scope.
+            </p>
+
+            <p>
+                Clearing lists or setting fields to <Highlight>null</Highlight> inside <Highlight>Dispose</Highlight> is
+                usually unnecessary. Once nothing references the disposed object, the GC can reclaim everything it points to.
+                Use <Highlight>Dispose</Highlight> for things the GC cannot handle: closing handles and connections, and
+                releasing native memory.
+            </p>
+
+            <p>
+                If your class owns another object that implements <Highlight>IDisposable</Highlight>, dispose that object when
+                your own class is disposed. Only dispose resources your class owns; do not dispose an object that was merely
+                passed in for temporary use unless the ownership contract says you took responsibility for it.
+            </p>
+
+            <h4 id="implement-disposal-for-owned-resources">Implement disposal for resources your class owns</h4>
+            <p>
+                A sealed class can often implement <Highlight>Dispose</Highlight> directly. A class designed for inheritance
+                can use a protected virtual <Highlight>Dispose(bool disposing)</Highlight> method, which gives derived classes
+                a place to release the resources they add. Dispose managed child objects only when
+                <Highlight>disposing</Highlight> is true; a finalizer must not rely on other managed objects still being
+                available.
+            </p>
+
+            <p>
+                A class that only owns other disposable objects, such as streams or database connections, does not need a
+                finalizer. Those objects already handle their own unmanaged cleanup. A finalizer is needed only when your class
+                holds an unmanaged resource directly, which is the case in the example below.
+            </p>
+
+            <p>
+                <Highlight>GC.SuppressFinalize</Highlight> tells the runtime not to run this object's finalizer after explicit
+                disposal; it does not trigger collection or free the object's managed memory. It matters only if this object
+                or a derived type has a finalizer. Calling it also affects performance. When the GC finds an unreachable
+                object that still needs finalization, it cannot free that object yet. It queues the object for the finalizer
+                thread and keeps it, and everything it references, alive at least until a later collection. That often promotes
+                the object to an older generation. After <Highlight>SuppressFinalize</Highlight>, the object can be reclaimed
+                like any other object.
+            </p>
+
+            <p>
+                If a class directly owns unmanaged memory, the finalizer is its safety net when a caller forgets to call
+                <Highlight>Dispose</Highlight>. Cleanup can start in two ways: <Highlight>Dispose()</Highlight> calls
+                <Highlight>Dispose(true)</Highlight>, while the finalizer calls <Highlight>Dispose(false)</Highlight>. Release
+                unmanaged resources in both cases, and touch other managed objects only when <Highlight>disposing</Highlight>
+                is true.
+            </p>
+
+            <CodeSnippet CssClass="language-plaintext">
+Your code calls Dispose()               GC finds the object unreachable
+           │                                        │
+           v                                        v
+Dispose(disposing: true)                Finalizer runs Dispose(disposing: false)
+  ├─ dispose owned managed objects        ├─ skip managed objects (they may
+  ├─ free unmanaged resources             │   already be finalized)
+  └─ GC.SuppressFinalize(this)            └─ free unmanaged resources
+           │                                        │
+           v                                        v
+Reclaimed by a normal collection        Reclaimed by a later collection
+            </CodeSnippet>
+
+            <p>
+                Both paths end in one shared method, so the cleanup logic lives in one place. The class exposes the two entry
+                points like this:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+using System;
+using System.Runtime.InteropServices;
+
+public class NativeScratchBuffer : IDisposable
+{
+    private IntPtr _memory;
+    private bool _disposed;
+
+    public NativeScratchBuffer(int sizeInBytes)
+    {
+        _memory = Marshal.AllocHGlobal(sizeInBytes);
+    }
+
+    ~NativeScratchBuffer() =&gt; Dispose(disposing: false);
+
+    public void Dispose()
+    {
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
+    // Dispose(bool) is shown next.
+}
+            </CodeSnippet>
+
+            <p>
+                Inside the same class, the shared method checks the guard, cleans up managed objects only on the
+                <Highlight>Dispose()</Highlight> path, and always frees the native memory:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+protected virtual void Dispose(bool disposing)
+{
+    if (_disposed)
+    {
+        return;
+    }
+
+    if (disposing)
+    {
+        // Dispose managed objects this class owns.
+    }
+
+    if (_memory != IntPtr.Zero)
+    {
+        Marshal.FreeHGlobal(_memory);
+        _memory = IntPtr.Zero;
+    }
+
+    _disposed = true;
+}
+            </CodeSnippet>
+
+            <p>
+                This example shows how the two paths fit together. In real code, prefer <Highlight>SafeHandle</Highlight> to
+                wrap a low-level operating-system handle, because it already provides reliable cleanup if normal disposal is
+                missed. Add a custom finalizer only when your type directly owns an unmanaged resource and cannot use
+                <Highlight>SafeHandle</Highlight>.
+            </p>
+
+            <p>
+                The <Highlight>protected virtual</Highlight> method is what makes the pattern work with inheritance. A derived
+                class does not implement <Highlight>IDisposable</Highlight> again or write its own finalizer. It overrides
+                <Highlight>Dispose(bool)</Highlight>, releases what it added, and then hands control back to the base class:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+using System.IO;
+
+public sealed class TracedScratchBuffer : NativeScratchBuffer
+{
+    private readonly StreamWriter _log;
+    private bool _disposed;
+
+    public TracedScratchBuffer(int sizeInBytes, string logPath)
+        : base(sizeInBytes)
+    {
+        _log = new StreamWriter(logPath);
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (!_disposed)
+        {
+            if (disposing)
+            {
+                _log.Dispose();
+            }
+
+            _disposed = true;
+        }
+
+        base.Dispose(disposing);
+    }
+}
+            </CodeSnippet>
+
+            <p>
+                Calling <Highlight>Dispose()</Highlight> on a <Highlight>TracedScratchBuffer</Highlight> runs the base
+                class's public method, which calls the override. The override closes the log, and
+                <Highlight>base.Dispose(disposing)</Highlight> frees the native memory. Callers can dispose the whole object
+                with one call, without knowing what each class in the hierarchy owns. Both classes guard against repeated
+                calls, so disposing twice is harmless.
+            </p>
+
+            <h4 id="unsubscribe-events-and-stop-timers">Unsubscribe events and stop timers</h4>
+            <p>
+                Events can also keep objects alive. When one object subscribes to an event on another object, the publisher keeps
+                a reference to the subscriber until it unsubscribes. Unsubscribe when you no longer need the event; dropping
+                your own reference to the subscriber does not remove the publisher's reference. A good place to unsubscribe is
+                the subscriber's <Highlight>Dispose</Highlight> method.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+using System;
+
+public sealed class StockTicker
+{
+    public event EventHandler&lt;decimal&gt;? PriceChanged;
+
+    public void Publish(decimal price) =&gt; PriceChanged?.Invoke(this, price);
+}
+
+public sealed class PriceBadge : IDisposable
+{
+    private readonly StockTicker _ticker;
+
+    public PriceBadge(StockTicker ticker)
+    {
+        _ticker = ticker;
+        _ticker.PriceChanged += OnPriceChanged;
+    }
+
+    public void Dispose() =&gt; _ticker.PriceChanged -= OnPriceChanged;
+
+    private void OnPriceChanged(object? sender, decimal price) =&gt;
+        Console.WriteLine($"Badge shows {price}");
+}
+            </CodeSnippet>
+
+            <p>
+                If a long-lived <Highlight>StockTicker</Highlight> creates and drops thousands of badges without disposing them,
+                each badge stays alive in the event's handler list. That is a memory leak, even though your code no longer
+                uses those badges.
+            </p>
+
+            <p>
+                Timers behave in a similar way. A started <Highlight>System.Timers.Timer</Highlight> is kept alive by the
+                runtime's timer infrastructure, so it keeps raising <Highlight>Elapsed</Highlight> after your code loses
+                every reference to it. Its handler also keeps the handler's target object alive. When the owner is done, stop
+                the timer, unsubscribe from <Highlight>Elapsed</Highlight>, and dispose the timer, usually from the owner's
+                <Highlight>Dispose</Highlight> method.
+            </p>
+
+            <CodeSnippet CssClass="language-plaintext">
+ LONG-LIVED ROOT         HEAP
+ static ticker ────────&gt; StockTicker
+                          └─ PriceChanged handler list
+                               ├─&gt; delegate ─&gt; PriceBadge #1
+                               ├─&gt; delegate ─&gt; PriceBadge #2
+                               └─&gt; ...
+ Your code dropped every badge, but the handler list still reaches them.
+ PriceBadge.Dispose() removes its delegate, so the badge becomes garbage.
+
+ Timer:  runtime timer queue ─&gt; Timer ─&gt; Elapsed delegate ─&gt; owner object
+            </CodeSnippet>
+
+            <h4 id="use-weak-references-only-for-optional-data">Use weak references only for optional data</h4>
+            <p>
+                A <Highlight>WeakReference&lt;T&gt;</Highlight> lets you refer to an object without keeping it alive. The GC
+                may collect the target whenever no strong references remain. This can suit an optional cache: use the cached
+                object if it is still available, or recreate it if the GC has collected it.
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+public sealed class OptionalBufferCache
+{
+    private WeakReference&lt;byte[]&gt;? _cachedBuffer;
+
+    public byte[] GetBuffer()
+    {
+        if (_cachedBuffer is not null
+            &amp;&amp; _cachedBuffer.TryGetTarget(out var existingBuffer))
+        {
+            return existingBuffer;
+        }
+
+        var buffer = new byte[1024];
+        _cachedBuffer = new WeakReference&lt;byte[]&gt;(buffer);
+        return buffer;
+    }
+}
+            </CodeSnippet>
+
+            <CodeSnippet CssClass="language-plaintext">
+ HEAP
+ OptionalBufferCache ─&gt; WeakReference&lt;byte[]&gt; ---&gt; byte[1024]
+                        (weak: the GC ignores it)      ^
+ STACK                                                 │ strong
+ caller's local variable ──────────────────────────────┘
+ While the caller holds the array, it stays alive. Once only the weak
+ reference is left, the GC may collect it and TryGetTarget returns false.
+            </CodeSnippet>
+
+            <p>
+                The returned array is strongly referenced by the caller, but the cache does not keep it alive by itself. If
+                nothing else needs the array, the GC may collect it and the next call creates another one. Do not use a weak
+                reference as a substitute for stopping a timer, disposing a resource, or unsubscribing an event; use explicit
+                ownership and cleanup for those jobs. For a deeper introduction to reachability, continue with
+                <a href="/blogs/understanding-dotnet-garbage-collection-generations-scope-and-object-lifetimes">
+                    Understanding .NET Garbage Collection: Generations, Scope, and Object Lifetimes
+                </a>.
+            </p>
+
+            <h4 id="select-workstation-or-server-gc-for-the-workload">Select workstation or server GC for the workload</h4>
+            <p>
+                .NET has two main GC modes: workstation and server. They make different trade-offs:
+            </p>
+
+            <ul>
+                <li>
+                    <Highlight>Workstation GC</Highlight> is designed for apps running on a user's computer, where the app shares
+                    the machine with many other programs. It uses smaller allocation budgets, so it collects more often and keeps
+                    memory use lower.
+                </li>
+                <li>
+                    <Highlight>Server GC</Highlight> treats the app as the main workload on the machine. By default, it creates
+                    one heap and one dedicated GC thread per logical CPU and collects those heaps in parallel. It allows more
+                    allocation between collections, so it usually runs fewer collections, completes more work, and uses more
+                    memory.
+                </li>
+            </ul>
+
+            <CodeSnippet CssClass="language-plaintext">
+ Workstation GC              Server GC on a 4-CPU machine
+┌────────────────────┐      ┌────────┐┌────────┐┌────────┐┌────────┐
+│ one managed heap   │      │ heap 0 ││ heap 1 ││ heap 2 ││ heap 3 │
+└────────────────────┘      └────────┘└────────┘└────────┘└────────┘
+ smaller budgets,             one GC thread per heap, collected in
+ more frequent GCs            parallel; DATAS starts at 1 heap and grows
+            </CodeSnippet>
+
+            <p>
+                ASP.NET Core apps use server GC by default. Console, desktop, and worker apps use workstation GC unless you change
+                it. You can set the mode in the project file:
+            </p>
+
+            <CodeSnippet CssClass="language-xml">
+&lt;PropertyGroup&gt;
+  &lt;ServerGarbageCollection&gt;true&lt;/ServerGarbageCollection&gt;
+&lt;/PropertyGroup&gt;
+            </CodeSnippet>
+
+            <p>
+                You can also set it without rebuilding, through <Highlight>System.GC.Server</Highlight> in
+                <Highlight>runtimeconfig.json</Highlight> or the <Highlight>DOTNET_gcServer</Highlight> environment variable.
+            </p>
+
+            <p>
+                Neither mode is always faster. Test both with the kind of work your app does in production. Compare how much work
+                it completes, how long pauses last, and how much memory it uses. A server running many copies of an app may need
+                different settings from a server running one busy app.
+            </p>
+
+            <h4 id="let-datas-adapt-server-gc-to-real-memory-needs">Let DATAS adapt server GC to real memory needs</h4>
+            <p>
+                Plain server GC sizes itself mainly for throughput and the hardware it sees. That causes two problems. The same app
+                can use very different amounts of memory on a small machine and a large one. And after a traffic spike ends, the
+                heap may not shrink much, which matters when many containers share one node.
+            </p>
+
+            <p>
+                <Highlight>Dynamic Adaptation to Application Sizes (DATAS)</Highlight> addresses this. It aims to keep the heap
+                roughly proportional to the data your app keeps alive for a long time. It starts with a single heap and adds or
+                removes heaps as the load changes, so it can act anywhere between workstation-like and full server-like
+                behavior. DATAS was introduced as an opt-in feature in .NET 8 and is enabled by default for server GC starting
+                in .NET 9. It does not apply to workstation GC.
+            </p>
+
+            <p>
+                The trade-off is more frequent generation 0 and 1 collections and a small throughput cost, in exchange for a much
+                smaller working set, especially for bursty workloads and memory-limited containers. If measurements show that
+                your app needs that throughput back, you can turn DATAS off:
+            </p>
+
+            <CodeSnippet CssClass="language-xml">
+&lt;PropertyGroup&gt;
+  &lt;ServerGarbageCollection&gt;true&lt;/ServerGarbageCollection&gt;
+  &lt;GarbageCollectionAdaptationMode&gt;0&lt;/GarbageCollectionAdaptationMode&gt;
+&lt;/PropertyGroup&gt;
+            </CodeSnippet>
+
+            <p>
+                The <Highlight>DOTNET_GCDynamicAdaptationMode</Highlight> environment variable does the same job, where
+                <Highlight>1</Highlight> enables DATAS and <Highlight>0</Highlight> disables it. Setting a fixed heap count
+                with <Highlight>GCHeapCount</Highlight> stops the GC from growing and shrinking the number of heaps, which is
+                a core part of how DATAS adapts. Treat these two settings as alternatives, and change either one only after
+                measuring.
+            </p>
+
+            <p>
+                DATAS is not a hard cap on memory. When an app runs in a container with a memory limit, .NET treats that limit as
+                the machine's memory, and by default the GC heap hard limit is 75% of it. That hard limit bounds the GC heap's
+                committed memory, including GC bookkeeping, but not total process memory. A container limit applies to memory
+                charged to the container, which can include multiple processes and native memory. That budget can be exhausted
+                and cause an out-of-memory kill without a managed <Highlight>OutOfMemoryException</Highlight>. See the
+                <a href="https://learn.microsoft.com/en-us/dotnet/core/runtime-config/garbage-collector" target="_blank" rel="noopener noreferrer">
+                    GC runtime configuration reference
+                </a>
+                and the
+                <a href="https://learn.microsoft.com/en-us/dotnet/standard/garbage-collection/datas" target="_blank" rel="noopener noreferrer">
+                    DATAS documentation
+                </a>
+                before configuring either limit.
+            </p>
+
+            <h4 id="treat-loh-compaction-as-a-measured-maintenance-action">Treat LOH compaction as a measured maintenance action</h4>
+            <p>
+                Objects that are 85,000 bytes or larger go on the LOH and are collected with generation 2 objects. You can check
+                this with <Highlight>GC.GetGeneration</Highlight>, which reports the generation an object currently belongs to:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+var smallArray = new byte[1_024];
+var largeArray = new byte[100_000];
+
+Console.WriteLine($"Small array generation: {GC.GetGeneration(smallArray)}");
+Console.WriteLine($"Large array generation: {GC.GetGeneration(largeArray)}");
+            </CodeSnippet>
+
+            <CodeSnippet CssClass="language-plaintext">
+Small array generation: 0
+Large array generation: 2
+            </CodeSnippet>
+
+            <p>
+                The large array reports generation 2 as soon as it is created, because the LOH is collected only during full
+                collections. <Highlight>GC.CollectionCount(2)</Highlight> and <Highlight>GC.GetTotalMemory(false)</Highlight>
+                are also useful for quick experiments. In optimized code, the JIT may treat a local variable as unused after
+                its last read, so the GC can collect the object before the end of the method. If an experiment needs an object
+                to stay alive until a certain line, call <Highlight>GC.KeepAlive(obj)</Highlight> there.
+            </p>
+
+            <p>
+                By default, .NET usually leaves gaps where unused large objects were instead of moving the remaining objects to
+                fill those gaps. This avoids the cost of copying large blocks of memory. A large LOH does not automatically mean
+                there is a problem; .NET may reuse those gaps for future allocations.
+            </p>
+
+            <p>
+                If profiling shows that gaps in the LOH are causing a problem, you can ask .NET to compact it during the next
+                full, blocking collection. Compaction moves objects to close gaps and can pause your app. This is a one-time
+                request, not a general memory cleanup switch. After that collection compacts the LOH, the setting returns to
+                <Highlight>Default</Highlight> automatically.
+            </p>
+
+            <CodeSnippet CssClass="language-plaintext">
+ SMALL OBJECT HEAP              LARGE OBJECT HEAP (85,000 bytes or more)
+┌───────┬───────┬───────┐      ┌────────┬──────┬────────┬──────┐
+│ gen 0 │ gen 1 │ gen 2 │      │ 100 KB │ free │ 300 KB │ free │
+└───────┴───────┴───────┘      └────────┴──────┴────────┴──────┘
+ survivors are usually          collected with gen 2; gaps are reused
+ compacted (moved together)     for new large objects, not closed
+
+                                After CompactOnce + a full blocking GC:
+                               ┌────────┬────────┬─────────────┐
+                               │ 100 KB │ 300 KB │ free space  │
+                               └────────┴────────┴─────────────┘
+            </CodeSnippet>
+
+            <CodeSnippet CssClass="language-csharp">
+using System.Runtime;
+
+GCSettings.LargeObjectHeapCompactionMode =
+    GCLargeObjectHeapCompactionMode.CompactOnce;
+
+// Optional: compact now instead of waiting for the next full blocking GC.
+GC.Collect();
+
+Console.WriteLine(GCSettings.LargeObjectHeapCompactionMode); // Default
+            </CodeSnippet>
+
+            <p>
+                Usually it is enough to set the mode and let the next full blocking collection do the work. Force it with
+                <Highlight>GC.Collect()</Highlight> only at a controlled moment, such as after a large batch job finishes, and
+                never as a routine step. First confirm that LOH gaps are the problem, then test the change with a workload
+                similar to your real app.
+            </p>
+
+            <h4 id="reserve-no-gc-regions-only-for-bounded-work">Reserve no-GC regions only for bounded work</h4>
+            <p>
+                A <Highlight>no-GC region</Highlight> is a short period when .NET tries not to start a garbage collection.
+                <Highlight>GC.TryStartNoGCRegion</Highlight> asks .NET to start one and reserve a memory budget for it. The
+                request can fail if .NET cannot reserve enough memory, and it may run a collection first to make room. If it
+                succeeds, keep allocations within the budget and call <Highlight>GC.EndNoGCRegion()</Highlight> when the work
+                is finished.
+            </p>
+
+            <p>
+                If your app uses more memory than the reserved budget, .NET ends the region early. A collection can run, and
+                <Highlight>GCSettings.LatencyMode</Highlight> returns to its previous value. Calling
+                <Highlight>GC.EndNoGCRegion()</Highlight> after that throws <Highlight>InvalidOperationException</Highlight>,
+                so check the latency mode first:
+            </p>
+
+            <CodeSnippet CssClass="language-csharp">
+using System;
+using System.Runtime;
+
+const long budgetBytes = 32 * 1024 * 1024;
+
+if (GC.TryStartNoGCRegion(budgetBytes))
+{
+    try
+    {
+        ProcessAudioBlock();
+    }
+    finally
+    {
+        if (GCSettings.LatencyMode == GCLatencyMode.NoGCRegion)
+        {
+            GC.EndNoGCRegion();
+        }
+    }
+}
+else
+{
+    ProcessAudioBlock();
+}
+
+static void ProcessAudioBlock()
+{
+    // Short, bounded work that allocates far less than the budget.
+}
+            </CodeSnippet>
+
+            <p>
+                The budget has an upper limit that depends on the runtime and GC mode, and asking for too much throws
+                <Highlight>ArgumentOutOfRangeException</Highlight>. Use no-GC regions only for short, measured work where a
+                pause would cause a real problem, such as a real-time audio block or a latency-critical calculation, and not for
+                an ordinary request. In most apps, reducing unnecessary allocations is a simpler and safer choice.
+            </p>
+
+            <p>
+                For deeper runtime behavior, use the official
+                <a href="https://learn.microsoft.com/en-us/dotnet/standard/garbage-collection/large-object-heap" target="_blank" rel="noopener noreferrer">
+                    large object heap documentation
+                </a>,
+                <a href="https://learn.microsoft.com/en-us/dotnet/standard/garbage-collection/workstation-server-gc" target="_blank" rel="noopener noreferrer">
+                    workstation and server GC documentation
+                </a>, and
+                <a href="https://learn.microsoft.com/en-us/dotnet/core/runtime-config/garbage-collector" target="_blank" rel="noopener noreferrer">
+                    garbage collector runtime configuration reference
+                </a>.
+            </p>
+        </How>
+
+        <Summary>
+            <p>
+                Work in the same order as this article: measure first, fix allocations and lifetimes next, and change GC settings
+                last.
+            </p>
+
+            <ul>
+                <li>Measure allocation rates and runtime pauses before changing GC settings; frequent short pauses add up.</li>
+                <li>Cut avoidable allocations with buffer reuse, <Highlight>StringBuilder</Highlight>, <Highlight>Span&lt;T&gt;</Highlight>, <Highlight>stackalloc</Highlight>, and <Highlight>ArrayPool&lt;T&gt;</Highlight>; treat .NET 10 stack allocation as a bonus, not a guarantee.</li>
+                <li>Dispose the resources your class owns. In the dispose pattern, call <Highlight>GC.SuppressFinalize</Highlight> from <Highlight>Dispose()</Highlight> so finalizable objects are not kept alive for an extra collection.</li>
+                <li>Unsubscribe events and stop timers explicitly; publishers and running timers keep objects alive even after your code drops its references.</li>
+                <li>Use <Highlight>WeakReference&lt;T&gt;</Highlight> only for optional data you can re-create, never as a replacement for cleanup.</li>
+                <li>Choose workstation or server GC based on production measurements; with server GC, keep DATAS on unless measurements show you need the throughput back.</li>
+                <li>Use the LOH compaction request only when diagnostics show fragmentation and a full blocking collection is acceptable.</li>
+                <li>Keep no-GC regions short, bounded, and exceptional; they are not a general GC optimization.</li>
+            </ul>
+
+            <p>
+                Need a refresher on the basics? The earlier articles in this series cover
+                <a href="/blogs/garbage-collection-fundamentals-in-dotnet">
+                    Garbage Collection Fundamentals in .NET
+                </a>
+                and
+                <a href="/blogs/understanding-dotnet-garbage-collection-generations-scope-and-object-lifetimes">
+                    generations, scope, and object lifetimes
+                </a>.
+            </p>
+        </Summary>
+    </ContentBody>
+</Content>

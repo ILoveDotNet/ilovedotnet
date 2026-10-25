@@ -2,7 +2,7 @@
 
 public class MemoryLearningPath
 {
-  public readonly List<ContentMetaData> FullContents = new(2);
+  public readonly List<ContentMetaData> FullContents = new(3);
 
   public MemoryLearningPath()
   {
@@ -41,6 +41,23 @@ public class MemoryLearningPath
           CreatedOn = new DateTime(2026, 9, 13, 22, 30, 0, DateTimeKind.Utc),
           ModifiedOn = new DateTime(2026, 9, 13, 22, 30, 0, DateTimeKind.Utc),
           Keywords = ["Garbage Collection", "GC", "Object Lifetime", "GC Roots", "Generations", "Generation 0", "Generation 1", "Generation 2", "Large Object Heap", "Finalizers", "IDisposable", ".NET"]
+        },
+      new ContentMetaData
+        {
+          Order = 3,
+          Title = "Advanced .NET Garbage Collection: Measure Before You Tune",
+          Description = "Learn how to measure and reduce allocation pressure, see what .NET 10 escape analysis can do, control object lifetimes with disposal and event cleanup, and evaluate server GC, DATAS, LOH compaction, and no-GC regions without tuning by guesswork.",
+          Author = "Abdul Rahman",
+          Slug = "advanced-dotnet-garbage-collection-measure-before-you-tune",
+          PosterUrl = "image/blogs/memory/advanced-dotnet-garbage-collection-measure-before-you-tune.webp",
+          ThumbnailUrl = "image/blogs/memory/advanced-dotnet-garbage-collection-measure-before-you-tune.webp",
+          ContentUrl = "blogs/advanced-dotnet-garbage-collection-measure-before-you-tune",
+          IconUrl = "image/icons/memory.webp",
+          Channel = "Memory",
+          Type = "blogs",
+          CreatedOn = new DateTime(2026, 10, 25, 22, 30, 0, DateTimeKind.Utc),
+          ModifiedOn = new DateTime(2026, 10, 25, 22, 30, 0, DateTimeKind.Utc),
+          Keywords = ["Garbage Collection", "GC", "Allocation Pressure", "Escape Analysis", "ArrayPool", "Large Object Heap", "LOH Compaction", "Server GC", "Workstation GC", "DATAS", "No GC Region", "IDisposable", "Finalizer", "Weak Reference", ".NET"]
         },
     ];
   }
