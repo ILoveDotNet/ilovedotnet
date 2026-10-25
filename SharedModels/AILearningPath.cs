@@ -140,8 +140,8 @@ public class AILearningPath
           IconUrl = "image/icons/ai.webp",
           Channel = "AI",
           Type = "blogs",
-          CreatedOn = new DateTime(2027, 1, 24, 22, 30, 0, DateTimeKind.Utc),
-          ModifiedOn = new DateTime(2027, 1, 24, 22, 30, 0, DateTimeKind.Utc),
+          CreatedOn = new DateTime(2027, 1, 31, 22, 30, 0, DateTimeKind.Utc),
+          ModifiedOn = new DateTime(2027, 1, 31, 22, 30, 0, DateTimeKind.Utc),
           Keywords = ["AI", "Vector Search", "Semantic Search", "Embeddings", "ONNX", "Local Search", "RAG", ".NET"]
         }
     ];

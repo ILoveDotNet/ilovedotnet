@@ -21,8 +21,8 @@ public class EFCoreLearningPath
                 IconUrl = "image/icons/efcore.webp",
                 Type = "EFCore",
                 Channel = "EFCore",
-                CreatedOn = new DateTime(2027, 1, 3, 22, 30, 0, DateTimeKind.Utc),
-                ModifiedOn = new DateTime(2027, 1, 3, 22, 30, 0, DateTimeKind.Utc),
+                CreatedOn = new DateTime(2027, 1, 10, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2027, 1, 10, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["EF Core interceptors", "DbContext interception", "Entity Framework Core auditing", "connection diagnostics", "SaveChanges interceptor", ".NET"]
             },
         new ContentMetaData
@@ -38,8 +38,8 @@ public class EFCoreLearningPath
                 IconUrl = "image/icons/efcore.webp",
                 Type = "EFCore",
                 Channel = "EFCore",
-                CreatedOn = new DateTime(2027, 1, 10, 22, 30, 0, DateTimeKind.Utc),
-                ModifiedOn = new DateTime(2027, 1, 10, 22, 30, 0, DateTimeKind.Utc),
+                CreatedOn = new DateTime(2027, 1, 17, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2027, 1, 17, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["EF Core conventions", "Code First schema standards", "Entity Framework Core migrations", "foreign keys", "IConvention", ".NET"]
             },
         new ContentMetaData
@@ -55,8 +55,8 @@ public class EFCoreLearningPath
                 IconUrl = "image/icons/efcore.webp",
                 Type = "EFCore",
                 Channel = "EFCore",
-                CreatedOn = new DateTime(2027, 1, 17, 22, 30, 0, DateTimeKind.Utc),
-                ModifiedOn = new DateTime(2027, 1, 17, 22, 30, 0, DateTimeKind.Utc),
+                CreatedOn = new DateTime(2027, 1, 24, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2027, 1, 24, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["EF Core query performance", "slow SQL commands", "ADO.NET command interception", "DbCommandInterceptor", "query hints", ".NET"]
             }
     ];

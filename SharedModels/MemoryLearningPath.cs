@@ -55,8 +55,8 @@ public class MemoryLearningPath
           IconUrl = "image/icons/memory.webp",
           Channel = "Memory",
           Type = "blogs",
-          CreatedOn = new DateTime(2026, 10, 25, 22, 30, 0, DateTimeKind.Utc),
-          ModifiedOn = new DateTime(2026, 10, 25, 22, 30, 0, DateTimeKind.Utc),
+          CreatedOn = new DateTime(2026, 11, 1, 22, 30, 0, DateTimeKind.Utc),
+          ModifiedOn = new DateTime(2026, 11, 1, 22, 30, 0, DateTimeKind.Utc),
           Keywords = ["Garbage Collection", "GC", "Allocation Pressure", "Escape Analysis", "ArrayPool", "Large Object Heap", "LOH Compaction", "Server GC", "Workstation GC", "DATAS", "No GC Region", "IDisposable", "Finalizer", "Weak Reference", ".NET"]
         },
     ];
