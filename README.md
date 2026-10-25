@@ -57,6 +57,7 @@ Your support helps more developers discover free .NET learning resources.
 36. [Logging](https://github.com/orgs/ILoveDotNet/projects/40)
 37. [DDD](https://github.com/orgs/ILoveDotNet/projects/41)
 38. [EF Core](https://github.com/orgs/ILoveDotNet/projects/42)
+39. [Memory](https://github.com/orgs/ILoveDotNet/projects/43)
 
 # Our Official Network
 | Platform  | Link                                      | Status                                                                                                                                                                                                                               |
