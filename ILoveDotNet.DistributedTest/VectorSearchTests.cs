@@ -54,7 +54,7 @@ public class VectorSearchTests(AppFixture fixture) : PageTest
   public async Task SearchBox_ReturnsTheClosestArticleAsync()
   {
     const string expectedSlug = "using-github-copilot-ai-for-navigating-new-codebase";
-    const string expectedTitle = "using github copilot ai for navigating new codebase";
+    var expectedTitle = new SharedModels.TableOfContents().Contents.Single(content => content.Slug == expectedSlug).Title;
 
     var metadata = await GetSuccessfulResponseAsync("search/index.json");
     var index = JsonSerializer.Deserialize<SearchIndexFile>(await metadata.TextAsync());
@@ -89,11 +89,29 @@ public class VectorSearchTests(AppFixture fixture) : PageTest
           Body = fakeTransformersModule,
         }));
 
-    await Page.GotoAsync(WebBaseUrl.AbsoluteUri);
-    await Page.Locator("input[name='search']").FillAsync("find an article about navigating a new codebase with copilot");
+    foreach (var width in new[] { 375, 768, 1280 })
+    {
+      await Page.SetViewportSizeAsync(width, 800);
+      await Page.GotoAsync(WebBaseUrl.AbsoluteUri);
+      var input = Page.Locator("input[name='search']");
+      if (width < 640)
+      {
+        await Expect(input).ToBeHiddenAsync();
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Search", Exact = true }).ClickAsync();
+      }
+      await input.FillAsync("find an article about navigating a new codebase with copilot");
 
-    var firstResult = Page.Locator("#dropdown-menu .dropdown-item").First;
-    await Expect(firstResult).ToHaveTextAsync(expectedTitle, new() { Timeout = 15_000 });
+      var firstResult = Page.Locator("#dropdown-menu .dropdown-item").First;
+      await Expect(firstResult).ToHaveTextAsync(expectedTitle, new() { Timeout = 15_000 });
+      Assert.True(await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= innerWidth"));
+      Assert.True(await Page.Locator("#dropdown-menu").EvaluateAsync<bool>(
+          "element => { const bounds = element.getBoundingClientRect(); return bounds.left >= 0 && bounds.right <= innerWidth; }"));
+      if (width < 640)
+      {
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Exit Search", Exact = true }).ClickAsync();
+        await Expect(input).ToBeHiddenAsync();
+      }
+    }
   }
 
   private async Task<IAPIResponse> GetSuccessfulResponseAsync(string path)

@@ -1,7 +1,7 @@
 ﻿@inherits SearchBase
 
-<section id="search" class="[ flex grow justify-end md:justify-center ]">
-    <button type="button" aria-label="Exit Search" class="[ @(!(SmallDevice && HideNonSearchItems) ? "hidden" : null) ] [ bg-white ] [ h-10 w-10 ] [ border-2 border-gray-200 ] [ dark:bg-gray-800 dark:border-gray-800 ]"
+<section id="search" class="[ flex min-w-0 grow items-center justify-end px-2 md:justify-center md:px-4 ]">
+    <button type="button" aria-label="Exit Search" class="[ @(!(SmallDevice && HideNonSearchItems) ? "hidden" : null) ] [ mr-2 h-10 w-10 shrink-0 rounded-xl text-stone-600 hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 dark:text-stone-200 dark:hover:bg-stone-700 ]"
             @onclick="ExitSearchAsync">
         <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-arrow-left ] [ inline ] [ text-gray-500 ] [ stroke-1 ] [ dark:text-white ]" width="25" height="25" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
             <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
@@ -10,27 +10,27 @@
             <line x1="5" y1="12" x2="11" y2="6"></line>
         </svg>
     </button>
-    <div class="[ dropdown ] [ @(ShowSuggestions ? "is-active" : null) ] [ w-1/2 ] [ @(SmallDevice && !HideNonSearchItems ? "hidden" : null) ] [ @(SmallDevice && HideNonSearchItems ? "grow" : null) ]">
+    <div class="[ dropdown ] [ @(ShowSuggestions ? "is-active" : null) ] [ min-w-0 w-full max-w-xl ] [ @(SmallDevice && !HideNonSearchItems ? "hidden" : null) ] [ @(SmallDevice && HideNonSearchItems ? "grow" : null) ]">
         <div class="[ dropdown-trigger ] [ w-full ]">
-            <input type="search" placeholder="Type / to search" class="[ w-full h-full ] [ px-4 ] [ border-2 border-gray-200 ] [ focus:outline-hidden focus:border-gray-400 ] [ dark:bg-black dark:border-gray-800 dark:focus:border-b-white dark:md:focus:border-blue-800 dark:caret-white dark:text-white ]"
-                   autocapitalize="none" autocomplete="off" name="search" autocorrect="off" aria-haspopup="true" aria-controls="dropdown-menu"
+            <input type="search" placeholder="Type / to search" class="[ h-10 w-full min-w-0 rounded-l-xl border border-r-0 border-stone-200 bg-stone-100 px-4 text-sm text-stone-900 placeholder:text-stone-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 dark:border-stone-700 dark:bg-stone-900 dark:text-white dark:placeholder:text-stone-400 ]"
+                   autocapitalize="none" autocomplete="off" name="search" autocorrect="off" aria-label="Search articles" aria-haspopup="true" aria-controls="dropdown-menu"
                      value="@SearchText" @oninput="SearchTextChangedAsync" @onkeyup="KeyUpHandlerAsync" @ref="SearchInput"
                                      @onfocus="FocusHandlerAsync" @onfocusout="FocusOutHandlerAsync" />
         </div>
-        <div class="[ dropdown-menu ] [ bg-white dark:bg-black ] [ w-full ]" id="dropdown-menu" role="menu">
-            <div class="[ dropdown-content ] [ dark:bg-black ] [ overflow-y-auto ]" style="max-height:50vh;">
+        <div class="[ dropdown-menu ] [ w-full min-w-0 pt-2 ]" id="dropdown-menu" role="menu">
+            <div class="[ dropdown-content ] [ max-h-[50dvh] overflow-y-auto rounded-xl border border-stone-200 bg-white p-1 shadow-lg dark:border-stone-700 dark:bg-stone-900 ]">
                 @for (var index = 0; index < FilteredContents.Count; index++)
                 {
                     var content = FilteredContents[index];
-                    <div id="@($"{_componentId}_{index}")" tabindex="-1" class="[ dropdown-item ] [ cursor-default ] [ focus:bg-gray-100 focus:outline-0 ] [ hover:bg-gray-100 ] [ dark:text-white dark:focus:bg-gray-700 dark:hover:bg-gray-700 ]"
+                    <div id="@($"{_componentId}_{index}")" tabindex="-1" class="[ dropdown-item ] [ cursor-pointer whitespace-normal rounded-lg px-3 py-3 text-sm leading-relaxed text-stone-700 [overflow-wrap:anywhere] hover:bg-indigo-50 focus:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 dark:text-stone-200 dark:hover:bg-stone-800 dark:focus:bg-stone-800 ]"
                          @onkeydown="KeyDownHandlerAsync" @onclick="() => OnSelect(content)">
-                        @FilteredContents[index].Title.ToLower()
+                        @content.Title
                     </div>
                 }
             </div>
         </div>
     </div>
-    <button type="button" aria-label="Search" class="[ h-10 w-10 ] [ @(!SmallDevice ? "bg-white dark:bg-gray-700 dark:border-gray-700 border-2 border-gray-200 border-l-0" : null) ]"
+    <button type="button" aria-label="Search" class="[ h-10 w-10 shrink-0 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ] [ @(!SmallDevice || HideNonSearchItems ? "rounded-r-xl border border-l-0 border-stone-200 bg-stone-100 hover:bg-stone-200 dark:border-stone-700 dark:bg-stone-900 dark:hover:bg-stone-700" : "rounded-xl hover:bg-stone-100 dark:hover:bg-stone-700") ]"
             @onclick="SearchAsync">
         <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-search ] [ inline ] [ text-gray-500 ] [ stroke-1 ] [ dark:text-white ]" width="25" height="25" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
             <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
