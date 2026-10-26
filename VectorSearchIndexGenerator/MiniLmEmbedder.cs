@@ -76,5 +76,18 @@ internal sealed class MiniLmEmbedder : IDisposable
     return vector;
   }
 
+  public int CountTokens(string text) => _tokenizer.EncodeToIds(text).Count();
+
+  public float[] EmbedStrict(string text)
+  {
+    var tokenIds = _tokenizer.EncodeToIds(text).ToArray();
+    if (tokenIds.Length > MaxTokens)
+    {
+      throw new InvalidDataException($"The embedding input has {tokenIds.Length} tokens; the maximum is {MaxTokens}.");
+    }
+
+    return Embed(text);
+  }
+
   public void Dispose() => _session.Dispose();
 }

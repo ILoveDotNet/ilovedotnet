@@ -1,11 +1,15 @@
 # Browser-Local Learning Chat — Implementation Plan
 
-> Status: **Draft for review — not approved for implementation**  
+> Status: **Retrieval-only milestone implemented; local generation remains deferred pending its benchmark and release gates**  
 > Prepared: 2026-10-04  
-> Scope: the Blazor WebAssembly website only; a dedicated chat page backed by repository articles.  
-> This document proposes changes. It does not indicate that the feature, benchmarks, or tests already exist.
+> Scope: shared Blazor UI and static assets in `CommonComponents`; the page and navigation are not gated by a feature flag. Runtime parity in MAUI has not yet been validated.  
+> The implementation is the retrieval-only first increment described below. Proposed model generation, comprehensive evaluation, and later release gates are not yet implemented or approved.
 
-**UI preview (2026-10-24):** The `/chat/` shell lives in `CommonComponents/Pages/LearningChat.razor`, using the existing global Tailwind utilities and shared-page convention. The composer stays at the bottom of the available viewport while the conversation scrolls independently on mobile and desktop. No navigation entry, article retrieval, or AI runtime is connected; the browser-local feature below remains proposed.
+**Current implementation:** `/chat/` lives in `CommonComponents/Pages/LearningChat.razor` and follows the existing shared-page/static-asset pattern used by vector search. Local retrieval loads automatically after the interactive page renders, with cancel and retry controls; no enable click is required. The page discloses the automatic embedding-model download from Hugging Face when uncached. Readers see article passages and trusted links; no generated answer is presented. Chat scripts and generated corpus assets are in `CommonComponents/wwwroot`. The shared navigation exposes the page directly, with a mobile overflow entry and no feature/build flag. Generation-model consent remains deferred with generation itself.
+
+Corpus generation includes only published `/blogs/...` articles, excluding talks and other routes to match the retrieval worker's source URL validation.
+
+Retrieval ranks the latest question independently of earlier named topics. Pronoun-only follow-ups use the latest prior question for topic matching. Keyword matching ignores question filler words and normalizes common inflections (for example, `sweeping` and `sweep`). When relevant passages name the requested concept, passages without matching evidence in their heading or excerpt are excluded, even if their embeddings are similar. Heading/body matches and introductory definition passages are prioritized; the six-result limit is a maximum, not a quota.
 
 The preview scrolls to the latest reply after sending. Enter sends a question, Shift+Enter inserts a new line, and input-method composition does not submit a question.
 
@@ -32,7 +36,7 @@ Implement a bounded retrieval-augmented generation (RAG) workflow, not an autono
 
 ### Non-goals for the first release
 
-- MAUI integration, Foundry Local, Ollama, localhost servers, or cloud inference.
+- Native MAUI model/runtime integration, Foundry Local, Ollama, localhost servers, or cloud inference.
 - Autonomous agents, tool calling, code execution, browsing, or MCP integration.
 - Fine-tuning a model on the articles.
 - Accounts, server-stored conversations, conversation sharing, or cross-device history.
@@ -45,7 +49,7 @@ Implement a bounded retrieval-augmented generation (RAG) workflow, not an autono
 
 | Decision | Proposal | Status |
 | --- | --- | --- |
-| Feature location | A web-owned page at `/chat/`, labelled **Learn with AI** | Proposed |
+| Feature location | A shared page at `/chat/` in `CommonComponents`, labelled **Learn with AI** | Implemented |
 | Answer policy | Strictly article-grounded; explain when the repository lacks sufficient evidence | Proposed |
 | Initial generation support | Desktop-first, capability-tested WebGPU; responsive UI and retrieval-only fallback on other devices | Proposed, not a user-confirmed device requirement |
 | Generation runtime | Benchmark WebLLM first; compare modern Transformers.js if necessary | Proposed, subject to benchmark |
@@ -55,7 +59,7 @@ Implement a bounded retrieval-augmented generation (RAG) workflow, not an autono
 | Model asset hosting | Explicit, pinned asset URLs; prefer controlled hosting where distribution terms and hosting limits allow | Review required |
 | Chat history | Session-memory only; clear on reload or explicit reset | Proposed |
 | Citation targets | Existing article section anchors first; precise subsection anchors later | Proposed |
-| Feature rollout | Disabled until gates pass; retrieval-only capability can ship before generation | Proposed |
+| Feature rollout | Retrieval-only page is available; generation remains deferred until its gates pass | Implemented for retrieval |
 
 Foundry Local is not required. Its JavaScript SDK is a native Node.js binding and explicitly excludes browser support. WebLLM runs in the browser through WebGPU. Modern Transformers.js also supports browser generation, but the existing repository bundle is `@xenova/transformers` 2.17.2 and must not be assumed to support modern generation examples unchanged.
 
@@ -222,13 +226,13 @@ Use deterministic identities scoped to an article and logical section/heading pa
 
 ### Proposed asset layout
 
-- `Web/wwwroot/chat/corpus/manifest.json`
-- `Web/wwwroot/chat/corpus/{corpus-version}/chunks.json`
-- `Web/wwwroot/chat/corpus/{corpus-version}/chunks.vec`
-- `Web/wwwroot/chat/corpus/{corpus-version}/parents/{article-id}.json`
-- `Web/wwwroot/chat/models/model-manifest.json`
-- `Web/wwwroot/js/chat/...` for bridge and worker entry points.
+- `CommonComponents/wwwroot/chat/corpus/manifest.json`
+- `CommonComponents/wwwroot/chat/corpus/versions/{corpus-version}/chunks.json`
+- `CommonComponents/wwwroot/chat/corpus/versions/{corpus-version}/chunks.vec`
+- `CommonComponents/wwwroot/js/learning-chat.js` and `CommonComponents/wwwroot/js/chat/retrieval-worker.js`.
 - `Web/wwwroot/lib/chat/...` for the separately bundled runtime and its required assets.
+
+The retrieval-only corpus currently stores compact passage excerpts and vectors. Parent assets, a generation model manifest, and generation runtime assets are deferred.
 
 The exact split between lightweight chunk metadata and parent text will be measured. Do not duplicate full parent text in every child. Flat vector scanning is the initial approach; introduce approximate indexing only if corpus measurements justify it.
 
@@ -301,12 +305,11 @@ Valid IDs establish provenance, **not entailment**. Runtime reference checking c
 
 ### Page and navigation
 
-- Add `Web/Pages/LearningChat.razor` and its code-behind with the chat route and a visible `h1` for the router's focus behavior.
+- Keep `CommonComponents/Pages/LearningChat.razor` and its code-behind with the chat route and a visible `h1` for the router's focus behavior.
 - Follow current trailing-slash/canonical policy and ensure `/chat` resolves to the canonical form through existing hosting conventions.
 - Reuse the shared layout visually, but keep the page and browser services in the Web project.
-- Add a host-supplied capability/visibility parameter for shared navigation, defaulting to disabled for MAUI. The Web host enables the link; shared components must not inject web-only services.
-- Check the mobile bottom bar's space before adding another item. Use an accessible overflow entry or other reviewed placement rather than squeezing labels.
-- Initially label the page **Learn with AI — Browser-local preview** and include a concise grounding/privacy explanation.
+- Expose the shared navigation entry without a feature flag. Keep it in the desktop rail and in the mobile **Others** overflow menu rather than adding another bottom-bar item.
+- Label the page **Learn with AI — Browser-local preview** and include a concise retrieval/privacy explanation.
 - Use utility-page metadata, proposed `noindex,follow` during preview, and no public transcript routes. Do not add chat transcripts to sitemaps or article learning paths.
 
 ### Initial screen
@@ -385,7 +388,7 @@ The MVP can work without a network for an already-loaded session with all requir
 
 1. Preserve the existing metadata-search generator invocation and outputs.
 2. Add an explicit chat mode/output option to the generator, with extraction/chunking code isolated from legacy metadata generation.
-3. Orchestrate chat bundle/corpus targets in `Web/Web.csproj`, keeping browser-only assets out of MAUI's normal build path.
+3. Generate corpus assets from the normal `CommonComponents` build, following the existing vector-search asset pattern; do not add a feature-specific build flag.
 4. Include relevant article Razor files, any approved extracted demo dependencies, metadata, parser/chunking configuration, generator sources, package configuration, model contract, and publication cutoff in incremental inputs.
 5. Ensure article deletion/rename, changes to extraction exclusions, and publication-date progression invalidate the corpus. A glob of file modification times alone is insufficient for membership changes or the passage of time.
 6. Use a deterministic input inventory/cutoff stamp and document the release time-zone policy. Allow explicit cutoff selection for reproducible tests.
@@ -404,20 +407,20 @@ Names below are proposed. Refine them during implementation while preserving res
 
 | File or folder | Planned change |
 | --- | --- |
-| `Web/Pages/LearningChat.razor` and `.razor.cs` | Dedicated page, state, input, lifecycle, metadata, and accessibility |
+| `CommonComponents/Pages/LearningChat.razor` and `.razor.cs` | Shared page, state, input, lifecycle, metadata, and accessibility |
 | `Web/Shared/LearningChat/` | Message, composer, sources, capability/download status, and safe response presentation components |
 | `Web/Models/LearningChat/` | Typed messages, requests, evidence, citations, capabilities, progress, and configuration |
 | `Web/Services/LearningChat/` | Chat coordinator, passage retrieval, browser runtime bridge, evidence budget, and citation validation |
 | `Web/Program.cs` | Register browser-only chat services and navigation enablement; guard prerender lifecycle |
 | `Web/App.razor` and shared layout/navigation | Wire web-only navigation visibility without breaking MAUI or existing routes |
-| `Web/wwwroot/js/chat/` | Lazy bridge and retrieval/generation worker entry points |
+| `CommonComponents/wwwroot/js/chat/` | Lazy retrieval worker entry point |
 | `ChatBundle/` | Reproducible runtime bundle, locked dependencies, worker packaging, and JS tests |
 | `VectorSearchIndexGenerator/Program.cs` | Backward-compatible chat-generation mode |
 | `VectorSearchIndexGenerator/Extraction/` | Route discovery, supported Razor block extraction, provenance, diagnostics, and reviewed exclusions |
 | `VectorSearchIndexGenerator/Chunking/` | Parent grouping, token-bounded children, code associations, identity, and validation |
 | `VectorSearchIndexGenerator/ChatCorpus/` | Versioned records, serialization, staging, checksums, and coverage report |
 | `VectorSearchIndexGenerator/MiniLmEmbedder.cs` | Token-count/strict-input support for chat without unintended legacy behavior changes |
-| `Web/Web.csproj` | Web-owned bundle/corpus build and publish integration |
+| `CommonComponents/CommonComponents.csproj` | Incremental corpus generation and static asset inclusion, following the existing search-index target |
 | `Directory.Packages.props` | Only needed if extractor/test packages are introduced; use repository package management procedures |
 | `VectorSearchIndexGenerator.Tests/` | Proposed isolated unit-test project for extraction/chunking/corpus invariants |
 | `UITests/` | Chat coordinator/component tests where current test infrastructure supports them |
@@ -592,7 +595,7 @@ Latency, peak-memory, and maximum-download gates must be agreed against the targ
 | Unpublished text persists in assets | Build-time filtering, cutoff/inventory invalidation, stale deployment cleanup |
 | Static-host asset/CSP limitations | Published-output smoke tests, host limits review, controlled asset provisioning |
 | Local-processing claim overstates privacy | Audit analytics/ads and third-party hosting; precise user-facing wording |
-| Shared components expose incomplete feature in MAUI | Web-owned page/services/assets and disabled-by-default shared navigation extension |
+| Shared browser capability differs by host | Surface runtime errors clearly; the retrieval flow uses shared static assets and does not depend on a Web-only service |
 
 ## 19. Review checklist before implementation
 

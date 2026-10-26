@@ -19,6 +19,7 @@
   </ItemGroup>
 
   <PropertyGroup>
+    <ChatCorpusCutoff Condition="'$(ChatCorpusCutoff)' == ''">$([System.DateTime]::UtcNow.ToString('yyyy-MM-dd'))</ChatCorpusCutoff>
     <TransformersBundleDirectory>$(MSBuildThisFileDirectory)..\TransformersBundle\</TransformersBundleDirectory>
     <TransformersBundleOutput>wwwroot\lib\transformers\transformers.min.js</TransformersBundleOutput>
     <ThirdPartyNoticesSource>$(MSBuildThisFileDirectory)..\THIRD-PARTY-NOTICES.txt</ThirdPartyNoticesSource>
@@ -53,6 +54,46 @@
     <SearchIndexInput Include="$(MSBuildThisFileDirectory)..\Directory.Packages.props" />
     <SearchIndexInput Include="wwwroot\js\vector-search.js" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Content Remove="wwwroot\chat\corpus\**" />
+    <ChatCorpusInput Include="$(MSBuildThisFileDirectory)..\*DemoComponents\**\*.razor"
+                     Exclude="$(MSBuildThisFileDirectory)..\**\bin\**;$(MSBuildThisFileDirectory)..\**\obj\**" />
+    <ChatCorpusInput Include="$(MSBuildThisFileDirectory)..\SharedModels\**\*.cs" />
+    <ChatCorpusInput Include="$(MSBuildThisFileDirectory)..\VectorSearchIndexGenerator\**\*.cs"
+                     Exclude="$(MSBuildThisFileDirectory)..\VectorSearchIndexGenerator\bin\**;$(MSBuildThisFileDirectory)..\VectorSearchIndexGenerator\obj\**" />
+    <ChatCorpusInput Include="$(MSBuildThisFileDirectory)..\VectorSearchIndexGenerator\VectorSearchIndexGenerator.csproj" />
+    <ChatCorpusInput Include="$(MSBuildThisFileFullPath)" />
+    <ChatCorpusInput Include="$(MSBuildThisFileDirectory)..\Directory.Build.props" />
+    <ChatCorpusInput Include="$(MSBuildThisFileDirectory)..\Directory.Packages.props" />
+  </ItemGroup>
+
+  <Target Name="UpdateChatCorpusInventory">
+    <MakeDir Directories="$(IntermediateOutputPath)chat-corpus" />
+    <WriteLinesToFile File="$(IntermediateOutputPath)chat-corpus\inputs.txt"
+                      Lines="@(ChatCorpusInput->'%(FullPath)')"
+                      Overwrite="true"
+                      WriteOnlyWhenDifferent="true" />
+    <WriteLinesToFile File="$(IntermediateOutputPath)chat-corpus\cutoff.txt"
+                      Lines="$(ChatCorpusCutoff)"
+                      Overwrite="true"
+                      WriteOnlyWhenDifferent="true" />
+  </Target>
+
+  <Target Name="GenerateChatCorpus"
+          DependsOnTargets="UpdateChatCorpusInventory"
+          Inputs="@(ChatCorpusInput);$(IntermediateOutputPath)chat-corpus\inputs.txt;$(IntermediateOutputPath)chat-corpus\cutoff.txt"
+          Outputs="wwwroot\chat\corpus\manifest.json">
+    <Exec Command="dotnet run --project &quot;$(MSBuildThisFileDirectory)..\VectorSearchIndexGenerator\VectorSearchIndexGenerator.csproj&quot; -- --chat &quot;$(MSBuildThisFileDirectory)wwwroot\chat\corpus&quot; --cutoff &quot;$(ChatCorpusCutoff)&quot;" />
+  </Target>
+
+  <Target Name="IncludeChatCorpusAssets"
+          BeforeTargets="ResolveProjectStaticWebAssets"
+          DependsOnTargets="GenerateChatCorpus">
+    <ItemGroup>
+      <Content Include="wwwroot\chat\corpus\**\*" />
+    </ItemGroup>
+  </Target>
 
   <Target Name="GenerateContentVectorIndex" BeforeTargets="ResolveProjectStaticWebAssets" Inputs="@(SearchIndexInput)" Outputs="wwwroot\search\index.json;wwwroot\search\index.vec">
     <Exec Command="dotnet run --project &quot;$(MSBuildThisFileDirectory)..\VectorSearchIndexGenerator\VectorSearchIndexGenerator.csproj&quot; -- &quot;$(MSBuildThisFileDirectory)wwwroot\search&quot;" />

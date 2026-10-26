@@ -8,6 +8,26 @@ using VectorSearchIndexGenerator;
 const string ModelId = "Xenova/all-MiniLM-L6-v2";
 const string ModelRevision = "751bff37182d3f1213fa05d7196b954e230abad9";
 
+if (args.Length > 0 && args[0] == "--chat")
+{
+  if (args.Length < 2 || args.Length > 4)
+  {
+    throw new ArgumentException("Usage: VectorSearchIndexGenerator --chat <output-directory> [--cutoff yyyy-MM-dd]");
+  }
+
+  var cutoff = DateOnly.FromDateTime(DateTime.UtcNow);
+  if (args.Length == 4)
+  {
+    if (args[2] != "--cutoff" || !DateOnly.TryParseExact(args[3], "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out cutoff))
+    {
+      throw new ArgumentException("The chat corpus cutoff must use --cutoff yyyy-MM-dd.");
+    }
+  }
+
+  await ChatCorpusGenerator.GenerateAsync(Path.GetFullPath(args[1]), cutoff, ModelId, ModelRevision);
+  return;
+}
+
 var outputDirectory = args.Length == 1
   ? Path.GetFullPath(args[0])
   : Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "CommonComponents", "wwwroot", "search"));
@@ -87,4 +107,3 @@ static async Task DownloadIfMissingAsync(string url, string path)
   }
   File.Move(temporaryPath, path, true);
 }
-
