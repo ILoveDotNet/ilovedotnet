@@ -1,7 +1,8 @@
-using Microsoft.AspNetCore.Components;
+﻿using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Configuration;
 using Microsoft.JSInterop;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 
 namespace CommonComponents.Pages;
 
@@ -29,6 +30,15 @@ public class LearningChatBase : ComponentBase, IAsyncDisposable
   protected bool isSearching;
   protected string statusMessage = "Preparing local article search…";
   protected string errorMessage = string.Empty;
+  protected bool generationSupported;
+  protected bool generationReady;
+  protected bool generationLoading;
+  protected double generationProgress;
+  protected string generationStatus = "Checking local answer support…";
+  private IJSObjectReference? generationModule;
+  private DotNetObjectReference<LearningChatBase>? callback;
+  private long generationOperation;
+  private ChatMessage? streamingMessage;
   private IJSObjectReference? module;
   private bool scrollToLatest;
   private bool disposed;
@@ -53,12 +63,139 @@ public class LearningChatBase : ComponentBase, IAsyncDisposable
       module = importedModule;
       await module.InvokeVoidAsync("initialize", questionInput, conversation);
       await InitializeRetrievalAsync();
+      if (disposed)
+      {
+        return;
+      }
+      try
+      {
+        var importedGenerationModule = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/chat/generation.js");
+        if (disposed)
+        {
+          await importedGenerationModule.DisposeAsync();
+          return;
+        }
+        generationModule = importedGenerationModule;
+        callback = DotNetObjectReference.Create(this);
+        var capability = await generationModule.InvokeAsync<GenerationCapability>("capability");
+        if (disposed)
+        {
+          return;
+        }
+        generationSupported = capability.Supported;
+        generationStatus = capability.Supported
+          ? "Optional local answers: SmolLM2 360M, approximately 250 MB download and 500 MB GPU memory, plus browser overhead. Files come from Hugging Face and GitHub; questions stay here."
+          : capability.Reason;
+        if (capability.Supported && capability.Consent)
+        {
+          await LoadGenerationAsync();
+        }
+      }
+      catch (JSException exception)
+      {
+        generationStatus = $"Local answers unavailable: {exception.Message} Original article search remains available.";
+      }
+      if (!disposed)
+      {
+        await InvokeAsync(StateHasChanged);
+      }
     }
 
     if (!disposed && scrollToLatest && module is not null)
     {
       scrollToLatest = false;
       await module.InvokeVoidAsync("scrollToLatest", conversation);
+    }
+  }
+
+  protected async Task LoadGenerationAsync()
+  {
+    if (generationModule is null || generationLoading || isSearching)
+    {
+      return;
+    }
+    var operation = ++generationOperation;
+    generationLoading = true;
+    generationProgress = 0;
+    generationStatus = "Loading the local answer model…";
+    await InvokeAsync(StateHasChanged);
+    try
+    {
+      await generationModule.InvokeVoidAsync("load", callback, operation);
+      if (!disposed && operation == generationOperation)
+      {
+        generationReady = true;
+        generationStatus = "Local answers ready. Answers select original article sentences and verify their citations.";
+      }
+    }
+    catch (JSException exception)
+    {
+      if (!disposed && operation == generationOperation)
+      {
+        generationReady = false;
+        generationStatus = $"Local model loading failed: {exception.Message} Original article search remains available.";
+      }
+    }
+    finally
+    {
+      if (!disposed && operation == generationOperation)
+      {
+        generationLoading = false;
+        await InvokeAsync(StateHasChanged);
+      }
+    }
+  }
+
+  [JSInvokable]
+  public Task OnGenerationUpdate(long operation, string phase, string text, double progress)
+      => InvokeAsync(() =>
+      {
+        if (disposed || operation != generationOperation)
+        {
+          return;
+        }
+        if (phase == "loading")
+        {
+          generationProgress = Math.Clamp(progress, 0, 1);
+          generationStatus = text;
+        }
+        else if (phase == "streaming" && streamingMessage is not null)
+        {
+          streamingMessage.Text = text;
+          scrollToLatest = true;
+        }
+        StateHasChanged();
+      });
+
+  protected async Task UseSourcesOnlyAsync()
+  {
+    generationOperation++;
+    generationReady = false;
+    generationLoading = false;
+    if (streamingMessage is not null)
+    {
+      streamingMessage.Text = SourceSummary(streamingMessage.Sources.Count);
+      streamingMessage.IsStreaming = false;
+      streamingMessage = null;
+    }
+    if (generationModule is not null)
+    {
+      await generationModule.InvokeVoidAsync("stop");
+    }
+    generationStatus = "Source-only mode. You can load local answers again when needed.";
+  }
+
+  protected async Task ClearGenerationCacheAsync()
+  {
+    await UseSourcesOnlyAsync();
+    try
+    {
+      await generationModule!.InvokeVoidAsync("clear");
+      generationStatus = "Answer model cache cleared. Download again to generate answers; article search is unchanged.";
+    }
+    catch (JSException exception)
+    {
+      generationStatus = $"Could not clear the answer model cache: {exception.Message}";
     }
   }
 
@@ -147,8 +284,52 @@ public class LearningChatBase : ComponentBase, IAsyncDisposable
 
       var response = sources.Length == 0
         ? "I couldn't find a sufficiently close passage in the indexed articles. Try a more specific question or browse the learning paths."
-        : $"I found {sources.Length} relevant article passage{(sources.Length == 1 ? string.Empty : "s")}. These are search results, not an AI-generated answer; check the original articles for context.";
-      messages.Add(new ChatMessage(response, IsUser: false, sources));
+        : SourceSummary(sources.Length);
+      var answer = new ChatMessage(response, IsUser: false, sources);
+      messages.Add(answer);
+      if (sources.Length > 0 && generationReady && generationModule is not null)
+      {
+        var operation = ++generationOperation;
+        streamingMessage = answer;
+        answer.Text = "Selecting original article sentences…";
+        answer.IsStreaming = true;
+        statusMessage = "Generating locally. Draft text and citations are provisional…";
+        await InvokeAsync(StateHasChanged);
+        try
+        {
+          var generated = await generationModule.InvokeAsync<GeneratedAnswer>("generate", question, sources, context, callback, operation);
+          if (!disposed && operation == generationOperation && request == activeRequest)
+          {
+            if (generated.SourceCount < 1 || generated.SourceCount > sources.Length || string.IsNullOrWhiteSpace(generated.Text))
+            {
+              throw new JSException("The local answer returned invalid source metadata. Showing original sources instead.");
+            }
+            answer.Text = generated.Text;
+            answer.Sources = sources.Take(generated.SourceCount).ToArray();
+            answer.IsGenerated = true;
+          }
+        }
+        catch (JSException exception)
+        {
+          if (!disposed && operation == generationOperation && request == activeRequest)
+          {
+            answer.Text = response;
+            generationStatus = $"Local answer unavailable: {exception.Message}";
+          }
+        }
+        finally
+        {
+          answer.IsStreaming = false;
+          if (streamingMessage == answer)
+          {
+            streamingMessage = null;
+          }
+        }
+      }
+      if (disposed || request != activeRequest)
+      {
+        return;
+      }
       statusMessage = sources.Length == 0 ? "No strong article matches found." : "Search complete.";
       scrollToLatest = true;
     }
@@ -172,6 +353,7 @@ public class LearningChatBase : ComponentBase, IAsyncDisposable
   protected async Task StopSearchAsync()
   {
     activeRequest++;
+    await UseSourcesOnlyAsync();
     isSearching = false;
     statusMessage = "Search stopped.";
     if (module is not null)
@@ -219,6 +401,29 @@ public class LearningChatBase : ComponentBase, IAsyncDisposable
     return new Uri(new Uri(Navigation.BaseUri), relativeUrl).ToString();
   }
 
+  protected static IEnumerable<AnswerPart> AnswerParts(ChatMessage message)
+  {
+    var offset = 0;
+    foreach (Match match in Regex.Matches(message.Text, @"\[(\d+)\]"))
+    {
+      if (match.Index > offset)
+      {
+        yield return new AnswerPart(message.Text[offset..match.Index], null);
+      }
+      var validNumber = int.TryParse(match.Groups[1].Value, System.Globalization.NumberStyles.None,
+        System.Globalization.CultureInfo.InvariantCulture, out var number);
+      yield return new AnswerPart(match.Value, validNumber && number >= 1 && number <= message.Sources.Count ? message.Sources[number - 1] : null);
+      offset = match.Index + match.Length;
+    }
+    if (offset < message.Text.Length)
+    {
+      yield return new AnswerPart(message.Text[offset..], null);
+    }
+  }
+
+  private static string SourceSummary(int count)
+      => $"I found {count} relevant article passage{(count == 1 ? string.Empty : "s")}. These are search results, not an AI-generated answer; check the original articles for context.";
+
   private async Task<IJSObjectReference> GetModuleAsync()
   {
     if (module is not null)
@@ -241,6 +446,13 @@ public class LearningChatBase : ComponentBase, IAsyncDisposable
   {
     disposed = true;
     activeRequest++;
+    generationOperation++;
+    if (generationModule is not null)
+    {
+      await generationModule.InvokeVoidAsync("stop");
+      await generationModule.DisposeAsync();
+    }
+    callback?.Dispose();
     if (module is not null)
     {
       await module.InvokeVoidAsync("dispose", questionInput);
@@ -248,7 +460,23 @@ public class LearningChatBase : ComponentBase, IAsyncDisposable
     }
   }
 
-  protected sealed record ChatMessage(string Text, bool IsUser, IReadOnlyList<ChatSource> Sources);
+  protected sealed class ChatMessage(string Text, bool IsUser, IReadOnlyList<ChatSource> Sources)
+  {
+    public string Text { get; set; } = Text;
+    public bool IsUser { get; } = IsUser;
+    public IReadOnlyList<ChatSource> Sources { get; set; } = Sources;
+    public bool IsStreaming { get; set; }
+    public bool IsGenerated { get; set; }
+  }
+
+  protected sealed record AnswerPart(string Text, ChatSource? Source);
+  private sealed record GenerationCapability(
+    [property: JsonPropertyName("supported")] bool Supported,
+    [property: JsonPropertyName("reason")] string Reason,
+    [property: JsonPropertyName("consent")] bool Consent);
+  private sealed record GeneratedAnswer(
+    [property: JsonPropertyName("text")] string Text,
+    [property: JsonPropertyName("sourceCount")] int SourceCount);
 
   public sealed record ChatSource(
     [property: JsonPropertyName("title")] string Title,

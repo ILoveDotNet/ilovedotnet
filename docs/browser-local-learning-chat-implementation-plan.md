@@ -1,11 +1,29 @@
 # Browser-Local Learning Chat — Implementation Plan
 
-> Status: **Retrieval-only milestone implemented; local generation remains deferred pending its benchmark and release gates**  
+> Status: **Browser-local retrieval and streamed, verified article-excerpt answers implemented; broader answer-quality and release gates remain open**
 > Prepared: 2026-10-04  
 > Scope: shared Blazor UI and static assets in `CommonComponents`; the page and navigation are not gated by a feature flag. Runtime parity in MAUI has not yet been validated.  
-> The implementation is the retrieval-only first increment described below. Proposed model generation, comprehensive evaluation, and later release gates are not yet implemented or approved.
+> The sections below retain the original design and later-stage requirements. The implementation notes here identify the delivered increment, not approval of every proposed release gate.
 
-**Current implementation:** `/chat/` lives in `CommonComponents/Pages/LearningChat.razor` and follows the existing shared-page/static-asset pattern used by vector search. Local retrieval loads automatically after the interactive page renders, with cancel and retry controls; no enable click is required. The page discloses the automatic embedding-model download from Hugging Face when uncached. Readers see article passages and trusted links; no generated answer is presented. Chat scripts and generated corpus assets are in `CommonComponents/wwwroot`. The shared navigation exposes the page directly, with a mobile overflow entry and no feature/build flag. Generation-model consent remains deferred with generation itself.
+**Current implementation:** `/chat/` lives in `CommonComponents/Pages/LearningChat.razor` and follows the existing shared-page/static-asset pattern used by vector search. Local retrieval loads automatically after the interactive page renders, with cancel and retry controls; no enable click is required. The page discloses the automatic embedding-model download from Hugging Face when uncached. Chat scripts, generated corpus assets, and the bundled WebLLM runtime are served from `CommonComponents/wwwroot`. The shared navigation exposes the page directly, with a mobile overflow entry and no feature/build flag. Header vector search is unchanged.
+
+### Streamed answer increment
+
+- A separate worker uses pinned WebLLM `0.2.86`. Generation requires HTTPS/localhost, a real WebGPU adapter, `shader-f16`, and at least a 128 MiB storage-buffer binding limit. Unsupported devices retain automatic article search.
+- The selected model is `SmolLM2-360M-Instruct-q4f16_1-MLC`, revision `3a622fd89e0216e8bb10c410c007c786baa8a033`. WASM libraries are pinned to `mlc-ai/binary-mlc-llm-libs` revision `00fe7a40e57e5e8eb9fef87526a4bf28ad5846c0`. Its weight manifest totals 203,614,080 bytes. The UI discloses approximately 250 MB of downloads and 500 MB of GPU memory plus browser overhead; actual requirements depend on the browser/device.
+- The first model download requires explicit consent because it is substantial. This is not a feature flag or a repeated search-enable step. Successful consent is remembered for that immutable model revision, with automatic model loading on subsequent visits. Readers can cancel loading, stop inference, use sources only, and clear the answer-model cache. Model/runtime requests go to Hugging Face and GitHub; questions, evidence, and answers are not sent to an inference service.
+- Retrieval runs first. With no sufficiently strong passages, no generation is attempted. Each generation request starts a fresh model conversation and includes only selected article excerpts and bounded previous user questions as optional context.
+- Prompt assembly caps UTF-8 input at 3,000 bytes, includes at most six sequential evidence IDs, and selects complete sentences within 900 bytes per source. For these byte-level-BPE models this conservatively bounds input tokens; 512 output tokens and 584 framing tokens fit the 4,096-token context. No private tokenizer APIs are used. The existing retrieval topic normalizer is shared, unchanged, with a generation preflight that rejects evidence with no question-topic overlap.
+- **User-approved safety boundary:** the model selects up to three verbatim article sentences, rather than writing free-form explanations. WebLLM's constrained EBNF decoding permits only topic-matching sentences with their correct source IDs, or a refusal. A separate final validator checks the result regardless of decoder behavior. Each paragraph must contain exactly one complete original sentence and its correct source ID. Whitespace is normalized; words and punctuation must match. Duplicate selected sentences are collapsed. Valid citation syntax alone is not sufficient. Paraphrased, combined, invented or wrongly attributed text is rejected.
+- Streaming publishes only text that is a prefix of an original sentence and its correct citation. Unverified model wording never reaches the visible draft. Only a normally completed, fully verified selection becomes a final answer. Missing, unknown or malformed citations, changed wording, links/HTML, truncation, model errors and refusals replace the draft with the original search results and an explicit reason.
+- Numeric citations are rendered as application-owned links, never model-supplied URLs or HTML. They open the article's existing section anchor (`#what`, `#why`, `#how`, `#summary`), **not an exact chunk DOM anchor**. Supporting source excerpts remain visible. Text verification proves provenance, not that the selected sentence fully answers the question or that the original article is infallible.
+- Cancellation terminates the generation worker independently of retrieval. Operation IDs prevent stale callbacks from modifying a stopped/cleared conversation. Transcripts remain in page memory and are cleared on navigation/reload.
+
+**Measured model-selection evidence:** real WebGPU browser runs compared Qwen2.5 0.5B and SmolLM2 360M with Qwen2.5 1.5B on short GC evidence. The smaller models routinely omitted citations or generated incorrect claims. The 1.5B candidate produced valid citation syntax but still invented incorrect GC explanations and did not reliably abstain on unrelated questions. **None passed a trustworthy free-form explanation gate.** The user therefore chose verified verbatim excerpts instead of pursuing larger models. Strict text verification, not model trust, is the safety boundary. These development smoke tests are not an independent answer-quality benchmark or a guarantee of latency, completeness or relevance.
+
+With constrained verbatim decoding, SmolLM2 returned verified excerpts for compaction and the GC's role, but refused the supported sweeping question; this intentionally falls back to original passages rather than forcing an answer. The explicit smoke gate requires at least two of three supported questions to return verified text, allows only an exact refusal for the others, and requires unrelated database evidence to be rejected. It does not claim three-of-three answer coverage. Qwen candidates refused more frequently under this contract.
+
+**Validation entry points:** `npm test --prefix ChatBundle` covers prompt bounds, topic preflight, verified streaming prefixes and final text/citation validation. `LearningChatGenerationTests` exercises the real bridge/worker/validator with deterministic runtime stubs, including provisional streaming, invalid citations, changed wording, stop/reset, unsupported GPU, consent persistence and cache removal. `LearningChatGenerationBenchmarkTests` is explicit and downloads actual models; run with `HEADED=1` when headless Chromium does not expose hardware WebGPU. Existing retrieval, corpus-validation, header search and real-embedding evaluations remain regression coverage. Free-form synthesis, MAUI WebView generation, broader browser/device testing, exact-chunk anchors, independent human review, and comprehensive generation release gates are **not** completed by this increment.
 
 Corpus generation includes only published `/blogs/...` articles, excluding talks and other routes to match the retrieval worker's source URL validation.
 
@@ -52,14 +70,14 @@ Implement a bounded retrieval-augmented generation (RAG) workflow, not an autono
 | Feature location | A shared page at `/chat/` in `CommonComponents`, labelled **Learn with AI** | Implemented |
 | Answer policy | Strictly article-grounded; explain when the repository lacks sufficient evidence | Proposed |
 | Initial generation support | Desktop-first, capability-tested WebGPU; responsive UI and retrieval-only fallback on other devices | Proposed, not a user-confirmed device requirement |
-| Generation runtime | Benchmark WebLLM first; compare modern Transformers.js if necessary | Proposed, subject to benchmark |
-| Generation model | One small quantized instruction model chosen after technical-answer and citation evaluation | Unselected; implementation gate |
+| Generation runtime | Pinned WebLLM in an isolated shared-asset bundle and worker | Implemented; development WebGPU smoke comparison |
+| Generation model | SmolLM2 360M quantized instruction model | Used only for constrained, verified excerpt selection; free-form synthesis is not enabled |
 | Embedding model | Reuse pinned `Xenova/all-MiniLM-L6-v2`, 384 dimensions, maximum 256 input tokens | Proposed |
 | Retrieval strategy | Section-aware parent groups with token-bounded child chunks; lexical assistance for technical identifiers | Proposed |
 | Model asset hosting | Explicit, pinned asset URLs; prefer controlled hosting where distribution terms and hosting limits allow | Review required |
 | Chat history | Session-memory only; clear on reload or explicit reset | Proposed |
 | Citation targets | Existing article section anchors first; precise subsection anchors later | Proposed |
-| Feature rollout | Retrieval-only page is available; generation remains deferred until its gates pass | Implemented for retrieval |
+| Feature rollout | Page is always available; optional large-model download requires remembered consent | Implemented without feature flags; release-quality gates remain open |
 
 Foundry Local is not required. Its JavaScript SDK is a native Node.js binding and explicitly excludes browser support. WebLLM runs in the browser through WebGPU. Modern Transformers.js also supports browser generation, but the existing repository bundle is `@xenova/transformers` 2.17.2 and must not be assumed to support modern generation examples unchanged.
 
@@ -232,7 +250,7 @@ Use deterministic identities scoped to an article and logical section/heading pa
 - `CommonComponents/wwwroot/js/learning-chat.js` and `CommonComponents/wwwroot/js/chat/retrieval-worker.js`.
 - `Web/wwwroot/lib/chat/...` for the separately bundled runtime and its required assets.
 
-The retrieval-only corpus currently stores compact passage excerpts and vectors. Parent assets, a generation model manifest, and generation runtime assets are deferred.
+The corpus currently stores compact passage excerpts and vectors. Separate parent assets remain deferred; bounded adjacent child excerpts provide the implemented context expansion. Immutable generation model/library records live in `CommonComponents/wwwroot/js/chat/generation-contract.js`, and WebLLM is bundled into shared static assets.
 
 The exact split between lightweight chunk metadata and parent text will be measured. Do not duplicate full parent text in every child. Flat vector scanning is the initial approach; introduce approximate indexing only if corpus measurements justify it.
 

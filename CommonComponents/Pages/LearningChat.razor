@@ -78,9 +78,30 @@
             </div>
             <span class="[ inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200 ]">
                 <span class="[ h-2 w-2 rounded-full bg-amber-500 ]" aria-hidden="true"></span>
-                Article retrieval · no generated answers
+                @(generationReady ? "Local AI · verified article excerpts" : "Browser-local article search")
             </span>
         </header>
+
+        <aside class="[ rounded-2xl border border-indigo-200 bg-indigo-50 p-4 text-sm text-indigo-950 dark:border-indigo-400/30 dark:bg-indigo-400/10 dark:text-indigo-100 ]" aria-label="Local answer model">
+            <p class="[ text-indigo-950 dark:text-indigo-100 ]">@generationStatus</p>
+            @if (generationLoading)
+            {
+                <progress max="1" value="@generationProgress" aria-label="Answer model loading progress"></progress>
+                <button type="button" class="[ ml-3 text-indigo-700 underline dark:text-indigo-200 ]" @onclick="UseSourcesOnlyAsync">Cancel model loading</button>
+            }
+            else if (generationSupported && !generationReady)
+            {
+                <button type="button" class="[ mt-2 mr-4 font-semibold text-indigo-700 underline dark:text-indigo-200 ]" @onclick="LoadGenerationAsync" disabled="@isSearching">Download local answer model</button>
+            }
+            @if (generationReady)
+            {
+                <button type="button" class="[ mt-2 mr-4 text-indigo-700 underline dark:text-indigo-200 ]" @onclick="UseSourcesOnlyAsync" disabled="@isSearching">Use sources only</button>
+            }
+            @if (generationSupported && !generationLoading)
+            {
+                <button type="button" class="[ mt-2 text-indigo-700 underline dark:text-indigo-200 ]" @onclick="ClearGenerationCacheAsync" disabled="@isSearching">Clear answer model cache</button>
+            }
+        </aside>
 
         <section class="[ flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-3xl border border-stone-200 bg-white shadow-sm dark:border-stone-800 dark:bg-stone-900 ]" aria-label="Learning chat">
             <div @ref="conversation" class="[ flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overscroll-y-contain ]" aria-live="polite" tabindex="0" role="region" aria-label="Conversation">
@@ -101,7 +122,7 @@
 
                         <div class="[ mt-6 max-w-2xl rounded-2xl border border-indigo-200 bg-indigo-50 p-4 text-left text-sm leading-6 text-indigo-950 dark:border-indigo-400/30 dark:bg-indigo-400/10 dark:text-indigo-100 ]">
                             <h3 class="[ font-semibold ]">Browser-local article search</h3>
-                            <p class="[ mt-1 ]">Your question is embedded and matched in this browser. Opening this page automatically loads the article index and pinned embedding model, downloading from Hugging Face when it is not cached. No question or conversation is sent to an inference service. This preview retrieves sources only and does not generate answers.</p>
+                            <p class="[ mt-1 ]">Your question is embedded and matched in this browser. Opening this page automatically loads the article index and pinned embedding model, downloading from Hugging Face when it is not cached. No question or conversation is sent to an inference service. Optional WebGPU answers select original article sentences with verified references; source-only search remains available without the answer model.</p>
                             @if (!retrievalReady && !isLoading && (!string.IsNullOrWhiteSpace(errorMessage) || loadingCancelled))
                             {
                                 <button type="button"
@@ -139,8 +160,31 @@
                         @foreach (var message in messages)
                         {
                             <article class="@(message.IsUser ? "[ ml-auto max-w-2xl rounded-2xl rounded-br-md bg-indigo-700 px-5 py-4 text-white dark:bg-indigo-500 ]" : "[ mr-auto max-w-2xl rounded-2xl rounded-bl-md border border-stone-200 bg-stone-50 px-5 py-4 text-stone-800 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-100 ]")">
-                                <p class="[ mb-1 text-xs font-semibold opacity-75 ]">@(message.IsUser ? "You" : "Article search")</p>
-                                <p class="[ whitespace-pre-wrap text-sm leading-6 ]">@message.Text</p>
+                                <p class="[ mb-1 text-xs font-semibold opacity-75 ]">@(message.IsUser ? "You" : message.IsStreaming ? "Local AI · provisional draft" : message.IsGenerated ? "Local AI · verified article excerpts" : "Article search")</p>
+                                <p class="[ whitespace-pre-wrap text-sm leading-6 ]" aria-live="@(message.IsStreaming ? "off" : null)">
+                                    @if (message.IsGenerated)
+                                    {
+                                        @foreach (var part in AnswerParts(message))
+                                        {
+                                            @if (part.Source is not null)
+                                            {
+                                                <a href="@SourceUrl(part.Source)" class="[ text-indigo-700 underline dark:text-indigo-300 ]" title="@part.Source.Heading">@part.Text</a>
+                                            }
+                                            else
+                                            {
+                                                @part.Text
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        @message.Text
+                                    }
+                                </p>
+                                @if (message.IsGenerated)
+                                {
+                                    <p class="[ mt-2 text-xs opacity-75 ]">AI-selected verbatim excerpts. Text and reference IDs are checked against the retrieved passages; check whether the selected sentences fully answer your question.</p>
+                                }
                                 @if (message.Sources.Count > 0)
                                 {
                                     <ol class="[ mt-4 space-y-3 ]" aria-label="Retrieved article sources">

@@ -27,11 +27,26 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ChatBundleInput Include="$(MSBuildThisFileDirectory)..\ChatBundle\src\**\*" />
+    <ChatBundleInput Include="$(MSBuildThisFileDirectory)..\ChatBundle\package.json;$(MSBuildThisFileDirectory)..\ChatBundle\package-lock.json" />
     <TransformersBundleInput Include="$(TransformersBundleDirectory)src\**\*" />
     <TransformersBundleInput Include="$(TransformersBundleDirectory)package.json" />
     <TransformersBundleInput Include="$(TransformersBundleDirectory)package-lock.json" />
     <TransformersBundleInput Include="$(ThirdPartyNoticesSource)" />
   </ItemGroup>
+
+  <Target Name="BuildChatBundle" BeforeTargets="ResolveProjectStaticWebAssets"
+          Inputs="@(ChatBundleInput)" Outputs="wwwroot\lib\webllm\webllm.js">
+    <Exec Command="npm ci --include=dev --ignore-scripts" WorkingDirectory="$(MSBuildThisFileDirectory)..\ChatBundle"
+          Condition="!Exists('$(MSBuildThisFileDirectory)..\ChatBundle\node_modules\@mlc-ai\web-llm') OR !Exists('$(MSBuildThisFileDirectory)..\ChatBundle\node_modules\esbuild')" />
+    <Exec Command="npm run build" WorkingDirectory="$(MSBuildThisFileDirectory)..\ChatBundle" />
+    <MakeDir Directories="wwwroot\lib\webllm" />
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)..\ChatBundle\dist\webllm.js" DestinationFiles="wwwroot\lib\webllm\webllm.js" />
+    <ItemGroup>
+      <Content Remove="wwwroot\lib\webllm\webllm.js" />
+      <Content Include="wwwroot\lib\webllm\webllm.js" />
+    </ItemGroup>
+  </Target>
 
   <Target Name="BuildTransformersBundle" BeforeTargets="ResolveProjectStaticWebAssets" Inputs="@(TransformersBundleInput)" Outputs="$(TransformersBundleOutput);$(ThirdPartyNoticesOutput)">
     <Exec Command="npm ci --include=dev" WorkingDirectory="$(TransformersBundleDirectory)" Condition="!Exists('$(TransformersBundleDirectory)node_modules\@xenova\transformers') OR !Exists('$(TransformersBundleDirectory)node_modules\esbuild')" />
