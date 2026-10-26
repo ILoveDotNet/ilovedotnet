@@ -9,7 +9,7 @@
 
 Corpus generation includes only published `/blogs/...` articles, excluding talks and other routes to match the retrieval worker's source URL validation.
 
-Retrieval ranks the latest question independently of earlier named topics. Pronoun-only follow-ups use the latest prior question for topic matching. Keyword matching ignores question filler words and normalizes common inflections (for example, `sweeping` and `sweep`). When relevant passages name the requested concept, passages without matching evidence in their heading or excerpt are excluded, even if their embeddings are similar. Heading/body matches and introductory definition passages are prioritized; the six-result limit is a maximum, not a quota.
+Retrieval ranks the latest question independently of earlier named topics. Pronoun-only follow-ups use the latest prior question for topic matching. Keyword matching ignores question filler words, normalizes common inflections (for example, `sweeping` and `sweep`), and weights terms by corpus frequency. Keyword-assisted matches require at least 50% weighted heading/body topic coverage and 0.3 cosine similarity; semantic-only matches require 0.6 cosine similarity. Focused headings and substantive definitions are prioritized over article-introduction boilerplate. Up to three adjacent child passages from the same parent/heading are combined in source order, keeping prose and code together within a 768 embedding-token upper bound per source. The six-result limit is a maximum, not a quota.
 
 The preview scrolls to the latest reply after sending. Enter sends a question, Shift+Enter inserts a new line, and input-method composition does not submit a question.
 
@@ -487,6 +487,23 @@ Test:
 - MAUI-shared layout does not require web chat services or display its link by default.
 
 ### 15.4 Real-model evaluation
+
+The retrieval-only evaluation is implemented in `ILoveDotNet.DistributedTest/LearningChatEvaluationTests.cs`, with 50 authored questions in `TestData/learning-chat-retrieval.json`: 40 development cases and 10 holdout cases added after tuning. Cases cover definitions, motivation, implementation/code, comparisons, paraphrases, follow-ups/topic changes, unsupported subjects, and fabricated APIs. Each supported case checks approved article/heading references and required fact fragments, not just title similarity. The test verifies those expectations exist in the published corpus before running.
+
+This is an explicit xUnit test so ordinary CI does not unexpectedly download a model. It uses the actual browser worker, published corpus/vectors, pinned Transformers.js embedding model, and real inference; neither vectors nor the embedding pipeline are stubbed. Run after building Web:
+
+```bash
+dotnet build Web/Web.csproj
+dotnet test --project ILoveDotNet.DistributedTest/ILoveDotNet.DistributedTest.csproj --filter-class '*LearningChatEvaluationTests' --explicit on
+```
+
+If an existing Aspire instance occupies its configured service ports, set `ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL=https://127.0.0.1:0` and `ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL=https://127.0.0.1:0` for the test process. No production feature flag is involved.
+
+The test writes `TestResults/learning-chat-evaluation.json` below the test output directory, including model/corpus versions, evaluation/worker SHA-256 hashes, browser version, per-question source excerpts, first-result checks, elapsed times, and failures. It enforces at least 90% supporting-evidence recall, at least 90% unsupported-question abstention, and the explicit definition/sweep first-result checks.
+
+Measured on macOS arm64 / Chromium 153.0.8010.12 with corpus `cfbc6e001e208424be9a3acfd1de2fa79687ad535fedc55793843271c4f6bdb1`: 42/42 supported questions contained the required evidence and 8/8 unsupported questions returned no sources; the holdout subset passed 10/10 on its first run. The initial 40-case baseline was 29/34 supported and 3/6 unsupported after correcting three oracle issues (equivalent SRP article, `copies` wording, and `RequireAuthorization` versus policy-definition API). Query median/p95 were approximately 44/49 ms after model initialization, not cold-start/download measurements.
+
+These are development-set/limited-holdout retrieval measurements, not answer correctness or a release sign-off. The questions/fact fragments still need independent human review, more unseen paraphrases and unsupported topics, precision review of every returned passage, and browser/device/startup measurements. Reusing the holdout for future tuning makes it a regression set, not a fresh holdout. Generation remains unimplemented.
 
 Create at least 40 reviewed questions spanning definition, motivation, implementation, code explanation, comparison, follow-up, unsupported topics, and adversarial citation requests. Store expected article/section references and required supporting facts; avoid brittle exact-answer strings.
 

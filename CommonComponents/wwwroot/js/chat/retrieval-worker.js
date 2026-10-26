@@ -10,7 +10,8 @@ const stopWords = new Set([
     "explain", "for", "from", "how", "i", "in", "is", "it", "its", "me", "of", "on",
     "or", "please", "should", "that", "the", "their", "them", "these", "they", "this",
     "those", "to", "was", "were", "what", "when", "where", "which", "why", "will",
-    "with", "would", "you",
+    "with", "would", "you", "work", "works", "show", "article", "explaining", "not",
+    "invent", "source", "using", "use", "about",
 ]);
 let searchIndex;
 let extractorPromise;
@@ -129,7 +130,18 @@ async function loadCorpus() {
         throw new Error("The article search vectors contain invalid values.");
     }
 
-    return { passages, vectors };
+    const documents = passages.map(passage => ({
+        title: meaningfulTerms(passage.title),
+        heading: meaningfulTerms(passage.heading),
+        excerpt: meaningfulTerms(passage.excerpt),
+    }));
+    const frequencies = new Map();
+    for (const document of documents) {
+        for (const term of new Set([...document.title, ...document.heading, ...document.excerpt])) {
+            frequencies.set(term, (frequencies.get(term) ?? 0) + 1);
+        }
+    }
+    return { passages, vectors, documents, frequencies };
 }
 
 function isValidPassage(passage) {
@@ -181,6 +193,10 @@ async function search(question, maximumResults, context) {
     }
 
     const definitionQuestion = /^\s*(what\s+(is|are)|define|explain)\b/i.test(question);
+    const implementationQuestion = /^\s*how\b/i.test(question);
+    const weights = new Map(Array.from(queryTerms, term => [
+        term, Math.log(1 + searchIndex.passages.length / (searchIndex.frequencies.get(term) ?? 1)),
+    ]));
     const ranked = searchIndex.passages
         .map((passage, row) => {
             const offset = row * dimensions;
@@ -189,44 +205,60 @@ async function search(question, maximumResults, context) {
                 semantic += output.data[dimension] * searchIndex.vectors[offset + dimension];
             }
 
-            const headingMatch = termCoverage(queryTerms, passage.heading);
-            const excerptMatch = termCoverage(queryTerms, passage.excerpt);
-            const titleMatch = termCoverage(queryTerms, passage.title);
-            const topicMatch = termCoverage(queryTerms, `${passage.heading} ${passage.excerpt} ${passage.title}`);
-            const definitionBoost = definitionQuestion && excerptMatch === 1 && passage.section === "What" ? 0.15 : 0;
+            const document = searchIndex.documents[row];
+            const headingMatch = termCoverage(weights, document.heading);
+            const excerptMatch = termCoverage(weights, document.excerpt);
+            const titleMatch = termCoverage(weights, document.title);
+            const topicMatch = termCoverage(weights, new Set([...document.heading, ...document.excerpt]));
+            const definitionBoost = definitionQuestion && headingMatch >= 0.8
+                ? 0.2 * queryTerms.size / Math.max(queryTerms.size, document.heading.size)
+                : 0;
+            const introductoryDefinitionBoost = definitionQuestion && passage.section === "What" && excerptMatch >= 0.8 ? 0.2 : 0;
+            const implementationBoost = implementationQuestion && passage.section === "How" ? 0.15 : 0;
+            const introductionPenalty = /^\s*(in this (article|blog|post)|this article covers)/i.test(passage.excerpt) ? 0.25 : 0;
             return {
                 passage,
                 semantic,
                 topicMatch,
-                evidenceMatch: Math.max(headingMatch, excerptMatch),
-                score: semantic * 0.5 + headingMatch * 0.45 + excerptMatch * 0.35 + titleMatch * 0.1 + definitionBoost,
+                score: semantic * 0.6 + headingMatch * 0.4 + excerptMatch * 0.4
+                    + titleMatch * 0.1 + definitionBoost + introductoryDefinitionBoost + implementationBoost - introductionPenalty,
             };
         })
         .filter(result => result.semantic >= minimumSimilarity);
 
-    // When the corpus names the requested concept, unrelated semantic neighbours are not evidence.
-    const hasTopicMatches = ranked.some(result => result.evidenceMatch > 0);
+    // Require meaningful topic coverage; semantic-only matches need stronger evidence than keyword-assisted ones.
+    const hasTopicMatches = ranked.some(result => result.topicMatch >= 0.5);
     const relevant = ranked
-        .filter(result => !hasTopicMatches || result.evidenceMatch > 0)
-        .sort((left, right) => hasTopicMatches
-            ? right.topicMatch - left.topicMatch || right.score - left.score
-            : right.score - left.score);
+        .filter(result => queryTerms.size === 0
+            ? result.semantic >= 0.5
+            : hasTopicMatches ? result.topicMatch >= 0.5 : result.semantic >= 0.6)
+        .sort((left, right) => right.score - left.score);
 
     const articleCounts = new Map();
+    const selectedHeadings = new Set();
     const selected = [];
     for (const result of relevant) {
+        const parentId = result.passage.id.slice(0, result.passage.id.lastIndexOf(":"));
+        const headingKey = JSON.stringify([parentId, result.passage.slug, result.passage.section, result.passage.heading]);
         const count = articleCounts.get(result.passage.slug) ?? 0;
-        if (count >= 3) {
+        if (count >= 3 || selectedHeadings.has(headingKey)) {
             continue;
         }
 
+        selectedHeadings.add(headingKey);
         articleCounts.set(result.passage.slug, count + 1);
+        // Keep adjacent prose/code from the same heading together, bounded to three child chunks.
+        const siblings = searchIndex.passages.filter(passage => passage.slug === result.passage.slug
+            && passage.section === result.passage.section && passage.heading === result.passage.heading
+            && passage.id.slice(0, passage.id.lastIndexOf(":")) === parentId);
+        const siblingIndex = siblings.indexOf(result.passage);
+        const start = Math.max(0, siblingIndex - 1);
         selected.push({
             title: result.passage.title,
             section: result.passage.section,
             heading: result.passage.heading,
             contentUrl: result.passage.contentUrl,
-            excerpt: result.passage.excerpt,
+            excerpt: siblings.slice(start, start + 3).map(passage => passage.excerpt).join("\n\n"),
         });
         if (selected.length >= maximumResults) {
             break;
@@ -237,7 +269,7 @@ async function search(question, maximumResults, context) {
 }
 
 function meaningfulTerms(text) {
-    return new Set((text.toLowerCase().match(/[a-z_][a-z0-9_]*/g) ?? [])
+    return new Set((text.toLowerCase().replace(/\bweb\s+assembly\b/g, "webassembly").match(/[a-z_][a-z0-9_]*/g) ?? [])
         .filter(term => !stopWords.has(term))
         .map(term => {
             if (term.length > 5 && term.endsWith("ing")) {
@@ -247,16 +279,26 @@ function meaningfulTerms(text) {
             } else if (term.length > 4 && term.endsWith("s") && !term.endsWith("ss")) {
                 term = term.slice(0, -1);
             }
+            if (term.length > 6 && term.endsWith("tion")) {
+                term = term.slice(0, -3);
+            }
             return term.length > 4 && term.endsWith("e") ? term.slice(0, -1) : term;
         }));
 }
 
-function termCoverage(queryTerms, text) {
-    if (queryTerms.size === 0) {
+function termCoverage(weights, terms) {
+    if (weights.size === 0) {
         return 0;
     }
-    const terms = meaningfulTerms(text);
-    return Array.from(queryTerms).filter(term => terms.has(term)).length / queryTerms.size;
+    let matched = 0;
+    let total = 0;
+    for (const [term, weight] of weights) {
+        total += weight;
+        if (terms.has(term)) {
+            matched += weight;
+        }
+    }
+    return matched / total;
 }
 
 async function sha256(buffer) {
