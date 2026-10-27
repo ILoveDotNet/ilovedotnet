@@ -61,7 +61,7 @@
 </HeadContent>
 
 <section aria-labelledby="learning-chat-title" class="[ h-[calc(100dvh-3.5rem)] overflow-hidden bg-stone-50 px-4 py-4 text-stone-900 dark:bg-stone-950 dark:text-stone-100 sm:px-6 md:py-6 max-md:[#main.pb-14_&]:h-[calc(100dvh-7rem)] ]">
-    <div class="[ mx-auto flex h-full min-h-0 w-full max-w-5xl flex-col gap-4 ]">
+    <div class="chat-workspace [ mx-auto flex h-full min-h-0 w-full max-w-7xl flex-col gap-4 ]">
         <header class="[ flex shrink-0 flex-wrap items-center justify-between gap-4 ]">
             <div class="[ flex items-center gap-3 ]">
                 <div class="[ flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-700 dark:bg-indigo-400/15 dark:text-indigo-300 ]" aria-hidden="true">
@@ -76,11 +76,53 @@
                     <p class="[ mt-0.5 text-sm text-stone-600 dark:text-stone-400 ]">Your .NET learning companion</p>
                 </div>
             </div>
-            <span class="[ inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200 ]">
+            <div class="[ flex items-center gap-3 ]">
+            <button type="button" class="history-toggle [ rounded-xl border border-stone-300 px-3 py-2 text-sm dark:border-stone-700 ]"
+                    aria-expanded="@historyOpen" aria-controls="chat-sidebar" @onclick="() => historyOpen = !historyOpen">Chats &amp; model</button>
+            <span class="chat-mode [ items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200 ]">
                 <span class="[ h-2 w-2 rounded-full bg-amber-500 ]" aria-hidden="true"></span>
                 @(generationReady ? "Local AI · article-grounded answers" : "Browser-local article search")
             </span>
+            </div>
         </header>
+
+        <div class="chat-columns">
+        <div id="chat-sidebar" class="chat-sidebar @(historyOpen ? "is-open" : "") [ rounded-2xl border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900 ]">
+            <button type="button" class="[ mb-5 w-full rounded-xl bg-indigo-700 px-4 py-3 text-left text-sm font-semibold text-white dark:bg-indigo-400 dark:text-stone-950 ]"
+                    @onclick="NewConversationAsync"><span aria-hidden="true">+ </span>New conversation</button>
+            <div class="[ flex items-center justify-between gap-2 ]">
+                <h2 class="[ text-sm font-semibold ]">Your conversations</h2>
+                <button type="button" class="history-toggle [ px-2 py-1 text-sm underline ]" @onclick="() => historyOpen = false">Close</button>
+            </div>
+            <p class="[ mt-2 text-xs leading-5 text-stone-600 dark:text-stone-400 ]">Saved on this device until you delete them. Anyone using this browser profile can read them.</p>
+            <nav aria-label="Chat history" class="[ mt-4 flex flex-col gap-2 ]">
+                @if (conversations.Count == 0)
+                {
+                    <p class="[ py-4 text-sm text-stone-500 dark:text-stone-400 ]">Your chats will appear here.</p>
+                }
+                @foreach (var chat in conversations)
+                {
+                    <div @key="chat.Id" class="[ flex min-w-0 items-center gap-1 rounded-xl border border-stone-200 dark:border-stone-700 ]">
+                        <button type="button" class="[ min-w-0 flex-1 truncate rounded-xl px-3 py-3 text-left text-sm hover:bg-indigo-50 dark:hover:bg-stone-800 ]"
+                                title="@chat.Title" aria-current="@(activeConversationId == chat.Id ? "page" : null)" disabled="@isSearching"
+                                @onclick="() => SelectConversationAsync(chat.Id)">@chat.Title</button>
+                        <button type="button" class="[ shrink-0 px-2 py-3 text-xs text-stone-600 underline dark:text-stone-300 ]"
+                                aria-label="@($"Delete chat: {chat.Title}")" disabled="@isSearching" @onclick="() => DeleteConversationAsync(chat.Id)">Delete</button>
+                    </div>
+                }
+            </nav>
+            <div class="[ my-4 text-xs ]">
+                @if (confirmClearHistory)
+                {
+                    <p>Delete all saved chats from this device? This cannot be undone.</p>
+                    <button type="button" class="[ mr-3 mt-2 font-semibold underline ]" disabled="@isSearching" @onclick="ClearHistoryAsync">Confirm delete all</button>
+                    <button type="button" class="[ underline ]" @onclick="() => confirmClearHistory = false">Cancel</button>
+                }
+                else
+                {
+                    <button type="button" class="[ underline ]" disabled="@isSearching" @onclick="() => confirmClearHistory = true">Delete all saved chats</button>
+                }
+            </div>
 
         <aside class="[ rounded-2xl border border-indigo-200 bg-indigo-50 p-4 text-sm text-indigo-950 dark:border-indigo-400/30 dark:bg-indigo-400/10 dark:text-indigo-100 ]" aria-label="Local answer model">
             <p class="[ text-indigo-950 dark:text-indigo-100 ]">@generationStatus</p>
@@ -103,9 +145,10 @@
                 <button type="button" class="[ mt-2 text-indigo-700 underline dark:text-indigo-200 ]" @onclick="ClearGenerationCacheAsync" disabled="@isSearching">Clear answer model cache</button>
             }
         </aside>
+        </div>
 
         <section class="[ flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-3xl border border-stone-200 bg-white shadow-sm dark:border-stone-800 dark:bg-stone-900 ]" aria-label="Learning chat">
-            <div @ref="conversation" class="[ flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overscroll-y-contain ]" aria-live="polite" tabindex="0" role="region" aria-label="Conversation">
+            <div class="manual-scroll [ flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overscroll-y-contain ]" aria-live="polite" tabindex="0" role="region" aria-label="Conversation">
                 @if (messages.Count == 0)
                 {
                     <div class="[ flex flex-1 shrink-0 flex-col items-center justify-center px-5 py-10 text-center sm:px-10 ]">
@@ -157,7 +200,7 @@
                 }
                 else
                 {
-                    <div class="[ flex shrink-0 flex-col gap-6 px-5 py-8 [overflow-wrap:anywhere] sm:px-8 ]">
+                    <div class="[ mx-auto flex w-full max-w-4xl shrink-0 flex-col gap-6 px-5 py-8 [overflow-wrap:anywhere] sm:px-8 ]">
                         @foreach (var message in messages)
                         {
                             <article class="@(message.IsUser ? "[ ml-auto max-w-2xl rounded-2xl rounded-br-md bg-indigo-700 px-5 py-4 text-white dark:bg-indigo-500 ]" : "[ mr-auto max-w-2xl rounded-2xl rounded-bl-md border border-stone-200 bg-stone-50 px-5 py-4 text-stone-800 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-100 ]")">
@@ -198,7 +241,10 @@
                                             <li class="[ rounded-xl border border-stone-200 bg-white p-4 dark:border-stone-700 dark:bg-stone-900 ]">
                                                 <a href="@SourceUrl(source)" class="[ font-semibold text-indigo-700 underline dark:text-indigo-300 ]">@source.Title</a>
                                                 <p class="[ mt-1 text-xs font-medium text-stone-600 dark:text-stone-400 ]">@source.Section · @source.Heading</p>
-                                                <blockquote class="[ mt-2 border-l-2 border-indigo-300 pl-3 text-sm leading-6 text-stone-700 dark:border-indigo-400 dark:text-stone-300 ]">@source.Excerpt</blockquote>
+                                                <details class="[ mt-2 text-sm ]">
+                                                    <summary class="[ cursor-pointer font-medium text-stone-700 dark:text-stone-300 ]">Read passage</summary>
+                                                    <blockquote class="[ mt-2 border-l-2 border-indigo-300 pl-3 leading-6 text-stone-700 dark:border-indigo-400 dark:text-stone-300 ]">@source.Excerpt</blockquote>
+                                                </details>
                                             </li>
                                         }
                                     </ol>
@@ -240,7 +286,6 @@
                     </div>
                     <div class="[ mt-2 flex flex-wrap items-center justify-between gap-2 px-1 text-xs text-stone-500 dark:text-stone-400 ]">
                         <p role="status" aria-live="polite">@statusMessage</p>
-                        <button type="button" class="[ underline ]" @onclick="NewConversationAsync" disabled="@(messages.Count == 0)">New conversation</button>
                         <span>@draft.Length / 1000</span>
                     </div>
                     @if (!string.IsNullOrWhiteSpace(errorMessage))
@@ -248,9 +293,14 @@
                         <p class="[ mt-2 px-1 text-sm text-red-700 dark:text-red-300 ]" role="alert">@errorMessage</p>
                         <button type="button" class="[ mt-1 px-1 text-left text-sm font-semibold underline ]" @onclick="RetryLastQuestionAsync">Retry last question</button>
                     }
+                    @if (!string.IsNullOrWhiteSpace(historyError))
+                    {
+                        <p class="[ mt-2 px-1 text-sm text-red-700 dark:text-red-300 ]" role="alert">@historyError</p>
+                    }
                     <p id="chat-keyboard-hint" class="[ mt-2 px-1 text-xs text-stone-500 dark:text-stone-400 ]">Enter to search · Shift+Enter for a new line. Verify technical details in the linked articles.</p>
                 </form>
             </div>
         </section>
+        </div>
     </div>
 </section>

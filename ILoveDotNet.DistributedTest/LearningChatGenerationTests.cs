@@ -16,6 +16,7 @@ public class LearningChatGenerationTests(AppFixture fixture) : PageTest
   [InlineData("skipped")]
   [InlineData("error")]
   [InlineData("html")]
+  [InlineData("manual")]
   public async Task StreamedAnswersAreValidatedOrReplacedWithSourcesAsync(string mode)
   {
     await StubSearchAsync(mode == "skipped");
@@ -49,7 +50,8 @@ public class LearningChatGenerationTests(AppFixture fixture) : PageTest
                   finish_reason:'{{{{(mode == "truncated" ? "length" : "stop")}}}}'}]};
                 return;
               }
-              yield {choices:[{delta:{content:'<think>\n\n</think>\nSweeping reclaims unreachable objects. '}}]};
+              yield {choices:[{delta:{content:'<think>\n\n</think>\nSweeping reclaims unreachable objects. '
+                + ('{{{{mode}}}}' === 'manual' ? 'It releases dead memory. '.repeat(20) : '')}}]};
               await new Promise(resolve=>setTimeout(resolve, {{{{(mode == "slow" ? 60000 : 1500)}}}}));
               yield {choices:[{delta:{content:'{{{{(mode == "changed" ? "This is naturally paraphrased. " : mode == "html" ? "<script>alert(1)</script> " : "")}}}}[{{{{(mode == "invalid" ? 9 : mode == "skipped" ? 2 : 1)}}}}]'},finish_reason:'stop'}]};
             }}}
@@ -66,12 +68,19 @@ public class LearningChatGenerationTests(AppFixture fixture) : PageTest
     var modelPanel = Page.GetByRole(AriaRole.Complementary, new() { Name = "Local answer model" });
     await Expect(modelPanel).ToContainTextAsync("Local answers ready");
     await Expect(modelPanel).ToContainTextAsync("Active model: Qwen3-4B-q4f16_1-MLC");
+    if (mode == "manual") await Page.SetViewportSizeAsync(390, 844);
     await Page.GetByRole(AriaRole.Textbox).FillAsync(mode == "refused" || mode == "truncated"
       ? "what is garbage collection" : "What is sweeping?");
     await Page.GetByRole(AriaRole.Button, new() { Name = "Send question" }).ClickAsync();
     if (mode != "refused" && mode != "truncated" && mode != "error")
     {
       await Expect(Page.Locator("article p").Filter(new() { HasText = "Sweeping reclaims unreachable objects." })).ToBeVisibleAsync();
+      if (mode == "manual")
+      {
+        var region = Page.GetByRole(AriaRole.Region, new() { Name = "Conversation", Exact = true });
+        Assert.True(await region.EvaluateAsync<bool>("element => element.scrollHeight > element.clientHeight"));
+        Assert.Equal(0, await region.EvaluateAsync<double>("element => element.scrollTop"));
+      }
     }
     if (mode == "slow")
     {
@@ -82,12 +91,18 @@ public class LearningChatGenerationTests(AppFixture fixture) : PageTest
     {
       await Expect(Page.GetByRole(AriaRole.Status)).ToHaveTextAsync("Search complete.");
     }
-    if (mode == "valid" || mode == "skipped" || mode == "changed")
+    if (mode == "valid" || mode == "skipped" || mode == "changed" || mode == "manual")
     {
       await Expect(Page.GetByRole(AriaRole.Link, new() { Name = mode == "skipped" ? "[2]" : "[1]", Exact = true }))
         .ToHaveAttributeAsync("href", new System.Text.RegularExpressions.Regex(@"/blogs/gc/#how$"));
       await Expect(Page.GetByText("AI-generated explanation.", new() { Exact = false })).ToBeVisibleAsync();
       await Expect(Page.Locator("script").Filter(new() { HasText = "alert(1)" })).ToHaveCountAsync(0);
+      if (mode == "manual")
+      {
+        Assert.Equal(0, await Page.GetByRole(AriaRole.Region, new() { Name = "Conversation", Exact = true })
+          .EvaluateAsync<double>("element => element.scrollTop"));
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Chats & model", Exact = true }).ClickAsync();
+      }
     }
     else
     {
@@ -118,6 +133,11 @@ public class LearningChatGenerationTests(AppFixture fixture) : PageTest
       await Page.ReloadAsync();
       await Expect(modelPanel).ToContainTextAsync("Local answers ready");
       await Expect(modelPanel).ToContainTextAsync("Active model: Qwen3-4B-q4f16_1-MLC");
+      await Page.GetByRole(AriaRole.Navigation, new() { Name = "Chat history" })
+        .GetByRole(AriaRole.Button, new() { Name = "What is sweeping?", Exact = true }).ClickAsync();
+      await Expect(Page.GetByRole(AriaRole.Link, new() { Name = "[1]", Exact = true }))
+        .ToHaveAttributeAsync("href", new System.Text.RegularExpressions.Regex(@"/blogs/gc/#how$"));
+      await Expect(Page.GetByText("AI-generated explanation.", new() { Exact = false })).ToBeVisibleAsync();
       await Page.GetByRole(AriaRole.Button, new() { Name = "Clear answer model cache" }).ClickAsync();
       await Expect(modelPanel).ToContainTextAsync("Answer model cache cleared");
       await Expect(modelPanel).Not.ToContainTextAsync("Active model:");
@@ -285,7 +305,96 @@ public class LearningChatGenerationTests(AppFixture fixture) : PageTest
     Assert.Empty(errors);
   }
 
-  private Task StubSearchAsync(bool leadingList = false, string contentUrl = "blogs/gc/")
+  [Fact]
+  public async Task HistoryPersistsAcrossReloadAndSupportsSwitchingDeletionAndMobileManualScrollingAsync()
+  {
+    await StubSearchAsync(excerpt: string.Concat(Enumerable.Repeat("Sweeping reclaims unreachable objects. ", 150)));
+    await Context.AddInitScriptAsync("Object.defineProperty(navigator, 'gpu', {value: undefined});");
+    await Page.SetViewportSizeAsync(1280, 800);
+    await SeoTestHelpers.GotoSuccessfulPageAsync(Page, fixture.App.GetEndpoint("ILoveDotNet-Web", "https"), "chat/");
+    await Expect(Page.GetByRole(AriaRole.Status)).ToContainTextAsync("Local article search is ready");
+    await Page.GetByRole(AriaRole.Textbox).FillAsync("What is sweeping?");
+    await Page.GetByRole(AriaRole.Button, new() { Name = "Send question" }).ClickAsync();
+    await Expect(Page.GetByRole(AriaRole.Status)).ToHaveTextAsync("Search complete.");
+    await Page.GetByText("Read passage", new() { Exact = true }).ClickAsync();
+    var region = Page.GetByRole(AriaRole.Region, new() { Name = "Conversation", Exact = true });
+    await region.EvaluateAsync("element => element.scrollTop = 40");
+    var position = await region.EvaluateAsync<double>("element => element.scrollTop");
+    Assert.True(position > 0);
+    await Page.GetByRole(AriaRole.Textbox).FillAsync("How does sweeping reclaim memory?");
+    await Page.GetByRole(AriaRole.Button, new() { Name = "Send question" }).ClickAsync();
+    await Expect(Page.GetByRole(AriaRole.Status)).ToHaveTextAsync("Search complete.");
+    Assert.Equal(position, await region.EvaluateAsync<double>("element => element.scrollTop"));
+    var history = Page.GetByRole(AriaRole.Navigation, new() { Name = "Chat history" });
+    await Expect(history.GetByRole(AriaRole.Button, new() { Name = "What is sweeping?", Exact = true })).ToHaveCountAsync(1);
+    await Page.GetByRole(AriaRole.Button, new() { Name = "New conversation", Exact = true }).ClickAsync();
+    await Expect(region.Locator("article")).ToHaveCountAsync(0);
+    await Page.GetByRole(AriaRole.Textbox).FillAsync("Explain garbage collection");
+    await Page.GetByRole(AriaRole.Button, new() { Name = "Send question" }).ClickAsync();
+    await Expect(Page.GetByRole(AriaRole.Status)).ToHaveTextAsync("Search complete.");
+    await Page.ReloadAsync();
+    await Expect(Page.GetByRole(AriaRole.Status)).ToContainTextAsync("Local article search is ready");
+    await Expect(region.Locator("article")).ToHaveCountAsync(2);
+    await history.GetByRole(AriaRole.Button, new() { Name = "What is sweeping?", Exact = true }).ClickAsync();
+    await Expect(region.Locator("article")).ToHaveCountAsync(4);
+    await Expect(Page.GetByRole(AriaRole.List, new() { Name = "Retrieved article sources" }).First.GetByRole(AriaRole.Link))
+      .ToHaveAttributeAsync("href", new System.Text.RegularExpressions.Regex(@"/blogs/gc/#how$"));
+    await Page.GetByRole(AriaRole.Button, new() { Name = "Delete chat: Explain garbage collection", Exact = true }).ClickAsync();
+    await Page.ReloadAsync();
+    await Expect(Page.GetByRole(AriaRole.Status)).ToContainTextAsync("Local article search is ready");
+    await Expect(history.GetByRole(AriaRole.Button, new() { Name = "Explain garbage collection", Exact = true })).ToHaveCountAsync(0);
+    await Expect(region.Locator("article")).ToHaveCountAsync(4);
+    await Page.SetViewportSizeAsync(390, 844);
+    await Expect(history).Not.ToBeVisibleAsync();
+    await Page.GetByRole(AriaRole.Button, new() { Name = "Chats & model", Exact = true }).ClickAsync();
+    await Expect(history).ToBeVisibleAsync();
+    await Page.GetByRole(AriaRole.Button, new() { Name = "Delete all saved chats", Exact = true }).ClickAsync();
+    await Page.GetByRole(AriaRole.Button, new() { Name = "Confirm delete all", Exact = true }).ClickAsync();
+    await Expect(history.GetByRole(AriaRole.Button)).ToHaveCountAsync(0);
+    await Page.GetByRole(AriaRole.Button, new() { Name = "Close", Exact = true }).ClickAsync();
+    Assert.True(await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= innerWidth"));
+    var input = await Page.GetByRole(AriaRole.Textbox).BoundingBoxAsync();
+    Assert.NotNull(input);
+    Assert.True(input.Y + input.Height <= 844);
+    await Page.ReloadAsync();
+    await Expect(Page.GetByRole(AriaRole.Status)).ToContainTextAsync("Local article search is ready");
+    await Expect(region.Locator("article")).ToHaveCountAsync(0);
+  }
+
+  [Theory]
+  [InlineData(false)]
+  [InlineData(true)]
+  public async Task InvalidOrUnavailableHistoryIsReportedWithoutBreakingChatAsync(bool storageBlocked)
+  {
+    await StubSearchAsync();
+    await Context.AddInitScriptAsync(storageBlocked ? """
+      const originalSet = Storage.prototype.setItem;
+      Storage.prototype.setItem = function(key, value) {
+        if (key === 'ilovedotnet-learning-chat-history:v1') throw new Error('Storage quota exceeded');
+        return originalSet.call(this, key, value);
+      };
+      """ : """
+      localStorage.setItem('ilovedotnet-learning-chat-history:v1',JSON.stringify({
+        Version:1,ActiveId:null,Conversations:[{
+          Id:'00000000-0000-0000-0000-000000000001',Title:'Untrusted chat',
+          Messages:[{Text:'question',IsUser:true,IsGenerated:false,Sources:[{
+            Title:'Unsafe',Section:'How',Heading:'Unsafe',ContentUrl:'blogs/../../outside',Excerpt:'Unsafe'
+          }]}]
+        }]
+      }));
+      """);
+    await SeoTestHelpers.GotoSuccessfulPageAsync(Page, fixture.App.GetEndpoint("ILoveDotNet-Web", "https"), "chat/");
+    await Expect(Page.GetByRole(AriaRole.Status)).ToContainTextAsync("Local article search is ready");
+    if (!storageBlocked) await Expect(Page.GetByRole(AriaRole.Alert)).ToContainTextAsync("Saved chats could not be opened");
+    await Page.GetByRole(AriaRole.Textbox).FillAsync("What is sweeping?");
+    await Page.GetByRole(AriaRole.Button, new() { Name = "Send question" }).ClickAsync();
+    await Expect(Page.GetByRole(AriaRole.Status)).ToHaveTextAsync("Search complete.");
+    await Expect(Page.GetByRole(AriaRole.Alert)).ToContainTextAsync(storageBlocked ? "could not be saved on this device" : "will not be overwritten");
+    await Expect(Page.GetByRole(AriaRole.Link, new() { Name = "Unsafe", Exact = true })).ToHaveCountAsync(0);
+  }
+
+  private Task StubSearchAsync(bool leadingList = false, string contentUrl = "blogs/gc/",
+    string excerpt = "Sweeping reclaims unreachable objects. Garbage collection automatically reclaims unreachable managed objects.")
   {
     Page.Console += (_, message) => Console.WriteLine($"Browser {message.Type}: {message.Text}");
     Page.PageError += (_, error) => Console.WriteLine($"Browser error: {error}");
@@ -300,7 +409,7 @@ public class LearningChatGenerationTests(AppFixture fixture) : PageTest
         excerpt:'Use a value object when: values are interchangeable Examples: Money, DateRange'
         }] : []), {
         title:'Garbage Collection', heading:'Sweep', section:'How', contentUrl:{{System.Text.Json.JsonSerializer.Serialize(contentUrl)}},
-        excerpt:'Sweeping reclaims unreachable objects. Garbage collection automatically reclaims unreachable managed objects.'
+        excerpt:{{System.Text.Json.JsonSerializer.Serialize(excerpt)}}
         }]});
       };
       """

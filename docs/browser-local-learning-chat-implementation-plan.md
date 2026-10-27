@@ -152,6 +152,37 @@ button is proposed.
 
 ### Implementation details and validation
 
+- **Chat workspace update (user approved):** the left sidebar contains New
+  conversation, saved conversation titles, individual deletion and confirmed
+  delete-all, followed by model controls. The center contains the active chat
+  with a fixed composer and independently scrollable messages. On mobile,
+  "Chats & model" opens a collapsible sidebar. Source links remain visible;
+  long passage excerpts are expandable instead of filling the answer by default.
+- **Manual scrolling only:** sending a question, streaming deltas and final
+  answers no longer scroll the conversation. Native scroll anchoring is disabled
+  for the message region. Readers decide when to scroll.
+- **Persistence/privacy change explicitly requested by the user:** questions,
+  completed answers and source metadata are saved in this browser profile's
+  localStorage until deleted (subject to browser storage availability/clearing).
+  They survive navigation and refresh, but are not synced or sent to a server.
+  The sidebar warns that others using the profile can read them. New conversation
+  preserves previous chats; deleting chat history is separate from clearing
+  the model cache.
+- History uses a versioned source-generated JSON contract. Restored citations
+  are restricted to application-owned blog paths; malformed/incompatible history
+  is reported without silently overwriting it. Browser storage failures are
+  surfaced while search remains usable. Provisional drafts are not stored as
+  completed generated answers.
+- Workspace validation: **18 Node tests and 25 focused browser tests passed**.
+  Coverage includes source-only and generated history/citations across reload,
+  selecting/deleting conversations, confirmed delete-all, storage/quota failure,
+  invalid stored links, manual scrolling during streaming and after long
+  retrieval results, mobile sidebar/composer, existing chat lifecycle and header
+  search. Desktop light/dark and mobile layouts were visually inspected.
+  The pipeline's Release/GitHub Pages publish command completed successfully,
+  including prerendering and source-generated history serialization under trimming.
+  Layout CSS follows the existing shared `Styles/ilovedotnet.css` -> `app.min.css`
+  build path used by both Web and MAUI, rather than introducing a Web-only sheet.
 - Navigation cleanup retains the initialized input/conversation elements in
   JavaScript and releases their listeners without resolving a disposed Blazor
   `ElementReference`. Cleanup is repeat-safe and still stops the retrieval worker.
@@ -549,7 +580,7 @@ Implement a bounded retrieval-augmented generation (RAG) workflow, not an autono
 | Embedding model | Reuse pinned `Xenova/all-MiniLM-L6-v2`, 384 dimensions, maximum 256 input tokens | Proposed |
 | Retrieval strategy | Section-aware parent groups with token-bounded child chunks; lexical assistance for technical identifiers | Proposed |
 | Model asset hosting | Explicit, pinned asset URLs; prefer controlled hosting where distribution terms and hosting limits allow | Review required |
-| Chat history | Session-memory only; clear on reload or explicit reset | Proposed |
+| Chat history | Persist locally on this device until deleted; sidebar switches conversations | Implemented per explicit user preference; no server sync |
 | Citation targets | Existing article section anchors first; precise subsection anchors later | Proposed |
 | Feature rollout | Page is always available; optional large-model download requires remembered consent | Implemented without feature flags; release-quality gates remain open |
 

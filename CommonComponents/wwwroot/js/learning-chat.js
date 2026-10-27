@@ -1,13 +1,11 @@
 const keyHandlers = new Map();
-const conversationByInput = new WeakMap();
-const scrollHandlers = new WeakMap();
-const nearBottom = new WeakMap();
+const historyKey = "ilovedotnet-learning-chat-history:v1";
 const pending = new Map();
 let worker;
 let nextRequestId = 0;
 let applicationBaseUri;
 
-export function initialize(input, conversation) {
+export function initialize(input) {
     const handler = event => {
         if (event.key !== "Enter" || event.shiftKey || event.isComposing || event.keyCode === 229) {
             return;
@@ -21,20 +19,18 @@ export function initialize(input, conversation) {
 
     input.addEventListener("keydown", handler);
     keyHandlers.set(input, handler);
-    conversationByInput.set(input, conversation);
-    nearBottom.set(conversation, true);
-
-    const scrollHandler = () => {
-        nearBottom.set(conversation, conversation.scrollHeight - conversation.scrollTop - conversation.clientHeight <= 96);
-    };
-    conversation.addEventListener("scroll", scrollHandler, { passive: true });
-    scrollHandlers.set(conversation, scrollHandler);
 }
 
-export function scrollToLatest(conversation) {
-    if (nearBottom.get(conversation)) {
-        conversation.scrollTop = conversation.scrollHeight;
-    }
+export function loadHistory() {
+    return localStorage.getItem(historyKey);
+}
+
+export function saveHistory(json) {
+    localStorage.setItem(historyKey, json);
+}
+
+export function clearHistory() {
+    localStorage.removeItem(historyKey);
 }
 
 export async function enableRetrieval(baseUriValue) {
@@ -85,13 +81,6 @@ export function dispose() {
     // Blazor element references may already resolve to null during navigation.
     for (const [input, handler] of keyHandlers) {
         input.removeEventListener("keydown", handler);
-        const conversation = conversationByInput.get(input);
-        if (conversation) {
-            conversation.removeEventListener("scroll", scrollHandlers.get(conversation));
-            scrollHandlers.delete(conversation);
-            nearBottom.delete(conversation);
-            conversationByInput.delete(input);
-        }
     }
     keyHandlers.clear();
 

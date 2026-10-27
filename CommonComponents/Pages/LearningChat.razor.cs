@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Components;
+using CommonComponents.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.JSInterop;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
@@ -22,8 +24,13 @@ public class LearningChatBase : ComponentBase, IAsyncDisposable
   ];
 
   protected readonly List<ChatMessage> messages = [];
+  protected readonly List<LearningChatConversation> conversations = [];
+  protected Guid? activeConversationId;
+  protected bool historyOpen;
+  protected string historyError = string.Empty;
+  protected bool confirmClearHistory;
+  private bool historyAvailable;
   protected string draft = string.Empty;
-  protected ElementReference conversation;
   protected ElementReference questionInput;
   protected bool retrievalReady;
   protected bool isLoading;
@@ -41,7 +48,6 @@ public class LearningChatBase : ComponentBase, IAsyncDisposable
   private long generationOperation;
   private ChatMessage? streamingMessage;
   private IJSObjectReference? module;
-  private bool scrollToLatest;
   private bool disposed;
   protected bool loadingCancelled;
   private long activeRequest;
@@ -62,7 +68,9 @@ public class LearningChatBase : ComponentBase, IAsyncDisposable
       }
 
       module = importedModule;
-      await module.InvokeVoidAsync("initialize", questionInput, conversation);
+      await module.InvokeVoidAsync("initialize", questionInput);
+      await LoadHistoryAsync();
+      if (disposed) return;
       await InitializeRetrievalAsync();
       if (disposed)
       {
@@ -103,11 +111,6 @@ public class LearningChatBase : ComponentBase, IAsyncDisposable
       }
     }
 
-    if (!disposed && scrollToLatest && module is not null)
-    {
-      scrollToLatest = false;
-      await module.InvokeVoidAsync("scrollToLatest", conversation);
-    }
   }
 
   protected async Task LoadGenerationAsync()
@@ -164,7 +167,6 @@ public class LearningChatBase : ComponentBase, IAsyncDisposable
         else if (phase == "streaming" && streamingMessage is not null)
         {
           streamingMessage.Text = text;
-          scrollToLatest = true;
         }
         StateHasChanged();
       });
@@ -267,10 +269,11 @@ public class LearningChatBase : ComponentBase, IAsyncDisposable
     messages.Add(new ChatMessage(question, IsUser: true, []));
     draft = string.Empty;
     errorMessage = string.Empty;
-    scrollToLatest = true;
     isSearching = true;
     var request = ++activeRequest;
     statusMessage = "Searching article passages locally…";
+    await SaveHistoryAsync();
+    if (disposed || request != activeRequest) return;
 
     try
     {
@@ -345,7 +348,6 @@ public class LearningChatBase : ComponentBase, IAsyncDisposable
         return;
       }
       statusMessage = sources.Length == 0 ? "No strong article matches found." : "Search complete.";
-      scrollToLatest = true;
     }
     catch (JSException exception)
     {
@@ -360,6 +362,7 @@ public class LearningChatBase : ComponentBase, IAsyncDisposable
       if (request == activeRequest)
       {
         isSearching = false;
+        await SaveHistoryAsync();
       }
     }
   }
@@ -374,6 +377,7 @@ public class LearningChatBase : ComponentBase, IAsyncDisposable
     {
       await module.InvokeVoidAsync("stop");
     }
+    await SaveHistoryAsync();
   }
 
   protected async Task NewConversationAsync()
@@ -385,11 +389,150 @@ public class LearningChatBase : ComponentBase, IAsyncDisposable
 
     activeRequest++;
     isSearching = false;
+    await SaveHistoryAsync();
+    activeConversationId = null;
     messages.Clear();
+    draft = string.Empty;
+    historyOpen = false;
     errorMessage = string.Empty;
     statusMessage = retrievalReady
       ? "Conversation cleared. Local article search is ready."
       : "Local article search is not ready.";
+    await SaveHistoryAsync();
+  }
+
+  protected async Task SelectConversationAsync(Guid id)
+  {
+    if (isSearching) return;
+    if (id == activeConversationId)
+    {
+      historyOpen = false;
+      return;
+    }
+    await SaveHistoryAsync();
+    var selected = conversations.Single(item => item.Id == id);
+    activeConversationId = id;
+    RestoreMessages(selected);
+    draft = string.Empty;
+    errorMessage = string.Empty;
+    historyOpen = false;
+    statusMessage = retrievalReady ? "Conversation opened. Local article search is ready." : "Local article search is not ready.";
+    await SaveHistoryAsync();
+  }
+
+  protected async Task DeleteConversationAsync(Guid id)
+  {
+    if (isSearching) return;
+    conversations.RemoveAll(item => item.Id == id);
+    if (activeConversationId == id)
+    {
+      activeConversationId = null;
+      messages.Clear();
+      draft = string.Empty;
+      errorMessage = string.Empty;
+    }
+    await SaveHistoryAsync();
+  }
+
+  protected async Task ClearHistoryAsync()
+  {
+    if (isSearching || module is null) return;
+    try
+    {
+      await module.InvokeVoidAsync("clearHistory");
+      conversations.Clear();
+      messages.Clear();
+      activeConversationId = null;
+      draft = string.Empty;
+      historyError = string.Empty;
+      historyAvailable = true;
+      confirmClearHistory = false;
+    }
+    catch (JSException exception)
+    {
+      historyError = $"Could not delete saved chats: {exception.Message}";
+    }
+  }
+
+  private async Task LoadHistoryAsync()
+  {
+    try
+    {
+      var json = await module!.InvokeAsync<string?>("loadHistory");
+      if (json is not null)
+      {
+        var history = JsonSerializer.Deserialize(json, LearningChatJsonContext.Default.LearningChatHistory);
+        if (history is null || !IsValidHistory(history))
+          throw new JsonException("Saved chat history is incompatible or contains invalid article links.");
+        conversations.AddRange(history.Conversations);
+        activeConversationId = history.ActiveId;
+        if (activeConversationId is Guid id) RestoreMessages(conversations.Single(item => item.Id == id));
+      }
+      historyAvailable = true;
+    }
+    catch (Exception exception) when (exception is JSException or JsonException)
+    {
+      historyError = $"Saved chats could not be opened: {exception.Message} Chat still works, but history will not be overwritten. Delete saved chats to reset it.";
+    }
+  }
+
+  private bool IsValidHistory(LearningChatHistory history)
+  {
+    if (history.Version != 1 || history.Conversations is null
+      || history.Conversations.Any(item => item is null || item.Id == Guid.Empty || string.IsNullOrWhiteSpace(item.Title)
+        || item.Messages is null || item.Messages.Count == 0 || item.Messages[0] is not { IsUser: true })
+      || history.Conversations.Select(item => item.Id).Distinct().Count() != history.Conversations.Count
+      || (history.ActiveId is Guid id && !history.Conversations.Any(item => item.Id == id))) return false;
+    return history.Conversations.All(item => item.Messages.All(message => message is not null
+      && message.Text is not null && message.Sources is not null
+      && message.Sources.All(source => source is not null && source.Title is not null && source.Heading is not null
+        && source.Excerpt is not null && source.Section is "What" or "Why" or "How" or "Summary"
+        && IsValidHistoryUrl(source.ContentUrl))));
+  }
+
+  private bool IsValidHistoryUrl(string? value)
+  {
+    if (value is null || !value.StartsWith("blogs/", StringComparison.Ordinal)
+      || !Uri.TryCreate(new Uri(Navigation.BaseUri), value, out var url)) return false;
+    var articleBase = new Uri(new Uri(Navigation.BaseUri), "blogs/");
+    return articleBase.IsBaseOf(url) && string.IsNullOrEmpty(url.Query) && string.IsNullOrEmpty(url.Fragment);
+  }
+
+  private void RestoreMessages(LearningChatConversation selected)
+  {
+    messages.Clear();
+    messages.AddRange(selected.Messages.Select(message => new ChatMessage(message.Text, message.IsUser,
+      message.Sources.Select(source => new ChatSource(source.Title, source.Section, source.Heading, source.ContentUrl, source.Excerpt)).ToArray())
+    { IsGenerated = message.IsGenerated }));
+  }
+
+  private async Task SaveHistoryAsync()
+  {
+    if (messages.Count > 0)
+    {
+      activeConversationId ??= Guid.NewGuid();
+      var firstQuestion = messages.First(message => message.IsUser).Text;
+      var saved = new LearningChatConversation(activeConversationId.Value,
+        firstQuestion.Length > 70 ? firstQuestion[..70] + "…" : firstQuestion,
+        messages.Select(message => new LearningChatHistoryMessage(
+          message.IsStreaming ? SourceSummary(message.Sources.Count) : message.Text, message.IsUser,
+          message.IsGenerated && !message.IsStreaming,
+          message.Sources.Select(source => new LearningChatHistorySource(source.Title, source.Section, source.Heading, source.ContentUrl, source.Excerpt)).ToList())).ToList());
+      var index = conversations.FindIndex(item => item.Id == activeConversationId);
+      if (index >= 0) conversations[index] = saved;
+      else conversations.Insert(0, saved);
+    }
+    if (!historyAvailable || module is null || disposed) return;
+    try
+    {
+      var history = new LearningChatHistory(1, activeConversationId, conversations);
+      await module.InvokeVoidAsync("saveHistory", JsonSerializer.Serialize(history, LearningChatJsonContext.Default.LearningChatHistory));
+      historyError = string.Empty;
+    }
+    catch (JSException exception)
+    {
+      historyError = $"Chats are available on this page but could not be saved on this device: {exception.Message} Free browser storage or delete old chats and try again.";
+    }
   }
 
   protected async Task RetryLastQuestionAsync()
