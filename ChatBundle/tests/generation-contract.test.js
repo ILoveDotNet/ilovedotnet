@@ -57,3 +57,24 @@ test("streamed drafts contain only prefixes of original sentences and their corr
         "Sweeping reclaims dead objects. [1]\n\nSweeping does not");
     assert.equal(verifiedDraft("Invented explanation. [1]\n\nSweeping does not", evidence), null);
 });
+
+test("a leading decision list does not hide a later value-object definition or change citation IDs", () => {
+    const passages = [
+        { title: "Entities vs Value Objects", heading: "Decision Guide",
+            excerpt: "Use a Value Object when: The concept is a measurement Two instances are interchangeable Examples: Money, Email Address, Date Range" },
+        { title: "Entities vs Value Objects", heading: "Ownership",
+            excerpt: "x".repeat(1500) + "." },
+        { title: "Entities vs Value Objects", heading: "Implementing Value Objects",
+            excerpt: "A Value Object has no identity—it's defined entirely by its attributes. Records provide structural equality automatically." },
+    ];
+    const prompt = createGroundedPrompt("what is a value object and why we need it?", passages);
+    assert.equal(prompt.sourceCount, 3);
+    assert.equal(prompt.sources[0].excerpt, "");
+    assert.equal(prompt.sources[1].excerpt, "");
+    assert.match(prompt.messages[1].content, /\[3\] Entities vs Value Objects/);
+    assert.ok(new TextEncoder().encode(prompt.messages.map(message => message.content).join("")).length <= 3000);
+    const answer = "A Value Object has no identity—it's defined entirely by its attributes. [3]";
+    assert.equal(validateAnswer(answer, prompt.sources, "stop"), answer);
+    assert.throws(() => validateAnswer(answer.replace("[3]", "[1]"), prompt.sources, "stop"));
+    assert.throws(() => createGroundedPrompt("What is a value object?", passages.slice(0, 2)), /No supporting article evidence/);
+});

@@ -14,7 +14,7 @@ export async function capability() {
         if (!adapter || !adapter.features.has("shader-f16") || adapter.limits.maxStorageBufferBindingSize < 134217728) {
             return { supported: false, reason: "This device lacks the GPU features needed for local answers. Original article sources remain available.", consent: false };
         }
-        return { supported: true, reason: "", consent: localStorage.getItem(consentKey) === "accepted" };
+        return { supported: true, reason: "", consent: localStorage.getItem(consentKey) === "accepted", modelId: selectedModel.model_id };
     } catch (error) {
         return { supported: false, reason: `Local answer capability check failed: ${error.message}. Original sources remain available.`, consent: false };
     }

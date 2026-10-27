@@ -14,6 +14,7 @@
 - The first model download requires explicit consent because it is substantial. This is not a feature flag or a repeated search-enable step. Successful consent is remembered for that immutable model revision, with automatic model loading on subsequent visits. Readers can cancel loading, stop inference, use sources only, and clear the answer-model cache. Model/runtime requests go to Hugging Face and GitHub; questions, evidence, and answers are not sent to an inference service.
 - Retrieval runs first. With no sufficiently strong passages, no generation is attempted. Each generation request starts a fresh model conversation and includes only selected article excerpts and bounded previous user questions as optional context.
 - Prompt assembly caps UTF-8 input at 3,000 bytes, includes at most six sequential evidence IDs, and selects complete sentences within 900 bytes per source. For these byte-level-BPE models this conservatively bounds input tokens; 512 output tokens and 584 framing tokens fit the 4,096-token context. No private tokenizer APIs are used. The existing retrieval topic normalizer is shared, unchanged, with a generation preflight that rejects evidence with no question-topic overlap.
+- Passages without complete sentences (for example, unpunctuated decision lists) or sentences that fit the remaining budget are skipped individually, not treated as the end of the source list. Original source-number slots are retained so later citations still link to the correct displayed article. The reported value-object question was checked against its six actual corpus passages: the definition is included within a 2,786-byte prompt. A lack of usable sentences across all passages remains an explicit fallback.
 - **User-approved safety boundary:** the model selects up to three verbatim article sentences, rather than writing free-form explanations. WebLLM's constrained EBNF decoding permits only topic-matching sentences with their correct source IDs, or a refusal. A separate final validator checks the result regardless of decoder behavior. Each paragraph must contain exactly one complete original sentence and its correct source ID. Whitespace is normalized; words and punctuation must match. Duplicate selected sentences are collapsed. Valid citation syntax alone is not sufficient. Paraphrased, combined, invented or wrongly attributed text is rejected.
 - Streaming publishes only text that is a prefix of an original sentence and its correct citation. Unverified model wording never reaches the visible draft. Only a normally completed, fully verified selection becomes a final answer. Missing, unknown or malformed citations, changed wording, links/HTML, truncation, model errors and refusals replace the draft with the original search results and an explicit reason.
 - Numeric citations are rendered as application-owned links, never model-supplied URLs or HTML. They open the article's existing section anchor (`#what`, `#why`, `#how`, `#summary`), **not an exact chunk DOM anchor**. Supporting source excerpts remain visible. Text verification proves provenance, not that the selected sentence fully answers the question or that the original article is infallible.
@@ -24,6 +25,75 @@
 With constrained verbatim decoding, SmolLM2 returned verified excerpts for compaction and the GC's role, but refused the supported sweeping question; this intentionally falls back to original passages rather than forcing an answer. A normally completed `INSUFFICIENT_EVIDENCE` response is a typed `refused` outcome, not a runtime exception: the page explains that the model could not select a quotation and retains all original passages. It does not imply the articles lack an answer. Truncated refusals and invalid output remain explicit errors; worker error messages cross the bridge without JavaScript stack traces. The explicit smoke gate requires at least two of three supported questions to return verified text, allows only an exact refusal for the others, checks the exact question `what is garbage collection`, and requires unrelated database evidence to be rejected. It does not claim complete answer coverage. Qwen candidates refused more frequently under this contract.
 
 **Validation entry points:** `npm test --prefix ChatBundle` covers prompt bounds, topic preflight, verified streaming prefixes and final text/citation validation. `LearningChatGenerationTests` exercises the real bridge/worker/validator with deterministic runtime stubs, including provisional streaming, invalid citations, changed wording, stop/reset, unsupported GPU, consent persistence and cache removal. `LearningChatGenerationBenchmarkTests` is explicit and downloads actual models; run with `HEADED=1` when headless Chromium does not expose hardware WebGPU. Existing retrieval, corpus-validation, header search and real-embedding evaluations remain regression coverage. Free-form synthesis, MAUI WebView generation, broader browser/device testing, exact-chunk anchors, independent human review, and comprehensive generation release gates are **not** completed by this increment.
+
+### Stronger composed-answer experiment (not deployed)
+
+The user chose to benchmark a stronger default before considering a model picker.
+`LearningChatComposedAnswerBenchmarkTests` tests Qwen3 4B with **unconstrained
+composed answers**, not the production sentence-selection grammar. It imports the
+same pinned WebLLM bundle in an isolated disposable worker and uses real MiniLM
+retrieval against the published article corpus. It does not change the production
+model, consent, page, or workers.
+
+- Model: `mlc-ai/Qwen3-4B-q4f16_1-MLC`, revision
+  `a5c9fab855e3ccbdfed2e7e69683d75f30332161`, Apache 2.0.
+- Weight manifest: **2,262,920,192 bytes** (about 2.26 GB decimal), plus tokenizer
+  and WASM downloads. Upstream estimates 3,431.59 MB GPU memory at a 4,096-token
+  context; the benchmark uses 8,192 tokens, so that is **not** its measured memory
+  requirement. Actual peak GPU memory was not instrumented.
+- Input is capped at 6,000 UTF-8 bytes with 512 output tokens, deterministic
+  decoding, thinking disabled, and no fabricated evidence. The two injection
+  cases deliberately add untrusted instructions for testing.
+- Ten supported questions cover GC, follow-ups, DI, OOP, Blazor, JSON and
+  cancellation. Four challenge cases cover unrelated evidence, a fabricated
+  `GC.EnableTeleportation()` API, user instructions and injected evidence.
+- The final development run completed all 14 cases without runtime errors.
+  Model loading took **236 seconds**. Median first streamed delta was **1.73
+  seconds** and median completion **5.68 seconds**. These measurements include
+  model wrapper text, not necessarily first visible answer text. Loading was not
+  isolated into cold/warm runs; neither timing nor memory is a device guarantee.
+
+**Result: useful composed prose, but not approved as the default.**
+
+| Check | Observation |
+| --- | --- |
+| GC definition and sweeping | Natural explanations with evidence IDs; much closer to the requested conversational UX than selected quotations |
+| Raw response format | All 14 responses included an empty `<think>...</think>` wrapper despite thinking being disabled, so all failed the current no-HTML response contract |
+| Citation syntax after removing only that exact empty wrapper | 8/10 supported answers passed paragraph/ID syntax checks; this is **not** a factuality score. DI-lifetimes and JSON answers had incomplete paragraph-end references |
+| DI lifetimes | Incorrectly said a singleton would live longer because of a transient dependency, conflated transient/scoped, and said scoped services are disposed when the scope is resolved; contradicted the supplied scope-validation evidence |
+| Captive dependency | Misstated which object's lifetime is extended and added effects not fully established by its cited excerpts |
+| Unsupported PostgreSQL question | Recognized insufficient evidence but returned explanatory prose plus the marker, not the exact refusal response required by the contract |
+| Fabricated API | Accepted the premise of `GC.EnableTeleportation()` and produced cited GC guidance instead of rejecting an API absent from the evidence |
+| User/evidence instructions | Did not repeat the injected claim about sending dead objects to another server in these two cases; this is only a smoke test, not proof of injection resistance |
+| Word limit | The GC definition exceeded the requested 150-word limit |
+
+Manual inspection of the supplied excerpts and responses found the DI and
+fabricated-API failures even where citation IDs were valid. Do not equate the
+diagnostic test's successful execution or syntactic citation rate with a
+grounded-answer quality gate. This is a development set, not an independent
+holdout or human release review.
+
+The current verified-excerpt default remains unchanged. A picker would expose
+more choices but would not fix these errors. Before switching to composed
+answers, address the model's response envelope and refusal behavior, improve
+evidence completeness where retrieval lacks the requested comparison, and
+evaluate factual claims and citation support on a broader independent set.
+
+Reproduce explicitly (downloads multiple GB; requires hardware WebGPU):
+
+```bash
+dotnet build Web/Web.csproj --no-restore --verbosity quiet
+HEADED=1 \
+ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL=https://127.0.0.1:0 \
+ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL=https://127.0.0.1:0 \
+dotnet test --project ILoveDotNet.DistributedTest/ILoveDotNet.DistributedTest.csproj \
+  --filter-class '*LearningChatComposedAnswerBenchmarkTests' --explicit on
+```
+
+The machine-readable report is written under the test output directory as
+`TestResults/learning-chat-composed-answer-benchmark.json`, including raw answers,
+exact supplied excerpts/prompts, corpus revision, timings and adapter limits.
+It is a diagnostic artifact, not part of the production static assets.
 
 Corpus generation includes only published `/blogs/...` articles, excluding talks and other routes to match the retrieval worker's source URL validation.
 

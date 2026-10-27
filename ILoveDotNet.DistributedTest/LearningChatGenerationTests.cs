@@ -13,9 +13,10 @@ public class LearningChatGenerationTests(AppFixture fixture) : PageTest
   [InlineData("slow")]
   [InlineData("refused")]
   [InlineData("truncated")]
+  [InlineData("skipped")]
   public async Task StreamedAnswersAreValidatedOrReplacedWithSourcesAsync(string mode)
   {
-    await StubSearchAsync();
+    await StubSearchAsync(mode == "skipped");
     var runtimeRequests = 0;
     Page.Request += (_, request) =>
     {
@@ -45,7 +46,7 @@ public class LearningChatGenerationTests(AppFixture fixture) : PageTest
               }
               yield {choices:[{delta:{content:'Sweeping reclaims unreachable objects. '}}]};
               await new Promise(resolve=>setTimeout(resolve, {{{{(mode == "slow" ? 60000 : 1500)}}}}));
-              yield {choices:[{delta:{content:'{{{{(mode == "changed" ? "Invented explanation. " : "")}}}}[{{{{(mode == "invalid" ? 9 : 1)}}}}]'},finish_reason:'stop'}]};
+              yield {choices:[{delta:{content:'{{{{(mode == "changed" ? "Invented explanation. " : "")}}}}[{{{{(mode == "invalid" ? 9 : mode == "skipped" ? 2 : 1)}}}}]'},finish_reason:'stop'}]};
             }}}
           };
         }
@@ -59,6 +60,7 @@ public class LearningChatGenerationTests(AppFixture fixture) : PageTest
     await Page.GetByRole(AriaRole.Button, new() { Name = "Download local answer model" }).ClickAsync();
     var modelPanel = Page.GetByRole(AriaRole.Complementary, new() { Name = "Local answer model" });
     await Expect(modelPanel).ToContainTextAsync("Local answers ready");
+    await Expect(modelPanel).ToContainTextAsync("Active model: SmolLM2-360M-Instruct-q4f16_1-MLC");
     await Page.GetByRole(AriaRole.Textbox).FillAsync(mode == "refused" || mode == "truncated"
       ? "what is garbage collection" : "What is sweeping?");
     await Page.GetByRole(AriaRole.Button, new() { Name = "Send question" }).ClickAsync();
@@ -75,9 +77,9 @@ public class LearningChatGenerationTests(AppFixture fixture) : PageTest
     {
       await Expect(Page.GetByRole(AriaRole.Status)).ToHaveTextAsync("Search complete.");
     }
-    if (mode == "valid")
+    if (mode == "valid" || mode == "skipped")
     {
-      await Expect(Page.GetByRole(AriaRole.Link, new() { Name = "[1]", Exact = true }))
+      await Expect(Page.GetByRole(AriaRole.Link, new() { Name = mode == "skipped" ? "[2]" : "[1]", Exact = true }))
         .ToHaveAttributeAsync("href", new System.Text.RegularExpressions.Regex(@"/blogs/gc/#how$"));
       await Expect(Page.GetByText("AI-selected verbatim excerpts.", new() { Exact = false })).ToBeVisibleAsync();
     }
@@ -113,8 +115,10 @@ public class LearningChatGenerationTests(AppFixture fixture) : PageTest
     {
       await Page.ReloadAsync();
       await Expect(modelPanel).ToContainTextAsync("Local answers ready");
+      await Expect(modelPanel).ToContainTextAsync("Active model: SmolLM2-360M-Instruct-q4f16_1-MLC");
       await Page.GetByRole(AriaRole.Button, new() { Name = "Clear answer model cache" }).ClickAsync();
       await Expect(modelPanel).ToContainTextAsync("Answer model cache cleared");
+      await Expect(modelPanel).Not.ToContainTextAsync("Active model:");
       await Page.ReloadAsync();
       await Expect(modelPanel).ToContainTextAsync("Optional local answers");
       await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Download local answer model" })).ToBeVisibleAsync();
@@ -215,16 +219,20 @@ public class LearningChatGenerationTests(AppFixture fixture) : PageTest
     Assert.Equal(0, generationDownloads);
   }
 
-  private Task StubSearchAsync()
+  private Task StubSearchAsync(bool leadingList = false)
   {
     Page.Console += (_, message) => Console.WriteLine($"Browser {message.Type}: {message.Text}");
     Page.PageError += (_, error) => Console.WriteLine($"Browser error: {error}");
     return Context.RouteAsync("**/js/chat/retrieval-worker.js", route => route.FulfillAsync(new()
     {
       ContentType = "text/javascript",
-      Body = """
+      Body = $$"""
       self.onmessage = ({data}) => {
-        self.postMessage({requestId:data.requestId,result:data.type === 'initialize' ? true : [{
+        self.postMessage({requestId:data.requestId,result:data.type === 'initialize' ? true : [
+        ...({{(leadingList ? "true" : "false")}} ? [{
+        title:'Decision guide', heading:'List', section:'What', contentUrl:'blogs/decision/',
+        excerpt:'Use a value object when: values are interchangeable Examples: Money, DateRange'
+        }] : []), {
         title:'Garbage Collection', heading:'Sweep', section:'How', contentUrl:'blogs/gc/',
         excerpt:'Sweeping reclaims unreachable objects. Garbage collection automatically reclaims unreachable managed objects.'
         }]});

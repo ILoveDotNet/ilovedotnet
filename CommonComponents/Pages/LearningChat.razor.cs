@@ -31,6 +31,7 @@ public class LearningChatBase : ComponentBase, IAsyncDisposable
   protected string statusMessage = "Preparing local article search…";
   protected string errorMessage = string.Empty;
   protected bool generationSupported;
+  protected string generationModelId = string.Empty;
   protected bool generationReady;
   protected bool generationLoading;
   protected double generationProgress;
@@ -83,6 +84,7 @@ public class LearningChatBase : ComponentBase, IAsyncDisposable
           return;
         }
         generationSupported = capability.Supported;
+        generationModelId = capability.ModelId ?? string.Empty;
         generationStatus = capability.Supported
           ? "Optional local answers: SmolLM2 360M, approximately 250 MB download and 500 MB GPU memory, plus browser overhead. Files come from Hugging Face and GitHub; questions stay here."
           : capability.Reason;
@@ -484,7 +486,8 @@ public class LearningChatBase : ComponentBase, IAsyncDisposable
   private sealed record GenerationCapability(
     [property: JsonPropertyName("supported")] bool Supported,
     [property: JsonPropertyName("reason")] string Reason,
-    [property: JsonPropertyName("consent")] bool Consent);
+    [property: JsonPropertyName("consent")] bool Consent,
+    [property: JsonPropertyName("modelId")] string? ModelId);
   private sealed record GeneratedAnswer(
     [property: JsonPropertyName("text")] string Text,
     [property: JsonPropertyName("sourceCount")] int SourceCount,

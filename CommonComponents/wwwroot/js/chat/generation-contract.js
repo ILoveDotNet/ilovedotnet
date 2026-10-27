@@ -58,7 +58,8 @@ export function createGroundedPrompt(question, sources, history = "") {
         const prefix = `[${index + 1}] ${source.title} / ${source.heading}\n`;
         const remaining = Math.min(900, maximumPromptBytes - encoder.encode(instructions + userStart + evidence + prefix + ending + "\n\n").length);
         if (remaining < 120) {
-            break;
+            selected.push({ ...source, excerpt: "" });
+            continue;
         }
         let excerpt = "";
         for (const sentence of evidenceSentences(source.excerpt)) {
@@ -68,12 +69,14 @@ export function createGroundedPrompt(question, sources, history = "") {
             excerpt += `${sentence} `;
         }
         if (!excerpt.trim()) {
-            break;
+            // Keep the original source slot so later citations still match the displayed cards.
+            selected.push({ ...source, excerpt: "" });
+            continue;
         }
         evidence += `${prefix}${excerpt}\n\n`;
         selected.push({ ...source, excerpt: excerpt.trim() });
     }
-    if (selected.length === 0) {
+    if (!selected.some(source => source.excerpt)) {
         throw new Error("No supporting article evidence fits in the model context.");
     }
     const questionTerms = meaningfulTerms(question);
