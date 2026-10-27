@@ -11,6 +11,7 @@ public class LearningChatGenerationTests(AppFixture fixture) : PageTest
   [InlineData("invalid")]
   [InlineData("changed")]
   [InlineData("slow")]
+  [InlineData("new")]
   [InlineData("refused")]
   [InlineData("truncated")]
   [InlineData("skipped")]
@@ -33,6 +34,12 @@ public class LearningChatGenerationTests(AppFixture fixture) : PageTest
         requestAdapter: async () => ({features: new Set(['shader-f16']), limits: {maxStorageBufferBindingSize:134217728}})
       }});
       localStorage.setItem('ilovedotnet-answer-consent:https://huggingface.co/mlc-ai/SmolLM2-360M-Instruct-q4f16_1-MLC/resolve/3a622fd89e0216e8bb10c410c007c786baa8a033/', 'accepted');
+      window.chatHistoryWrites = 0;
+      const originalSet = Storage.prototype.setItem;
+      Storage.prototype.setItem = function(key, value) {
+        if (key === 'ilovedotnet-learning-chat-history:v1') window.chatHistoryWrites++;
+        return originalSet.call(this, key, value);
+      };
       """);
     await Context.RouteAsync("**/lib/webllm/webllm.js", route => route.FulfillAsync(new()
     {
@@ -52,7 +59,7 @@ public class LearningChatGenerationTests(AppFixture fixture) : PageTest
               }
               yield {choices:[{delta:{content:'<think>\n\n</think>\nSweeping reclaims unreachable objects. '
                 + ('{{{{mode}}}}' === 'manual' ? 'It releases dead memory. '.repeat(20) : '')}}]};
-              await new Promise(resolve=>setTimeout(resolve, {{{{(mode == "slow" ? 60000 : 1500)}}}}));
+              await new Promise(resolve=>setTimeout(resolve, {{{{(mode is "slow" or "new" ? 60000 : 1500)}}}}));
               yield {choices:[{delta:{content:'{{{{(mode == "changed" ? "This is naturally paraphrased. " : mode == "html" ? "<script>alert(1)</script> " : "")}}}}[{{{{(mode == "invalid" ? 9 : mode == "skipped" ? 2 : 1)}}}}]'},finish_reason:'stop'}]};
             }}}
           };
@@ -81,6 +88,27 @@ public class LearningChatGenerationTests(AppFixture fixture) : PageTest
         Assert.True(await region.EvaluateAsync<bool>("element => element.scrollHeight > element.clientHeight"));
         Assert.Equal(0, await region.EvaluateAsync<double>("element => element.scrollTop"));
       }
+    }
+    if (mode == "new")
+    {
+      var writes = await Page.EvaluateAsync<int>("() => window.chatHistoryWrites");
+      await Page.GetByRole(AriaRole.Button, new() { Name = "New conversation", Exact = true }).ClickAsync();
+      await Expect(Page.GetByRole(AriaRole.Status)).ToHaveTextAsync("Conversation cleared. Local article search is ready.");
+      Assert.Equal(writes + 1, await Page.EvaluateAsync<int>("() => window.chatHistoryWrites"));
+      Assert.True(await Page.EvaluateAsync<bool>("""
+        () => {
+          const history = JSON.parse(localStorage.getItem('ilovedotnet-learning-chat-history:v1'));
+          const answer = history.Conversations[0].Messages[1];
+          return history.ActiveId === null && !answer.IsGenerated
+            && answer.Text.includes('These are search results') && answer.Sources[0].ContentUrl === 'blogs/gc/';
+        }
+        """));
+      await Expect(Page.GetByRole(AriaRole.List, new() { Name = "Retrieved article sources" })).ToHaveCountAsync(0);
+      await Page.GetByRole(AriaRole.Navigation, new() { Name = "Chat history" })
+        .GetByRole(AriaRole.Button, new() { Name = "What is sweeping?", Exact = true }).ClickAsync();
+      await Expect(Page.GetByText("These are search results", new() { Exact = false })).ToBeVisibleAsync();
+      await Expect(Page.GetByText("AI-generated explanation.", new() { Exact = false })).ToHaveCountAsync(0);
+      return;
     }
     if (mode == "slow")
     {
@@ -309,7 +337,15 @@ public class LearningChatGenerationTests(AppFixture fixture) : PageTest
   public async Task HistoryPersistsAcrossReloadAndSupportsSwitchingDeletionAndMobileManualScrollingAsync()
   {
     await StubSearchAsync(excerpt: string.Concat(Enumerable.Repeat("Sweeping reclaims unreachable objects. ", 150)));
-    await Context.AddInitScriptAsync("Object.defineProperty(navigator, 'gpu', {value: undefined});");
+    await Context.AddInitScriptAsync("""
+      Object.defineProperty(navigator, 'gpu', {value: undefined});
+      window.chatHistoryWrites = 0;
+      const originalSet = Storage.prototype.setItem;
+      Storage.prototype.setItem = function(key, value) {
+        if (key === 'ilovedotnet-learning-chat-history:v1') window.chatHistoryWrites++;
+        return originalSet.call(this, key, value);
+      };
+      """);
     await Page.SetViewportSizeAsync(1280, 800);
     await SeoTestHelpers.GotoSuccessfulPageAsync(Page, fixture.App.GetEndpoint("ILoveDotNet-Web", "https"), "chat/");
     await Expect(Page.GetByRole(AriaRole.Status)).ToContainTextAsync("Local article search is ready");
@@ -327,8 +363,11 @@ public class LearningChatGenerationTests(AppFixture fixture) : PageTest
     Assert.Equal(position, await region.EvaluateAsync<double>("element => element.scrollTop"));
     var history = Page.GetByRole(AriaRole.Navigation, new() { Name = "Chat history" });
     await Expect(history.GetByRole(AriaRole.Button, new() { Name = "What is sweeping?", Exact = true })).ToHaveCountAsync(1);
+    var writes = await Page.EvaluateAsync<int>("() => window.chatHistoryWrites");
     await Page.GetByRole(AriaRole.Button, new() { Name = "New conversation", Exact = true }).ClickAsync();
     await Expect(region.Locator("article")).ToHaveCountAsync(0);
+    Assert.Equal(writes + 1, await Page.EvaluateAsync<int>("() => window.chatHistoryWrites"));
+    Assert.True(await Page.EvaluateAsync<bool>("() => JSON.parse(localStorage.getItem('ilovedotnet-learning-chat-history:v1')).ActiveId === null"));
     await Page.GetByRole(AriaRole.Textbox).FillAsync("Explain garbage collection");
     await Page.GetByRole(AriaRole.Button, new() { Name = "Send question" }).ClickAsync();
     await Expect(Page.GetByRole(AriaRole.Status)).ToHaveTextAsync("Search complete.");
@@ -337,6 +376,9 @@ public class LearningChatGenerationTests(AppFixture fixture) : PageTest
     await Expect(region.Locator("article")).ToHaveCountAsync(2);
     await history.GetByRole(AriaRole.Button, new() { Name = "What is sweeping?", Exact = true }).ClickAsync();
     await Expect(region.Locator("article")).ToHaveCountAsync(4);
+    Assert.Equal(1, await Page.EvaluateAsync<int>("() => window.chatHistoryWrites"));
+    await history.GetByRole(AriaRole.Button, new() { Name = "What is sweeping?", Exact = true }).ClickAsync();
+    Assert.Equal(1, await Page.EvaluateAsync<int>("() => window.chatHistoryWrites"));
     await Expect(Page.GetByRole(AriaRole.List, new() { Name = "Retrieved article sources" }).First.GetByRole(AriaRole.Link))
       .ToHaveAttributeAsync("href", new System.Text.RegularExpressions.Regex(@"/blogs/gc/#how$"));
     await Page.GetByRole(AriaRole.Button, new() { Name = "Delete chat: Explain garbage collection", Exact = true }).ClickAsync();

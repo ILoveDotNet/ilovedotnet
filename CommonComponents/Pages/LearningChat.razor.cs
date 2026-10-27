@@ -369,6 +369,12 @@ public class LearningChatBase : ComponentBase, IAsyncDisposable
 
   protected async Task StopSearchAsync()
   {
+    await StopActiveSearchAsync();
+    await SaveHistoryAsync();
+  }
+
+  private async Task StopActiveSearchAsync()
+  {
     activeRequest++;
     await UseSourcesOnlyAsync();
     isSearching = false;
@@ -377,19 +383,18 @@ public class LearningChatBase : ComponentBase, IAsyncDisposable
     {
       await module.InvokeVoidAsync("stop");
     }
-    await SaveHistoryAsync();
   }
 
   protected async Task NewConversationAsync()
   {
     if (isSearching)
     {
-      await StopSearchAsync();
+      await StopActiveSearchAsync();
     }
 
     activeRequest++;
     isSearching = false;
-    await SaveHistoryAsync();
+    UpdateActiveConversation();
     activeConversationId = null;
     messages.Clear();
     draft = string.Empty;
@@ -398,7 +403,7 @@ public class LearningChatBase : ComponentBase, IAsyncDisposable
     statusMessage = retrievalReady
       ? "Conversation cleared. Local article search is ready."
       : "Local article search is not ready.";
-    await SaveHistoryAsync();
+    await PersistHistoryAsync();
   }
 
   protected async Task SelectConversationAsync(Guid id)
@@ -409,7 +414,7 @@ public class LearningChatBase : ComponentBase, IAsyncDisposable
       historyOpen = false;
       return;
     }
-    await SaveHistoryAsync();
+    UpdateActiveConversation();
     var selected = conversations.Single(item => item.Id == id);
     activeConversationId = id;
     RestoreMessages(selected);
@@ -417,7 +422,7 @@ public class LearningChatBase : ComponentBase, IAsyncDisposable
     errorMessage = string.Empty;
     historyOpen = false;
     statusMessage = retrievalReady ? "Conversation opened. Local article search is ready." : "Local article search is not ready.";
-    await SaveHistoryAsync();
+    await PersistHistoryAsync();
   }
 
   protected async Task DeleteConversationAsync(Guid id)
@@ -508,6 +513,12 @@ public class LearningChatBase : ComponentBase, IAsyncDisposable
 
   private async Task SaveHistoryAsync()
   {
+    UpdateActiveConversation();
+    await PersistHistoryAsync();
+  }
+
+  private void UpdateActiveConversation()
+  {
     if (messages.Count > 0)
     {
       activeConversationId ??= Guid.NewGuid();
@@ -522,6 +533,10 @@ public class LearningChatBase : ComponentBase, IAsyncDisposable
       if (index >= 0) conversations[index] = saved;
       else conversations.Insert(0, saved);
     }
+  }
+
+  private async Task PersistHistoryAsync()
+  {
     if (!historyAvailable || module is null || disposed) return;
     try
     {

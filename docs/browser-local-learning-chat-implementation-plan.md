@@ -190,6 +190,11 @@ source-generated JSON contract. It stores questions, completed replies, source
 metadata and the selected conversation; provisional drafts are not persisted as
 completed generated answers.
 
+Updating the active conversation snapshot is separate from writing localStorage.
+Starting or switching conversations preserves the outgoing snapshot and persists
+the final selected-conversation state once, including when a new chat stops a draft.
+The existing version-1 JSON shape is unchanged.
+
 Restored links must be application-owned blog paths with valid sections.
 Malformed/incompatible history is reported and not silently overwritten.
 Quota or storage-access errors are visible while the current-page chat remains
