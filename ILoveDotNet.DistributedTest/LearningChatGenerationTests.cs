@@ -89,6 +89,8 @@ public class LearningChatGenerationTests(AppFixture fixture) : PageTest
     if (mode != "refused" && mode != "truncated" && mode != "error")
     {
       await Expect(Page.Locator("article p").Filter(new() { HasText = "Sweeping reclaims unreachable objects." })).ToBeVisibleAsync();
+      await Expect(Page.GetByRole(AriaRole.List, new() { Name = "Retrieved article sources" })).ToHaveCountAsync(0);
+      await Expect(Page.GetByRole(AriaRole.Link, new() { Name = "[1]", Exact = true })).ToHaveCountAsync(0);
       if (mode == "manual")
       {
         var region = Page.GetByRole(AriaRole.Region, new() { Name = "Conversation", Exact = true });

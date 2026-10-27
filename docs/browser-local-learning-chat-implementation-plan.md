@@ -36,6 +36,9 @@ Additional user-approved workspace behavior:
 - Scrolling is **manual only**, including during streaming and after long answers;
   native scroll anchoring is disabled for the message region.
 - Article links remain visible; long source excerpts are expandable.
+- When generating an answer, show the provisional explanation first; reveal
+  source cards after generation finishes. Source-only mode, cancellation and
+  generation failures still expose the retrieved articles.
 - Enter sends; Shift+Enter inserts a newline; IME composition does not submit.
 - Conversations persist in this browser profile until deleted, subject to browser
   storage availability. New conversation preserves previous chats.
