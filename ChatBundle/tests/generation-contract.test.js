@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createGroundedPrompt, validateAnswer, provisionalDraft, normalizeAnswer, models, selectedModel } from "../../CommonComponents/wwwroot/js/chat/generation-contract.js";
+import { createGroundedPrompt, validateAnswer, provisionalDraft, normalizeAnswer, selectedModel } from "../../CommonComponents/wwwroot/js/chat/generation-contract.js";
 
 const sources = Array.from({ length: 6 }, (_, index) => ({
     title: "Garbage collection", heading: "Sweep", excerpt: `Original evidence ${index}. ${"Sweeping reclaims memory. ".repeat(100)}`,
@@ -14,7 +14,7 @@ test("evidence and history fit the conservative Qwen3 context budget", () => {
     assert.match(prompt.messages[0].content, /Paraphrase naturally/);
     assert.equal(selectedModel.model_id, "Qwen3-4B-q4f16_1-MLC");
     assert.equal(selectedModel.overrides.context_window_size, 8192);
-    assert.ok(models.every(model => /resolve\/[a-f0-9]{40}\//.test(model.model)));
+    assert.match(selectedModel.model, /resolve\/[a-f0-9]{40}\//);
 });
 
 test("complete paraphrases with per-paragraph citations are accepted, not certified as factual", () => {

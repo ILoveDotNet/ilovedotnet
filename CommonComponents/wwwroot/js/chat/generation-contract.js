@@ -1,14 +1,12 @@
 import { meaningfulTerms } from "./topic-terms.js";
 
-export const models = [{
+export const selectedModel = {
     model_id: "Qwen3-4B-q4f16_1-MLC",
     model: "https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/",
     model_lib: "https://raw.githubusercontent.com/mlc-ai/binary-mlc-llm-libs/00fe7a40e57e5e8eb9fef87526a4bf28ad5846c0/web-llm-models/v0_2_86/base/Qwen3-4B-q4f16_1_cs1k-webgpu.wasm",
     overrides: { context_window_size: 8192 },
     required_features: ["shader-f16"],
-}];
-
-export const selectedModel = models[0];
+};
 export const maximumResponseTokens = 512;
 const maximumPromptBytes = 6000;
 const encoder = new TextEncoder();

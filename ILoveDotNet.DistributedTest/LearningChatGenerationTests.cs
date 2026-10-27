@@ -45,7 +45,14 @@ public class LearningChatGenerationTests(AppFixture fixture) : PageTest
     {
       ContentType = "text/javascript",
       Body = $$$$"""
+        function validateModel(id, config) {
+          if (id !== 'Qwen3-4B-q4f16_1-MLC' || config.model_list.length !== 1
+            || config.model_list[0].model_id !== id || !config.useIndexedDBCache
+            || !config.model_list[0].model.endsWith('/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/'))
+            throw new Error('Expected the single pinned model and IndexedDB cache configuration');
+        }
         export async function CreateMLCEngine(id, options) {
+          validateModel(id, options.appConfig);
           options.initProgressCallback({text:'Loading test model',progress:1});
           return {
             resetChat:async()=>{}, unload:async()=>{},
@@ -64,7 +71,7 @@ public class LearningChatGenerationTests(AppFixture fixture) : PageTest
             }}}
           };
         }
-        export async function deleteModelAllInfoInCache() {}
+        export async function deleteModelAllInfoInCache(id, config) { validateModel(id, config); }
         """
     }));
     await SeoTestHelpers.GotoSuccessfulPageAsync(Page, fixture.App.GetEndpoint("ILoveDotNet-Web", "https"), "chat/");

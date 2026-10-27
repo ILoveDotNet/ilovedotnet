@@ -143,6 +143,9 @@ passages remain usable without downloading a generation model.
 | Prompt content | At most 6,000 UTF-8 bytes; at most six evidence slots and 1,600 bytes per excerpt |
 | Decoding | Temperature 0, seed 42, thinking disabled |
 
+The worker initializes this model directly; load requests do not select a model.
+WebLLM receives the required `model_list` containing only this configuration.
+
 The first generation-model download requires explicit consent. Successful consent
 is remembered by immutable model URL; consent for a different revision/model does
 not authorize this one. Opening chat alone does not download the generation model.

@@ -1,9 +1,9 @@
 import { CreateMLCEngine, deleteModelAllInfoInCache } from "../../lib/webllm/webllm.js";
-import { models, selectedModel, maximumResponseTokens, createGroundedPrompt, validateAnswer, provisionalDraft, normalizeAnswer } from "./generation-contract.js";
+import { selectedModel, maximumResponseTokens, createGroundedPrompt, validateAnswer, provisionalDraft, normalizeAnswer } from "./generation-contract.js";
 
 let engine;
 let busy = false;
-const appConfig = { model_list: models, useIndexedDBCache: true };
+const appConfig = { model_list: [selectedModel], useIndexedDBCache: true };
 
 self.addEventListener("message", async ({ data }) => {
     const { requestId, type } = data;
@@ -15,11 +15,7 @@ self.addEventListener("message", async ({ data }) => {
     let rawAnswer;
     try {
         if (type === "load") {
-            const model = models.find(model => model.model_id === (data.modelId ?? selectedModel.model_id));
-            if (!model) {
-                throw new Error("The requested answer model is not approved.");
-            }
-            engine = await CreateMLCEngine(model.model_id, {
+            engine = await CreateMLCEngine(selectedModel.model_id, {
                 appConfig,
                 logLevel: "SILENT",
                 initProgressCallback: report => self.postMessage({
