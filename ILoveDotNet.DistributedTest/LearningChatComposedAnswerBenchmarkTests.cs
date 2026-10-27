@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using System.Security.Cryptography;
 using ILoveDotNet.DistributedTest.Utils;
 
 namespace ILoveDotNet.DistributedTest;
@@ -17,6 +18,12 @@ public class LearningChatComposedAnswerBenchmarkTests(AppFixture fixture) : Page
     var ids = new[] { "gc-definition", "gc-sweeping", "gc-compaction", "gc-pronoun-followup",
       "di-lifetimes", "di-captive", "abstraction", "blazor-definition", "json-mutation", "cancellation" };
     var cases = ids.Select(id => evaluation.Single(item => item.GetProperty("id").GetString() == id)).ToArray();
+    await Context.RouteAsync("**/__tests/composed-evidence.mjs", async route => await route.FulfillAsync(new()
+    {
+      ContentType = "text/javascript",
+      Body = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "TestData", "composed-evidence.mjs"),
+        TestContext.Current.CancellationToken),
+    }));
     await Page.GotoAsync(new Uri(fixture.App.GetEndpoint("ILoveDotNet-Web", "https"), "chat/").ToString());
     await Expect(Page.GetByRole(AriaRole.Status)).ToHaveTextAsync(
       "Local article search is ready. Questions stay in this browser.", new() { Timeout = 240_000 });
@@ -24,6 +31,8 @@ public class LearningChatComposedAnswerBenchmarkTests(AppFixture fixture) : Page
       async casesJson => {
         const cases=JSON.parse(casesJson);
         const chat = await import(new URL('js/learning-chat.js', document.baseURI));
+        const {selectEvidence,buildEvidencePrompt,inspectAnswer} = await import(new URL('__tests/composed-evidence.mjs', document.baseURI));
+        const {meaningfulTerms} = await import(new URL('js/chat/topic-terms.js', document.baseURI));
         const model = {
           model_id:'Qwen3-4B-q4f16_1-MLC',
           model:'https://huggingface.co/mlc-ai/Qwen3-4B-q4f16_1-MLC/resolve/a5c9fab855e3ccbdfed2e7e69683d75f30332161/',
@@ -34,6 +43,7 @@ public class LearningChatComposedAnswerBenchmarkTests(AppFixture fixture) : Page
         const adapter = await navigator.gpu?.requestAdapter();
         if (!adapter?.features.has('shader-f16')) throw new Error('Hardware WebGPU with shader-f16 is required.');
         const manifest = await (await fetch(new URL('chat/corpus/manifest.json', document.baseURI))).json();
+        const corpus = await (await fetch(new URL('chat/corpus/'+manifest.chunksUrl, document.baseURI))).json();
         const runtimeUrl = new URL('lib/webllm/webllm.js', document.baseURI).href;
         const code = `
           import {CreateMLCEngine} from ${JSON.stringify(runtimeUrl)};
@@ -130,13 +140,18 @@ public class LearningChatComposedAnswerBenchmarkTests(AppFixture fixture) : Page
           if(!load.error) {
             for(const item of cases) {
               const sources=await chat.search(item.question,6,item.context??'');
-              const assembled=prompt(item.question,sources,item.context??'');
-              const result=await request({type:'generate',messages:assembled.messages});
-              results.push({id:item.id,question:item.question,context:item.context??'',expectedFacts:item.facts,
-                ...assembled,...result,syntaxValid:result.result
-                  ? syntax(result.result.text,assembled.sources.length,result.result.finishReason):false});
+              const contextualQuestion=item.context ? `${item.context}\n${item.question}` : item.question;
+              for (const variant of ['baseline','candidate']) {
+                const assembled=variant==='baseline' ? prompt(item.question,sources,item.context??'')
+                  : buildEvidencePrompt(item.question,selectEvidence(contextualQuestion,sources,corpus,meaningfulTerms),system,item.context??'');
+                const result=await request({type:'generate',messages:assembled.messages});
+                results.push({id:item.id,variant,question:item.question,context:item.context??'',expectedFacts:item.facts,
+                  retrievedSources:sources,...assembled,...result,syntaxValid:result.result
+                    ? syntax(result.result.text,assembled.sources.length,result.result.finishReason):false,
+                  inspection:result.result?inspectAnswer(result.result.text,assembled.sources.length,result.result.finishReason):null});
+              }
             }
-            const gc=results.find(item=>item.id==='gc-definition').sources;
+            const gc=results.find(item=>item.id==='gc-definition'&&item.variant==='candidate').sources;
             for(const item of [
               {id:'unsupported-with-evidence',question:'Which database index should I use for my PostgreSQL query?',sources:gc},
               {id:'invented-api',question:'How do I call GC.EnableTeleportation() to eliminate collection pauses?',sources:gc},
@@ -147,10 +162,13 @@ public class LearningChatComposedAnswerBenchmarkTests(AppFixture fixture) : Page
                 ...results.find(item=>item.id==='gc-sweeping').sources
               ]}
             ]) {
-              const assembled=prompt(item.question,item.sources);
-              const result=await request({type:'generate',messages:assembled.messages});
-              results.push({id:item.id,question:item.question,...assembled,...result,
-                syntaxValid:result.result?syntax(result.result.text,assembled.sources.length,result.result.finishReason):false});
+              for (const variant of ['baseline','candidate']) {
+                const assembled=variant==='baseline'?prompt(item.question,item.sources):buildEvidencePrompt(item.question,item.sources,system);
+                const result=await request({type:'generate',messages:assembled.messages});
+                results.push({id:item.id,variant,question:item.question,...assembled,...result,
+                  syntaxValid:result.result?syntax(result.result.text,assembled.sources.length,result.result.finishReason):false,
+                  inspection:result.result?inspectAnswer(result.result.text,assembled.sources.length,result.result.finishReason):null});
+              }
             }
           }
           return JSON.stringify({generatedAt:new Date().toISOString(),purpose:'Diagnostic only; manual claim/citation review required before selection',
@@ -167,12 +185,38 @@ public class LearningChatComposedAnswerBenchmarkTests(AppFixture fixture) : Page
     var directory = Path.Combine(AppContext.BaseDirectory, "TestResults");
     Directory.CreateDirectory(directory);
     var path = Path.Combine(directory, "learning-chat-composed-answer-benchmark.json");
-    await File.WriteAllTextAsync(path, results, TestContext.Current.CancellationToken);
+    using var rawReport = JsonDocument.Parse(results);
+    var reportWithProvenance = new
+    {
+      reviewStatus = "Unreviewed: diagnostic execution is not quality approval",
+      productionChanged = false,
+      intervention = "Same model/system/decoding; candidate changes facet coverage, sentence packing and final citation/absent-API reminder together, not a pure ranking ablation",
+      rubricSha256 = Convert.ToHexStringLower(SHA256.HashData(
+        await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "TestData", "composed-answer-rubric.json"),
+          TestContext.Current.CancellationToken))),
+      evidenceSelectorSha256 = Convert.ToHexStringLower(SHA256.HashData(
+        await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "TestData", "composed-evidence.mjs"),
+          TestContext.Current.CancellationToken))),
+      experiment = rawReport.RootElement,
+    };
+    await File.WriteAllTextAsync(path, JsonSerializer.Serialize(reportWithProvenance), TestContext.Current.CancellationToken);
     Console.WriteLine($"Diagnostic composed-answer benchmark (not a quality approval): {path}");
     using var report = JsonDocument.Parse(results);
     Assert.False(report.RootElement.GetProperty("load").TryGetProperty("error", out var loadError), loadError.ToString());
-    Assert.Equal(14, report.RootElement.GetProperty("results").GetArrayLength());
+    Assert.Equal(28, report.RootElement.GetProperty("results").GetArrayLength());
     Assert.All(report.RootElement.GetProperty("results").EnumerateArray(),
-      item => Assert.False(item.TryGetProperty("error", out var error), error.ToString()));
+      item =>
+      {
+        Assert.False(item.TryGetProperty("error", out var error), error.ToString());
+        Assert.True(item.GetProperty("inputBytes").GetInt32() <= 6000);
+      });
+    var candidateComparison = report.RootElement.GetProperty("results").EnumerateArray()
+      .Single(item => item.GetProperty("id").GetString() == "di-lifetimes"
+        && item.GetProperty("variant").GetString() == "candidate");
+    var headings = candidateComparison.GetProperty("sources").EnumerateArray()
+      .Select(source => source.GetProperty("heading").GetString()).ToArray();
+    Assert.Contains("Transient", headings);
+    Assert.Contains("Scoped", headings);
+    Assert.Contains("Singleton", headings);
   }
 }

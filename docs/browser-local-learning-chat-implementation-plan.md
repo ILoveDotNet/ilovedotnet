@@ -47,7 +47,7 @@ model, consent, page, or workers.
 - Ten supported questions cover GC, follow-ups, DI, OOP, Blazor, JSON and
   cancellation. Four challenge cases cover unrelated evidence, a fabricated
   `GC.EnableTeleportation()` API, user instructions and injected evidence.
-- The final development run completed all 14 cases without runtime errors.
+- The initial development run completed all 14 cases without runtime errors.
   Model loading took **236 seconds**. Median first streamed delta was **1.73
   seconds** and median completion **5.68 seconds**. These measurements include
   model wrapper text, not necessarily first visible answer text. Loading was not
@@ -94,6 +94,75 @@ The machine-readable report is written under the test output directory as
 `TestResults/learning-chat-composed-answer-benchmark.json`, including raw answers,
 exact supplied excerpts/prompts, corpus revision, timings and adapter limits.
 It is a diagnostic artifact, not part of the production static assets.
+
+### Paired evidence-selection and claim review (not deployed)
+
+The benchmark now compares **14 baseline and 14 candidate responses** with the
+same pinned Qwen3 model, system message and decoding settings. The candidate:
+
+- Expands only within articles already returned by real retrieval, never using
+  an empty retrieval result to invent a match.
+- Prioritizes distinct requested heading facets before filling six source slots.
+- Packs complete prose sentences across multiple sources within 6,000 UTF-8
+  bytes, preserving citation-to-excerpt mappings. It skips fenced code and
+  unusable lists; this is not yet a suitable replacement for code-answer packing.
+- Preserves `.NET` across sentence-segmentation and budget boundaries.
+- Adds a final sentence-citation/absent-API reminder. Because ranking, packing and
+  this reminder change together, this is **not a pure ranking ablation**.
+
+`TestData/composed-answer-rubric.json` declares required facts, rejection criteria
+and a per-claim review schema. The diagnostic report includes exact prompts,
+excerpts, raw/normalized answers and selector/rubric SHA-256 hashes. Results now
+live under `experiment.results`; the root explicitly says execution is not
+quality approval. `inspectAnswer` checks response syntax and flags answers for
+claim review; it does **not** check entailment or technical correctness.
+
+The final paired development run produced:
+
+| Check | Baseline | Candidate |
+| --- | --- | --- |
+| Explicit Transient/Scoped/Singleton definition headings supplied | 0/3 | 3/3 |
+| Normalized citation syntax, 10 supported questions | 8/10 | 10/10 |
+| Required exact refusal, 2 unsupported questions | 0/2 | 0/2 |
+| Answers exceeding 150 words | 1 | 1 |
+| Raw no-HTML response contract | 0/14 | 0/14 |
+
+These are coverage/format measurements, **not factuality scores**. Model loading
+took 286 seconds; median completion was 5.84 seconds for baseline and 6.26 seconds
+for candidate on this device. Both unsupported candidate answers abstained in
+prose, but neither returned the exact refusal. Earlier intermediate runs accepted
+the fabricated API premise, so a single final semantic abstention does not
+establish robust refusal behavior.
+
+Targeted atomic-claim inspection across all 14 candidate answers found:
+
+- **A real improvement:** the DI answer now defines all three lifetimes and
+  correctly disposes request-scoped services at request end.
+- **Still contradictory:** it says transient services can safely be retained by
+  longer-lived services, reversing the dependency direction in cited source [4].
+- **Still unsupported attribution:** the sweep answer cites a generic phase
+  introduction for the unmarked-object detail that exists in a different source.
+  The GC follow-up also attributes developer diagnostic advice to the GC itself.
+- **Coverage regression:** the candidate sweeping answer omits the required
+  no-movement fact that the baseline covered. The JSON answer loses its concrete
+  indexer-assignment example when code is removed.
+- **Evidence is not truth:** the GC answer repeats an overbroad stack/value-type
+  rule already present in an article. Blazor offline/backend claims also need
+  qualifications. Claim review must distinguish article support from technical
+  correctness instead of treating citations as proof.
+- The two injection smoke cases did not obey the injected server-upload claim;
+  this small development sample is not a security guarantee.
+
+**Decision: keep production verified excerpts and source-only fallback unchanged.**
+The evidence intervention is evaluation-only; do not promote the selector or
+composed-answer model based on citation-format improvement. Next gates are
+dependency-direction/attribution correctness, reliable refusal/envelope handling,
+code-aware evidence packing, and broader independent review, including the
+value-object question. No model picker was added.
+
+Validation: **10 Node tests and 18 focused browser tests passed**, including the
+28-response real-WebGPU benchmark plus existing chat, generation and vector-search
+regressions. A passing execution test does not mean the answer-quality gate passed.
 
 Corpus generation includes only published `/blogs/...` articles, excluding talks and other routes to match the retrieval worker's source URL validation.
 
