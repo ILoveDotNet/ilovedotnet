@@ -86,7 +86,7 @@ public class LearningChatBase : ComponentBase, IAsyncDisposable
         generationSupported = capability.Supported;
         generationModelId = capability.ModelId ?? string.Empty;
         generationStatus = capability.Supported
-          ? "Optional local answers: SmolLM2 360M, approximately 250 MB download and 500 MB GPU memory, plus browser overhead. Files come from Hugging Face and GitHub; questions stay here."
+          ? "Optional local answers: Qwen3 4B, approximately 2.26 GB of weights plus runtime downloads. Several GB of GPU memory and browser overhead are needed; actual requirements vary by device. Files come from Hugging Face and GitHub; questions stay here."
           : capability.Reason;
         if (capability.Supported && capability.Consent)
         {
@@ -127,7 +127,7 @@ public class LearningChatBase : ComponentBase, IAsyncDisposable
       if (!disposed && operation == generationOperation)
       {
         generationReady = true;
-        generationStatus = "Local answers ready. Answers select original article sentences and verify their citations.";
+        generationStatus = "Local answers ready. AI-generated explanations use article passages; check the linked sources for accuracy.";
       }
     }
     catch (JSException exception)
@@ -293,7 +293,7 @@ public class LearningChatBase : ComponentBase, IAsyncDisposable
       {
         var operation = ++generationOperation;
         streamingMessage = answer;
-        answer.Text = "Selecting original article sentences…";
+        answer.Text = "Reading article passages…";
         answer.IsStreaming = true;
         statusMessage = "Generating locally. Draft text and citations are provisional…";
         await InvokeAsync(StateHasChanged);
@@ -312,13 +312,14 @@ public class LearningChatBase : ComponentBase, IAsyncDisposable
             if (generated.Outcome == "refused")
             {
               answer.Text = response;
-              generationStatus = "The local model could not select a verified quotation for this question. The original article passages are shown below; this does not mean the articles lack an answer.";
+              generationStatus = "The local model could not answer from the supplied passages. Original sources are shown below; this does not mean the articles lack an answer.";
             }
             else
             {
               answer.Text = generated.Text;
               answer.Sources = sources.Take(generated.SourceCount).ToArray();
               answer.IsGenerated = true;
+              generationStatus = "Local answers ready. AI-generated explanations use article passages; check the linked sources for accuracy.";
             }
           }
         }

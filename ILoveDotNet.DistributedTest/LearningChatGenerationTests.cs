@@ -14,6 +14,8 @@ public class LearningChatGenerationTests(AppFixture fixture) : PageTest
   [InlineData("refused")]
   [InlineData("truncated")]
   [InlineData("skipped")]
+  [InlineData("error")]
+  [InlineData("html")]
   public async Task StreamedAnswersAreValidatedOrReplacedWithSourcesAsync(string mode)
   {
     await StubSearchAsync(mode == "skipped");
@@ -29,6 +31,7 @@ public class LearningChatGenerationTests(AppFixture fixture) : PageTest
       Object.defineProperty(navigator, 'gpu', {value: {
         requestAdapter: async () => ({features: new Set(['shader-f16']), limits: {maxStorageBufferBindingSize:134217728}})
       }});
+      localStorage.setItem('ilovedotnet-answer-consent:https://huggingface.co/mlc-ai/SmolLM2-360M-Instruct-q4f16_1-MLC/resolve/3a622fd89e0216e8bb10c410c007c786baa8a033/', 'accepted');
       """);
     await Context.RouteAsync("**/lib/webllm/webllm.js", route => route.FulfillAsync(new()
     {
@@ -38,15 +41,17 @@ public class LearningChatGenerationTests(AppFixture fixture) : PageTest
           options.initProgressCallback({text:'Loading test model',progress:1});
           return {
             resetChat:async()=>{}, unload:async()=>{},
-            chat:{completions:{create:async function*() {
+            chat:{completions:{create:async function*(request) {
+              if (request.response_format) throw new Error('Composed answers must not use excerpt grammar');
+              if ('{{{{mode}}}}' === 'error') throw new Error('Test inference failure');
               if ('{{{{mode}}}}' === 'refused' || '{{{{mode}}}}' === 'truncated') {
                 yield {choices:[{delta:{content:'INSUFFICIENT_EVIDENCE'},
                   finish_reason:'{{{{(mode == "truncated" ? "length" : "stop")}}}}'}]};
                 return;
               }
-              yield {choices:[{delta:{content:'Sweeping reclaims unreachable objects. '}}]};
+              yield {choices:[{delta:{content:'<think>\n\n</think>\nSweeping reclaims unreachable objects. '}}]};
               await new Promise(resolve=>setTimeout(resolve, {{{{(mode == "slow" ? 60000 : 1500)}}}}));
-              yield {choices:[{delta:{content:'{{{{(mode == "changed" ? "Invented explanation. " : "")}}}}[{{{{(mode == "invalid" ? 9 : mode == "skipped" ? 2 : 1)}}}}]'},finish_reason:'stop'}]};
+              yield {choices:[{delta:{content:'{{{{(mode == "changed" ? "This is naturally paraphrased. " : mode == "html" ? "<script>alert(1)</script> " : "")}}}}[{{{{(mode == "invalid" ? 9 : mode == "skipped" ? 2 : 1)}}}}]'},finish_reason:'stop'}]};
             }}}
           };
         }
@@ -60,11 +65,11 @@ public class LearningChatGenerationTests(AppFixture fixture) : PageTest
     await Page.GetByRole(AriaRole.Button, new() { Name = "Download local answer model" }).ClickAsync();
     var modelPanel = Page.GetByRole(AriaRole.Complementary, new() { Name = "Local answer model" });
     await Expect(modelPanel).ToContainTextAsync("Local answers ready");
-    await Expect(modelPanel).ToContainTextAsync("Active model: SmolLM2-360M-Instruct-q4f16_1-MLC");
+    await Expect(modelPanel).ToContainTextAsync("Active model: Qwen3-4B-q4f16_1-MLC");
     await Page.GetByRole(AriaRole.Textbox).FillAsync(mode == "refused" || mode == "truncated"
       ? "what is garbage collection" : "What is sweeping?");
     await Page.GetByRole(AriaRole.Button, new() { Name = "Send question" }).ClickAsync();
-    if (mode != "refused" && mode != "truncated")
+    if (mode != "refused" && mode != "truncated" && mode != "error")
     {
       await Expect(Page.Locator("article p").Filter(new() { HasText = "Sweeping reclaims unreachable objects." })).ToBeVisibleAsync();
     }
@@ -77,11 +82,12 @@ public class LearningChatGenerationTests(AppFixture fixture) : PageTest
     {
       await Expect(Page.GetByRole(AriaRole.Status)).ToHaveTextAsync("Search complete.");
     }
-    if (mode == "valid" || mode == "skipped")
+    if (mode == "valid" || mode == "skipped" || mode == "changed")
     {
       await Expect(Page.GetByRole(AriaRole.Link, new() { Name = mode == "skipped" ? "[2]" : "[1]", Exact = true }))
         .ToHaveAttributeAsync("href", new System.Text.RegularExpressions.Regex(@"/blogs/gc/#how$"));
-      await Expect(Page.GetByText("AI-selected verbatim excerpts.", new() { Exact = false })).ToBeVisibleAsync();
+      await Expect(Page.GetByText("AI-generated explanation.", new() { Exact = false })).ToBeVisibleAsync();
+      await Expect(Page.Locator("script").Filter(new() { HasText = "alert(1)" })).ToHaveCountAsync(0);
     }
     else
     {
@@ -91,15 +97,11 @@ public class LearningChatGenerationTests(AppFixture fixture) : PageTest
       {
         await Expect(modelPanel).ToContainTextAsync("invalid citations");
       }
-      else if (mode == "changed")
-      {
-        await Expect(modelPanel).ToContainTextAsync("changed the original article wording");
-      }
       else if (mode == "refused")
       {
-        await Expect(modelPanel).ToContainTextAsync("could not select a verified quotation");
+        await Expect(modelPanel).ToContainTextAsync("could not answer from the supplied passages");
         await Expect(modelPanel).Not.ToContainTextAsync("Local answer unavailable");
-        await Expect(Page.GetByText("AI-selected verbatim excerpts.", new() { Exact = false })).ToHaveCountAsync(0);
+        await Expect(Page.GetByText("AI-generated explanation.", new() { Exact = false })).ToHaveCountAsync(0);
       }
       else if (mode == "truncated")
       {
@@ -115,7 +117,7 @@ public class LearningChatGenerationTests(AppFixture fixture) : PageTest
     {
       await Page.ReloadAsync();
       await Expect(modelPanel).ToContainTextAsync("Local answers ready");
-      await Expect(modelPanel).ToContainTextAsync("Active model: SmolLM2-360M-Instruct-q4f16_1-MLC");
+      await Expect(modelPanel).ToContainTextAsync("Active model: Qwen3-4B-q4f16_1-MLC");
       await Page.GetByRole(AriaRole.Button, new() { Name = "Clear answer model cache" }).ClickAsync();
       await Expect(modelPanel).ToContainTextAsync("Answer model cache cleared");
       await Expect(modelPanel).Not.ToContainTextAsync("Active model:");

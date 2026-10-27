@@ -9,89 +9,118 @@ public class LearningChatGenerationBenchmarkTests(AppFixture fixture) : PageTest
 
   [Fact(Explicit = true)]
   [Trait("Category", "RealModel")]
-  public async Task ComparePinnedGenerationModelsAsync()
+  public async Task ProductionChatExplainsTddRedWithRealModelAndCitationsAsync()
   {
-    await Page.GotoAsync(fixture.App.GetEndpoint("ILoveDotNet-Web", "https").ToString());
-    var results = await Page.EvaluateAsync<string>("""
-        async () => {
-          const { models, selectedModel } = await import(new URL('js/chat/generation-contract.js', document.baseURI));
-          const adapter = await navigator.gpu?.requestAdapter();
-          if (!adapter?.features.has('shader-f16')) throw new Error('A real shader-f16 WebGPU adapter is required for this benchmark.');
-          const results = [];
-          for (const model of models) {
-            const worker = new Worker(new URL('js/chat/generation-worker.js', document.baseURI), { type: 'module' });
-            let id = 0;
-            function request(type, payload) {
-              const requestId = ++id;
-              const start = performance.now();
-              let firstTokenMs;
-              let draft = '';
-              return new Promise((resolve, reject) => {
-                const timer = setTimeout(() => { worker.terminate(); reject(new Error('Benchmark operation timed out after 10 minutes.')); }, 600000);
-                const handler = ({data}) => {
-                  if (data.requestId !== requestId) return;
-                  if (data.update) {
-                    if (data.update.phase === 'streaming') draft = data.update.text;
-                    if (data.update.phase === 'streaming' && data.update.text && firstTokenMs === undefined) firstTokenMs = performance.now()-start;
-                    return;
-                  }
-                  clearTimeout(timer);
-                  worker.removeEventListener('message', handler);
-                  resolve({ result: data.result, error: data.error, rawAnswer:data.rawAnswer, draft, elapsedMs: performance.now()-start, firstTokenMs });
-                };
-                worker.addEventListener('message', handler);
-                worker.addEventListener('error', e => { clearTimeout(timer); reject(new Error(e.message)); }, {once:true});
-                worker.postMessage({requestId, type, ...payload});
-              });
-            }
-            try {
-              const load = await request('load', {modelId:model.model_id});
-              const cases = [];
-              if (!load.error) {
-                for (const question of ['What is sweeping?', 'Why does compaction update references?', 'Explain the role of the GC.', 'Which database index should I use?', 'what is garbage collection']) {
-                  cases.push({question, ...await request('generate', {
-                    question, history:'',
-                    sources:[
-                      {title:'Garbage collection',heading:'Sweep',contentUrl:'blogs/gc/',section:'How',excerpt:'After marking identifies live objects, sweeping reclaims the memory occupied by unmarked, unreachable objects. Sweeping does not move surviving objects.'},
-                      {title:'Garbage collection',heading:'Compact',contentUrl:'blogs/gc/',section:'How',excerpt:'Compaction moves surviving objects together to close gaps in the heap. The runtime updates references to the moved objects. The GC automatically reclaims unreachable managed objects.'},
-                      ...(question === 'what is garbage collection' ? [
-                        {title:'Garbage collection',heading:'Definition',contentUrl:'blogs/gc/',section:'What',excerpt:'Garbage collection automatically reclaims memory occupied by unreachable managed objects.'}
-                      ] : [])
-                    ]
-                  })});
-                }
-              }
-              results.push({model,load,cases});
-            } finally {
-              worker.terminate();
-            }
-          }
-          return JSON.stringify({selectedModel:selectedModel.model_id,adapter:adapter.info,results});
+    var profile = Environment.GetEnvironmentVariable("LEARNING_CHAT_BENCHMARK_PROFILE");
+    await using var cachedContext = profile is null ? null : await BrowserType.LaunchPersistentContextAsync(profile,
+      new() { IgnoreHTTPSErrors = true, Headless = Environment.GetEnvironmentVariable("HEADED") != "1" });
+    var page = cachedContext is null ? Page : await cachedContext.NewPageAsync();
+    page.Console += (_, message) => Console.WriteLine($"Browser {message.Type}: {message.Text}");
+    page.PageError += (_, error) => Console.WriteLine($"Browser error: {error}");
+    await page.AddInitScriptAsync("""
+      const OriginalWorker = window.Worker;
+      window.Worker = class extends OriginalWorker {
+        constructor(...args) {
+          super(...args);
+          if (String(args[0]).includes('generation-worker')) this.addEventListener('message', ({data}) => {
+            if (data.rawAnswer || data.result?.text) window.chatWorkerAnswer = data.rawAnswer || data.result.text;
+          });
         }
-        """);
+      };
+      """);
+    await page.GotoAsync(new Uri(fixture.App.GetEndpoint("ILoveDotNet-Web", "https"), "chat/").ToString());
+    await Expect(page.GetByRole(AriaRole.Status)).ToHaveTextAsync(
+      "Local article search is ready. Questions stay in this browser.", new() { Timeout = 240_000 });
+    var download = page.GetByRole(AriaRole.Button, new() { Name = "Download local answer model" });
+    if (await download.IsVisibleAsync()) await download.ClickAsync();
+    var panel = page.GetByRole(AriaRole.Complementary, new() { Name = "Local answer model" });
+    await Expect(panel).ToContainTextAsync("Local answers ready", new() { Timeout = 900_000 });
+    await Expect(panel).ToContainTextAsync("Qwen3-4B-q4f16_1-MLC");
+    var results = new List<JsonElement>();
     var directory = Path.Combine(AppContext.BaseDirectory, "TestResults");
     Directory.CreateDirectory(directory);
-    var path = Path.Combine(directory, "learning-chat-generation-benchmark.json");
-    await File.WriteAllTextAsync(path, results, TestContext.Current.CancellationToken);
-    using var report = JsonDocument.Parse(results);
-    Assert.All(report.RootElement.GetProperty("results").EnumerateArray(), model =>
+    var path = Path.Combine(directory, "learning-chat-production-generation.json");
+    foreach (var question in new[]
     {
-      Assert.False(model.GetProperty("load").TryGetProperty("error", out var error), error.ToString());
-      Assert.Equal(5, model.GetProperty("cases").GetArrayLength());
-      if (model.GetProperty("model").GetProperty("model_id").GetString() == report.RootElement.GetProperty("selectedModel").GetString())
+      "what is red phase in TDD?",
+      "what is sweeping?",
+      "Compare transient scoped and singleton service lifetimes.",
+      "How do I modify an existing JSON property with JsonNode?",
+      "what is a value object and why we need it?",
+      "How do I call GC.EnableTeleportation() to eliminate collection pauses?",
+    })
+    {
+      var evidence = await page.EvaluateAsync<JsonElement>("""
+        async question => {
+          const chat = await import(new URL('js/learning-chat.js', document.baseURI));
+          const {createGroundedPrompt,selectedModel} = await import(new URL('js/chat/generation-contract.js', document.baseURI));
+          const sources = await chat.search(question,6,'');
+          let packed,error;
+          try { packed = createGroundedPrompt(question,sources); }
+          catch(failure) { error = failure.message; }
+          return {sources,packed,error,model:selectedModel.model_id};
+        }
+        """, question);
+      await page.EvaluateAsync("""
+        () => {
+          window.chatWorkerAnswer = null;
+          window.chatDraftObserved = false;
+          window.chatObserver = new MutationObserver(() => {
+            if (document.body.textContent.includes('AI-generated draft.')) window.chatDraftObserved = true;
+          });
+          window.chatObserver.observe(document.querySelector('[aria-label="Conversation"]'), {childList:true,subtree:true,characterData:true});
+        }
+        """);
+      await page.GetByRole(AriaRole.Textbox).FillAsync(question);
+      await page.GetByRole(AriaRole.Button, new() { Name = "Send question" }).ClickAsync();
+      await Expect(page.GetByRole(AriaRole.Status)).ToHaveTextAsync(
+        new System.Text.RegularExpressions.Regex(@"^(Search complete\.|No strong article matches found\.)$"),
+        new() { Timeout = 180_000 });
+      var rendered = await page.EvaluateAsync<JsonElement>("""
+        () => {
+          window.chatObserver.disconnect();
+          const answer = document.querySelector('[aria-label="Conversation"] article:last-child');
+          return {
+            label:answer.querySelector('p').textContent.trim(),
+            text:answer.querySelectorAll('p')[1].textContent.trim(),
+            citations:Array.from(answer.querySelectorAll('p:nth-child(2) a')).map(a=>({text:a.textContent,url:a.href})),
+            sourceUrls:Array.from(answer.querySelectorAll('ol a')).map(a=>a.href),
+            status:document.querySelector('[aria-label="Local answer model"]').textContent.trim(),
+            workerAnswer:window.chatWorkerAnswer,
+            draftObserved:window.chatDraftObserved
+          };
+        }
+        """);
+      results.Add(JsonSerializer.SerializeToElement(new { question, evidence, rendered }));
+      await File.WriteAllTextAsync(path, JsonSerializer.Serialize(new
       {
-        var cases = model.GetProperty("cases").EnumerateArray().ToArray();
-        Assert.True(cases.Take(3).Count(result => result.TryGetProperty("result", out var answer)
-          && answer.GetProperty("outcome").GetString() == "answered") >= 2,
-          "The selected model must return verified excerpts for at least two of the three supported smoke questions.");
-        Assert.All(cases.Take(3).Append(cases[4]), result =>
-        {
-          Assert.False(result.TryGetProperty("error", out var failure), failure.ToString());
-          Assert.Contains(result.GetProperty("result").GetProperty("outcome").GetString(), new[] { "answered", "refused" });
-        });
-        Assert.True(cases[3].TryGetProperty("error", out _), "Unsupported question must fall back to original sources.");
-      }
+        generatedAt = DateTimeOffset.UtcNow,
+        purpose = "Actual reader pipeline; TDD acceptance assertions plus diagnostic semantic review, not general factuality approval",
+        results,
+      }), TestContext.Current.CancellationToken);
+      await page.GetByRole(AriaRole.Button, new() { Name = "New conversation" }).ClickAsync();
+    }
+    Console.WriteLine($"Production chat evaluation: {path}");
+    var red = results[0].GetProperty("rendered");
+    Assert.Contains("article-grounded answer", red.GetProperty("label").GetString());
+    Assert.Contains("test", red.GetProperty("text").GetString(), StringComparison.OrdinalIgnoreCase);
+    Assert.Contains("fail", red.GetProperty("text").GetString(), StringComparison.OrdinalIgnoreCase);
+    Assert.True(red.GetProperty("draftObserved").GetBoolean());
+    Assert.NotEmpty(red.GetProperty("citations").EnumerateArray());
+    Assert.All(red.GetProperty("citations").EnumerateArray(), citation =>
+    {
+      var url = citation.GetProperty("url").GetString()!;
+      Assert.Contains("tdd-in-csharp-dotnet/", url);
+      Assert.EndsWith("#how", url);
     });
-    Console.WriteLine($"Generation benchmark: {path}");
+    var redEvidence = results[0].GetProperty("evidence").GetProperty("packed").GetRawText();
+    Assert.Contains("fail", redEvidence, StringComparison.OrdinalIgnoreCase);
+    foreach (var citation in red.GetProperty("citations").EnumerateArray())
+    {
+      await page.GotoAsync(citation.GetProperty("url").GetString()!);
+      await Expect(page.Locator("#how")).ToBeAttachedAsync(new() { Timeout = 30_000 });
+    }
+    var unsupported = results[^1].GetProperty("rendered");
+    Assert.Equal("Article search", unsupported.GetProperty("label").GetString());
   }
 }

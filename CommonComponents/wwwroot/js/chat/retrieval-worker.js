@@ -227,6 +227,17 @@ async function search(question, maximumResults, context) {
             : hasTopicMatches ? result.topicMatch >= 0.5 : result.semantic >= 0.6)
         .sort((left, right) => right.score - left.score);
 
+    // Comparisons need the individual definitions, not only passages mentioning all subjects.
+    if (/\b(compare|difference|versus|vs)\b/i.test(question)) {
+        const articles = new Set(relevant.map(result => result.passage.slug));
+        const definitions = ranked.filter(result => {
+            const heading = meaningfulTerms(result.passage.heading);
+            return articles.has(result.passage.slug) && heading.size > 0
+                && [...heading].every(term => queryTerms.has(term));
+        }).sort((left, right) => right.score - left.score);
+        relevant.unshift(...definitions);
+    }
+
     const articleCounts = new Map();
     const selectedHeadings = new Set();
     const selected = [];

@@ -1,13 +1,235 @@
 # Browser-Local Learning Chat — Implementation Plan
 
-> Status: **Browser-local retrieval and streamed, verified article-excerpt answers implemented; broader answer-quality and release gates remain open**
+> Status: **User-approved composed article answers implemented and bounded development validation completed; not general factuality/release sign-off**
 > Prepared: 2026-10-04  
 > Scope: shared Blazor UI and static assets in `CommonComponents`; the page and navigation are not gated by a feature flag. Runtime parity in MAUI has not yet been validated.  
 > The sections below retain the original design and later-stage requirements. The implementation notes here identify the delivered increment, not approval of every proposed release gate.
 
 **Current implementation:** `/chat/` lives in `CommonComponents/Pages/LearningChat.razor` and follows the existing shared-page/static-asset pattern used by vector search. Local retrieval loads automatically after the interactive page renders, with cancel and retry controls; no enable click is required. The page discloses the automatic embedding-model download from Hugging Face when uncached. Chat scripts, generated corpus assets, and the bundled WebLLM runtime are served from `CommonComponents/wwwroot`. The shared navigation exposes the page directly, with a mobile overflow entry and no feature/build flag. Header vector search is unchanged.
 
-### Streamed answer increment
+## Approved increment: explain articles and cite them
+
+**Approved, implemented and validated: 2026-10-27.** The user approved this scope
+after the planning update. Measured results and limitations are recorded below.
+
+The requested experience is straightforward: **question -> retrieve relevant
+article passages -> WebLLM reads those passages -> stream a concise explanation
+-> link citations to the supporting article sections**. WebLLM reads a bounded
+evidence package, not every full article or arbitrary URLs. This is a focused
+change to the existing pipeline, not a new architecture or a chunking rewrite.
+
+This section governs the implemented increment. The earlier implementation
+and experiment notes below remain historical evidence, not its acceptance
+contract. Composed answers replace the earlier verified-excerpt behavior.
+The original long-term requirements elsewhere in this document are not all
+prerequisites for this increment.
+
+### Requirements and boundaries
+
+| ID | Approved behavior |
+| --- | --- |
+| SIMPLE-001 | Explain the answer in natural language using the supplied article passages; paraphrasing is allowed. No exact-quotation-per-sentence or quote-bound JSON requirement. |
+| SIMPLE-002 | Retrieve the relevant concept and pack its heading with supporting paragraphs, useful lists and bounded code. Do not lose an answer merely because its passage is a list or has no complete prose sentence. |
+| SIMPLE-003 | Each answer paragraph references valid evidence IDs. Resolve IDs using application-owned metadata; never trust generated URLs, HTML or source lists. Citations prove a link to supplied evidence, not automatic factual correctness. |
+| SIMPLE-004 | Stream provisional answer text safely. Distinguish an in-progress draft from a completed answer; incomplete, invalid or failed output ends with an explicit reason and original sources, not a success-shaped answer. |
+| SIMPLE-005 | Preserve automatic retrieval, remembered download consent, active model label, cancel/stop/reset, source cards, dark-theme readability and independent header search. Questions and evidence stay local; no cloud inference. |
+| SIMPLE-006 | Keep page, scripts, bundles, generated assets and build ownership in `CommonComponents`, following shared vector search. Unsupported devices retain source-only search. |
+| SIMPLE-007 | Demonstrate the TDD Red question end-to-end, plus bounded regression questions and unsupported input. Record semantic failures honestly; valid citation syntax alone is not an answer-quality pass. |
+
+**Intentional behavior change:** composed drafts are model-generated, unlike the
+previous verified-original-sentence stream. Display a concise AI-generated/check-
+the-sources notice rather than claiming verification or guaranteed correctness.
+No automatic semantic verifier, self-judging model, exact-quote validator or
+second inference pass is required for this increment. Evidence and user text
+remain untrusted inputs; retain prompt-instruction isolation and safe rendering.
+This explicitly trades the old verbatim guarantee for useful explanations.
+
+### Model decision included in approval
+
+Use **one pinned Qwen3 4B default**, reusing the existing evaluated immutable
+revision and WebLLM runtime; no model picker or parallel model-comparison project.
+SmolLM2 360M was selected for quotation selection and must not silently be
+presented as a proven composed-answer model.
+
+This recommendation is **not a quality approval**: the experiments below found
+real reasoning errors with Qwen3 too. Its weights are about **2.26 GB**, plus
+tokenizer/runtime downloads, versus the previous approximately 250 MB notice.
+Its actual memory/latency depends on context and device; do not advertise the
+upstream 4,096-context memory estimate as measured for an 8,192-context setting.
+Update consent, model identity, context bounds and download/memory disclosures
+together. Consent for the old immutable model must not authorize the larger one;
+remember successful consent for the new revision so it is not requested on
+every visit. No automatic download just because the user opens the page.
+
+Approval of this plan includes this larger-model trade-off. If that download is
+unacceptable, revise the model decision before implementation rather than quietly
+substituting a smaller model or treating browser support as a memory guarantee.
+
+### Implementation steps and task breakdown
+
+1. **P1: Establish concrete question/evidence cases.** Capture real corpus
+   results for the Red question before tuning. Identify whether failures are
+   extraction, ranking or prompt packing; change only the failing layer.
+   - [x] T001 [Plan:P1] Add the TDD Red question and required facts to `ILoveDotNet.DistributedTest/TestData/learning-chat-retrieval.json` and the generation evaluation cases in `ILoveDotNet.DistributedTest/LearningChatComposedAnswerBenchmarkTests.cs`. Retain the value-object and unsupported-API cases; do not hard-code answers in the runtime.
+
+2. **P2: Preserve answer-bearing context.** Keep heading/body association,
+   lists and bounded code when assembling prompts. Prefer existing section and
+   adjacent-passage helpers. Adjust extraction/chunk boundaries only if T001
+   proves the relevant content is missing or split incorrectly. Preserve the
+   embedding model's input limit and publication filtering.
+   - [x] T002 [Plan:P2] Update evidence packing in `CommonComponents/wwwroot/js/chat/generation-contract.js`; preserve lists, complete fitting code fences and original citation slots. In `retrieval-worker.js`, prioritize individual matching definition headings for comparison questions within already-retrieved articles. The TDD question needs no ranking/adjacency change.
+   - [x] T003 [Plan:P2] Conditional extractor change **not needed**: generated TDD passages already contain the Red definition and failing-test example. `VectorSearchIndexGenerator/ChatArticleExtractor.cs`, chunk boundaries and header-search indexing are unchanged.
+
+3. **P3: Enable concise grounded composition.** Replace sentence-selection
+   instructions/grammar with a prompt to answer the question from evidence,
+   cite each paragraph and abstain when evidence cannot answer it. Do not
+   weaken the existing quotation validator in place and still call it verified;
+   replace that contract and its tests explicitly.
+   - [x] T004 [Plan:P3] Update `CommonComponents/wwwroot/js/chat/generation-contract.js` and `generation-worker.js` for composed text, context-safe prompt/output budgets, bounded history, valid per-paragraph source IDs, completion checks and distinct refusal/error outcomes. Retain the source-only path.
+   - [x] T005 [Plan:P3] Select pinned Qwen3 in `generation-contract.js` and update `THIRD-PARTY-NOTICES.txt`. The existing immutable-model consent key and capability reporting in `CommonComponents/wwwroot/js/chat/generation.js` already handle the new configuration without bridge edits. Reuse the pinned local bundle; no dependency/runtime upgrade.
+
+4. **P4: Stream and render with honest guarantees.** Reuse the current
+   bridge, operation IDs and lifecycle; replace verified-prefix assumptions.
+   Never interpret generated text as HTML or link markup. Only trusted,
+   in-range evidence IDs become clickable citations.
+   - [x] T006 [Plan:P4] Update `CommonComponents/Pages/LearningChat.razor` and `.razor.cs` to label provisional AI text, render final citations safely, preserve source cards and provide explicit fallback. Update model/download notices; preserve dark/light presentation, stop/reset and stale-callback protection. Existing `generation.js` callbacks require no change.
+
+5. **P5: Validate the requested experience and regressions.** Evaluate the
+   actual reader-facing prompt/model/streaming path, not only an isolated
+   experimental helper. Record what works and any correctness limitations.
+   - [x] T007 [Plan:P5] Replace directly affected quotation-only expectations in `ChatBundle/tests/generation-contract.test.js` and `ILoveDotNet.DistributedTest/LearningChatGenerationTests.cs`; cover composed drafts, valid/unknown IDs, malformed citations, refusal, truncation, worker failure, stop/reset and new-model consent.
+   - [x] T008 [Plan:P5] Run the focused Node/browser suites and explicit real-model cases, including TDD Red, GC sweeping, DI lifetimes, JSON mutation and value objects. Retain `LearningChatTests` and `VectorSearchTests` regression coverage; build `Web/Web.csproj` for shared assets. MAUI runtime validation remains unverified.
+   - [x] T009 [Plan:P5] Record measured results, final model/budget disclosures and remaining issues below. The requested Red example passes; the DI fallback and source-quality limitations remain explicit. No general release or human factuality sign-off is claimed.
+
+### Acceptance example and completion checks
+
+For **"what is red phase in TDD?"**, the answer should explain:
+
+> Red is the first step of TDD: write a test for the next requirement before
+> implementing it. Run the test and confirm it fails because the behavior is
+> not implemented yet. Green follows by adding enough code to make it pass. [1]
+
+This is illustrative wording, **not an exact expected string or hard-coded
+response**. The introduction article supplies the concept; the implementation
+article demonstrates a failing `NotImplementedException` test.
+
+- Retrieval/prompt evidence must contain the failing-test explanation, not just
+  an introduction containing the word "TDD".
+- A real WebLLM run must compose a relevant answer and emit valid citations.
+  Refusal on this supported acceptance question does not count as success.
+- A citation must open the correct application-owned article and an existing
+  anchor. Prefer a validated subsection such as
+  `blogs/introducing-tdd-in-csharp-dotnet/#basics-of-test-driven-development`
+  if available in emitted metadata; otherwise use the correct existing `#how`
+  anchor. Exact paragraph/chunk DOM anchors are not required.
+- Supporting passages remain available for the reader to check. A source number
+  that merely exists is not proof that its passage supports the explanation;
+  manually review the example and regression answers for contradictions.
+- Unsupported questions/unknown APIs must not produce invented instructions.
+  Normal refusal, unavailable GPU, download/inference errors and invalid final
+  citations retain source-only behavior with an explicit, appropriate message.
+- Existing navigation, header search, consent persistence, active model display,
+  stop/reset and light/dark presentation continue to work.
+
+### Requirement mapping
+
+| Requirement | Plan items | Completion evidence |
+| --- | --- | --- |
+| SIMPLE-001 | P3, P5 | Composed response from the production contract/worker in a real-model acceptance run |
+| SIMPLE-002 | P1, P2, P5 | TDD definition present in retrieval and packed prompt; lists/code preserved within bounds |
+| SIMPLE-003 | P2, P3, P4, P5 | Stable ID/source mappings, safe citation rendering and actual article-anchor navigation |
+| SIMPLE-004 | P3, P4, P5 | Provisional stream, completion validation, explicit failure/fallback and stop/reset tests |
+| SIMPLE-005 | P3, P4, P5 | Consent/model-label/lifecycle/theme checks and unchanged header-search regression |
+| SIMPLE-006 | P2, P3, P4, P5 | Shared project assets/build integration, no Web-owned page/scripts or inference service |
+| SIMPLE-007 | P1, P5 | Recorded real TDD answer, bounded semantic review and targeted regression results |
+
+**Out of scope:** another model bake-off, picker, automatic entailment scoring,
+quote-bound JSON rollout, full-article stuffing, embedding-model replacement,
+cloud inference, new services/projects, full offline support and unrelated article
+rewrites. Record discovered article inaccuracies separately; generated citations
+cannot repair incorrect source material. No new feature flag or repeated enable
+button is proposed.
+
+### Implementation details and validation
+
+- Production model: `Qwen3-4B-q4f16_1-MLC`, immutable revision
+  `a5c9fab855e3ccbdfed2e7e69683d75f30332161`; WebLLM remains `0.2.86`.
+  Context is 8,192 tokens, total prompt content at most 6,000 UTF-8 bytes,
+  output at most 512 tokens, at most six passages and 1,600 bytes per passage.
+  The prompt requests one 60-100-word paragraph; final validation allows at most
+  three paragraphs and 150 words.
+- Removed the exact-sentence grammar, not citation safety. Drafts are clearly
+  provisional and safely encoded; final text requires normal completion,
+  valid nonblank supplied evidence IDs and paragraph-end citations. Only the
+  model's known **empty** thinking wrapper is stripped; nonempty reasoning,
+  generated URLs/HTML, invalid citations and truncation fall back to sources.
+- Requests to call a qualified API absent from the packed article bodies are
+  rejected before inference, with an explicit reason and original sources.
+  This prevents invented method instructions without relying only on model
+  abstention; it is not a general claim-level semantic verifier.
+- This contract intentionally permits paraphrases; it is **not semantic
+  verification**. A valid citation can still accompany an incorrect claim.
+  The page explicitly tells readers to check the original articles.
+- Both generated TDD articles already contain the answer under `#how`.
+  No chunker, extractor or embedding-model change was required. A bounded
+  comparison-heading prioritization was needed after the actual DI question
+  retrieved advanced dependency pitfalls instead of all three definitions.
+  Links continue to use existing section anchors, not exact paragraph anchors.
+- Node contract/evidence tests: **16 passed**. Real-embedding retrieval:
+  **43/43 supported and 8/8 unsupported cases passed**, including TDD Red.
+  Final Web build: **0 errors**, with 10 existing trimming warnings (the earlier
+  broader rebuild emitted 119 warnings).
+- Final focused browser regressions: **19/19 passed**, including generation,
+  source-only chat, consent/cache/cancel/reset, dark/light contrast and header
+  search. The earlier combined run passed 20/21, including both explicit real-model
+  tests, but hit the existing intermittent header-search timeout. Header search
+  then passed unchanged in isolation and in the final 19-test group. No header
+  production code, assertions or timeouts were changed.
+- The actual-page Qwen3 acceptance test **passed** with the real production
+  retrieval, worker, prompt, streaming and rendered citations. It verified that
+  the Red answer explains a failing test before implementation, observes a draft,
+  and opens the cited TDD article's existing `#how` anchor. The fabricated API
+  case correctly shows sources without generating invented instructions.
+  The combined real-model/regression run took about eight minutes, including
+  initial model loading; this is not a measured per-answer latency guarantee.
+- Runtime behavior in MAUI WebView and broader device/browser parity remain
+  unverified; this is not a general release or independent factuality sign-off.
+- The first completed actual-page run exposed real failures: TDD and three
+  other supported answers fell back on length/paragraph format; the DI answer
+  reversed lifetime relationships; the fabricated API received invented advice.
+  Those are **not passes**. The follow-up narrows the prompt to one paragraph,
+  prioritizes individual comparison definitions, rejects absent requested APIs
+  before inference, and captures raw worker output for diagnosis. It also clears
+  stale model-error status after a later successful answer.
+
+#### Final actual-reader answer review
+
+| Question | Observed outcome | Manual evidence/quality review |
+| --- | --- | --- |
+| What is Red phase in TDD? | Composed, streamed, cited `[2]` | Correctly explains writing a failing test before implementation; citation opens `introducing-tdd-in-csharp-dotnet/#how` and supports the explanation. Some wording is repetitive. |
+| What is sweeping? | Composed, streamed, cited `[1][3]` | Explains reclaiming dead-object memory without moving live objects, consistent with the supplied passages. |
+| Compare transient/scoped/singleton | **Source-only fallback** | All three definition headings are now supplied. The model still begins with the confused phrase "Transient scoped services" and ends with an uncited recommendation; final validation rejects the output. This supported question is not an answer-quality pass. |
+| Modify a JSON property with JsonNode | Composed, streamed, cited `[1][2]` | Explains obtaining a `JsonObject` and updating the property; the example setting `temperature` to 18 is present in the evidence. Describing `AsObject()` as a "cast" is loose terminology, not a verbatim API example. |
+| What is a value object and why use it? | Composed, streamed, cited `[1][2][4]` | Gives attribute equality and immutability, but also repeats the source article's overbroad claim that value objects must always belong to an entity. This is a known source-quality issue, not technical correctness approval. The article was not rewritten as part of this task. |
+| Call `GC.EnableTeleportation()` | **Source-only fallback before inference** | The requested API is absent from the packed article bodies; an explicit message replaces invented usage instructions. This identifier check is not a general semantic verifier. |
+
+The raw six-question result is emitted by
+`LearningChatGenerationBenchmarkTests` as
+`ILoveDotNet.DistributedTest/bin/Debug/net10.0/TestResults/learning-chat-production-generation.json`.
+It includes packed evidence, rendered text, trusted citation URLs, provisional
+stream observation and raw worker output. Passing the test means the concrete
+TDD/citation/fallback assertions passed, **not** that every diagnostic answer is
+correct. The explicit test optionally accepts `LEARNING_CHAT_BENCHMARK_PROFILE`
+to reuse a dedicated Chromium profile/model cache during development.
+
+## Historical increments and experiments
+
+The following records describe earlier contracts and experiments. Their
+"keep verified excerpts" decisions applied at that time and are superseded by
+the explicit composed-answer approval above. Their correctness findings still
+apply as limitations; do not interpret this approval as resolving every claim.
+
+### Earlier streamed verified-excerpt increment (superseded)
 
 - A separate worker uses pinned WebLLM `0.2.86`. Generation requires HTTPS/localhost, a real WebGPU adapter, `shader-f16`, and at least a 128 MiB storage-buffer binding limit. Unsupported devices retain automatic article search.
 - The selected model is `SmolLM2-360M-Instruct-q4f16_1-MLC`, revision `3a622fd89e0216e8bb10c410c007c786baa8a033`. WASM libraries are pinned to `mlc-ai/binary-mlc-llm-libs` revision `00fe7a40e57e5e8eb9fef87526a4bf28ad5846c0`. Its weight manifest totals 203,614,080 bytes. The UI discloses approximately 250 MB of downloads and 500 MB of GPU memory plus browser overhead; actual requirements depend on the browser/device.
@@ -316,7 +538,7 @@ Implement a bounded retrieval-augmented generation (RAG) workflow, not an autono
 | Answer policy | Strictly article-grounded; explain when the repository lacks sufficient evidence | Proposed |
 | Initial generation support | Desktop-first, capability-tested WebGPU; responsive UI and retrieval-only fallback on other devices | Proposed, not a user-confirmed device requirement |
 | Generation runtime | Pinned WebLLM in an isolated shared-asset bundle and worker | Implemented; development WebGPU smoke comparison |
-| Generation model | SmolLM2 360M quantized instruction model | Used only for constrained, verified excerpt selection; free-form synthesis is not enabled |
+| Generation model | Pinned Qwen3 4B quantized instruction model | Composed explanations enabled by the approved increment above; SmolLM2 quotation selection is historical |
 | Embedding model | Reuse pinned `Xenova/all-MiniLM-L6-v2`, 384 dimensions, maximum 256 input tokens | Proposed |
 | Retrieval strategy | Section-aware parent groups with token-bounded child chunks; lexical assistance for technical identifiers | Proposed |
 | Model asset hosting | Explicit, pinned asset URLs; prefer controlled hosting where distribution terms and hosting limits allow | Review required |
@@ -901,4 +1123,7 @@ These sources informed the architecture discussion; recheck versions and support
 - Repository architecture: `docs/Architecture.md`
 - Existing content conventions: `copilot/blog-generation-guidelines.md`
 
-**Recommended first implementation milestone after approval:** produce validated article chunks and a retrieval-only `/chat/` page. Add generation only when those sources are trustworthy and the selected browser model passes evaluation.
+**Original first milestone (historical, already delivered):** validated article
+chunks and retrieval-only `/chat/`. For the next work, use the approval checkpoint
+in **Next increment for approval: explain articles and cite them** at the top of
+this document; do not restart the original implementation sequence.

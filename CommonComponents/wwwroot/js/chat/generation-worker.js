@@ -1,5 +1,5 @@
 import { CreateMLCEngine, deleteModelAllInfoInCache } from "../../lib/webllm/webllm.js";
-import { models, selectedModel, maximumResponseTokens, createGroundedPrompt, validateAnswer, verifiedDraft } from "./generation-contract.js";
+import { models, selectedModel, maximumResponseTokens, createGroundedPrompt, validateAnswer, provisionalDraft, normalizeAnswer } from "./generation-contract.js";
 
 let engine;
 let busy = false;
@@ -42,8 +42,7 @@ self.addEventListener("message", async ({ data }) => {
             await engine.resetChat();
             const stream = await engine.chat.completions.create({
                 messages: prompt.messages, stream: true, max_tokens: maximumResponseTokens,
-                temperature: 0, seed: 42,
-                response_format: prompt.responseFormat,
+                temperature: 0, seed: 42, enable_thinking: false,
             });
             let text = "";
             let finishReason;
@@ -54,14 +53,14 @@ self.addEventListener("message", async ({ data }) => {
                 rawAnswer = text;
                 finishReason = choice?.finish_reason ?? finishReason;
                 if (performance.now() - lastUpdate > 150) {
-                    const draft = verifiedDraft(text, prompt.sources);
+                    const draft = provisionalDraft(text);
                     if (draft !== null) {
                         self.postMessage({ requestId, update: { phase: "streaming", text: draft } });
                     }
                     lastUpdate = performance.now();
                 }
             }
-            if (finishReason === "stop" && text.trim() === "INSUFFICIENT_EVIDENCE") {
+            if (finishReason === "stop" && normalizeAnswer(text) === "INSUFFICIENT_EVIDENCE") {
                 self.postMessage({
                     requestId,
                     result: { text: "", sourceCount: prompt.sourceCount, outcome: "refused" },

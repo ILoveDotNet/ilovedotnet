@@ -78,7 +78,7 @@
             </div>
             <span class="[ inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200 ]">
                 <span class="[ h-2 w-2 rounded-full bg-amber-500 ]" aria-hidden="true"></span>
-                @(generationReady ? "Local AI · verified article excerpts" : "Browser-local article search")
+                @(generationReady ? "Local AI · article-grounded answers" : "Browser-local article search")
             </span>
         </header>
 
@@ -123,7 +123,7 @@
 
                         <div class="[ mt-6 max-w-2xl rounded-2xl border border-indigo-200 bg-indigo-50 p-4 text-left text-sm leading-6 text-indigo-950 dark:border-indigo-400/30 dark:bg-indigo-400/10 dark:text-indigo-100 ]">
                             <h3 class="[ font-semibold ]">Browser-local article search</h3>
-                            <p class="[ mt-1 ]">Your question is embedded and matched in this browser. Opening this page automatically loads the article index and pinned embedding model, downloading from Hugging Face when it is not cached. No question or conversation is sent to an inference service. Optional WebGPU answers select original article sentences with verified references; source-only search remains available without the answer model.</p>
+                            <p class="[ mt-1 ]">Your question is embedded and matched in this browser. Opening this page automatically loads the article index and pinned embedding model, downloading from Hugging Face when it is not cached. No question or conversation is sent to an inference service. Optional WebGPU answers explain the retrieved passages and link to their sources. AI can make mistakes; check the original articles. Source-only search remains available without the answer model.</p>
                             @if (!retrievalReady && !isLoading && (!string.IsNullOrWhiteSpace(errorMessage) || loadingCancelled))
                             {
                                 <button type="button"
@@ -161,7 +161,7 @@
                         @foreach (var message in messages)
                         {
                             <article class="@(message.IsUser ? "[ ml-auto max-w-2xl rounded-2xl rounded-br-md bg-indigo-700 px-5 py-4 text-white dark:bg-indigo-500 ]" : "[ mr-auto max-w-2xl rounded-2xl rounded-bl-md border border-stone-200 bg-stone-50 px-5 py-4 text-stone-800 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-100 ]")">
-                                <p class="[ mb-1 text-xs font-semibold opacity-75 ]">@(message.IsUser ? "You" : message.IsStreaming ? "Local AI · provisional draft" : message.IsGenerated ? "Local AI · verified article excerpts" : "Article search")</p>
+                                <p class="[ mb-1 text-xs font-semibold opacity-75 ]">@(message.IsUser ? "You" : message.IsStreaming ? "Local AI · provisional draft" : message.IsGenerated ? "Local AI · article-grounded answer" : "Article search")</p>
                                 <p class="[ whitespace-pre-wrap text-sm leading-6 ]" aria-live="@(message.IsStreaming ? "off" : null)">
                                     @if (message.IsGenerated)
                                     {
@@ -182,9 +182,13 @@
                                         @message.Text
                                     }
                                 </p>
-                                @if (message.IsGenerated)
+                                @if (message.IsStreaming)
                                 {
-                                    <p class="[ mt-2 text-xs opacity-75 ]">AI-selected verbatim excerpts. Text and reference IDs are checked against the retrieved passages; check whether the selected sentences fully answer your question.</p>
+                                    <p class="[ mt-2 text-xs opacity-75 ]">AI-generated draft. Text and citations are provisional.</p>
+                                }
+                                else if (message.IsGenerated)
+                                {
+                                    <p class="[ mt-2 text-xs opacity-75 ]">AI-generated explanation. Citation IDs link to supplied passages, but do not guarantee correctness; check the original articles.</p>
                                 }
                                 @if (message.Sources.Count > 0)
                                 {

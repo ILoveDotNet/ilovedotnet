@@ -21,7 +21,7 @@ public class LearningChatComposedAnswerBenchmarkTests(AppFixture fixture) : Page
     var evaluation = JsonSerializer.Deserialize<JsonElement[]>(
       await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "TestData", "learning-chat-retrieval.json"),
         TestContext.Current.CancellationToken))!;
-    var ids = new[] { "gc-definition", "gc-sweeping", "gc-compaction", "gc-pronoun-followup",
+    var ids = new[] { "tdd-red", "gc-definition", "gc-sweeping", "gc-compaction", "gc-pronoun-followup",
       "di-lifetimes", "di-captive", "abstraction", "blazor-definition", "json-mutation", "cancellation" };
     var cases = ids.Select(id => evaluation.Single(item => item.GetProperty("id").GetString() == id)).ToList();
     if (claimAttribution)
@@ -232,7 +232,7 @@ public class LearningChatComposedAnswerBenchmarkTests(AppFixture fixture) : Page
     Console.WriteLine($"Diagnostic composed-answer benchmark (not a quality approval): {path}");
     using var report = JsonDocument.Parse(results);
     Assert.False(report.RootElement.GetProperty("load").TryGetProperty("error", out var loadError), loadError.ToString());
-    Assert.Equal(claimAttribution ? 30 : 28, report.RootElement.GetProperty("results").GetArrayLength());
+    Assert.Equal(claimAttribution ? 32 : 30, report.RootElement.GetProperty("results").GetArrayLength());
     Assert.All(report.RootElement.GetProperty("results").EnumerateArray(),
       item =>
       {
