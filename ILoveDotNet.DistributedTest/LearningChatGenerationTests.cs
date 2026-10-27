@@ -221,7 +221,71 @@ public class LearningChatGenerationTests(AppFixture fixture) : PageTest
     Assert.Equal(0, generationDownloads);
   }
 
-  private Task StubSearchAsync(bool leadingList = false)
+  [Theory]
+  [InlineData(false)]
+  [InlineData(true)]
+  public async Task ArticleAndCitationNavigationCleansUpChatWithoutRenderingErrorsAsync(bool citation)
+  {
+    const string slug = "garbage-collection-fundamentals-in-dotnet";
+    await StubSearchAsync(contentUrl: $"blogs/{slug}/");
+    var errors = new System.Collections.Concurrent.ConcurrentQueue<string>();
+    Page.PageError += (_, error) => errors.Enqueue(error);
+    Page.Console += (_, message) =>
+    {
+      if (message.Type == "error" && (message.Text.Contains("removeEventListener", StringComparison.Ordinal)
+        || message.Text.Contains("Unhandled exception rendering component", StringComparison.Ordinal)))
+      {
+        errors.Enqueue(message.Text);
+      }
+    };
+    await Context.AddInitScriptAsync("""
+      Object.defineProperty(navigator, 'gpu', {value: {
+        requestAdapter: async () => ({features: new Set(['shader-f16']), limits: {maxStorageBufferBindingSize:134217728}})
+      }});
+      """);
+    await Context.RouteAsync("**/lib/webllm/webllm.js", route => route.FulfillAsync(new()
+    {
+      ContentType = "text/javascript",
+      Body = """
+        export async function CreateMLCEngine() {
+          return {
+            resetChat:async()=>{}, unload:async()=>{},
+            chat:{completions:{create:async function*() {
+              yield {choices:[{delta:{content:'Sweeping reclaims unreachable objects. [1]'},finish_reason:'stop'}]};
+            }}}
+          };
+        }
+        export async function deleteModelAllInfoInCache() {}
+        """
+    }));
+    await SeoTestHelpers.GotoSuccessfulPageAsync(Page, fixture.App.GetEndpoint("ILoveDotNet-Web", "https"), "chat/");
+    await Expect(Page.GetByRole(AriaRole.Status)).ToContainTextAsync("Local article search is ready");
+    if (citation)
+    {
+      await Page.GetByRole(AriaRole.Button, new() { Name = "Download local answer model" }).ClickAsync();
+      await Expect(Page.GetByRole(AriaRole.Complementary, new() { Name = "Local answer model" })).ToContainTextAsync("Local answers ready");
+    }
+    await Page.GetByRole(AriaRole.Textbox).FillAsync("What is sweeping?");
+    await Page.GetByRole(AriaRole.Button, new() { Name = "Send question" }).ClickAsync();
+    await Expect(Page.GetByRole(AriaRole.Status)).ToHaveTextAsync("Search complete.");
+    var link = citation
+      ? Page.GetByRole(AriaRole.Link, new() { Name = "[1]", Exact = true })
+      : Page.GetByRole(AriaRole.List, new() { Name = "Retrieved article sources" }).GetByRole(AriaRole.Link);
+    await link.ClickAsync();
+    await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex($@"/blogs/{slug}/#how$"));
+    await Expect(Page.Locator("#how")).ToBeAttachedAsync();
+    await Expect(Page.Locator("#blazor-error-ui")).Not.ToBeVisibleAsync();
+    await Page.Locator("nav a[href='/chat/']").ClickAsync();
+    await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex(@"/chat/$"));
+    await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "Learn with AI", Exact = true })).ToBeVisibleAsync();
+    await Expect(Page.GetByRole(AriaRole.Status)).ToHaveTextAsync("Local article search is ready. Questions stay in this browser.");
+    await Page.GetByRole(AriaRole.Textbox).FillAsync("What is sweeping?");
+    await Page.GetByRole(AriaRole.Button, new() { Name = "Send question" }).ClickAsync();
+    await Expect(Page.GetByRole(AriaRole.Status)).ToHaveTextAsync("Search complete.");
+    Assert.Empty(errors);
+  }
+
+  private Task StubSearchAsync(bool leadingList = false, string contentUrl = "blogs/gc/")
   {
     Page.Console += (_, message) => Console.WriteLine($"Browser {message.Type}: {message.Text}");
     Page.PageError += (_, error) => Console.WriteLine($"Browser error: {error}");
@@ -235,7 +299,7 @@ public class LearningChatGenerationTests(AppFixture fixture) : PageTest
         title:'Decision guide', heading:'List', section:'What', contentUrl:'blogs/decision/',
         excerpt:'Use a value object when: values are interchangeable Examples: Money, DateRange'
         }] : []), {
-        title:'Garbage Collection', heading:'Sweep', section:'How', contentUrl:'blogs/gc/',
+        title:'Garbage Collection', heading:'Sweep', section:'How', contentUrl:{{System.Text.Json.JsonSerializer.Serialize(contentUrl)}},
         excerpt:'Sweeping reclaims unreachable objects. Garbage collection automatically reclaims unreachable managed objects.'
         }]});
       };

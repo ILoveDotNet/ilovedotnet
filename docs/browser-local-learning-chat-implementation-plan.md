@@ -152,6 +152,13 @@ button is proposed.
 
 ### Implementation details and validation
 
+- Navigation cleanup retains the initialized input/conversation elements in
+  JavaScript and releases their listeners without resolving a disposed Blazor
+  `ElementReference`. Cleanup is repeat-safe and still stops the retrieval worker.
+  Regression coverage clicks both a generated citation and a source article,
+  checks for rendering errors, then returns to chat and searches again.
+  Navigation-fix validation: **17 Node tests and 19 focused chat browser tests
+  passed**; Web build passed with existing warnings and no errors.
 - Production model: `Qwen3-4B-q4f16_1-MLC`, immutable revision
   `a5c9fab855e3ccbdfed2e7e69683d75f30332161`; WebLLM remains `0.2.86`.
   Context is 8,192 tokens, total prompt content at most 6,000 UTF-8 bytes,

@@ -1,4 +1,4 @@
-const keyHandlers = new WeakMap();
+const keyHandlers = new Map();
 const conversationByInput = new WeakMap();
 const scrollHandlers = new WeakMap();
 const nearBottom = new WeakMap();
@@ -81,17 +81,19 @@ export function stop() {
     stopWorker();
 }
 
-export function dispose(input) {
-    input.removeEventListener("keydown", keyHandlers.get(input));
-    keyHandlers.delete(input);
-
-    const conversation = conversationByInput.get(input);
-    if (conversation) {
-        conversation.removeEventListener("scroll", scrollHandlers.get(conversation));
-        scrollHandlers.delete(conversation);
-        nearBottom.delete(conversation);
-        conversationByInput.delete(input);
+export function dispose() {
+    // Blazor element references may already resolve to null during navigation.
+    for (const [input, handler] of keyHandlers) {
+        input.removeEventListener("keydown", handler);
+        const conversation = conversationByInput.get(input);
+        if (conversation) {
+            conversation.removeEventListener("scroll", scrollHandlers.get(conversation));
+            scrollHandlers.delete(conversation);
+            nearBottom.delete(conversation);
+            conversationByInput.delete(input);
+        }
     }
+    keyHandlers.clear();
 
     stopWorker();
 }

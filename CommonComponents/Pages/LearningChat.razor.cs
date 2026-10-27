@@ -469,7 +469,7 @@ public class LearningChatBase : ComponentBase, IAsyncDisposable
     callback?.Dispose();
     if (module is not null)
     {
-      await module.InvokeVoidAsync("dispose", questionInput);
+      await module.InvokeVoidAsync("dispose");
       await module.DisposeAsync();
     }
   }
