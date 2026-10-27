@@ -164,6 +164,112 @@ Validation: **10 Node tests and 18 focused browser tests passed**, including the
 28-response real-WebGPU benchmark plus existing chat, generation and vector-search
 regressions. A passing execution test does not mean the answer-quality gate passed.
 
+### Quote-bound claim experiment (not deployed)
+
+`BenchmarkQuoteBoundClaimsAgainstSameEvidenceAsync` compares the previous prose
+candidate with a structured **quote-bound** variant. Both receive identical
+packed excerpts, with a 4,800-byte packing budget and 768 output tokens. This
+smaller input reservation leaves room for the structured instructions within
+the existing 6,000-byte total input cap. Results are not directly comparable to
+the preceding 6,000-byte/512-token run. Eleven supported questions now include
+the reader's value-object definition/motivation question, plus the same four
+challenge cases: **30 responses** total.
+
+The new variant uses WebLLM JSON-schema decoding with this outcome shape:
+
+```json
+{
+  "status": "answered",
+  "claims": [
+    { "sourceId": 1, "quote": "An exact supporting passage from the supplied excerpt.", "claim": "A concise explanation of that passage." }
+  ]
+}
+```
+
+Refusal is exclusively `{"status":"refused","claims":[]}`. This is a new,
+evaluation-only structured contract, not relaxed matching of arbitrary refusal
+prose. Instructions ask the model to select a quote before explaining it and to
+preserve actors, dependency direction, conditions and negation.
+
+The deterministic inspector rejects incomplete/malformed output, extra fields,
+invalid source IDs, short/fabricated/misattributed quotes, invalid refusal
+combinations and explanations over 150 words. Quote matching normalizes
+whitespace only and checks the **supplied excerpt body**, not a heading or the
+unpacked corpus. Unsupported outputs are recorded as failures; no retry silently
+repairs them. Unvalidated structured streaming is not exposed to readers.
+
+**Binding is not entailment.** Even an exact quote can accompany a contradictory
+paraphrase. A deterministic regression explicitly demonstrates this, and every
+bound non-refusal still requires semantic review. A structured refusal on a
+supported question also fails answer coverage rather than counting as success.
+Production UI, model, retrieval and verified-excerpt generation remain unchanged.
+
+Run this experiment separately to avoid downloading/loading the model twice:
+
+```bash
+HEADED=1 \
+ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL=https://127.0.0.1:0 \
+ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL=https://127.0.0.1:0 \
+dotnet test --project ILoveDotNet.DistributedTest/ILoveDotNet.DistributedTest.csproj \
+  --filter-method '*BenchmarkQuoteBoundClaimsAgainstSameEvidenceAsync' --explicit on
+```
+
+The separate diagnostic report is
+`TestResults/learning-chat-claim-attribution-benchmark.json`, preserving the
+previous paired evidence report. Both variants' exact source arrays must match
+in every case; the runtime test asserts this independently of answer quality.
+
+**Measured result: structured refusal improved; semantic quality still fails.**
+
+| Check | Same-run prose | Quote-bound |
+| --- | --- | --- |
+| Completed responses | 15/15 | 15/15 |
+| Required exclusive refusal on two unsupported cases | 0/2 | 2/2 |
+| Valid JSON envelopes | Not applicable | 15/15 |
+| Passed quote-binding inspector | Not applicable | 11/15 |
+| Supported questions answered with bound quotes | Not measured by prose inspector | 6/11 |
+| Incorrect refusal on supported questions | 0/11 | 1/11 |
+| Median completion on this device | 5.76 seconds | 10.32 seconds |
+
+Of the 11 binding-valid outcomes, three are refusals: two correct unsupported
+refusals and one incorrect refusal of the cancellation question. The other eight
+are answers, including the two injection smoke cases. **None of these counts is
+an entailment or factuality score.** Four outputs fail exact quote matching
+because the model changes capitalization, quotation marks, contractions or adds
+an ellipsis. Those failures were recorded, not silently repaired or reclassified.
+
+Targeted manual checks across all 15 structured cases found:
+
+- The DI singleton claim says supplying an instance directly is **typical**,
+  although its own exact quote says this approach is **rarely needed**.
+- Some real quotes are only generic introductory sentences. The explanation's
+  detailed facts occur elsewhere in the cited excerpt, not in the quote that is
+  supposed to establish them. Quote provenance alone cannot check this.
+- The GC follow-up adds a dependency relationship between older and younger
+  generations that its quote does not establish.
+- The cancellation response refuses despite explicit `CancellationTokenSource`
+  and `SendAsync` evidence; safe refusal is not sufficient answer coverage.
+- JSON describes mutability but misses the requested indexer-update operation.
+  The value-object answer misses validation/motivation and repeats an article's
+  universal entity-ownership claim. That claim is source-supported but is not a
+  universal DDD rule: EF owned-type persistence must not be confused with the
+  domain definition. See Microsoft's [value-object guidance](https://learn.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/implement-value-objects).
+- Both injection cases avoid the upload instruction in this run. This remains
+  a development smoke observation, not a robustness/security guarantee.
+
+**Decision: do not deploy quote-bound composed answers.** The contract gives a
+useful auditable refusal/attribution boundary, but it does not solve reasoning,
+coverage or article quality. Further work needs semantic relation preservation,
+list/code-aware evidence, source-content review, and independent human review;
+do not simply loosen quote matching or add a picker to improve pass counts.
+
+Validation: **15 Node tests, the explicit 30-response real-WebGPU benchmark, and
+17 focused reader browser tests passed.** An initial reader run had one existing
+search-box timeout (16/17); that test then passed alone and the full 17 passed
+again without code, timeout or retry changes. Model loading took 697.64 seconds;
+the explicit experiment took 16m24s. No cold/warm/device guarantee is implied.
+Production page, model, retrieval, generation workers and consent are untouched.
+
 Corpus generation includes only published `/blogs/...` articles, excluding talks and other routes to match the retrieval worker's source URL validation.
 
 Retrieval ranks the latest question independently of earlier named topics. Pronoun-only follow-ups use the latest prior question for topic matching. Keyword matching ignores question filler words, normalizes common inflections (for example, `sweeping` and `sweep`), and weights terms by corpus frequency. Keyword-assisted matches require at least 50% weighted heading/body topic coverage and 0.3 cosine similarity; semantic-only matches require 0.6 cosine similarity. Focused headings and substantive definitions are prioritized over article-introduction boilerplate. Up to three adjacent child passages from the same parent/heading are combined in source order, keeping prose and code together within a 768 embedding-token upper bound per source. The six-result limit is a maximum, not a quota.

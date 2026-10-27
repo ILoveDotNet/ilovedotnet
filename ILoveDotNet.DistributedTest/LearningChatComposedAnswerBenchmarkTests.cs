@@ -10,14 +10,27 @@ public class LearningChatComposedAnswerBenchmarkTests(AppFixture fixture) : Page
 
   [Fact(Explicit = true)]
   [Trait("Category", "RealModel")]
-  public async Task BenchmarkStrongerModelAgainstRetrievedArticlesAsync()
+  public Task BenchmarkStrongerModelAgainstRetrievedArticlesAsync() => BenchmarkAsync(false);
+
+  [Fact(Explicit = true)]
+  [Trait("Category", "RealModel")]
+  public Task BenchmarkQuoteBoundClaimsAgainstSameEvidenceAsync() => BenchmarkAsync(true);
+
+  private async Task BenchmarkAsync(bool claimAttribution)
   {
     var evaluation = JsonSerializer.Deserialize<JsonElement[]>(
       await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "TestData", "learning-chat-retrieval.json"),
         TestContext.Current.CancellationToken))!;
     var ids = new[] { "gc-definition", "gc-sweeping", "gc-compaction", "gc-pronoun-followup",
       "di-lifetimes", "di-captive", "abstraction", "blazor-definition", "json-mutation", "cancellation" };
-    var cases = ids.Select(id => evaluation.Single(item => item.GetProperty("id").GetString() == id)).ToArray();
+    var cases = ids.Select(id => evaluation.Single(item => item.GetProperty("id").GetString() == id)).ToList();
+    if (claimAttribution)
+      cases.Add(JsonSerializer.SerializeToElement(new
+      {
+        id = "value-object",
+        question = "what is a value object and why we need it?",
+        facts = new[] { "No identity; equality by attributes", "Encapsulates domain values and validation" },
+      }));
     await Context.RouteAsync("**/__tests/composed-evidence.mjs", async route => await route.FulfillAsync(new()
     {
       ContentType = "text/javascript",
@@ -28,10 +41,11 @@ public class LearningChatComposedAnswerBenchmarkTests(AppFixture fixture) : Page
     await Expect(Page.GetByRole(AriaRole.Status)).ToHaveTextAsync(
       "Local article search is ready. Questions stay in this browser.", new() { Timeout = 240_000 });
     var results = await Page.EvaluateAsync<string>("""
-      async casesJson => {
-        const cases=JSON.parse(casesJson);
+      async inputJson => {
+        const {cases,claimAttribution}=JSON.parse(inputJson);
+        const variants=claimAttribution?['candidate','quote-bound']:['baseline','candidate'];
         const chat = await import(new URL('js/learning-chat.js', document.baseURI));
-        const {selectEvidence,buildEvidencePrompt,inspectAnswer} = await import(new URL('__tests/composed-evidence.mjs', document.baseURI));
+        const {selectEvidence,buildEvidencePrompt,inspectAnswer,buildClaimPrompt,inspectClaims,claimResponseFormat} = await import(new URL('__tests/composed-evidence.mjs', document.baseURI));
         const {meaningfulTerms} = await import(new URL('js/chat/topic-terms.js', document.baseURI));
         const model = {
           model_id:'Qwen3-4B-q4f16_1-MLC',
@@ -59,7 +73,8 @@ public class LearningChatComposedAnswerBenchmarkTests(AppFixture fixture) : Page
               } else {
                 await engine.resetChat();
                 const stream = await engine.chat.completions.create({
-                  messages:data.messages,stream:true,max_tokens:512,temperature:0,seed:42,enable_thinking:false
+                  messages:data.messages,stream:true,max_tokens:data.maxTokens,temperature:0,seed:42,enable_thinking:false,
+                  ...(data.responseFormat?{response_format:data.responseFormat}:{})
                 });
                 let text='',finishReason,firstTokenMs;
                 for await (const chunk of stream) {
@@ -141,14 +156,19 @@ public class LearningChatComposedAnswerBenchmarkTests(AppFixture fixture) : Page
             for(const item of cases) {
               const sources=await chat.search(item.question,6,item.context??'');
               const contextualQuestion=item.context ? `${item.context}\n${item.question}` : item.question;
-              for (const variant of ['baseline','candidate']) {
+              const packed=buildEvidencePrompt(item.question,selectEvidence(contextualQuestion,sources,corpus,meaningfulTerms),
+                system,item.context??'',claimAttribution?4800:6000);
+              for (const variant of variants) {
                 const assembled=variant==='baseline' ? prompt(item.question,sources,item.context??'')
-                  : buildEvidencePrompt(item.question,selectEvidence(contextualQuestion,sources,corpus,meaningfulTerms),system,item.context??'');
-                const result=await request({type:'generate',messages:assembled.messages});
+                  : variant==='quote-bound'?buildClaimPrompt(packed):packed;
+                const result=await request({type:'generate',messages:assembled.messages,maxTokens:claimAttribution?768:512,
+                  ...(variant==='quote-bound'?{responseFormat:claimResponseFormat}:{})});
                 results.push({id:item.id,variant,question:item.question,context:item.context??'',expectedFacts:item.facts,
                   retrievedSources:sources,...assembled,...result,syntaxValid:result.result
                     ? syntax(result.result.text,assembled.sources.length,result.result.finishReason):false,
-                  inspection:result.result?inspectAnswer(result.result.text,assembled.sources.length,result.result.finishReason):null});
+                  inspection:result.result?(variant==='quote-bound'
+                    ?inspectClaims(result.result.text,assembled.sources,result.result.finishReason)
+                    :inspectAnswer(result.result.text,assembled.sources.length,result.result.finishReason)):null});
               }
             }
             const gc=results.find(item=>item.id==='gc-definition'&&item.variant==='candidate').sources;
@@ -162,17 +182,23 @@ public class LearningChatComposedAnswerBenchmarkTests(AppFixture fixture) : Page
                 ...results.find(item=>item.id==='gc-sweeping').sources
               ]}
             ]) {
-              for (const variant of ['baseline','candidate']) {
-                const assembled=variant==='baseline'?prompt(item.question,item.sources):buildEvidencePrompt(item.question,item.sources,system);
-                const result=await request({type:'generate',messages:assembled.messages});
+              const packed=buildEvidencePrompt(item.question,item.sources,system,'',claimAttribution?4800:6000);
+              for (const variant of variants) {
+                const assembled=variant==='baseline'?prompt(item.question,item.sources)
+                  :variant==='quote-bound'?buildClaimPrompt(packed):packed;
+                const result=await request({type:'generate',messages:assembled.messages,maxTokens:claimAttribution?768:512,
+                  ...(variant==='quote-bound'?{responseFormat:claimResponseFormat}:{})});
                 results.push({id:item.id,variant,question:item.question,...assembled,...result,
                   syntaxValid:result.result?syntax(result.result.text,assembled.sources.length,result.result.finishReason):false,
-                  inspection:result.result?inspectAnswer(result.result.text,assembled.sources.length,result.result.finishReason):null});
+                  inspection:result.result?(variant==='quote-bound'
+                    ?inspectClaims(result.result.text,assembled.sources,result.result.finishReason)
+                    :inspectAnswer(result.result.text,assembled.sources.length,result.result.finishReason)):null});
               }
             }
           }
           return JSON.stringify({generatedAt:new Date().toISOString(),purpose:'Diagnostic only; manual claim/citation review required before selection',
             runtime:'@mlc-ai/web-llm@0.2.86',model,weightBytes:2262920192,browser:navigator.userAgent,
+            variants,maxTokens:claimAttribution?768:512,claimResponseFormat:claimAttribution?claimResponseFormat:null,
             adapter:{vendor:adapter.info?.vendor,architecture:adapter.info?.architecture,
               maxStorageBufferBindingSize:adapter.limits.maxStorageBufferBindingSize},
             corpusVersion:manifest.corpusVersion,load,results});
@@ -181,16 +207,19 @@ public class LearningChatComposedAnswerBenchmarkTests(AppFixture fixture) : Page
           URL.revokeObjectURL(blobUrl);
         }
       }
-      """, JsonSerializer.Serialize(cases));
+      """, JsonSerializer.Serialize(new { cases, claimAttribution }));
     var directory = Path.Combine(AppContext.BaseDirectory, "TestResults");
     Directory.CreateDirectory(directory);
-    var path = Path.Combine(directory, "learning-chat-composed-answer-benchmark.json");
+    var path = Path.Combine(directory, claimAttribution
+      ? "learning-chat-claim-attribution-benchmark.json" : "learning-chat-composed-answer-benchmark.json");
     using var rawReport = JsonDocument.Parse(results);
     var reportWithProvenance = new
     {
       reviewStatus = "Unreviewed: diagnostic execution is not quality approval",
       productionChanged = false,
-      intervention = "Same model/system/decoding; candidate changes facet coverage, sentence packing and final citation/absent-API reminder together, not a pure ranking ablation",
+      intervention = claimAttribution
+        ? "Same model, supplied excerpts, 4800-byte packed evidence budget and 768 output tokens; quote-bound changes instructions and JSON-schema decoding. Quote binding is not entailment."
+        : "Same model/system/decoding; candidate changes facet coverage, sentence packing and final citation/absent-API reminder together, not a pure ranking ablation",
       rubricSha256 = Convert.ToHexStringLower(SHA256.HashData(
         await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "TestData", "composed-answer-rubric.json"),
           TestContext.Current.CancellationToken))),
@@ -203,7 +232,7 @@ public class LearningChatComposedAnswerBenchmarkTests(AppFixture fixture) : Page
     Console.WriteLine($"Diagnostic composed-answer benchmark (not a quality approval): {path}");
     using var report = JsonDocument.Parse(results);
     Assert.False(report.RootElement.GetProperty("load").TryGetProperty("error", out var loadError), loadError.ToString());
-    Assert.Equal(28, report.RootElement.GetProperty("results").GetArrayLength());
+    Assert.Equal(claimAttribution ? 30 : 28, report.RootElement.GetProperty("results").GetArrayLength());
     Assert.All(report.RootElement.GetProperty("results").EnumerateArray(),
       item =>
       {
@@ -218,5 +247,15 @@ public class LearningChatComposedAnswerBenchmarkTests(AppFixture fixture) : Page
     Assert.Contains("Transient", headings);
     Assert.Contains("Scoped", headings);
     Assert.Contains("Singleton", headings);
+    if (claimAttribution)
+    {
+      foreach (var group in report.RootElement.GetProperty("results").EnumerateArray()
+        .GroupBy(item => item.GetProperty("id").GetString()))
+      {
+        var paired = group.ToArray();
+        Assert.Equal(2, paired.Length);
+        Assert.Equal(paired[0].GetProperty("sources").GetRawText(), paired[1].GetProperty("sources").GetRawText());
+      }
+    }
   }
 }
