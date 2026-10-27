@@ -1,1160 +1,338 @@
-# Browser-Local Learning Chat — Implementation Plan
+# Browser-Local Learning Chat - Implementation Plan
 
-> Status: **User-approved composed article answers implemented and bounded development validation completed; not general factuality/release sign-off**
-> Prepared: 2026-10-04  
-> Scope: shared Blazor UI and static assets in `CommonComponents`; the page and navigation are not gated by a feature flag. Runtime parity in MAUI has not yet been validated.  
-> The sections below retain the original design and later-stage requirements. The implementation notes here identify the delivered increment, not approval of every proposed release gate.
+> Status: implemented browser-local preview; bounded development validation completed.
+> Updated: 2026-10-27.
+> This is the current implementation contract, not general factuality or release sign-off.
+> Superseded designs and retired experiments remain in Git history.
 
-**Current implementation:** `/chat/` lives in `CommonComponents/Pages/LearningChat.razor` and follows the existing shared-page/static-asset pattern used by vector search. Local retrieval loads automatically after the interactive page renders, with cancel and retry controls; no enable click is required. The page discloses the automatic embedding-model download from Hugging Face when uncached. Chat scripts, generated corpus assets, and the bundled WebLLM runtime are served from `CommonComponents/wwwroot`. The shared navigation exposes the page directly, with a mobile overflow entry and no feature/build flag. Header vector search is unchanged.
+## 1. Scope and approved behavior
 
-## Approved increment: explain articles and cite them
+The **Learn with AI** page at `/chat/` uses this pipeline:
 
-**Approved, implemented and validated: 2026-10-27.** The user approved this scope
-after the planning update. Measured results and limitations are recorded below.
+**Question -> browser-local article retrieval -> bounded evidence -> WebLLM
+explanation -> streamed draft -> validated citations and original sources.**
 
-The requested experience is straightforward: **question -> retrieve relevant
-article passages -> WebLLM reads those passages -> stream a concise explanation
--> link citations to the supporting article sections**. WebLLM reads a bounded
-evidence package, not every full article or arbitrary URLs. This is a focused
-change to the existing pipeline, not a new architecture or a chunking rewrite.
+WebLLM reads selected article passages, not every full article or arbitrary URLs.
+The website remains a static deployment without an inference API, vector database,
+API key or native model server. The page and navigation are available without a
+feature flag. Header vector search remains independent and unchanged.
 
-This section governs the implemented increment. The earlier implementation
-and experiment notes below remain historical evidence, not its acceptance
-contract. Composed answers replace the earlier verified-excerpt behavior.
-The original long-term requirements elsewhere in this document are not all
-prerequisites for this increment.
-
-### Requirements and boundaries
-
-| ID | Approved behavior |
+| Requirement | Implemented contract |
 | --- | --- |
-| SIMPLE-001 | Explain the answer in natural language using the supplied article passages; paraphrasing is allowed. No exact-quotation-per-sentence or quote-bound JSON requirement. |
-| SIMPLE-002 | Retrieve the relevant concept and pack its heading with supporting paragraphs, useful lists and bounded code. Do not lose an answer merely because its passage is a list or has no complete prose sentence. |
-| SIMPLE-003 | Each answer paragraph references valid evidence IDs. Resolve IDs using application-owned metadata; never trust generated URLs, HTML or source lists. Citations prove a link to supplied evidence, not automatic factual correctness. |
-| SIMPLE-004 | Stream provisional answer text safely. Distinguish an in-progress draft from a completed answer; incomplete, invalid or failed output ends with an explicit reason and original sources, not a success-shaped answer. |
-| SIMPLE-005 | Preserve automatic retrieval, remembered download consent, active model label, cancel/stop/reset, source cards, dark-theme readability and independent header search. Questions and evidence stay local; no cloud inference. |
-| SIMPLE-006 | Keep page, scripts, bundles, generated assets and build ownership in `CommonComponents`, following shared vector search. Unsupported devices retain source-only search. |
-| SIMPLE-007 | Demonstrate the TDD Red question end-to-end, plus bounded regression questions and unsupported input. Record semantic failures honestly; valid citation syntax alone is not an answer-quality pass. |
+| SIMPLE-001 | Explain concepts naturally from supplied article passages. Paraphrasing is allowed; exact quotations and quote-bound JSON are not required. |
+| SIMPLE-002 | Preserve heading/body context, useful lists and bounded code when packing evidence. Respect embedding and generation limits. |
+| SIMPLE-003 | Require valid evidence IDs at the end of each answer paragraph. Resolve links from application-owned source metadata, never generated URLs. Citations establish provenance, not factual correctness. |
+| SIMPLE-004 | Safely render provisional text, then validate completion and citations. Refused, incomplete, invalid or failed output retains original sources and an explicit status. |
+| SIMPLE-005 | Preserve automatic retrieval, remembered generation-download consent, active model display, stop/retry/new-conversation controls, source cards, theme support and existing search/navigation. No cloud inference. |
+| SIMPLE-006 | Keep the shared page, scripts, bundles, corpus assets and build ownership in `CommonComponents`. Generation-unsupported devices retain source-only search. |
+| SIMPLE-007 | Demonstrate the TDD Red question through the real production path and record bounded regression results and semantic failures honestly. |
 
-**Intentional behavior change:** composed drafts are model-generated, unlike the
-previous verified-original-sentence stream. Display a concise AI-generated/check-
-the-sources notice rather than claiming verification or guaranteed correctness.
-No automatic semantic verifier, self-judging model, exact-quote validator or
-second inference pass is required for this increment. Evidence and user text
-remain untrusted inputs; retain prompt-instruction isolation and safe rendering.
-This explicitly trades the old verbatim guarantee for useful explanations.
+Additional user-approved workspace behavior:
 
-### Model decision included in approval
+- The left sidebar contains **New conversation**, saved conversations, selection,
+  individual deletion, confirmed delete-all and model controls.
+- The center shows the active conversation with a fixed composer and independently
+  scrollable messages. On mobile, **Chats & model** toggles the sidebar.
+- Scrolling is **manual only**, including during streaming and after long answers;
+  native scroll anchoring is disabled for the message region.
+- Article links remain visible; long source excerpts are expandable.
+- Enter sends; Shift+Enter inserts a newline; IME composition does not submit.
+- Conversations persist in this browser profile until deleted, subject to browser
+  storage availability. New conversation preserves previous chats.
+- There are no accounts, server-stored conversations, sharing or cross-device sync.
 
-Use **one pinned Qwen3 4B default**, reusing the existing evaluated immutable
-revision and WebLLM runtime; no model picker or parallel model-comparison project.
-SmolLM2 360M was selected for quotation selection and must not silently be
-presented as a proven composed-answer model.
+Out of scope: autonomous agents, tool calling, code execution, arbitrary browsing,
+fine-tuning, cloud/native inference fallback, automatic semantic verification,
+model picker, full offline/PWA support and guaranteed generation on every device.
 
-This recommendation is **not a quality approval**: the experiments below found
-real reasoning errors with Qwen3 too. Its weights are about **2.26 GB**, plus
-tokenizer/runtime downloads, versus the previous approximately 250 MB notice.
-Its actual memory/latency depends on context and device; do not advertise the
-upstream 4,096-context memory estimate as measured for an 8,192-context setting.
-Update consent, model identity, context bounds and download/memory disclosures
-together. Consent for the old immutable model must not authorize the larger one;
-remember successful consent for the new revision so it is not requested on
-every visit. No automatic download just because the user opens the page.
+## 2. Ownership and implementation map
 
-Approval of this plan includes this larger-model trade-off. If that download is
-unacceptable, revise the model decision before implementation rather than quietly
-substituting a smaller model or treating browser support as a memory guarantee.
+Paths below are relative to the repository root.
 
-### Implementation steps and task breakdown
-
-1. **P1: Establish concrete question/evidence cases.** Capture real corpus
-   results for the Red question before tuning. Identify whether failures are
-   extraction, ranking or prompt packing; change only the failing layer.
-   - [x] T001 [Plan:P1] Add the TDD Red question and required facts to `ILoveDotNet.DistributedTest/TestData/learning-chat-retrieval.json` and the production generation evaluation cases in `ILoveDotNet.DistributedTest/LearningChatGenerationBenchmarkTests.cs`. Retain the value-object and unsupported-API cases; do not hard-code answers in the runtime.
-
-2. **P2: Preserve answer-bearing context.** Keep heading/body association,
-   lists and bounded code when assembling prompts. Prefer existing section and
-   adjacent-passage helpers. Adjust extraction/chunk boundaries only if T001
-   proves the relevant content is missing or split incorrectly. Preserve the
-   embedding model's input limit and publication filtering.
-   - [x] T002 [Plan:P2] Update evidence packing in `CommonComponents/wwwroot/js/chat/generation-contract.js`; preserve lists, complete fitting code fences and original citation slots. In `retrieval-worker.js`, prioritize individual matching definition headings for comparison questions within already-retrieved articles. The TDD question needs no ranking/adjacency change.
-   - [x] T003 [Plan:P2] Conditional extractor change **not needed**: generated TDD passages already contain the Red definition and failing-test example. `VectorSearchIndexGenerator/ChatArticleExtractor.cs`, chunk boundaries and header-search indexing are unchanged.
-
-3. **P3: Enable concise grounded composition.** Replace sentence-selection
-   instructions/grammar with a prompt to answer the question from evidence,
-   cite each paragraph and abstain when evidence cannot answer it. Do not
-   weaken the existing quotation validator in place and still call it verified;
-   replace that contract and its tests explicitly.
-   - [x] T004 [Plan:P3] Update `CommonComponents/wwwroot/js/chat/generation-contract.js` and `generation-worker.js` for composed text, context-safe prompt/output budgets, bounded history, valid per-paragraph source IDs, completion checks and distinct refusal/error outcomes. Retain the source-only path.
-   - [x] T005 [Plan:P3] Select pinned Qwen3 in `generation-contract.js` and update `THIRD-PARTY-NOTICES.txt`. The existing immutable-model consent key and capability reporting in `CommonComponents/wwwroot/js/chat/generation.js` already handle the new configuration without bridge edits. Reuse the pinned local bundle; no dependency/runtime upgrade.
-
-4. **P4: Stream and render with honest guarantees.** Reuse the current
-   bridge, operation IDs and lifecycle; replace verified-prefix assumptions.
-   Never interpret generated text as HTML or link markup. Only trusted,
-   in-range evidence IDs become clickable citations.
-   - [x] T006 [Plan:P4] Update `CommonComponents/Pages/LearningChat.razor` and `.razor.cs` to label provisional AI text, render final citations safely, preserve source cards and provide explicit fallback. Update model/download notices; preserve dark/light presentation, stop/reset and stale-callback protection. Existing `generation.js` callbacks require no change.
-
-5. **P5: Validate the requested experience and regressions.** Evaluate the
-   actual reader-facing prompt/model/streaming path, not only an isolated
-   experimental helper. Record what works and any correctness limitations.
-   - [x] T007 [Plan:P5] Replace directly affected quotation-only expectations in `ChatBundle/tests/generation-contract.test.js` and `ILoveDotNet.DistributedTest/LearningChatGenerationTests.cs`; cover composed drafts, valid/unknown IDs, malformed citations, refusal, truncation, worker failure, stop/reset and new-model consent.
-   - [x] T008 [Plan:P5] Run the focused Node/browser suites and explicit real-model cases, including TDD Red, GC sweeping, DI lifetimes, JSON mutation and value objects. Retain `LearningChatTests` and `VectorSearchTests` regression coverage; build `Web/Web.csproj` for shared assets. MAUI runtime validation remains unverified.
-   - [x] T009 [Plan:P5] Record measured results, final model/budget disclosures and remaining issues below. The requested Red example passes; the DI fallback and source-quality limitations remain explicit. No general release or human factuality sign-off is claimed.
-
-### Acceptance example and completion checks
-
-For **"what is red phase in TDD?"**, the answer should explain:
-
-> Red is the first step of TDD: write a test for the next requirement before
-> implementing it. Run the test and confirm it fails because the behavior is
-> not implemented yet. Green follows by adding enough code to make it pass. [1]
-
-This is illustrative wording, **not an exact expected string or hard-coded
-response**. The introduction article supplies the concept; the implementation
-article demonstrates a failing `NotImplementedException` test.
-
-- Retrieval/prompt evidence must contain the failing-test explanation, not just
-  an introduction containing the word "TDD".
-- A real WebLLM run must compose a relevant answer and emit valid citations.
-  Refusal on this supported acceptance question does not count as success.
-- A citation must open the correct application-owned article and an existing
-  anchor. Prefer a validated subsection such as
-  `blogs/introducing-tdd-in-csharp-dotnet/#basics-of-test-driven-development`
-  if available in emitted metadata; otherwise use the correct existing `#how`
-  anchor. Exact paragraph/chunk DOM anchors are not required.
-- Supporting passages remain available for the reader to check. A source number
-  that merely exists is not proof that its passage supports the explanation;
-  manually review the example and regression answers for contradictions.
-- Unsupported questions/unknown APIs must not produce invented instructions.
-  Normal refusal, unavailable GPU, download/inference errors and invalid final
-  citations retain source-only behavior with an explicit, appropriate message.
-- Existing navigation, header search, consent persistence, active model display,
-  stop/reset and light/dark presentation continue to work.
-
-### Requirement mapping
-
-| Requirement | Plan items | Completion evidence |
-| --- | --- | --- |
-| SIMPLE-001 | P3, P5 | Composed response from the production contract/worker in a real-model acceptance run |
-| SIMPLE-002 | P1, P2, P5 | TDD definition present in retrieval and packed prompt; lists/code preserved within bounds |
-| SIMPLE-003 | P2, P3, P4, P5 | Stable ID/source mappings, safe citation rendering and actual article-anchor navigation |
-| SIMPLE-004 | P3, P4, P5 | Provisional stream, completion validation, explicit failure/fallback and stop/reset tests |
-| SIMPLE-005 | P3, P4, P5 | Consent/model-label/lifecycle/theme checks and unchanged header-search regression |
-| SIMPLE-006 | P2, P3, P4, P5 | Shared project assets/build integration, no Web-owned page/scripts or inference service |
-| SIMPLE-007 | P1, P5 | Recorded real TDD answer, bounded semantic review and targeted regression results |
-
-**Out of scope:** another model bake-off, picker, automatic entailment scoring,
-quote-bound JSON rollout, full-article stuffing, embedding-model replacement,
-cloud inference, new services/projects, full offline support and unrelated article
-rewrites. Record discovered article inaccuracies separately; generated citations
-cannot repair incorrect source material. No new feature flag or repeated enable
-button is proposed.
-
-### Implementation details and validation
-
-- **Chat workspace update (user approved):** the left sidebar contains New
-  conversation, saved conversation titles, individual deletion and confirmed
-  delete-all, followed by model controls. The center contains the active chat
-  with a fixed composer and independently scrollable messages. On mobile,
-  "Chats & model" opens a collapsible sidebar. Source links remain visible;
-  long passage excerpts are expandable instead of filling the answer by default.
-- **Manual scrolling only:** sending a question, streaming deltas and final
-  answers no longer scroll the conversation. Native scroll anchoring is disabled
-  for the message region. Readers decide when to scroll.
-- **Persistence/privacy change explicitly requested by the user:** questions,
-  completed answers and source metadata are saved in this browser profile's
-  localStorage until deleted (subject to browser storage availability/clearing).
-  They survive navigation and refresh, but are not synced or sent to a server.
-  The sidebar warns that others using the profile can read them. New conversation
-  preserves previous chats; deleting chat history is separate from clearing
-  the model cache.
-- History uses a versioned source-generated JSON contract. Restored citations
-  are restricted to application-owned blog paths; malformed/incompatible history
-  is reported without silently overwriting it. Browser storage failures are
-  surfaced while search remains usable. Provisional drafts are not stored as
-  completed generated answers.
-- Workspace validation: **18 Node tests and 25 focused browser tests passed**.
-  Coverage includes source-only and generated history/citations across reload,
-  selecting/deleting conversations, confirmed delete-all, storage/quota failure,
-  invalid stored links, manual scrolling during streaming and after long
-  retrieval results, mobile sidebar/composer, existing chat lifecycle and header
-  search. Desktop light/dark and mobile layouts were visually inspected.
-  The pipeline's Release/GitHub Pages publish command completed successfully,
-  including prerendering and source-generated history serialization under trimming.
-  Layout CSS follows the existing shared `Styles/ilovedotnet.css` -> `app.min.css`
-  build path used by both Web and MAUI, rather than introducing a Web-only sheet.
-- Navigation cleanup retains the initialized input/conversation elements in
-  JavaScript and releases their listeners without resolving a disposed Blazor
-  `ElementReference`. Cleanup is repeat-safe and still stops the retrieval worker.
-  Regression coverage clicks both a generated citation and a source article,
-  checks for rendering errors, then returns to chat and searches again.
-  Navigation-fix validation: **17 Node tests and 19 focused chat browser tests
-  passed**; Web build passed with existing warnings and no errors.
-- Production model: `Qwen3-4B-q4f16_1-MLC`, immutable revision
-  `a5c9fab855e3ccbdfed2e7e69683d75f30332161`; WebLLM remains `0.2.86`.
-  Context is 8,192 tokens, total prompt content at most 6,000 UTF-8 bytes,
-  output at most 512 tokens, at most six passages and 1,600 bytes per passage.
-  The prompt requests one 60-100-word paragraph; final validation allows at most
-  three paragraphs and 150 words.
-- Removed the exact-sentence grammar, not citation safety. Drafts are clearly
-  provisional and safely encoded; final text requires normal completion,
-  valid nonblank supplied evidence IDs and paragraph-end citations. Only the
-  model's known **empty** thinking wrapper is stripped; nonempty reasoning,
-  generated URLs/HTML, invalid citations and truncation fall back to sources.
-- Requests to call a qualified API absent from the packed article bodies are
-  rejected before inference, with an explicit reason and original sources.
-  This prevents invented method instructions without relying only on model
-  abstention; it is not a general claim-level semantic verifier.
-- This contract intentionally permits paraphrases; it is **not semantic
-  verification**. A valid citation can still accompany an incorrect claim.
-  The page explicitly tells readers to check the original articles.
-- Both generated TDD articles already contain the answer under `#how`.
-  No chunker, extractor or embedding-model change was required. A bounded
-  comparison-heading prioritization was needed after the actual DI question
-  retrieved advanced dependency pitfalls instead of all three definitions.
-  Links continue to use existing section anchors, not exact paragraph anchors.
-- Node contract/evidence tests: **16 passed**. Real-embedding retrieval:
-  **43/43 supported and 8/8 unsupported cases passed**, including TDD Red.
-  Final Web build: **0 errors**, with 10 existing trimming warnings (the earlier
-  broader rebuild emitted 119 warnings).
-- Final focused browser regressions: **19/19 passed**, including generation,
-  source-only chat, consent/cache/cancel/reset, dark/light contrast and header
-  search. The earlier combined run passed 20/21, including both explicit real-model
-  tests, but hit the existing intermittent header-search timeout. Header search
-  then passed unchanged in isolation and in the final 19-test group. No header
-  production code, assertions or timeouts were changed.
-- The actual-page Qwen3 acceptance test **passed** with the real production
-  retrieval, worker, prompt, streaming and rendered citations. It verified that
-  the Red answer explains a failing test before implementation, observes a draft,
-  and opens the cited TDD article's existing `#how` anchor. The fabricated API
-  case correctly shows sources without generating invented instructions.
-  The combined real-model/regression run took about eight minutes, including
-  initial model loading; this is not a measured per-answer latency guarantee.
-- Runtime behavior in MAUI WebView and broader device/browser parity remain
-  unverified; this is not a general release or independent factuality sign-off.
-- The first completed actual-page run exposed real failures: TDD and three
-  other supported answers fell back on length/paragraph format; the DI answer
-  reversed lifetime relationships; the fabricated API received invented advice.
-  Those are **not passes**. The follow-up narrows the prompt to one paragraph,
-  prioritizes individual comparison definitions, rejects absent requested APIs
-  before inference, and captures raw worker output for diagnosis. It also clears
-  stale model-error status after a later successful answer.
-
-#### Final actual-reader answer review
-
-| Question | Observed outcome | Manual evidence/quality review |
-| --- | --- | --- |
-| What is Red phase in TDD? | Composed, streamed, cited `[2]` | Correctly explains writing a failing test before implementation; citation opens `introducing-tdd-in-csharp-dotnet/#how` and supports the explanation. Some wording is repetitive. |
-| What is sweeping? | Composed, streamed, cited `[1][3]` | Explains reclaiming dead-object memory without moving live objects, consistent with the supplied passages. |
-| Compare transient/scoped/singleton | **Source-only fallback** | All three definition headings are now supplied. The model still begins with the confused phrase "Transient scoped services" and ends with an uncited recommendation; final validation rejects the output. This supported question is not an answer-quality pass. |
-| Modify a JSON property with JsonNode | Composed, streamed, cited `[1][2]` | Explains obtaining a `JsonObject` and updating the property; the example setting `temperature` to 18 is present in the evidence. Describing `AsObject()` as a "cast" is loose terminology, not a verbatim API example. |
-| What is a value object and why use it? | Composed, streamed, cited `[1][2][4]` | Gives attribute equality and immutability, but also repeats the source article's overbroad claim that value objects must always belong to an entity. This is a known source-quality issue, not technical correctness approval. The article was not rewritten as part of this task. |
-| Call `GC.EnableTeleportation()` | **Source-only fallback before inference** | The requested API is absent from the packed article bodies; an explicit message replaces invented usage instructions. This identifier check is not a general semantic verifier. |
-
-The raw six-question result is emitted by
-`LearningChatGenerationBenchmarkTests` as
-`ILoveDotNet.DistributedTest/bin/Debug/net10.0/TestResults/learning-chat-production-generation.json`.
-It includes packed evidence, rendered text, trusted citation URLs, provisional
-stream observation and raw worker output. Passing the test means the concrete
-TDD/citation/fallback assertions passed, **not** that every diagnostic answer is
-correct. The explicit test optionally accepts `LEARNING_CHAT_BENCHMARK_PROFILE`
-to reuse a dedicated Chromium profile/model cache during development.
-
-## Historical increments and experiments
-
-The following records describe earlier contracts and experiments. Their
-"keep verified excerpts" decisions applied at that time and are superseded by
-the explicit composed-answer approval above. Their correctness findings still
-apply as limitations; do not interpret this approval as resolving every claim.
-
-### Earlier streamed verified-excerpt increment (superseded)
-
-- A separate worker uses pinned WebLLM `0.2.86`. Generation requires HTTPS/localhost, a real WebGPU adapter, `shader-f16`, and at least a 128 MiB storage-buffer binding limit. Unsupported devices retain automatic article search.
-- The selected model is `SmolLM2-360M-Instruct-q4f16_1-MLC`, revision `3a622fd89e0216e8bb10c410c007c786baa8a033`. WASM libraries are pinned to `mlc-ai/binary-mlc-llm-libs` revision `00fe7a40e57e5e8eb9fef87526a4bf28ad5846c0`. Its weight manifest totals 203,614,080 bytes. The UI discloses approximately 250 MB of downloads and 500 MB of GPU memory plus browser overhead; actual requirements depend on the browser/device.
-- The first model download requires explicit consent because it is substantial. This is not a feature flag or a repeated search-enable step. Successful consent is remembered for that immutable model revision, with automatic model loading on subsequent visits. Readers can cancel loading, stop inference, use sources only, and clear the answer-model cache. Model/runtime requests go to Hugging Face and GitHub; questions, evidence, and answers are not sent to an inference service.
-- Retrieval runs first. With no sufficiently strong passages, no generation is attempted. Each generation request starts a fresh model conversation and includes only selected article excerpts and bounded previous user questions as optional context.
-- Prompt assembly caps UTF-8 input at 3,000 bytes, includes at most six sequential evidence IDs, and selects complete sentences within 900 bytes per source. For these byte-level-BPE models this conservatively bounds input tokens; 512 output tokens and 584 framing tokens fit the 4,096-token context. No private tokenizer APIs are used. The existing retrieval topic normalizer is shared, unchanged, with a generation preflight that rejects evidence with no question-topic overlap.
-- Passages without complete sentences (for example, unpunctuated decision lists) or sentences that fit the remaining budget are skipped individually, not treated as the end of the source list. Original source-number slots are retained so later citations still link to the correct displayed article. The reported value-object question was checked against its six actual corpus passages: the definition is included within a 2,786-byte prompt. A lack of usable sentences across all passages remains an explicit fallback.
-- **User-approved safety boundary:** the model selects up to three verbatim article sentences, rather than writing free-form explanations. WebLLM's constrained EBNF decoding permits only topic-matching sentences with their correct source IDs, or a refusal. A separate final validator checks the result regardless of decoder behavior. Each paragraph must contain exactly one complete original sentence and its correct source ID. Whitespace is normalized; words and punctuation must match. Duplicate selected sentences are collapsed. Valid citation syntax alone is not sufficient. Paraphrased, combined, invented or wrongly attributed text is rejected.
-- Streaming publishes only text that is a prefix of an original sentence and its correct citation. Unverified model wording never reaches the visible draft. Only a normally completed, fully verified selection becomes a final answer. Missing, unknown or malformed citations, changed wording, links/HTML, truncation, model errors and refusals replace the draft with the original search results and an explicit reason.
-- Numeric citations are rendered as application-owned links, never model-supplied URLs or HTML. They open the article's existing section anchor (`#what`, `#why`, `#how`, `#summary`), **not an exact chunk DOM anchor**. Supporting source excerpts remain visible. Text verification proves provenance, not that the selected sentence fully answers the question or that the original article is infallible.
-- Cancellation terminates the generation worker independently of retrieval. Operation IDs prevent stale callbacks from modifying a stopped/cleared conversation. Transcripts remain in page memory and are cleared on navigation/reload.
-
-**Measured model-selection evidence:** real WebGPU browser runs compared Qwen2.5 0.5B and SmolLM2 360M with Qwen2.5 1.5B on short GC evidence. The smaller models routinely omitted citations or generated incorrect claims. The 1.5B candidate produced valid citation syntax but still invented incorrect GC explanations and did not reliably abstain on unrelated questions. **None passed a trustworthy free-form explanation gate.** The user therefore chose verified verbatim excerpts instead of pursuing larger models. Strict text verification, not model trust, is the safety boundary. These development smoke tests are not an independent answer-quality benchmark or a guarantee of latency, completeness or relevance.
-
-With constrained verbatim decoding, SmolLM2 returned verified excerpts for compaction and the GC's role, but refused the supported sweeping question; this intentionally falls back to original passages rather than forcing an answer. A normally completed `INSUFFICIENT_EVIDENCE` response is a typed `refused` outcome, not a runtime exception: the page explains that the model could not select a quotation and retains all original passages. It does not imply the articles lack an answer. Truncated refusals and invalid output remain explicit errors; worker error messages cross the bridge without JavaScript stack traces. The explicit smoke gate requires at least two of three supported questions to return verified text, allows only an exact refusal for the others, checks the exact question `what is garbage collection`, and requires unrelated database evidence to be rejected. It does not claim complete answer coverage. Qwen candidates refused more frequently under this contract.
-
-**Validation entry points:** `npm test --prefix ChatBundle` covers prompt bounds, topic preflight, verified streaming prefixes and final text/citation validation. `LearningChatGenerationTests` exercises the real bridge/worker/validator with deterministic runtime stubs, including provisional streaming, invalid citations, changed wording, stop/reset, unsupported GPU, consent persistence and cache removal. `LearningChatGenerationBenchmarkTests` is explicit and downloads actual models; run with `HEADED=1` when headless Chromium does not expose hardware WebGPU. Existing retrieval, corpus-validation, header search and real-embedding evaluations remain regression coverage. Free-form synthesis, MAUI WebView generation, broader browser/device testing, exact-chunk anchors, independent human review, and comprehensive generation release gates are **not** completed by this increment.
-
-### Stronger composed-answer experiment (not deployed)
-
-The experimental benchmark, evidence helper, quote-bound validators and rubric
-have been retired; their implementation remains in Git history. The results
-below document past decisions, not runnable validation entry points.
-Current checks use `LearningChatGenerationBenchmarkTests`, `LearningChatEvaluationTests`,
-the production-worker browser regressions in `LearningChatTests`, and
-`npm test --prefix ChatBundle`.
-
-The user chose to benchmark a stronger default before considering a model picker.
-`LearningChatComposedAnswerBenchmarkTests` tests Qwen3 4B with **unconstrained
-composed answers**, not the production sentence-selection grammar. It imports the
-same pinned WebLLM bundle in an isolated disposable worker and uses real MiniLM
-retrieval against the published article corpus. It does not change the production
-model, consent, page, or workers.
-
-- Model: `mlc-ai/Qwen3-4B-q4f16_1-MLC`, revision
-  `a5c9fab855e3ccbdfed2e7e69683d75f30332161`, Apache 2.0.
-- Weight manifest: **2,262,920,192 bytes** (about 2.26 GB decimal), plus tokenizer
-  and WASM downloads. Upstream estimates 3,431.59 MB GPU memory at a 4,096-token
-  context; the benchmark uses 8,192 tokens, so that is **not** its measured memory
-  requirement. Actual peak GPU memory was not instrumented.
-- Input is capped at 6,000 UTF-8 bytes with 512 output tokens, deterministic
-  decoding, thinking disabled, and no fabricated evidence. The two injection
-  cases deliberately add untrusted instructions for testing.
-- Ten supported questions cover GC, follow-ups, DI, OOP, Blazor, JSON and
-  cancellation. Four challenge cases cover unrelated evidence, a fabricated
-  `GC.EnableTeleportation()` API, user instructions and injected evidence.
-- The initial development run completed all 14 cases without runtime errors.
-  Model loading took **236 seconds**. Median first streamed delta was **1.73
-  seconds** and median completion **5.68 seconds**. These measurements include
-  model wrapper text, not necessarily first visible answer text. Loading was not
-  isolated into cold/warm runs; neither timing nor memory is a device guarantee.
-
-**Result: useful composed prose, but not approved as the default.**
-
-| Check | Observation |
+| Area | Files and responsibility |
 | --- | --- |
-| GC definition and sweeping | Natural explanations with evidence IDs; much closer to the requested conversational UX than selected quotations |
-| Raw response format | All 14 responses included an empty `<think>...</think>` wrapper despite thinking being disabled, so all failed the current no-HTML response contract |
-| Citation syntax after removing only that exact empty wrapper | 8/10 supported answers passed paragraph/ID syntax checks; this is **not** a factuality score. DI-lifetimes and JSON answers had incomplete paragraph-end references |
-| DI lifetimes | Incorrectly said a singleton would live longer because of a transient dependency, conflated transient/scoped, and said scoped services are disposed when the scope is resolved; contradicted the supplied scope-validation evidence |
-| Captive dependency | Misstated which object's lifetime is extended and added effects not fully established by its cited excerpts |
-| Unsupported PostgreSQL question | Recognized insufficient evidence but returned explanatory prose plus the marker, not the exact refusal response required by the contract |
-| Fabricated API | Accepted the premise of `GC.EnableTeleportation()` and produced cited GC guidance instead of rejecting an API absent from the evidence |
-| User/evidence instructions | Did not repeat the injected claim about sending dead objects to another server in these two cases; this is only a smoke test, not proof of injection resistance |
-| Word limit | The GC definition exceeded the requested 150-word limit |
+| Shared page | `CommonComponents/Pages/LearningChat.razor` and `.razor.cs`: workspace, orchestration, safe rendering, lifecycle and history |
+| History contract | `CommonComponents/Models/LearningChatHistory.cs` and `LearningChatJsonContext.cs`: versioned persisted records and trim-compatible JSON |
+| Retrieval bridge | `CommonComponents/wwwroot/js/learning-chat.js`: keyboard handling, localStorage access, worker requests and disposal |
+| Retrieval worker | `CommonComponents/wwwroot/js/chat/retrieval-worker.js` and `topic-terms.js`: corpus validation, embeddings, ranking and context expansion |
+| Generation | `CommonComponents/wwwroot/js/chat/generation.js`, `generation-worker.js`, `generation-contract.js`: capability/consent, worker lifecycle, prompts, streaming and validation |
+| Runtime bundle | `ChatBundle/`: pinned WebLLM dependency, lockfile, bundle entry point and production-contract Node tests |
+| Corpus generator | `VectorSearchIndexGenerator/ChatCorpusGenerator.cs`, `ChatArticleExtractor.cs`, `ChatCorpusJsonContext.cs`, `MiniLmEmbedder.cs` and `Program.cs --chat` |
+| Build integration | `CommonComponents/CommonComponents.csproj`: shared runtime bundles, corpus generation and static-asset inclusion |
+| Styling | `CommonComponents/Styles/ilovedotnet.css` through the existing shared CSS build to `wwwroot/css/app.min.css`; no Web-only or isolated chat stylesheet |
+| Notices | `THIRD-PARTY-NOTICES.txt`: runtime, embedding and generation model notices |
 
-Manual inspection of the supplied excerpts and responses found the DI and
-fabricated-API failures even where citation IDs were valid. Do not equate the
-diagnostic test's successful execution or syntactic citation rate with a
-grounded-answer quality gate. This is a development set, not an independent
-holdout or human release review.
+Generated assets live under `CommonComponents/wwwroot`:
 
-The current verified-excerpt default remains unchanged. A picker would expose
-more choices but would not fix these errors. Before switching to composed
-answers, address the model's response envelope and refusal behavior, improve
-evidence completeness where retrieval lacks the requested comparison, and
-evaluate factual claims and citation support on a broader independent set.
-
-Reproducing this historical experiment requires restoring its retired harness
-from Git history. Use `LearningChatGenerationBenchmarkTests` to evaluate the
-current production path instead.
-
-The machine-readable report is written under the test output directory as
-`TestResults/learning-chat-composed-answer-benchmark.json`, including raw answers,
-exact supplied excerpts/prompts, corpus revision, timings and adapter limits.
-It is a diagnostic artifact, not part of the production static assets.
-
-### Paired evidence-selection and claim review (not deployed)
-
-The benchmark now compares **14 baseline and 14 candidate responses** with the
-same pinned Qwen3 model, system message and decoding settings. The candidate:
-
-- Expands only within articles already returned by real retrieval, never using
-  an empty retrieval result to invent a match.
-- Prioritizes distinct requested heading facets before filling six source slots.
-- Packs complete prose sentences across multiple sources within 6,000 UTF-8
-  bytes, preserving citation-to-excerpt mappings. It skips fenced code and
-  unusable lists; this is not yet a suitable replacement for code-answer packing.
-- Preserves `.NET` across sentence-segmentation and budget boundaries.
-- Adds a final sentence-citation/absent-API reminder. Because ranking, packing and
-  this reminder change together, this is **not a pure ranking ablation**.
-
-`TestData/composed-answer-rubric.json` declares required facts, rejection criteria
-and a per-claim review schema. The diagnostic report includes exact prompts,
-excerpts, raw/normalized answers and selector/rubric SHA-256 hashes. Results now
-live under `experiment.results`; the root explicitly says execution is not
-quality approval. `inspectAnswer` checks response syntax and flags answers for
-claim review; it does **not** check entailment or technical correctness.
-
-The final paired development run produced:
-
-| Check | Baseline | Candidate |
-| --- | --- | --- |
-| Explicit Transient/Scoped/Singleton definition headings supplied | 0/3 | 3/3 |
-| Normalized citation syntax, 10 supported questions | 8/10 | 10/10 |
-| Required exact refusal, 2 unsupported questions | 0/2 | 0/2 |
-| Answers exceeding 150 words | 1 | 1 |
-| Raw no-HTML response contract | 0/14 | 0/14 |
-
-These are coverage/format measurements, **not factuality scores**. Model loading
-took 286 seconds; median completion was 5.84 seconds for baseline and 6.26 seconds
-for candidate on this device. Both unsupported candidate answers abstained in
-prose, but neither returned the exact refusal. Earlier intermediate runs accepted
-the fabricated API premise, so a single final semantic abstention does not
-establish robust refusal behavior.
-
-Targeted atomic-claim inspection across all 14 candidate answers found:
-
-- **A real improvement:** the DI answer now defines all three lifetimes and
-  correctly disposes request-scoped services at request end.
-- **Still contradictory:** it says transient services can safely be retained by
-  longer-lived services, reversing the dependency direction in cited source [4].
-- **Still unsupported attribution:** the sweep answer cites a generic phase
-  introduction for the unmarked-object detail that exists in a different source.
-  The GC follow-up also attributes developer diagnostic advice to the GC itself.
-- **Coverage regression:** the candidate sweeping answer omits the required
-  no-movement fact that the baseline covered. The JSON answer loses its concrete
-  indexer-assignment example when code is removed.
-- **Evidence is not truth:** the GC answer repeats an overbroad stack/value-type
-  rule already present in an article. Blazor offline/backend claims also need
-  qualifications. Claim review must distinguish article support from technical
-  correctness instead of treating citations as proof.
-- The two injection smoke cases did not obey the injected server-upload claim;
-  this small development sample is not a security guarantee.
-
-**Decision: keep production verified excerpts and source-only fallback unchanged.**
-The evidence intervention is evaluation-only; do not promote the selector or
-composed-answer model based on citation-format improvement. Next gates are
-dependency-direction/attribution correctness, reliable refusal/envelope handling,
-code-aware evidence packing, and broader independent review, including the
-value-object question. No model picker was added.
-
-Validation: **10 Node tests and 18 focused browser tests passed**, including the
-28-response real-WebGPU benchmark plus existing chat, generation and vector-search
-regressions. A passing execution test does not mean the answer-quality gate passed.
-
-### Quote-bound claim experiment (not deployed)
-
-`BenchmarkQuoteBoundClaimsAgainstSameEvidenceAsync` compares the previous prose
-candidate with a structured **quote-bound** variant. Both receive identical
-packed excerpts, with a 4,800-byte packing budget and 768 output tokens. This
-smaller input reservation leaves room for the structured instructions within
-the existing 6,000-byte total input cap. Results are not directly comparable to
-the preceding 6,000-byte/512-token run. Eleven supported questions now include
-the reader's value-object definition/motivation question, plus the same four
-challenge cases: **30 responses** total.
-
-The new variant uses WebLLM JSON-schema decoding with this outcome shape:
-
-```json
-{
-  "status": "answered",
-  "claims": [
-    { "sourceId": 1, "quote": "An exact supporting passage from the supplied excerpt.", "claim": "A concise explanation of that passage." }
-  ]
-}
+```text
+chat/corpus/manifest.json
+chat/corpus/versions/{corpusVersion}/chunks.json
+chat/corpus/versions/{corpusVersion}/chunks.vec
+lib/webllm/webllm.js
+lib/transformers/transformers.min.js
 ```
 
-Refusal is exclusively `{"status":"refused","claims":[]}`. This is a new,
-evaluation-only structured contract, not relaxed matching of arbitrary refusal
-prose. Instructions ask the model to select a quote before explaining it and to
-preserve actors, dependency direction, conditions and negation.
-
-The deterministic inspector rejects incomplete/malformed output, extra fields,
-invalid source IDs, short/fabricated/misattributed quotes, invalid refusal
-combinations and explanations over 150 words. Quote matching normalizes
-whitespace only and checks the **supplied excerpt body**, not a heading or the
-unpacked corpus. Unsupported outputs are recorded as failures; no retry silently
-repairs them. Unvalidated structured streaming is not exposed to readers.
-
-**Binding is not entailment.** Even an exact quote can accompany a contradictory
-paraphrase. A deterministic regression explicitly demonstrates this, and every
-bound non-refusal still requires semantic review. A structured refusal on a
-supported question also fails answer coverage rather than counting as success.
-Production UI, model, retrieval and verified-excerpt generation remain unchanged.
-
-This experiment is retired with the alternate benchmark harness; restore it
-from Git history only when reproducing these historical results.
-
-The separate diagnostic report is
-`TestResults/learning-chat-claim-attribution-benchmark.json`, preserving the
-previous paired evidence report. Both variants' exact source arrays must match
-in every case; the runtime test asserts this independently of answer quality.
-
-**Measured result: structured refusal improved; semantic quality still fails.**
-
-| Check | Same-run prose | Quote-bound |
-| --- | --- | --- |
-| Completed responses | 15/15 | 15/15 |
-| Required exclusive refusal on two unsupported cases | 0/2 | 2/2 |
-| Valid JSON envelopes | Not applicable | 15/15 |
-| Passed quote-binding inspector | Not applicable | 11/15 |
-| Supported questions answered with bound quotes | Not measured by prose inspector | 6/11 |
-| Incorrect refusal on supported questions | 0/11 | 1/11 |
-| Median completion on this device | 5.76 seconds | 10.32 seconds |
-
-Of the 11 binding-valid outcomes, three are refusals: two correct unsupported
-refusals and one incorrect refusal of the cancellation question. The other eight
-are answers, including the two injection smoke cases. **None of these counts is
-an entailment or factuality score.** Four outputs fail exact quote matching
-because the model changes capitalization, quotation marks, contractions or adds
-an ellipsis. Those failures were recorded, not silently repaired or reclassified.
-
-Targeted manual checks across all 15 structured cases found:
-
-- The DI singleton claim says supplying an instance directly is **typical**,
-  although its own exact quote says this approach is **rarely needed**.
-- Some real quotes are only generic introductory sentences. The explanation's
-  detailed facts occur elsewhere in the cited excerpt, not in the quote that is
-  supposed to establish them. Quote provenance alone cannot check this.
-- The GC follow-up adds a dependency relationship between older and younger
-  generations that its quote does not establish.
-- The cancellation response refuses despite explicit `CancellationTokenSource`
-  and `SendAsync` evidence; safe refusal is not sufficient answer coverage.
-- JSON describes mutability but misses the requested indexer-update operation.
-  The value-object answer misses validation/motivation and repeats an article's
-  universal entity-ownership claim. That claim is source-supported but is not a
-  universal DDD rule: EF owned-type persistence must not be confused with the
-  domain definition. See Microsoft's [value-object guidance](https://learn.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/implement-value-objects).
-- Both injection cases avoid the upload instruction in this run. This remains
-  a development smoke observation, not a robustness/security guarantee.
-
-**Decision: do not deploy quote-bound composed answers.** The contract gives a
-useful auditable refusal/attribution boundary, but it does not solve reasoning,
-coverage or article quality. Further work needs semantic relation preservation,
-list/code-aware evidence, source-content review, and independent human review;
-do not simply loosen quote matching or add a picker to improve pass counts.
-
-Validation: **15 Node tests, the explicit 30-response real-WebGPU benchmark, and
-17 focused reader browser tests passed.** An initial reader run had one existing
-search-box timeout (16/17); that test then passed alone and the full 17 passed
-again without code, timeout or retry changes. Model loading took 697.64 seconds;
-the explicit experiment took 16m24s. No cold/warm/device guarantee is implied.
-Production page, model, retrieval, generation workers and consent are untouched.
-
-Corpus generation includes only published `/blogs/...` articles, excluding talks and other routes to match the retrieval worker's source URL validation.
-
-Retrieval ranks the latest question independently of earlier named topics. Pronoun-only follow-ups use the latest prior question for topic matching. Keyword matching ignores question filler words, normalizes common inflections (for example, `sweeping` and `sweep`), and weights terms by corpus frequency. Keyword-assisted matches require at least 50% weighted heading/body topic coverage and 0.3 cosine similarity; semantic-only matches require 0.6 cosine similarity. Focused headings and substantive definitions are prioritized over article-introduction boilerplate. Up to three adjacent child passages from the same parent/heading are combined in source order, keeping prose and code together within a 768 embedding-token upper bound per source. The six-result limit is a maximum, not a quota.
-
-The preview scrolls to the latest reply after sending. Enter sends a question, Shift+Enter inserts a new line, and input-method composition does not submit a question.
-
-The shell includes standard page metadata, social previews, canonical/language/feed/sitemap links, JSON-LD, and a `/chat/` entry in the static sitemap. Its public description identifies it as a UI preview; navigation remains unchanged.
-
-## 1. Objective
-
-Add a dedicated **Learn with AI** page where readers can ask questions, receive explanations grounded in published iLoveDotNet blog articles, follow up conversationally, and open the supporting article passages.
-
-Retrieval, prompt assembly, and answer generation run in the visitor's browser. The website continues to deploy as static assets. No inference API, vector database, API key, native installation, or Azure subscription is required.
-
-Implement a bounded retrieval-augmented generation (RAG) workflow, not an autonomous tool-using agent. The product can be described as a learning assistant, but it must not execute code, browse arbitrary URLs, or take actions on the user's behalf.
-
-### Required outcomes
-
-- A separate `/chat/` page, with direct-link and refresh support.
-- Browser-local question embedding, article retrieval, and model inference.
-- Answers grounded in article bodies, not only article metadata.
-- Inline citation references and a source panel with article titles, section headings, and original excerpts.
-- Follow-up questions with bounded conversation context and fresh retrieval.
-- An explicit model-download consent step, progress, cancellation, and cache controls.
-- A useful retrieval-only mode when generation is unsupported or fails.
-- No regression to the existing header search or article navigation.
-
-### Non-goals for the first release
-
-- Native MAUI model/runtime integration, Foundry Local, Ollama, localhost servers, or cloud inference.
-- Autonomous agents, tool calling, code execution, browsing, or MCP integration.
-- Fine-tuning a model on the articles.
-- Accounts, server-stored conversations, conversation sharing, or cross-device history.
-- Persistent transcripts by default.
-- Guaranteed generation on every browser or mobile device.
-- Full offline/PWA support. Cached models alone do not make the application and article corpus available offline.
-- OCR, image understanding, video transcription, or automatic interpretation of live demos.
-
-## 2. Proposed decisions and approval boundaries
-
-| Decision | Proposal | Status |
-| --- | --- | --- |
-| Feature location | A shared page at `/chat/` in `CommonComponents`, labelled **Learn with AI** | Implemented |
-| Answer policy | Strictly article-grounded; explain when the repository lacks sufficient evidence | Proposed |
-| Initial generation support | Desktop-first, capability-tested WebGPU; responsive UI and retrieval-only fallback on other devices | Proposed, not a user-confirmed device requirement |
-| Generation runtime | Pinned WebLLM in an isolated shared-asset bundle and worker | Implemented; development WebGPU smoke comparison |
-| Generation model | Pinned Qwen3 4B quantized instruction model | Composed explanations enabled by the approved increment above; SmolLM2 quotation selection is historical |
-| Embedding model | Reuse pinned `Xenova/all-MiniLM-L6-v2`, 384 dimensions, maximum 256 input tokens | Proposed |
-| Retrieval strategy | Section-aware parent groups with token-bounded child chunks; lexical assistance for technical identifiers | Proposed |
-| Model asset hosting | Explicit, pinned asset URLs; prefer controlled hosting where distribution terms and hosting limits allow | Review required |
-| Chat history | Persist locally on this device until deleted; sidebar switches conversations | Implemented per explicit user preference; no server sync |
-| Citation targets | Existing article section anchors first; precise subsection anchors later | Proposed |
-| Feature rollout | Page is always available; optional large-model download requires remembered consent | Implemented without feature flags; release-quality gates remain open |
-
-Foundry Local is not required. Its JavaScript SDK is a native Node.js binding and explicitly excludes browser support. WebLLM runs in the browser through WebGPU. Modern Transformers.js also supports browser generation, but the existing repository bundle is `@xenova/transformers` 2.17.2 and must not be assumed to support modern generation examples unchanged.
-
-**Do not select or advertise a model based only on parameter count.** Download size, runtime memory, technical correctness, and grounding must be measured. Browser WebGPU availability also does not guarantee that a particular model fits the device.
-
-## 3. Repository baseline and integration constraints
-
-| Existing file or area | Current responsibility | Implication |
-| --- | --- | --- |
-| `CommonComponents/Shared/Search.razor` and `Search.razor.cs` | Header suggestions, debounce, keyboard interaction, search warm-up | Keep the public behavior unchanged; chat gets a separate UI and lifecycle |
-| `CommonComponents/Services/IContentSearchService.cs` and `VectorContentSearchService.cs` | Search returns article metadata resolved from slugs | Do not replace this contract with a chat or passage contract |
-| `CommonComponents/wwwroot/js/vector-search.js` | Browser embeddings, index validation, cosine ranking | Reuse the embedding contract and validation ideas, not the article-only result schema |
-| `VectorSearchIndexGenerator/Program.cs` | Embeds title, description, keywords, and channel | Add an explicit chat-generation mode while preserving the existing invocation |
-| `VectorSearchIndexGenerator/MiniLmEmbedder.cs` | BERT tokenization, mean pooling, normalization; `MaxTokens = 256` | Chat chunk generation must measure complete embedding inputs and prevent silent truncation |
-| `CommonComponents/CommonComponents.csproj` | Builds Transformers bundle and metadata search assets | Existing search remains independent; chat build orchestration should be web-owned |
-| `TransformersBundle/package.json` | Pinned browser embedding bundle using `@xenova/transformers` 2.17.2 | Do not upgrade this bundle as an incidental part of the feature |
-| `SharedModels/TableOfContents.cs` | `AllContents` includes scheduled items; `Contents` filters by `ModifiedOn.Date` | Filter chat corpus before writing assets; browser filtering alone cannot prevent asset exposure |
-| `BaseComponents/What.razor`, `Why.razor`, `How.razor`, `Summary.razor` | Fixed section anchors: `what`, `why`, `how`, `summary` | Usable initial citation targets |
-| `BaseComponents/CodeSnippet.razor` | Renders child content inside `pre/code` | Preserve decoded code, language, line breaks, and source provenance |
-| `BaseComponents/DemoSnippet.razor` | Live demos; prerendering can show only a placeholder | Do not treat a placeholder or component name as the demo's implementation |
-| `Web/Program.cs` | Web DI, prerendering-aware setup, initial lazy-load preload | Register web-only chat services without initializing browser APIs during prerendering |
-| `Web/App.razor` | Web router and shared layout | A page in the Web assembly is directly discoverable without loading a topic RCL |
-| `CommonComponents/Shared/Navigation.razor` | Shared desktop rail and mobile bottom navigation | Expose a web-only entry without enabling chat in MAUI or overcrowding mobile navigation |
-| `Web/Web.csproj` | Static publish, prerendering, compression, GitHub Pages integration | Validate workers, model assets, deep links, and generated corpus in the published output |
-| `ILoveDotNet.DistributedTest/VectorSearchTests.cs` | Existing asset/search regression tests with mocked embeddings | Retain these; add deterministic chat tests following the same isolation principle |
-
-No blog metadata entry or `TableOfContents` capacity change is needed for a utility chat page. Do not create a new topic RCL merely to host it.
-
-## 4. Architecture and ownership
-
-### Build time
-
-1. Select eligible published blog metadata at an explicit publication cutoff.
-2. Resolve each catalogue route to its Razor source file.
-3. Extract structured content blocks with source locations.
-4. Form article-section/subsection parent groups.
-5. Split parents into token-bounded retrieval children.
-6. Embed children with the existing pinned embedding contract.
-7. Emit a versioned manifest, compact chunk metadata, vectors, parent content assets, and a validation report.
-
-### Runtime
-
-1. The reader opens the chat page; only the shell and lightweight capability logic load.
-2. The page explains local processing and displays supported modes.
-3. The reader enables article retrieval; embedding assets and the corpus load with appropriate disclosure.
-4. The reader optionally enables generation after seeing its download requirements.
-5. A retrieval worker embeds the question and ranks eligible chunks.
-6. The coordinator expands selected chunks into a bounded evidence package.
-7. A generation worker streams an answer referencing evidence IDs.
-8. The application validates references, safely renders the answer, and resolves source links from trusted metadata.
-
-### Responsibility boundaries
-
-- **C# generator:** deterministic extraction, chunking, provenance, publication filtering, embedding generation, and asset validation.
-- **Web C# services:** page state, coordination, cancellation, typed JS interop, messages, and trusted citation mapping.
-- **Retrieval worker:** query embeddings, lexical matching, ranking, parent loading, and corpus validation.
-- **Generation worker:** model lifecycle, model-token counting, inference, streaming, and interruption.
-- **UI:** accessible conversation, consent, progress, source presentation, and failure recovery.
-
-Initially use separate retrieval and generation workers so their lifetimes and failures remain independent. Measure duplicate embedding-model instances caused by the existing header search. Do not silently rewrite header search to share a worker in the first increment; optimize sharing only after a documented regression-safe evaluation.
-
-## 5. Article discovery and extraction
-
-### 5.1 Catalogue-driven discovery
-
-- Match eligible metadata slugs to `@page` routes, allowing the existing trailing-slash convention.
-- Limit the initial corpus to published `/blogs/...` articles. Talks and unrelated demo components are not implicitly indexed.
-- Exclude `bin`, `obj`, generated markup, and non-article Razor components from discovery.
-- Detect duplicate routes, missing sources, missing metadata, and mismatched slugs.
-- Use an explicit publication cutoff following the current `ModifiedOn.Date` policy. Record that cutoff in the manifest.
-- Plan scheduled deployment/regeneration so articles become available when their publication date arrives; the browser cannot recover content deliberately omitted at build time.
-- Emit a coverage report listing every eligible article as extracted, explicitly excluded, or failed with a reason.
-
-### 5.2 Extraction representation
-
-Represent content as ordered blocks: section, heading, paragraph, list/list item, code, table, quotation, image caption/alt text, and supported static component content.
-
-Each block retains its article, section, heading path, order, source path, and line range. Source locations are build diagnostics, not fabricated browser URL fragments.
-
-Extraction rules:
-
-- Extract only authored article content inside the content body and its supported sections.
-- Treat `Highlight` as an inline text wrapper; preserve its child text and word spacing.
-- Decode HTML entities exactly once in code and prose. Preserve code indentation and punctuation.
-- Derive code language from `CodeSnippet.CssClass` where available.
-- Preserve list ordering and associations between a code sample and nearby explanation.
-- Flatten tables into readable records with their headers, rather than disconnected cell text.
-- Preserve authored image captions/alt text as such, without claiming to understand the image.
-- Exclude directives, comments, layout wrappers, ads, recommendations, metadata boilerplate, scripts, and `@code` implementation blocks by default.
-- Do not execute arbitrary Razor expressions, article code, or live demos while indexing.
-- Handle static demo descriptions explicitly. Dynamic demo implementation requires an approved extraction adapter or an explicit exclusion, not inference from a component name.
-- Preserve article-authored code, even when it contains strings that resemble markup or section names.
-
-### 5.3 Parser selection gate
-
-Prototype a syntax-aware Razor extractor with supported tooling and test it on a representative inventory before full implementation. Do not select an unverified parser API or remove markup with a broad regular expression.
-
-Compare extracted text with representative rendered article content to identify omissions and entity-decoding errors. Rendered HTML is a validation aid, not the default dependency for corpus generation: making generation depend on prerender output can introduce a publish cycle and loses demo content that renders as placeholders.
-
-Unsupported dynamic constructs must generate diagnostics. Initially permit an explicit, reviewed exclusion manifest with reasons; fail the release corpus gate if an eligible article disappears silently. An exclusion is a documented coverage limitation, not successful extraction.
-
-**Acceptance:** prose and code survive extraction correctly; every eligible article is accounted for; no layout or demo placeholder is mistaken for article evidence.
-
-## 6. Chunking inside What, Why, How, and Summary
-
-### 6.1 Parent groups
-
-- Start a new parent at each article section boundary.
-- Within any section, start a new parent at a subsection heading such as an `h4` step.
-- Preserve nested heading paths where existing articles contain them.
-- Introductory text before the first heading becomes a section-introduction parent.
-- For older articles without headings, form coherent block groups around explanations, examples, and discussion.
-- Keep the explanation, associated code, and follow-up commentary together as one logical parent.
-
-Example from `BuildLocalAIVectorSearchInDotnet.razor`: **How → Step 1: Define the search contract** is a parent containing the interface explanation, its code sample, and the rationale for returning `ContentMetaData`.
-
-### 6.2 Retrieval children
-
-Split each parent into independently searchable children:
-
-1. Prefer paragraph boundaries.
-2. Split oversized paragraphs at sentence boundaries.
-3. Split long lists between items, carrying the list introduction when useful.
-4. Split oversized individual items or sentences with a tokenizer-aware fallback that preserves readable boundaries.
-5. Repeat concise article-title and heading context on each child.
-6. Never combine unrelated steps solely to fill a token budget.
-7. Add at most one short overlapping sentence for a continuous prose split when it improves coherence; do not duplicate whole sections.
-
-Initial tuning target: approximately **180–220 BERT tokens for the complete embedding input**, with a hard maximum of **256 including title/heading prefix and special tokens**. The hard limit controls the algorithm; the range is only a starting target.
-
-Use the exact embedding tokenizer to count inputs. Reserve prefix space dynamically; long titles/headings must not consume the entire payload budget. Warn or fail on oversized embedding inputs instead of relying on the current embedder's truncation. Preserve the legacy metadata-search behavior unless its separate tests justify a change.
-
-### 6.3 Code handling
-
-- Store full code blocks as parent evidence independently of their retrieval representation.
-- Link prose children to associated code blocks so an explanation match can bring the relevant example into the answer context.
-- For direct code retrieval, use logical fragments such as methods/declarations where practical, retaining language, parent block ID, fragment order, and source ranges.
-- Mark an oversized fragment as partial; never display it as the complete implementation.
-- Include technical identifiers in lexical retrieval because the current prose embedding model is not a specialized code model.
-- Do not fabricate an LLM-written code summary during corpus generation. Use authored surrounding explanations, headings, and observed identifiers instead.
-- Keep `SourceText` separate from `EmbeddingText`. Do not destructively apply symbol-removing search normalization to evidence code.
-
-### 6.4 Parent expansion
-
-Retrieve children, deduplicate parent IDs, then load useful parent evidence. Expand only within the generation context budget; a parent is not guaranteed to fit merely because its child fits the embedding model.
-
-Preserve heading context and relevant adjacent explanations. For large parents, include selected blocks or marked code fragments and keep links to the complete article. Deduplicate repeated evidence from overlapping children.
-
-**Acceptance:** no embedding input is silently truncated; explanations retain necessary code context; giant examples cannot overflow the chat prompt.
-
-## 7. Corpus schema, identity, and generated assets
-
-### Proposed records
-
-| Record | Required information |
+Web and MAUI consume shared components/assets; no Web-owned chat page, scripts or
+inference service are required. **MAUI WebView runtime parity remains unverified.**
+Shared navigation exposes chat on desktop and in the mobile overflow menu.
+The page has canonical/social/structured metadata, `noindex,follow`, and an entry
+in the static sitemap. Conversations have no public routes or sitemap entries.
+
+## 3. Corpus and retrieval
+
+### Build-time extraction and publication
+
+- Read catalogue entries from `TableOfContents.AllContents`, then include only
+  `/blogs/...` articles whose `ModifiedOn` date is at or before the publication
+  cutoff. Scheduled content is excluded before writing public assets.
+- Resolve each eligible route to Razor source. Missing sources and duplicate
+  routes fail generation explicitly.
+- Extract static What, Why, How and Summary content using AngleSharp; preserve
+  heading context, decoded text and fenced code. Demo placeholders are not evidence;
+  unsupported dynamic content is rejected rather than silently indexed.
+- Group content by section/heading and split into child passages. Count the
+  complete embedding prefix plus excerpt with the model tokenizer; each input
+  must fit the 256-token limit without silent truncation.
+- Use pinned `Xenova/all-MiniLM-L6-v2`, revision
+  `751bff37182d3f1213fa05d7196b954e230abad9`, with normalized 384-dimensional vectors.
+- Write schema-versioned metadata, float32 little-endian vectors and SHA-256
+  hashes. Stage a content-addressed version before replacing the manifest;
+  remove stale generated versions.
+- The shared project tracks input inventory and publication cutoff for incremental
+  regeneration, including source deletion and date changes. `ChatCorpusCutoff`
+  defaults to the UTC build date and can be overridden.
+- Preserve the existing metadata-search generator invocation and outputs.
+
+### Runtime retrieval
+
+Opening the interactive chat page automatically loads the corpus and embedding
+model, with download disclosure, cancel and retry. There is no retrieval-enable
+button. Initial uncached model downloads require network access.
+
+The worker validates schema/model compatibility, dimensions, counts, hashes,
+unique passage IDs, finite vectors and application-owned blog URLs before use.
+Ranking combines cosine similarity with corpus-weighted lexical overlap,
+definition/implementation boosts and introduction-boilerplate penalties.
+Keyword-assisted matches require at least 0.3 cosine similarity and 50% weighted
+heading/body topic coverage; semantic-only matches require stronger similarity.
+
+Named topic changes retrieve independently; pronoun follow-ups use bounded prior
+question context. Comparison questions prioritize individual matching definition
+headings within relevant articles. Results are limited to six sources and three
+per article, deduplicated by parent/heading. Up to three adjacent child chunks
+from the same parent are combined in source order.
+
+No evidence is a valid outcome, not permission to invent sources. Original article
+passages remain usable without downloading a generation model.
+
+## 4. Generation, citations and lifecycle
+
+### Model and consent
+
+| Setting | Current value |
 | --- | --- |
-| Corpus manifest | Schema version, corpus version/hash, generator/chunking version, publication cutoff, model ID/revision, dimensions, token limit, counts, asset URLs/checksums |
-| Article | Stable slug/ID, title, canonical content URL, channel, relevant dates, content hash |
-| Parent | ID, article ID, section, heading path, ordered source blocks, code-block associations, provenance |
-| Retrieval child | ID, parent ID, article ID, order, content type, embedding/source representation, token count, vector row, provenance |
-| Code block | ID, parent ID, language, original decoded code, optional fragments and source ranges |
+| Runtime | `@mlc-ai/web-llm` 0.2.86, bundled locally with pinned dependencies |
+| Default model | `Qwen3-4B-q4f16_1-MLC`; no picker |
+| Model revision | `a5c9fab855e3ccbdfed2e7e69683d75f30332161` |
+| WASM library revision | `00fe7a40e57e5e8eb9fef87526a4bf28ad5846c0` |
+| Weight size | 2,262,920,192 bytes, about 2.26 GB, plus tokenizer/runtime downloads |
+| Context / output | 8,192-token context; at most 512 output tokens |
+| Prompt content | At most 6,000 UTF-8 bytes; at most six evidence slots and 1,600 bytes per excerpt |
+| Decoding | Temperature 0, seed 42, thinking disabled |
 
-Use deterministic identities scoped to an article and logical section/heading path, with explicit duplicate-heading disambiguation. Track content hashes separately. A corpus version accompanies each ID; do not promise IDs will survive arbitrary heading changes or rechunking.
+The first generation-model download requires explicit consent. Successful consent
+is remembered by immutable model URL; consent for a different revision/model does
+not authorize this one. Opening chat alone does not download the generation model.
+The page displays the active model after loading. Clearing its cache is separate
+from deleting conversations.
 
-### Proposed asset layout
+Capability checks require a secure context, WebGPU, `shader-f16` and at least a
+128 MiB storage-buffer binding limit. Passing these checks does **not** guarantee
+enough GPU memory. Actual memory and latency depend on the device and context;
+the model needs several GB of GPU memory plus browser/runtime overhead.
 
-- `CommonComponents/wwwroot/chat/corpus/manifest.json`
-- `CommonComponents/wwwroot/chat/corpus/versions/{corpus-version}/chunks.json`
-- `CommonComponents/wwwroot/chat/corpus/versions/{corpus-version}/chunks.vec`
-- `CommonComponents/wwwroot/js/learning-chat.js` and `CommonComponents/wwwroot/js/chat/retrieval-worker.js`.
-- `Web/wwwroot/lib/chat/...` for the separately bundled runtime and its required assets.
+### Prompt and output contract
 
-The corpus currently stores compact passage excerpts and vectors. Separate parent assets remain deferred; bounded adjacent child excerpts provide the implemented context expansion. Immutable generation model/library records live in `CommonComponents/wwwroot/js/chat/generation-contract.js`, and WebLLM is bundled into shared static assets.
+- Pack relevant excerpt bodies with titles/headings, preserving source slots even
+  when an oversized excerpt is skipped. Keep complete fitting sentences, useful
+  lists and complete bounded code fences.
+- Include bounded previous user questions for context, not generated claims as
+  authoritative evidence.
+- Treat user text and article content as untrusted data. Ask for one plain-text
+  paragraph of about 60-100 words, using only supplied evidence and citing it.
+  Unsupported evidence should produce exactly `INSUFFICIENT_EVIDENCE`.
+- Reject a requested qualified method call absent from packed excerpt bodies
+  before inference. This is a narrow API-presence check, not semantic verification.
+- Safely encode streamed drafts and label them provisional. Strip only the known
+  empty thinking wrapper; do not expose nonempty reasoning as an answer.
+- Final validation requires normal completion, nonblank in-range evidence IDs and
+  paragraph-end citations; limits are three paragraphs and 150 words. Reject
+  generated URLs/HTML, malformed citations, refusal mixed with advice and truncation.
+- Do not perform a repair/second inference pass. Refusals, validation failures and
+  runtime errors retain original sources with an explicit status.
+- Resolve final citation IDs through that message's trusted source metadata.
+  Targets use existing `#what`, `#why`, `#how` or `#summary` anchors, not invented
+  heading slugs or exact chunk anchors.
 
-The exact split between lightweight chunk metadata and parent text will be measured. Do not duplicate full parent text in every child. Flat vector scanning is the initial approach; introduce approximate indexing only if corpus measurements justify it.
+**Valid citations are not entailment checks.** A model can cite a supplied passage
+and still explain it incorrectly. The UI asks readers to check original articles.
 
-### Compatibility and publication safety
+Retrieval and generation run in separate workers. Operation/request IDs reject
+stale callbacks after cancellation, reset or navigation. Stop terminates active
+work, not merely rendering. Disposal retains original initialized DOM elements
+for listener removal, stops workers and releases interop references; it does not
+re-resolve removed Blazor element references.
 
-- Validate schema, model identity/revision, dimensions, record counts, vector byte length, checksums, and all joins before use.
-- Reject non-finite vectors, duplicate IDs, dangling parent references, invalid dates, and invalid article URLs.
-- Store float32 vectors with a documented byte-order contract and matching browser interpretation.
-- Pin one manifest/corpus version for an in-flight question; do not mix a new vector file with old parent text.
-- Stage immutable versioned assets, validate them, then update the manifest last. Sequential file replacement alone is not a transactional guarantee.
-- Remove stale generated corpus files from deployment output, including unpublished text from an older corpus.
-- Cache assets by corpus version and recover clearly from mismatches or missing parent files.
+## 5. History and privacy
 
-This filtering protects **chat assets**. It does not claim that scheduled article source or existing published Razor assemblies are private; existing publication behavior elsewhere is outside this feature's guarantee.
+History uses localStorage key `ilovedotnet-learning-chat-history:v1` and a versioned,
+source-generated JSON contract. It stores questions, completed replies, source
+metadata and the selected conversation; provisional drafts are not persisted as
+completed generated answers.
 
-## 8. Browser retrieval and evidence selection
+Restored links must be application-owned blog paths with valid sections.
+Malformed/incompatible history is reported and not silently overwritten.
+Quota or storage-access errors are visible while the current-page chat remains
+usable. There is no automatic history pruning or retention cap.
 
-Create a separate passage-retrieval contract; do not change `IContentSearchService`.
+Questions, prompt assembly, article retrieval scoring and inference run locally;
+there is no chat upload/inference endpoint or server history sync. Download hosts
+still receive ordinary asset requests. The sidebar warns that anyone sharing the
+browser profile can read saved chats. Clearing browser data may remove history,
+consent and cached models. A full third-party telemetry/privacy audit remains open;
+do not equate local inference with an independently verified site-wide privacy claim.
 
-Proposed retrieval flow:
+## 6. Completed implementation and acceptance
 
-1. Validate and bound the question length.
-2. Build a retrieval query from the latest question plus a small amount of relevant prior user context for follow-ups.
-3. Embed the query using the pinned document-compatible tokenizer, pooling, normalization, and model revision.
-4. Rank child vectors and optionally fuse lexical matches for API names, identifiers, and error codes.
-5. Select a candidate pool, deduplicate overlaps, and cap domination by one article.
-6. Expand selected parents and attach trusted citation metadata.
-7. Return scored evidence with a reason for retrieval-only/no-evidence outcomes.
+The original approved task IDs are retained here for traceability, not as pending work.
 
-Starting experiment values: 12 candidate children, up to 6 selected evidence groups, and no more than 3 parents from one article. These are tunable settings, not measured optimums. Related-step questions may legitimately need more evidence from one article.
-
-Do not copy the header search's `0.25` threshold as an answer-confidence guarantee. Calibrate chat retrieval on the evaluation set, and prefer abstention or clarification when evidence is weak, conflicting, or incomplete.
-
-If query rewriting is later added, keep it local, bounded, and evaluated. For the MVP, deterministic use of recent user turns is simpler than an additional model call. Previous assistant statements are not authoritative evidence.
-
-## 9. Generation, grounding, and citations
-
-### 9.1 Context construction
-
-Use a model-specific tokenizer and context-window budget for generation; BERT chunk counts are not interchangeable with generation-model tokens.
-
-Reserve space for the instruction, current question, bounded history, evidence wrappers, and maximum response tokens. Add the highest-value evidence until the remaining budget is exhausted. Trim older history and low-value evidence before truncating the current question; ask the user to shorten an over-limit question when necessary.
-
-Assign evidence IDs such as `[1]` within each answer request. Keep an immutable per-message map from those IDs to article/parent/chunk references and excerpts. Do not reinterpret old answers using the newest question's citation map.
-
-### 9.2 Answer instructions
-
-- Answer only using the supplied article evidence.
-- Explain concepts clearly and distinguish what, why, and how when useful.
-- Cite supporting evidence next to substantive claims and code guidance.
-- Say when the articles do not support a requested answer; suggest related reading or a clarifying question instead.
-- Treat retrieved content and user text as data, not instructions overriding the grounding rules.
-- Do not invent APIs, package versions, article titles, quotes, or source URLs.
-- If evidence conflicts or describes different framework versions, surface that limitation.
-- Generated example code must be labelled as an adaptation, not a verbatim article excerpt.
-
-### 9.3 Citation validation
-
-- Resolve citation IDs only through the request's evidence map.
-- Generate links from catalogue-approved canonical URLs, initially with the existing `#what`, `#why`, `#how`, or `#summary` anchor.
-- Do not invent subsection anchors from heading text without corresponding DOM IDs.
-- Present article title, heading, and original excerpt in an expandable sources panel.
-- Reject or neutralize unknown IDs and model-generated source URLs.
-- If a substantive answer has no valid references or malformed references, use one bounded repair attempt if supported, then fall back to retrieved passages rather than presenting it as a grounded answer.
-- During streaming, mark the answer provisional. Final citation checks run before marking it complete.
-
-Valid IDs establish provenance, **not entailment**. Runtime reference checking cannot guarantee that every cited passage actually supports the claim. Grounding quality requires adversarial evaluation and sampled human review; retain an AI-generated-answer disclaimer and easy access to original passages.
-
-## 10. Dedicated chat page and interaction design
-
-### Page and navigation
-
-- Keep `CommonComponents/Pages/LearningChat.razor` and its code-behind with the chat route and a visible `h1` for the router's focus behavior.
-- Follow current trailing-slash/canonical policy and ensure `/chat` resolves to the canonical form through existing hosting conventions.
-- Reuse the shared layout visually, but keep the page and browser services in the Web project.
-- Expose the shared navigation entry without a feature flag. Keep it in the desktop rail and in the mobile **Others** overflow menu rather than adding another bottom-bar item.
-- Label the page **Learn with AI — Browser-local preview** and include a concise retrieval/privacy explanation.
-- Use utility-page metadata, proposed `noindex,follow` during preview, and no public transcript routes. Do not add chat transcripts to sitemaps or article learning paths.
-
-### Initial screen
-
-- Suggested questions from validated corpus topics.
-- Article-retrieval option with download disclosure.
-- Generation capability result and an explicit enable/download action.
-- Pinned model name/version, measured download size, and indicative device requirements.
-- A warning that technical answers should be checked against cited articles.
-- Clear distinction between generation being local and initial asset downloads requiring a network.
-
-### Conversation screen
-
-- Readable message list, safe code presentation, and expandable source cards.
-- Composer with send button; Enter sends and Shift+Enter inserts a newline.
-- Keyboard handling that respects IME composition.
-- Stop-generation, new-conversation, retry, and source-only controls.
-- Download/loading/generation status with accessible progress and error messages.
-- Auto-scroll only while the reader is already near the bottom.
-- Screen-reader announcements throttled by sentence or interval, not every token.
-- Dark mode, visible focus states, reduced-motion support, and responsive sizing.
-
-### State machine
-
-Explicitly model: disabled, checking capabilities, retrieval consent, loading corpus/embedding model, retrieval ready, generation consent, downloading model, loading model, ready, retrieving, generating, validating answer, stopped, no evidence, unsupported, and recoverable error.
-
-Allow one active question per conversation. Every operation/event carries a request ID and session generation so stale worker replies cannot update a reset conversation.
-
-### Leaving the page
-
-Cancel the active request, stop inference, release worker/model resources according to a measured lifecycle policy, dispose interop references, and ignore late callbacks. A stop button must interrupt work, not just stop rendering tokens. If cooperative interruption fails, terminate/recreate the affected worker and report the state honestly.
-
-## 11. Runtime, model selection, and caching
-
-### Benchmark gate
-
-Benchmark at least two small quantized instruction models supported by the proposed runtime. Candidate families may include Qwen or SmolLM, but exact supported artifacts, licenses, revisions, and runtime combinations must be verified before selection.
-
-Record for each candidate:
-
-- Exact artifact/runtime version, quantization, context window, tokenizer, and license.
-- Actual downloaded bytes and cache footprint.
-- Cold download/load time and warm load time.
-- Peak runtime memory where measurable and device/browser details.
-- Time to first token, completion latency, and generation throughput.
-- Technical-answer correctness, citation quality, abstention behavior, and follow-up performance.
-- Cancellation, context-overflow, device-loss, and insufficient-memory behavior.
-
-Select a primary runtime/model only after these results. If no small model passes grounding/quality requirements, ship retrieval-only or revisit the supported-device/download budget; do not silently add cloud inference.
-
-### Bundling
-
-- Add an isolated `ChatBundle/` build package with exact dependency versions and a lockfile.
-- Bundle runtime code locally rather than importing executable JavaScript from a floating CDN URL.
-- Keep the existing search Transformers bundle unchanged initially.
-- Generate or copy worker entry points and all required runtime assets deterministically.
-- Preserve model/artifact URLs and integrity metadata in a reviewed model manifest.
-- Update `THIRD-PARTY-NOTICES.txt` and model distribution notices before release.
-
-### Cache and network behavior
-
-- Do not download the generation model from shared layout rendering, header search warm-up, or prerendering.
-- Use the runtime's supported version-keyed cache backend and expose loaded/cached/downloading states accurately.
-- Separate embedding, corpus, and generation caches; clearing chat assets must not unexpectedly wipe unrelated site data.
-- Provide a cache-clear action and confirm whether a redownload is needed afterwards.
-- Handle cache eviction, partial downloads, interrupted requests, storage quota failures, and stale artifact versions.
-- Specify download retry/cleanup behavior supported by the chosen runtime; do not promise resumable downloads without verifying them.
-- Require a secure context where browser APIs need it and probe the actual adapter/features/limits rather than relying on browser names.
-- Resolve worker and asset URLs using the deployed application base URI; test root and non-root hosting paths.
-- Validate CORS, MIME types, CSP worker/connect policies, and WASM/runtime assets on the static host.
-- If a selected runtime requires cross-origin isolation, assess compatibility with the site's third-party scripts before choosing it; do not impose COOP/COEP blindly.
-
-The MVP can work without a network for an already-loaded session with all required evidence cached. Reloadable full offline behavior is deferred because the web project's service-worker configuration is currently commented out.
-
-## 12. Build and publish integration
-
-1. Preserve the existing metadata-search generator invocation and outputs.
-2. Add an explicit chat mode/output option to the generator, with extraction/chunking code isolated from legacy metadata generation.
-3. Generate corpus assets from the normal `CommonComponents` build, following the existing vector-search asset pattern; do not add a feature-specific build flag.
-4. Include relevant article Razor files, any approved extracted demo dependencies, metadata, parser/chunking configuration, generator sources, package configuration, model contract, and publication cutoff in incremental inputs.
-5. Ensure article deletion/rename, changes to extraction exclusions, and publication-date progression invalidate the corpus. A glob of file modification times alone is insufficient for membership changes or the passage of time.
-6. Use a deterministic input inventory/cutoff stamp and document the release time-zone policy. Allow explicit cutoff selection for reproducible tests.
-7. Avoid build recursion: the generator references models/tooling, not the Web project it generates assets for. Confirm nested publish behavior does not invoke conflicting writers.
-8. Cache the build-time pinned embedding model in CI and verify downloaded artifacts; avoid repeated downloads on no-op builds.
-9. Declare generated assets before static-web-asset resolution and verify all parent files and worker dependencies enter publish output.
-10. Stage a full versioned corpus, validate it, switch the manifest, and prune stale deployment artifacts safely.
-11. Validate compression/static serving of `.vec`, JSON, WASM, and runtime model files. Serving a compressed representation must preserve decompressed bytes and metadata checksums.
-12. Confirm static-host artifact-size and bandwidth limits before committing or hosting large model weights. Prefer reproducible asset provisioning over blindly adding weights to Git.
-
-**Acceptance:** a no-op build reuses outputs; article edits/deletions/publication changes regenerate correctly; a clean publish is internally consistent and contains no excluded chat text.
-
-## 13. Proposed file-by-file implementation map
-
-Names below are proposed. Refine them during implementation while preserving responsibility boundaries.
-
-| File or folder | Planned change |
+| Phase / tasks | Delivered result |
 | --- | --- |
-| `CommonComponents/Pages/LearningChat.razor` and `.razor.cs` | Shared page, state, input, lifecycle, metadata, and accessibility |
-| `Web/Shared/LearningChat/` | Message, composer, sources, capability/download status, and safe response presentation components |
-| `Web/Models/LearningChat/` | Typed messages, requests, evidence, citations, capabilities, progress, and configuration |
-| `Web/Services/LearningChat/` | Chat coordinator, passage retrieval, browser runtime bridge, evidence budget, and citation validation |
-| `Web/Program.cs` | Register browser-only chat services and navigation enablement; guard prerender lifecycle |
-| `Web/App.razor` and shared layout/navigation | Wire web-only navigation visibility without breaking MAUI or existing routes |
-| `CommonComponents/wwwroot/js/chat/` | Lazy retrieval worker entry point |
-| `ChatBundle/` | Reproducible runtime bundle, locked dependencies, worker packaging, and JS tests |
-| `VectorSearchIndexGenerator/Program.cs` | Backward-compatible chat-generation mode |
-| `VectorSearchIndexGenerator/Extraction/` | Route discovery, supported Razor block extraction, provenance, diagnostics, and reviewed exclusions |
-| `VectorSearchIndexGenerator/Chunking/` | Parent grouping, token-bounded children, code associations, identity, and validation |
-| `VectorSearchIndexGenerator/ChatCorpus/` | Versioned records, serialization, staging, checksums, and coverage report |
-| `VectorSearchIndexGenerator/MiniLmEmbedder.cs` | Token-count/strict-input support for chat without unintended legacy behavior changes |
-| `CommonComponents/CommonComponents.csproj` | Incremental corpus generation and static asset inclusion, following the existing search-index target |
-| `Directory.Packages.props` | Only needed if extractor/test packages are introduced; use repository package management procedures |
-| `VectorSearchIndexGenerator.Tests/` | Proposed isolated unit-test project for extraction/chunking/corpus invariants |
-| `UITests/` | Chat coordinator/component tests where current test infrastructure supports them |
-| `ILoveDotNet.DistributedTest/LearningChatTests.cs` | Published asset, routing, consent, retrieval, streaming, cancellation, and citation browser tests |
-| `ILoveDotNet.slnx` | Register the proposed isolated test project if created |
-| `THIRD-PARTY-NOTICES.txt` | Runtime/parser/model notices and license requirements |
-| `.github/workflows/` | Corpus validation and deterministic tests; opt-in hardware benchmark job if available |
+| P1 / T001 | Added TDD Red and bounded regression cases to retrieval data and the production generation benchmark |
+| P2 / T002-T003 | Preserved lists/code and stable evidence slots; prioritized comparison definitions. TDD source evidence already existed, so no additional extractor/chunker change was needed |
+| P3 / T004-T005 | Enabled composed answers with bounded prompts and pinned Qwen3; updated notices/consent disclosures |
+| P4 / T006 | Safe provisional/final rendering, trusted citations, explicit fallback and lifecycle handling |
+| P5 / T007-T009 | Updated contract/browser tests, exercised real retrieval/generation and documented results and limitations |
 
-No implementation change is planned for `MAUI/MauiProgram.cs`. Shared layout changes must remain backward-compatible and default to no chat entry in MAUI.
+The acceptance question is **"what is red phase in TDD?"**:
+retrieve the failing-test explanation, compose an answer explaining a failing
+test before implementation, observe a draft and open a supporting article's
+existing anchor. A refusal on this supported acceptance case is not success.
+The wording is not hard-coded or matched as an exact expected string.
 
-## 14. Security and privacy requirements
+### Recorded development results
 
-- Never send questions, prompts, transcripts, evidence packages, or generated answers to an inference server.
-- Never place prompts in URLs, analytics events, error reports, or console logs.
-- Asset downloads can expose network metadata to their hosts; disclose third-party hosting where used.
-- The existing site includes analytics and advertising integrations. Local inference is not proof that the entire page is network-free or isolated from third-party scripts. Audit script access/telemetry and qualify privacy wording before release.
-- Use a vetted Markdown parser with raw HTML disabled and a maintained sanitizer if HTML rendering is necessary. Do not cast model output directly to trusted `MarkupString`.
-- Constrain links to trusted citation destinations and safe permitted schemes. Neutralize generated executable links, embedded remote images, and event attributes.
-- Never execute generated code or index-time article code.
-- Delimit evidence as untrusted data and test prompt-injection attempts embedded in articles and user messages.
-- Validate corpus schemas and model artifacts before use; pin versions and review licenses.
-- Clear session history on explicit reset; provide independent downloaded-asset cleanup.
-- Bound question length, response tokens, retained history, retries, candidate evidence, and active operations.
-- Do not add secrets or a `.env` file: this design requires no secret configuration. Public runtime settings must not contain credentials.
+These are historical measured results, not tests rerun by this documentation update.
 
-## 15. Validation strategy and release gates
+- Real MiniLM retrieval: **43/43 supported and 8/8 unsupported cases passed**.
+- The real production Qwen3 TDD acceptance test passed: retrieval, provisional
+  streaming, relevant composed answer and citation navigation to
+  `introducing-tdd-in-csharp-dotnet/#how`. The fabricated API case fell back
+  before inference.
+- Workspace validation included desktop light/dark/mobile inspection, manual
+  scrolling, persisted conversations and citations, deletion and storage failures.
+- After retiring the alternate experimental harness: **9 Node tests and 23 focused
+  chat browser tests passed**, with a successful test-project build. Earlier
+  header-search regressions passed unchanged; an intermittent header-search timeout
+  occurred in one broader development run.
+- The exact Release/GitHub Pages publish command below passed, including
+  prerendering and trimmed history serialization, before the test-only cleanup.
+  Builds/publish reported existing warnings, not a warning-free baseline.
 
-### 15.1 Extraction and chunking tests
+The retained production benchmark writes
+`ILoveDotNet.DistributedTest/bin/Debug/net10.0/TestResults/learning-chat-production-generation.json`
+with evidence, answers, trusted citation URLs, streaming observations and raw output.
+Its hard assertions cover TDD/citation/fallback behavior; the other diagnostic
+answers are **not all correctness-approved**:
 
-- All four article sections and heading-based step grouping.
-- Headingless legacy articles and introductions preceding the first subsection.
-- Nested headings, repeated heading text, inline highlights, lists, tables, captions, links, and Unicode.
-- Entity decoding exactly once, escaped generics, code indentation, and markup-like strings in code.
-- Oversized paragraphs/items/sentences, long heading prefixes, and oversized code fragments.
-- Complete embedding inputs remain at or below 256 tokens, including special tokens.
-- Parent/child ordering, deterministic IDs, source ranges, and code associations.
-- Missing/duplicate routes, dynamic Razor constructs, explicit exclusions, and no silent article omissions.
-- Publication cutoff behavior, reproducible generation, deleted articles, stale output cleanup, and content-hash invalidation.
+| Question | Observed outcome / limitation |
+| --- | --- |
+| TDD Red | Correctly explains a failing test before implementation; supported article citation; some repetition |
+| GC sweeping | Explains reclaiming dead-object memory without moving surviving objects, consistent with supplied evidence |
+| Transient/scoped/singleton comparison | Source-only fallback despite all three definitions being supplied; confused wording and uncited recommendation were rejected |
+| JsonNode property mutation | Composed and cited; calling `AsObject()` a "cast" is loose terminology |
+| Value objects | Repeats an overbroad source claim that every value object must belong to an entity; not technical correctness approval |
+| `GC.EnableTeleportation()` | Explicit source-only fallback before inference because the API is absent |
 
-### 15.2 Retrieval and orchestration tests
+The alternate evidence-selection and quote-bound JSON experiments were retired.
+Their central lesson remains: valid IDs or exact quote binding do not establish
+claim correctness. Use tests of the production path, not an alternate prompt/worker.
 
-- Known questions retrieve the expected passage/article, not just a matching title.
-- Identifier/API-name queries and lexical/semantic fusion where enabled.
-- Deduplication, diversity limits, parent expansion, and generation-token budgeting.
-- Follow-up pronouns and bounded prior-turn context.
-- Weak/empty/conflicting evidence triggers clarification or retrieval-only output.
-- Per-message citation maps, unknown IDs, missing citations, and bounded repair failures.
-- Reset/navigation/cancellation races, stale events, worker failure, model device loss, and retry behavior.
-- Safe rendering of malicious Markdown/HTML and link protocols.
+## 7. Build and validation commands
 
-### 15.3 Deterministic browser tests
-
-Use mocked embedding outputs and a fake generation worker/runtime for normal CI. Do not require a multi-gigabyte download, WebGPU, or a real-model response for every pull request.
-
-Test:
-
-- Direct navigation/refresh and canonical route behavior.
-- No generation-runtime/model requests before explicit consent; no downloads during prerendering.
-- Corpus/model manifests and vector/parent joins are available and consistent in publish output.
-- Streaming, stop, retry, reset, source cards, keyboard behavior, and accessible status updates.
-- Unsupported WebGPU, quota/network failure, corrupt assets, cache eviction, and stale versions.
-- Network inspection confirms no inference request or prompt/transcript upload. Do not confuse unrelated existing analytics traffic with an inference request; separately audit that it carries no chat content.
-- Existing `VectorSearchTests` still pass and ordinary pages do not load chat assets.
-- MAUI-shared layout does not require web chat services or display its link by default.
-
-### 15.4 Real-model evaluation
-
-The retrieval-only evaluation is implemented in `ILoveDotNet.DistributedTest/LearningChatEvaluationTests.cs`, with 50 authored questions in `TestData/learning-chat-retrieval.json`: 40 development cases and 10 holdout cases added after tuning. Cases cover definitions, motivation, implementation/code, comparisons, paraphrases, follow-ups/topic changes, unsupported subjects, and fabricated APIs. Each supported case checks approved article/heading references and required fact fragments, not just title similarity. The test verifies those expectations exist in the published corpus before running.
-
-This is an explicit xUnit test so ordinary CI does not unexpectedly download a model. It uses the actual browser worker, published corpus/vectors, pinned Transformers.js embedding model, and real inference; neither vectors nor the embedding pipeline are stubbed. Run after building Web:
+Run commands from the repository root. Tests require the repository's .NET 10 /
+xUnit v3 / Microsoft.Testing.Platform setup and existing Playwright prerequisites.
+Use focused selectors rather than the whole solution by default.
 
 ```bash
+# Production prompt, citation, disposal and localStorage contracts.
+npm test --prefix ChatBundle
+
+# Extraction and token-bounded chunking.
+dotnet test --project VectorSearchIndexGenerator.Tests/VectorSearchIndexGenerator.Tests.csproj
+
+# Build shared assets and Web before browser tests; AppHost runs Web with --no-build.
 dotnet build Web/Web.csproj
-dotnet test --project ILoveDotNet.DistributedTest/ILoveDotNet.DistributedTest.csproj --filter-class '*LearningChatEvaluationTests' --explicit on
+
+# Deterministic browser regressions, including independent header search.
+HEADED=1 \
+ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL=https://127.0.0.1:0 \
+ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL=https://127.0.0.1:0 \
+dotnet test --project ILoveDotNet.DistributedTest/ILoveDotNet.DistributedTest.csproj \
+  --filter-class '*LearningChatTests' \
+  --filter-class '*LearningChatGenerationTests' \
+  --filter-class '*LearningChatCorpusValidationTests' \
+  --filter-class '*VectorSearchTests'
+
+# Exact pipeline publish, including prerendering.
+dotnet publish ./Web/Web.csproj -c:Release -p:GHPages=true -o dist/Web --nologo
 ```
 
-If an existing Aspire instance occupies its configured service ports, set `ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL=https://127.0.0.1:0` and `ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL=https://127.0.0.1:0` for the test process. No production feature flag is involved.
+Real-model evaluation is explicit and requires network downloads; generation needs
+hardware WebGPU and several GB of available GPU memory. It is not a cheap unit test:
 
-The test writes `TestResults/learning-chat-evaluation.json` below the test output directory, including model/corpus versions, evaluation/worker SHA-256 hashes, browser version, per-question source excerpts, first-result checks, elapsed times, and failures. It enforces at least 90% supporting-evidence recall, at least 90% unsupported-question abstention, and the explicit definition/sweep first-result checks.
+```bash
+HEADED=1 \
+ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL=https://127.0.0.1:0 \
+ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL=https://127.0.0.1:0 \
+dotnet test --project ILoveDotNet.DistributedTest/ILoveDotNet.DistributedTest.csproj \
+  --filter-class '*LearningChatEvaluationTests' \
+  --filter-class '*LearningChatGenerationBenchmarkTests' --explicit on
+```
 
-Measured on macOS arm64 / Chromium 153.0.8010.12 with corpus `cfbc6e001e208424be9a3acfd1de2fa79687ad535fedc55793843271c4f6bdb1`: 42/42 supported questions contained the required evidence and 8/8 unsupported questions returned no sources; the holdout subset passed 10/10 on its first run. The initial 40-case baseline was 29/34 supported and 3/6 unsupported after correcting three oracle issues (equivalent SRP article, `copies` wording, and `RequireAuthorization` versus policy-definition API). Query median/p95 were approximately 44/49 ms after model initialization, not cold-start/download measurements.
+Optionally set `LEARNING_CHAT_BENCHMARK_PROFILE` to a dedicated Chromium profile
+directory to reuse the generation model cache. The retrieval evaluation asserts
+at least 90% supported recall and unsupported abstention, plus critical first-result
+checks; it does not evaluate generated claim correctness.
 
-These are development-set/limited-holdout retrieval measurements, not answer correctness or a release sign-off. The questions/fact fragments still need independent human review, more unseen paraphrases and unsupported topics, precision review of every returned passage, and browser/device/startup measurements. Reusing the holdout for future tuning makes it a regression set, not a fresh holdout. Generation remains unimplemented.
+Normal builds own corpus generation. For a reproducible explicit cutoff:
 
-Create at least 40 reviewed questions spanning definition, motivation, implementation, code explanation, comparison, follow-up, unsupported topics, and adversarial citation requests. Store expected article/section references and required supporting facts; avoid brittle exact-answer strings.
+```bash
+dotnet build CommonComponents/CommonComponents.csproj -p:ChatCorpusCutoff=2026-10-27
+```
 
-Initial proposed release targets, to ratify before model selection:
+Do not hand-edit generated corpus, bundles or CSS. Regenerate through their build
+paths. Model/runtime changes must update pins, notices, size/memory disclosures,
+consent identity and production evaluations together.
 
-| Measure | Proposed gate |
-| --- | --- |
-| Extraction coverage | 100% of eligible articles accounted for; approved exclusions documented |
-| Token/asset/provenance validity | 100% of deterministic invariants pass |
-| Retrieval recall | Expected supporting evidence present in selected context for at least 90% of supported evaluation questions |
-| Technical correctness | At least 90% of supported evaluation answers judged correct and sufficiently grounded by review |
-| Citation validity | All displayed citation IDs resolve to trusted retrieved evidence |
-| Citation support | At least 95% of sampled substantive cited claims actually supported by their referenced passages |
-| Unsupported questions | At least 90% correctly abstain or clarify rather than inventing repository support |
-| Existing search | No regression in deterministic search tests |
-| Privacy | No chat content leaves the device through tested application/telemetry paths |
-| Startup isolation | No chat generation assets downloaded outside explicit chat consent |
+## 8. Remaining work and release boundaries
 
-Latency, peak-memory, and maximum-download gates must be agreed against the target device/browser matrix after the benchmark. Record failures as failures; do not imply proposed percentages were measured. Review code adaptations separately for compilability/API correctness when relevant.
+- **Answer quality:** address DI comparison failures and review source inaccuracies
+  separately. Broader independent claim-level correctness/coverage review remains
+  required before general factuality sign-off; current tests do not provide it.
+- **Device/runtime parity:** validate MAUI WebView and a broader browser/device
+  matrix, including device loss, memory pressure, interrupted downloads and storage
+  eviction. Capability checks alone are not a supported-device certification.
+- **Performance/model size:** measure cold/warm startup, memory and answer latency
+  on target devices. A smaller model needs a separate production-path quality
+  evaluation before replacing the default; code cleanup does not reduce its weights.
+- **Privacy/deployment:** complete telemetry review and validate deployed base-path,
+  host/CORS/CSP and cache behavior beyond the recorded development/publish checks.
+- **Optional improvements:** precise subsection/chunk anchors and reloadable offline
+  behavior are deferred, not prerequisites already delivered by this implementation.
+- **Maintenance:** regenerate on article/publication changes and rerun relevant
+  production evaluations after content, ranking, prompt, runtime or model changes.
+  Preserve header search, source fallback and matched corpus/runtime/model contracts.
 
-## 16. Phased implementation checklist
-
-### Phase 0 — Confirm scope and establish baselines
-
-- [ ] Approve route, answer policy, device scope, generation download budget, hosting policy, and privacy wording.
-- [ ] Measure existing search/page startup behavior to protect it from regressions.
-- [ ] Inventory published articles and extraction patterns across topics.
-- [ ] Define representative extraction fixtures and the reviewed evaluation question set.
-- [ ] Probe parser tooling and benchmark runtime/model candidates before selecting dependencies.
-
-**Exit:** documented decisions, baseline, parser feasibility, evaluation set, and model/runtime shortlist. No unapproved architecture expansion.
-
-### Phase 1 — Structured extraction and corpus prototype
-
-- [ ] Add generator discovery/extraction types and an isolated test project.
-- [ ] Extract a representative subset, including code-heavy, headingless, and demo-bearing articles.
-- [ ] Implement parent/child chunking, token accounting, provenance, and code preservation.
-- [ ] Produce coverage diagnostics and versioned prototype assets.
-- [ ] Validate extraction against original and rendered article content.
-
-**Exit:** trustworthy passages and code; all prototype invariants pass; unsupported constructs have reviewed handling.
-
-### Phase 2 — Full corpus and build integration
-
-- [ ] Extend the backward-compatible generator mode to all eligible blog articles.
-- [ ] Implement publication cutoff, incremental inventory, hashing, staged writes, and stale-file removal.
-- [ ] Add web-owned generation/publish targets and manifest validation.
-- [ ] Verify clean, incremental, deletion, and date-transition builds.
-- [ ] Confirm no search-index schema or output regression.
-
-**Exit:** reproducible deployable corpus, complete coverage accounting, no excluded chat content, and unchanged search tests.
-
-### Phase 3 — Dedicated page with retrieval-only learning
-
-- [ ] Add `/chat/`, web-only navigation entry, metadata, and responsive accessible shell.
-- [ ] Implement lazy retrieval worker, typed bridge, scoring, evidence expansion, and source cards.
-- [ ] Add consent/loading/error/reset states without generation.
-- [ ] Test direct links, deployed base paths, empty/weak evidence, and normal-page asset isolation.
-
-**Exit:** readers can ask a question and inspect useful original passages and article links even without a generative model.
-
-### Phase 4 — Local generation and conversation
-
-- [ ] Select/pin the model/runtime after benchmark and license approval.
-- [ ] Add isolated bundle, generation worker, capability probing, model consent/progress, and cache controls.
-- [ ] Implement prompt budgets, streaming, bounded follow-ups, and actual interruption.
-- [ ] Implement per-answer citation validation, safe output rendering, and retrieval-only fallback.
-- [ ] Audit existing scripts/telemetry for the privacy promise.
-
-**Exit:** model-assisted learning works on the approved device matrix, with tested citations, lifecycle, and privacy controls.
-
-### Phase 5 — Hardening and preview release
-
-- [ ] Run deterministic tests and the reviewed real-model evaluation.
-- [ ] Exercise adversarial input, corrupt assets, device loss, low storage, and interrupted downloads.
-- [ ] Measure published startup, memory, latency, and responsive/accessibility behavior.
-- [ ] Document supported browsers/devices, download size, limitations, and cache behavior.
-- [ ] Verify deployment artifacts, notices, canonical links, and noindex preview policy.
-- [ ] Enable a limited preview only after the agreed gates pass.
-
-**Exit:** reviewed release report with measured results and explicit known limitations.
-
-## 17. Rollout, rollback, and operational maintenance
-
-- Gate page discoverability and generation availability independently using public web configuration.
-- Disabling generation preserves retrieval-only mode; disabling the feature removes navigation and presents a deliberate unavailable state at the route.
-- Retain the existing header search regardless of chat rollout state.
-- Roll back the matched runtime/model/corpus manifest set together; never serve incompatible mixed versions.
-- Prune stale deployed corpus assets and expire cache keys deliberately.
-- Regenerate on article publication/edit/deletion and on parser/chunking/model-contract changes.
-- Re-run the reviewed question set after content, retrieval, runtime, or model changes.
-- Add no raw conversation collection for diagnostics. If aggregate operational events are later approved, keep them content-free, disclosed, and optional where appropriate.
-
-## 18. Principal risks and mitigations
-
-| Risk | Mitigation |
-| --- | --- |
-| Razor extraction misses dynamic content | Representative inventory, syntax-aware extraction, explicit adapters/exclusions, release coverage gate |
-| Small model produces plausible but unsupported technical advice | Evidence-only prompts, bounded references, abstention, human evaluation, retrieval-only fallback |
-| Code loses punctuation or is disconnected from explanation | Separate original source text, linked blocks, code-specific extraction tests |
-| Embeddings truncate long inputs | Exact BERT counts, strict chat input validation, child chunks |
-| Parent context overflows generation | Model-specific token budget and block-level selection |
-| Model download or memory is unacceptable | Consent, measured budget, small-model comparison, device probing, retrieval-only mode |
-| Main UI freezes | Worker inference/retrieval, throttled streaming interop, responsiveness tests |
-| Existing search duplicates embedding memory | Measure concurrent use; defer safe sharing optimization rather than silently altering search |
-| Unpublished text persists in assets | Build-time filtering, cutoff/inventory invalidation, stale deployment cleanup |
-| Static-host asset/CSP limitations | Published-output smoke tests, host limits review, controlled asset provisioning |
-| Local-processing claim overstates privacy | Audit analytics/ads and third-party hosting; precise user-facing wording |
-| Shared browser capability differs by host | Surface runtime errors clearly; the retrieval flow uses shared static assets and does not depend on a Web-only service |
-
-## 19. Review checklist before implementation
-
-- [ ] Approve `/chat/` and **Learn with AI** as the page route/name.
-- [ ] Approve strict article-grounded answers and source-only fallback.
-- [ ] Confirm desktop-first generation versus a mandatory mobile-generation requirement.
-- [ ] Set an acceptable first-download budget and target device/browser matrix.
-- [ ] Approve WebLLM-first benchmarking, with no automatic cloud/native fallback.
-- [ ] Agree model-hosting/distribution policy and privacy disclosure constraints.
-- [ ] Approve parent–child chunking and initial article-section citation links.
-- [ ] Approve session-only transcripts and deferred full offline support.
-- [ ] Ratify evaluation targets and explicitly reviewed corpus exclusions.
-- [ ] Authorize phased implementation only after reviewing this document.
-
-## 20. Documentation references
-
-These sources informed the architecture discussion; recheck versions and supported artifacts at implementation time.
-
-- [Foundry Local SDK reference](https://learn.microsoft.com/en-us/azure/foundry-local/reference/reference-sdk-current)
-- [Foundry Local JavaScript SDK design and browser non-goal](https://github.com/microsoft/foundry-local/blob/main/sdk_v2/js/docs/PortJsToSdkV2.md)
-- [WebLLM runtime](https://github.com/mlc-ai/web-llm)
-- [Transformers.js browser inference](https://github.com/huggingface/transformers.js)
-- Repository architecture: `docs/Architecture.md`
-- Existing content conventions: `copilot/blog-generation-guidelines.md`
-
-**Original first milestone (historical, already delivered):** validated article
-chunks and retrieval-only `/chat/`. For the next work, use the approval checkpoint
-in **Next increment for approval: explain articles and cite them** at the top of
-this document; do not restart the original implementation sequence.
+No feature flag, automatic entailment model, repair pass or new model-comparison
+framework is required to maintain the current approved experience.
