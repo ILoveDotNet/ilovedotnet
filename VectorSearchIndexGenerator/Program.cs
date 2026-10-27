@@ -40,10 +40,10 @@ Directory.CreateDirectory(modelDirectory);
 
 var modelPath = Path.Combine(modelDirectory, "model_quantized.onnx");
 var vocabularyPath = Path.Combine(modelDirectory, "vocab.txt");
-await DownloadIfMissingAsync(
+await ModelDownloader.DownloadIfMissingAsync(
   $"https://huggingface.co/{ModelId}/resolve/{ModelRevision}/onnx/model_quantized.onnx",
   modelPath);
-await DownloadIfMissingAsync(
+await ModelDownloader.DownloadIfMissingAsync(
   $"https://huggingface.co/{ModelId}/resolve/{ModelRevision}/vocab.txt",
   vocabularyPath);
 
@@ -88,22 +88,3 @@ static string CreateSearchDocument(ContentMetaData content)
 
 static string DefaultModelDirectory([CallerFilePath] string sourceFilePath = "")
   => Path.Combine(Path.GetDirectoryName(sourceFilePath) ?? Directory.GetCurrentDirectory(), ".model-cache");
-
-static async Task DownloadIfMissingAsync(string url, string path)
-{
-  if (File.Exists(path))
-  {
-    return;
-  }
-
-  Console.WriteLine($"Downloading {url}...");
-  var temporaryPath = $"{path}.tmp";
-  using var httpClient = new HttpClient();
-  await using var source = await httpClient.GetStreamAsync(url);
-  await using (var destination = File.Create(temporaryPath))
-  {
-    await source.CopyToAsync(destination);
-    await destination.FlushAsync();
-  }
-  File.Move(temporaryPath, path, true);
-}

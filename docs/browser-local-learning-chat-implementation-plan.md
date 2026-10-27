@@ -102,6 +102,9 @@ in the static sitemap. Conversations have no public routes or sitemap entries.
   regeneration, including source deletion and date changes. `ChatCorpusCutoff`
   defaults to the UTC build date and can be overridden.
 - Preserve the existing metadata-search generator invocation and outputs.
+- Both generator modes use `VectorSearchIndexGenerator/ModelDownloader.cs` to
+  reuse cached embedding assets and stage missing downloads through a temporary
+  file before moving them to the unchanged model cache.
 
 ### Runtime retrieval
 

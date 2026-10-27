@@ -40,10 +40,10 @@ internal static partial class ChatCorpusGenerator
     Directory.CreateDirectory(modelDirectory);
     var modelPath = Path.Combine(modelDirectory, "model_quantized.onnx");
     var vocabularyPath = Path.Combine(modelDirectory, "vocab.txt");
-    await DownloadIfMissingAsync(
+    await ModelDownloader.DownloadIfMissingAsync(
       $"https://huggingface.co/{modelId}/resolve/{modelRevision}/onnx/model_quantized.onnx",
       modelPath);
-    await DownloadIfMissingAsync(
+    await ModelDownloader.DownloadIfMissingAsync(
       $"https://huggingface.co/{modelId}/resolve/{modelRevision}/vocab.txt",
       vocabularyPath);
 
@@ -206,27 +206,6 @@ internal static partial class ChatCorpusGenerator
       Directory.Delete(staleDirectory, recursive: true);
     }
   }
-
-  private static async Task DownloadIfMissingAsync(string url, string path)
-  {
-    if (File.Exists(path))
-    {
-      return;
-    }
-
-    Console.WriteLine($"Downloading {url}...");
-    var temporaryPath = $"{path}.tmp";
-    using var httpClient = new HttpClient();
-    await using var source = await httpClient.GetStreamAsync(url);
-    await using (var destination = File.Create(temporaryPath))
-    {
-      await source.CopyToAsync(destination);
-      await destination.FlushAsync();
-    }
-
-    File.Move(temporaryPath, path, overwrite: true);
-  }
-
 }
 
 internal sealed record ChatCorpusManifest(
