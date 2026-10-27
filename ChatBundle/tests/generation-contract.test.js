@@ -84,3 +84,19 @@ test("TDD Red definition survives prompt packing alongside implementation code",
     assert.match(prompt.sources[1].excerpt, /test fails with NotImplementedException/);
     assert.doesNotMatch(prompt.sources[1].excerpt, /```/);
 });
+
+test("comparison packing retains each definition and complete .NET sentences within the byte budget", () => {
+    const passages = ["Transient", "Scoped", "Singleton"].map(heading => ({
+        title: "Service lifetimes", heading,
+        excerpt: `${heading} has an authored definition in .NET. ${"Long evidence with Unicode \u2014 text. ".repeat(100)}`,
+    }));
+    const prompt = createGroundedPrompt("Compare transient scoped and singleton service lifetimes.", passages);
+    assert.ok(new TextEncoder().encode(prompt.messages.map(message => message.content).join("")).length <= 6000);
+    assert.deepEqual(prompt.sources.map(source => source.heading), ["Transient", "Scoped", "Singleton"]);
+    for (const [index, source] of prompt.sources.entries()) {
+        assert.ok(source.excerpt.startsWith(`${passages[index].heading} has an authored definition in .NET.`));
+        assert.ok(passages[index].excerpt.includes(source.excerpt.replaceAll("\n", " ")));
+        assert.match(source.excerpt, /\.$/);
+        assert.match(prompt.messages[1].content, new RegExp(`\\[${index + 1}\\] Service lifetimes / ${source.heading}`));
+    }
+});

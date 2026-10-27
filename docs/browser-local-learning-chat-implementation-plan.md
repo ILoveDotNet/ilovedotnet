@@ -70,7 +70,7 @@ substituting a smaller model or treating browser support as a memory guarantee.
 1. **P1: Establish concrete question/evidence cases.** Capture real corpus
    results for the Red question before tuning. Identify whether failures are
    extraction, ranking or prompt packing; change only the failing layer.
-   - [x] T001 [Plan:P1] Add the TDD Red question and required facts to `ILoveDotNet.DistributedTest/TestData/learning-chat-retrieval.json` and the generation evaluation cases in `ILoveDotNet.DistributedTest/LearningChatComposedAnswerBenchmarkTests.cs`. Retain the value-object and unsupported-API cases; do not hard-code answers in the runtime.
+   - [x] T001 [Plan:P1] Add the TDD Red question and required facts to `ILoveDotNet.DistributedTest/TestData/learning-chat-retrieval.json` and the production generation evaluation cases in `ILoveDotNet.DistributedTest/LearningChatGenerationBenchmarkTests.cs`. Retain the value-object and unsupported-API cases; do not hard-code answers in the runtime.
 
 2. **P2: Preserve answer-bearing context.** Keep heading/body association,
    lists and bounded code when assembling prompts. Prefer existing section and
@@ -288,6 +288,13 @@ With constrained verbatim decoding, SmolLM2 returned verified excerpts for compa
 
 ### Stronger composed-answer experiment (not deployed)
 
+The experimental benchmark, evidence helper, quote-bound validators and rubric
+have been retired; their implementation remains in Git history. The results
+below document past decisions, not runnable validation entry points.
+Current checks use `LearningChatGenerationBenchmarkTests`, `LearningChatEvaluationTests`,
+the production-worker browser regressions in `LearningChatTests`, and
+`npm test --prefix ChatBundle`.
+
 The user chose to benchmark a stronger default before considering a model picker.
 `LearningChatComposedAnswerBenchmarkTests` tests Qwen3 4B with **unconstrained
 composed answers**, not the production sentence-selection grammar. It imports the
@@ -339,16 +346,9 @@ answers, address the model's response envelope and refusal behavior, improve
 evidence completeness where retrieval lacks the requested comparison, and
 evaluate factual claims and citation support on a broader independent set.
 
-Reproduce explicitly (downloads multiple GB; requires hardware WebGPU):
-
-```bash
-dotnet build Web/Web.csproj --no-restore --verbosity quiet
-HEADED=1 \
-ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL=https://127.0.0.1:0 \
-ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL=https://127.0.0.1:0 \
-dotnet test --project ILoveDotNet.DistributedTest/ILoveDotNet.DistributedTest.csproj \
-  --filter-class '*LearningChatComposedAnswerBenchmarkTests' --explicit on
-```
+Reproducing this historical experiment requires restoring its retired harness
+from Git history. Use `LearningChatGenerationBenchmarkTests` to evaluate the
+current production path instead.
 
 The machine-readable report is written under the test output directory as
 `TestResults/learning-chat-composed-answer-benchmark.json`, including raw answers,
@@ -464,15 +464,8 @@ bound non-refusal still requires semantic review. A structured refusal on a
 supported question also fails answer coverage rather than counting as success.
 Production UI, model, retrieval and verified-excerpt generation remain unchanged.
 
-Run this experiment separately to avoid downloading/loading the model twice:
-
-```bash
-HEADED=1 \
-ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL=https://127.0.0.1:0 \
-ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL=https://127.0.0.1:0 \
-dotnet test --project ILoveDotNet.DistributedTest/ILoveDotNet.DistributedTest.csproj \
-  --filter-method '*BenchmarkQuoteBoundClaimsAgainstSameEvidenceAsync' --explicit on
-```
+This experiment is retired with the alternate benchmark harness; restore it
+from Git history only when reproducing these historical results.
 
 The separate diagnostic report is
 `TestResults/learning-chat-claim-attribution-benchmark.json`, preserving the

@@ -159,10 +159,20 @@ public class LearningChatTests(AppFixture fixture) : PageTest
         contentUrl = "blogs/gc/", excerpt = "There are several phases in each collection.", tokenCount = 20 },
       new { id = "oops:how", slug = "oops-abstraction", title = "OOPS Abstraction", section = "How", heading = "What is Abstraction?",
         contentUrl = "blogs/oops-abstraction/", excerpt = "Abstraction eliminates irrelevant details.", tokenCount = 20 },
+      new { id = "lifetimes:captive", slug = "lifetimes", title = "Service Lifetimes", section = "How", heading = "Captive Dependency",
+        contentUrl = "blogs/lifetimes/", excerpt = "Compare transient scoped and singleton service lifetimes to avoid captive dependencies.", tokenCount = 20 },
+      new { id = "lifetimes:transient", slug = "lifetimes", title = "Service Lifetimes", section = "How", heading = "Transient",
+        contentUrl = "blogs/lifetimes/", excerpt = "Transient services are created each time requested.", tokenCount = 20 },
+      new { id = "lifetimes:scoped", slug = "lifetimes", title = "Service Lifetimes", section = "How", heading = "Scoped",
+        contentUrl = "blogs/lifetimes/", excerpt = "Scoped services are disposed at the end of the request.", tokenCount = 20 },
+      new { id = "lifetimes:singleton", slug = "lifetimes", title = "Service Lifetimes", section = "How", heading = "Singleton",
+        contentUrl = "blogs/lifetimes/", excerpt = "Singleton services reuse the same instance.", tokenCount = 20 },
+      new { id = "unrelated:singleton", slug = "unrelated", title = "Other Article", section = "How", heading = "Singleton",
+        contentUrl = "blogs/unrelated/", excerpt = "Singleton content from an article below the similarity threshold.", tokenCount = 20 },
     };
     var chunks = JsonSerializer.SerializeToUtf8Bytes(passages);
     var vectors = new float[passages.Length * 384];
-    foreach (var (similarity, index) in new[] { 0.5f, 0.4f, 0.8f, 1f }.Select((value, index) => (value, index)))
+    foreach (var (similarity, index) in new[] { 0.5f, 0.4f, 0.8f, 1f, 0.9f, 0.4f, 0.4f, 0.4f, 0.2f }.Select((value, index) => (value, index)))
     {
       vectors[index * 384] = similarity;
       vectors[index * 384 + 1] = MathF.Sqrt(1 - similarity * similarity);
@@ -205,6 +215,7 @@ public class LearningChatTests(AppFixture fixture) : PageTest
       ("what is sweeping?", passages[1].excerpt, 2),
       ("what is abstraction?", passages[3].excerpt, 1),
       ("what is it?", passages[3].excerpt, 1),
+      ("Compare transient scoped and singleton service lifetimes.", passages[5].excerpt, 3),
     })
     {
       await Page.GetByRole(AriaRole.Textbox).FillAsync(question);
@@ -217,6 +228,12 @@ public class LearningChatTests(AppFixture fixture) : PageTest
       if (question.Contains("collection", StringComparison.Ordinal) || question.Contains("sweeping", StringComparison.Ordinal))
       {
         await Expect(sources.GetByRole(AriaRole.Link, new() { Name = "OOPS Abstraction" })).ToHaveCountAsync(0);
+      }
+      if (question.StartsWith("Compare", StringComparison.Ordinal))
+      {
+        await Expect(sources.Nth(1)).ToContainTextAsync(passages[6].excerpt);
+        await Expect(sources.Nth(2)).ToContainTextAsync(passages[7].excerpt);
+        await Expect(sources.GetByRole(AriaRole.Link, new() { Name = "Other Article" })).ToHaveCountAsync(0);
       }
     }
     await Expect(Page.GetByRole(AriaRole.Alert)).ToHaveCountAsync(0);
