@@ -48,12 +48,15 @@ public class LearningChatGenerationBenchmarkTests(AppFixture fixture) : PageTest
               const load = await request('load', {modelId:model.model_id});
               const cases = [];
               if (!load.error) {
-                for (const question of ['What is sweeping?', 'Why does compaction update references?', 'Explain the role of the GC.', 'Which database index should I use?']) {
+                for (const question of ['What is sweeping?', 'Why does compaction update references?', 'Explain the role of the GC.', 'Which database index should I use?', 'what is garbage collection']) {
                   cases.push({question, ...await request('generate', {
                     question, history:'',
                     sources:[
                       {title:'Garbage collection',heading:'Sweep',contentUrl:'blogs/gc/',section:'How',excerpt:'After marking identifies live objects, sweeping reclaims the memory occupied by unmarked, unreachable objects. Sweeping does not move surviving objects.'},
-                      {title:'Garbage collection',heading:'Compact',contentUrl:'blogs/gc/',section:'How',excerpt:'Compaction moves surviving objects together to close gaps in the heap. The runtime updates references to the moved objects. The GC automatically reclaims unreachable managed objects.'}
+                      {title:'Garbage collection',heading:'Compact',contentUrl:'blogs/gc/',section:'How',excerpt:'Compaction moves surviving objects together to close gaps in the heap. The runtime updates references to the moved objects. The GC automatically reclaims unreachable managed objects.'},
+                      ...(question === 'what is garbage collection' ? [
+                        {title:'Garbage collection',heading:'Definition',contentUrl:'blogs/gc/',section:'What',excerpt:'Garbage collection automatically reclaims memory occupied by unreachable managed objects.'}
+                      ] : [])
                     ]
                   })});
                 }
@@ -74,18 +77,17 @@ public class LearningChatGenerationBenchmarkTests(AppFixture fixture) : PageTest
     Assert.All(report.RootElement.GetProperty("results").EnumerateArray(), model =>
     {
       Assert.False(model.GetProperty("load").TryGetProperty("error", out var error), error.ToString());
-      Assert.Equal(4, model.GetProperty("cases").GetArrayLength());
+      Assert.Equal(5, model.GetProperty("cases").GetArrayLength());
       if (model.GetProperty("model").GetProperty("model_id").GetString() == report.RootElement.GetProperty("selectedModel").GetString())
       {
         var cases = model.GetProperty("cases").EnumerateArray().ToArray();
-        Assert.True(cases.Take(3).Count(result => result.TryGetProperty("result", out _)) >= 2,
+        Assert.True(cases.Take(3).Count(result => result.TryGetProperty("result", out var answer)
+          && answer.GetProperty("outcome").GetString() == "answered") >= 2,
           "The selected model must return verified excerpts for at least two of the three supported smoke questions.");
-        Assert.All(cases.Take(3), result =>
+        Assert.All(cases.Take(3).Append(cases[4]), result =>
         {
-          if (result.TryGetProperty("error", out _))
-          {
-            Assert.Equal("INSUFFICIENT_EVIDENCE", result.GetProperty("rawAnswer").GetString());
-          }
+          Assert.False(result.TryGetProperty("error", out var failure), failure.ToString());
+          Assert.Contains(result.GetProperty("result").GetProperty("outcome").GetString(), new[] { "answered", "refused" });
         });
         Assert.True(cases[3].TryGetProperty("error", out _), "Unsupported question must fall back to original sources.");
       }

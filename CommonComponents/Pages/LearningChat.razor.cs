@@ -300,13 +300,24 @@ public class LearningChatBase : ComponentBase, IAsyncDisposable
           var generated = await generationModule.InvokeAsync<GeneratedAnswer>("generate", question, sources, context, callback, operation);
           if (!disposed && operation == generationOperation && request == activeRequest)
           {
-            if (generated.SourceCount < 1 || generated.SourceCount > sources.Length || string.IsNullOrWhiteSpace(generated.Text))
+            if (generated.SourceCount < 1 || generated.SourceCount > sources.Length
+              || (generated.Outcome != "answered" && generated.Outcome != "refused")
+              || (generated.Outcome == "answered" && string.IsNullOrWhiteSpace(generated.Text))
+              || (generated.Outcome == "refused" && generated.Text != string.Empty))
             {
               throw new JSException("The local answer returned invalid source metadata. Showing original sources instead.");
             }
-            answer.Text = generated.Text;
-            answer.Sources = sources.Take(generated.SourceCount).ToArray();
-            answer.IsGenerated = true;
+            if (generated.Outcome == "refused")
+            {
+              answer.Text = response;
+              generationStatus = "The local model could not select a verified quotation for this question. The original article passages are shown below; this does not mean the articles lack an answer.";
+            }
+            else
+            {
+              answer.Text = generated.Text;
+              answer.Sources = sources.Take(generated.SourceCount).ToArray();
+              answer.IsGenerated = true;
+            }
           }
         }
         catch (JSException exception)
@@ -476,7 +487,8 @@ public class LearningChatBase : ComponentBase, IAsyncDisposable
     [property: JsonPropertyName("consent")] bool Consent);
   private sealed record GeneratedAnswer(
     [property: JsonPropertyName("text")] string Text,
-    [property: JsonPropertyName("sourceCount")] int SourceCount);
+    [property: JsonPropertyName("sourceCount")] int SourceCount,
+    [property: JsonPropertyName("outcome")] string Outcome);
 
   public sealed record ChatSource(
     [property: JsonPropertyName("title")] string Title,

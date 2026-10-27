@@ -69,7 +69,7 @@ function onMessage({ data }) {
         return;
     }
     pending.delete(data.requestId);
-    request.updates.then(() => data.error ? request.reject(new Error(data.error)) : request.resolve(data.result),
+    request.updates.then(() => data.error ? request.reject(data.error) : request.resolve(data.result),
         error => request.reject(error));
 }
 

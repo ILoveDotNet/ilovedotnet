@@ -11,6 +11,8 @@ public class LearningChatGenerationTests(AppFixture fixture) : PageTest
   [InlineData("invalid")]
   [InlineData("changed")]
   [InlineData("slow")]
+  [InlineData("refused")]
+  [InlineData("truncated")]
   public async Task StreamedAnswersAreValidatedOrReplacedWithSourcesAsync(string mode)
   {
     await StubSearchAsync();
@@ -36,6 +38,11 @@ public class LearningChatGenerationTests(AppFixture fixture) : PageTest
           return {
             resetChat:async()=>{}, unload:async()=>{},
             chat:{completions:{create:async function*() {
+              if ('{{{{mode}}}}' === 'refused' || '{{{{mode}}}}' === 'truncated') {
+                yield {choices:[{delta:{content:'INSUFFICIENT_EVIDENCE'},
+                  finish_reason:'{{{{(mode == "truncated" ? "length" : "stop")}}}}'}]};
+                return;
+              }
               yield {choices:[{delta:{content:'Sweeping reclaims unreachable objects. '}}]};
               await new Promise(resolve=>setTimeout(resolve, {{{{(mode == "slow" ? 60000 : 1500)}}}}));
               yield {choices:[{delta:{content:'{{{{(mode == "changed" ? "Invented explanation. " : "")}}}}[{{{{(mode == "invalid" ? 9 : 1)}}}}]'},finish_reason:'stop'}]};
@@ -52,9 +59,13 @@ public class LearningChatGenerationTests(AppFixture fixture) : PageTest
     await Page.GetByRole(AriaRole.Button, new() { Name = "Download local answer model" }).ClickAsync();
     var modelPanel = Page.GetByRole(AriaRole.Complementary, new() { Name = "Local answer model" });
     await Expect(modelPanel).ToContainTextAsync("Local answers ready");
-    await Page.GetByRole(AriaRole.Textbox).FillAsync("What is sweeping?");
+    await Page.GetByRole(AriaRole.Textbox).FillAsync(mode == "refused" || mode == "truncated"
+      ? "what is garbage collection" : "What is sweeping?");
     await Page.GetByRole(AriaRole.Button, new() { Name = "Send question" }).ClickAsync();
-    await Expect(Page.Locator("article p").Filter(new() { HasText = "Sweeping reclaims unreachable objects." })).ToBeVisibleAsync();
+    if (mode != "refused" && mode != "truncated")
+    {
+      await Expect(Page.Locator("article p").Filter(new() { HasText = "Sweeping reclaims unreachable objects." })).ToBeVisibleAsync();
+    }
     if (mode == "slow")
     {
       await Page.GetByRole(AriaRole.Button, new() { Name = "Stop", Exact = true }).ClickAsync();
@@ -82,6 +93,18 @@ public class LearningChatGenerationTests(AppFixture fixture) : PageTest
       {
         await Expect(modelPanel).ToContainTextAsync("changed the original article wording");
       }
+      else if (mode == "refused")
+      {
+        await Expect(modelPanel).ToContainTextAsync("could not select a verified quotation");
+        await Expect(modelPanel).Not.ToContainTextAsync("Local answer unavailable");
+        await Expect(Page.GetByText("AI-selected verbatim excerpts.", new() { Exact = false })).ToHaveCountAsync(0);
+      }
+      else if (mode == "truncated")
+      {
+        await Expect(modelPanel).ToContainTextAsync("Local answer unavailable");
+      }
+      await Expect(modelPanel).Not.ToContainTextAsync("Error:");
+      await Expect(modelPanel).Not.ToContainTextAsync("generation.");
     }
     await Expect(Page.GetByRole(AriaRole.List, new() { Name = "Retrieved article sources" })).ToBeVisibleAsync();
     await Page.GetByRole(AriaRole.Button, new() { Name = "New conversation" }).ClickAsync();
@@ -203,7 +226,7 @@ public class LearningChatGenerationTests(AppFixture fixture) : PageTest
       self.onmessage = ({data}) => {
         self.postMessage({requestId:data.requestId,result:data.type === 'initialize' ? true : [{
         title:'Garbage Collection', heading:'Sweep', section:'How', contentUrl:'blogs/gc/',
-        excerpt:'Sweeping reclaims unreachable objects.'
+        excerpt:'Sweeping reclaims unreachable objects. Garbage collection automatically reclaims unreachable managed objects.'
         }]});
       };
       """

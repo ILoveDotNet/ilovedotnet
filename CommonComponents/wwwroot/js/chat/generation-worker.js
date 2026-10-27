@@ -61,8 +61,15 @@ self.addEventListener("message", async ({ data }) => {
                     lastUpdate = performance.now();
                 }
             }
+            if (finishReason === "stop" && text.trim() === "INSUFFICIENT_EVIDENCE") {
+                self.postMessage({
+                    requestId,
+                    result: { text: "", sourceCount: prompt.sourceCount, outcome: "refused" },
+                });
+                return;
+            }
             const answer = validateAnswer(text, prompt.sources, finishReason);
-            self.postMessage({ requestId, result: { text: answer, sourceCount: prompt.sourceCount } });
+            self.postMessage({ requestId, result: { text: answer, sourceCount: prompt.sourceCount, outcome: "answered" } });
         } else {
             throw new Error("Unknown local answer operation.");
         }
