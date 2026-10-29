@@ -43,6 +43,35 @@ public class HomeTests(AppFixture fixture) : PageTest
   }
 
   [Fact]
+  public async Task Navigation_SecondaryPagesAreAvailableInOthersMenuAsync()
+  {
+    foreach (var width in new[] { 320, 390, 1280 })
+    {
+      await Page.SetViewportSizeAsync(width, 900);
+      await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, "");
+      var navigation = Page.Locator("nav").Filter(new() { Has = Page.Locator("a[href='/chat/']") });
+      await Expect(navigation.GetByRole(AriaRole.Link)).ToHaveCountAsync(5);
+      await Expect(navigation.Locator("a[href='/about'], a[href='/analytics']")).ToHaveCountAsync(0);
+      var menu = Page.Locator("#others-menu");
+      foreach (var name in new[] { "About", "Analytics" })
+      {
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Others", Exact = true }).ClickAsync();
+        await Expect(menu).ToBeVisibleAsync();
+        foreach (var item in new[] { "About", "Analytics", "Privacy", "Disclaimer" })
+        {
+          await Expect(menu.GetByRole(AriaRole.Link, new() { Name = item, Exact = true })).ToBeVisibleAsync();
+        }
+        Assert.True(await menu.EvaluateAsync<bool>(
+            "element => { const bounds = element.getBoundingClientRect(); return bounds.left >= 0 && bounds.right <= innerWidth; }"));
+        await menu.GetByRole(AriaRole.Link, new() { Name = name, Exact = true }).ClickAsync();
+        await Expect(Page).ToHaveURLAsync(new Uri(WebBaseUrl, name.ToLowerInvariant()).ToString());
+        await Expect(Page.Locator("h1")).ToHaveTextAsync(name == "About" ? "About I ❤️ .NET" : "Analytics");
+        await Expect(menu).ToBeHiddenAsync();
+      }
+    }
+  }
+
+  [Fact]
   public async Task HomePage_HasMetadataPublishedStatsAndResponsiveThumbnailsAsync()
   {
     var response = await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, "");
