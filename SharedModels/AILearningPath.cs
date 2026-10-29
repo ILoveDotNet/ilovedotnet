@@ -2,7 +2,7 @@
 
 public class AILearningPath
 {
-  public readonly List<ContentMetaData> FullContents = new(8);
+  public readonly List<ContentMetaData> FullContents = new(9);
 
   public AILearningPath()
   {
@@ -143,6 +143,23 @@ public class AILearningPath
           CreatedOn = new DateTime(2027, 1, 31, 22, 30, 0, DateTimeKind.Utc),
           ModifiedOn = new DateTime(2027, 1, 31, 22, 30, 0, DateTimeKind.Utc),
           Keywords = ["AI", "Vector Search", "Semantic Search", "Embeddings", "ONNX", "Local Search", "RAG", ".NET"]
+        },
+      new ContentMetaData
+        {
+          Order = 9,
+          Title = "Build Browser-Local AI Chat That Answers from Your .NET Articles",
+          Description = "Build a browser-local AI learning chat with Blazor, WebLLM and article citations. Follow the journey from searchable passages to streamed answers with simple analogies and ASCII diagrams.",
+          Author = "Abdul Rahman",
+          Slug = "build-browser-local-ai-chat-that-answers-from-your-dotnet-articles",
+          PosterUrl = "image/blogs/ai/build-browser-local-ai-chat-that-answers-from-your-dotnet-articles.webp",
+          ThumbnailUrl = "image/blogs/ai/build-browser-local-ai-chat-that-answers-from-your-dotnet-articles.webp",
+          ContentUrl = "blogs/build-browser-local-ai-chat-that-answers-from-your-dotnet-articles",
+          IconUrl = "image/icons/ai.webp",
+          Channel = "AI",
+          Type = "blogs",
+          CreatedOn = new DateTime(2027, 2, 7, 22, 30, 0, DateTimeKind.Utc),
+          ModifiedOn = new DateTime(2027, 2, 7, 22, 30, 0, DateTimeKind.Utc),
+          Keywords = ["AI", "Browser Local AI", "WebLLM", "Blazor", "RAG", "Article Citations", "WebGPU", "Embeddings", ".NET"]
         }
     ];
   }
