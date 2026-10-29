@@ -1,4 +1,4 @@
-namespace VectorSearchIndexGenerator;
+﻿namespace VectorSearchIndexGenerator;
 
 internal static class ModelDownloader
 {

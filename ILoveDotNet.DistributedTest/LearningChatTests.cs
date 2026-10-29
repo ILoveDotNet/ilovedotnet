@@ -181,9 +181,15 @@ public class LearningChatTests(AppFixture fixture) : PageTest
     Buffer.BlockCopy(vectors, 0, vectorBytes, 0, vectorBytes.Length);
     var manifest = JsonSerializer.Serialize(new
     {
-      schemaVersion = 1, corpusVersion = "test", model = "Xenova/all-MiniLM-L6-v2",
-      modelRevision = "751bff37182d3f1213fa05d7196b954e230abad9", dimensions = 384,
-      count = passages.Length, vectorFormat = "float32-le", chunksUrl = "chunks.json", vectorsUrl = "chunks.vec",
+      schemaVersion = 1,
+      corpusVersion = "test",
+      model = "Xenova/all-MiniLM-L6-v2",
+      modelRevision = "751bff37182d3f1213fa05d7196b954e230abad9",
+      dimensions = 384,
+      count = passages.Length,
+      vectorFormat = "float32-le",
+      chunksUrl = "chunks.json",
+      vectorsUrl = "chunks.vec",
       chunksSha256 = Convert.ToHexStringLower(SHA256.HashData(chunks)),
       vectorsSha256 = Convert.ToHexStringLower(SHA256.HashData(vectorBytes)),
     });

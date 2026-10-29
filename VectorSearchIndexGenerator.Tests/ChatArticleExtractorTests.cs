@@ -1,4 +1,4 @@
-using VectorSearchIndexGenerator;
+﻿using VectorSearchIndexGenerator;
 
 namespace VectorSearchIndexGenerator.Tests;
 

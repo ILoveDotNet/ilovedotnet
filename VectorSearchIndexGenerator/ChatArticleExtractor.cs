@@ -1,4 +1,4 @@
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 using System.Text.Json.Serialization;
 using System.Text;
 using AngleSharp.Dom;
@@ -352,11 +352,11 @@ public static class ChatPassageChunker
     var chunk = new List<string>();
     foreach (var word in words)
     {
-    var current = string.Concat(chunk);
-    var candidate = current + word;
-    if (chunk.Count > 0 && countTokens(prefix + candidate) > maximumTokens)
-    {
-      yield return current.Trim();
+      var current = string.Concat(chunk);
+      var candidate = current + word;
+      if (chunk.Count > 0 && countTokens(prefix + candidate) > maximumTokens)
+      {
+        yield return current.Trim();
         chunk.Clear();
       }
 
