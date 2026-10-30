@@ -3,6 +3,25 @@
 [ExcludeFromCodeCoverage]
 public class OthersTests
 {
+  [Theory]
+  [InlineData("/about", "About")]
+  [InlineData("/analytics", "Analytics")]
+  [InlineData("/disclaimer", "Disclaimer")]
+  [InlineData("/privacy", "Privacy")]
+  public void SecondaryPageLink_RendersAndClosesMenuWhenClicked(string route, string label)
+  {
+    using var ctx = new BunitContext();
+    var cut = ctx.Render<CommonComponents.Shared.Others>();
+
+    cut.Find("button").Click();
+    var link = cut.Find($"#others-menu a[href='{route}']");
+    Assert.Equal(label, link.TextContent.Trim());
+
+    link.Click();
+
+    Assert.DoesNotContain("is-active", cut.Find("#others > div").ClassList);
+  }
+
   [Fact]
   public void TestMenuToggle()
   {
