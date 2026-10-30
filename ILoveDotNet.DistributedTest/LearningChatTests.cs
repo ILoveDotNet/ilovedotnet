@@ -91,10 +91,26 @@ public class LearningChatTests(AppFixture fixture) : PageTest
   }
 
   [Theory]
-  [InlineData(false)]
-  [InlineData(true)]
-  public async Task LearningChat_AutomaticLoadingCanBeRetriedAfterFailureOrCancellationAsync(bool cancel)
+  [InlineData(false, false)]
+  [InlineData(true, false)]
+  [InlineData(false, true)]
+  [InlineData(true, true)]
+  public async Task LearningChat_AutomaticLoadingCanBeRetriedAfterFailureOrCancellationAsync(bool cancel, bool restored)
   {
+    if (restored)
+    {
+      await Page.AddInitScriptAsync("""
+        localStorage.setItem('ilovedotnet-learning-chat-history:v1', JSON.stringify({
+          Version: 1, ActiveId: '00000000-0000-0000-0000-000000000001', Conversations: [{
+            Id: '00000000-0000-0000-0000-000000000001', Title: 'Saved question',
+            Messages: [
+              { Text: 'Saved question', IsUser: true, IsGenerated: false, Sources: [] },
+              { Text: 'Saved answer', IsUser: false, IsGenerated: false, Sources: [] }
+            ]
+          }]
+        }));
+        """);
+    }
     var firstRequest = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
     var releaseRequest = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
     var requests = 0;
@@ -140,10 +156,27 @@ public class LearningChatTests(AppFixture fixture) : PageTest
     {
       await Expect(Page.GetByRole(AriaRole.Alert)).ToContainTextAsync("HTTP 503");
     }
+    await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Retry last question" })).ToHaveCountAsync(0);
+    var conversation = Page.GetByRole(AriaRole.Region, new() { Name = "Conversation", Exact = true });
+    if (restored)
+    {
+      await Expect(conversation.Locator("article")).ToHaveCountAsync(2);
+      await Expect(conversation).ToContainTextAsync("Saved question");
+      await Expect(conversation).ToContainTextAsync("Saved answer");
+    }
+    var savedHistory = await Page.EvaluateAsync<string?>("() => localStorage.getItem('ilovedotnet-learning-chat-history:v1')");
     await Page.GetByRole(AriaRole.Button, new() { Name = "Retry loading article search" }).ClickAsync();
     await Expect(Page.GetByRole(AriaRole.Status)).ToHaveTextAsync("Local article search is ready. Questions stay in this browser.");
     await Expect(Page.GetByRole(AriaRole.Alert)).ToHaveCountAsync(0);
     await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Retry loading article search" })).ToHaveCountAsync(0);
+    Assert.Equal(savedHistory, await Page.EvaluateAsync<string?>("() => localStorage.getItem('ilovedotnet-learning-chat-history:v1')"));
+    if (restored)
+    {
+      await Expect(conversation.Locator("article")).ToHaveCountAsync(2);
+      await Expect(conversation).ToContainTextAsync("Saved answer");
+      await Page.GetByRole(AriaRole.Textbox).FillAsync("Another question");
+      await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Send question" })).ToBeEnabledAsync();
+    }
   }
 
   [Fact]

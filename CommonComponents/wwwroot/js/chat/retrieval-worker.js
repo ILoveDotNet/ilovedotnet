@@ -173,12 +173,22 @@ async function search(question, maximumResults, context) {
     const extractor = await initializeEmbedder();
     const questionTerms = meaningfulTerms(question);
     const needsContext = questionTerms.size === 0 || /\b(it|its|that|this|they|their|them|these|those)\b/i.test(question);
-    const input = needsContext && context.trim() ? `${context.trim()}\n${question.trim()}` : question.trim();
-    const queryTerms = questionTerms.size > 0 ? questionTerms : meaningfulTerms(context.trim().split("\n").at(-1) ?? "");
-    const tokenCount = extractor.tokenizer.encode(input).length;
+    const currentQuestion = question.trim();
+    const tokenCount = extractor.tokenizer.encode(currentQuestion).length;
     if (tokenCount > 256) {
         throw new Error(`This embedding model supports at most 256 question tokens; your question uses ${tokenCount}. Please shorten it.`);
     }
+    const priorQuestions = needsContext ? context.split("\n").map(line => line.trim()).filter(Boolean) : [];
+    let input = currentQuestion;
+    while (priorQuestions.length > 0) {
+        const candidate = `${priorQuestions.join("\n")}\n${currentQuestion}`;
+        if (extractor.tokenizer.encode(candidate).length <= 256) {
+            input = candidate;
+            break;
+        }
+        priorQuestions.shift();
+    }
+    const queryTerms = questionTerms.size > 0 ? questionTerms : meaningfulTerms(priorQuestions.at(-1) ?? "");
 
     const output = await extractor(input, { pooling: "mean", normalize: true });
     if (output.data.length !== dimensions) {

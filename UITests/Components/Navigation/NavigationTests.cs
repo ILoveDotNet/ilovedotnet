@@ -43,7 +43,7 @@ public class NavigationTests
                                     <span class="[ text-xs text-center md:hidden ]">Learn</span>
                                     <span class="[ hidden text-xs text-center md:block ]">Learning Path</span>
                                 </a>
-                                <a class="[ flex flex-col items-center ]" href="/chat/" aria-label="Learn with AI">
+                                <a class="[ flex flex-col items-center ]" href="/chat/" aria-label="Learn with AI Chat">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-message-chatbot ]" width="30" height="30"
                                         viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round"
                                         stroke-linejoin="round" aria-hidden="true">

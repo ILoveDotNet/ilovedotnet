@@ -171,6 +171,20 @@ public class LearningChatBase : ComponentBase, IAsyncDisposable
         StateHasChanged();
       });
 
+  [JSInvokable]
+  public Task OnGenerationWorkerLost(long operation, string reason)
+      => InvokeAsync(() =>
+      {
+        if (disposed || operation != generationOperation)
+        {
+          return;
+        }
+        generationReady = false;
+        generationLoading = false;
+        generationStatus = $"Local answer worker stopped: {reason} Load the local answer model again; original article search remains available.";
+        StateHasChanged();
+      });
+
   protected async Task UseSourcesOnlyAsync()
   {
     generationOperation++;

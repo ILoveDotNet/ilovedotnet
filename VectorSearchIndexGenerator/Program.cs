@@ -10,7 +10,7 @@ const string ModelRevision = "751bff37182d3f1213fa05d7196b954e230abad9";
 
 if (args.Length > 0 && args[0] == "--chat")
 {
-  if (args.Length < 2 || args.Length > 4)
+  if (args.Length is not (2 or 4))
   {
     throw new ArgumentException("Usage: VectorSearchIndexGenerator --chat <output-directory> [--cutoff yyyy-MM-dd]");
   }

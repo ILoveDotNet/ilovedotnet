@@ -31,12 +31,14 @@ public sealed class ChatArticleExtractor
       sectionsFound = true;
       var sectionName = sectionMatch.Groups["name"].Value;
       var markup = DemoSnippetRegex.Replace(sectionMatch.Groups["body"].Value, string.Empty);
-      var markupWithoutCode = CodeSnippetRegex.Replace(markup, string.Empty);
+      var markupWithoutCode = CodeSnippetRegex.Replace(markup, string.Empty)
+        .Replace("@@", string.Empty, StringComparison.Ordinal);
       if (DynamicMarkupRegex.IsMatch(markupWithoutCode))
       {
         throw new InvalidDataException($"'{slug}' contains dynamic Razor markup in its {sectionName} section.");
       }
 
+      markup = markup.Replace("@@", "@", StringComparison.Ordinal);
       var document = new HtmlParser().ParseDocument($"<html><body>{markup}</body></html>");
       var blocks = new List<ExtractedBlock>();
       var heading = sectionName;

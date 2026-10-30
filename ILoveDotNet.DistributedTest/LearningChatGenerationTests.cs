@@ -18,6 +18,8 @@ public class LearningChatGenerationTests(AppFixture fixture) : PageTest
   [InlineData("error")]
   [InlineData("html")]
   [InlineData("manual")]
+  [InlineData("workererror")]
+  [InlineData("idleerror")]
   public async Task StreamedAnswersAreValidatedOrReplacedWithSourcesAsync(string mode)
   {
     await StubSearchAsync(mode == "skipped");
@@ -33,6 +35,13 @@ public class LearningChatGenerationTests(AppFixture fixture) : PageTest
       Object.defineProperty(navigator, 'gpu', {value: {
         requestAdapter: async () => ({features: new Set(['shader-f16']), limits: {maxStorageBufferBindingSize:134217728}})
       }});
+      const OriginalWorker = window.Worker;
+      window.Worker = class extends OriginalWorker {
+        constructor(...args) {
+          super(...args);
+          if (String(args[0]).includes('generation-worker')) window.answerWorker = this;
+        }
+      };
       localStorage.setItem('ilovedotnet-answer-consent:https://huggingface.co/mlc-ai/SmolLM2-360M-Instruct-q4f16_1-MLC/resolve/3a622fd89e0216e8bb10c410c007c786baa8a033/', 'accepted');
       window.chatHistoryWrites = 0;
       const originalSet = Storage.prototype.setItem;
@@ -82,6 +91,19 @@ public class LearningChatGenerationTests(AppFixture fixture) : PageTest
     var modelPanel = Page.GetByRole(AriaRole.Complementary, new() { Name = "Local answer model" });
     await Expect(modelPanel).ToContainTextAsync("Local answers ready");
     await Expect(modelPanel).ToContainTextAsync("Active model: Qwen3-4B-q4f16_1-MLC");
+    if (mode == "idleerror")
+    {
+      await Page.EvaluateAsync("() => window.answerWorker.dispatchEvent(new MessageEvent('messageerror'))");
+      await Expect(modelPanel).Not.ToContainTextAsync("Active model:");
+      await Expect(modelPanel).ToContainTextAsync("worker stopped");
+      await Page.GetByRole(AriaRole.Textbox).FillAsync("What is sweeping?");
+      await Page.GetByRole(AriaRole.Button, new() { Name = "Send question" }).ClickAsync();
+      await Expect(Page.GetByRole(AriaRole.Status)).ToHaveTextAsync("Search complete.");
+      await Expect(Page.GetByText("These are search results", new() { Exact = false })).ToBeVisibleAsync();
+      await Page.GetByRole(AriaRole.Button, new() { Name = "Download local answer model" }).ClickAsync();
+      await Expect(modelPanel).ToContainTextAsync("Active model: Qwen3-4B-q4f16_1-MLC");
+      await Page.GetByRole(AriaRole.Button, new() { Name = "New conversation", Exact = true }).ClickAsync();
+    }
     if (mode == "manual") await Page.SetViewportSizeAsync(390, 844);
     await Page.GetByRole(AriaRole.Textbox).FillAsync(mode == "refused" || mode == "truncated"
       ? "what is garbage collection" : "What is sweeping?");
@@ -91,6 +113,10 @@ public class LearningChatGenerationTests(AppFixture fixture) : PageTest
       await Expect(Page.Locator("article p").Filter(new() { HasText = "Sweeping reclaims unreachable objects." })).ToBeVisibleAsync();
       await Expect(Page.GetByRole(AriaRole.List, new() { Name = "Retrieved article sources" })).ToHaveCountAsync(0);
       await Expect(Page.GetByRole(AriaRole.Link, new() { Name = "[1]", Exact = true })).ToHaveCountAsync(0);
+      if (mode == "workererror")
+      {
+        await Page.EvaluateAsync("() => window.answerWorker.dispatchEvent(new ErrorEvent('error', {message:'Test worker crash'}))");
+      }
       if (mode == "manual")
       {
         var region = Page.GetByRole(AriaRole.Region, new() { Name = "Conversation", Exact = true });
@@ -128,7 +154,18 @@ public class LearningChatGenerationTests(AppFixture fixture) : PageTest
     {
       await Expect(Page.GetByRole(AriaRole.Status)).ToHaveTextAsync("Search complete.");
     }
-    if (mode == "valid" || mode == "skipped" || mode == "changed" || mode == "manual")
+    if (mode == "workererror")
+    {
+      await Expect(modelPanel).Not.ToContainTextAsync("Active model:");
+      await Expect(Page.GetByText("These are search results", new() { Exact = false })).ToBeVisibleAsync();
+      await Page.GetByRole(AriaRole.Button, new() { Name = "Download local answer model" }).ClickAsync();
+      await Expect(modelPanel).ToContainTextAsync("Active model: Qwen3-4B-q4f16_1-MLC");
+      await Page.GetByRole(AriaRole.Button, new() { Name = "New conversation", Exact = true }).ClickAsync();
+      await Page.GetByRole(AriaRole.Textbox).FillAsync("What is sweeping?");
+      await Page.GetByRole(AriaRole.Button, new() { Name = "Send question" }).ClickAsync();
+      await Expect(Page.GetByRole(AriaRole.Status)).ToHaveTextAsync("Search complete.");
+    }
+    if (mode == "valid" || mode == "skipped" || mode == "changed" || mode == "manual" || mode == "workererror" || mode == "idleerror")
     {
       await Expect(Page.GetByRole(AriaRole.Link, new() { Name = mode == "skipped" ? "[2]" : "[1]", Exact = true }))
         .ToHaveAttributeAsync("href", new System.Text.RegularExpressions.Regex(@"/blogs/gc/#how$"));

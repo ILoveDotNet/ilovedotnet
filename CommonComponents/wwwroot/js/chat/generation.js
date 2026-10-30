@@ -2,6 +2,7 @@ import { selectedModel } from "./generation-contract.js";
 
 let worker;
 let nextId = 0;
+let workerOwner;
 const pending = new Map();
 const consentKey = `ilovedotnet-answer-consent:${selectedModel.model}`;
 
@@ -51,6 +52,9 @@ function request(type, payload, callback, operation) {
         worker.addEventListener("error", onError);
         worker.addEventListener("messageerror", onError);
     }
+    if (callback) {
+        workerOwner = { callback, operation };
+    }
     const requestId = ++nextId;
     return new Promise((resolve, reject) => {
         pending.set(requestId, { resolve, reject, callback, operation, updates: Promise.resolve() });
@@ -73,11 +77,24 @@ function onMessage({ data }) {
         error => request.reject(error));
 }
 
-function onError(event) {
-    stop(event.message || "The local answer worker failed.");
+async function onError(event) {
+    if (event.currentTarget !== worker) {
+        return;
+    }
+    const owner = workerOwner;
+    const reason = event.message || "The local answer worker failed.";
+    stop(reason);
+    if (owner) {
+        try {
+            await owner.callback.invokeMethodAsync("OnGenerationWorkerLost", owner.operation, reason);
+        } catch (error) {
+            console.error("Could not report local answer worker loss.", error);
+        }
+    }
 }
 
 export function stop(reason = "Local answer generation stopped.") {
+    workerOwner = undefined;
     if (worker) {
         worker.terminate();
         worker = undefined;

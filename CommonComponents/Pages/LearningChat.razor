@@ -167,20 +167,6 @@
                         <div class="[ mt-6 max-w-2xl rounded-2xl border border-indigo-200 bg-indigo-50 p-4 text-left text-sm leading-6 text-indigo-950 dark:border-indigo-400/30 dark:bg-indigo-400/10 dark:text-indigo-100 ]">
                             <h3 class="[ font-semibold ]">Browser-local article search</h3>
                             <p class="[ mt-1 ]">Your question is embedded and matched in this browser. Opening this page automatically loads the article index and pinned embedding model, downloading from Hugging Face when it is not cached. No question or conversation is sent to an inference service. Optional WebGPU answers explain the retrieved passages and link to their sources. AI can make mistakes; check the original articles. Source-only search remains available without the answer model.</p>
-                            @if (!retrievalReady && !isLoading && (!string.IsNullOrWhiteSpace(errorMessage) || loadingCancelled))
-                            {
-                                <button type="button"
-                                        class="[ mt-3 inline-flex min-h-11 items-center rounded-xl bg-indigo-700 px-4 py-2 font-semibold text-white hover:bg-indigo-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 disabled:cursor-wait disabled:opacity-60 dark:bg-indigo-400 dark:text-stone-950 ]"
-                                        @onclick="InitializeRetrievalAsync">
-                                    Retry loading article search
-                                </button>
-                            }
-                            else if (isLoading)
-                            {
-                                <button type="button"
-                                        class="[ mt-3 inline-flex min-h-11 items-center rounded-xl border border-indigo-700 px-4 py-2 font-semibold text-indigo-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 dark:border-indigo-300 dark:text-indigo-200 ]"
-                                        @onclick="CancelLoadingAsync">Cancel loading</button>
-                            }
                         </div>
 
                         <div class="[ mt-8 grid w-full max-w-3xl gap-3 sm:grid-cols-2 ]">
@@ -291,7 +277,24 @@
                     @if (!string.IsNullOrWhiteSpace(errorMessage))
                     {
                         <p class="[ mt-2 px-1 text-sm text-red-700 dark:text-red-300 ]" role="alert">@errorMessage</p>
-                        <button type="button" class="[ mt-1 px-1 text-left text-sm font-semibold underline ]" @onclick="RetryLastQuestionAsync">Retry last question</button>
+                        @if (retrievalReady)
+                        {
+                            <button type="button" class="[ mt-1 px-1 text-left text-sm font-semibold underline ]" @onclick="RetryLastQuestionAsync">Retry last question</button>
+                        }
+                    }
+                    @if (!retrievalReady && !isLoading && (!string.IsNullOrWhiteSpace(errorMessage) || loadingCancelled))
+                    {
+                        <button type="button"
+                                class="[ mt-3 inline-flex min-h-11 items-center rounded-xl bg-indigo-700 px-4 py-2 font-semibold text-white hover:bg-indigo-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 disabled:cursor-wait disabled:opacity-60 dark:bg-indigo-400 dark:text-stone-950 ]"
+                                @onclick="InitializeRetrievalAsync">
+                            Retry loading article search
+                        </button>
+                    }
+                    else if (isLoading)
+                    {
+                        <button type="button"
+                                class="[ mt-3 inline-flex min-h-11 items-center rounded-xl border border-indigo-700 px-4 py-2 font-semibold text-indigo-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 dark:border-indigo-300 dark:text-indigo-200 ]"
+                                @onclick="CancelLoadingAsync">Cancel loading</button>
                     }
                     @if (!string.IsNullOrWhiteSpace(historyError))
                     {

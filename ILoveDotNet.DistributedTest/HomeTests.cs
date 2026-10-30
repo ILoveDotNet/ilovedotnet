@@ -17,13 +17,14 @@ public class HomeTests(AppFixture fixture) : PageTest
   {
     await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, "");
     var navigation = Page.Locator("nav").Filter(new() { Has = Page.Locator("a[href='/chat/']") });
-    var chat = navigation.GetByRole(AriaRole.Link, new() { Name = "Learn with AI", Exact = true });
+    var chat = navigation.GetByRole(AriaRole.Link, new() { Name = "Learn with AI Chat", Exact = true });
     foreach (var width in new[] { 320, 390, 768, 1280 })
     {
       await Page.SetViewportSizeAsync(width, 900);
       await Expect(chat).ToBeVisibleAsync();
       await Expect(chat.Locator("svg")).ToBeVisibleAsync();
       await Expect(chat.Locator("span:visible")).ToHaveTextAsync(width < 768 ? "Chat" : "Learn with AI");
+      await Expect(chat).ToHaveAccessibleNameAsync("Learn with AI Chat");
       foreach (var link in await navigation.GetByRole(AriaRole.Link).AllAsync())
       {
         await Expect(link).ToBeVisibleAsync();

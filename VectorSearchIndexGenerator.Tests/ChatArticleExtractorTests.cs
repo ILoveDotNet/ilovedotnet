@@ -34,6 +34,42 @@ public sealed class ChatArticleExtractorTests
   }
 
   [Fact]
+  public void Extract_DecodesRazorEscapesOnceBeforeHtmlEntities()
+  {
+    const string source = """
+      <How>
+        <h4>Use @@page</h4>
+        <p>Write @@if and @@{ as literal Razor syntax.</p>
+        <CodeSnippet CssClass="language-razor">
+      @@page "/example"
+      @@if (ready) { &lt;p&gt;Ready&lt;/p&gt; }
+      @@@@ &#64;&#64; user@example.com
+        </CodeSnippet>
+      </How>
+      """;
+
+    var parent = Assert.Single(new ChatArticleExtractor().Extract(source, "example", "Example"));
+
+    Assert.Equal("Use @page", parent.Heading);
+    Assert.Contains("Write @if and @{ as literal Razor syntax.", parent.Text);
+    Assert.Contains("@page \"/example\"", parent.Text);
+    Assert.Contains("@if (ready) { <p>Ready</p> }", parent.Text);
+    Assert.Contains("@@ @@ user@example.com", parent.Text);
+    Assert.DoesNotContain("@@page", parent.Text);
+    Assert.DoesNotContain("@@if", parent.Text);
+  }
+
+  [Theory]
+  [InlineData("@if (ready) { <p>Dynamic</p> }")]
+  [InlineData("@@@if (ready) { <p>Dynamic</p> }")]
+  public void Extract_StillRejectsDynamicContentAlongsideEscapes(string markup)
+  {
+    var source = $"<What><p>Literal @@if</p>{markup}</What>";
+
+    Assert.Throws<InvalidDataException>(() => new ChatArticleExtractor().Extract(source, "example", "Example"));
+  }
+
+  [Fact]
   public void Extract_RejectsDynamicContentInsteadOfSilentlyIndexingIt()
   {
     const string source = """
