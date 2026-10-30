@@ -13,6 +13,66 @@ public class HomeTests(AppFixture fixture) : PageTest
   };
 
   [Fact]
+  public async Task Navigation_LearningChatIsVisibleOnMobileAndDesktopAsync()
+  {
+    await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, "");
+    var navigation = Page.Locator("nav").Filter(new() { Has = Page.Locator("a[href='/chat/']") });
+    var chat = navigation.GetByRole(AriaRole.Link, new() { Name = "Learn with AI Chat", Exact = true });
+    foreach (var width in new[] { 320, 390, 768, 1280 })
+    {
+      await Page.SetViewportSizeAsync(width, 900);
+      await Expect(chat).ToBeVisibleAsync();
+      await Expect(chat.Locator("svg")).ToBeVisibleAsync();
+      await Expect(chat.Locator("span:visible")).ToHaveTextAsync(width < 768 ? "Chat" : "Learn with AI");
+      await Expect(chat).ToHaveAccessibleNameAsync("Learn with AI Chat");
+      foreach (var link in await navigation.GetByRole(AriaRole.Link).AllAsync())
+      {
+        await Expect(link).ToBeVisibleAsync();
+        var target = width < 768 ? link : link.Locator("svg");
+        Assert.True(await target.EvaluateAsync<bool>(
+            "element => { const bounds = element.getBoundingClientRect(); return bounds.left >= 0 && bounds.right <= innerWidth; }"),
+            $"Navigation item '{await link.InnerTextAsync()}' extends outside the {width}px viewport.");
+      }
+      Assert.True(await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= innerWidth"));
+    }
+
+    await Page.SetViewportSizeAsync(390, 900);
+    await chat.ClickAsync();
+    await Expect(Page).ToHaveURLAsync(new Uri(WebBaseUrl, "chat/").ToString());
+    await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "Learn with AI", Exact = true })).ToBeVisibleAsync();
+    await Expect(chat).ToHaveClassAsync(new System.Text.RegularExpressions.Regex(@"\bactive\b"));
+  }
+
+  [Fact]
+  public async Task Navigation_SecondaryPagesAreAvailableInOthersMenuAsync()
+  {
+    foreach (var width in new[] { 320, 390, 1280 })
+    {
+      await Page.SetViewportSizeAsync(width, 900);
+      await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, "");
+      var navigation = Page.Locator("nav").Filter(new() { Has = Page.Locator("a[href='/chat/']") });
+      await Expect(navigation.GetByRole(AriaRole.Link)).ToHaveCountAsync(5);
+      await Expect(navigation.Locator("a[href='/about'], a[href='/analytics']")).ToHaveCountAsync(0);
+      var menu = Page.Locator("#others-menu");
+      foreach (var name in new[] { "About", "Analytics" })
+      {
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Others", Exact = true }).ClickAsync();
+        await Expect(menu).ToBeVisibleAsync();
+        foreach (var item in new[] { "About", "Analytics", "Privacy", "Disclaimer" })
+        {
+          await Expect(menu.GetByRole(AriaRole.Link, new() { Name = item, Exact = true })).ToBeVisibleAsync();
+        }
+        Assert.True(await menu.EvaluateAsync<bool>(
+            "element => { const bounds = element.getBoundingClientRect(); return bounds.left >= 0 && bounds.right <= innerWidth; }"));
+        await menu.GetByRole(AriaRole.Link, new() { Name = name, Exact = true }).ClickAsync();
+        await Expect(Page).ToHaveURLAsync(new Uri(WebBaseUrl, name.ToLowerInvariant()).ToString());
+        await Expect(Page.Locator("h1")).ToHaveTextAsync(name == "About" ? "About I ❤️ .NET" : "Analytics");
+        await Expect(menu).ToBeHiddenAsync();
+      }
+    }
+  }
+
+  [Fact]
   public async Task HomePage_HasMetadataPublishedStatsAndResponsiveThumbnailsAsync()
   {
     var response = await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, "");

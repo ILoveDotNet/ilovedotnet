@@ -8,6 +8,26 @@ using VectorSearchIndexGenerator;
 const string ModelId = "Xenova/all-MiniLM-L6-v2";
 const string ModelRevision = "751bff37182d3f1213fa05d7196b954e230abad9";
 
+if (args.Length > 0 && args[0] == "--chat")
+{
+  if (args.Length is not (2 or 4))
+  {
+    throw new ArgumentException("Usage: VectorSearchIndexGenerator --chat <output-directory> [--cutoff yyyy-MM-dd]");
+  }
+
+  var cutoff = DateOnly.FromDateTime(DateTime.UtcNow);
+  if (args.Length == 4)
+  {
+    if (args[2] != "--cutoff" || !DateOnly.TryParseExact(args[3], "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out cutoff))
+    {
+      throw new ArgumentException("The chat corpus cutoff must use --cutoff yyyy-MM-dd.");
+    }
+  }
+
+  await ChatCorpusGenerator.GenerateAsync(Path.GetFullPath(args[1]), cutoff, ModelId, ModelRevision);
+  return;
+}
+
 var outputDirectory = args.Length == 1
   ? Path.GetFullPath(args[0])
   : Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "CommonComponents", "wwwroot", "search"));
@@ -20,10 +40,10 @@ Directory.CreateDirectory(modelDirectory);
 
 var modelPath = Path.Combine(modelDirectory, "model_quantized.onnx");
 var vocabularyPath = Path.Combine(modelDirectory, "vocab.txt");
-await DownloadIfMissingAsync(
+await ModelDownloader.DownloadIfMissingAsync(
   $"https://huggingface.co/{ModelId}/resolve/{ModelRevision}/onnx/model_quantized.onnx",
   modelPath);
-await DownloadIfMissingAsync(
+await ModelDownloader.DownloadIfMissingAsync(
   $"https://huggingface.co/{ModelId}/resolve/{ModelRevision}/vocab.txt",
   vocabularyPath);
 
@@ -68,23 +88,3 @@ static string CreateSearchDocument(ContentMetaData content)
 
 static string DefaultModelDirectory([CallerFilePath] string sourceFilePath = "")
   => Path.Combine(Path.GetDirectoryName(sourceFilePath) ?? Directory.GetCurrentDirectory(), ".model-cache");
-
-static async Task DownloadIfMissingAsync(string url, string path)
-{
-  if (File.Exists(path))
-  {
-    return;
-  }
-
-  Console.WriteLine($"Downloading {url}...");
-  var temporaryPath = $"{path}.tmp";
-  using var httpClient = new HttpClient();
-  await using var source = await httpClient.GetStreamAsync(url);
-  await using (var destination = File.Create(temporaryPath))
-  {
-    await source.CopyToAsync(destination);
-    await destination.FlushAsync();
-  }
-  File.Move(temporaryPath, path, true);
-}
-
