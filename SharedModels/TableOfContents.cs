@@ -3,6 +3,7 @@
 public class TableOfContents
 {
   public const int PageSize = 12;
+  private readonly TimeProvider _timeProvider;
   private readonly List<ContentMetaData> _fullContents = new(225);
   private readonly List<AuthorMetaData> _fullAuthors = new(1);
   private readonly List<SponsorMetaData> _fullSponsors = new(1);
@@ -12,7 +13,14 @@ public class TableOfContents
   public IReadOnlyList<SponsorMetaData> Sponsors => _fullSponsors;
 
   public IReadOnlyList<ContentMetaData> Contents
-          => [.. _fullContents.Where(content => content.ModifiedOn.Date <= DateTime.Today.Date)];
+  {
+    get
+    {
+      // Publication is calendar-day based in IST, including when WASM timezone data is disabled.
+      var publicationDate = _timeProvider.GetUtcNow().ToOffset(TimeSpan.FromMinutes(330)).Date;
+      return [.. _fullContents.Where(content => content.ModifiedOn.Date <= publicationDate)];
+    }
+  }
 
   public IReadOnlyList<ContentMetaData> FilteredAndPagedContents(string? selectedContentType = null, int skip = 0, int take = PageSize)
           => [.. Contents
@@ -64,8 +72,14 @@ public class TableOfContents
                 .OrderByDescending(content => content.ModifiedOn)
                 .ThenByDescending(content => content.CreatedOn)];
 
-  public TableOfContents()
+  public TableOfContents() : this(TimeProvider.System)
   {
+  }
+
+  public TableOfContents(TimeProvider timeProvider)
+  {
+    ArgumentNullException.ThrowIfNull(timeProvider);
+    _timeProvider = timeProvider;
     _fullContents.AddRange(new AILearningPath().FullContents);
     _fullContents.AddRange(new BlazorLearningPath().FullContents);
     _fullContents.AddRange(new CachingLearningPath().FullContents);
