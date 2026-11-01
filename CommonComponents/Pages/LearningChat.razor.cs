@@ -15,14 +15,6 @@ public class LearningChatBase : ComponentBase, IAsyncDisposable
   protected string BaseUrl => Configuration.GetValue<string>("baseUrl")!;
   protected string PageUrl => $"{BaseUrl}chat/";
 
-  protected readonly string[] SuggestedPrompts =
-  [
-    "How does Blazor WebAssembly work?",
-    "When should I use dependency injection?",
-    "What is the difference between a record and a class?",
-    "How can I make an EF Core query faster?"
-  ];
-
   protected readonly List<ChatMessage> messages = [];
   protected readonly List<LearningChatConversation> conversations = [];
   protected Guid? activeConversationId;
@@ -215,11 +207,6 @@ public class LearningChatBase : ComponentBase, IAsyncDisposable
     {
       generationStatus = $"Could not clear the answer model cache: {exception.Message}";
     }
-  }
-
-  protected void SelectPrompt(string prompt)
-  {
-    draft = prompt;
   }
 
   protected async Task InitializeRetrievalAsync()
