@@ -120,6 +120,25 @@ public class InterviewTests(AppFixture fixture) : PageTest
     var readiness = Page.Locator("section[aria-labelledby='interview-readiness']");
     await Expect(readiness.Locator("article")).ToHaveCountAsync(14);
     await Expect(readiness.Locator("h3")).ToHaveCountAsync(3);
+    var guidance = readiness.Locator("details.guide-disclosure");
+    await Expect(guidance).ToHaveCountAsync(14);
+    foreach (var disclosure in await guidance.AllAsync())
+    {
+      await Expect(disclosure.Locator("div")).ToBeHiddenAsync();
+      await disclosure.Locator("summary").FocusAsync();
+      await Page.Keyboard.PressAsync("Enter");
+      await Expect(disclosure.Locator("div")).ToBeVisibleAsync();
+      await disclosure.Locator("summary").FocusAsync();
+      await Page.Keyboard.PressAsync("Space");
+      await Expect(disclosure.Locator("div")).ToBeHiddenAsync();
+    }
+    var shortcuts = Page.Locator("nav[aria-label='Choose your preparation starting point'] a");
+    await Expect(shortcuts).ToHaveCountAsync(3);
+    foreach (var link in await shortcuts.AllAsync())
+    {
+      await link.ClickAsync();
+      await Expect(Page.Locator(new Uri(Page.Url).Fragment)).ToBeInViewportAsync();
+    }
     await Expect(Page.Locator("section[aria-labelledby='preparation-plan'] li")).ToHaveCountAsync(7);
     Assert.Equal("interview-readiness", await Page.Locator("h2").First.GetAttributeAsync("id"));
     Assert.Equal("preparation-plan", await Page.Locator("h2").Nth(1).GetAttributeAsync("id"));
@@ -151,6 +170,16 @@ public class InterviewTests(AppFixture fixture) : PageTest
         {
           Assert.Equal(first.Y, second.Y);
           Assert.True(second.X > first.X, "Substantial cards should use two columns on larger screens.");
+        }
+        foreach (var disclosure in await guidance.AllAsync())
+        {
+          await disclosure.Locator("summary").ClickAsync();
+        }
+        Assert.True(await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= innerWidth"),
+            $"Expanded interview guidance must not widen the page at {width}px.");
+        foreach (var disclosure in await guidance.AllAsync())
+        {
+          await disclosure.Locator("summary").ClickAsync();
         }
       }
     }
