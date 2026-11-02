@@ -12,6 +12,10 @@
         maintain beautiful <Highlight>architecture diagrams</Highlight> using Mermaid syntax. This approach 
         eliminates manual diagramming work while ensuring your architecture documentation stays accurate as your codebase evolves.
       </p>
+      <p>
+        I'll also share how I used this approach when joining a project: combining Copilot's local code analysis with
+        <Highlight>GitHub MCP</Highlight> to trace events across repositories and turn those connections into a Mermaid diagram.
+      </p>
     </What>
 
     <Why>
@@ -38,6 +42,154 @@
     </Why>
 
     <How>
+      <h4>Real-World Case Study: Understanding a New Project Through Its Events</h4>
+
+      <p>
+        When I joined a project, I needed to understand how our service fitted into the wider system.
+        Reading our repository was only part of the picture. Where did the events we published go?
+        And which services published the events we consumed?
+      </p>
+      <p>
+        I asked <Highlight>GitHub Copilot</Highlight> to find the outgoing events in our repository.
+        Then, using the <Highlight>GitHub MCP server</Highlight>, I asked it to search other repositories for their consumers.
+        We also worked in reverse: starting with the events our service consumed and finding their publishers.
+      </p>
+      <p>
+        Those connections helped us quickly understand the flows. We then used the findings to generate an
+        <Highlight>architecture diagram with Mermaid</Highlight>. Instead of looking at one repository in isolation,
+        we could see how it connected to the rest of the system.
+      </p>
+      <p>
+        Here is a reusable version of that workflow. The prompts and service names below are illustrative,
+        not details from that project.
+      </p>
+
+      <h5>1. Inventory Events in the Current Repository</h5>
+
+      <p>
+        Start with the code you have open. Ask for publishing and handling code, not just event class names:
+        a shared contract or a test fixture alone does not prove that a service publishes or consumes an event.
+      </p>
+
+      <CodeSnippet CssClass="language-markdown">
+Analyze this repository to inventory its outgoing and incoming integration events.
+Do not modify code.
+
+1. Find outgoing events and the code paths that publish them.
+2. Find incoming events, their handlers, and consumer registrations.
+3. Inspect messaging configuration for topics, queues, subscriptions, routing keys,
+   and serialized event names or versions where available.
+4. Distinguish cross-service integration events from in-process notifications,
+   contract-only references, and tests.
+
+Return a table with:
+Direction | Event contract and version | Publisher or handler | Messaging destination |
+Repository-relative file path and line numbers | Uncertainties
+
+Do not assume that an event type declaration means the event is actually used.
+      </CodeSnippet>
+
+      <h5>2. Use GitHub MCP to Trace Both Sides of Each Event</h5>
+
+      <p>
+        Connect Copilot to the
+        <a href="https://github.com/github/github-mcp-server" target="_blank" rel="noopener noreferrer">GitHub MCP server</a>
+        and enable its repository search and file-reading tools. Use your organization's approved Copilot and MCP setup,
+        with access only to repositories you are authorized to inspect; prefer read-only tools for this investigation.
+        MCP does not bypass GitHub permissions.
+      </p>
+      <p>
+        Replace the organization and repository placeholders below with your approved search scope.
+        Copilot can use GitHub MCP to search beyond the local workspace and inspect the matching files.
+      </p>
+
+      <CodeSnippet CssClass="language-markdown">
+Using the event inventory above and GitHub MCP, trace integration events across
+the authorized repositories in YOUR_ORG. Limit searches to this repository list:
+YOUR_ORG/service-a, YOUR_ORG/service-b, YOUR_ORG/service-c.
+Use read-only tools; do not modify repositories.
+
+For every outgoing event from our service:
+- Find consumers in the allowed repositories.
+- Inspect handler implementations, registrations, and messaging configuration.
+
+For every incoming event handled by our service:
+- Find its publishers in the allowed repositories.
+- Inspect the publish call sites and messaging configuration.
+
+Search using the exact event name, namespace, serialized name, version, and
+destination where known. Do not equate matching class names with a confirmed flow.
+Check contract compatibility and routing configuration on both sides.
+
+Return an evidence table:
+Publisher repository | Event | Topic or queue | Consumer repository |
+Publish-site link | Handler and registration links | Configuration links |
+Status (confirmed in code / candidate / unresolved)
+
+Include the inspected branch or commit for each repository.
+Report inaccessible repositories and search limitations explicitly.
+No search results means "not found within this search scope," not "no consumers."
+      </CodeSnippet>
+
+      <h5>3. Turn the Evidence into a Mermaid Diagram</h5>
+
+      <p>
+        Once you have the evidence table, ask Copilot to draw the relationships.
+        Keep uncertain connections separate so that a plausible guess does not become an architectural fact.
+      </p>
+
+      <CodeSnippet CssClass="language-markdown">
+Generate a Mermaid flowchart from the evidence table.
+Show the current service, upstream publishers, downstream consumers, and the
+verified messaging destinations between them. Label connections with event names.
+Include only relationships confirmed in code in the main diagram.
+List candidates and unresolved events separately with the evidence still needed.
+
+Add a short explanation of each flow and its source links.
+Do not infer that handling one event causes another event to be published unless
+the implementation establishes that relationship.
+State that this is a code-derived view, not proof of production message delivery.
+      </CodeSnippet>
+
+      <p>
+        For example, an illustrative map centred on an Order Service might look like this.
+        Topic names are placeholders; use the destinations verified in your own configuration.
+        Copy the Mermaid block into a Markdown viewer that supports Mermaid to render it.
+      </p>
+
+      <CodeSnippet CssClass="language-markdown">
+```mermaid
+flowchart LR
+    Payment["Payment Service"]
+    PaymentEvents["Payment events topic"]
+    Orders["Order Service - current repository"]
+    OrderEvents["Order events topic"]
+    Inventory["Inventory Service"]
+    Notifications["Notification Service"]
+
+    Payment --&gt;|"PaymentCompleted"| PaymentEvents
+    PaymentEvents --&gt;|"PaymentCompleted"| Orders
+    Orders --&gt;|"OrderPlaced"| OrderEvents
+    OrderEvents --&gt;|"OrderPlaced"| Inventory
+    OrderEvents --&gt;|"OrderPlaced"| Notifications
+```
+      </CodeSnippet>
+
+      <p>
+        Read this as two relationships: Order Service consumes <Highlight>PaymentCompleted</Highlight> from Payment Service,
+        and publishes <Highlight>OrderPlaced</Highlight> for Inventory and Notification services.
+        It does not claim that receiving PaymentCompleted triggers OrderPlaced, or imply any ordering between them.
+      </p>
+      <p>
+        Before treating the map as a reference, review the publish sites, handler registrations, and routing configuration
+        with the team. Source code shows intended connections; environment-specific configuration and runtime telemetry
+        are needed to verify what is deployed and actually delivering messages.
+      </p>
+      <p>
+        The value for us was not just a diagram. It was a quicker way to build a shared understanding of an unfamiliar system:
+        <Highlight>start with events, follow them across repository boundaries, then visualize the evidence</Highlight>.
+      </p>
+
       <h4>Setting Up Your Architecture Documentation Process</h4>
       
       <p>
@@ -853,6 +1005,12 @@ For more details on this process, see the blog post: [Using GitHub Copilot AI fo
     </How>
 
     <Summary>
+      <p>
+        When joining an event-driven project, start by mapping the events your service publishes and consumes.
+        Use GitHub MCP to find the other side of those relationships in authorized repositories, validate the code and
+        configuration evidence, and ask Copilot to turn the confirmed connections into Mermaid.
+        Keep unresolved connections visible rather than filling the gaps with guesses.
+      </p>
       <p>
         Using GitHub Copilot for architecture diagram generation transforms documentation from a tedious chore into 
         an automated, accurate, and valuable part of your development process. By creating a well-structured prompt 
