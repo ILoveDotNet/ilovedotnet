@@ -3,7 +3,7 @@ using static ILoveDotNet.DistributedTest.Utils.SeoTestHelpers;
 
 namespace ILoveDotNet.DistributedTest;
 
-public class BlogTests(AppFixture fixture) : PageTest
+public class BlogTests(AppFixture fixture) : DistributedPageTest
 {
   private readonly Uri WebBaseUrl = fixture.App.GetEndpoint("ILoveDotNet-Web", "https");
   private readonly Uri ExpectedCanonicalBaseUrl = GetExpectedCanonicalBaseUrl();
@@ -230,7 +230,9 @@ public class BlogTests(AppFixture fixture) : PageTest
     await button.ClickAsync();
     await Expect(snippet.GetByRole(AriaRole.Status)).ToHaveTextAsync("Copied to clipboard.");
     await Expect(button).ToHaveTextAsync("Copied");
-    Assert.Equal(await snippet.Locator("code").TextContentAsync(), await Page.EvaluateAsync<string>("() => navigator.clipboard.readText()"));
+    var code = await snippet.Locator("code").TextContentAsync();
+    var copied = await Page.EvaluateAsync<string>("() => navigator.clipboard.readText()");
+    Assert.Equal(code?.Replace("\r\n", "\n"), copied.Replace("\r\n", "\n"));
     await Page.EvaluateAsync("() => Object.defineProperty(navigator.clipboard, 'writeText', { configurable: true, value: () => Promise.reject(new DOMException('Permission denied', 'NotAllowedError')) })");
     await button.ClickAsync();
     await Expect(snippet.GetByRole(AriaRole.Status)).ToHaveTextAsync("Copy failed. Select the code and copy it manually.");

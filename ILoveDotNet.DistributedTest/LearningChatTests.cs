@@ -5,7 +5,7 @@ using ILoveDotNet.DistributedTest.Utils;
 
 namespace ILoveDotNet.DistributedTest;
 
-public class LearningChatTests(AppFixture fixture) : PageTest
+public class LearningChatTests(AppFixture fixture) : DistributedPageTest
 {
   private readonly Uri WebBaseUrl = fixture.App.GetEndpoint("ILoveDotNet-Web", "https");
 

@@ -3,7 +3,7 @@ using ILoveDotNet.DistributedTest.Utils;
 
 namespace ILoveDotNet.DistributedTest;
 
-public class SeoTests(AppFixture fixture) : PageTest
+public class SeoTests(AppFixture fixture) : DistributedPageTest
 {
   private readonly Uri WebBaseUrl = fixture.App.GetEndpoint("ILoveDotNet-Web", "https");
   private static readonly Uri ProductionSeoBaseUrl = new("https://ilovedotnet.org/");

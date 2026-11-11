@@ -2,7 +2,7 @@
 
 namespace ILoveDotNet.DistributedTest;
 
-public class InterviewTests(AppFixture fixture) : PageTest
+public class InterviewTests(AppFixture fixture) : DistributedPageTest
 {
   private const string Heading = "C# and .NET Interview Questions and Answers";
   private readonly Uri WebBaseUrl = fixture.App.GetEndpoint("ILoveDotNet-Web", "https");

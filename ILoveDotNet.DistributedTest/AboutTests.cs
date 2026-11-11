@@ -2,7 +2,7 @@
 
 namespace ILoveDotNet.DistributedTest;
 
-public class AboutTests(AppFixture fixture) : PageTest
+public class AboutTests(AppFixture fixture) : DistributedPageTest
 {
   private readonly Uri WebBaseUrl = fixture.App.GetEndpoint("ILoveDotNet-Web", "https");
 

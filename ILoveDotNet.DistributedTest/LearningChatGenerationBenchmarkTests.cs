@@ -3,7 +3,7 @@ using ILoveDotNet.DistributedTest.Utils;
 
 namespace ILoveDotNet.DistributedTest;
 
-public class LearningChatGenerationBenchmarkTests(AppFixture fixture) : PageTest
+public class LearningChatGenerationBenchmarkTests(AppFixture fixture) : DistributedPageTest
 {
   public override BrowserNewContextOptions ContextOptions() => new() { IgnoreHTTPSErrors = true };
 

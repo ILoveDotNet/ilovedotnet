@@ -2,7 +2,7 @@
 
 namespace ILoveDotNet.DistributedTest;
 
-public class LearningChatGenerationTests(AppFixture fixture) : PageTest
+public class LearningChatGenerationTests(AppFixture fixture) : DistributedPageTest
 {
   public override BrowserNewContextOptions ContextOptions() => new() { IgnoreHTTPSErrors = true };
 

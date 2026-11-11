@@ -4,7 +4,7 @@ using ILoveDotNet.DistributedTest.Utils;
 
 namespace ILoveDotNet.DistributedTest;
 
-public class VectorSearchTests(AppFixture fixture) : PageTest
+public class VectorSearchTests(AppFixture fixture) : DistributedPageTest
 {
   private const string ExpectedModel = "Xenova/all-MiniLM-L6-v2";
   private const string ExpectedModelRevision = "751bff37182d3f1213fa05d7196b954e230abad9";

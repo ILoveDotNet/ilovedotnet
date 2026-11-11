@@ -4,7 +4,7 @@ using ILoveDotNet.DistributedTest.Utils;
 
 namespace ILoveDotNet.DistributedTest;
 
-public class LearningChatCorpusValidationTests(AppFixture fixture) : PageTest
+public class LearningChatCorpusValidationTests(AppFixture fixture) : DistributedPageTest
 {
   public override BrowserNewContextOptions ContextOptions() => new() { IgnoreHTTPSErrors = true };
 
