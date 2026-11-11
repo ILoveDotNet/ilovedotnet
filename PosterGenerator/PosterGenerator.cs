@@ -61,9 +61,13 @@ public class PosterGenerator(TableOfContents tableOfContents,
     if (!File.Exists(posterPath) || !File.Exists(webpPath))
       return false;
 
+    // ModifiedOn also schedules content, so a future date does not mean the posters are stale.
+    if (content.ModifiedOn.Date > DateTime.UtcNow.Date)
+      return true;
+
     // Check if both files are up to date
-    var pngLastWrite = File.GetLastWriteTime(posterPath);
-    var webpLastWrite = File.GetLastWriteTime(webpPath);
+    var pngLastWrite = File.GetLastWriteTimeUtc(posterPath);
+    var webpLastWrite = File.GetLastWriteTimeUtc(webpPath);
     var earliestFileTime = pngLastWrite < webpLastWrite ? pngLastWrite : webpLastWrite;
 
     return earliestFileTime >= content.ModifiedOn;
@@ -111,17 +115,42 @@ public class PosterGenerator(TableOfContents tableOfContents,
     using var image = surface.Snapshot();
 
     // Save PNG version with quality 50 (better balance for PNG)
-    using var pngData = image.Encode(SKEncodedImageFormat.Png, 50);
-    using var pngStream = File.OpenWrite(outputPath);
-    pngData.SaveTo(pngStream);
-    pngStream.Close();
+    SaveImageIfPixelsChanged(image, outputPath, SKEncodedImageFormat.Png, 50);
 
     // Save WebP version with quality 25 (excellent compression)
     var webpPath = Path.ChangeExtension(outputPath, ".webp");
-    using var webpData = image.Encode(SKEncodedImageFormat.Webp, 25);
-    using var webpStream = File.OpenWrite(webpPath);
-    webpData.SaveTo(webpStream);
-    webpStream.Close();
+    SaveImageIfPixelsChanged(image, webpPath, SKEncodedImageFormat.Webp, 25);
+  }
+
+  private static void SaveImageIfPixelsChanged(SKImage image, string path, SKEncodedImageFormat format, int quality)
+  {
+    using var encodedData = image.Encode(format, quality);
+    if (File.Exists(path) && HasSamePixels(path, encodedData))
+      return;
+
+    using var stream = File.Create(path);
+    encodedData.SaveTo(stream);
+  }
+
+  private static bool HasSamePixels(string existingPath, SKData generatedData)
+  {
+    using var existingImage = SKBitmap.Decode(existingPath);
+    using var generatedImage = SKBitmap.Decode(generatedData);
+    if (existingImage is null || generatedImage is null ||
+        existingImage.Width != generatedImage.Width ||
+        existingImage.Height != generatedImage.Height)
+      return false;
+
+    for (var y = 0; y < existingImage.Height; y++)
+    {
+      for (var x = 0; x < existingImage.Width; x++)
+      {
+        if (existingImage.GetPixel(x, y) != generatedImage.GetPixel(x, y))
+          return false;
+      }
+    }
+
+    return true;
   }
 
   private void DrawChannelName(SKCanvas canvas, string channel)
