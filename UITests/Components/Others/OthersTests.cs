@@ -54,4 +54,19 @@ public class OthersTests
     var menu = cut.Find("#others > div");
     Assert.Equal("dropdown is-right ", menu.GetAttribute("class"));
   }
+
+  [Fact]
+  public async Task DelayedFocusOut_DoesNotCloseReopenedMenuAsync()
+  {
+    using var ctx = new BunitContext();
+    var cut = ctx.Render<CommonComponents.Shared.Others>();
+    await cut.Find("button").ClickAsync();
+
+    var focusOut = cut.Find("#others > div").FocusOutAsync();
+    await cut.Find("#others-menu a[href='/about']").ClickAsync();
+    await cut.Find("button").ClickAsync();
+    await focusOut;
+
+    Assert.Contains("is-active", cut.Find("#others > div").ClassList);
+  }
 }
