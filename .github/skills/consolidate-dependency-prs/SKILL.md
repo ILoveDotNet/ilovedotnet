@@ -1,6 +1,6 @@
 ---
 name: consolidate-dependency-prs
-description: 'Consolidate dependency-update pull requests into one clean replacement PR, reconcile overlapping versions and lockfiles, verify all checks on its latest commit, then comment on and close superseded PRs. Use when asked to combine Dependabot or other dependency PRs.'
+description: 'Consolidate dependency-update pull requests into one clean replacement PR, reconcile overlapping versions and lockfiles, then comment on and close superseded PRs. Let PR pipelines run automatically; verify green checks when explicitly requested.'
 ---
 
 # Consolidate Dependency PRs
@@ -15,6 +15,11 @@ description: 'Consolidate dependency-update pull requests into one clean replace
 - Creating a replacement PR does not authorize merging it, deleting branches,
   disabling checks, or changing Dependabot ignore rules. Comment on and close
   originals only when the user has authorized that.
+- Let the replacement PR trigger its configured pipelines automatically. Do not
+  manually dispatch workflows or start pipelines. Wait for green CI only when
+  explicitly requested or required by repository policy; otherwise create the
+  replacement, comment on and close the covered originals, and report CI status
+  without claiming that pending checks have passed.
 - Follow the host's commit, push, branch, and workspace permission rules. Preserve
   user changes, stage explicit paths only, and never stash, reset, force-push, or
   create another checkout without authorization.
@@ -79,10 +84,11 @@ description: 'Consolidate dependency-update pull requests into one clean replace
    - Links to every source PR.
    - A dependency/version reconciliation summary and compatibility decisions.
    - Lockfile regeneration details and actual validation results.
-5. Do not put `Closes #N` in the body for PR references. Originals must remain
-   open until the replacement is demonstrably healthy.
+5. Do not put `Closes #N` in the body for PR references. Keep originals open until
+   the replacement exists and covers their updates. If green CI is explicitly
+   requested, also require the checks below before closure.
 
-## 4. Require green checks on the latest SHA
+## 4. Verify automatic CI when green checks are requested
 
 1. Read the replacement's live `headRefOid`, mergeability, check runs, commit
    statuses, and repository-required checks. Know which workflows should run:
@@ -90,13 +96,11 @@ description: 'Consolidate dependency-update pull requests into one clean replace
 2. Use `gh pr checks NUMBER --repo OWNER/REPO --watch` for all PR checks, not
    just `--required`. Wait for expected checks to appear before treating the
    result as authoritative.
-3. Changed scheduled/manual workflows must also be exercised on the exact
-   replacement branch when safe. In this repository, `codeql.yml` supports
-   `workflow_dispatch` but has no PR trigger:
-   `gh workflow run codeql.yml --repo OWNER/REPO --ref BRANCH`.
-   Identify the returned run through a branch/workflow/SHA-filtered run listing
-   and watch it with `gh run watch RUN_ID --repo OWNER/REPO --exit-status`.
-   Avoid duplicate dispatches and account for all matrix jobs.
+3. Do not manually dispatch scheduled/manual workflows. In this repository,
+   `codeql.yml` has no PR trigger; its absence from automatic PR checks does not
+   authorize a manual run. If explicitly required checks do not start
+   automatically, report the configuration blocker rather than triggering them
+   yourself or claiming they passed.
 4. For a failure, inspect `gh run view RUN_ID --repo OWNER/REPO --log-failed`,
    fix the root cause, push an authorized corrective commit, and repeat the
    checks for the new SHA. Never rely on an earlier commit's green results.
@@ -113,14 +117,15 @@ description: 'Consolidate dependency-update pull requests into one clean replace
    Do not close a merged PR or an original no longer covered by the replacement.
 2. On each still-open original, post:
    `Superseded by #NEW_NUMBER (NEW_PR_URL). All changes from this PR are included
-   in the consolidated dependency update, whose checks are passing.`
+   in the consolidated dependency update.`
    Use a fully qualified reference for cross-repository PRs.
 3. Close it without deleting its branch:
    `gh pr close OLD_NUMBER --repo OWNER/REPO`.
    On partial failure, report exactly which operation failed. Before retrying,
    read current state/comments so a successful comment is not duplicated.
 4. Verify originals are closed, supersession comments link to the correct PR,
-   and the replacement remains open with all checks passing at the verified SHA.
+   and the replacement remains open. When green CI was requested, verify all
+   checks pass at the latest SHA; otherwise report their actual current status.
    Recheck the working tree for accidental generated files or user-change loss.
 5. Return the replacement URL, the superseded PRs, and any real blockers. Do not
    claim green CI or completed closure without live evidence.
