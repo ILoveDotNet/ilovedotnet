@@ -1,4 +1,4 @@
-namespace ILoveDotNet.DistributedTest.Utils;
+﻿namespace ILoveDotNet.DistributedTest.Utils;
 
 public abstract class DistributedPageTest : PageTest
 {
