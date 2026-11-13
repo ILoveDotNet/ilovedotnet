@@ -191,7 +191,7 @@ public class PosterGenerator(TableOfContents tableOfContents,
     var x = 40f; // Left margin
     var y = PosterHeight - 40f; // Bottom margin
 
-    canvas.DrawText(brandText, x, y, font, paint);
+    canvas.DrawText(brandText, x, y, SKTextAlign.Left, font, paint);
   }
 
   private void DrawTitle(SKCanvas canvas, string title)
@@ -228,7 +228,7 @@ public class PosterGenerator(TableOfContents tableOfContents,
       var x = (PosterWidth - bounds.Width) / 2f;
       var y = startY + (i * lineHeight);
 
-      canvas.DrawText(line, x, y, font, paint);
+      canvas.DrawText(line, x, y, SKTextAlign.Left, font, paint);
     }
   }
 
