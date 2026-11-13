@@ -1,11 +1,11 @@
 # GitHub Copilot Instructions for I ❤️ .NET
 
 ## Architecture Overview
-This is a **Blazor WebAssembly + .NET MAUI hybrid learning platform** targeting **net10.0** (`LangVersion: latest`, nullable enabled, implicit usings on) with dual entry points:
+This is a **Blazor WebAssembly + .NET MAUI hybrid learning platform** targeting **net11.0** (`LangVersion: latest`, nullable enabled, implicit usings on) with dual entry points:
 - **Web**: Blazor WASM SPA at `Web/Program.cs`
 - **MAUI**: Native shell with BlazorWebView at `MAUI/MauiProgram.cs`
 
-Current ASP.NET Core package version: **10.0.3**. Always match this version when adding new `PackageReference` entries.
+Current ASP.NET Core package version: **11.0.0**. Always match this version when adding new `PackageReference` entries.
 
 ## Component Architecture
 **Modular RCL Design**: 28 Razor Class Libraries organized by topic:
@@ -151,7 +151,7 @@ Replace the generated `.csproj` content with the standard pattern:
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.3" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="11.0.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -261,7 +261,7 @@ dotnet build Web/Web.csproj
 - Replace `{topic-slug}` with the URL path segment (e.g., `json`, `security`, `linq`)
 - Replace `{Topic}Channel` with the appropriate channel name for sitemap/poster generation
 - Maintain alphabetical order when adding entries to Web.csproj, LazyLoaderService.cs, keywords meta tags, and TableOfContents.cs
-- Ensure package versions match the rest of the solution (currently `10.0.3` for ASP.NET Core packages)
+- Ensure package versions match the rest of the solution (currently `11.0.0` for ASP.NET Core packages)
 - Initialize FullContents with capacity 0 for empty learning paths; increase as content is added
 
 ## Lint, Build and Test
