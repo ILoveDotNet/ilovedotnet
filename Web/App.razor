@@ -1,9 +1,11 @@
 ﻿@using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 @using Microsoft.AspNetCore.Components.WebAssembly.Services;
+@using Microsoft.Extensions.Logging;
 @using System.Reflection;
 @implements IAsyncDisposable;
 @inject IWebAssemblyHostEnvironment Environment;
 @inject LazyLoaderService LazyLoader;
+@inject ILogger<App> Logger;
 
 <CascadingValue Value="SmallDevice">
     <Router AppAssembly="@typeof(Program).Assembly" 
@@ -38,13 +40,20 @@
     {
         if (firstRender)
         {
-            module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/viewport.js");
+            try
+            {
+                module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/viewport.js");
 
-            viewPortWidth = await module.InvokeAsync<ushort>("getViewPortWidth");
+                viewPortWidth = await module.InvokeAsync<ushort>("getViewPortWidth");
 
-            SmallDevice = viewPortWidth < SMALLDEVICEWIDTH;
+                SmallDevice = viewPortWidth < SMALLDEVICEWIDTH;
 
-            await InvokeAsync(StateHasChanged);
+                await InvokeAsync(StateHasChanged);
+            }
+            catch (JSException exception)
+            {
+                Logger.LogWarning(exception, "Unable to determine viewport width; retaining the small-device layout.");
+            }
         }
     }
 

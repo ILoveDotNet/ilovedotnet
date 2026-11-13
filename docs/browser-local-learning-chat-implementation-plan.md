@@ -274,7 +274,7 @@ claim correctness. Use tests of the production path, not an alternate prompt/wor
 
 ## 7. Build and validation commands
 
-Run commands from the repository root. Tests require the repository's .NET 10 /
+Run commands from the repository root. Tests require the repository's .NET 11 /
 xUnit v3 / Microsoft.Testing.Platform setup and existing Playwright prerequisites.
 Use focused selectors rather than the whole solution by default.
 
