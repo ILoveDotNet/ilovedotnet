@@ -1,0 +1,1523 @@
+<!DOCTYPE html><html lang="en"><head>
+    <meta charset="utf-8"/>
+    <meta name="author" content="Abdul Rahman Shabeek Mohamed"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+    <meta name="copyright" content="I Love DotNet"/>
+    <meta name="language" content="EN"/>
+    <meta name="owner" content="Abdul Rahman Shabeek Mohamed"/>
+    <meta name="fediverse:creator" content="@thebhai@mastodon.social"/>
+    <!--<meta http-equiv="Content-Security-Policy"
+          content="base-uri 'self';
+               block-all-mixed-content;
+               img-src data: 'self'
+                       https://pagead2.googlesyndication.com;
+               object-src 'none';
+               script-src 'self'
+                          https://pagead2.googlesyndication.com
+                          https://www.googletagmanager.com
+                          https://gist.github.com
+                          'unsafe-eval'
+                          'unsafe-inline'
+                          data:;
+               style-src 'self'
+                         https://github.githubassets.com
+                         'unsafe-inline';
+               upgrade-insecure-requests;">-->
+    <title>Advanced .NET Garbage Collection: Measure Before You Tune - I ❤️ DotNet</title>
+    <base href="/"/>
+    
+<!--Blazor-Configuration:eyJ3ZWJBc3NlbWJseSI6eyJlbnZpcm9ubWVudE5hbWUiOiJQcm9kdWN0aW9uIiwiZW52aXJvbm1lbnRWYXJpYWJsZXMiOnt9fSwic2VydmVyIjp7fSwic3NyIjp7fX0=--><!--Blazor:{"type":"webassembly","prerenderId":"baa6f9a50ab74c1496ec59de369290ef","key":{"locationHash":"77D12F14A8105320B1AAED6AE7E689DA0EC4483270A645E84079EAA0FFDF550D:0","formattedComponentKey":""},"assembly":"Microsoft.AspNetCore.Components.Web","typeName":"Microsoft.AspNetCore.Components.Web.HeadOutlet","parameterDefinitions":"W10=","parameterValues":"W10="}--><script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","publisher":{"@type":"Organization","name":"I Love DotNet","url":"https://ilovedotnet.org/","logo":{"@type":"ImageObject","url":"https://ilovedotnet.org/favicon.ico","width":16,"height":16}},"author":{"@type":"Person","@id":"https://ilovedotnet.org/authors/abdul-rahman/#person","name":"Abdul Rahman","url":"https://ilovedotnet.org/authors/abdul-rahman/"},"headline":"Advanced .NET Garbage Collection: Measure Before You Tune","url":"https://ilovedotnet.org/blogs/advanced-dotnet-garbage-collection-measure-before-you-tune/","datePublished":"2026-11-01T22:30:00.0000000Z","dateModified":"2026-11-01T22:30:00.0000000Z","image":{"@type":"ImageObject","url":"https://ilovedotnet.org/image/blogs/memory/advanced-dotnet-garbage-collection-measure-before-you-tune.png","width":1265,"height":827},"keywords":[".NET","DotNet","I Love DotNet","I \u2764\uFE0F DotNet","Blazor","Blazor (WebAssembly)","Blazor Wasm","C#","Entity Framework","LINQ","ML.NET","Web API","TDD","OOPS","Middleware","JWT","Dependency Injection","Report","Design Pattern","SOLID","HTTP Client","OWASP","SignalR","Garbage Collection","GC","Allocation Pressure","Escape Analysis","ArrayPool","Large Object Heap","LOH Compaction","Server GC","Workstation GC","DATAS","No GC Region","IDisposable","Finalizer","Weak Reference",".NET"],"description":"Learn how to measure and reduce allocation pressure, see what .NET 10 escape analysis can do, control object lifetimes with disposal and event cleanup, and evaluate server GC, DATAS, LOH compaction, and no-GC regions without tuning by guesswork.","mainEntityOfPage":{"@type":"WebPage","@id":"https://ilovedotnet.org/blogs/advanced-dotnet-garbage-collection-measure-before-you-tune/"}}</script><!--Blazor:{"prerenderId":"baa6f9a50ab74c1496ec59de369290ef"}-->
+
+    <script type="text/default-title">I ❤️ DotNet</script>
+    <script type="text/default-meta-elements">[[,"author",,,"Abdul Rahman Shabeek Mohamed"],[,"viewport",,,"width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"],[,"copyright",,,"I Love DotNet"],[,"language",,,"EN"],[,"owner",,,"Abdul Rahman Shabeek Mohamed"],[,"fediverse:creator",,,"@thebhai@mastodon.social"]]</script>
+    <meta name="description" content="Learn how to measure and reduce allocation pressure, see what .NET 10 escape analysis can do, control object lifetimes with disposal and event cleanup, and evaluate server GC, DATAS, LOH compaction, and no-GC regions without tuning by guesswork."/>
+    <meta name="keywords" content=".NET, DotNet, I Love DotNet, I ❤️ DotNet, Blazor, Blazor (WebAssembly), Blazor Wasm, C#, Entity Framework, LINQ, ML.NET, Web API, TDD, OOPS, Middleware, JWT, Dependency Injection, Report, Design Pattern, SOLID, HTTP Client, OWASP, SignalR, Garbage Collection, GC, Allocation Pressure, Escape Analysis, ArrayPool, Large Object Heap, LOH Compaction, Server GC, Workstation GC, DATAS, No GC Region, IDisposable, Finalizer, Weak Reference, .NET"/>
+    <meta property="url" content="https://ilovedotnet.org/blogs/advanced-dotnet-garbage-collection-measure-before-you-tune/"/>
+    <meta property="identifier-URL" content="https://ilovedotnet.org/blogs/advanced-dotnet-garbage-collection-measure-before-you-tune/"/>
+    <meta property="og:site_name" content="I Love DotNet"/>
+    <meta property="og:type" content="article"/>
+    <meta property="og:title" content="Advanced .NET Garbage Collection: Measure Before You Tune"/>
+    <meta property="og:image" content="https://ilovedotnet.org/image/blogs/memory/advanced-dotnet-garbage-collection-measure-before-you-tune.png"/>
+    <meta property="og:image:alt" content="Advanced .NET Garbage Collection: Measure Before You Tune"/>
+    <meta property="og:description" content="Learn how to measure and reduce allocation pressure, see what .NET 10 escape analysis can do, control object lifetimes with disposal and event cleanup, and evaluate server GC, DATAS, LOH compaction, and no-GC regions without tuning by guesswork."/>
+    <meta property="og:url" content="https://ilovedotnet.org/blogs/advanced-dotnet-garbage-collection-measure-before-you-tune/"/>
+    <meta property="twitter:card" content="summary_large_image"/>
+    <meta property="twitter:title" content="Advanced .NET Garbage Collection: Measure Before You Tune"/>
+    <meta property="twitter:image" content="https://ilovedotnet.org/image/blogs/memory/advanced-dotnet-garbage-collection-measure-before-you-tune.png"/>
+    <meta property="twitter:image:alt" content="Advanced .NET Garbage Collection: Measure Before You Tune"/>
+    <meta property="twitter:description" content="Learn how to measure and reduce allocation pressure, see what .NET 10 escape analysis can do, control object lifetimes with disposal and event cleanup, and evaluate server GC, DATAS, LOH compaction, and no-GC regions without tuning by guesswork."/>
+    <meta property="twitter:url" content="https://ilovedotnet.org/blogs/advanced-dotnet-garbage-collection-measure-before-you-tune/"/>
+    <meta property="article:published_time" content="2026-11-01T22:30:00.000Z"/>
+    <meta property="article:modified_time" content="2026-11-01T22:30:00.000Z"/>
+    <meta property="article:tag" content=".NET"/>
+    <script type="text/default-link-elements">[]</script>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-authors.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-ai.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-blazor-wasm.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-caching.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-database.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-ddd.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-dependency-injection.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-design-pattern.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-efcore.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-http-client.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-json.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-linq.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-logging.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-maui.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-mcp.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-memory.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-middleware.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-mlnet.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-msbuild.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-nuget.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-oops.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-owasp.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-python.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-regex.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-report.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-security.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-signalr.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-solid.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-tdd.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-testing.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-blog-webapi.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-channels.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-static.xml" type="application/xml" title="Sitemap"/>
+    <link rel="sitemap" href="https://ilovedotnet.org/sitemap-talk.xml" type="application/xml" title="Sitemap"/>
+    <link rel="alternate" href="https://ilovedotnet.org/atom.xml" type="application/atom+xml"/>
+    <link rel="alternate" href="https://ilovedotnet.org/blogs/advanced-dotnet-garbage-collection-measure-before-you-tune/" hreflang="en"/>
+    <link rel="alternate" href="https://ilovedotnet.org/blogs/advanced-dotnet-garbage-collection-measure-before-you-tune/" hreflang="x-default"/>
+    <link rel="canonical" href="https://ilovedotnet.org/blogs/advanced-dotnet-garbage-collection-measure-before-you-tune/"/>
+    <link rel="index" href="https://ilovedotnet.org/blogs/advanced-dotnet-garbage-collection-measure-before-you-tune/" title="Advanced .NET Garbage Collection: Measure Before You Tune - I ❤️ DotNet"/>
+</head><body class="[ m-0 ] [ h-full ] [ dark:bg-stone-900 ] [ bg-gray-100 ]"><resourcepreloader>
+    <link href="css/charts.min.css" rel="stylesheet"/>
+    <link href="highlight.min.css" rel="stylesheet"/>
+    <link href="css/app.min.css" rel="stylesheet"/>
+    <link href="manifest.json" rel="manifest"/>
+    <link rel="icon" type="image/x-icon" href="favicon.ico"/>
+    <link rel="me" href="https://www.linkedin.com/in/thebhai" type="text/html"/>
+    <link rel="me" href="https://mastodon.social/@thebhai" type="text/html"/>
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="appicons/apple-touch-icon-144x144.png"/>
+    <link rel="apple-touch-icon-precomposed" sizes="152x152" href="appicons/apple-touch-icon-152x152.png"/>
+    <link rel="icon" type="image/png" href="appicons/favicon-196x196.png" sizes="196x196"/>
+    <link rel="preconnect" href="https://googleads.g.doubleclick.net"/>
+    <link rel="preconnect" href="https://pagead2.googlesyndication.com"/>
+    <link rel="preconnect" href="https://fundingchoicesmessages.google.com"/>
+    <link rel="icon" type="image/png" href="appicons/favicon-128.png" sizes="128x128"/>
+    <link href="_framework/dotnet.4cmdxwjlbq.js" rel="preload" as="script" fetchpriority="high" crossorigin="anonymous" integrity="sha256-rJxXtjSX9e+KE4HoyiCeLovgMsDXy71mrWQNWOgG85Q="/>
+    <script type="importmap">{
+  "imports": {
+    "./_framework/dotnet.js": "./_framework/dotnet.4cmdxwjlbq.js",
+    "./_framework/dotnet.native.js": "./_framework/dotnet.native.6m3kuuo45t.js",
+    "./_framework/dotnet.runtime.js": "./_framework/dotnet.runtime.uyfhwbfd13.js"
+  },
+  "scopes": {},
+  "integrity": {
+    "./_framework/dotnet.4cmdxwjlbq.js": "sha256-rJxXtjSX9e+KE4HoyiCeLovgMsDXy71mrWQNWOgG85Q=",
+    "./_framework/dotnet.js": "sha256-rJxXtjSX9e+KE4HoyiCeLovgMsDXy71mrWQNWOgG85Q=",
+    "./_framework/dotnet.native.6m3kuuo45t.js": "sha256-shpGk+XKtBisjsRQha2p6qYeoeclCxVffd41yagmMKA=",
+    "./_framework/dotnet.native.js": "sha256-shpGk+XKtBisjsRQha2p6qYeoeclCxVffd41yagmMKA=",
+    "./_framework/dotnet.runtime.js": "sha256-FsddKLA9kAdfVKI0lZFago0rrc/gNe0yrVtP7+D/qN0=",
+    "./_framework/dotnet.runtime.uyfhwbfd13.js": "sha256-FsddKLA9kAdfVKI0lZFago0rrc/gNe0yrVtP7+D/qN0="
+  }
+}</script>
+    <script type="text/javascript">
+        if (!window.location.host.includes('localhost')) {
+            (function(c,l,a,r,i,t,y){
+                c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+                t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+                y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+            })(window, document, "clarity", "script", "o0565ytixx");
+        }
+    </script>
+    <script async="" src="https://fundingchoicesmessages.google.com/i/pub-1536083653226834?ers=1" nonce="dOfxAvcES0_Mwd7YjKmn_Q"></script>
+    <script nonce="dOfxAvcES0_Mwd7YjKmn_Q">
+        if (!window.location.host.includes('localhost')) {
+            (function () { function signalGooglefcPresent() { if (!window.frames['googlefcPresent']) { if (document.body) { const iframe = document.createElement('iframe'); iframe.style = 'width: 0; height: 0; border: none; z-index: -1000; left: -1000px; top: -1000px;'; iframe.style.display = 'none'; iframe.name = 'googlefcPresent'; document.body.appendChild(iframe); } else { setTimeout(signalGooglefcPresent, 0); } } } signalGooglefcPresent(); })();
+        }
+    </script>
+    <script>
+        if (!window.location.host.includes('localhost')) {
+            (function () {
+                /*
+                Copyright The Closure Library Authors.
+                SPDX-License-Identifier: Apache-2.0
+                */
+                'use strict'; var aa = function (a) { var b = 0; return function () { return b < a.length ? { done: !1, value: a[b++] } : { done: !0 } } }, ba = "function" == typeof Object.create ? Object.create : function (a) { var b = function () { }; b.prototype = a; return new b }, k; if ("function" == typeof Object.setPrototypeOf) k = Object.setPrototypeOf; else { var m; a: { var ca = { a: !0 }, n = {}; try { n.__proto__ = ca; m = n.a; break a } catch (a) { } m = !1 } k = m ? function (a, b) { a.__proto__ = b; if (a.__proto__ !== b) throw new TypeError(a + " is not extensible"); return a } : null }
+                var p = k, q = function (a, b) { a.prototype = ba(b.prototype); a.prototype.constructor = a; if (p) p(a, b); else for (var c in b) if ("prototype" != c) if (Object.defineProperties) { var d = Object.getOwnPropertyDescriptor(b, c); d && Object.defineProperty(a, c, d) } else a[c] = b[c]; a.v = b.prototype }, r = this || self, da = function () { }, t = function (a) { return a }; var u; var w = function (a, b) { this.g = b === v ? a : "" }; w.prototype.toString = function () { return this.g + "" }; var v = {}, x = function (a) { if (void 0 === u) { var b = null; var c = r.trustedTypes; if (c && c.createPolicy) { try { b = c.createPolicy("goog#html", { createHTML: t, createScript: t, createScriptURL: t }) } catch (d) { r.console && r.console.error(d.message) } u = b } else u = b } a = (b = u) ? b.createScriptURL(a) : a; return new w(a, v) }; var A = function () { return Math.floor(2147483648 * Math.random()).toString(36) + Math.abs(Math.floor(2147483648 * Math.random()) ^ Date.now()).toString(36) }; var B = {}, C = null; var D = "function" === typeof Uint8Array; function E(a, b, c) { return "object" === typeof a ? D && !Array.isArray(a) && a instanceof Uint8Array ? c(a) : F(a, b, c) : b(a) } function F(a, b, c) { if (Array.isArray(a)) { for (var d = Array(a.length), e = 0; e < a.length; e++) { var f = a[e]; null != f && (d[e] = E(f, b, c)) } Array.isArray(a) && a.s && G(d); return d } d = {}; for (e in a) Object.prototype.hasOwnProperty.call(a, e) && (f = a[e], null != f && (d[e] = E(f, b, c))); return d }
+                function ea(a) {
+                    return F(a, function (b) { return "number" === typeof b ? isFinite(b) ? b : String(b) : b }, function (b) {
+                        var c; void 0 === c && (c = 0); if (!C) { C = {}; for (var d = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789".split(""), e = ["+/=", "+/", "-_=", "-_.", "-_"], f = 0; 5 > f; f++) { var h = d.concat(e[f].split("")); B[f] = h; for (var g = 0; g < h.length; g++) { var l = h[g]; void 0 === C[l] && (C[l] = g) } } } c = B[c]; d = Array(Math.floor(b.length / 3)); e = c[64] || ""; for (f = h = 0; h < b.length - 2; h += 3) {
+                            var y = b[h], z = b[h + 1]; l = b[h + 2]; g = c[y >> 2]; y = c[(y & 3) <<
+                                4 | z >> 4]; z = c[(z & 15) << 2 | l >> 6]; l = c[l & 63]; d[f++] = "" + g + y + z + l
+                        } g = 0; l = e; switch (b.length - h) { case 2: g = b[h + 1], l = c[(g & 15) << 2] || e; case 1: b = b[h], d[f] = "" + c[b >> 2] + c[(b & 3) << 4 | g >> 4] + l + e }return d.join("")
+                    })
+                } var fa = { s: { value: !0, configurable: !0 } }, G = function (a) { Array.isArray(a) && !Object.isFrozen(a) && Object.defineProperties(a, fa); return a }; var H; var J = function (a, b, c) {
+                    var d = H; H = null; a || (a = d); d = this.constructor.u; a || (a = d ? [d] : []); this.j = d ? 0 : -1; this.h = null; this.g = a; a: { d = this.g.length; a = d - 1; if (d && (d = this.g[a], !(null === d || "object" != typeof d || Array.isArray(d) || D && d instanceof Uint8Array))) { this.l = a - this.j; this.i = d; break a } void 0 !== b && -1 < b ? (this.l = Math.max(b, a + 1 - this.j), this.i = null) : this.l = Number.MAX_VALUE } if (c) for (b = 0; b < c.length; b++)a = c[b], a < this.l ? (a += this.j, (d = this.g[a]) ? G(d) : this.g[a] = I) : (d = this.l + this.j, this.g[d] || (this.i = this.g[d] = {}), (d = this.i[a]) ?
+                        G(d) : this.i[a] = I)
+                }, I = Object.freeze(G([])), K = function (a, b) { if (-1 === b) return null; if (b < a.l) { b += a.j; var c = a.g[b]; return c !== I ? c : a.g[b] = G([]) } if (a.i) return c = a.i[b], c !== I ? c : a.i[b] = G([]) }, M = function (a, b) { var c = L; if (-1 === b) return null; a.h || (a.h = {}); if (!a.h[b]) { var d = K(a, b); d && (a.h[b] = new c(d)) } return a.h[b] }; J.prototype.toJSON = function () { var a = N(this, !1); return ea(a) };
+                var N = function (a, b) { if (a.h) for (var c in a.h) if (Object.prototype.hasOwnProperty.call(a.h, c)) { var d = a.h[c]; if (Array.isArray(d)) for (var e = 0; e < d.length; e++)d[e] && N(d[e], b); else d && N(d, b) } return a.g }, O = function (a, b) { H = b = b ? JSON.parse(b) : null; a = new a(b); H = null; return a }; J.prototype.toString = function () { return N(this, !1).toString() }; var P = function (a) { J.call(this, a) }; q(P, J); function ha(a) { var b, c = (a.ownerDocument && a.ownerDocument.defaultView || window).document, d = null === (b = c.querySelector) || void 0 === b ? void 0 : b.call(c, "script[nonce]"); (b = d ? d.nonce || d.getAttribute("nonce") || "" : "") && a.setAttribute("nonce", b) }; var Q = function (a, b) { b = String(b); "application/xhtml+xml" === a.contentType && (b = b.toLowerCase()); return a.createElement(b) }, R = function (a) { this.g = a || r.document || document }; R.prototype.appendChild = function (a, b) { a.appendChild(b) }; var S = function (a, b, c, d, e, f) { try { var h = a.g, g = Q(a.g, "SCRIPT"); g.async = !0; g.src = b instanceof w && b.constructor === w ? b.g : "type_error:TrustedResourceUrl"; ha(g); h.head.appendChild(g); g.addEventListener("load", function () { e(); d && h.head.removeChild(g) }); g.addEventListener("error", function () { 0 < c ? S(a, b, c - 1, d, e, f) : (d && h.head.removeChild(g), f()) }) } catch (l) { f() } }; var ia = r.atob("aHR0cHM6Ly93d3cuZ3N0YXRpYy5jb20vaW1hZ2VzL2ljb25zL21hdGVyaWFsL3N5c3RlbS8xeC93YXJuaW5nX2FtYmVyXzI0ZHAucG5n"), ja = r.atob("WW91IGFyZSBzZWVpbmcgdGhpcyBtZXNzYWdlIGJlY2F1c2UgYWQgb3Igc2NyaXB0IGJsb2NraW5nIHNvZnR3YXJlIGlzIGludGVyZmVyaW5nIHdpdGggdGhpcyBwYWdlLg=="), ka = r.atob("RGlzYWJsZSBhbnkgYWQgb3Igc2NyaXB0IGJsb2NraW5nIHNvZnR3YXJlLCB0aGVuIHJlbG9hZCB0aGlzIHBhZ2Uu"), la = function (a, b, c) { this.h = a; this.j = new R(this.h); this.g = null; this.i = []; this.l = !1; this.o = b; this.m = c }, V = function (a) {
+                    if (a.h.body && !a.l) {
+                        var b =
+                            function () { T(a); r.setTimeout(function () { return U(a, 3) }, 50) }; S(a.j, a.o, 2, !0, function () { r[a.m] || b() }, b); a.l = !0
+                    }
+                }, T = function (a) {
+                    for (var b = W(1, 5), c = 0; c < b; c++) { var d = X(a); a.h.body.appendChild(d); a.i.push(d) } b = X(a); b.style.bottom = "0"; b.style.left = "0"; b.style.position = "fixed"; b.style.width = W(100, 110).toString() + "%"; b.style.zIndex = W(2147483544, 2147483644).toString(); b.style["background-color"] = ma(249, 259, 242, 252, 219, 229); b.style["box-shadow"] = "0 0 12px #888"; b.style.color = ma(0, 10, 0, 10, 0, 10); b.style.display =
+                        "flex"; b.style["justify-content"] = "center"; b.style["font-family"] = "Roboto, Arial"; c = X(a); c.style.width = W(80, 85).toString() + "%"; c.style.maxWidth = W(750, 775).toString() + "px"; c.style.margin = "24px"; c.style.display = "flex"; c.style["align-items"] = "flex-start"; c.style["justify-content"] = "center"; d = Q(a.j.g, "IMG"); d.className = A(); d.src = ia; d.style.height = "24px"; d.style.width = "24px"; d.style["padding-right"] = "16px"; var e = X(a), f = X(a); f.style["font-weight"] = "bold"; f.textContent = ja; var h = X(a); h.textContent = ka; Y(a,
+                            e, f); Y(a, e, h); Y(a, c, d); Y(a, c, e); Y(a, b, c); a.g = b; a.h.body.appendChild(a.g); b = W(1, 5); for (c = 0; c < b; c++)d = X(a), a.h.body.appendChild(d), a.i.push(d)
+                }, Y = function (a, b, c) { for (var d = W(1, 5), e = 0; e < d; e++) { var f = X(a); b.appendChild(f) } b.appendChild(c); c = W(1, 5); for (d = 0; d < c; d++)e = X(a), b.appendChild(e) }, W = function (a, b) { return Math.floor(a + Math.random() * (b - a)) }, ma = function (a, b, c, d, e, f) {
+                    return "rgb(" + W(Math.max(a, 0), Math.min(b, 255)).toString() + "," + W(Math.max(c, 0), Math.min(d, 255)).toString() + "," + W(Math.max(e, 0), Math.min(f,
+                        255)).toString() + ")"
+                }, X = function (a) { a = Q(a.j.g, "DIV"); a.className = A(); return a }, U = function (a, b) { 0 >= b || null != a.g && 0 != a.g.offsetHeight && 0 != a.g.offsetWidth || (na(a), T(a), r.setTimeout(function () { return U(a, b - 1) }, 50)) }, na = function (a) { var b = a.i; var c = "undefined" != typeof Symbol && Symbol.iterator && b[Symbol.iterator]; b = c ? c.call(b) : { next: aa(b) }; for (c = b.next(); !c.done; c = b.next())(c = c.value) && c.parentNode && c.parentNode.removeChild(c); a.i = []; (b = a.g) && b.parentNode && b.parentNode.removeChild(b); a.g = null }; var pa = function (a, b, c, d, e) { var f = oa(c), h = function (l) { l.appendChild(f); r.setTimeout(function () { f ? (0 !== f.offsetHeight && 0 !== f.offsetWidth ? b() : a(), f.parentNode && f.parentNode.removeChild(f)) : a() }, d) }, g = function (l) { document.body ? h(document.body) : 0 < l ? r.setTimeout(function () { g(l - 1) }, e) : b() }; g(3) }, oa = function (a) { var b = document.createElement("div"); b.className = a; b.style.width = "1px"; b.style.height = "1px"; b.style.position = "absolute"; b.style.left = "-10000px"; b.style.top = "-10000px"; b.style.zIndex = "-10000"; return b }; var L = function (a) { J.call(this, a) }; q(L, J); var qa = function (a) { J.call(this, a) }; q(qa, J); var ra = function (a, b) { this.l = a; this.m = new R(a.document); this.g = b; this.i = K(this.g, 1); b = M(this.g, 2); this.o = x(K(b, 4) || ""); this.h = !1; b = M(this.g, 13); b = x(K(b, 4) || ""); this.j = new la(a.document, b, K(this.g, 12)) }; ra.prototype.start = function () { sa(this) };
+                var sa = function (a) { ta(a); S(a.m, a.o, 3, !1, function () { a: { var b = a.i; var c = r.btoa(b); if (c = r[c]) { try { var d = O(P, r.atob(c)) } catch (e) { b = !1; break a } b = b === K(d, 1) } else b = !1 } b ? Z(a, K(a.g, 14)) : (Z(a, K(a.g, 8)), V(a.j)) }, function () { pa(function () { Z(a, K(a.g, 7)); V(a.j) }, function () { return Z(a, K(a.g, 6)) }, K(a.g, 9), K(a.g, 10), K(a.g, 11)) }) }, Z = function (a, b) { a.h || (a.h = !0, a = new a.l.XMLHttpRequest, a.open("GET", b, !0), a.send()) }, ta = function (a) { var b = r.btoa(a.i); a.l[b] && Z(a, K(a.g, 5)) }; (function (a, b) { r[a] = function (c) { for (var d = [], e = 0; e < arguments.length; ++e)d[e - 0] = arguments[e]; r[a] = da; b.apply(null, d) } })("__h82AlnkH6D91__", function (a) { "function" === typeof window.atob && (new ra(window, O(qa, window.atob(a)))).start() });
+            }).call(this);
+
+            window.__h82AlnkH6D91__("WyJwdWItMTUzNjA4MzY1MzIyNjgzNCIsW251bGwsbnVsbCxudWxsLCJodHRwczovL2Z1bmRpbmdjaG9pY2VzbWVzc2FnZXMuZ29vZ2xlLmNvbS9iL3B1Yi0xNTM2MDgzNjUzMjI2ODM0Il0sbnVsbCxudWxsLCJodHRwczovL2Z1bmRpbmdjaG9pY2VzbWVzc2FnZXMuZ29vZ2xlLmNvbS9lbC9BR1NLV3hYajNKNGktY00wVWloYjRfLVVJQXdrSHJ4Yl9EWXBFa3NXOW1WalVlRkVzZVNQVHhUOTAydzZ4MGd6b1E5NFA3OHFZZWhyV2FvU2gySWxfUEQ5eFRfQjVRXHUwMDNkXHUwMDNkP3RlXHUwMDNkVE9LRU5fRVhQT1NFRCIsImh0dHBzOi8vZnVuZGluZ2Nob2ljZXNtZXNzYWdlcy5nb29nbGUuY29tL2VsL0FHU0tXeFZSMWROcWh4V3lsVjRuNHJGQVVoRDR2ZjFNaGdFcHl5M2VoU3l2QndTQzF1c0dVWV9LbUVRSThEc1pyUk1hQ0NmYWdXNkNPVUN2ODNJbVVKTEJibTZ2TWdcdTAwM2RcdTAwM2Q/YWJcdTAwM2QxXHUwMDI2c2JmXHUwMDNkMSIsImh0dHBzOi8vZnVuZGluZ2Nob2ljZXNtZXNzYWdlcy5nb29nbGUuY29tL2VsL0FHU0tXeFZidGltVm5CbWlZa1lDMWFWR0ViMnQycGViNkxCMzZGOXhqOXZYYzRhbmdXcW5Ca0lnbkVuYXdvYnZyRU0xNWxBNlpyQ3JXOUNkTnkzZHFudkg4SmFUcGdcdTAwM2RcdTAwM2Q/YWJcdTAwM2QyXHUwMDI2c2JmXHUwMDNkMSIsImh0dHBzOi8vZnVuZGluZ2Nob2ljZXNtZXNzYWdlcy5nb29nbGUuY29tL2VsL0FHU0tXeFhrQWpIZ09OZHFJcW9DcXZHYlBDMmFMQnNGMzFDeHNTRWNtcEllOHNyak5wTkhfOC1jaEJ5WUlyRDFfT2JaWm9SSlAxRi1mOE9qQjBnMnpfaVRZYTdoaEFcdTAwM2RcdTAwM2Q/c2JmXHUwMDNkMiIsImRpdi1ncHQtYWQiLDIwLDEwMCwiY0hWaUxURTFNell3T0RNMk5UTXlNalk0TXpRXHUwMDNkIixbbnVsbCxudWxsLG51bGwsImh0dHBzOi8vd3d3LmdzdGF0aWMuY29tLzBlbW4vZi9wL3B1Yi0xNTM2MDgzNjUzMjI2ODM0LmpzP3VzcXBcdTAwM2RDQVEiXSwiaHR0cHM6Ly9mdW5kaW5nY2hvaWNlc21lc3NhZ2VzLmdvb2dsZS5jb20vZWwvQUdTS1d4VWt4c0lqNWhFcmJHb1g0RnZnY1F0TjVkcnVuWkxEbHNUY2FRTWx3V1kwR1oySm94bklBQkh0eE9wckxJeUxLSEhDRUtWUk52QlFPVm4xTkVDczRqN3F5Z1x1MDAzZFx1MDAzZCJd");
+        }
+    </script>
+    <script async="" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1536083653226834" crossorigin="anonymous"></script>
+    <script>
+        if (localStorage.DisplayMode === 'dark' || (!('DisplayMode' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
+
+
+
+    <div id="app" class="[ dark:text-white ]">
+<!-- %%-PRERENDERING-BEGIN-%% -->
+<!--Blazor:{"type":"webassembly","prerenderId":"f7db4289fe814dbc908ac03aae76803b","key":{"locationHash":"5A77B35847144BFA5AAD4B6E75ECBFC65A5AF21F4F3ACA798E2BA892F3E88F38:0","formattedComponentKey":""},"assembly":"Web","typeName":"Web.App","parameterDefinitions":"W10=","parameterValues":"W10="}--><header id="header" class="[ flex items-center justify-between ] [ bg-white ] [ px-3 sm:px-5 ] [ dark:bg-gray-800 dark:bg-gray-800/80 ] [ h-14 ] [ sticky top-0 ] [ backdrop-blur-xs bg-white/80 ] [ z-10 ]"><button type="button" class="[ hidden md:block ] [ mr-4 ]" aria-label="Toggle Menu"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-menu-2 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+           <line x1="4" y1="6" x2="20" y2="6"></line>
+           <line x1="4" y1="12" x2="20" y2="12"></line>
+           <line x1="4" y1="18" x2="20" y2="18"></line></svg></button>
+    <div id="brand" class="[  ]"><a href="/" class="[ font-bold ] [ flex items-center justify-between space-x-1 ] active" aria-current="page"><span class="[ dark:text-white ]">I</span>
+            <span class="animate-pulse">❤️</span>
+            <span class="[ text-indigo-600 ] [ dark:text-white ]">.NET</span></a></div>
+    <section id="search" class="[ flex min-w-0 grow items-center justify-end px-2 md:justify-center md:px-4 ]"><button type="button" aria-label="Exit Search" class="[ hidden ] [ mr-2 h-10 w-10 shrink-0 rounded-xl text-stone-600 hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 dark:text-stone-200 dark:hover:bg-stone-700 ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-arrow-left ] [ inline ] [ text-gray-500 ] [ stroke-1 ] [ dark:text-white ]" width="25" height="25" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <line x1="5" y1="12" x2="11" y2="18"></line>
+            <line x1="5" y1="12" x2="11" y2="6"></line></svg></button>
+    <div class="[ dropdown ] [  ] [ min-w-0 w-full max-w-xl ] [ hidden ] [  ]"><div class="[ dropdown-trigger ] [ w-full ]"><input type="search" placeholder="Type / to search" class="[ h-10 w-full min-w-0 rounded-l-xl border border-r-0 border-stone-200 bg-stone-100 px-4 text-sm text-stone-900 placeholder:text-stone-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 dark:border-stone-700 dark:bg-stone-900 dark:text-white dark:placeholder:text-stone-400 ]" autocapitalize="none" autocomplete="off" name="search" autocorrect="off" aria-label="Search articles" aria-haspopup="true" aria-controls="dropdown-menu" value=""/></div>
+        <div class="[ dropdown-menu ] [ w-full min-w-0 pt-2 ]" id="dropdown-menu" role="menu"><div class="[ dropdown-content ] [ max-h-[50dvh] overflow-y-auto rounded-xl border border-stone-200 bg-white p-1 shadow-lg dark:border-stone-700 dark:bg-stone-900 ]"></div></div></div>
+    <button type="button" aria-label="Search" class="[ h-10 w-10 shrink-0 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ] [ rounded-xl hover:bg-stone-100 dark:hover:bg-stone-700 ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-search ] [ inline ] [ text-gray-500 ] [ stroke-1 ] [ dark:text-white ]" width="25" height="25" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <circle cx="10" cy="10" r="7"></circle>
+            <line x1="21" y1="21" x2="15" y2="15"></line></svg></button></section>
+    <div class="[ flex justify-end ] [ px-2 py-2 sm:px-4 ]"><a href="https://whatsapp.com/channel/0029VaAGMV2LtOj5S5MHd23h" target="_blank" aria-label="Join our WhatsApp channel" class="[ flex items-center sm:space-x-1 ] [ px-3 py-1 ] [ rounded-full ] [ bg-green-500 text-white ] [ font-semibold text-sm ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-brand-whatsapp ]" width="18" height="18" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <path d="M3 21l1.65 -3.8a9 9 0 1 1 3.4 2.9l-5.05 .9"></path>
+            <path d="M9 10a.5 .5 0 0 0 1 0v-1a.5 .5 0 0 0 -1 0v1a5 5 0 0 0 5 5h1a.5 .5 0 0 0 0 -1h-1a.5 .5 0 0 0 0 1"></path></svg>
+        <span class="[ hidden sm:inline ]">Join</span></a></div>
+    <section id="display-and-social" class="[  ] [ flex items-center space-x-1.5 ]"><a href="https://github.com/ILoveDotNet/ilovedotnet" target="blank" aria-label="Give a Star in GitHub" class="[ flex items-center space-x-1 ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-star ] [ fill-yellow-400 stroke-yellow-400 ] [ animate-pulse ]" width="25" height="25" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                <path d="M12 17.75l-6.172 3.245l1.179 -6.873l-5 -4.867l6.9 -1l3.086 -6.253l3.086 6.253l6.9 1l-5 4.867l1.179 6.873z"></path></svg>
+            <span class="hidden md:block">Starred 0</span></a>
+        <section id="displaymode"><div class="dropdown is-right "><div class="dropdown-trigger"><button class="button [ flex items-center ]" aria-haspopup="true" aria-controls="displaymode-menu" aria-label="Theme Selector"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-device-desktop ] [ dark:text-white ]" width="25" height="25" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <rect x="3" y="4" width="18" height="12" rx="1"></rect>
+                        <line x1="7" y1="20" x2="17" y2="20"></line>
+                        <line x1="9" y1="16" x2="9" y2="20"></line>
+                        <line x1="15" y1="16" x2="15" y2="20"></line></svg></button></div>
+        <div class="dropdown-menu [ bg-white dark:bg-black ]" id="displaymode-menu" role="menu"><div class="dropdown-content [ dark:bg-black ]"><button type="button" class="dropdown-item [ flex items-center space-x-1 ] [ dark:hover:bg-gray-700 ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-device-desktop ] [ dark:text-white ]" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <rect x="3" y="4" width="18" height="12" rx="1"></rect>
+                        <line x1="7" y1="20" x2="17" y2="20"></line>
+                        <line x1="9" y1="16" x2="9" y2="20"></line>
+                        <line x1="15" y1="16" x2="15" y2="20"></line></svg>
+                    <p class="[ dark:text-white ]">System</p></button>
+                <button type="button" class="dropdown-item [ flex items-center space-x-1 ] [ dark:hover:bg-gray-700 ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-moon ] [ dark:text-white ]" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z"></path></svg>
+                    <p class="[ dark:text-white ]">Dark</p></button>
+                <button type="button" class="dropdown-item [ flex items-center space-x-1 ] [ dark:hover:bg-gray-700 ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-brightness-up ] [ dark:text-white ]" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <line x1="12" y1="5" x2="12" y2="3"></line>
+                        <line x1="17" y1="7" x2="18.4" y2="5.6"></line>
+                        <line x1="19" y1="12" x2="21" y2="12"></line>
+                        <line x1="17" y1="17" x2="18.4" y2="18.4"></line>
+                        <line x1="12" y1="19" x2="12" y2="21"></line>
+                        <line x1="7" y1="17" x2="5.6" y2="18.4"></line>
+                        <line x1="6" y1="12" x2="4" y2="12"></line>
+                        <line x1="7" y1="7" x2="5.6" y2="5.6"></line></svg>
+                    <p class="[ dark:text-white ]">Light</p></button></div></div></div></section>
+        <section id="others"><div class="dropdown is-right "><div class="dropdown-trigger"><button class="button [ flex items-center ]" aria-haspopup="true" aria-controls="others-menu" aria-label="Others"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-dots-vertical ] [ dark:text-white ]" width="20" height="20" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                    <circle cx="12" cy="12" r="1"></circle>
+                    <circle cx="12" cy="19" r="1"></circle>
+                    <circle cx="12" cy="5" r="1"></circle></svg></button></div>
+        <div class="dropdown-menu [ bg-white dark:bg-black ]" id="others-menu" role="menu"><div class="dropdown-content [ dark:bg-black ]"><a href="https://github.com/sponsors/fingers10" target="_blank" class="dropdown-item [ flex items-center space-x-1 ] [ dark:hover:bg-gray-700 ]" __internal_stoppropagation_onfocusout=""><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-heart ] [ text-red-500 ] [ fill-red-500 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428m0 0a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572"></path></svg>
+                    <p class="[ dark:text-white ]">Sponsor Us</p></a>
+                <hr class="dropdown-divider"/>
+                <a href="/about" __internal_stoppropagation_onfocusout="" class="dropdown-item [ flex items-center space-x-1 ] [ dark:hover:bg-gray-700 ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-info-circle ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <circle cx="12" cy="12" r="9"></circle>
+                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                        <polyline points="11 12 12 12 12 16 13 16"></polyline></svg>
+                    <span class="[ dark:text-white ]">About</span></a>
+                <a href="/analytics" __internal_stoppropagation_onfocusout="" class="dropdown-item [ flex items-center space-x-1 ] [ dark:hover:bg-gray-700 ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-graph ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <path d="M4 18v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2z"></path>
+                        <path d="M7 14l3 -3l2 2l3 -3l2 2"></path></svg>
+                    <span class="[ dark:text-white ]">Analytics</span></a>
+                <hr class="dropdown-divider"/>
+                <a href="/disclaimer" __internal_stoppropagation_onfocusout="" class="dropdown-item [ flex items-center space-x-1 ] [ dark:hover:bg-gray-700 ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-hand-off ] [ text-yellow-500 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                       <line x1="3" y1="3" x2="21" y2="21"></line>
+                       <path d="M8 13.5v-5.5m.44 -3.562a1.5 1.5 0 0 1 2.56 1.062v1.5m0 4.008v.992m0 -6.5v-2a1.5 1.5 0 1 1 3 0v6.5m0 -4.5a1.5 1.5 0 0 1 3 0v6.5m0 -4.5a1.5 1.5 0 0 1 3 0v8.5a6 6 0 0 1 -6 6h-2c-2.114 -.292 -3.956 -1.397 -5 -3l-2.7 -5.25a1.7 1.7 0 0 1 2.75 -2l.9 1.75"></path></svg>
+                    <span class="[ dark:text-white ]">Disclaimer</span></a>
+                <a href="/privacy" __internal_stoppropagation_onfocusout="" class="dropdown-item [ flex items-center space-x-1 ] [ dark:hover:bg-gray-700 ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-lock-square ] [ text-orange-500 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <rect x="8" y="11" width="8" height="5" rx="1"></rect>
+                        <path d="M10 11v-2a2 2 0 1 1 4 0v2"></path>
+                        <rect x="4" y="4" width="16" height="16" rx="2"></rect></svg>
+                    <span class="[ dark:text-white ]">Privacy</span></a></div></div></div></section></section></header>
+<main id="main" class="[ [ pb-14 md:pb-0 md:pl-16 ] ]">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<section class="[ mx-auto grid w-full min-w-0 max-w-7xl gap-8 p-4 md:p-6 xl:grid-cols-[minmax(0,1fr)_18rem] ]"><article class="[ min-w-0 space-y-6 ]" aria-labelledby="article-title"><nav aria-label="Breadcrumb" class="[ text-sm ] [ dark:text-gray-300 text-gray-600 ]"><ol class="[ flex flex-wrap items-center gap-2 ]"><li><a href="/" class="[ underline hover:no-underline ]">Home</a></li>
+        <li aria-hidden="true">/</li><li><a href="/channels/memory/" class="[ underline hover:no-underline ]">Memory</a></li>
+            <li aria-hidden="true">/</li><li aria-current="page">Advanced .NET Garbage Collection: Measure Before You Tune</li></ol></nav>
+
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://ilovedotnet.org/"},{"@type":"ListItem","position":2,"name":"Memory","item":"https://ilovedotnet.org/channels/memory/"},{"@type":"ListItem","position":3,"name":"Advanced .NET Garbage Collection: Measure Before You Tune","item":"https://ilovedotnet.org/blogs/advanced-dotnet-garbage-collection-measure-before-you-tune/"}]}</script>
+        <header class="[ min-w-0 space-y-4 ]"><a href="/channels/memory/" class="[ inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-indigo-700 underline dark:text-indigo-300 ]"><img src="image/icons/memory.webp" alt="Memory channel icon" height="32" width="32" class="[ h-8 w-8 rounded-full ]"/>
+        Memory · 3 published articles
+    </a>
+    <h1 id="article-title" class="[ break-words text-3xl font-bold leading-tight dark:text-white sm:text-4xl ]">Advanced .NET Garbage Collection: Measure Before You Tune</h1>
+    <p class="[ max-w-[75ch] text-lg leading-relaxed text-stone-600 dark:text-stone-300 ]">Learn how to measure and reduce allocation pressure, see what .NET 10 escape analysis can do, control object lifetimes with disposal and event cleanup, and evaluate server GC, DATAS, LOH compaction, and no-GC regions without tuning by guesswork.</p>
+    <div class="[ flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-stone-600 dark:text-stone-300 ]"><a href="/authors/abdul-rahman/" class="[ inline-flex min-h-11 items-center underline ]">Abdul Rahman</a>
+        <time datetime="2026-11-01">Updated 1 Nov 2026</time>
+        <a href="https://github.com/ILoveDotNet/ilovedotnet/blob/main/MemoryDemoComponents/Pages/Blogs/AdvancedDotNetGarbageCollection.razor" target="_blank" rel="noopener noreferrer" class="[ inline-flex min-h-11 items-center underline ]">Edit on GitHub <span class="sr-only">(opens in a new tab)</span></a></div><figure class="[ aspect-video overflow-hidden rounded-xl ]"><img src="image/blogs/memory/advanced-dotnet-garbage-collection-measure-before-you-tune.webp" alt="Advanced .NET Garbage Collection: Measure Before You Tune" class="[ h-full w-full object-contain ]" fetchpriority="high" width="1265" height="827"/></figure></header>
+        <details class="[ rounded-xl border border-indigo-200 bg-indigo-50 p-4 dark:border-indigo-900 dark:bg-indigo-950 xl:hidden ]"><summary class="[ min-h-11 cursor-pointer content-center font-semibold ]">On this page</summary>
+            <nav aria-label="On this page"><ol class="[ flex flex-col py-1 text-sm ]"><li><a href="/blogs/advanced-dotnet-garbage-collection-measure-before-you-tune/#what" class="[ flex min-h-11 items-center rounded-md px-2 underline focus-visible:outline-2 focus-visible:outline-indigo-500 ]">What you'll learn</a></li>
+        <li><a href="/blogs/advanced-dotnet-garbage-collection-measure-before-you-tune/#why" class="[ flex min-h-11 items-center rounded-md px-2 underline focus-visible:outline-2 focus-visible:outline-indigo-500 ]">Why it matters</a></li>
+        <li><a href="/blogs/advanced-dotnet-garbage-collection-measure-before-you-tune/#how" class="[ flex min-h-11 items-center rounded-md px-2 underline focus-visible:outline-2 focus-visible:outline-indigo-500 ]">Implementation</a></li>
+        <li><a href="/blogs/advanced-dotnet-garbage-collection-measure-before-you-tune/#summary" class="[ flex min-h-11 items-center rounded-md px-2 underline focus-visible:outline-2 focus-visible:outline-indigo-500 ]">Summary</a></li></ol></nav></details>
+        <section class="[ prose max-w-none min-w-0 [overflow-wrap:anywhere] dark:prose-invert [&amp;_p]:max-w-[75ch] [&amp;_ul]:max-w-[75ch] [&amp;_ol]:max-w-[75ch] [&amp;_h3]:scroll-mt-24 [&amp;_h4]:scroll-mt-24 ]" aria-label="Article body"><h3 id="what">What you'll learn</h3>
+
+<p>
+                The .NET garbage collector can clean up objects your program no longer uses, but your application may still
+                appear to use a lot of memory. That is because cleaning up an object, returning memory to Windows or Linux, and
+                closing a file or network connection are different things.
+            </p>
+
+            <p>
+                The <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">garbage collector (GC)</span> is the .NET runtime feature that manages memory for objects
+                created by your C# code. It follows references from places your running program can access, such as local
+                variables and static fields. It can reuse memory when no reachable code can get to an object, but it does not
+                promise to return that memory to the operating system straight away.
+            </p>
+
+            <div class="[ not-prose relative my-6 min-w-0 rounded-xl border border-stone-300 dark:border-stone-700 ]"><div class="[ flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-t-xl bg-stone-100 px-4 py-2 text-sm dark:bg-stone-800 ]"><span class="[ font-semibold ]">plaintext</span>
+        <button type="button" disabled="" aria-label="Copy plaintext code" class="[ min-h-11 rounded-md border border-stone-300 px-3 py-2 focus-visible:outline-2 focus-visible:outline-indigo-500 disabled:opacity-50 dark:border-stone-600 ]">Copy</button></div>
+    <p role="status" class="sr-only"></p>
+    <pre tabindex="0" role="region" aria-label="plaintext code" class="[ relative m-0 max-w-full overflow-x-auto rounded-b-xl bg-[#333] p-4 text-sm text-[#ddd] focus-visible:outline-2 focus-visible:outline-indigo-500 [&amp;_code]:overflow-visible [&amp;_code]:p-0 ]"><code id="0efc28bc-15ea-4da1-a395-71d4c92a9969" class="language-plaintext">
+ STACK (current method)        MANAGED HEAP
+┌──────────────────────┐      ┌──────────────────────────────┐
+│ order ───────────────┼─────&gt;│ Order ─────&gt; Item[]          │ reachable
+│ count = 3            │      │                              │
+└──────────────────────┘      │ "old draft"  (no references) │ unreachable
+ static field ───────────────&gt;│ PriceCache                   │ reachable
+                              └──────────────────────────────┘
+ The GC starts at roots (locals, static fields) and keeps only what it
+ can reach from them. The "old draft" string's memory can be reused.
+            </code></pre></div>
+
+            <p>
+                This article shows how to check what the GC is doing before changing settings. You will compare how much memory
+                two small pieces of code allocate, learn why large objects and GC settings matter, see how disposal, finalizers,
+                and events affect how long objects stay alive, and see when special features such as LOH compaction or a no-GC
+                region may help. You do not need prior experience tuning the GC; basic C# and .NET knowledge is enough.
+            </p>
+
+            <p>
+                The article moves in three stages, in the order you should work: first measure and reduce allocations, then
+                control how long objects and operating-system resources stay alive, and only then consider GC settings such as
+                server mode, DATAS, LOH compaction, and no-GC regions.
+            </p>
+
+        <h3 id="why">Why it matters</h3>
+
+<p>
+                Creating many temporary objects can make an application do extra cleanup work. For example, each change to a C#
+                string creates a new string, so repeatedly building a long string can create many temporary copies.
+            </p>
+
+            <p>
+                A GC collection may briefly pause your C# code while it checks objects. Large objects use a special area called
+                the <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">large object heap (LOH)</span>. Objects that stay reachable for a long time also remain in
+                memory. Meanwhile, files and network connections need to be closed by your code. These problems can all look
+                like “high memory use,” but each needs a different fix.
+            </p>
+
+            <p>
+                Calling <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">GC.Collect()</span> does not tell you what caused high memory use. It can pause your
+                application, and it cannot remove objects your code can still reach. Measure first, then fix the specific cause.
+            </p>
+
+            <p>
+                Some collections pause your application more than others. Generation 0 and generation 1 collections are always
+                foreground (blocking) collections: .NET pauses your application threads while it checks memory, but these
+                collections are usually short. Background GC applies only to generation 2 collections. It does much of its work
+                on a dedicated GC thread while your application continues running, but it still needs brief pauses.
+            </p>
+
+            <p>
+                One short pause rarely hurts. The cost comes from how often pauses happen: if a busy request path allocates so
+                quickly that small collections start again and again, those short pauses add up to time your users can notice.
+                That is why lowering the allocation rate often helps more than changing a GC setting. A collection count by
+                itself does not tell you how long users waited.
+            </p>
+
+        <h3 id="how">Implementation</h3>
+
+<h4 id="measure-allocation-pressure-before-tuning">Measure allocation pressure before tuning GC settings</h4>
+            <p>
+                Start by measuring how much memory your code creates instead of forcing a collection. This console example
+                compares creating a new 1-kilobyte buffer 500 times with creating one buffer and reusing it. It runs each method
+                once before measuring to avoid counting the first run as the only result. Treat the numbers as a simple example,
+                not as a formal performance test.
+            </p>
+
+            <div class="[ not-prose relative my-6 min-w-0 rounded-xl border border-stone-300 dark:border-stone-700 ]"><div class="[ flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-t-xl bg-stone-100 px-4 py-2 text-sm dark:bg-stone-800 ]"><span class="[ font-semibold ]">C#</span>
+        <button type="button" disabled="" aria-label="Copy C# code" class="[ min-h-11 rounded-md border border-stone-300 px-3 py-2 focus-visible:outline-2 focus-visible:outline-indigo-500 disabled:opacity-50 dark:border-stone-600 ]">Copy</button></div>
+    <p role="status" class="sr-only"></p>
+    <pre tabindex="0" role="region" aria-label="C# code" class="[ relative m-0 max-w-full overflow-x-auto rounded-b-xl bg-[#333] p-4 text-sm text-[#ddd] focus-visible:outline-2 focus-visible:outline-indigo-500 [&amp;_code]:overflow-visible [&amp;_code]:p-0 ]"><code id="2c93dec2-c5d2-4ace-bcd4-9f3c398ca8de" class="language-csharp">
+using System;
+
+var allocationBytes = Measure(AllocateEachTime);
+var reuseBytes = Measure(ReuseBuffer);
+
+Console.WriteLine("Strategy               Allocated bytes");
+Console.WriteLine($"New buffer per item    {allocationBytes,15:N0}");
+Console.WriteLine($"Reuse one buffer       {reuseBytes,15:N0}");
+
+long Measure(Func&lt;int&gt; operation)
+{
+    _ = operation();
+    var before = GC.GetAllocatedBytesForCurrentThread();
+    _ = operation();
+    return GC.GetAllocatedBytesForCurrentThread() - before;
+}
+            </code></pre></div>
+
+            <p>
+                Add the two strategies below the helper in the same <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Program.cs</span> file. Both do the same
+                work; only the buffer handling differs:
+            </p>
+
+            <div class="[ not-prose relative my-6 min-w-0 rounded-xl border border-stone-300 dark:border-stone-700 ]"><div class="[ flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-t-xl bg-stone-100 px-4 py-2 text-sm dark:bg-stone-800 ]"><span class="[ font-semibold ]">C#</span>
+        <button type="button" disabled="" aria-label="Copy C# code" class="[ min-h-11 rounded-md border border-stone-300 px-3 py-2 focus-visible:outline-2 focus-visible:outline-indigo-500 disabled:opacity-50 dark:border-stone-600 ]">Copy</button></div>
+    <p role="status" class="sr-only"></p>
+    <pre tabindex="0" role="region" aria-label="C# code" class="[ relative m-0 max-w-full overflow-x-auto rounded-b-xl bg-[#333] p-4 text-sm text-[#ddd] focus-visible:outline-2 focus-visible:outline-indigo-500 [&amp;_code]:overflow-visible [&amp;_code]:p-0 ]"><code id="7f1f975e-902d-49e4-a25c-0fbecb4489f1" class="language-csharp">
+int AllocateEachTime()
+{
+    var total = 0;
+    for (var i = 0; i &lt; 500; i++)
+    {
+        var buffer = new byte[1024];
+        buffer[0] = (byte)i;
+        total += buffer[0];
+    }
+
+    return total;
+}
+
+int ReuseBuffer()
+{
+    var buffer = new byte[1024];
+    var total = 0;
+    for (var i = 0; i &lt; 500; i++)
+    {
+        buffer[0] = (byte)i;
+        total += buffer[0];
+    }
+
+    return total;
+}
+            </code></pre></div>
+
+            <p>
+                The console prints the number of bytes allocated by each method. On a 64-bit runtime the output looks like this:
+            </p>
+
+            <div class="[ not-prose relative my-6 min-w-0 rounded-xl border border-stone-300 dark:border-stone-700 ]"><div class="[ flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-t-xl bg-stone-100 px-4 py-2 text-sm dark:bg-stone-800 ]"><span class="[ font-semibold ]">plaintext</span>
+        <button type="button" disabled="" aria-label="Copy plaintext code" class="[ min-h-11 rounded-md border border-stone-300 px-3 py-2 focus-visible:outline-2 focus-visible:outline-indigo-500 disabled:opacity-50 dark:border-stone-600 ]">Copy</button></div>
+    <p role="status" class="sr-only"></p>
+    <pre tabindex="0" role="region" aria-label="plaintext code" class="[ relative m-0 max-w-full overflow-x-auto rounded-b-xl bg-[#333] p-4 text-sm text-[#ddd] focus-visible:outline-2 focus-visible:outline-indigo-500 [&amp;_code]:overflow-visible [&amp;_code]:p-0 ]"><code id="e721c5f5-3843-44d0-a6c0-c27932f0bfb4" class="language-plaintext">
+Strategy               Allocated bytes
+New buffer per item            524,000
+Reuse one buffer                 1,048
+            </code></pre></div>
+
+            <p>
+                Each <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">byte[1024]</span> takes 1,048 bytes on the heap: the 1,024 data bytes plus 24 bytes for
+                the object header, type pointer, and array length. Creating 500 of them costs 500 × 1,048 = 524,000 bytes,
+                while the reuse version pays for just one array. Your numbers can differ slightly between runtimes, but the gap
+                is what matters.
+            </p>
+
+            <div class="[ not-prose relative my-6 min-w-0 rounded-xl border border-stone-300 dark:border-stone-700 ]"><div class="[ flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-t-xl bg-stone-100 px-4 py-2 text-sm dark:bg-stone-800 ]"><span class="[ font-semibold ]">plaintext</span>
+        <button type="button" disabled="" aria-label="Copy plaintext code" class="[ min-h-11 rounded-md border border-stone-300 px-3 py-2 focus-visible:outline-2 focus-visible:outline-indigo-500 disabled:opacity-50 dark:border-stone-600 ]">Copy</button></div>
+    <p role="status" class="sr-only"></p>
+    <pre tabindex="0" role="region" aria-label="plaintext code" class="[ relative m-0 max-w-full overflow-x-auto rounded-b-xl bg-[#333] p-4 text-sm text-[#ddd] focus-visible:outline-2 focus-visible:outline-indigo-500 [&amp;_code]:overflow-visible [&amp;_code]:p-0 ]"><code id="494b7e40-90e1-4a9f-921d-0ee32e86f5f4" class="language-plaintext">
+ New buffer per item                  Reuse one buffer
+ STACK         HEAP                   STACK         HEAP
+┌────────┐    ┌───────────────┐      ┌────────┐    ┌───────────────┐
+│ buffer─┼─┐  │ byte[] #1   x │      │ buffer─┼───&gt;│ byte[] (only) │
+└────────┘ │  │ byte[] #2   x │      └────────┘    └───────────────┘
+           │  │ ...         x │
+           └─&gt;│ byte[] #500   │       1 array  =     1,048 bytes
+              └───────────────┘
+               500 arrays = 524,000 bytes   x = garbage for the GC
+            </code></pre></div>
+
+            <p><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">GC.GetAllocatedBytesForCurrentThread()</span> counts bytes allocated by the current thread.
+                It does not tell you how much memory is still in use, how much memory the whole process uses, or what other
+                threads allocated. For careful performance comparisons, use a benchmark tool such as BenchmarkDotNet.
+            </p>
+
+            <h4 id="watch-gc-activity-in-a-running-app">Watch GC activity in a running app</h4>
+            <p>
+                Runtime counters show how your app behaves while it runs. Useful values include how quickly it allocates memory,
+                the size of its managed heap, how often it runs a full (generation 2) collection, and how much time it spends
+                doing GC work. To use these counters, install the <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">dotnet-counters</span> tool if needed:
+            </p>
+
+            <div class="[ not-prose relative my-6 min-w-0 rounded-xl border border-stone-300 dark:border-stone-700 ]"><div class="[ flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-t-xl bg-stone-100 px-4 py-2 text-sm dark:bg-stone-800 ]"><span class="[ font-semibold ]">bash</span>
+        <button type="button" disabled="" aria-label="Copy bash code" class="[ min-h-11 rounded-md border border-stone-300 px-3 py-2 focus-visible:outline-2 focus-visible:outline-indigo-500 disabled:opacity-50 dark:border-stone-600 ]">Copy</button></div>
+    <p role="status" class="sr-only"></p>
+    <pre tabindex="0" role="region" aria-label="bash code" class="[ relative m-0 max-w-full overflow-x-auto rounded-b-xl bg-[#333] p-4 text-sm text-[#ddd] focus-visible:outline-2 focus-visible:outline-indigo-500 [&amp;_code]:overflow-visible [&amp;_code]:p-0 ]"><code id="f38d4487-7e9f-4d52-89d9-50edadd8c3ab" class="language-bash">
+dotnet tool install --global dotnet-counters
+            </code></pre></div>
+
+            <p>
+                Then start monitoring your app. Replace <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">1234</span> with your app's process ID:
+            </p>
+
+            <div class="[ not-prose relative my-6 min-w-0 rounded-xl border border-stone-300 dark:border-stone-700 ]"><div class="[ flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-t-xl bg-stone-100 px-4 py-2 text-sm dark:bg-stone-800 ]"><span class="[ font-semibold ]">bash</span>
+        <button type="button" disabled="" aria-label="Copy bash code" class="[ min-h-11 rounded-md border border-stone-300 px-3 py-2 focus-visible:outline-2 focus-visible:outline-indigo-500 disabled:opacity-50 dark:border-stone-600 ]">Copy</button></div>
+    <p role="status" class="sr-only"></p>
+    <pre tabindex="0" role="region" aria-label="bash code" class="[ relative m-0 max-w-full overflow-x-auto rounded-b-xl bg-[#333] p-4 text-sm text-[#ddd] focus-visible:outline-2 focus-visible:outline-indigo-500 [&amp;_code]:overflow-visible [&amp;_code]:p-0 ]"><code id="c155e9d6-1878-47bb-a191-0386609b263c" class="language-bash">
+dotnet-counters monitor --process-id 1234 System.Runtime
+            </code></pre></div>
+
+            <p>
+                The
+                <a href="https://learn.microsoft.com/en-us/dotnet/core/diagnostics/dotnet-counters" target="_blank" rel="noopener noreferrer">
+                    dotnet-counters documentation
+                </a>
+                explains how to find the process ID and read each counter.
+            </p>
+
+            <p>
+                These counters show overall GC activity, not how long each pause lasts. To inspect pauses, collect a runtime
+                trace while the app handles a representative workload. Install <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">dotnet-trace</span> if needed,
+                then collect GC events with a built-in profile:
+            </p>
+
+            <div class="[ not-prose relative my-6 min-w-0 rounded-xl border border-stone-300 dark:border-stone-700 ]"><div class="[ flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-t-xl bg-stone-100 px-4 py-2 text-sm dark:bg-stone-800 ]"><span class="[ font-semibold ]">bash</span>
+        <button type="button" disabled="" aria-label="Copy bash code" class="[ min-h-11 rounded-md border border-stone-300 px-3 py-2 focus-visible:outline-2 focus-visible:outline-indigo-500 disabled:opacity-50 dark:border-stone-600 ]">Copy</button></div>
+    <p role="status" class="sr-only"></p>
+    <pre tabindex="0" role="region" aria-label="bash code" class="[ relative m-0 max-w-full overflow-x-auto rounded-b-xl bg-[#333] p-4 text-sm text-[#ddd] focus-visible:outline-2 focus-visible:outline-indigo-500 [&amp;_code]:overflow-visible [&amp;_code]:p-0 ]"><code id="06736370-398f-4014-8d50-f41b4d4e0fbe" class="language-bash">
+dotnet tool install --global dotnet-trace
+dotnet-trace collect --process-id 1234 --profile gc-collect
+            </code></pre></div>
+
+            <p>
+                The <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">gc-collect</span> profile records only GC collection events, so its overhead is very low.
+                Use <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">--profile gc-verbose</span> when you also want sampled allocation events and can accept
+                more overhead. Run <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">dotnet-trace list-profiles</span> to see every profile your version
+                supports.
+            </p>
+
+            <p>
+                Replace <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">1234</span> with the process ID. Open the resulting trace in PerfView or a compatible
+                .NET trace viewer and inspect the GC pause events. The trace helps identify individual pauses; use a load test
+                or production telemetry to understand how those pauses affect request latency.
+            </p>
+
+            <h4 id="reduce-avoidable-allocations">Reduce avoidable allocations</h4>
+            <p>
+                Reducing unnecessary objects can reduce GC work, but “zero allocations” is not always the right goal. Reuse a
+                buffer only when doing so is safe for your code. If measurement shows a hot part of your app needs improvement,
+                <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">stackalloc</span> and <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Span&lt;T&gt;</span> can work for small, short-lived
+                buffers. <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">ArrayPool&lt;T&gt;</span> can reuse larger arrays; return a rented array in a
+                <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">finally</span> block so it is returned even if an error occurs.
+            </p>
+
+            <p>
+                The next two examples show these ideas. <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">FormatOrderCode</span> builds a short text value in a
+                stack buffer and allocates only the final string:
+            </p>
+
+            <div class="[ not-prose relative my-6 min-w-0 rounded-xl border border-stone-300 dark:border-stone-700 ]"><div class="[ flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-t-xl bg-stone-100 px-4 py-2 text-sm dark:bg-stone-800 ]"><span class="[ font-semibold ]">C#</span>
+        <button type="button" disabled="" aria-label="Copy C# code" class="[ min-h-11 rounded-md border border-stone-300 px-3 py-2 focus-visible:outline-2 focus-visible:outline-indigo-500 disabled:opacity-50 dark:border-stone-600 ]">Copy</button></div>
+    <p role="status" class="sr-only"></p>
+    <pre tabindex="0" role="region" aria-label="C# code" class="[ relative m-0 max-w-full overflow-x-auto rounded-b-xl bg-[#333] p-4 text-sm text-[#ddd] focus-visible:outline-2 focus-visible:outline-indigo-500 [&amp;_code]:overflow-visible [&amp;_code]:p-0 ]"><code id="8ee7f92d-7f48-46f6-b655-be409d6fdead" class="language-csharp">
+using System;
+
+Console.WriteLine(FormatOrderCode(42)); // ORD-42
+
+static string FormatOrderCode(int id)
+{
+    Span&lt;char&gt; chars = stackalloc char[16];
+    "ORD-".AsSpan().CopyTo(chars);
+    id.TryFormat(chars[4..], out var written);
+    return new string(chars[..(4 + written)]);
+}
+            </code></pre></div>
+
+            <p><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">ChecksumOfLength</span> borrows a larger array from the shared pool instead of creating a new
+                one on every call:
+            </p>
+
+            <div class="[ not-prose relative my-6 min-w-0 rounded-xl border border-stone-300 dark:border-stone-700 ]"><div class="[ flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-t-xl bg-stone-100 px-4 py-2 text-sm dark:bg-stone-800 ]"><span class="[ font-semibold ]">C#</span>
+        <button type="button" disabled="" aria-label="Copy C# code" class="[ min-h-11 rounded-md border border-stone-300 px-3 py-2 focus-visible:outline-2 focus-visible:outline-indigo-500 disabled:opacity-50 dark:border-stone-600 ]">Copy</button></div>
+    <p role="status" class="sr-only"></p>
+    <pre tabindex="0" role="region" aria-label="C# code" class="[ relative m-0 max-w-full overflow-x-auto rounded-b-xl bg-[#333] p-4 text-sm text-[#ddd] focus-visible:outline-2 focus-visible:outline-indigo-500 [&amp;_code]:overflow-visible [&amp;_code]:p-0 ]"><code id="d56f0c7c-07b8-4808-badb-e09f5c3f0444" class="language-csharp">
+using System;
+using System.Buffers;
+
+Console.WriteLine(ChecksumOfLength(10_000)); // 1273080
+
+static int ChecksumOfLength(int length)
+{
+    var buffer = ArrayPool&lt;byte&gt;.Shared.Rent(length);
+    try
+    {
+        var data = buffer.AsSpan(0, length);
+        for (var i = 0; i &lt; data.Length; i++)
+        {
+            data[i] = (byte)i;
+        }
+
+        var sum = 0;
+        foreach (var value in data)
+        {
+            sum += value;
+        }
+
+        return sum;
+    }
+    finally
+    {
+        ArrayPool&lt;byte&gt;.Shared.Return(buffer);
+    }
+}
+            </code></pre></div>
+
+            <p><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Rent</span> can return an array larger than you asked for, so slice it to the length you need.
+                Once you return an array to the pool, do not keep using it. Keep <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">stackalloc</span> buffers small
+                because stack space is limited.
+            </p>
+
+            <div class="[ not-prose relative my-6 min-w-0 rounded-xl border border-stone-300 dark:border-stone-700 ]"><div class="[ flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-t-xl bg-stone-100 px-4 py-2 text-sm dark:bg-stone-800 ]"><span class="[ font-semibold ]">plaintext</span>
+        <button type="button" disabled="" aria-label="Copy plaintext code" class="[ min-h-11 rounded-md border border-stone-300 px-3 py-2 focus-visible:outline-2 focus-visible:outline-indigo-500 disabled:opacity-50 dark:border-stone-600 ]">Copy</button></div>
+    <p role="status" class="sr-only"></p>
+    <pre tabindex="0" role="region" aria-label="plaintext code" class="[ relative m-0 max-w-full overflow-x-auto rounded-b-xl bg-[#333] p-4 text-sm text-[#ddd] focus-visible:outline-2 focus-visible:outline-indigo-500 [&amp;_code]:overflow-visible [&amp;_code]:p-0 ]"><code id="a5e6c8c5-ecef-4ca1-8edb-670c07af83bc" class="language-plaintext">
+ FormatOrderCode                ChecksumOfLength
+ STACK FRAME                    STACK        HEAP (shared pool)
+┌───────────────────────┐      ┌────────┐   ┌──────────────────────┐
+│ chars: O R D - 4 2 ...│      │ buffer─┼──&gt;│ byte[16384]  rented  │
+│ freed when the method │      └────────┘   │ byte[...]    waiting │
+│ returns               │                   └──────────────────────┘
+└───────────────────────┘       Return puts the array back, so the next
+ HEAP: only the final "ORD-42"  call reuses it instead of allocating
+            </code></pre></div>
+
+            <p>
+                The same idea applies to building strings. C# strings cannot be changed after creation, so repeatedly joining
+                strings with <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">+</span> can create a new intermediate string on each iteration. For repeated
+                appends, <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">StringBuilder</span> reuses its internal buffer and creates the final string when
+                you call <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">ToString</span>.
+            </p>
+
+            <div class="[ not-prose relative my-6 min-w-0 rounded-xl border border-stone-300 dark:border-stone-700 ]"><div class="[ flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-t-xl bg-stone-100 px-4 py-2 text-sm dark:bg-stone-800 ]"><span class="[ font-semibold ]">C#</span>
+        <button type="button" disabled="" aria-label="Copy C# code" class="[ min-h-11 rounded-md border border-stone-300 px-3 py-2 focus-visible:outline-2 focus-visible:outline-indigo-500 disabled:opacity-50 dark:border-stone-600 ]">Copy</button></div>
+    <p role="status" class="sr-only"></p>
+    <pre tabindex="0" role="region" aria-label="C# code" class="[ relative m-0 max-w-full overflow-x-auto rounded-b-xl bg-[#333] p-4 text-sm text-[#ddd] focus-visible:outline-2 focus-visible:outline-indigo-500 [&amp;_code]:overflow-visible [&amp;_code]:p-0 ]"><code id="772ca8b2-0f74-4213-b3fb-5f882f2eb660" class="language-csharp">
+using System.Text;
+
+var parts = new[] { "GC", " ", "measures", " ", "memory" };
+var builder = new StringBuilder();
+
+foreach (var part in parts)
+{
+    builder.Append(part);
+}
+
+var message = builder.ToString();
+            </code></pre></div>
+
+            <p><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">StringBuilder</span> still allocates its builder and final string. It is useful when you append
+                repeatedly; for a small, fixed number of parts, ordinary concatenation may be clearer. Measure before changing
+                code just to reduce allocations.
+            </p>
+
+            <h4 id="let-the-jit-avoid-heap-allocations">Let the JIT avoid heap allocations, but do not depend on it</h4>
+            <p><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Escape analysis</span> is how the JIT compiler checks whether an object stays inside a method or
+                is passed somewhere that may keep using it later. An object <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">escapes</span> when the method
+                returns it, stores it in a field, or passes it to code the JIT cannot fully see. If the JIT can prove an object
+                does not escape, it can put that object on the stack instead of the managed heap, so the GC never has to track it.
+            </p>
+
+            <div class="[ not-prose relative my-6 min-w-0 rounded-xl border border-stone-300 dark:border-stone-700 ]"><div class="[ flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-t-xl bg-stone-100 px-4 py-2 text-sm dark:bg-stone-800 ]"><span class="[ font-semibold ]">C#</span>
+        <button type="button" disabled="" aria-label="Copy C# code" class="[ min-h-11 rounded-md border border-stone-300 px-3 py-2 focus-visible:outline-2 focus-visible:outline-indigo-500 disabled:opacity-50 dark:border-stone-600 ]">Copy</button></div>
+    <p role="status" class="sr-only"></p>
+    <pre tabindex="0" role="region" aria-label="C# code" class="[ relative m-0 max-w-full overflow-x-auto rounded-b-xl bg-[#333] p-4 text-sm text-[#ddd] focus-visible:outline-2 focus-visible:outline-indigo-500 [&amp;_code]:overflow-visible [&amp;_code]:p-0 ]"><code id="df2d4e1e-fd27-498d-b924-c30b8a9754f4" class="language-csharp">
+static int Largest(int a, int b, int c)
+{
+    int[] candidates = { a, b, c }; // never leaves this method
+    var largest = candidates[0];
+    foreach (var value in candidates)
+    {
+        largest = Math.Max(largest, value);
+    }
+
+    return largest;
+}
+
+static int[] KeepForLater(int a, int b, int c) =&gt; new[] { a, b, c }; // escapes: the caller receives it
+            </code></pre></div>
+
+            <p>
+                Starting with .NET 10, the JIT can stack-allocate small, fixed-size arrays such as
+                <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">candidates</span> when it proves they do not escape. The array returned by
+                <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">KeepForLater</span> must live on the heap because the caller can keep using it.
+            </p>
+
+            <div class="[ not-prose relative my-6 min-w-0 rounded-xl border border-stone-300 dark:border-stone-700 ]"><div class="[ flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-t-xl bg-stone-100 px-4 py-2 text-sm dark:bg-stone-800 ]"><span class="[ font-semibold ]">plaintext</span>
+        <button type="button" disabled="" aria-label="Copy plaintext code" class="[ min-h-11 rounded-md border border-stone-300 px-3 py-2 focus-visible:outline-2 focus-visible:outline-indigo-500 disabled:opacity-50 dark:border-stone-600 ]">Copy</button></div>
+    <p role="status" class="sr-only"></p>
+    <pre tabindex="0" role="region" aria-label="plaintext code" class="[ relative m-0 max-w-full overflow-x-auto rounded-b-xl bg-[#333] p-4 text-sm text-[#ddd] focus-visible:outline-2 focus-visible:outline-indigo-500 [&amp;_code]:overflow-visible [&amp;_code]:p-0 ]"><code id="ef8de026-7bdf-4a9a-91d8-944b81a3fd01" class="language-plaintext">
+ Largest (optimized, .NET 10)     KeepForLater
+ STACK FRAME                      STACK (caller)      HEAP
+┌──────────────────────────┐     ┌──────────────┐    ┌──────────┐
+│ candidates: [ a, b, c ]  │     │ result ──────┼───&gt;│ int[3]   │
+│ largest                  │     └──────────────┘    └──────────┘
+└──────────────────────────┘      The array outlives the method,
+ Gone when the method returns,    so it must live on the heap.
+ so the GC never sees it.
+            </code></pre></div>
+
+            <p>
+                Treat this as a bonus, not a design tool. It applies only to optimized code, so a method's first runs and Debug
+                builds still allocate on the heap. Large arrays, such as <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">new byte[1024]</span> in a loop, are
+                still heap allocations. When a small buffer must stay off the heap, use <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">stackalloc</span>
+                explicitly.
+            </p>
+
+            <p>
+                A lambda that uses a local variable from outside the lambda is called a <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">capturing lambda</span>.
+                The compiler moves the captured variable into a hidden helper object (often called a closure) so the lambda can
+                keep using it, and creating that helper is an allocation. A lambda that captures nothing does not need this
+                helper, and the compiler can cache its delegate and reuse it. Adding the <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">static</span> keyword
+                does not create that caching; it makes the compiler reject any accidental capture.
+            </p>
+
+            <div class="[ not-prose relative my-6 min-w-0 rounded-xl border border-stone-300 dark:border-stone-700 ]"><div class="[ flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-t-xl bg-stone-100 px-4 py-2 text-sm dark:bg-stone-800 ]"><span class="[ font-semibold ]">C#</span>
+        <button type="button" disabled="" aria-label="Copy C# code" class="[ min-h-11 rounded-md border border-stone-300 px-3 py-2 focus-visible:outline-2 focus-visible:outline-indigo-500 disabled:opacity-50 dark:border-stone-600 ]">Copy</button></div>
+    <p role="status" class="sr-only"></p>
+    <pre tabindex="0" role="region" aria-label="C# code" class="[ relative m-0 max-w-full overflow-x-auto rounded-b-xl bg-[#333] p-4 text-sm text-[#ddd] focus-visible:outline-2 focus-visible:outline-indigo-500 [&amp;_code]:overflow-visible [&amp;_code]:p-0 ]"><code id="13572619-25b8-4d94-95bc-4ae29bc7305a" class="language-csharp">
+int offset = 10;
+
+Func&lt;int, int&gt; addOffset = value =&gt; value + offset;
+Func&lt;int, int&gt; doubleValue = static value =&gt; value * 2;
+            </code></pre></div>
+
+            <p><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">addOffset</span> captures <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">offset</span>; the static lambda cannot capture it.
+                This difference matters when code creates delegates repeatedly in a performance-sensitive loop. In .NET 10 the
+                JIT can sometimes stack-allocate a delegate that does not escape, but the closure object is still a heap
+                allocation. Keep the delegate or move the work out of the loop when that fits the design, then check allocations
+                with a profiler.
+            </p>
+
+            <div class="[ not-prose relative my-6 min-w-0 rounded-xl border border-stone-300 dark:border-stone-700 ]"><div class="[ flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-t-xl bg-stone-100 px-4 py-2 text-sm dark:bg-stone-800 ]"><span class="[ font-semibold ]">plaintext</span>
+        <button type="button" disabled="" aria-label="Copy plaintext code" class="[ min-h-11 rounded-md border border-stone-300 px-3 py-2 focus-visible:outline-2 focus-visible:outline-indigo-500 disabled:opacity-50 dark:border-stone-600 ]">Copy</button></div>
+    <p role="status" class="sr-only"></p>
+    <pre tabindex="0" role="region" aria-label="plaintext code" class="[ relative m-0 max-w-full overflow-x-auto rounded-b-xl bg-[#333] p-4 text-sm text-[#ddd] focus-visible:outline-2 focus-visible:outline-indigo-500 [&amp;_code]:overflow-visible [&amp;_code]:p-0 ]"><code id="9306cefb-72e3-44ce-a42f-f7f92bcc2ba4" class="language-plaintext">
+ STACK              HEAP
+┌───────────────┐  ┌────────────────────┐  ┌──────────────────┐
+│ addOffset ────┼─&gt;│ Func&lt;int, int&gt;     │─&gt;│ closure object   │
+│               │  │ (new delegate)     │  │   offset = 10    │
+│ doubleValue ──┼┐ └────────────────────┘  └──────────────────┘
+└───────────────┘│ ┌────────────────────┐
+                 └&gt;│ cached delegate    │  created once, reused,
+                   │ (no captured data) │  no closure needed
+                   └────────────────────┘
+            </code></pre></div>
+
+            <h4 id="separate-managed-objects-from-operating-system-resources">Separate managed objects from operating-system resources</h4>
+            <p>
+                A <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">managed object</span> is an object whose memory is tracked by the .NET runtime, such as a
+                string, list, or <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">FileStream</span>. The stream object is managed, but the open file handle it
+                uses belongs to the operating system. The GC can reclaim the stream object's memory when your code can no longer
+                reach it. The handle may then be released later through finalization, but the timing is unpredictable; use
+                <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Dispose</span> when you need to close the file promptly.
+            </p>
+
+            <div class="[ not-prose relative my-6 min-w-0 rounded-xl border border-stone-300 dark:border-stone-700 ]"><div class="[ flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-t-xl bg-stone-100 px-4 py-2 text-sm dark:bg-stone-800 ]"><span class="[ font-semibold ]">plaintext</span>
+        <button type="button" disabled="" aria-label="Copy plaintext code" class="[ min-h-11 rounded-md border border-stone-300 px-3 py-2 focus-visible:outline-2 focus-visible:outline-indigo-500 disabled:opacity-50 dark:border-stone-600 ]">Copy</button></div>
+    <p role="status" class="sr-only"></p>
+    <pre tabindex="0" role="region" aria-label="plaintext code" class="[ relative m-0 max-w-full overflow-x-auto rounded-b-xl bg-[#333] p-4 text-sm text-[#ddd] focus-visible:outline-2 focus-visible:outline-indigo-500 [&amp;_code]:overflow-visible [&amp;_code]:p-0 ]"><code id="af0920fe-6b83-4453-afc3-6a9ed29afbfb" class="language-plaintext">
+ STACK        MANAGED HEAP (tracked by the GC)        OPERATING SYSTEM
+┌────────┐   ┌────────────┐   ┌────────────────┐     ┌─────────────┐
+│ stream─┼──&gt;│ FileStream │──&gt;│ SafeFileHandle │────&gt;│ file handle │
+└────────┘   └────────────┘   └────────────────┘     └─────────────┘
+              The GC reclaims these objects'          Dispose closes
+              memory when they are unreachable        this right away
+            </code></pre></div>
+
+            <p><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">IDisposable</span> lets an object expose a <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Dispose</span> method so your code
+                can release resources at a predictable time. Calling <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Dispose</span> does not tell the GC to
+                collect the object or remove it from memory. It releases resources the object owns; the GC reclaims the object's
+                memory later, when your code can no longer reach it.
+            </p>
+
+            <p>
+                Use a <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">using</span> statement for disposable objects. C# calls
+                <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Dispose</span> when execution leaves the block, including when an exception occurs.
+            </p>
+
+            <div class="[ not-prose relative my-6 min-w-0 rounded-xl border border-stone-300 dark:border-stone-700 ]"><div class="[ flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-t-xl bg-stone-100 px-4 py-2 text-sm dark:bg-stone-800 ]"><span class="[ font-semibold ]">C#</span>
+        <button type="button" disabled="" aria-label="Copy C# code" class="[ min-h-11 rounded-md border border-stone-300 px-3 py-2 focus-visible:outline-2 focus-visible:outline-indigo-500 disabled:opacity-50 dark:border-stone-600 ]">Copy</button></div>
+    <p role="status" class="sr-only"></p>
+    <pre tabindex="0" role="region" aria-label="C# code" class="[ relative m-0 max-w-full overflow-x-auto rounded-b-xl bg-[#333] p-4 text-sm text-[#ddd] focus-visible:outline-2 focus-visible:outline-indigo-500 [&amp;_code]:overflow-visible [&amp;_code]:p-0 ]"><code id="a4cdf4f9-fd9e-4b12-9f7b-1f63c4bcb6c1" class="language-csharp">
+using System.IO;
+
+using (var stream = File.OpenRead("report.json"))
+{
+    // Read the file here.
+}
+
+// Dispose has run here, so the file handle can be released.
+            </code></pre></div>
+
+            <p>
+                The compiler turns a <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">using</span> block into a <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">try/finally</span> block that
+                calls <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Dispose</span> in <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">finally</span>. You can also write a using
+                declaration, such as <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">using var stream = File.OpenRead("report.json");</span>, which
+                disposes the object at the end of the enclosing scope.
+            </p>
+
+            <p>
+                Clearing lists or setting fields to <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">null</span> inside <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Dispose</span> is
+                usually unnecessary. Once nothing references the disposed object, the GC can reclaim everything it points to.
+                Use <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Dispose</span> for things the GC cannot handle: closing handles and connections, and
+                releasing native memory.
+            </p>
+
+            <p>
+                If your class owns another object that implements <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">IDisposable</span>, dispose that object when
+                your own class is disposed. Only dispose resources your class owns; do not dispose an object that was merely
+                passed in for temporary use unless the ownership contract says you took responsibility for it.
+            </p>
+
+            <h4 id="implement-disposal-for-owned-resources">Implement disposal for resources your class owns</h4>
+            <p>
+                A sealed class can often implement <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Dispose</span> directly. A class designed for inheritance
+                can use a protected virtual <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Dispose(bool disposing)</span> method, which gives derived classes
+                a place to release the resources they add. Dispose managed child objects only when
+                <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">disposing</span> is true; a finalizer must not rely on other managed objects still being
+                available.
+            </p>
+
+            <p>
+                A class that only owns other disposable objects, such as streams or database connections, does not need a
+                finalizer. Those objects already handle their own unmanaged cleanup. A finalizer is needed only when your class
+                holds an unmanaged resource directly, which is the case in the example below.
+            </p>
+
+            <p><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">GC.SuppressFinalize</span> tells the runtime not to run this object's finalizer after explicit
+                disposal; it does not trigger collection or free the object's managed memory. It matters only if this object
+                or a derived type has a finalizer. Calling it also affects performance. When the GC finds an unreachable
+                object that still needs finalization, it cannot free that object yet. It queues the object for the finalizer
+                thread and keeps it, and everything it references, alive at least until a later collection. That often promotes
+                the object to an older generation. After <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">SuppressFinalize</span>, the object can be reclaimed
+                like any other object.
+            </p>
+
+            <p>
+                If a class directly owns unmanaged memory, the finalizer is its safety net when a caller forgets to call
+                <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Dispose</span>. Cleanup can start in two ways: <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Dispose()</span> calls
+                <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Dispose(true)</span>, while the finalizer calls <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Dispose(false)</span>. Release
+                unmanaged resources in both cases, and touch other managed objects only when <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">disposing</span>
+                is true.
+            </p>
+
+            <div class="[ not-prose relative my-6 min-w-0 rounded-xl border border-stone-300 dark:border-stone-700 ]"><div class="[ flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-t-xl bg-stone-100 px-4 py-2 text-sm dark:bg-stone-800 ]"><span class="[ font-semibold ]">plaintext</span>
+        <button type="button" disabled="" aria-label="Copy plaintext code" class="[ min-h-11 rounded-md border border-stone-300 px-3 py-2 focus-visible:outline-2 focus-visible:outline-indigo-500 disabled:opacity-50 dark:border-stone-600 ]">Copy</button></div>
+    <p role="status" class="sr-only"></p>
+    <pre tabindex="0" role="region" aria-label="plaintext code" class="[ relative m-0 max-w-full overflow-x-auto rounded-b-xl bg-[#333] p-4 text-sm text-[#ddd] focus-visible:outline-2 focus-visible:outline-indigo-500 [&amp;_code]:overflow-visible [&amp;_code]:p-0 ]"><code id="2cabc4c0-0fdd-484c-ae11-0bd9e027e3c7" class="language-plaintext">
+Your code calls Dispose()               GC finds the object unreachable
+           │                                        │
+           v                                        v
+Dispose(disposing: true)                Finalizer runs Dispose(disposing: false)
+  ├─ dispose owned managed objects        ├─ skip managed objects (they may
+  ├─ free unmanaged resources             │   already be finalized)
+  └─ GC.SuppressFinalize(this)            └─ free unmanaged resources
+           │                                        │
+           v                                        v
+Reclaimed by a normal collection        Reclaimed by a later collection
+            </code></pre></div>
+
+            <p>
+                Both paths end in one shared method, so the cleanup logic lives in one place. The class exposes the two entry
+                points like this:
+            </p>
+
+            <div class="[ not-prose relative my-6 min-w-0 rounded-xl border border-stone-300 dark:border-stone-700 ]"><div class="[ flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-t-xl bg-stone-100 px-4 py-2 text-sm dark:bg-stone-800 ]"><span class="[ font-semibold ]">C#</span>
+        <button type="button" disabled="" aria-label="Copy C# code" class="[ min-h-11 rounded-md border border-stone-300 px-3 py-2 focus-visible:outline-2 focus-visible:outline-indigo-500 disabled:opacity-50 dark:border-stone-600 ]">Copy</button></div>
+    <p role="status" class="sr-only"></p>
+    <pre tabindex="0" role="region" aria-label="C# code" class="[ relative m-0 max-w-full overflow-x-auto rounded-b-xl bg-[#333] p-4 text-sm text-[#ddd] focus-visible:outline-2 focus-visible:outline-indigo-500 [&amp;_code]:overflow-visible [&amp;_code]:p-0 ]"><code id="39e0ccfc-1b36-4230-9adb-585a7ae33059" class="language-csharp">
+using System;
+using System.Runtime.InteropServices;
+
+public class NativeScratchBuffer : IDisposable
+{
+    private IntPtr _memory;
+    private bool _disposed;
+
+    public NativeScratchBuffer(int sizeInBytes)
+    {
+        _memory = Marshal.AllocHGlobal(sizeInBytes);
+    }
+
+    ~NativeScratchBuffer() =&gt; Dispose(disposing: false);
+
+    public void Dispose()
+    {
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
+    // Dispose(bool) is shown next.
+}
+            </code></pre></div>
+
+            <p>
+                Inside the same class, the shared method checks the guard, cleans up managed objects only on the
+                <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Dispose()</span> path, and always frees the native memory:
+            </p>
+
+            <div class="[ not-prose relative my-6 min-w-0 rounded-xl border border-stone-300 dark:border-stone-700 ]"><div class="[ flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-t-xl bg-stone-100 px-4 py-2 text-sm dark:bg-stone-800 ]"><span class="[ font-semibold ]">C#</span>
+        <button type="button" disabled="" aria-label="Copy C# code" class="[ min-h-11 rounded-md border border-stone-300 px-3 py-2 focus-visible:outline-2 focus-visible:outline-indigo-500 disabled:opacity-50 dark:border-stone-600 ]">Copy</button></div>
+    <p role="status" class="sr-only"></p>
+    <pre tabindex="0" role="region" aria-label="C# code" class="[ relative m-0 max-w-full overflow-x-auto rounded-b-xl bg-[#333] p-4 text-sm text-[#ddd] focus-visible:outline-2 focus-visible:outline-indigo-500 [&amp;_code]:overflow-visible [&amp;_code]:p-0 ]"><code id="67aec107-2fc0-4dfe-9f1f-1f44df8832d7" class="language-csharp">
+protected virtual void Dispose(bool disposing)
+{
+    if (_disposed)
+    {
+        return;
+    }
+
+    if (disposing)
+    {
+        // Dispose managed objects this class owns.
+    }
+
+    if (_memory != IntPtr.Zero)
+    {
+        Marshal.FreeHGlobal(_memory);
+        _memory = IntPtr.Zero;
+    }
+
+    _disposed = true;
+}
+            </code></pre></div>
+
+            <p>
+                This example shows how the two paths fit together. In real code, prefer <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">SafeHandle</span> to
+                wrap a low-level operating-system handle, because it already provides reliable cleanup if normal disposal is
+                missed. Add a custom finalizer only when your type directly owns an unmanaged resource and cannot use
+                <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">SafeHandle</span>.
+            </p>
+
+            <p>
+                The <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">protected virtual</span> method is what makes the pattern work with inheritance. A derived
+                class does not implement <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">IDisposable</span> again or write its own finalizer. It overrides
+                <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Dispose(bool)</span>, releases what it added, and then hands control back to the base class:
+            </p>
+
+            <div class="[ not-prose relative my-6 min-w-0 rounded-xl border border-stone-300 dark:border-stone-700 ]"><div class="[ flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-t-xl bg-stone-100 px-4 py-2 text-sm dark:bg-stone-800 ]"><span class="[ font-semibold ]">C#</span>
+        <button type="button" disabled="" aria-label="Copy C# code" class="[ min-h-11 rounded-md border border-stone-300 px-3 py-2 focus-visible:outline-2 focus-visible:outline-indigo-500 disabled:opacity-50 dark:border-stone-600 ]">Copy</button></div>
+    <p role="status" class="sr-only"></p>
+    <pre tabindex="0" role="region" aria-label="C# code" class="[ relative m-0 max-w-full overflow-x-auto rounded-b-xl bg-[#333] p-4 text-sm text-[#ddd] focus-visible:outline-2 focus-visible:outline-indigo-500 [&amp;_code]:overflow-visible [&amp;_code]:p-0 ]"><code id="e3f7a4f4-cb49-4d54-8452-c058b73967d4" class="language-csharp">
+using System.IO;
+
+public sealed class TracedScratchBuffer : NativeScratchBuffer
+{
+    private readonly StreamWriter _log;
+    private bool _disposed;
+
+    public TracedScratchBuffer(int sizeInBytes, string logPath)
+        : base(sizeInBytes)
+    {
+        _log = new StreamWriter(logPath);
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (!_disposed)
+        {
+            if (disposing)
+            {
+                _log.Dispose();
+            }
+
+            _disposed = true;
+        }
+
+        base.Dispose(disposing);
+    }
+}
+            </code></pre></div>
+
+            <p>
+                Calling <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Dispose()</span> on a <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">TracedScratchBuffer</span> runs the base
+                class's public method, which calls the override. The override closes the log, and
+                <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">base.Dispose(disposing)</span> frees the native memory. Callers can dispose the whole object
+                with one call, without knowing what each class in the hierarchy owns. Both classes guard against repeated
+                calls, so disposing twice is harmless.
+            </p>
+
+            <h4 id="unsubscribe-events-and-stop-timers">Unsubscribe events and stop timers</h4>
+            <p>
+                Events can also keep objects alive. When one object subscribes to an event on another object, the publisher keeps
+                a reference to the subscriber until it unsubscribes. Unsubscribe when you no longer need the event; dropping
+                your own reference to the subscriber does not remove the publisher's reference. A good place to unsubscribe is
+                the subscriber's <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Dispose</span> method.
+            </p>
+
+            <div class="[ not-prose relative my-6 min-w-0 rounded-xl border border-stone-300 dark:border-stone-700 ]"><div class="[ flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-t-xl bg-stone-100 px-4 py-2 text-sm dark:bg-stone-800 ]"><span class="[ font-semibold ]">C#</span>
+        <button type="button" disabled="" aria-label="Copy C# code" class="[ min-h-11 rounded-md border border-stone-300 px-3 py-2 focus-visible:outline-2 focus-visible:outline-indigo-500 disabled:opacity-50 dark:border-stone-600 ]">Copy</button></div>
+    <p role="status" class="sr-only"></p>
+    <pre tabindex="0" role="region" aria-label="C# code" class="[ relative m-0 max-w-full overflow-x-auto rounded-b-xl bg-[#333] p-4 text-sm text-[#ddd] focus-visible:outline-2 focus-visible:outline-indigo-500 [&amp;_code]:overflow-visible [&amp;_code]:p-0 ]"><code id="b50b889a-c27f-4388-8ac2-7a7f906c53eb" class="language-csharp">
+using System;
+
+public sealed class StockTicker
+{
+    public event EventHandler&lt;decimal&gt;? PriceChanged;
+
+    public void Publish(decimal price) =&gt; PriceChanged?.Invoke(this, price);
+}
+
+public sealed class PriceBadge : IDisposable
+{
+    private readonly StockTicker _ticker;
+
+    public PriceBadge(StockTicker ticker)
+    {
+        _ticker = ticker;
+        _ticker.PriceChanged += OnPriceChanged;
+    }
+
+    public void Dispose() =&gt; _ticker.PriceChanged -= OnPriceChanged;
+
+    private void OnPriceChanged(object? sender, decimal price) =&gt;
+        Console.WriteLine($"Badge shows {price}");
+}
+            </code></pre></div>
+
+            <p>
+                If a long-lived <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">StockTicker</span> creates and drops thousands of badges without disposing them,
+                each badge stays alive in the event's handler list. That is a memory leak, even though your code no longer
+                uses those badges.
+            </p>
+
+            <p>
+                Timers behave in a similar way. A started <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">System.Timers.Timer</span> is kept alive by the
+                runtime's timer infrastructure, so it keeps raising <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Elapsed</span> after your code loses
+                every reference to it. Its handler also keeps the handler's target object alive. When the owner is done, stop
+                the timer, unsubscribe from <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Elapsed</span>, and dispose the timer, usually from the owner's
+                <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Dispose</span> method.
+            </p>
+
+            <div class="[ not-prose relative my-6 min-w-0 rounded-xl border border-stone-300 dark:border-stone-700 ]"><div class="[ flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-t-xl bg-stone-100 px-4 py-2 text-sm dark:bg-stone-800 ]"><span class="[ font-semibold ]">plaintext</span>
+        <button type="button" disabled="" aria-label="Copy plaintext code" class="[ min-h-11 rounded-md border border-stone-300 px-3 py-2 focus-visible:outline-2 focus-visible:outline-indigo-500 disabled:opacity-50 dark:border-stone-600 ]">Copy</button></div>
+    <p role="status" class="sr-only"></p>
+    <pre tabindex="0" role="region" aria-label="plaintext code" class="[ relative m-0 max-w-full overflow-x-auto rounded-b-xl bg-[#333] p-4 text-sm text-[#ddd] focus-visible:outline-2 focus-visible:outline-indigo-500 [&amp;_code]:overflow-visible [&amp;_code]:p-0 ]"><code id="edb0f073-e33e-4e01-b15f-c08773afd850" class="language-plaintext">
+ LONG-LIVED ROOT         HEAP
+ static ticker ────────&gt; StockTicker
+                          └─ PriceChanged handler list
+                               ├─&gt; delegate ─&gt; PriceBadge #1
+                               ├─&gt; delegate ─&gt; PriceBadge #2
+                               └─&gt; ...
+ Your code dropped every badge, but the handler list still reaches them.
+ PriceBadge.Dispose() removes its delegate, so the badge becomes garbage.
+
+ Timer:  runtime timer queue ─&gt; Timer ─&gt; Elapsed delegate ─&gt; owner object
+            </code></pre></div>
+
+            <h4 id="use-weak-references-only-for-optional-data">Use weak references only for optional data</h4>
+            <p>
+                A <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">WeakReference&lt;T&gt;</span> lets you refer to an object without keeping it alive. The GC
+                may collect the target whenever no strong references remain. This can suit an optional cache: use the cached
+                object if it is still available, or recreate it if the GC has collected it.
+            </p>
+
+            <div class="[ not-prose relative my-6 min-w-0 rounded-xl border border-stone-300 dark:border-stone-700 ]"><div class="[ flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-t-xl bg-stone-100 px-4 py-2 text-sm dark:bg-stone-800 ]"><span class="[ font-semibold ]">C#</span>
+        <button type="button" disabled="" aria-label="Copy C# code" class="[ min-h-11 rounded-md border border-stone-300 px-3 py-2 focus-visible:outline-2 focus-visible:outline-indigo-500 disabled:opacity-50 dark:border-stone-600 ]">Copy</button></div>
+    <p role="status" class="sr-only"></p>
+    <pre tabindex="0" role="region" aria-label="C# code" class="[ relative m-0 max-w-full overflow-x-auto rounded-b-xl bg-[#333] p-4 text-sm text-[#ddd] focus-visible:outline-2 focus-visible:outline-indigo-500 [&amp;_code]:overflow-visible [&amp;_code]:p-0 ]"><code id="1c268c94-ad9b-4f4c-bd22-112ce8d64859" class="language-csharp">
+public sealed class OptionalBufferCache
+{
+    private WeakReference&lt;byte[]&gt;? _cachedBuffer;
+
+    public byte[] GetBuffer()
+    {
+        if (_cachedBuffer is not null
+            &amp;&amp; _cachedBuffer.TryGetTarget(out var existingBuffer))
+        {
+            return existingBuffer;
+        }
+
+        var buffer = new byte[1024];
+        _cachedBuffer = new WeakReference&lt;byte[]&gt;(buffer);
+        return buffer;
+    }
+}
+            </code></pre></div>
+
+            <div class="[ not-prose relative my-6 min-w-0 rounded-xl border border-stone-300 dark:border-stone-700 ]"><div class="[ flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-t-xl bg-stone-100 px-4 py-2 text-sm dark:bg-stone-800 ]"><span class="[ font-semibold ]">plaintext</span>
+        <button type="button" disabled="" aria-label="Copy plaintext code" class="[ min-h-11 rounded-md border border-stone-300 px-3 py-2 focus-visible:outline-2 focus-visible:outline-indigo-500 disabled:opacity-50 dark:border-stone-600 ]">Copy</button></div>
+    <p role="status" class="sr-only"></p>
+    <pre tabindex="0" role="region" aria-label="plaintext code" class="[ relative m-0 max-w-full overflow-x-auto rounded-b-xl bg-[#333] p-4 text-sm text-[#ddd] focus-visible:outline-2 focus-visible:outline-indigo-500 [&amp;_code]:overflow-visible [&amp;_code]:p-0 ]"><code id="60ceb680-563f-40e5-9a79-87e854b4c698" class="language-plaintext">
+ HEAP
+ OptionalBufferCache ─&gt; WeakReference&lt;byte[]&gt; ---&gt; byte[1024]
+                        (weak: the GC ignores it)      ^
+ STACK                                                 │ strong
+ caller's local variable ──────────────────────────────┘
+ While the caller holds the array, it stays alive. Once only the weak
+ reference is left, the GC may collect it and TryGetTarget returns false.
+            </code></pre></div>
+
+            <p>
+                The returned array is strongly referenced by the caller, but the cache does not keep it alive by itself. If
+                nothing else needs the array, the GC may collect it and the next call creates another one. Do not use a weak
+                reference as a substitute for stopping a timer, disposing a resource, or unsubscribing an event; use explicit
+                ownership and cleanup for those jobs. For a deeper introduction to reachability, continue with
+                <a href="/blogs/understanding-dotnet-garbage-collection-generations-scope-and-object-lifetimes">
+                    Understanding .NET Garbage Collection: Generations, Scope, and Object Lifetimes
+                </a>.
+            </p>
+
+            <h4 id="select-workstation-or-server-gc-for-the-workload">Select workstation or server GC for the workload</h4>
+            <p>
+                .NET has two main GC modes: workstation and server. They make different trade-offs:
+            </p>
+
+            <ul><li><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Workstation GC</span> is designed for apps running on a user's computer, where the app shares
+                    the machine with many other programs. It uses smaller allocation budgets, so it collects more often and keeps
+                    memory use lower.
+                </li>
+                <li><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Server GC</span> treats the app as the main workload on the machine. By default, it creates
+                    one heap and one dedicated GC thread per logical CPU and collects those heaps in parallel. It allows more
+                    allocation between collections, so it usually runs fewer collections, completes more work, and uses more
+                    memory.
+                </li></ul>
+
+            <div class="[ not-prose relative my-6 min-w-0 rounded-xl border border-stone-300 dark:border-stone-700 ]"><div class="[ flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-t-xl bg-stone-100 px-4 py-2 text-sm dark:bg-stone-800 ]"><span class="[ font-semibold ]">plaintext</span>
+        <button type="button" disabled="" aria-label="Copy plaintext code" class="[ min-h-11 rounded-md border border-stone-300 px-3 py-2 focus-visible:outline-2 focus-visible:outline-indigo-500 disabled:opacity-50 dark:border-stone-600 ]">Copy</button></div>
+    <p role="status" class="sr-only"></p>
+    <pre tabindex="0" role="region" aria-label="plaintext code" class="[ relative m-0 max-w-full overflow-x-auto rounded-b-xl bg-[#333] p-4 text-sm text-[#ddd] focus-visible:outline-2 focus-visible:outline-indigo-500 [&amp;_code]:overflow-visible [&amp;_code]:p-0 ]"><code id="72a87888-2c43-4058-b73a-7aae2c178f07" class="language-plaintext">
+ Workstation GC              Server GC on a 4-CPU machine
+┌────────────────────┐      ┌────────┐┌────────┐┌────────┐┌────────┐
+│ one managed heap   │      │ heap 0 ││ heap 1 ││ heap 2 ││ heap 3 │
+└────────────────────┘      └────────┘└────────┘└────────┘└────────┘
+ smaller budgets,             one GC thread per heap, collected in
+ more frequent GCs            parallel; DATAS starts at 1 heap and grows
+            </code></pre></div>
+
+            <p>
+                ASP.NET Core apps use server GC by default. Console, desktop, and worker apps use workstation GC unless you change
+                it. You can set the mode in the project file:
+            </p>
+
+            <div class="[ not-prose relative my-6 min-w-0 rounded-xl border border-stone-300 dark:border-stone-700 ]"><div class="[ flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-t-xl bg-stone-100 px-4 py-2 text-sm dark:bg-stone-800 ]"><span class="[ font-semibold ]">XML</span>
+        <button type="button" disabled="" aria-label="Copy XML code" class="[ min-h-11 rounded-md border border-stone-300 px-3 py-2 focus-visible:outline-2 focus-visible:outline-indigo-500 disabled:opacity-50 dark:border-stone-600 ]">Copy</button></div>
+    <p role="status" class="sr-only"></p>
+    <pre tabindex="0" role="region" aria-label="XML code" class="[ relative m-0 max-w-full overflow-x-auto rounded-b-xl bg-[#333] p-4 text-sm text-[#ddd] focus-visible:outline-2 focus-visible:outline-indigo-500 [&amp;_code]:overflow-visible [&amp;_code]:p-0 ]"><code id="0957dc19-9992-4b43-a403-6fe943b37445" class="language-xml">
+&lt;PropertyGroup&gt;
+  &lt;ServerGarbageCollection&gt;true&lt;/ServerGarbageCollection&gt;
+&lt;/PropertyGroup&gt;
+            </code></pre></div>
+
+            <p>
+                You can also set it without rebuilding, through <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">System.GC.Server</span> in
+                <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">runtimeconfig.json</span> or the <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">DOTNET_gcServer</span> environment variable.
+            </p>
+
+            <p>
+                Neither mode is always faster. Test both with the kind of work your app does in production. Compare how much work
+                it completes, how long pauses last, and how much memory it uses. A server running many copies of an app may need
+                different settings from a server running one busy app.
+            </p>
+
+            <h4 id="let-datas-adapt-server-gc-to-real-memory-needs">Let DATAS adapt server GC to real memory needs</h4>
+            <p>
+                Plain server GC sizes itself mainly for throughput and the hardware it sees. That causes two problems. The same app
+                can use very different amounts of memory on a small machine and a large one. And after a traffic spike ends, the
+                heap may not shrink much, which matters when many containers share one node.
+            </p>
+
+            <p><span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Dynamic Adaptation to Application Sizes (DATAS)</span> addresses this. It aims to keep the heap
+                roughly proportional to the data your app keeps alive for a long time. It starts with a single heap and adds or
+                removes heaps as the load changes, so it can act anywhere between workstation-like and full server-like
+                behavior. DATAS was introduced as an opt-in feature in .NET 8 and is enabled by default for server GC starting
+                in .NET 9. It does not apply to workstation GC.
+            </p>
+
+            <p>
+                The trade-off is more frequent generation 0 and 1 collections and a small throughput cost, in exchange for a much
+                smaller working set, especially for bursty workloads and memory-limited containers. If measurements show that
+                your app needs that throughput back, you can turn DATAS off:
+            </p>
+
+            <div class="[ not-prose relative my-6 min-w-0 rounded-xl border border-stone-300 dark:border-stone-700 ]"><div class="[ flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-t-xl bg-stone-100 px-4 py-2 text-sm dark:bg-stone-800 ]"><span class="[ font-semibold ]">XML</span>
+        <button type="button" disabled="" aria-label="Copy XML code" class="[ min-h-11 rounded-md border border-stone-300 px-3 py-2 focus-visible:outline-2 focus-visible:outline-indigo-500 disabled:opacity-50 dark:border-stone-600 ]">Copy</button></div>
+    <p role="status" class="sr-only"></p>
+    <pre tabindex="0" role="region" aria-label="XML code" class="[ relative m-0 max-w-full overflow-x-auto rounded-b-xl bg-[#333] p-4 text-sm text-[#ddd] focus-visible:outline-2 focus-visible:outline-indigo-500 [&amp;_code]:overflow-visible [&amp;_code]:p-0 ]"><code id="30a62100-af0c-4ea5-beae-f23b2865aaf7" class="language-xml">
+&lt;PropertyGroup&gt;
+  &lt;ServerGarbageCollection&gt;true&lt;/ServerGarbageCollection&gt;
+  &lt;GarbageCollectionAdaptationMode&gt;0&lt;/GarbageCollectionAdaptationMode&gt;
+&lt;/PropertyGroup&gt;
+            </code></pre></div>
+
+            <p>
+                The <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">DOTNET_GCDynamicAdaptationMode</span> environment variable does the same job, where
+                <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">1</span> enables DATAS and <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">0</span> disables it. Setting a fixed heap count
+                with <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">GCHeapCount</span> stops the GC from growing and shrinking the number of heaps, which is
+                a core part of how DATAS adapts. Treat these two settings as alternatives, and change either one only after
+                measuring.
+            </p>
+
+            <p>
+                DATAS is not a hard cap on memory. When an app runs in a container with a memory limit, .NET treats that limit as
+                the machine's memory, and by default the GC heap hard limit is 75% of it. That hard limit bounds the GC heap's
+                committed memory, including GC bookkeeping, but not total process memory. A container limit applies to memory
+                charged to the container, which can include multiple processes and native memory. That budget can be exhausted
+                and cause an out-of-memory kill without a managed <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">OutOfMemoryException</span>. See the
+                <a href="https://learn.microsoft.com/en-us/dotnet/core/runtime-config/garbage-collector" target="_blank" rel="noopener noreferrer">
+                    GC runtime configuration reference
+                </a>
+                and the
+                <a href="https://learn.microsoft.com/en-us/dotnet/standard/garbage-collection/datas" target="_blank" rel="noopener noreferrer">
+                    DATAS documentation
+                </a>
+                before configuring either limit.
+            </p>
+
+            <h4 id="treat-loh-compaction-as-a-measured-maintenance-action">Treat LOH compaction as a measured maintenance action</h4>
+            <p>
+                Objects that are 85,000 bytes or larger go on the LOH and are collected with generation 2 objects. You can check
+                this with <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">GC.GetGeneration</span>, which reports the generation an object currently belongs to:
+            </p>
+
+            <div class="[ not-prose relative my-6 min-w-0 rounded-xl border border-stone-300 dark:border-stone-700 ]"><div class="[ flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-t-xl bg-stone-100 px-4 py-2 text-sm dark:bg-stone-800 ]"><span class="[ font-semibold ]">C#</span>
+        <button type="button" disabled="" aria-label="Copy C# code" class="[ min-h-11 rounded-md border border-stone-300 px-3 py-2 focus-visible:outline-2 focus-visible:outline-indigo-500 disabled:opacity-50 dark:border-stone-600 ]">Copy</button></div>
+    <p role="status" class="sr-only"></p>
+    <pre tabindex="0" role="region" aria-label="C# code" class="[ relative m-0 max-w-full overflow-x-auto rounded-b-xl bg-[#333] p-4 text-sm text-[#ddd] focus-visible:outline-2 focus-visible:outline-indigo-500 [&amp;_code]:overflow-visible [&amp;_code]:p-0 ]"><code id="6351c8e0-7dae-45d0-8736-97bb31e642aa" class="language-csharp">
+var smallArray = new byte[1_024];
+var largeArray = new byte[100_000];
+
+Console.WriteLine($"Small array generation: {GC.GetGeneration(smallArray)}");
+Console.WriteLine($"Large array generation: {GC.GetGeneration(largeArray)}");
+            </code></pre></div>
+
+            <div class="[ not-prose relative my-6 min-w-0 rounded-xl border border-stone-300 dark:border-stone-700 ]"><div class="[ flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-t-xl bg-stone-100 px-4 py-2 text-sm dark:bg-stone-800 ]"><span class="[ font-semibold ]">plaintext</span>
+        <button type="button" disabled="" aria-label="Copy plaintext code" class="[ min-h-11 rounded-md border border-stone-300 px-3 py-2 focus-visible:outline-2 focus-visible:outline-indigo-500 disabled:opacity-50 dark:border-stone-600 ]">Copy</button></div>
+    <p role="status" class="sr-only"></p>
+    <pre tabindex="0" role="region" aria-label="plaintext code" class="[ relative m-0 max-w-full overflow-x-auto rounded-b-xl bg-[#333] p-4 text-sm text-[#ddd] focus-visible:outline-2 focus-visible:outline-indigo-500 [&amp;_code]:overflow-visible [&amp;_code]:p-0 ]"><code id="73c41540-e3c1-4ee5-87a4-27f925aed38f" class="language-plaintext">
+Small array generation: 0
+Large array generation: 2
+            </code></pre></div>
+
+            <p>
+                The large array reports generation 2 as soon as it is created, because the LOH is collected only during full
+                collections. <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">GC.CollectionCount(2)</span> and <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">GC.GetTotalMemory(false)</span>
+                are also useful for quick experiments. In optimized code, the JIT may treat a local variable as unused after
+                its last read, so the GC can collect the object before the end of the method. If an experiment needs an object
+                to stay alive until a certain line, call <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">GC.KeepAlive(obj)</span> there.
+            </p>
+
+            <p>
+                By default, .NET usually leaves gaps where unused large objects were instead of moving the remaining objects to
+                fill those gaps. This avoids the cost of copying large blocks of memory. A large LOH does not automatically mean
+                there is a problem; .NET may reuse those gaps for future allocations.
+            </p>
+
+            <p>
+                If profiling shows that gaps in the LOH are causing a problem, you can ask .NET to compact it during the next
+                full, blocking collection. Compaction moves objects to close gaps and can pause your app. This is a one-time
+                request, not a general memory cleanup switch. After that collection compacts the LOH, the setting returns to
+                <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Default</span> automatically.
+            </p>
+
+            <div class="[ not-prose relative my-6 min-w-0 rounded-xl border border-stone-300 dark:border-stone-700 ]"><div class="[ flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-t-xl bg-stone-100 px-4 py-2 text-sm dark:bg-stone-800 ]"><span class="[ font-semibold ]">plaintext</span>
+        <button type="button" disabled="" aria-label="Copy plaintext code" class="[ min-h-11 rounded-md border border-stone-300 px-3 py-2 focus-visible:outline-2 focus-visible:outline-indigo-500 disabled:opacity-50 dark:border-stone-600 ]">Copy</button></div>
+    <p role="status" class="sr-only"></p>
+    <pre tabindex="0" role="region" aria-label="plaintext code" class="[ relative m-0 max-w-full overflow-x-auto rounded-b-xl bg-[#333] p-4 text-sm text-[#ddd] focus-visible:outline-2 focus-visible:outline-indigo-500 [&amp;_code]:overflow-visible [&amp;_code]:p-0 ]"><code id="cdb7f091-1f8c-4b7d-953a-69fd519d4720" class="language-plaintext">
+ SMALL OBJECT HEAP              LARGE OBJECT HEAP (85,000 bytes or more)
+┌───────┬───────┬───────┐      ┌────────┬──────┬────────┬──────┐
+│ gen 0 │ gen 1 │ gen 2 │      │ 100 KB │ free │ 300 KB │ free │
+└───────┴───────┴───────┘      └────────┴──────┴────────┴──────┘
+ survivors are usually          collected with gen 2; gaps are reused
+ compacted (moved together)     for new large objects, not closed
+
+                                After CompactOnce + a full blocking GC:
+                               ┌────────┬────────┬─────────────┐
+                               │ 100 KB │ 300 KB │ free space  │
+                               └────────┴────────┴─────────────┘
+            </code></pre></div>
+
+            <div class="[ not-prose relative my-6 min-w-0 rounded-xl border border-stone-300 dark:border-stone-700 ]"><div class="[ flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-t-xl bg-stone-100 px-4 py-2 text-sm dark:bg-stone-800 ]"><span class="[ font-semibold ]">C#</span>
+        <button type="button" disabled="" aria-label="Copy C# code" class="[ min-h-11 rounded-md border border-stone-300 px-3 py-2 focus-visible:outline-2 focus-visible:outline-indigo-500 disabled:opacity-50 dark:border-stone-600 ]">Copy</button></div>
+    <p role="status" class="sr-only"></p>
+    <pre tabindex="0" role="region" aria-label="C# code" class="[ relative m-0 max-w-full overflow-x-auto rounded-b-xl bg-[#333] p-4 text-sm text-[#ddd] focus-visible:outline-2 focus-visible:outline-indigo-500 [&amp;_code]:overflow-visible [&amp;_code]:p-0 ]"><code id="3f20e332-5f75-49de-8ddc-f7ea7f1f2923" class="language-csharp">
+using System.Runtime;
+
+GCSettings.LargeObjectHeapCompactionMode =
+    GCLargeObjectHeapCompactionMode.CompactOnce;
+
+// Optional: compact now instead of waiting for the next full blocking GC.
+GC.Collect();
+
+Console.WriteLine(GCSettings.LargeObjectHeapCompactionMode); // Default
+            </code></pre></div>
+
+            <p>
+                Usually it is enough to set the mode and let the next full blocking collection do the work. Force it with
+                <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">GC.Collect()</span> only at a controlled moment, such as after a large batch job finishes, and
+                never as a routine step. First confirm that LOH gaps are the problem, then test the change with a workload
+                similar to your real app.
+            </p>
+
+            <h4 id="reserve-no-gc-regions-only-for-bounded-work">Reserve no-GC regions only for bounded work</h4>
+            <p>
+                A <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">no-GC region</span> is a short period when .NET tries not to start a garbage collection.
+                <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">GC.TryStartNoGCRegion</span> asks .NET to start one and reserve a memory budget for it. The
+                request can fail if .NET cannot reserve enough memory, and it may run a collection first to make room. If it
+                succeeds, keep allocations within the budget and call <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">GC.EndNoGCRegion()</span> when the work
+                is finished.
+            </p>
+
+            <p>
+                If your app uses more memory than the reserved budget, .NET ends the region early. A collection can run, and
+                <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">GCSettings.LatencyMode</span> returns to its previous value. Calling
+                <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">GC.EndNoGCRegion()</span> after that throws <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">InvalidOperationException</span>,
+                so check the latency mode first:
+            </p>
+
+            <div class="[ not-prose relative my-6 min-w-0 rounded-xl border border-stone-300 dark:border-stone-700 ]"><div class="[ flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-t-xl bg-stone-100 px-4 py-2 text-sm dark:bg-stone-800 ]"><span class="[ font-semibold ]">C#</span>
+        <button type="button" disabled="" aria-label="Copy C# code" class="[ min-h-11 rounded-md border border-stone-300 px-3 py-2 focus-visible:outline-2 focus-visible:outline-indigo-500 disabled:opacity-50 dark:border-stone-600 ]">Copy</button></div>
+    <p role="status" class="sr-only"></p>
+    <pre tabindex="0" role="region" aria-label="C# code" class="[ relative m-0 max-w-full overflow-x-auto rounded-b-xl bg-[#333] p-4 text-sm text-[#ddd] focus-visible:outline-2 focus-visible:outline-indigo-500 [&amp;_code]:overflow-visible [&amp;_code]:p-0 ]"><code id="72ef23b0-9641-4994-a45f-41ea1691e124" class="language-csharp">
+using System;
+using System.Runtime;
+
+const long budgetBytes = 32 * 1024 * 1024;
+
+if (GC.TryStartNoGCRegion(budgetBytes))
+{
+    try
+    {
+        ProcessAudioBlock();
+    }
+    finally
+    {
+        if (GCSettings.LatencyMode == GCLatencyMode.NoGCRegion)
+        {
+            GC.EndNoGCRegion();
+        }
+    }
+}
+else
+{
+    ProcessAudioBlock();
+}
+
+static void ProcessAudioBlock()
+{
+    // Short, bounded work that allocates far less than the budget.
+}
+            </code></pre></div>
+
+            <p>
+                The budget has an upper limit that depends on the runtime and GC mode, and asking for too much throws
+                <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">ArgumentOutOfRangeException</span>. Use no-GC regions only for short, measured work where a
+                pause would cause a real problem, such as a real-time audio block or a latency-critical calculation, and not for
+                an ordinary request. In most apps, reducing unnecessary allocations is a simpler and safer choice.
+            </p>
+
+            <p>
+                For deeper runtime behavior, use the official
+                <a href="https://learn.microsoft.com/en-us/dotnet/standard/garbage-collection/large-object-heap" target="_blank" rel="noopener noreferrer">
+                    large object heap documentation
+                </a>,
+                <a href="https://learn.microsoft.com/en-us/dotnet/standard/garbage-collection/workstation-server-gc" target="_blank" rel="noopener noreferrer">
+                    workstation and server GC documentation
+                </a>, and
+                <a href="https://learn.microsoft.com/en-us/dotnet/core/runtime-config/garbage-collector" target="_blank" rel="noopener noreferrer">
+                    garbage collector runtime configuration reference
+                </a>.
+            </p>
+
+        <h3 id="summary">Summary</h3>
+
+<p>
+                Work in the same order as this article: measure first, fix allocations and lifetimes next, and change GC settings
+                last.
+            </p>
+
+            <ul><li>Measure allocation rates and runtime pauses before changing GC settings; frequent short pauses add up.</li>
+                <li>Cut avoidable allocations with buffer reuse, <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">StringBuilder</span>, <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Span&lt;T&gt;</span>, <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">stackalloc</span>, and <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">ArrayPool&lt;T&gt;</span>; treat .NET 10 stack allocation as a bonus, not a guarantee.</li>
+                <li>Dispose the resources your class owns. In the dispose pattern, call <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">GC.SuppressFinalize</span> from <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">Dispose()</span> so finalizable objects are not kept alive for an extra collection.</li>
+                <li>Unsubscribe events and stop timers explicitly; publishers and running timers keep objects alive even after your code drops its references.</li>
+                <li>Use <span class="[ p-0.5 ] [ text-indigo-600 ] [ dark:text-green-400 ] ">WeakReference&lt;T&gt;</span> only for optional data you can re-create, never as a replacement for cleanup.</li>
+                <li>Choose workstation or server GC based on production measurements; with server GC, keep DATAS on unless measurements show you need the throughput back.</li>
+                <li>Use the LOH compaction request only when diagnostics show fragmentation and a full blocking collection is acceptable.</li>
+                <li>Keep no-GC regions short, bounded, and exceptional; they are not a general GC optimization.</li></ul>
+
+            <p>
+                Need a refresher on the basics? The earlier articles in this series cover
+                <a href="/blogs/garbage-collection-fundamentals-in-dotnet">
+                    Garbage Collection Fundamentals in .NET
+                </a>
+                and
+                <a href="/blogs/understanding-dotnet-garbage-collection-generations-scope-and-object-lifetimes">
+                    generations, scope, and object lifetimes
+                </a>.
+            </p>
+            </section>
+        <footer class="[ min-w-0 space-y-6 border-t border-stone-200 pt-6 dark:border-stone-700 ]"><nav aria-label="Continue this learning path" class="[ space-y-3 ]"><h2 class="[ text-xl font-semibold ]">Continue this learning path</h2>
+                <p class="[ text-sm text-stone-600 dark:text-stone-300 ]">Explore Memory in the suggested order, or choose the tutorial you need.</p>
+                <div class="[ grid min-w-0 gap-3 sm:grid-cols-2 ]"><a href="/blogs/understanding-dotnet-garbage-collection-generations-scope-and-object-lifetimes/" rel="prev" class="[ flex min-w-0 flex-col gap-2 rounded-xl border border-stone-200 bg-white p-4 no-underline focus-visible:outline-2 focus-visible:outline-indigo-500 dark:border-stone-700 dark:bg-stone-800 ]"><span class="[ text-sm text-stone-600 dark:text-stone-300 ]">← Previous tutorial</span>
+                            <span class="[ font-semibold hover:underline ]">Understanding .NET Garbage Collection: Generations, Scope, and Object Lifetimes</span></a></div>
+                <a href="/channels/memory/" class="[ inline-flex min-h-11 items-center font-semibold text-indigo-700 underline dark:text-indigo-300 ]">View all Memory tutorials →</a></nav>
+            <section aria-label="Share and support" class="[ space-y-3 ]"><h2 class="[ text-lg font-semibold ]">Share this article</h2>
+                <section aria-label="Share links" class="[ flex flex-wrap gap-2 [&amp;_a]:inline-flex [&amp;_a]:min-h-11 [&amp;_a]:min-w-11 [&amp;_a]:items-center [&amp;_a]:justify-center [&amp;_a]:rounded-lg [&amp;_a:focus-visible]:outline-2 [&amp;_a:focus-visible]:outline-indigo-500 ]"><a href="https://api.whatsapp.com/send?text=Advanced%20.NET%20Garbage%20Collection%3A%20Measure%20Before%20You%20Tune%20https%3A%2F%2Filovedotnet.org%2Fblogs%2Fadvanced-dotnet-garbage-collection-measure-before-you-tune%2F" target="_blank" rel="noopener noreferrer" aria-label="Share via WhatsApp (opens in a new tab)"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-brand-whatsapp ] [ text-emerald-500 dark:text-emerald-300 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <path d="M3 21l1.65 -3.8a9 9 0 1 1 3.4 2.9l-5.05 .9"></path>
+            <path d="M9 10a0.5 .5 0 0 0 1 0v-1a0.5 .5 0 0 0 -1 0v1a5 5 0 0 0 5 5h1a0.5 .5 0 0 0 0 -1h-1a0.5 .5 0 0 0 0 1"></path></svg></a>
+    <a href="https://www.linkedin.com/shareArticle?mini=true&amp;url=https%3A%2F%2Filovedotnet.org%2Fblogs%2Fadvanced-dotnet-garbage-collection-measure-before-you-tune%2F" target="_blank" rel="noopener noreferrer" aria-label="Share via LinkedIn (opens in a new tab)"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-brand-linkedin ] [ text-blue-500 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+            <line x1="8" y1="11" x2="8" y2="16"></line>
+            <line x1="8" y1="8" x2="8" y2="8.01"></line>
+            <line x1="12" y1="16" x2="12" y2="11"></line>
+            <path d="M16 16v-3a2 2 0 0 0 -4 0"></path></svg></a>
+    <a href="https://www.facebook.com/sharer.php?u=https%3A%2F%2Filovedotnet.org%2Fblogs%2Fadvanced-dotnet-garbage-collection-measure-before-you-tune%2F" target="_blank" rel="noopener noreferrer" aria-label="Share via Facebook (opens in a new tab)"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-brand-facebook ] [ text-blue-400 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <path d="M7 10v4h3v7h4v-7h3l1 -4h-4v-2a1 1 0 0 1 1 -1h3v-4h-3a5 5 0 0 0 -5 5v2h-3"></path></svg></a>
+    <a href="https://twitter.com/intent/tweet?url=https%3A%2F%2Filovedotnet.org%2Fblogs%2Fadvanced-dotnet-garbage-collection-measure-before-you-tune%2F&amp;text=Advanced%20.NET%20Garbage%20Collection%3A%20Measure%20Before%20You%20Tune" target="_blank" rel="noopener noreferrer" aria-label="Share via X (Twitter) (opens in a new tab)"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-brand-twitter ] [ text-blue-700 ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <path d="M22 4.01c-1 .49 -1.98 .689 -3 .99c-1.121 -1.265 -2.783 -1.335 -4.38 -.737s-2.643 2.06 -2.62 3.737v1c-3.245 .083 -6.135 -1.395 -8 -4c0 0 -4.182 7.433 4 11c-1.872 1.247 -3.739 2.088 -6 2c3.308 1.803 6.913 2.423 10.034 1.517c3.58 -1.04 6.522 -3.723 7.651 -7.742a13.84 13.84 0 0 0 .497 -3.753c-.002 -.249 1.51 -2.772 1.818 -4.013z"></path></svg></a></section>
+                <a href="https://github.com/sponsors/fingers10" target="_blank" rel="noopener noreferrer" class="[ inline-flex min-h-11 items-center underline ]">Support the project <span class="sr-only">(opens in a new tab)</span></a></section>
+            <ul aria-label="Article topics" class="[ flex min-w-0 flex-wrap gap-2 text-sm ]"><li><a href="/channels/memory/" class="[ inline-flex min-h-11 items-center rounded-lg bg-indigo-50 px-3 py-2 text-indigo-800 underline dark:bg-indigo-950 dark:text-indigo-200 ]">Memory</a></li><li class="[ min-w-0 break-words rounded-lg bg-stone-200 px-3 py-2 dark:bg-stone-800 ]">Garbage Collection</li><li class="[ min-w-0 break-words rounded-lg bg-stone-200 px-3 py-2 dark:bg-stone-800 ]">GC</li><li class="[ min-w-0 break-words rounded-lg bg-stone-200 px-3 py-2 dark:bg-stone-800 ]">Allocation Pressure</li><li class="[ min-w-0 break-words rounded-lg bg-stone-200 px-3 py-2 dark:bg-stone-800 ]">Escape Analysis</li><li class="[ min-w-0 break-words rounded-lg bg-stone-200 px-3 py-2 dark:bg-stone-800 ]">ArrayPool</li><li class="[ min-w-0 break-words rounded-lg bg-stone-200 px-3 py-2 dark:bg-stone-800 ]">Large Object Heap</li><li class="[ min-w-0 break-words rounded-lg bg-stone-200 px-3 py-2 dark:bg-stone-800 ]">LOH Compaction</li><li class="[ min-w-0 break-words rounded-lg bg-stone-200 px-3 py-2 dark:bg-stone-800 ]">Server GC</li><li class="[ min-w-0 break-words rounded-lg bg-stone-200 px-3 py-2 dark:bg-stone-800 ]">Workstation GC</li><li class="[ min-w-0 break-words rounded-lg bg-stone-200 px-3 py-2 dark:bg-stone-800 ]">DATAS</li><li class="[ min-w-0 break-words rounded-lg bg-stone-200 px-3 py-2 dark:bg-stone-800 ]">No GC Region</li><li class="[ min-w-0 break-words rounded-lg bg-stone-200 px-3 py-2 dark:bg-stone-800 ]">IDisposable</li><li class="[ min-w-0 break-words rounded-lg bg-stone-200 px-3 py-2 dark:bg-stone-800 ]">Finalizer</li><li class="[ min-w-0 break-words rounded-lg bg-stone-200 px-3 py-2 dark:bg-stone-800 ]">Weak Reference</li><li class="[ min-w-0 break-words rounded-lg bg-stone-200 px-3 py-2 dark:bg-stone-800 ]">.NET</li></ul></footer></article>
+    <aside aria-label="Article resources" class="[ min-w-0 space-y-6 ]"><div class="[ hidden rounded-xl border border-indigo-200 bg-indigo-50 p-3 dark:border-indigo-900 dark:bg-indigo-950 xl:block ]"><h2 class="[ font-semibold ]">On this page</h2>
+            <nav aria-label="On this page"><ol class="[ flex flex-col py-1 text-sm ]"><li><a href="/blogs/advanced-dotnet-garbage-collection-measure-before-you-tune/#what" class="[ flex min-h-11 items-center rounded-md px-2 underline focus-visible:outline-2 focus-visible:outline-indigo-500 ]">What you'll learn</a></li>
+        <li><a href="/blogs/advanced-dotnet-garbage-collection-measure-before-you-tune/#why" class="[ flex min-h-11 items-center rounded-md px-2 underline focus-visible:outline-2 focus-visible:outline-indigo-500 ]">Why it matters</a></li>
+        <li><a href="/blogs/advanced-dotnet-garbage-collection-measure-before-you-tune/#how" class="[ flex min-h-11 items-center rounded-md px-2 underline focus-visible:outline-2 focus-visible:outline-indigo-500 ]">Implementation</a></li>
+        <li><a href="/blogs/advanced-dotnet-garbage-collection-measure-before-you-tune/#summary" class="[ flex min-h-11 items-center rounded-md px-2 underline focus-visible:outline-2 focus-visible:outline-indigo-500 ]">Summary</a></li></ol></nav></div>
+        <section aria-labelledby="related-articles" class="[ min-w-0 space-y-4 ]"><section aria-label="Advertisement" class="[ space-y-2 lg:sticky lg:top-14 ]"><p class="[ text-xs text-stone-600 dark:text-stone-300 ]">Advertisements</p>
+        </section>
+    <h2 id="related-articles" class="[ text-xl font-semibold ]">Related articles</h2><div class="[ min-w-0 space-y-4 ]" aria-live="polite"><div class="[ min-w-0 border-b border-stone-200 pb-4 dark:border-stone-700 ]"><article data-thumbnail="" class="[ flex min-w-0 flex-col gap-3 rounded-lg bg-gray-100 dark:bg-stone-900 [&amp;_a]:no-underline [&amp;_a]:focus-visible:outline-2 [&amp;_a]:focus-visible:outline-offset-2 [&amp;_a]:focus-visible:outline-indigo-500 ]"><header><a href="/blogs/understanding-dotnet-garbage-collection-generations-scope-and-object-lifetimes/" aria-label="Understanding .NET Garbage Collection: Generations, Scope, and Object Lifetimes" class="[ block rounded-lg ]"><figure><img src="image/blogs/memory/understanding-dotnet-garbage-collection-generations-scope-and-object-lifetimes.webp" class="[ block aspect-[1265/827] w-full rounded-lg object-contain ]" alt="Understanding .NET Garbage Collection: Generations, Scope, and Object Lifetimes tutorial thumbnail" loading="lazy" width="1265" height="827"/></figure></a></header>
+    <div class="[ flex min-w-0 items-start gap-3 ]"><a href="/channels/memory/" aria-label="Explore Memory tutorials" class="[ shrink-0 rounded-full ]"><img src="image/icons/memory.webp" alt="Memory" loading="lazy" height="48" width="48" class="[ h-10 w-10 rounded-full object-contain ]"/></a>
+        <div class="[ min-w-0 flex-1 space-y-2 text-stone-900 dark:text-white ]"><a href="/blogs/understanding-dotnet-garbage-collection-generations-scope-and-object-lifetimes/"><h3 class="[ break-words text-sm font-semibold leading-5 hover:underline ]">Understanding .NET Garbage Collection: Generations, Scope, and Object Lifetimes</h3></a>
+            <div class="[ flex flex-wrap items-baseline gap-x-3 gap-y-1 text-xs text-stone-600 dark:text-stone-300 ]"><p>Abdul Rahman</p>
+                <time datetime="2026-09-13" title="13 Sep 2026" aria-label="13 Sep 2026">2 months ago</time></div></div></div></article></div><div class="[ min-w-0 border-b border-stone-200 pb-4 dark:border-stone-700 ]"><article data-thumbnail="" class="[ flex min-w-0 flex-col gap-3 rounded-lg bg-gray-100 dark:bg-stone-900 [&amp;_a]:no-underline [&amp;_a]:focus-visible:outline-2 [&amp;_a]:focus-visible:outline-offset-2 [&amp;_a]:focus-visible:outline-indigo-500 ]"><header><a href="/blogs/garbage-collection-fundamentals-in-dotnet/" aria-label="Garbage Collection Fundamentals in .NET: Stack, Heap, Virtual Memory, Mark, Sweep, and Compact" class="[ block rounded-lg ]"><figure><img src="image/blogs/memory/garbage-collection-fundamentals-in-dotnet.webp" class="[ block aspect-[1265/827] w-full rounded-lg object-contain ]" alt="Garbage Collection Fundamentals in .NET: Stack, Heap, Virtual Memory, Mark, Sweep, and Compact tutorial thumbnail" loading="lazy" width="1265" height="827"/></figure></a></header>
+    <div class="[ flex min-w-0 items-start gap-3 ]"><a href="/channels/memory/" aria-label="Explore Memory tutorials" class="[ shrink-0 rounded-full ]"><img src="image/icons/memory.webp" alt="Memory" loading="lazy" height="48" width="48" class="[ h-10 w-10 rounded-full object-contain ]"/></a>
+        <div class="[ min-w-0 flex-1 space-y-2 text-stone-900 dark:text-white ]"><a href="/blogs/garbage-collection-fundamentals-in-dotnet/"><h3 class="[ break-words text-sm font-semibold leading-5 hover:underline ]">Garbage Collection Fundamentals in .NET: Stack, Heap, Virtual Memory, Mark, Sweep, and Compact</h3></a>
+            <div class="[ flex flex-wrap items-baseline gap-x-3 gap-y-1 text-xs text-stone-600 dark:text-stone-300 ]"><p>Abdul Rahman</p>
+                <time datetime="2026-08-23" title="23 Aug 2026" aria-label="23 Aug 2026">2 months ago</time></div></div></div></article></div></div><section aria-label="About the author" class="[ flex items-center gap-3 rounded-xl border border-stone-200 p-4 dark:border-stone-700 ]"><img src="/image/authors/abdul rahman.webp" alt="Abdul Rahman" loading="lazy" width="393" height="393" class="[ h-14 w-14 shrink-0 rounded-full object-cover ]"/>
+        <div class="[ min-w-0 space-y-1 text-sm ]"><p class="[ font-semibold ]">Abdul Rahman</p>
+            <p class="[ text-stone-600 dark:text-stone-300 ]">Microsoft MVP</p>
+            <a href="/authors/abdul-rahman/" class="[ inline-flex min-h-11 items-center underline ]">About the author →</a></div></section>
+    </section></aside></section></main><nav class="[ fixed bottom-0 h-14 w-full md:top-14 md:left-0 md:h-full md:w-16 ] 
+            [ bg-white ] [ dark:bg-gray-800 dark:bg-gray-800/80 ] [ backdrop-blur-xs bg-white/80 ] [ md:pt-2 ]
+            [ flex justify-around items-center md:flex-col md:justify-start md:space-y-4 ]"><a href="/" class="[ flex flex-col items-center ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-home ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <polyline points="5 12 3 12 12 3 21 12 19 12"></polyline>
+            <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7"></path>
+            <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6"></path></svg>
+        <span class="[ text-xs text-center ]">Home</span></a>
+    <a href="/learningpath" aria-label="Learning Path" class="[ flex flex-col items-center ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-compass ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <polyline points="8 16 10 10 16 8 14 14 8 16"></polyline>
+            <circle cx="12" cy="12" r="9"></circle>
+            <line x1="12" y1="3" x2="12" y2="5"></line>
+            <line x1="12" y1="19" x2="12" y2="21"></line>
+            <line x1="3" y1="12" x2="5" y2="12"></line>
+            <line x1="19" y1="12" x2="21" y2="12"></line></svg>
+        <span class="[ text-xs text-center md:hidden ]">Learn</span>
+        <span class="[ hidden text-xs text-center md:block ]">Learning Path</span></a>
+    <a href="/chat/" aria-label="Learn with AI Chat" class="[ flex flex-col items-center ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-message-chatbot ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 9h8"></path>
+            <path d="M8 13h6"></path>
+            <path d="M12 21l-3-3H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-4l-3 3z"></path></svg>
+        <span class="[ text-xs text-center md:hidden ]">Chat</span>
+        <span class="[ hidden text-xs text-center md:block ]">Learn with AI</span></a>
+    <a href="/interview/" class="[ flex flex-col items-center ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-microphone ]" width="30" height="30" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <rect x="9" y="2" width="6" height="12" rx="3"></rect>
+            <path d="M5 10v2a7 7 0 0 0 14 0v-2"></path>
+            <line x1="12" y1="19" x2="12" y2="22"></line>
+            <line x1="8" y1="22" x2="16" y2="22"></line></svg>
+        <span class="[ text-xs text-center ]">Interview</span></a>
+    <a href="/career" class="[ flex flex-col items-center ]"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icons-tabler-outline icon-tabler-briefcase ]" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <path d="M3 7m0 2a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v9a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2z"></path>
+            <path d="M8 7v-2a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v2"></path>
+            <path d="M12 12l0 .01"></path>
+            <path d="M3 13a20 20 0 0 0 18 0"></path></svg>
+        <span class="[ text-xs text-center ]">Career</span></a></nav><aside class="[ fixed bottom-14 md:bottom-0 right-2 ]"><button type="button" aria-label="Scroll to Top"><svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-square-rounded-chevron-up-filled ]" width="40" height="40" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <path d="M12 2c-.218 0 -.432 .002 -.642 .005l-.616 .017l-.299 .013l-.579 .034l-.553 .046c-4.785 .464 -6.732 2.411 -7.196 7.196l-.046 .553l-.034 .579c-.005 .098 -.01 .198 -.013 .299l-.017 .616l-.004 .318l-.001 .324c0 .218 .002 .432 .005 .642l.017 .616l.013 .299l.034 .579l.046 .553c.464 4.785 2.411 6.732 7.196 7.196l.553 .046l.579 .034c.098 .005 .198 .01 .299 .013l.616 .017l.642 .005l.642 -.005l.616 -.017l.299 -.013l.579 -.034l.553 -.046c4.785 -.464 6.732 -2.411 7.196 -7.196l.046 -.553l.034 -.579c.005 -.098 .01 -.198 .013 -.299l.017 -.616l.005 -.642l-.005 -.642l-.017 -.616l-.013 -.299l-.034 -.579l-.046 -.553c-.464 -4.785 -2.411 -6.732 -7.196 -7.196l-.553 -.046l-.579 -.034a28.058 28.058 0 0 0 -.299 -.013l-.616 -.017l-.318 -.004l-.324 -.001zm-.707 7.293a1 1 0 0 1 1.32 -.083l.094 .083l3 3a1 1 0 0 1 -1.32 1.497l-.094 -.083l-2.293 -2.292l-2.293 2.292a1 1 0 0 1 -1.32 .083l-.094 -.083a1 1 0 0 1 -.083 -1.32l.083 -.094l3 -3z" fill="currentColor" stroke-width="0"></path></svg></button></aside>
+            <!--Blazor:{"prerenderId":"f7db4289fe814dbc908ac03aae76803b"}-->
+<!-- %%-PRERENDERING-END-%% -->
+<!--Blazor-WebAssembly-Component-State:eyJzdGFycyI6Ik1BPT0iLCJNaWNyb3NvZnQuQXNwTmV0Q29yZS5Db21wb25lbnRzLkluZnJhc3RydWN0dXJlLlBlcnNpc3RlbnRTZXJ2aWNlc1JlZ2lzdHJ5IjoiVzNzaVlYTnpaVzFpYkhraU9pSk5hV055YjNOdlpuUXVRWE53VG1WMFEyOXlaUzVEYjIxd2IyNWxiblJ6TGtWdVpIQnZhVzUwY3lJc0ltWjFiR3hVZVhCbFRtRnRaU0k2SWsxcFkzSnZjMjltZEM1QmMzQk9aWFJEYjNKbExrTnZiWEJ2Ym1WdWRITXVVbVZ6YjNWeVkyVkRiMnhzWldOMGFXOXVVSEp2ZG1sa1pYSWlmU3g3SW1GemMyVnRZbXg1SWpvaVRXbGpjbTl6YjJaMExrRnpjRTVsZEVOdmNtVXVRMjl0Y0c5dVpXNTBjeTVYWldJaUxDSm1kV3hzVkhsd1pVNWhiV1VpT2lKTmFXTnliM052Wm5RdVFYTndUbVYwUTI5eVpTNURiMjF3YjI1bGJuUnpMa1p2Y20xekxrRnVkR2xtYjNKblpYSjVVM1JoZEdWUWNtOTJhV1JsY2lKOVhRPT0ifQ==--></div>
+
+    <div id="blazor-error-ui" class="[ bg-red-500 ] [ text-white ] [ fixed bottom-0 ] [ w-full ] [ p-2 ]" style="display: none;">
+        An unhandled error has occurred. Please click on
+        <a href="javascript: void(0)" class="[ inline-block ] [ underline ] [ hover\:text-white ]" onclick="location.reload()">Reload</a>
+        to proceed.
+        <button class="[ dismiss ] [ fixed right-5 bottom-2 ]">
+            <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-x ] [ text-white ]" width="25" height="25" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
+    </div>
+
+    <script src="_content/Microsoft.AspNetCore.Components.WebAssembly.Authentication/AuthenticationService.js"></script>
+    <script src="_framework/blazor.webassembly.js" autostart="false"></script>
+    <script src="_content/Blazor-Analytics/blazor-analytics.js"></script>
+    <script src="highlight.min.js"></script>
+    <script src="csharp.min.js"></script>
+    <script src="cshtml-razor.min.js"></script>
+    <!--<script>navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' } );</script>-->
+    <script src="brotliloader.min.js" type="module"></script>
+
+
+
+</resourcepreloader></body></html>
