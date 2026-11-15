@@ -1,4 +1,5 @@
 @page "/blogs/functional-testing-your-asp-net-webapi"
+@using BaseComponents
 @inherits BasePage
 
 <Content FileName=@nameof(FunctionalTestingInASPNET)>
@@ -78,14 +79,35 @@
 
             <ol>
                 <li>
-                    <p>Create a <Highlight>XUnit</Highlight> Test Project.</p>
+                    <p>
+                        Create an <Highlight>xUnit.net v3</Highlight> test project targeting <Highlight>.NET 8 or later</Highlight>.
+                        Use the <Highlight>xunit.v3</Highlight> package, not the v2 <Highlight>xunit</Highlight> package.
+                        When migrating the linked sample, replace that package and remove any direct
+                        <Highlight>xunit.abstractions</Highlight> reference. The screenshots show the original v2 setup;
+                        use the v3 project settings below.
+                    </p>
+
+                    <CodeSnippet CssClass="language-xml">
+&lt;PropertyGroup&gt;
+  &lt;OutputType&gt;Exe&lt;/OutputType&gt;
+&lt;/PropertyGroup&gt;
+                    </CodeSnippet>
+
+                    <p>
+                        v3 test projects are executables. For Visual Studio or VSTest discovery, use
+                        <Highlight>xunit.runner.visualstudio 3.0.0 or later</Highlight> and retain
+                        <Highlight>Microsoft.NET.Test.Sdk</Highlight>. The linked sample's 2.8.1 adapter cannot discover v3 tests.
+                        See the <NavLink href="https://xunit.net/docs/getting-started/v3/migration" target="_blank">migration guide</NavLink>.
+                    </p>
 
                     <figure>
                         <img src="./image/blogs/webapi/functional-testing-your-asp-net-webapi/create-xunit-project.png" alt="create-xunit-project" class="[ w-1/2 ]" />
                     </figure>
                 </li>
-                <li>Add Package Reference to <Highlight>Nuget</Highlight> Package <Highlight CssClasses="[ break-all ]">Microsoft.AspNetCore.Mvc.Testing</Highlight>.</li>
-                <li>Optionally make sure you have <Highlight>all Nuget Packages updated</Highlight> to latest version in all your projects.</li>
+                <li>
+                    Add <Highlight>Microsoft.AspNetCore.Mvc.Testing</Highlight>, matching the API's ASP.NET Core major version,
+                    and <Highlight>FluentAssertions</Highlight> for the assertions used below.
+                </li>
                 <li>
                     <p>Add <Highlight>Project Reference to your API project</Highlight> in your test project.</p>
 
@@ -111,19 +133,22 @@
                 </li>
                 <li>
                     <p>
-                        We can add <Highlight CssClasses="[ break-all ]">CustomWebApiFactory.cs</Highlight> in our test project to create a custom 
+                        Add <Highlight>AppFixture.cs</Highlight> in our test project to create a custom
                         <Highlight CssClasses="[ break-all ]">WebApplicationFactory&lt;TEntryPoint&gt;</Highlight>. We can then 
                         <Highlight>override ConfigureWebHost</Highlight> method to set the environment to <Highlight>Test</Highlight>. 
-                        This is shown in the below code.
+                        Register it once with <Highlight>[assembly: AssemblyFixture(typeof(FunctionalTest.AppFixture))]</Highlight>
+                        before the namespace declaration. This shares the factory across every test class in the assembly.
                     </p>
 
 <CodeSnippet CssClass="language-csharp">
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Xunit;
 
+[assembly: AssemblyFixture(typeof(FunctionalTest.AppFixture))]
 namespace FunctionalTest;
 
-public class CustomWebApiFactory : WebApplicationFactory&lt;Program&gt;
+public class AppFixture : WebApplicationFactory&lt;Program&gt;
 {
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -147,45 +172,51 @@ using API;
 using FluentAssertions;
 using System.Diagnostics.CodeAnalysis;
 using System.Net.Http.Json;
+using Xunit;
 
 namespace FunctionalTest;
 
 [ExcludeFromCodeCoverage]
 public class WeatherForecastControllerShouldTests(
-    CustomWebApiFactory factory) : IClassFixture&lt;CustomWebApiFactory&gt;
+    AppFixture fixture)
 {
     [Fact]
     public async Task ReturnExpectedResponse()
     {
-        var result = await factory.CreateClient().GetFromJsonAsync&lt;List&lt;WeatherForecast&gt;&gt;("/weatherforecast");
-        result.Count.Should().Be(5);
+        using var client = fixture.CreateClient();
+        var result = await client.GetFromJsonAsync&lt;List&lt;WeatherForecast&gt;&gt;("/weatherforecast");
+        result.Should().NotBeNull();
+        result!.Count.Should().Be(5);
     }
 }
 </CodeSnippet>
 
             <p>
-                In the above code, we are inheriting from <Highlight CssClasses="[ break-all ]">XUnit IClassFixture&lt;CustomWebApiFactory&gt;</Highlight> and then create 
-                <Highlight>HttpClient</Highlight> from <Highlight>factory</Highlight> within our test and make a 
+                xUnit injects the registered <Highlight>AppFixture</Highlight> directly into the test constructor.
+                No <Highlight>IClassFixture</Highlight> or <Highlight>[Collection]</Highlight> is needed.
+                We create and dispose a test-owned <Highlight>HttpClient</Highlight> from the shared fixture and make a
                 <Highlight>HTTP GET</Highlight> call to <Highlight>weatherforecast</Highlight> endpoint and deserialize the response 
                 to <Highlight CssClasses="[ break-all ]">List&lt;WeatherForecast&gt;</Highlight>. We are then 
                 <Highlight>asserting</Highlight> the count of our response. We can also assert the values of the response in the same way.
             </p>
 
             <p>
-                Note, I'm using <Highlight CssClasses="[ break-all ]">XUnit IClassFixture&lt;CustomWebApiFactory&gt;</Highlight> to create a single instance of the factory for all tests in the class. To learn more 
-                about XUnit's IClassFixture, you can refer to the official <NavLink href="https://xunit.net/docs/shared-context#class-fixture" target="_blank">documentation</NavLink> 
+                An <NavLink href="https://xunit.net/docs/shared-context#assembly-fixtures" target="_blank">assembly fixture</NavLink>
+                is created once before the assembly's tests and disposed by xUnit after all tests finish.
+                The application host starts lazily when the first client is created and is reused thereafter.
+                Assembly fixtures do not disable parallel execution: keep shared state read-only or isolate mutable state between tests.
             </p>
 
             <p>The tests will run in the following flow.</p>
 
             <ol>
-                <li>Start Test Method.</li>
-                <li>Create WebApplicationFactory.</li>
-                <li>Run Program.cs.</li>
-                <li>Service Registration.</li>
-                <li>Build Web Application.</li>
-                <li>Create HTTP Client.</li>
+                <li>Create the assembly's AppFixture once.</li>
+                <li>Create each test instance with the shared fixture.</li>
+                <li>On the first CreateClient call, run Program.cs, register services, and build the application host.</li>
+                <li>Create a test-owned HTTP client using that host.</li>
                 <li>Test Code Execution.</li>
+                <li>Dispose the client's resources after each test.</li>
+                <li>Dispose the shared factory and host after all tests finish.</li>
             </ol>
 
             <p>
@@ -209,16 +240,26 @@ public class WeatherForecastControllerShouldTests(
 <CodeSnippet CssClass="language-csharp">
 namespace FunctionalTest;
 
-public abstract class BaseTest(CustomWebApiFactory factory)
+public abstract class BaseTest : IDisposable
 {
-    protected CustomWebApiFactory Factory =&gt; factory;
-    protected HttpClient Client =&gt; factory.CreateClient();
+    protected BaseTest(AppFixture fixture)
+    {
+        Factory = fixture;
+        Client = fixture.CreateClient();
+    }
+
+    protected AppFixture Factory { get; }
+    protected HttpClient Client { get; }
+
+    public void Dispose() =&gt; Client.Dispose();
 }
 </CodeSnippet>
 
             <p>
                 Now let's adjust our <Highlight CssClasses="[ break-all ]">WeatherForecastControllerTests</Highlight> to inherit from <Highlight CssClasses="[ break-all ]">BaseTest</Highlight> 
                 and use the <Highlight>HttpClient</Highlight> from <Highlight>BaseTest class</Highlight> as shown below.
+                xUnit creates a new test instance for each test, so this base class owns one client per test and disposes it
+                without disposing the shared fixture.
             </p>
 
 <CodeSnippet CssClass="language-csharp">
@@ -226,18 +267,20 @@ using API;
 using FluentAssertions;
 using System.Diagnostics.CodeAnalysis;
 using System.Net.Http.Json;
+using Xunit;
 
 namespace FunctionalTest;
 
 [ExcludeFromCodeCoverage]
 public class WeatherForecastControllerShouldTests(
-    CustomWebApiFactory factory) : BaseTest(factory), IClassFixture&lt;CustomWebApiFactory&gt;
+    AppFixture fixture) : BaseTest(fixture)
 {
     [Fact]
     public async Task ReturnExpectedResponse()
     {
         var result = await Client.GetFromJsonAsync&lt;List&lt;WeatherForecast&gt;&gt;("/weatherforecast");
-        result.Count.Should().Be(5);
+        result.Should().NotBeNull();
+        result!.Count.Should().Be(5);
     }
 }
 </CodeSnippet>
@@ -255,7 +298,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Xunit.Abstractions;
+using Xunit;
 
 namespace FunctionalTest;
 
@@ -271,7 +314,7 @@ public static class HttpClientExtensions
     public static async Task&lt;T&gt; GetJsonResultAsync&lt;T&gt;(this HttpClient client, string url,
         HttpStatusCode expectedStatus, ITestOutputHelper output)
     {
-        var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
+        using var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
         return await DeserializeAndCheckResponse&lt;T&gt;(response, expectedStatus, output);
     }
 
@@ -320,14 +363,14 @@ using API;
 using FluentAssertions;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
-using Xunit.Abstractions;
+using Xunit;
 
 namespace FunctionalTest;
 
 [ExcludeFromCodeCoverage]
 public class WeatherForecastControllerShouldTests(
-    CustomWebApiFactory factory,
-    ITestOutputHelper outputHelper) : BaseTest(factory), IClassFixture&lt;CustomWebApiFactory&gt;
+    AppFixture fixture,
+    ITestOutputHelper outputHelper) : BaseTest(fixture)
 {
     [Fact]
     public async Task ReturnExpectedResponse()
