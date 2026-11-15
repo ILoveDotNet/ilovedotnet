@@ -144,7 +144,7 @@ public partial class FaceMesh : IAsyncDisposable
   [JSInvokable]
   public void OnResults(string json)
   {
-    DetectionResult = JsonSerializer.Deserialize<FaceMeshResult>(json, FaceMeshResult.SerializeOptions);
+    DetectionResult = JsonSerializer.Deserialize(json, FaceMeshJsonContext.Default.FaceMeshResult);
     StateHasChanged();
   }
 
@@ -152,7 +152,7 @@ public partial class FaceMesh : IAsyncDisposable
   public void OnFeatureVectorReady(string json)
   {
     IsCapturing = false;
-    LatestVector = JsonSerializer.Deserialize<FeatureVectorResult>(json, FeatureVectorResult.SerializeOptions);
+    LatestVector = JsonSerializer.Deserialize(json, FaceMeshJsonContext.Default.FeatureVectorResult);
     _ = OnFeatureVectorCaptured.InvokeAsync(LatestVector!);
     StateHasChanged();
   }
@@ -199,11 +199,6 @@ public partial class FaceMesh : IAsyncDisposable
 
 public record FeatureVectorResult
 {
-  internal static readonly JsonSerializerOptions SerializeOptions = new()
-  {
-    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-  };
-
   public bool Detected { get; set; }
   public float[]? Vector { get; set; }
   public int SampleCount { get; set; }
@@ -211,12 +206,6 @@ public record FeatureVectorResult
 
 public record FaceMeshResult
 {
-  internal static readonly JsonSerializerOptions SerializeOptions = new()
-  {
-    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-    WriteIndented = false
-  };
-
   public List<Face> Faces { get; set; } = [];
 }
 
