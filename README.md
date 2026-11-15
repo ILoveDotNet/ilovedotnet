@@ -153,7 +153,8 @@ explicitly instead of producing an invalid index. Remove this cache to force
 embedding recomputation. The existing UTC `ChatCorpusCutoff` still advances daily,
 and the manifest plus both versioned corpus files are checked for missing output.
 Regeneration repairs missing or corrupted version files without changing healthy
-files. npm dependencies are restored only when an asset actually needs rebuilding.
+files. npm dependency restoration is incremental; chart CSS copying also ensures
+its dependencies are present even when CSS generation is skipped.
 
 Native WASM compilation and prerendering remain enabled, including the C demo.
 Publishing still performs its build and publish-specific processing; do not add
