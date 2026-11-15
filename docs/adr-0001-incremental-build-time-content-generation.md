@@ -153,6 +153,18 @@ the embedding cache forces recomputation; there is no automatic cache eviction.
 Pipeline/runtime changes can invalidate cached embeddings even if text is
 unchanged. Future generator changes must keep input/output inventories complete.
 
+## Development guidance
+
+For web-only development, build the Web project instead of the full solution,
+which also builds MAUI platforms and test/tool projects:
+
+```powershell
+dotnet build Web\Web.csproj
+```
+
+Do not add `--no-build` to publishing unless the publish configuration has
+separately been verified; native and prerendering processing must remain enabled.
+
 ## Validation recorded
 
 - Debug Web build and Release publish passed on Windows.
@@ -177,4 +189,3 @@ unchanged. Future generator changes must keep input/output inventories complete.
 - [Common asset targets](../CommonComponents/CommonComponents.csproj)
 - [Embedding cache](../VectorSearchIndexGenerator/EmbeddingCache.cs)
 - [CI workflow](../.github/workflows/build-blazor-app.yml)
-- [Development build guidance](../README.md#incremental-development-builds)

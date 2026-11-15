@@ -126,44 +126,6 @@ gci -include TestResults,coverage -recurse | remove-item -force -recurse
 
 # CI/CD Pipeline
 
-## Incremental development builds
-
-For web-only development, build `Web\Web.csproj` rather than the full solution,
-which also builds MAUI platforms and test/tool projects:
-
-```powershell
-dotnet build Web\Web.csproj
-```
-
-Sitemaps and posters retain their non-Release generation behavior. RSS, search
-indexes, chat corpus and JavaScript bundles retain their existing build hooks;
-CSS is still generated in Release. Unchanged inputs skip generation, and missing
-outputs trigger recovery. Input inventories detect added/removed source files.
-Posters also invalidate once per UTC calendar day so scheduled metadata changes
-still take effect; chat retains its existing daily UTC publication cutoff.
-Successful-generation stamps under each project's `obj` folder prevent repeated
-work when a generator intentionally preserves an unchanged output's timestamp.
-
-The generator tools share the `ContentGenerators` build scope and are built only
-when generation is needed, rather than once per channel. Compiled DLLs are run
-directly. Embeddings are cached under
-`VectorSearchIndexGenerator\.embedding-cache` using the embedding text, model,
-generator/tokenizer/runtime binaries and host identity; corrupt entries fail
-explicitly instead of producing an invalid index. Remove this cache to force
-embedding recomputation. The existing UTC `ChatCorpusCutoff` still advances daily,
-and the manifest plus both versioned corpus files are checked for missing output.
-Regeneration repairs missing or corrupted version files without changing healthy
-files. npm dependency restoration is incremental; chart CSS copying also ensures
-its dependencies are present even when CSS generation is skipped.
-
-Native WASM compilation and prerendering remain enabled, including the C demo.
-Publishing still performs its build and publish-specific processing; do not add
-`--no-build` unless the publish configuration has separately been verified.
-CI caches dependency downloads and embeddings, not generated deployment assets.
-
-For the rationale and implementation details, see
-[ADR 0001: Incremental build-time content generation](docs/adr-0001-incremental-build-time-content-generation.md).
-
 Our continuous integration and deployment pipeline automates building, testing, and deploying the ILoveDotNet application. 
 The pipeline is implemented using GitHub Actions and is defined in `.github/workflows/build-blazor-app.yml`.
 
