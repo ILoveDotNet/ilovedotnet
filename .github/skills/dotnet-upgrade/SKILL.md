@@ -60,7 +60,7 @@ blog code samples.
    SDK pins, and directly affected documentation without unrelated action upgrades.
 7. **Make all required builds and tests pass.** Run
    `dotnet restore ILoveDotNet.slnx`, `dotnet build ILoveDotNet.slnx --no-restore`,
-   and `dotnet build Web\Web.csproj`. Validate MAUI targets on hosts with the
+   and `dotnet build Web/Web.csproj`. Validate MAUI targets on hosts with the
    required platform tooling; a Web build alone does not validate native targets.
    Run `dotnet test` and verify it covers every required test project.
    Include `UITests`, `VectorSearchIndexGenerator.Tests`,
