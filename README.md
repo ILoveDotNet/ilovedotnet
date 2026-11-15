@@ -85,6 +85,9 @@ URL; Aspire's browser action additionally captures browser-console output.
 The client base path matches this prefix before assets and telemetry configuration
 are loaded. Keep it in sync with the WASM resource name in `AppHost.cs`.
 Standalone Web runs and the existing static-site publish retain the `/` base path.
+The distributed test fixture sets `Testing:UseStandaloneWeb=true` to retain the
+root-hosted `ILoveDotNet-Web` resource. These tests cover standalone behavior,
+not the gateway's prefixed navigation or telemetry forwarding.
 
 ## Interview preparation guide
 
