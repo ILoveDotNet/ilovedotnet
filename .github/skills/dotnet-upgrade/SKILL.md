@@ -1,6 +1,10 @@
 ---
 name: dotnet-upgrade
-description: 'Upgrade this repository to a newer .NET version: update target frameworks first, upgrade NuGet packages with dotnet outdated -u, align Dockerfiles and workflow pipelines, then fix upgrade-related failures until all required builds and tests pass.'
+description: >-
+  Upgrade this repository to a newer .NET version: update target frameworks first,
+  upgrade NuGet packages with dotnet outdated -u, align Dockerfiles and workflow
+  pipelines, then fix upgrade-related failures until all required builds and tests
+  pass.
 ---
 
 # .NET Upgrade
