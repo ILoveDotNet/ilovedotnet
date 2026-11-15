@@ -5,7 +5,9 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.AspNetCore.Components.WebAssembly.Services;
+using Microsoft.Extensions.Hosting;
 // using QuestPDF.Infrastructure;
+using OpenTelemetry;
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;
@@ -19,6 +21,8 @@ using Web.Services;
 // QuestPDF.Settings.License = LicenseType.Community;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
+builder.Configuration.AddEnvironmentVariables();
+builder.AddBlazorClientServiceDefaults();
 
 // builder.Logging.AddConfiguration(builder.Configuration.GetSection("Logging"));
 
@@ -43,6 +47,8 @@ if (!builder.RootComponents.Any())
 ConfigureServices(builder.Services, builder.HostEnvironment, builder.Configuration);
 
 var host = builder.Build();
+host.Services.GetService<ITelemetryHostInitializer>()?.Initialize();
+
 var lazyLoader = host.Services.GetRequiredService<LazyLoaderService>();
 await lazyLoader.PreloadAsync();
 await host.RunAsync();
@@ -98,7 +104,7 @@ static void ConfigureServices(IServiceCollection services, IWebAssemblyHostEnvir
 
   services.AddHotKeys2();
 
-  services.AddSingleton<IHostEnvironment, WebHostEnvironment>();
+  services.AddSingleton<SharedModels.IHostEnvironment, WebHostEnvironment>();
 
   services.AddScoped(serviceProvider => new SlugService(serviceProvider.GetRequiredService<NavigationManager>()));
 

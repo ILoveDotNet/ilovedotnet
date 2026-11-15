@@ -77,6 +77,15 @@ Your support helps more developers discover free .NET learning resources.
 5. Try to keep content simple and short.
 6. Any ideas to improve content are welcome.
 
+## Aspire observability
+
+Run `dotnet run --project ILoveDotNet.AppHost\ILoveDotNet.AppHost.csproj` and open
+the gateway's HTTPS endpoint followed by `/ilovedotnet/`. Any browser can use this
+URL; Aspire's browser action additionally captures browser-console output.
+The client base path matches this prefix before assets and telemetry configuration
+are loaded. Keep it in sync with the WASM resource name in `AppHost.cs`.
+Standalone Web runs and the existing static-site publish retain the `/` base path.
+
 ## Interview preparation guide
 
 The [C# and .NET interview guide](https://ilovedotnet.org/interview/) combines
