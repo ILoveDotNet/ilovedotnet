@@ -17,7 +17,8 @@ internal static partial class ChatCorpusGenerator
     string outputDirectory,
     DateOnly publicationCutoff,
     string modelId,
-    string modelRevision)
+    string modelRevision,
+    string? inventoryPath = null)
   {
     if (!BitConverter.IsLittleEndian)
     {
@@ -48,6 +49,9 @@ internal static partial class ChatCorpusGenerator
       vocabularyPath);
 
     using var embedder = new MiniLmEmbedder(modelPath, vocabularyPath);
+    var cache = EmbeddingCache.Create(
+      Path.Combine(repositoryRoot, "VectorSearchIndexGenerator", ".embedding-cache"),
+      modelPath, vocabularyPath, modelId, modelRevision);
     var extractor = new ChatArticleExtractor();
     var passages = new List<ChatPassage>();
     var vectors = new List<float[]>();
@@ -72,7 +76,7 @@ internal static partial class ChatCorpusGenerator
 
         foreach (var chunk in chunks)
         {
-          var vector = embedder.EmbedStrict(chunk.EmbeddingPrefix + chunk.Excerpt);
+          var vector = cache.GetOrCreate(chunk.EmbeddingPrefix + chunk.Excerpt, embedder.EmbedStrict);
           if (vector.Length != MiniLmEmbedder.Dimensions || vector.Any(value => !float.IsFinite(value)))
           {
             throw new InvalidDataException($"Invalid embedding for '{article.Slug}' passage '{chunk.Id}'.");
@@ -89,16 +93,15 @@ internal static partial class ChatCorpusGenerator
       throw new InvalidOperationException("The chat corpus contains no passages.");
     }
 
-    await WriteCorpusAsync(outputDirectory, publicationCutoff, modelId, modelRevision, passages, vectors);
+    await WriteCorpusAsync(outputDirectory, publicationCutoff, modelId, modelRevision, passages, vectors, inventoryPath);
     Console.WriteLine($"Generated {passages.Count} article passages from {eligibleArticles.Length} published articles in '{outputDirectory}'.");
+    Console.WriteLine($"Embeddings: {cache.Hits} reused, {cache.Misses} generated.");
   }
 
   private static Dictionary<string, string> DiscoverArticleRoutes(string repositoryRoot)
   {
     var routes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-    foreach (var path in Directory.EnumerateFiles(repositoryRoot, "*.razor", SearchOption.AllDirectories)
-      .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase)
-        && !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase)))
+    foreach (var path in EnumerateRazorSources(repositoryRoot))
     {
       var source = File.ReadAllText(path);
       var route = PageRouteRegex.Match(source);
@@ -115,6 +118,24 @@ internal static partial class ChatCorpusGenerator
     }
 
     return routes;
+  }
+
+  private static IEnumerable<string> EnumerateRazorSources(string directory)
+  {
+    foreach (var path in Directory.EnumerateFiles(directory, "*.razor"))
+    {
+      yield return path;
+    }
+
+    foreach (var child in Directory.EnumerateDirectories(directory)
+      .Where(path => !Path.GetFileName(path).Equals("obj", StringComparison.OrdinalIgnoreCase)
+        && !Path.GetFileName(path).Equals("bin", StringComparison.OrdinalIgnoreCase)))
+    {
+      foreach (var path in EnumerateRazorSources(child))
+      {
+        yield return path;
+      }
+    }
   }
 
   private static string NormalizeRoute(string route)
@@ -137,13 +158,14 @@ internal static partial class ChatCorpusGenerator
     return current.FullName;
   }
 
-  private static async Task WriteCorpusAsync(
+  internal static async Task WriteCorpusAsync(
     string outputDirectory,
     DateOnly cutoff,
     string modelId,
     string modelRevision,
     IReadOnlyList<ChatPassage> passages,
-    IReadOnlyList<float[]> vectors)
+    IReadOnlyList<float[]> vectors,
+    string? inventoryPath)
   {
     Directory.CreateDirectory(outputDirectory);
     var passagesJson = JsonSerializer.SerializeToUtf8Bytes(
@@ -179,6 +201,11 @@ internal static partial class ChatCorpusGenerator
       await File.WriteAllBytesAsync(Path.Combine(temporaryDirectory, "chunks.vec"), vectorBytes);
       Directory.Move(temporaryDirectory, versionDirectory);
     }
+    else
+    {
+      await RepairVersionFileAsync(Path.Combine(versionDirectory, "chunks.json"), passagesJson);
+      await RepairVersionFileAsync(Path.Combine(versionDirectory, "chunks.vec"), vectorBytes);
+    }
 
     var manifest = new ChatCorpusManifest(
       SchemaVersion,
@@ -200,10 +227,47 @@ internal static partial class ChatCorpusGenerator
       JsonSerializer.Serialize(manifest, ChatCorpusJsonContext.Default.ChatCorpusManifest));
     File.Move(temporaryManifest, Path.Combine(outputDirectory, "manifest.json"), overwrite: true);
 
+    if (inventoryPath is not null)
+    {
+      Directory.CreateDirectory(Path.GetDirectoryName(inventoryPath)!);
+      await File.WriteAllLinesAsync(inventoryPath,
+      [
+        Path.Combine(outputDirectory, "manifest.json"),
+        Path.Combine(versionDirectory, "chunks.json"),
+        Path.Combine(versionDirectory, "chunks.vec")
+      ]);
+    }
+
     foreach (var staleDirectory in Directory.EnumerateDirectories(Path.Combine(outputDirectory, "versions"))
       .Where(path => !Path.GetFileName(path).Equals(version, StringComparison.Ordinal)))
     {
       Directory.Delete(staleDirectory, recursive: true);
+    }
+  }
+
+  private static async Task RepairVersionFileAsync(string path, byte[] bytes)
+  {
+    if (File.Exists(path))
+    {
+      using var existing = File.OpenRead(path);
+      if (SHA256.HashData(existing).AsSpan().SequenceEqual(SHA256.HashData(bytes)))
+      {
+        return;
+      }
+    }
+
+    var temporaryPath = $"{path}.{Guid.NewGuid():N}.tmp";
+    try
+    {
+      await File.WriteAllBytesAsync(temporaryPath, bytes);
+      File.Move(temporaryPath, path, overwrite: true);
+    }
+    finally
+    {
+      if (File.Exists(temporaryPath))
+      {
+        File.Delete(temporaryPath);
+      }
     }
   }
 }

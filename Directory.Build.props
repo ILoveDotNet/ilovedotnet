@@ -1,6 +1,9 @@
 <Project>
     <PropertyGroup>
-        <TargetFramework>net11.0</TargetFramework>
+        <RepositoryTargetFramework>net11.0</RepositoryTargetFramework>
+        <TargetFramework>$(RepositoryTargetFramework)</TargetFramework>
+        <ContentGeneratorTargetFramework>$(RepositoryTargetFramework)</ContentGeneratorTargetFramework>
+        <ContentGeneratorRoot>$(MSBuildThisFileDirectory)</ContentGeneratorRoot>
         <LangVersion>latest</LangVersion>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
@@ -51,4 +54,15 @@
         <DefaultItemExcludes>$(DefaultItemExcludes);bin/**;obj/**</DefaultItemExcludes>
         <!-- End: Set the build scope to the value of the BuildScope environment variable if it is set for generating Sitemap from other RCL -->
     </PropertyGroup>
+    <!-- Define shared inputs before project files consume these item lists;
+         Directory.Build.targets is imported too late for those references. -->
+    <ItemGroup>
+        <!-- Build rules, package/SDK versions and model project settings can
+             change generated assets even when article content is unchanged. -->
+        <ContentBuildInput Include="$(ContentGeneratorRoot)Directory.Build.props;$(ContentGeneratorRoot)Directory.Build.targets;$(ContentGeneratorRoot)Directory.Packages.props;$(ContentGeneratorRoot)global.json;$(ContentGeneratorRoot)SharedModels\SharedModels.csproj" />
+        <!-- Generated C# changes during normal compilation; including it would
+             unnecessarily invalidate content generation on subsequent builds. -->
+        <ContentModelInput Include="$(ContentGeneratorRoot)SharedModels\**\*.cs"
+                           Exclude="$(ContentGeneratorRoot)SharedModels\bin\**;$(ContentGeneratorRoot)SharedModels\obj\**" />
+    </ItemGroup>
 </Project>

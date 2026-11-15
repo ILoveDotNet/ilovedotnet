@@ -10,21 +10,26 @@ const string ModelRevision = "751bff37182d3f1213fa05d7196b954e230abad9";
 
 if (args.Length > 0 && args[0] == "--chat")
 {
-  if (args.Length is not (2 or 4))
+  if (args.Length < 2 || args.Length % 2 != 0)
   {
-    throw new ArgumentException("Usage: VectorSearchIndexGenerator --chat <output-directory> [--cutoff yyyy-MM-dd]");
+    throw new ArgumentException("Usage: VectorSearchIndexGenerator --chat <output-directory> [--cutoff yyyy-MM-dd] [--inventory <path>]");
   }
 
   var cutoff = DateOnly.FromDateTime(DateTime.UtcNow);
-  if (args.Length == 4)
+  string? inventoryPath = null;
+  for (var optionIndex = 2; optionIndex < args.Length; optionIndex += 2)
   {
-    if (args[2] != "--cutoff" || !DateOnly.TryParseExact(args[3], "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out cutoff))
+    if (args[optionIndex] == "--inventory")
+    {
+      inventoryPath = Path.GetFullPath(args[optionIndex + 1]);
+    }
+    else if (args[optionIndex] != "--cutoff" || !DateOnly.TryParseExact(args[optionIndex + 1], "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out cutoff))
     {
       throw new ArgumentException("The chat corpus cutoff must use --cutoff yyyy-MM-dd.");
     }
   }
 
-  await ChatCorpusGenerator.GenerateAsync(Path.GetFullPath(args[1]), cutoff, ModelId, ModelRevision);
+  await ChatCorpusGenerator.GenerateAsync(Path.GetFullPath(args[1]), cutoff, ModelId, ModelRevision, inventoryPath);
   return;
 }
 
@@ -54,6 +59,9 @@ if (contents.Count == 0)
 }
 
 using var embedder = new MiniLmEmbedder(modelPath, vocabularyPath);
+var cache = EmbeddingCache.Create(
+  Path.Combine(Path.GetDirectoryName(DefaultModelDirectory())!, ".embedding-cache"),
+  modelPath, vocabularyPath, ModelId, ModelRevision);
 var entries = new List<SearchIndexEntry>(contents.Count);
 var temporaryVectorsPath = $"{vectorsPath}.tmp";
 var temporaryMetadataPath = $"{metadataPath}.tmp";
@@ -61,7 +69,7 @@ await using (var vectorStream = File.Create(temporaryVectorsPath))
 {
   foreach (var content in contents)
   {
-    var vector = embedder.Embed(CreateSearchDocument(content));
+    var vector = cache.GetOrCreate(CreateSearchDocument(content), embedder.Embed);
     if (vector.Length != MiniLmEmbedder.Dimensions)
     {
       throw new InvalidOperationException($"Expected a {MiniLmEmbedder.Dimensions}-dimensional vector for '{content.Slug}', but received {vector.Length} dimensions.");
@@ -81,6 +89,7 @@ await File.WriteAllTextAsync(temporaryMetadataPath, JsonSerializer.Serialize(ind
 File.Move(temporaryVectorsPath, vectorsPath, true);
 File.Move(temporaryMetadataPath, metadataPath, true);
 Console.WriteLine($"Generated {entries.Count} normalized {MiniLmEmbedder.Dimensions}-dimensional vectors in '{outputDirectory}'.");
+Console.WriteLine($"Embeddings: {cache.Hits} reused, {cache.Misses} generated.");
 
 static string CreateSearchDocument(ContentMetaData content)
   => SearchTextNormalizer.Normalize(

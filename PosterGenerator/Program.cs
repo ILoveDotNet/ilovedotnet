@@ -9,3 +9,8 @@ var tableOfContents = new TableOfContents();
 var posterGenerator = new PosterGenerator.PosterGenerator(tableOfContents, option.Channel!, option.OutputPath!);
 
 posterGenerator.GeneratePosters();
+
+if (!string.IsNullOrEmpty(option.Inventory))
+{
+  posterGenerator.WriteOutputInventory(option.Inventory);
+}
