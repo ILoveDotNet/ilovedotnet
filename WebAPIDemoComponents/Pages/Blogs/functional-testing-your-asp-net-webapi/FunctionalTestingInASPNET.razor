@@ -108,8 +108,8 @@
                     </figure>
                 </li>
                 <li>
-                    Add <Highlight>Microsoft.AspNetCore.Mvc.Testing 11.0.0</Highlight>, matching the API's ASP.NET Core version,
-                    and <Highlight>FluentAssertions</Highlight> for the assertions used below.
+                    Add <Highlight>Microsoft.AspNetCore.Mvc.Testing 11.0.0</Highlight>, matching the API's ASP.NET Core version.
+                    The examples use xUnit's built-in <Highlight>Assert</Highlight> methods; no additional assertion library is needed.
                 </li>
                 <li>
                     <p>Add <Highlight>Project Reference to your API project</Highlight> in your test project.</p>
@@ -172,7 +172,6 @@ public class AppFixture : WebApplicationFactory&lt;Program&gt;
 
 <CodeSnippet CssClass="language-csharp">
 using API;
-using FluentAssertions;
 using System.Diagnostics.CodeAnalysis;
 using System.Net.Http.Json;
 using Xunit;
@@ -188,8 +187,8 @@ public class WeatherForecastControllerShouldTests(
     {
         using var client = fixture.CreateClient();
         var result = await client.GetFromJsonAsync&lt;List&lt;WeatherForecast&gt;&gt;("/weatherforecast");
-        result.Should().NotBeNull();
-        result!.Count.Should().Be(5);
+        Assert.NotNull(result);
+        Assert.Equal(5, result.Count);
     }
 }
 </CodeSnippet>
@@ -267,7 +266,6 @@ public abstract class BaseTest : IDisposable
 
 <CodeSnippet CssClass="language-csharp">
 using API;
-using FluentAssertions;
 using System.Diagnostics.CodeAnalysis;
 using System.Net.Http.Json;
 using Xunit;
@@ -282,8 +280,8 @@ public class WeatherForecastControllerShouldTests(
     public async Task ReturnExpectedResponse()
     {
         var result = await Client.GetFromJsonAsync&lt;List&lt;WeatherForecast&gt;&gt;("/weatherforecast");
-        result.Should().NotBeNull();
-        result!.Count.Should().Be(5);
+        Assert.NotNull(result);
+        Assert.Equal(5, result.Count);
     }
 }
 </CodeSnippet>
@@ -296,7 +294,6 @@ public class WeatherForecastControllerShouldTests(
             </p>
 
 <CodeSnippet CssClass="language-csharp">
-using FluentAssertions;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Text.Json;
@@ -328,8 +325,8 @@ public static class HttpClientExtensions
         try
         {
             var result = await JsonSerializer.DeserializeAsync&lt;T&gt;(streamContent, _jsonDeserializeOptions);
-            response.StatusCode.Should().Be(expectedStatus);
-            result.Should().NotBeNull();
+            Assert.Equal(expectedStatus, response.StatusCode);
+            Assert.NotNull(result);
             return result!;
         }
         catch (Exception)
@@ -363,7 +360,6 @@ public static class HttpClientExtensions
 
 <CodeSnippet CssClass="language-csharp">
 using API;
-using FluentAssertions;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using Xunit;
@@ -379,7 +375,7 @@ public class WeatherForecastControllerShouldTests(
     public async Task ReturnExpectedResponse()
     {
         var result = await Client.GetJsonResultAsync&lt;List&lt;WeatherForecast&gt;&gt;("/weatherforecast", HttpStatusCode.OK, outputHelper);
-        result.Count.Should().Be(5);
+        Assert.Equal(5, result.Count);
     }
 }
 </CodeSnippet>

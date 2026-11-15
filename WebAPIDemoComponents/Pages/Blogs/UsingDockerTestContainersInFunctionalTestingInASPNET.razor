@@ -164,7 +164,6 @@ public class AppFixture : WebApplicationFactory&lt;Program&gt;, IAsyncLifetime
                 
                 <CodeSnippet CssClass="language-csharp">
 using API;
-using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
@@ -182,8 +181,7 @@ public class WeatherForecastControllerShouldTests(
         var expectedWeatherForecast = await Database.WeatherForecasts.FirstAsync();
 
         var result = await Client.GetJsonResultAsync&lt;List&lt;WeatherForecast&gt;&gt;("/weatherforecast/fromdatabase", HttpStatusCode.OK, outputHelper);
-        result.Count.Should().Be(1);
-        result[0].Should().BeEquivalentTo(expectedWeatherForecast);
+        Assert.Equivalent(expectedWeatherForecast, Assert.Single(result));
     }
 }
                 </CodeSnippet>

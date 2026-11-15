@@ -55,7 +55,6 @@
 
             <CodeSnippet CssClass="language-csharp">
 using API;
-using FluentAssertions;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using Xunit;
@@ -70,8 +69,7 @@ public class WeatherForecastControllerShouldTests(
     public async Task ReturnExpectedResponse_From_Database()
     {
         var result = await Client.GetJsonResultAsync&lt;List&lt;WeatherForecast&gt;&gt;("/weatherforecast/fromdatabase", HttpStatusCode.OK, outputHelper);
-        result.Count.Should().Be(1);
-        result[0].Summary.Should().Be("Freezing from database");
+        Assert.Equal("Freezing from database", Assert.Single(result).Summary);
     }
 }
             </CodeSnippet>
@@ -318,7 +316,6 @@ public abstract class BaseTest : IDisposable
 
             <CodeSnippet CssClass="language-csharp">
 using API;
-using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
@@ -336,8 +333,7 @@ public class WeatherForecastControllerShouldTests(
         var expectedWeatherForecast = await Database.WeatherForecasts.FirstAsync();
 
         var result = await Client.GetJsonResultAsync&lt;List&lt;WeatherForecast&gt;&gt;("/weatherforecast/fromdatabase", HttpStatusCode.OK, outputHelper);
-        result.Count.Should().Be(1);
-        result[0].Should().BeEquivalentTo(expectedWeatherForecast);
+        Assert.Equivalent(expectedWeatherForecast, Assert.Single(result));
     }
 }
             </CodeSnippet>

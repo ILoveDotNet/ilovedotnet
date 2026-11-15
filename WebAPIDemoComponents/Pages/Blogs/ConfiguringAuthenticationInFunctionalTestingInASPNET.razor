@@ -404,7 +404,6 @@ public static class WebApplicationFactoryExtensions
         <CodeSnippet CssClass="language-csharp">
 using API;
 using API.Services;
-using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
@@ -423,8 +422,7 @@ public class WeatherForecastControllerShouldTests(
 
         using var client = Factory.CreateClientWithClaim(AuthClaimsProvider.WithAdminClaims());
         var result = await client.GetJsonResultAsync&lt;List&lt;WeatherForecast&gt;&gt;("/weatherforecast/fromdatabase", HttpStatusCode.OK, outputHelper);
-        result.Count.Should().Be(1);
-        result[0].Should().BeEquivalentTo(expectedWeatherForecast);
+        Assert.Equivalent(expectedWeatherForecast, Assert.Single(result));
     }
 
     [Fact]
@@ -432,11 +430,11 @@ public class WeatherForecastControllerShouldTests(
     {
         using var guest = Factory.CreateClientWithClaim(AuthClaimsProvider.WithGuestClaims());
         using var guestResponse = await guest.GetAsync("/weatherforecast/fromdatabase");
-        guestResponse.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        Assert.Equal(HttpStatusCode.Forbidden, guestResponse.StatusCode);
 
         using var anonymous = Factory.CreateClientWithClaim(new AuthClaimsProvider());
         using var anonymousResponse = await anonymous.GetAsync("/weatherforecast/fromdatabase");
-        anonymousResponse.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        Assert.Equal(HttpStatusCode.Unauthorized, anonymousResponse.StatusCode);
     }
 
     [Fact]
@@ -445,7 +443,7 @@ public class WeatherForecastControllerShouldTests(
         using var request = new HttpRequestMessage(HttpMethod.Get, "/weatherforecast/fromdatabase");
         request.Headers.Add(TestAuthHandler.ClaimsHeader, "not-base64");
         using var response = await Client.SendAsync(request);
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 }
         </CodeSnippet>
