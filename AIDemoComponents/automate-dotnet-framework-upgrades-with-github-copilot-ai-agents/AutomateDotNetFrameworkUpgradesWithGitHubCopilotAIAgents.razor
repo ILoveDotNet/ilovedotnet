@@ -5,719 +5,148 @@
 
 <Content FileName=@nameof(AutomateDotNetFrameworkUpgradesWithGitHubCopilotAIAgents)>
     <ContentBody>
-        <ArticleNotice Title="Reader update: use the VS Code upgrade and modernization extensions">
-            <p>
-                <strong>You don't need to create a custom agent for many common .NET upgrade and modernization tasks.</strong>
-                Before following this walkthrough, consider these ready-made GitHub Copilot extensions for Visual Studio Code:
-            </p>
-            <ul>
-                <li>
-                    <a href="https://learn.microsoft.com/dotnet/core/porting/github-copilot-upgrade/overview" target="_blank" rel="noopener noreferrer">GitHub Copilot upgrade</a>
-                    provides guided assessment, planning, code changes, and validation for supported upgrade scenarios, including .NET framework and dependency upgrades.
-                </li>
-                <li>
-                    <a href="https://learn.microsoft.com/dotnet/azure/migration/appmod/install?pivots=vscode" target="_blank" rel="noopener noreferrer">GitHub Copilot modernization</a>
-                    provides guided application modernization workflows, including assessing and migrating .NET applications to Azure.
-                </li>
-            </ul>
-            <p>
-                In VS Code, open Extensions, search for the extension by name, and follow its installation and prerequisite instructions.
-                Then open your solution and select <strong>Upgrade</strong> or <strong>Modernize</strong> in the Copilot Chat agent picker.
-                Describe your target .NET version or modernization goal and review the proposed plan before applying changes.
-            </p>
-            <p>
-                <strong>AI-assisted does not mean guaranteed compatibility:</strong> work on a clean branch, review the diff,
-                and verify builds, tests, and important runtime behavior before merging.
-                Supported project types and prerequisites vary; check the linked documentation for your scenario.
-            </p>
-            <p>
-                <strong>You can skip the rest of this article if a ready-made workflow meets your needs.</strong>
-                Continue reading if you want to learn how to build a custom agent for repository-specific policies or specialized upgrade steps.
-            </p>
-        </ArticleNotice>
-
         <What>
             <p>
-                Upgrading .NET framework versions across large codebases has traditionally been a tedious, error-prone process requiring hours of manual work. 
-                <Highlight>GitHub Copilot AI Agents</Highlight> change this completely by introducing intelligent, context-aware automation that can handle 
-                the entire upgrade workflow—from analyzing your current setup to updating project files, dependencies, and CI/CD pipelines.
+                My approach to .NET upgrades is a repository-owned <Highlight>dotnet-upgrade skill</Highlight>
+                with a straightforward sequence:
+                <strong>update all in-scope target frameworks to the latest stable .NET version, run
+                    <code>dotnet outdated -u</code>, update Dockerfiles, update workflow pipelines,
+                    then fix upgrade-related failures until all required builds and tests pass.</strong>
             </p>
-
             <p>
-                A <Highlight>GitHub Copilot AI Agent</Highlight> is a specialized instruction set that tells Copilot how to approach specific complex tasks. 
-                Unlike simple prompts, agents are comprehensive workflows stored as markdown files in your <Highlight>.github/agents</Highlight> directory. 
-                They contain discovery commands, upgrade strategies, validation steps, and rollback procedures—all the expertise needed to execute multi-step operations reliably.
-            </p>
-
-            <p>
-                In this article, you'll learn how to set up a .NET upgrade agent that can transform how you modernize your applications. Instead of spending days manually 
-                updating dozens of projects, you'll type a single command like <Highlight>"Upgrade the solution to .NET 10"</Highlight> and let the agent 
-                do the heavy lifting—analyzing dependencies, updating project files, managing breaking changes, and even updating your build pipelines.
-            </p>
-
-            <h4>What Makes an AI Agent Different from Regular Prompts?</h4>
-
-            <p>
-                AI agents are <strong>persistent, reusable, and comprehensive</strong>. A regular prompt might help you update one project file, but an agent understands 
-                the entire upgrade lifecycle. It knows to check for outdated packages, identify breaking changes, update CI/CD configurations, and validate the results. 
-                Agents encode <Highlight>institutional knowledge</Highlight> that would otherwise live only in senior developers' heads.
+                Store the instructions in <Highlight>.github/skills/dotnet-upgrade/SKILL.md</Highlight>.
+                Copilot can load this skill for upgrade requests, giving it the same workflow each time.
+                This article contains the actual skill used in this repository.
             </p>
         </What>
 
         <Why>
             <p>
-                .NET framework upgrades are critical for security, performance, and access to new language features—but they're painful. Here's why manual upgrades fail 
-                and how AI agents solve these problems.
+                The order matters. Updating TFMs first lets package tooling evaluate updates against the new framework.
+                Updating Docker and pipelines then brings deployment and CI into line with the application.
+                Passing builds and tests are the completion criteria, not merely a set of edited project files.
             </p>
-
-            <h4>Problem 1: Inconsistent Upgrade Paths Across Projects</h4>
-
             <p>
-                In a typical solution with 20+ projects, some target <Highlight>net6.0</Highlight>, others use <Highlight>net7.0</Highlight>, 
-                and a few still reference <Highlight>netstandard2.1</Highlight>. When you manually upgrade, you might:
-            </p>
-
-            <ul>
-                <li>Update projects in the wrong order, breaking builds</li>
-                <li>Miss shared dependencies that cascade failures</li>
-                <li>Forget to upgrade test projects, causing CI failures</li>
-            </ul>
-
-            <CodeSnippet CssClass="language-xml">
-&lt;!-- This inconsistency is common in manual upgrades --&gt;
-&lt;!-- API.csproj --&gt;
-&lt;TargetFramework&gt;net8.0&lt;/TargetFramework&gt;
-
-&lt;!-- Shared.Library.csproj (forgotten!) --&gt;
-&lt;TargetFramework&gt;net6.0&lt;/TargetFramework&gt;
-
-&lt;!-- Result: Version conflicts and build errors --&gt;
-</CodeSnippet>
-
-            <p>
-                <strong>Consequence:</strong> Your build breaks with cryptic errors about incompatible package versions. You spend hours debugging what should have been 
-                a straightforward upgrade.
-            </p>
-
-            <h4>Problem 2: Breaking Changes Slip Through</h4>
-
-            <p>
-                Each .NET version introduces breaking changes. For example, upgrading from .NET 6 to .NET 8 changed how minimal APIs handle route groups, and 
-                <Highlight>System.Text.Json</Highlight> serialization behavior evolved. Without comprehensive testing:
-            </p>
-
-            <CodeSnippet CssClass="language-csharp">
-// This worked in .NET 6 but breaks in .NET 8+
-var json = JsonSerializer.Serialize(obj, new JsonSerializerOptions 
-{ 
-    // PropertyNamingPolicy behavior changed
-    PropertyNamingPolicy = null  
-});
-
-// Runtime exception: Serialization behavior differs
-</CodeSnippet>
-
-            <p>
-                <strong>Consequence:</strong> Production bugs appear weeks after deployment because automated tests didn't catch runtime behavior changes.
-            </p>
-
-            <h4>Problem 3: Forgotten CI/CD Pipeline Updates</h4>
-
-            <p>
-                You diligently upgrade all <Highlight>.csproj</Highlight> files but forget your <Highlight>azure-pipelines.yml</Highlight> 
-                still specifies .NET 6. Your build succeeds locally but fails in CI:
-            </p>
-
-            <CodeSnippet CssClass="language-yaml">
-# Forgotten in .github/workflows/build.yml
-- uses: actions/setup-dotnet@@v4
-  with:
-    dotnet-version: '6.x'  # Needs to be '10.x'!
-</CodeSnippet>
-
-            <p>
-                <strong>Consequence:</strong> CI/CD fails, blocking deployments until someone realizes the pipeline configuration is stale.
-            </p>
-
-            <h4>Why GitHub Copilot AI Agents Are the Solution</h4>
-
-            <p>
-                AI agents eliminate these problems through <Highlight>systematic automation with context awareness</Highlight>:
-            </p>
-
-            <ul>
-                <li><strong>Dependency-aware sequencing:</strong> Agents analyze your solution structure and upgrade projects in dependency order</li>
-                <li><strong>Comprehensive validation:</strong> They run builds, tests, and static analysis after each step</li>
-                <li><strong>Multi-file coordination:</strong> Agents update .csproj files, CI/CD configs, and documentation simultaneously</li>
-                <li><strong>Breaking change detection:</strong> They query Microsoft docs and flag deprecated APIs before they bite you</li>
-                <li><strong>Rollback readiness:</strong> Agents work in feature branches with atomic commits for easy reversion</li>
-            </ul>
-
-            <p>
-                Instead of 2-3 days of manual work (plus debugging), an AI agent completes the entire upgrade in 30 minutes—with better consistency and documentation.
+                Keeping that sequence in source control makes the workflow explicit and reviewable.
+                Repository-specific instructions cover shared framework settings, MAUI targets, central package versions,
+                and test suites that a one-line upgrade prompt could miss.
             </p>
         </Why>
 
         <How>
-            <h4>Step 1: Create the Agent Directory</h4>
-
+            <h4>Step 1: Add the Skill File</h4>
             <p>
-                Start by creating the <Highlight>.github/agents</Highlight> directory in your repository root:
-            </p>
-
-            <CodeSnippet CssClass="language-bash">
-mkdir -p .github/agents
-cd .github/agents
-</CodeSnippet>
-
-            <h4>Step 2: Create the .NET Upgrade Agent File</h4>
-
-            <p>
-                Create a file named <Highlight>dotnet-upgrade.agent.md</Highlight> in the <Highlight>.github/agents</Highlight> directory. 
-                This file will contain all the instructions for the agent. Here's the complete agent configuration:
+                Create <Highlight>.github/skills/dotnet-upgrade/SKILL.md</Highlight> with the following content.
+                It is tailored to this repository's Blazor WebAssembly and .NET MAUI solution.
+                If you use it elsewhere, replace the solution paths, platform requirements, and test projects with your own.
             </p>
 
             <CodeSnippet CssClass="language-markdown">
 ---
-description: 'Perform janitorial tasks on C#/.NET code including cleanup, modernization, and tech debt remediation.'
-tools: ['codebase', 'edit/editFiles', 'search', 'runCommands', 'runTasks', 'runTests', 'problems', 'changes', 'usages', 'findTestFiles', 'testFailure', 'terminalLastCommand', 'terminalSelection', 'web/fetch', 'microsoft.docs.mcp']
+name: dotnet-upgrade
+description: 'Upgrade this repository to a newer .NET version: update target frameworks first, upgrade NuGet packages with dotnet outdated -u, align Dockerfiles and workflow pipelines, then fix upgrade-related failures until all required builds and tests pass.'
 ---
 
-# .NET Upgrade Collection
+# .NET Upgrade
 
-.NET Framework upgrade specialist for comprehensive project migration
+Keep the upgrade focused. Preserve existing work and both Blazor WebAssembly and
+.NET MAUI compatibility. Do not perform unrelated refactoring or rewrite historical
+blog code samples.
 
-**Tags:** dotnet, upgrade, migration, framework, modernization
+1. **Discover and confirm the target.** Find all projects, effective
+   `TargetFramework`/`TargetFrameworks` values, shared MSBuild properties, SDK pins,
+   package manifests, Dockerfiles, and pipelines. Use the explicitly requested
+   version, or resolve the latest stable .NET release from Microsoft's support
+   policy: https://dotnet.microsoft.com/platform/support/policy/dotnet-core.
+   Confirm an ambiguous target; do not assume latest stable means latest LTS.
+   Verify the target SDK and required WASM/MAUI workloads are available.
+   Use the current feature branch and preserve existing changes.
+2. **Read the relevant migration documentation.** Before editing, review
+   Microsoft's breaking-change documentation for the current-to-target upgrade:
+   https://learn.microsoft.com/dotnet/core/compatibility/.
+   Include intervening releases when skipping versions, and read the official
+   migration guides or release notes for affected packages and workloads.
+   Identify changes that apply to this solution and use the documented migration
+   steps during the upgrade. If an update exposes another breaking change, read
+   its respective migration documentation before proceeding; do not guess fixes.
+3. **Update all in-scope TFMs before packages.** Start with
+   `Directory.Build.props`, then update project overrides, including production,
+   generators, and test projects. Update `MAUI\MAUI.csproj` multi-targeting,
+   TFM-dependent conditions, and active paths that embed the old TFM. Preserve
+   platform suffixes, OS-version qualifiers, conditional targets, and intentional
+   compatibility targets. Update SDK pins in `global.json` if present, preserving
+   its test-runner settings. Assess unsupported project types separately rather
+   than blindly replacing every framework string.
+4. **Upgrade NuGet packages.** Follow `.github\skills\nuget-manager\SKILL.md`.
+   Check that `dotnet-outdated-tool` is available; install it only if missing,
+   using `dotnet tool install --global dotnet-outdated-tool`, or restore a
+   repository-local tool manifest if present. Run `dotnet outdated -u` at the
+   repository root; pass `ILoveDotNet.slnx` explicitly if solution selection is
+   ambiguous. For stable-only upgrades, add `--pre-release Never`.
+   Include projects outside the solution with explicit project commands.
+   If the solution-level upgrade fails, investigate and retry affected projects
+   in dependency order, dependencies first. Versions are centrally managed in
+   `Directory.Packages.props`; verify published versions and restore after updates.
+   Keep related ASP.NET Core packages aligned with the selected framework release.
+   Review major-version changes and lock files; do not silently ignore failures.
+   Check the Aspire AppHost SDK and integration packages too; use `aspire update`
+   if required by the applicable Aspire upgrade guidance.
+5. **Update Dockerfiles.** Align .NET SDK and runtime image tags with the target,
+   including `Web\Dockerfile` and image references in Compose files. Verify tags
+   exist and build affected images with the correct context. Preserve image
+   families, OS variants, and architecture unless a change is necessary.
+   The Web app is served by nginx: do not replace its final image with a .NET
+   runtime image just because the build SDK changed.
+6. **Update workflow pipelines.** Review all `.github\workflows` files for SDK
+   versions, workloads, and framework-specific build/test/publish paths.
+   In particular, align the SDK and generated Playwright script path in
+   `.github\workflows\build-blazor-app.yml`. Update deployment runtime settings,
+   SDK pins, and directly affected documentation without unrelated action upgrades.
+7. **Make all required builds and tests pass.** Run
+   `dotnet restore ILoveDotNet.slnx`, `dotnet build ILoveDotNet.slnx --no-restore`,
+   and `dotnet build Web\Web.csproj`. Validate MAUI targets on hosts with the
+   required platform tooling; a Web build alone does not validate native targets.
+   Run `dotnet test` and verify it covers every required test project.
+   Include `UITests`, `VectorSearchIndexGenerator.Tests`,
+   `ILoveDotNet.DistributedTest`, and the separate
+   `E2E\EndToEndTests\EndToEndTests.csproj` suite using its compatible runner.
+   Follow the repository's test setup and CI commands for Playwright browser
+   installation, Aspire services, and application endpoints. Run
+   `dotnet format --verbosity quiet whitespace --folder` and review its diff.
+   Fix upgrade-related errors, consulting Microsoft's breaking-change guidance,
+   then rerun affected checks and the full required validation. Do not skip,
+   disable, or weaken tests to claim success. Verify CI before declaring completion.
+   If tooling, permissions, infrastructure, or compatibility blocks validation,
+   report the failing command, cause, and required next action.
+8. **Review and deliver.** Report the selected target, changed files, package
+   updates, validation results, and remaining risks. Commit, push, or open a PR
+   only when requested or authorized, following repository Git conventions.
 
-## Collection Usage
-
-### .NET Upgrade Chat Mode
-
-Discover and plan your .NET upgrade journey!
-
-```markdown, upgrade-analysis.prompt.md
----
-mode: dotnet-upgrade
-title: Analyze current .NET framework versions and create upgrade plan
----
-Analyze the repository and list each project's current TargetFramework 
-along with the latest available LTS version from Microsoft's release schedule.
-Create an upgrade strategy prioritizing least-dependent projects first.
-```
-
-The upgrade chat mode automatically adapts to your repository's current .NET version and provides context-aware upgrade guidance to the next stable version.
-
-It will help you:
-- Auto-detect current .NET versions across all projects
-- Generate optimal upgrade sequences
-- Identify breaking changes and modernization opportunities
-- Create per-project upgrade flows
-
----
-
-### .NET Upgrade Instructions
-
-Execute comprehensive .NET framework upgrades with structured guidance!
-
-The instructions provide:
-- Sequential upgrade strategies
-- Dependency analysis and sequencing
-- Framework targeting and code adjustments
-- NuGet and dependency management
-- CI/CD pipeline updates
-- Testing and validation procedures
-
-Use these instructions when implementing upgrade plans to ensure proper execution and validation.
-
----
-
-### .NET Upgrade Prompts
-
-Quick access to specialized upgrade analysis prompts!
-
-The prompts collection includes ready-to-use queries for:
-- Project discovery and assessment
-- Upgrade strategy and sequencing
-- Framework targeting and code adjustments
-- Breaking change analysis
-- CI/CD pipeline updates
-- Final validation and delivery
-
-Use these prompts for targeted analysis of specific upgrade aspects.
-
----
-
-## Quick Start
-1. Run a discovery pass to enumerate all `*.sln` and `*.csproj` files in the repository.
-2. Detect the current .NET version(s) used across projects.
-3. Identify the latest available stable .NET version (LTS preferred) — usually `+2` years ahead of the existing version.
-4. Generate an upgrade plan to move from current → next stable version (e.g., `net6.0 → net8.0`, or `net7.0 → net9.0`).
-5. Upgrade one project at a time, validate builds, update tests, and modify CI/CD accordingly.
-
----
-
-## Auto-Detect Current .NET Version
-To automatically detect the current framework versions across the solution:
-
-```bash
-# 1. Check global SDKs installed
-dotnet --list-sdks
-
-# 2. Detect project-level TargetFrameworks
-find . -name "*.csproj" -exec grep -H "&lt;TargetFramework" {} \;
-
-# 3. Optional: summarize unique framework versions
-grep -r "&lt;TargetFramework" **/*.csproj | sed 's/.*&lt;TargetFramework&gt;//;s/&lt;\/TargetFramework&gt;//' | sort | uniq
-
-# 4. Verify runtime environment
-dotnet --info | grep "Version"
-```
-
-**Chat Prompt:**
-&gt; "Analyze the repository and list each project's current TargetFramework along with the latest available LTS version from Microsoft's release schedule."
-
----
-
-## Discovery &amp; Analysis Commands
-```bash
-# List all projects
-dotnet sln list
-
-# Check current target frameworks for each project
-grep -H "TargetFramework" **/*.csproj
-
-# Check outdated packages
-dotnet list &lt;ProjectName&gt;.csproj package --outdated
-
-# Generate dependency graph
-dotnet msbuild &lt;ProjectName&gt;.csproj /t:GenerateRestoreGraphFile /p:RestoreGraphOutputPath=graph.json
-```
-
-**Chat Prompt:**
-&gt; "Analyze the solution and summarize each project's current TargetFramework and suggest the appropriate next LTS upgrade version."
-
----
-
-## Classification Rules
-- `TargetFramework` starts with `netcoreapp`, `net5.0+`, `net6.0+`, etc. → **Modern .NET**
-- `netstandard*` → **.NET Standard** (migrate to current .NET version)
-- `net4*` → **.NET Framework** (migrate via intermediate step to .NET 6+)
-
----
-
-## Upgrade Sequence
-1. **Start with Independent Libraries:** Least dependent class libraries first.
-2. **Next:** Shared components and common utilities.
-3. **Then:** API, Web, or Function projects.
-4. **Finally:** Tests, integration points, and pipelines.
-
-**Chat Prompt:**
-&gt; "Generate the optimal upgrade order for this repository, prioritizing least-dependent projects first."
-
----
-
-## Per-Project Upgrade Flow
-1. **Create branch:** `upgrade/&lt;project&gt;-to-&lt;targetVersion&gt;`
-2. **Edit `&lt;TargetFramework&gt;`** in `.csproj` to the suggested version (e.g., `net9.0`)
-3. **Restore &amp; update packages:**
-   ```bash
-   dotnet restore
-   dotnet list package --outdated
-   dotnet add package &lt;PackageName&gt; --version &lt;LatestVersion&gt;
-   ```
-4. **Build &amp; test:**
-   ```bash
-   dotnet build &lt;ProjectName&gt;.csproj
-   dotnet test &lt;ProjectName&gt;.Tests.csproj
-   ```
-5. **Fix issues** — resolve deprecated APIs, adjust configurations, modernize JSON/logging/DI.
-6. **Commit &amp; push** PR with test evidence and checklist.
-
----
-
-## Breaking Changes &amp; Modernization
-- Use `.NET Upgrade Assistant` for initial recommendations.
-- Apply analyzers to detect obsolete APIs.
-- Replace outdated SDKs (e.g., `Microsoft.Azure.*` → `Azure.*`).
-- Modernize startup logic (`Startup.cs` → `Program.cs` top-level statements).
-
-**Chat Prompt:**
-&gt; "List deprecated or incompatible APIs when upgrading from &lt;currentVersion&gt; to &lt;targetVersion&gt; for &lt;ProjectName&gt;."
-
----
-
-## CI/CD Configuration Updates
-Ensure pipelines use the detected **target version** dynamically:
-
-**Azure DevOps**
-```yaml
-- task: UseDotNet@2
-  inputs:
-    packageType: 'sdk'
-    version: '$(TargetDotNetVersion).x'
-```
-
-**GitHub Actions**
-```yaml
-- uses: actions/setup-dotnet@v4
-  with:
-    dotnet-version: '${{ env.TargetDotNetVersion }}.x'
-```
-
----
-
-## Validation Checklist
-- [ ] TargetFramework upgraded to next stable version
-- [ ] All NuGet packages compatible and updated
-- [ ] Build and test pipelines succeed locally and in CI
-- [ ] Integration tests pass
-- [ ] Deployed to a lower environment and verified
-
----
-
-## Branching &amp; Rollback Strategy
-- Use feature branches: `upgrade/&lt;project&gt;-to-&lt;targetVersion&gt;`
-- Commit frequently and keep changes atomic
-- If CI fails after merge, revert PR and isolate failing modules
-
-**Chat Prompt:**
-&gt; "Suggest a rollback and validation plan if the .NET upgrade for &lt;ProjectName&gt; introduces build or runtime regressions."
-
----
-
-## Automation &amp; Scaling
-- Automate upgrade detection with GitHub Actions or Azure Pipelines.
-- Schedule nightly runs to check for new .NET releases via `dotnet --list-sdks`.
-- Use agents to automatically raise PRs for outdated frameworks.
-
----
-
-## Chatmode Prompt Library
-1. "List all projects with current and recommended .NET versions."
-2. "Generate a per-project upgrade plan from &lt;currentVersion&gt; to &lt;targetVersion&gt;."
-3. "Suggest .csproj and pipeline edits to upgrade &lt;ProjectName&gt;."
-4. "Summarize build/test results post-upgrade for &lt;ProjectName&gt;."
-5. "Create PR description and checklist for the upgrade."
-
----
+Planning or assessment alone does not authorize implementation or Git changes.
 </CodeSnippet>
 
-            <h4>Step 3: Activate the Agent in VS Code</h4>
-
+            <h4>Step 2: Run the Upgrade with a Simple Prompt</h4>
             <p>
-                GitHub Copilot automatically discovers agents in the <Highlight>.github/agents</Highlight> directory. To use it:
+                With the skill in the repository, open Copilot in an environment that supports agent skills.
+                Use this prompt with your desired .NET version:
             </p>
-
-            <ol>
-                <li>Open VS Code with your solution loaded</li>
-                <li>Open GitHub Copilot Chat (Ctrl+Shift+I or Cmd+Shift+I)</li>
-                <li>Click the agent selector dropdown (looks like a brain icon or "@@")</li>
-                <li>Select <Highlight>dotnet-upgrade</Highlight> from the list</li>
-            </ol>
-
-            <h4>Step 4: Execute the Upgrade with a Simple Prompt</h4>
-
-            <p>
-                Once you've selected the agent, upgrading your entire solution becomes trivial. Type a natural language instruction:
-            </p>
-
             <CodeSnippet CssClass="language-plaintext">
-Upgrade the solution to .NET 10
+Upgrade the solution to .NET &lt;version&gt;
 </CodeSnippet>
-
             <p>
-                or if you want more specific control:
+                Replace <Highlight>&lt;version&gt;</Highlight> with your target version, such as <Highlight>11</Highlight>.
+                For my .NET 11 upgrade, Copilot handled the remaining steps using the repository skill.
+                Review the resulting changes and validation results before merging.
             </p>
-
-            <CodeSnippet CssClass="language-plaintext">
-dotnet-upgrade Analyze the solution and create an upgrade plan from current 
-versions to the latest .NET LTS, prioritizing projects with fewest dependencies
-</CodeSnippet>
-
-            <h4>Step 5: What the Agent Does Automatically</h4>
-
-            <p>
-                When you execute the prompt, the agent orchestrates a complete upgrade workflow:
-            </p>
-
-            <h4>Phase 1: Discovery & Analysis</h4>
-
-            <CodeSnippet CssClass="language-bash">
-# Agent executes these commands automatically
-dotnet sln list
-grep -r "&lt;TargetFramework" **/*.csproj
-dotnet list package --outdated
-
-# Generates dependency graph
-dotnet msbuild /t:GenerateRestoreGraphFile /p:RestoreGraphOutputPath=deps.json
-</CodeSnippet>
-
-            <p>
-                The agent builds a mental model of your solution structure, identifying:
-            </p>
-
-            <ul>
-                <li>Current framework versions for each project</li>
-                <li>Inter-project dependencies (what depends on what)</li>
-                <li>Outdated NuGet packages that need upgrading</li>
-                <li>Projects using deprecated frameworks (netstandard, netcoreapp)</li>
-            </ul>
-
-            <h4>Phase 2: Upgrade Sequencing</h4>
-
-            <p>
-                The agent determines the safest upgrade order. For example, given this structure:
-            </p>
-
-            <CodeSnippet CssClass="language-plaintext">
-Solution: MyApp
-│
-├── Shared.Models.csproj (net6.0) ← No dependencies
-├── Shared.Services.csproj (net6.0) ← Depends on Models
-├── API.csproj (net7.0) ← Depends on Services
-└── API.Tests.csproj (net7.0) ← Depends on API
-
-Upgrade order:
-1. Shared.Models (foundation, no deps)
-2. Shared.Services (depends only on Models)
-3. API (depends on Services)
-4. API.Tests (depends on API)
-</CodeSnippet>
-
-            <h4>Phase 3: Automated Updates</h4>
-
-            <p>
-                For each project in sequence, the agent:
-            </p>
-
-            <CodeSnippet CssClass="language-xml">
-&lt;!-- Before: API.csproj --&gt;
-&lt;Project Sdk="Microsoft.NET.Sdk.Web"&gt;
-  &lt;PropertyGroup&gt;
-    &lt;TargetFramework&gt;net7.0&lt;/TargetFramework&gt;
-  &lt;/PropertyGroup&gt;
-&lt;/Project&gt;
-
-&lt;!-- After: Agent updates to --&gt;
-&lt;Project Sdk="Microsoft.NET.Sdk.Web"&gt;
-  &lt;PropertyGroup&gt;
-    &lt;TargetFramework&gt;net10.0&lt;/TargetFramework&gt;
-  &lt;/PropertyGroup&gt;
-&lt;/Project&gt;
-</CodeSnippet>
-
-            <p>
-                Then updates NuGet packages:
-            </p>
-
-            <CodeSnippet CssClass="language-bash">
-# Agent executes
-dotnet restore API.csproj
-dotnet list API.csproj package --outdated
-dotnet add API.csproj package Microsoft.AspNetCore.OpenApi --version 10.0.0
-dotnet add API.csproj package Swashbuckle.AspNetCore --version 7.0.0
-</CodeSnippet>
-
-            <h4>Phase 4: CI/CD Pipeline Updates</h4>
-
-            <p>
-                The agent scans for pipeline files and updates .NET versions automatically:
-            </p>
-
-            <CodeSnippet CssClass="language-yaml">
-# Before: .github/workflows/build.yml
-- uses: actions/setup-dotnet@@v4
-  with:
-    dotnet-version: '7.x'
-
-# After: Agent updates to
-- uses: actions/setup-dotnet@@v4
-  with:
-    dotnet-version: '10.x'
-</CodeSnippet>
-
-            <CodeSnippet CssClass="language-yaml">
-# Before: azure-pipelines.yml
-- task: UseDotNet@@2
-  inputs:
-    packageType: 'sdk'
-    version: '7.x'
-
-# After: Agent updates to
-- task: UseDotNet@@2
-  inputs:
-    packageType: 'sdk'
-    version: '10.x'
-</CodeSnippet>
-
-            <h4>Phase 5: Validation & Testing</h4>
-
-            <p>
-                After each project upgrade, the agent validates the changes:
-            </p>
-
-            <CodeSnippet CssClass="language-bash">
-# Build verification
-dotnet build API.csproj --no-restore
-
-# Test execution
-dotnet test API.Tests.csproj --no-build
-
-# Static analysis
-dotnet format --verify-no-changes
-</CodeSnippet>
-
-            <p>
-                If any step fails, the agent pauses and reports the error with context, allowing you to fix issues before proceeding.
-            </p>
-
-            <h4>Step 6: Review Agent Output and Commit</h4>
-
-            <p>
-                The agent generates a comprehensive summary of all changes:
-            </p>
-
-            <CodeSnippet CssClass="language-markdown">
-## Upgrade Summary
-
-**Target Version:** .NET 10.0
-**Projects Updated:** 4
-**NuGet Packages Updated:** 12
-**CI/CD Pipelines Updated:** 2
-
-### Projects Upgraded
-1. ✅ Shared.Models (net6.0 → net10.0)
-2. ✅ Shared.Services (net6.0 → net10.0)
-3. ✅ API (net7.0 → net10.0)
-4. ✅ API.Tests (net7.0 → net10.0)
-
-### Breaking Changes Addressed
-- Updated `JsonSerializerOptions` usage in API/Serialization.cs
-- Migrated `IHostingEnvironment` to `IWebHostEnvironment`
-- Replaced deprecated `ConfigureWebHostDefaults` pattern
-
-### Next Steps
-1. Review changes in feature branch `upgrade/solution-to-net10`
-2. Run full integration test suite
-3. Deploy to staging environment for validation
-4. Merge to main after approval
-</CodeSnippet>
-
-            <p>
-                All changes are committed to a feature branch with descriptive messages, making it easy to review before merging.
-            </p>
-
-            <h4>Advanced: Customizing the Agent for Your Needs</h4>
-
-            <p>
-                You can extend the agent to match your organization's specific requirements:
-            </p>
-
-            <CodeSnippet CssClass="language-markdown">
-## Custom Validation Rules
-
-```bash
-# Add company-specific package version requirements
-# Example: We always use latest preview of Azure SDKs
-dotnet add package Azure.Identity --version "*-*"
-dotnet add package Azure.Storage.Blobs --version "*-*"
-```
-
-## Custom Breaking Change Checks
-
-- Verify custom middleware still compatible
-- Check internal framework extensions
-- Validate custom analyzers and code generators
-
-## Custom Rollback Procedures
-
-If upgrade fails in production:
-1. Revert feature branch
-2. Tag stable pre-upgrade state
-3. Document rollback reason in issues
-4. Schedule retry with fixes
-</CodeSnippet>
-
-            <h4>Tips for Successful Agent-Driven Upgrades</h4>
-
-            <ul>
-                <li><strong>Start with a clean git state:</strong> Commit or stash changes before running the agent</li>
-                <li><strong>Review agent decisions:</strong> Don't blindly accept all changes—understand what's happening</li>
-                <li><strong>Test incrementally:</strong> Validate each project upgrade before moving to the next</li>
-                <li><strong>Update agents regularly:</strong> Add new patterns as you encounter edge cases</li>
-                <li><strong>Share agents across teams:</strong> Check them into source control so everyone benefits</li>
-            </ul>
-
-            <h4>Handling Complex Scenarios</h4>
-
-            <p>
-                For solutions with mixed .NET Framework (net48) and .NET Core projects, the agent can guide incremental migrations:
-            </p>
-
-            <CodeSnippet CssClass="language-plaintext">
-dotnet-upgrade Create a migration plan to move net48 projects to net8.0, 
-identifying which projects can migrate directly and which need netstandard2.0 
-as an intermediate step
-</CodeSnippet>
-
-            <p>
-                The agent will analyze assembly compatibility, dependency graphs, and suggest a path like:
-            </p>
-
-            <CodeSnippet CssClass="language-plaintext">
-Migration Path for Legacy Projects:
-
-Phase 1: Shared Libraries
-- Shared.Models.csproj: net48 → netstandard2.0 → net8.0
-- Shared.Utils.csproj: net48 → netstandard2.0 → net8.0
-
-Phase 2: Applications  
-- WebApp: net48 → net8.0 (direct migration, ASP.NET → ASP.NET Core)
-- WindowsService: net48 → net8.0 (requires Worker Service template)
-
-Blockers Identified:
-- WebApp uses System.Web.Mvc (requires rewrite to ASP.NET Core MVC)
-- WindowsService uses Topshelf (replace with Microsoft.Extensions.Hosting)
-</CodeSnippet>
         </How>
 
         <Summary>
-            <h4>Key Takeaways</h4>
-
-            <ul>
-                <li>
-                    GitHub Copilot AI Agents transform .NET upgrades from multi-day manual chores into 30-minute automated workflows
-                </li>
-                <li>
-                    Agents are <Highlight>reusable markdown files</Highlight> stored in <Highlight>.github/agents</Highlight> 
-                    that encode comprehensive workflows including discovery, sequencing, validation, and rollback procedures
-                </li>
-                <li>
-                    The <Highlight>dotnet-upgrade agent</Highlight> automatically analyzes your solution, upgrades projects in dependency 
-                    order, updates NuGet packages, and modernizes CI/CD pipelines—all from a simple natural language prompt
-                </li>
-                <li>
-                    Agents eliminate common upgrade failures by ensuring <Highlight>consistent sequencing</Highlight>, detecting breaking 
-                    changes early, and validating each step before proceeding
-                </li>
-                <li>
-                    You can customize agents to match your organization's specific requirements, adding custom validation rules, breaking change checks, 
-                    and rollback procedures
-                </li>
-                <li>
-                    Always work in <Highlight>feature branches</Highlight>, review agent decisions before merging, and test incrementally 
-                    to maintain confidence in automated upgrades
-                </li>
-                <li>
-                    Sharing agents across teams through source control creates <Highlight>institutional knowledge</Highlight> that compounds 
-                    over time, making every future upgrade easier
-                </li>
-            </ul>
-
             <p>
-                Start by creating your first upgrade agent today. The initial setup takes 15 minutes, but you'll save hours on every subsequent framework 
-                upgrade. As you refine the agent with your team's specific patterns and lessons learned, it becomes an invaluable automation asset that 
-                pays dividends across your entire development lifecycle.
+                Keep the upgrade workflow in one skill:
+                <strong>TFMs first, <code>dotnet outdated -u</code>, Dockerfiles, workflow pipelines,
+                    then passing builds and all required tests.</strong>
+                The skill records both the sequence and this repository's requirements so Copilot has a clear task
+                and a concrete definition of done.
             </p>
         </Summary>
     </ContentBody>
