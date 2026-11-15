@@ -93,7 +93,8 @@
     {
         try
         {
-            var product = products.AsQueryable().Last(queryModel.Query!);
+            var predicate = DynamicExpressionParser.ParseLambda<Product, bool>(new ParsingConfig(), true, queryModel.Query!).Compile();
+            var product = products.Last(predicate);
             products = new List<Product>(1) { product };
         }
         catch (Exception ex)

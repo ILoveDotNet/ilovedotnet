@@ -93,7 +93,8 @@
     {
         try
         {
-            var partitionedProducts = products.AsQueryable().TakeWhile(queryModel.Query!).ToDynamicList<Product>();
+            var predicate = DynamicExpressionParser.ParseLambda<Product, bool>(new ParsingConfig(), true, queryModel.Query!).Compile();
+            var partitionedProducts = products.TakeWhile(predicate).ToList();
             products = partitionedProducts;
         }
         catch (Exception ex)
