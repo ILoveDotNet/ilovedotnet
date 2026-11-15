@@ -96,8 +96,8 @@ public class AILearningPath
       new ContentMetaData
         {
           Order = 6,
-          Title = "Automate .NET Framework Upgrades with GitHub Copilot AI Agents",
-          Description = "In this post I will teach you how to set up a GitHub Copilot AI Agent that automates .NET framework upgrades across your entire solution—from analyzing dependencies to updating CI/CD pipelines—all with a single natural language command.",
+          Title = "Automate .NET Upgrades with GitHub Copilot Agent Skills",
+          Description = "Learn a simple GitHub Copilot skill workflow for .NET upgrades: update target frameworks, run dotnet outdated -u, align Dockerfiles and CI pipelines, then fix upgrade-related failures until all required builds and tests pass.",
           Author = "Abdul Rahman",
           Slug = "automate-dotnet-framework-upgrades-with-github-copilot-ai-agents",
           PosterUrl = "image/blogs/ai/automate-dotnet-framework-upgrades-with-github-copilot-ai-agents.webp",
@@ -107,8 +107,8 @@ public class AILearningPath
           Channel = "AI",
           Type = "blogs",
           CreatedOn = new DateTime(2026, 2, 8, 22, 30, 0, DateTimeKind.Utc),
-          ModifiedOn = new DateTime(2026, 2, 8, 22, 30, 0, DateTimeKind.Utc),
-          Keywords = ["Copilot", "GitHub", "AI Agent", ".NET Upgrade", "Framework Migration", "Automation"]
+          ModifiedOn = new DateTime(2026, 11, 15, 0, 0, 0, DateTimeKind.Utc),
+          Keywords = ["Copilot", "GitHub", "Agent Skills", ".NET Upgrade", "dotnet-outdated", "NuGet", "Docker", "CI/CD", "Automation"]
         },
       new ContentMetaData
         {
