@@ -159,34 +159,18 @@ Replace the generated `.csproj` content with the standard pattern:
   	<ProjectReference Include="..\SharedComponents\SharedComponents.csproj" />
   </ItemGroup>
 
-  <Target Name="GenerateSitemapXml" BeforeTargets="PreBuildEvent" Condition="'$(Configuration)'!='Release'">
-    <PropertyGroup>
-      <SitemapXmlFilePath>$([System.IO.Path]::Combine('wwwroot', 'sitemap-blog-{topic}.xml'))</SitemapXmlFilePath>
-    </PropertyGroup>
-
-    <Exec Command="dotnet run --project &quot;$(ProjectDir)../SitemapGenerator&quot; -p BuildScope=$(ProjectName) -o &quot;$(ProjectDir)$(SitemapXmlFilePath)&quot; --channel &quot;{Topic}Channel&quot;" />
-
-    <ItemGroup>
-      <Content Remove="$(SitemapXmlFilePath)" />
-      <Content Include="$(SitemapXmlFilePath)" />
-    </ItemGroup>
-  </Target>
-
-  <Target Name="GeneratePoster" BeforeTargets="PreBuildEvent" Condition="'$(Configuration)'!='Release'">
-    <PropertyGroup>
-      <PosterOutputPath>$([System.IO.Path]::Combine('wwwroot', 'image', 'blogs', '{topic}'))</PosterOutputPath>
-    </PropertyGroup>
-
-    <Exec Command="dotnet run --project &quot;$(ProjectDir)../PosterGenerator&quot; -p BuildScope=$(ProjectName) -o &quot;$(ProjectDir)$(PosterOutputPath)&quot; --channel &quot;{Topic}Channel&quot;" />
-
-    <ItemGroup>
-      <Content Remove="$(PosterOutputPath)\**\*" />
-      <Content Include="$(PosterOutputPath)\**\*" />
-    </ItemGroup>
-  </Target>
+  <PropertyGroup>
+    <ContentGenerationChannel>{Topic}Channel</ContentGenerationChannel>
+    <SitemapXmlFilePath>$([System.IO.Path]::Combine('wwwroot', 'sitemap-blog-{topic}.xml'))</SitemapXmlFilePath>
+    <PosterOutputPath>$([System.IO.Path]::Combine('wwwroot', 'image', 'blogs', '{topic}'))</PosterOutputPath>
+  </PropertyGroup>
 
 </Project>
 ```
+
+`Directory.Build.targets` supplies incremental sitemap/poster targets and shared
+generator builds. Do not add per-project `dotnet run` build events. The metadata
+input defaults to `SharedModels/{Topic}LearningPath.cs`.
 
 ### Step 8: Update _Imports.razor
 Replace the generated `_Imports.razor` content with:

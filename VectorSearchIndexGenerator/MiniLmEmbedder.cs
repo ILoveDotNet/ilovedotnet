@@ -9,12 +9,12 @@ internal sealed class MiniLmEmbedder : IDisposable
   public const int Dimensions = 384;
   public const int MaxTokens = 256;
 
-  private readonly InferenceSession _session;
+  private readonly Lazy<InferenceSession> _session;
   private readonly BertTokenizer _tokenizer;
 
   public MiniLmEmbedder(string onnxModelPath, string vocabularyPath)
   {
-    _session = new InferenceSession(onnxModelPath);
+    _session = new Lazy<InferenceSession>(() => new InferenceSession(onnxModelPath));
     _tokenizer = BertTokenizer.Create(vocabularyPath, new BertOptions
     {
       LowerCaseBeforeTokenization = true,
@@ -42,7 +42,7 @@ internal sealed class MiniLmEmbedder : IDisposable
       attentionMask[0, index] = 1;
     }
 
-    using var results = _session.Run(
+    using var results = _session.Value.Run(
     [
       NamedOnnxValue.CreateFromTensor("input_ids", inputIds),
       NamedOnnxValue.CreateFromTensor("attention_mask", attentionMask),
@@ -89,5 +89,11 @@ internal sealed class MiniLmEmbedder : IDisposable
     return Embed(text);
   }
 
-  public void Dispose() => _session.Dispose();
+  public void Dispose()
+  {
+    if (_session.IsValueCreated)
+    {
+      _session.Value.Dispose();
+    }
+  }
 }

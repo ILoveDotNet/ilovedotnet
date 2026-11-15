@@ -46,11 +46,25 @@ public class PosterGenerator(TableOfContents tableOfContents,
       }
       catch (Exception ex)
       {
-        Console.WriteLine($"Error generating poster for {content.Slug}: {ex.Message}");
+        Console.Error.WriteLine($"Error generating poster for {content.Slug}: {ex.Message}");
+        throw;
       }
     }
 
     Console.WriteLine($"Poster generation completed for {channel} channel.");
+  }
+
+  public void WriteOutputInventory(string path)
+  {
+    var outputs = tableOfContents.AllContents
+      .Where(content => content.Channel.Equals(channel, StringComparison.OrdinalIgnoreCase))
+      .SelectMany(content => new[]
+      {
+        Path.GetFullPath(Path.Combine(outputPath, $"{content.Slug}.png")),
+        Path.GetFullPath(Path.Combine(outputPath, $"{content.Slug}.webp"))
+      });
+    Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
+    File.WriteAllLines(path, outputs);
   }
 
   private static bool ShouldSkipGeneration(string posterPath, ContentMetaData content)

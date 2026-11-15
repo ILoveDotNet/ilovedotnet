@@ -1,0 +1,92 @@
+<Project>
+  <PropertyGroup>
+    <ContentGeneratorRoot>$(MSBuildThisFileDirectory)</ContentGeneratorRoot>
+    <ContentGeneratorOutput>$([System.IO.Path]::Combine('bin', 'ContentGenerators', 'Debug', '$(ContentGeneratorTargetFramework)'))</ContentGeneratorOutput>
+    <SitemapGeneratorAssembly>$([System.IO.Path]::Combine('$(ContentGeneratorRoot)', 'SitemapGenerator', '$(ContentGeneratorOutput)', 'SitemapGenerator.dll'))</SitemapGeneratorAssembly>
+    <PosterGeneratorAssembly>$([System.IO.Path]::Combine('$(ContentGeneratorRoot)', 'PosterGenerator', '$(ContentGeneratorOutput)', 'PosterGenerator.dll'))</PosterGeneratorAssembly>
+    <RSSFeedGeneratorAssembly>$([System.IO.Path]::Combine('$(ContentGeneratorRoot)', 'RSSFeedGenerator', '$(ContentGeneratorOutput)', 'RSSFeedGenerator.dll'))</RSSFeedGeneratorAssembly>
+    <VectorSearchGeneratorAssembly>$([System.IO.Path]::Combine('$(ContentGeneratorRoot)', 'VectorSearchIndexGenerator', '$(ContentGeneratorOutput)', 'VectorSearchIndexGenerator.dll'))</VectorSearchGeneratorAssembly>
+    <ContentGenerationState>$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '$(IntermediateOutputPath)', 'content-generation'))</ContentGenerationState>
+    <_PosterGenerationDate>$([System.DateTime]::UtcNow.ToString('yyyy-MM-dd'))</_PosterGenerationDate>
+    <SitemapXmlFullPath Condition="'$(SitemapXmlFilePath)' != ''">$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '$(SitemapXmlFilePath)'))</SitemapXmlFullPath>
+    <PosterFullPath Condition="'$(PosterOutputPath)' != ''">$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '$(PosterOutputPath)'))</PosterFullPath>
+    <RSSFeedXmlFullPath Condition="'$(RSSFeedXmlFilePath)' != ''">$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '$(RSSFeedXmlFilePath)'))</RSSFeedXmlFullPath>
+    <ContentGeneratorProperties>Configuration=Debug;Platform=AnyCPU;TargetFramework=$(ContentGeneratorTargetFramework);BuildScope=ContentGenerators</ContentGeneratorProperties>
+    <ContentGeneratorRemoveProperties>TargetFrameworks;RuntimeIdentifier;RuntimeIdentifiers;SelfContained;PublishAot;PublishTrimmed;WasmBuildingForNestedPublish;WasmBuildNative;GHPages;BuildProjectReferences;ContentGenerationChannel;SitemapXmlFilePath;PosterOutputPath;RSSFeedXmlFilePath;_PosterGenerationDate</ContentGeneratorRemoveProperties>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ContentGeneratorProject Include="$(ContentGeneratorRoot)SitemapGenerator\SitemapGenerator.csproj;$(ContentGeneratorRoot)PosterGenerator\PosterGenerator.csproj;$(ContentGeneratorRoot)RSSFeedGenerator\RSSFeedGenerator.csproj;$(ContentGeneratorRoot)VectorSearchIndexGenerator\VectorSearchIndexGenerator.csproj" />
+  </ItemGroup>
+
+  <!-- Separate restore/build evaluations so a clean checkout imports newly restored package targets. -->
+  <Target Name="BuildContentGenerators">
+    <MSBuild Projects="@(ContentGeneratorProject)" Targets="Restore"
+             Properties="$(ContentGeneratorProperties);ExcludeRestorePackageImports=true"
+             RemoveProperties="$(ContentGeneratorRemoveProperties)" BuildInParallel="false" />
+    <MSBuild Projects="@(ContentGeneratorProject)" Targets="Build"
+             Properties="$(ContentGeneratorProperties)"
+             RemoveProperties="$(ContentGeneratorRemoveProperties)" BuildInParallel="false" />
+  </Target>
+
+  <ItemGroup Condition="'$(ContentGenerationChannel)' != ''">
+    <ChannelModelInput Include="@(ContentModelInput)"
+                       Exclude="$(ContentGeneratorRoot)SharedModels\*LearningPath.cs"
+                       Condition="'$(ContentGenerationChannel)' != 'Channel'" />
+    <ChannelModelInput Include="$(ContentGeneratorRoot)SharedModels\$(MSBuildProjectName.Replace('DemoComponents', 'LearningPath')).cs"
+                       Condition="'$(ContentGenerationChannel)' != 'Channel'" />
+    <ChannelModelInput Include="@(ContentModelInput)" Condition="'$(ContentGenerationChannel)' == 'Channel'" />
+    <SitemapInput Include="@(ChannelModelInput);@(ContentBuildInput);$(MSBuildProjectFullPath);$(ContentGeneratorRoot)SitemapGenerator\*.cs;$(ContentGeneratorRoot)SitemapGenerator\SitemapGenerator.csproj" />
+    <PosterInput Include="@(ChannelModelInput);@(ContentBuildInput);$(MSBuildProjectFullPath);$(ContentGeneratorRoot)PosterGenerator\*.cs;$(ContentGeneratorRoot)PosterGenerator\PosterGenerator.csproj" />
+  </ItemGroup>
+
+  <Target Name="PrepareChannelGeneration" Condition="'$(ContentGenerationChannel)' != ''">
+    <MakeDir Directories="$(ContentGenerationState)" />
+    <WriteLinesToFile File="$(ContentGenerationState)sitemap.inputs" Lines="@(SitemapInput->'%(FullPath)');$(ContentGenerationChannel);$(SitemapXmlFilePath)"
+                      Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <Delete Files="$(ContentGenerationState)sitemap.stamp" Condition="!Exists('$(SitemapXmlFilePath)')" />
+    <WriteLinesToFile File="$(ContentGenerationState)poster.inputs" Lines="@(PosterInput->'%(FullPath)');$(ContentGenerationChannel);$(PosterOutputPath);$(_PosterGenerationDate)"
+                      Overwrite="true" WriteOnlyWhenDifferent="true" Condition="'$(PosterOutputPath)' != ''" />
+    <ReadLinesFromFile File="$(ContentGenerationState)poster.outputs" Condition="Exists('$(ContentGenerationState)poster.outputs')">
+      <Output TaskParameter="Lines" ItemName="PosterOutput" />
+    </ReadLinesFromFile>
+    <Delete Files="$(ContentGenerationState)poster.stamp" Condition="'$(PosterOutputPath)' != '' And !Exists('$(ContentGenerationState)poster.outputs')" />
+    <Delete Files="$(ContentGenerationState)poster.stamp" Condition="'@(PosterOutput)' != '' And !Exists('%(PosterOutput.Identity)')" />
+  </Target>
+
+  <Target Name="GenerateSitemapXml" BeforeTargets="PreBuildEvent"
+          Condition="'$(Configuration)' != 'Release' And '$(ContentGenerationChannel)' != ''"
+          DependsOnTargets="PrepareChannelGeneration"
+          Inputs="@(SitemapInput);$(ContentGenerationState)sitemap.inputs;$(SitemapXmlFilePath)"
+          Outputs="$(ContentGenerationState)sitemap.stamp">
+    <CallTarget Targets="BuildContentGenerators" />
+    <Exec Command="dotnet &quot;$(SitemapGeneratorAssembly)&quot; -o &quot;$(SitemapXmlFullPath)&quot; --channel &quot;$(ContentGenerationChannel)&quot;" />
+    <Error Text="Sitemap generation did not produce $(SitemapXmlFilePath)." Condition="!Exists('$(SitemapXmlFilePath)')" />
+    <Touch Files="$(ContentGenerationState)sitemap.stamp" AlwaysCreate="true" />
+  </Target>
+
+  <Target Name="GeneratePoster" BeforeTargets="PreBuildEvent"
+          Condition="'$(Configuration)' != 'Release' And '$(ContentGenerationChannel)' != '' And '$(PosterOutputPath)' != ''"
+          DependsOnTargets="PrepareChannelGeneration"
+          Inputs="@(PosterInput);$(ContentGenerationState)poster.inputs;$(ContentGenerationState)poster.outputs;@(PosterOutput)"
+          Outputs="$(ContentGenerationState)poster.stamp">
+    <CallTarget Targets="BuildContentGenerators" />
+    <Exec Command="dotnet &quot;$(PosterGeneratorAssembly)&quot; -o &quot;$(PosterFullPath)&quot; --channel &quot;$(ContentGenerationChannel)&quot; --inventory &quot;$(ContentGenerationState)poster.outputs&quot;" />
+    <ReadLinesFromFile File="$(ContentGenerationState)poster.outputs">
+      <Output TaskParameter="Lines" ItemName="GeneratedPosterOutput" />
+    </ReadLinesFromFile>
+    <Error Text="Poster generation did not produce %(GeneratedPosterOutput.Identity)." Condition="'@(GeneratedPosterOutput)' != '' And !Exists('%(GeneratedPosterOutput.Identity)')" />
+    <Touch Files="$(ContentGenerationState)poster.stamp" AlwaysCreate="true" />
+  </Target>
+
+  <Target Name="IncludeChannelAssets" BeforeTargets="ResolveProjectStaticWebAssets"
+          DependsOnTargets="GenerateSitemapXml;GeneratePoster"
+          Condition="'$(Configuration)' != 'Release' And '$(ContentGenerationChannel)' != ''">
+    <ItemGroup>
+      <Content Remove="$(SitemapXmlFilePath)" />
+      <Content Include="$(SitemapXmlFilePath)" />
+      <Content Remove="$(PosterOutputPath)\**\*" Condition="'$(PosterOutputPath)' != ''" />
+      <Content Include="$(PosterOutputPath)\**\*" Condition="'$(PosterOutputPath)' != ''" />
+    </ItemGroup>
+  </Target>
+</Project>

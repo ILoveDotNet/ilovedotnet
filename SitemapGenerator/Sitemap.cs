@@ -75,5 +75,20 @@ public class Sitemap(TableOfContents tableOfContents, string channel)
     return isAnyContentUpdatedAndRepublished;
   }
 
-  private bool isAnyNewContentAddedOrScheduled => _urls.Count != _sitemap?.Descendants("url").Count();
+  private bool isAnyNewContentAddedOrScheduled
+  {
+    get
+    {
+      if (_sitemap is null)
+      {
+        return true;
+      }
+
+      XNamespace ns = "http://www.sitemaps.org/schemas/sitemap/0.9";
+      var existingUrls = _sitemap.Descendants(ns + "url").ToArray();
+      return _urls.Count != existingUrls.Length
+        || !_urls.Select(url => url.Loc).ToHashSet(StringComparer.Ordinal).SetEquals(
+          existingUrls.Select(url => url.Element(ns + "loc")?.Value ?? string.Empty));
+    }
+  }
 }

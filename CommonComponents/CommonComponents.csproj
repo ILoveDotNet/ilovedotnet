@@ -20,10 +20,18 @@
 
   <PropertyGroup>
     <ChatCorpusCutoff Condition="'$(ChatCorpusCutoff)' == ''">$([System.DateTime]::UtcNow.ToString('yyyy-MM-dd'))</ChatCorpusCutoff>
-    <TransformersBundleDirectory>$(MSBuildThisFileDirectory)..\TransformersBundle\</TransformersBundleDirectory>
+    <ChatBundleDirectory>$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '..', 'ChatBundle'))</ChatBundleDirectory>
+    <TransformersBundleDirectory>$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '..', 'TransformersBundle'))</TransformersBundleDirectory>
+    <SearchOutputDirectory>$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', 'wwwroot', 'search'))</SearchOutputDirectory>
+    <ChatOutputDirectory>$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', 'wwwroot', 'chat', 'corpus'))</ChatOutputDirectory>
     <TransformersBundleOutput>wwwroot\lib\transformers\transformers.min.js</TransformersBundleOutput>
-    <ThirdPartyNoticesSource>$(MSBuildThisFileDirectory)..\THIRD-PARTY-NOTICES.txt</ThirdPartyNoticesSource>
+    <TransformersBundleFullPath>$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '$(TransformersBundleOutput)'))</TransformersBundleFullPath>
+    <ThirdPartyNoticesSource>$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '..', 'THIRD-PARTY-NOTICES.txt'))</ThirdPartyNoticesSource>
     <ThirdPartyNoticesOutput>wwwroot\THIRD-PARTY-NOTICES.txt</ThirdPartyNoticesOutput>
+    <ThirdPartyNoticesFullPath>$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '$(ThirdPartyNoticesOutput)'))</ThirdPartyNoticesFullPath>
+    <ContentGenerationChannel>Channel</ContentGenerationChannel>
+    <SitemapXmlFilePath>wwwroot\sitemap-channels.xml</SitemapXmlFilePath>
+    <RSSFeedXmlFilePath>wwwroot\atom.xml</RSSFeedXmlFilePath>
   </PropertyGroup>
 
   <ItemGroup>
@@ -35,34 +43,46 @@
     <TransformersBundleInput Include="$(ThirdPartyNoticesSource)" />
   </ItemGroup>
 
-  <Target Name="BuildChatBundle" BeforeTargets="ResolveProjectStaticWebAssets"
-          Inputs="@(ChatBundleInput)" Outputs="wwwroot\lib\webllm\webllm.js">
-    <Exec Command="npm ci --include=dev --ignore-scripts" WorkingDirectory="$(MSBuildThisFileDirectory)..\ChatBundle"
-          Condition="!Exists('$(MSBuildThisFileDirectory)..\ChatBundle\node_modules\@mlc-ai\web-llm') OR !Exists('$(MSBuildThisFileDirectory)..\ChatBundle\node_modules\esbuild')" />
-    <Exec Command="npm run build" WorkingDirectory="$(MSBuildThisFileDirectory)..\ChatBundle" />
-    <MakeDir Directories="wwwroot\lib\webllm" />
-    <Copy SourceFiles="$(MSBuildThisFileDirectory)..\ChatBundle\dist\webllm.js" DestinationFiles="wwwroot\lib\webllm\webllm.js" />
-    <ItemGroup>
-      <Content Remove="wwwroot\lib\webllm\webllm.js" />
-      <Content Include="wwwroot\lib\webllm\webllm.js" />
-    </ItemGroup>
+  <Target Name="RestoreChatBundle" DependsOnTargets="PrepareCommonGeneration"
+          Inputs="..\ChatBundle\package.json;..\ChatBundle\package-lock.json"
+          Outputs="..\ChatBundle\node_modules\.restore.stamp">
+    <Exec Command="npm ci --include=dev --ignore-scripts" WorkingDirectory="$(ChatBundleDirectory)" />
+    <Touch Files="..\ChatBundle\node_modules\.restore.stamp" AlwaysCreate="true" />
   </Target>
 
-  <Target Name="BuildTransformersBundle" BeforeTargets="ResolveProjectStaticWebAssets" Inputs="@(TransformersBundleInput)" Outputs="$(TransformersBundleOutput);$(ThirdPartyNoticesOutput)">
-    <Exec Command="npm ci --include=dev" WorkingDirectory="$(TransformersBundleDirectory)" Condition="!Exists('$(TransformersBundleDirectory)node_modules\@xenova\transformers') OR !Exists('$(TransformersBundleDirectory)node_modules\esbuild')" />
-    <Exec Command="npm run build" WorkingDirectory="$(TransformersBundleDirectory)" />
-    <MakeDir Directories="$([System.IO.Path]::GetDirectoryName('$(MSBuildProjectDirectory)\$(TransformersBundleOutput)'))" />
-    <Copy SourceFiles="$(TransformersBundleDirectory)dist\transformers.min.js" DestinationFiles="$(MSBuildProjectDirectory)\$(TransformersBundleOutput)" />
-    <Copy SourceFiles="$(ThirdPartyNoticesSource)" DestinationFiles="$(MSBuildProjectDirectory)\$(ThirdPartyNoticesOutput)" />
+  <Target Name="BuildChatBundle" BeforeTargets="ResolveProjectStaticWebAssets"
+          DependsOnTargets="PrepareCommonGeneration"
+          Inputs="@(ChatBundleInput);@(ContentBuildInput);$(MSBuildProjectFullPath);$(ContentGenerationState)chat-bundle.inputs;wwwroot\lib\webllm\webllm.js"
+          Outputs="$(ContentGenerationState)chat-bundle.stamp">
+    <CallTarget Targets="RestoreChatBundle" />
+    <Exec Command="npm run build" WorkingDirectory="$(ChatBundleDirectory)" />
+    <MakeDir Directories="wwwroot\lib\webllm" />
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)..\ChatBundle\dist\webllm.js" DestinationFiles="wwwroot\lib\webllm\webllm.js" />
+    <Touch Files="$(ContentGenerationState)chat-bundle.stamp" AlwaysCreate="true" />
+  </Target>
 
-    <ItemGroup>
-      <Content Remove="$(TransformersBundleOutput);$(ThirdPartyNoticesOutput)" />
-      <Content Include="$(TransformersBundleOutput);$(ThirdPartyNoticesOutput)" />
-    </ItemGroup>
+  <Target Name="RestoreTransformersBundle" DependsOnTargets="PrepareCommonGeneration"
+          Inputs="$(TransformersBundleDirectory)package.json;$(TransformersBundleDirectory)package-lock.json"
+          Outputs="$(TransformersBundleDirectory)node_modules\.restore.stamp">
+    <Exec Command="npm ci --include=dev" WorkingDirectory="$(TransformersBundleDirectory)" />
+    <Touch Files="$(TransformersBundleDirectory)node_modules\.restore.stamp" AlwaysCreate="true" />
+  </Target>
+
+  <Target Name="BuildTransformersBundle" BeforeTargets="ResolveProjectStaticWebAssets"
+          DependsOnTargets="PrepareCommonGeneration"
+          Inputs="@(TransformersBundleInput);@(ContentBuildInput);$(MSBuildProjectFullPath);$(ContentGenerationState)transformers-bundle.inputs;$(TransformersBundleOutput);$(ThirdPartyNoticesOutput)"
+          Outputs="$(ContentGenerationState)transformers-bundle.stamp">
+    <CallTarget Targets="RestoreTransformersBundle" />
+    <Exec Command="npm run build" WorkingDirectory="$(TransformersBundleDirectory)" />
+    <MakeDir Directories="$([System.IO.Path]::GetDirectoryName('$(TransformersBundleFullPath)'))" />
+    <Copy SourceFiles="$(TransformersBundleDirectory)dist\transformers.min.js" DestinationFiles="$(TransformersBundleFullPath)" />
+    <Copy SourceFiles="$(ThirdPartyNoticesSource)" DestinationFiles="$(ThirdPartyNoticesFullPath)" />
+
+    <Touch Files="$(ContentGenerationState)transformers-bundle.stamp" AlwaysCreate="true" />
   </Target>
 
   <ItemGroup>
-    <SearchIndexInput Include="$(MSBuildThisFileDirectory)..\SharedModels\**\*.cs" />
+    <SearchIndexInput Include="@(ContentModelInput);@(ContentBuildInput);$(MSBuildProjectFullPath)" />
     <SearchIndexInput Include="$(MSBuildThisFileDirectory)..\VectorSearchIndexGenerator\**\*.cs" Exclude="$(MSBuildThisFileDirectory)..\VectorSearchIndexGenerator\bin\**;$(MSBuildThisFileDirectory)..\VectorSearchIndexGenerator\obj\**" />
     <SearchIndexInput Include="$(MSBuildThisFileDirectory)..\VectorSearchIndexGenerator\VectorSearchIndexGenerator.csproj" />
     <SearchIndexInput Include="$(MSBuildThisFileDirectory)..\Directory.Build.props" />
@@ -74,7 +94,7 @@
     <Content Remove="wwwroot\chat\corpus\**" />
     <ChatCorpusInput Include="$(MSBuildThisFileDirectory)..\*DemoComponents\**\*.razor"
                      Exclude="$(MSBuildThisFileDirectory)..\**\bin\**;$(MSBuildThisFileDirectory)..\**\obj\**" />
-    <ChatCorpusInput Include="$(MSBuildThisFileDirectory)..\SharedModels\**\*.cs" />
+    <ChatCorpusInput Include="@(ContentModelInput);@(ContentBuildInput)" />
     <ChatCorpusInput Include="$(MSBuildThisFileDirectory)..\VectorSearchIndexGenerator\**\*.cs"
                      Exclude="$(MSBuildThisFileDirectory)..\VectorSearchIndexGenerator\bin\**;$(MSBuildThisFileDirectory)..\VectorSearchIndexGenerator\obj\**" />
     <ChatCorpusInput Include="$(MSBuildThisFileDirectory)..\VectorSearchIndexGenerator\VectorSearchIndexGenerator.csproj" />
@@ -83,23 +103,55 @@
     <ChatCorpusInput Include="$(MSBuildThisFileDirectory)..\Directory.Packages.props" />
   </ItemGroup>
 
-  <Target Name="UpdateChatCorpusInventory">
-    <MakeDir Directories="$(IntermediateOutputPath)chat-corpus" />
-    <WriteLinesToFile File="$(IntermediateOutputPath)chat-corpus\inputs.txt"
+  <ItemGroup>
+    <RSSFeedInput Include="@(ContentModelInput);@(ContentBuildInput);$(MSBuildProjectFullPath);..\RSSFeedGenerator\*.cs;..\RSSFeedGenerator\RSSFeedGenerator.csproj" />
+    <CssInput Include="Styles\**\*.scss;Styles\**\*.css;tailwind.config.js;package.json;package-lock.json;$(MSBuildProjectFullPath);@(ContentBuildInput)"
+              Exclude="Styles\bulma-output.css;Styles\tailwind-output.css;Styles\app.css;Styles\app.min.css" />
+    <CssInput Include="..\**\*.razor;..\**\*.html;..\**\*.cs"
+              Exclude="..\**\bin\**;..\**\obj\**;..\**\node_modules\**" />
+  </ItemGroup>
+
+  <Target Name="PrepareCommonGeneration">
+    <MakeDir Directories="$(ContentGenerationState)" />
+    <WriteLinesToFile File="$(ContentGenerationState)chat.inputs"
                       Lines="@(ChatCorpusInput->'%(FullPath)')"
                       Overwrite="true"
                       WriteOnlyWhenDifferent="true" />
-    <WriteLinesToFile File="$(IntermediateOutputPath)chat-corpus\cutoff.txt"
+    <WriteLinesToFile File="$(ContentGenerationState)chat.cutoff"
                       Lines="$(ChatCorpusCutoff)"
                       Overwrite="true"
                       WriteOnlyWhenDifferent="true" />
+    <WriteLinesToFile File="$(ContentGenerationState)search.inputs" Lines="@(SearchIndexInput->'%(FullPath)')" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <WriteLinesToFile File="$(ContentGenerationState)rss.inputs" Lines="@(RSSFeedInput->'%(FullPath)')" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <WriteLinesToFile File="$(ContentGenerationState)css.inputs" Lines="@(CssInput->'%(FullPath)')" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <WriteLinesToFile File="$(ContentGenerationState)chat-bundle.inputs" Lines="@(ChatBundleInput->'%(FullPath)');$(MSBuildProjectFullPath);@(ContentBuildInput)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <WriteLinesToFile File="$(ContentGenerationState)transformers-bundle.inputs" Lines="@(TransformersBundleInput->'%(FullPath)');$(MSBuildProjectFullPath);@(ContentBuildInput)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <ReadLinesFromFile File="$(ContentGenerationState)chat.outputs" Condition="Exists('$(ContentGenerationState)chat.outputs')">
+      <Output TaskParameter="Lines" ItemName="ChatCorpusOutput" />
+    </ReadLinesFromFile>
+    <Delete Files="$(ContentGenerationState)chat.stamp" Condition="!Exists('$(ContentGenerationState)chat.outputs')" />
+    <Delete Files="$(ContentGenerationState)chat.stamp" Condition="!Exists('%(ChatCorpusOutput.Identity)')" />
+    <Delete Files="$(ContentGenerationState)search.stamp" Condition="!Exists('wwwroot\search\index.json') Or !Exists('wwwroot\search\index.vec')" />
+    <Delete Files="$(ContentGenerationState)rss.stamp" Condition="!Exists('$(RSSFeedXmlFilePath)')" />
+    <Delete Files="$(ContentGenerationState)css.stamp" Condition="!Exists('wwwroot\css\app.min.css')" />
+    <Delete Files="$(ContentGenerationState)chat-bundle.stamp" Condition="!Exists('wwwroot\lib\webllm\webllm.js')" />
+    <Delete Files="$(ContentGenerationState)transformers-bundle.stamp" Condition="!Exists('$(TransformersBundleOutput)') Or !Exists('$(ThirdPartyNoticesOutput)')" />
+    <Delete Files="..\ChatBundle\node_modules\.restore.stamp" Condition="!Exists('..\ChatBundle\node_modules\@mlc-ai\web-llm') Or !Exists('..\ChatBundle\node_modules\esbuild')" />
+    <Delete Files="$(TransformersBundleDirectory)node_modules\.restore.stamp" Condition="!Exists('$(TransformersBundleDirectory)node_modules\@xenova\transformers') Or !Exists('$(TransformersBundleDirectory)node_modules\esbuild')" />
+    <Delete Files="node_modules\.restore.stamp" Condition="!Exists('node_modules\sass') Or !Exists('node_modules\@tailwindcss\cli') Or !Exists('node_modules\charts.css')" />
   </Target>
 
   <Target Name="GenerateChatCorpus"
-          DependsOnTargets="UpdateChatCorpusInventory"
-          Inputs="@(ChatCorpusInput);$(IntermediateOutputPath)chat-corpus\inputs.txt;$(IntermediateOutputPath)chat-corpus\cutoff.txt"
-          Outputs="wwwroot\chat\corpus\manifest.json">
-    <Exec Command="dotnet run --project &quot;$(MSBuildThisFileDirectory)..\VectorSearchIndexGenerator\VectorSearchIndexGenerator.csproj&quot; -- --chat &quot;$(MSBuildThisFileDirectory)wwwroot\chat\corpus&quot; --cutoff &quot;$(ChatCorpusCutoff)&quot;" />
+          DependsOnTargets="PrepareCommonGeneration"
+          Inputs="@(ChatCorpusInput);$(ContentGenerationState)chat.inputs;$(ContentGenerationState)chat.cutoff;$(ContentGenerationState)chat.outputs;@(ChatCorpusOutput)"
+          Outputs="$(ContentGenerationState)chat.stamp">
+    <CallTarget Targets="BuildContentGenerators" />
+    <Exec Command="dotnet &quot;$(VectorSearchGeneratorAssembly)&quot; --chat &quot;$(ChatOutputDirectory)&quot; --cutoff &quot;$(ChatCorpusCutoff)&quot; --inventory &quot;$(ContentGenerationState)chat.outputs&quot;" />
+    <ReadLinesFromFile File="$(ContentGenerationState)chat.outputs">
+      <Output TaskParameter="Lines" ItemName="GeneratedChatOutput" />
+    </ReadLinesFromFile>
+    <Error Text="Chat generation did not produce %(GeneratedChatOutput.Identity)." Condition="!Exists('%(GeneratedChatOutput.Identity)')" />
+    <Touch Files="$(ContentGenerationState)chat.stamp" AlwaysCreate="true" />
   </Target>
 
   <Target Name="IncludeChatCorpusAssets"
@@ -110,12 +162,21 @@
     </ItemGroup>
   </Target>
 
-  <Target Name="GenerateContentVectorIndex" BeforeTargets="ResolveProjectStaticWebAssets" Inputs="@(SearchIndexInput)" Outputs="wwwroot\search\index.json;wwwroot\search\index.vec">
-    <Exec Command="dotnet run --project &quot;$(MSBuildThisFileDirectory)..\VectorSearchIndexGenerator\VectorSearchIndexGenerator.csproj&quot; -- &quot;$(MSBuildThisFileDirectory)wwwroot\search&quot;" />
+  <Target Name="GenerateContentVectorIndex" BeforeTargets="ResolveProjectStaticWebAssets"
+          DependsOnTargets="PrepareCommonGeneration"
+          Inputs="@(SearchIndexInput);$(ContentGenerationState)search.inputs;wwwroot\search\index.json;wwwroot\search\index.vec"
+          Outputs="$(ContentGenerationState)search.stamp">
+    <CallTarget Targets="BuildContentGenerators" />
+    <Exec Command="dotnet &quot;$(VectorSearchGeneratorAssembly)&quot; &quot;$(SearchOutputDirectory)&quot;" />
+    <Error Text="Search generation did not produce both index files." Condition="!Exists('wwwroot\search\index.json') Or !Exists('wwwroot\search\index.vec')" />
+    <Touch Files="$(ContentGenerationState)search.stamp" AlwaysCreate="true" />
+  </Target>
 
+  <Target Name="IncludeGeneratedCommonAssets" BeforeTargets="ResolveProjectStaticWebAssets"
+          DependsOnTargets="BuildChatBundle;BuildTransformersBundle;GenerateContentVectorIndex;GenerateRSSFeedXml">
     <ItemGroup>
-      <Content Remove="wwwroot\search\index.json;wwwroot\search\index.vec" />
-      <Content Include="wwwroot\search\index.json;wwwroot\search\index.vec" />
+      <Content Remove="wwwroot\search\index.json;wwwroot\search\index.vec;wwwroot\lib\webllm\webllm.js;$(TransformersBundleOutput);$(ThirdPartyNoticesOutput);$(RSSFeedXmlFilePath)" />
+      <Content Include="wwwroot\search\index.json;wwwroot\search\index.vec;wwwroot\lib\webllm\webllm.js;$(TransformersBundleOutput);$(ThirdPartyNoticesOutput);$(RSSFeedXmlFilePath)" />
     </ItemGroup>
   </Target>
 
@@ -124,8 +185,19 @@
   	<None Include="wwwroot\css\app.css" />
   </ItemGroup> -->
 
-  <Target Name="BuildCSS" BeforeTargets="PreBuildEvent" Condition="'$(Configuration)'=='Release'">
+  <Target Name="RestoreCssDependencies" DependsOnTargets="PrepareCommonGeneration" Condition="'$(Configuration)' == 'Release'"
+          Inputs="package.json;package-lock.json" Outputs="node_modules\.restore.stamp">
+    <Exec Command="npm ci" />
+    <Touch Files="node_modules\.restore.stamp" AlwaysCreate="true" />
+  </Target>
+
+  <Target Name="BuildCSS" BeforeTargets="PreBuildEvent" Condition="'$(Configuration)'=='Release'"
+          DependsOnTargets="PrepareCommonGeneration"
+          Inputs="@(CssInput);$(ContentGenerationState)css.inputs;wwwroot\css\app.min.css"
+          Outputs="$(ContentGenerationState)css.stamp">
+    <CallTarget Targets="RestoreCssDependencies" />
     <Exec Command="npm run buildcss" />
+    <Touch Files="$(ContentGenerationState)css.stamp" AlwaysCreate="true" />
   </Target>
   
   <Target Name="CopyChartCSS" BeforeTargets="PreBuildEvent" Condition="'$(Configuration)'=='Release'">
@@ -138,30 +210,14 @@
   	<Copy SourceFiles="@(DataFiles)" DestinationFolder="$(ProjectDir)\wwwroot\css\" SkipUnchangedFiles="true" />
   </Target>
 
-  <Target Name="GenerateRSSFeedXml" BeforeTargets="ResolveProjectStaticWebAssets" Condition="'$(WasmBuildingForNestedPublish)'!='true'">
-    <PropertyGroup>
-      <RSSFeedXmlFilePath>$([System.IO.Path]::Combine('wwwroot', 'atom.xml'))</RSSFeedXmlFilePath>
-    </PropertyGroup>
-
-    <Exec Command="dotnet run --project &quot;$(ProjectDir)../RSSFeedGenerator&quot; -p BuildScope=$(ProjectName) -o &quot;$(ProjectDir)$(RSSFeedXmlFilePath)&quot;" />
-
-    <ItemGroup>
-      <Content Remove="$(RSSFeedXmlFilePath)" />
-      <Content Include="$(RSSFeedXmlFilePath)" />
-    </ItemGroup>
-  </Target>
-
-  <Target Name="GenerateSitemapXml" BeforeTargets="PreBuildEvent" Condition="'$(Configuration)'!='Release'">
-      <PropertyGroup>
-          <SitemapXmlFilePath>$([System.IO.Path]::Combine('wwwroot', 'sitemap-channels.xml'))</SitemapXmlFilePath>
-      </PropertyGroup>
-
-      <Exec Command="dotnet run --project &quot;$(ProjectDir)../SitemapGenerator&quot; -p BuildScope=$(ProjectName) -o &quot;$(ProjectDir)$(SitemapXmlFilePath)&quot; --channel &quot;Channel&quot;" />
-
-      <ItemGroup>
-          <Content Remove="$(SitemapXmlFilePath)" />
-          <Content Include="$(SitemapXmlFilePath)" />
-      </ItemGroup>
+  <Target Name="GenerateRSSFeedXml" BeforeTargets="ResolveProjectStaticWebAssets" Condition="'$(WasmBuildingForNestedPublish)'!='true'"
+          DependsOnTargets="PrepareCommonGeneration"
+          Inputs="@(RSSFeedInput);$(ContentGenerationState)rss.inputs;$(RSSFeedXmlFilePath)"
+          Outputs="$(ContentGenerationState)rss.stamp">
+    <CallTarget Targets="BuildContentGenerators" />
+    <Exec Command="dotnet &quot;$(RSSFeedGeneratorAssembly)&quot; -o &quot;$(RSSFeedXmlFullPath)&quot;" />
+    <Error Text="RSS generation did not produce $(RSSFeedXmlFilePath)." Condition="!Exists('$(RSSFeedXmlFilePath)')" />
+    <Touch Files="$(ContentGenerationState)rss.stamp" AlwaysCreate="true" />
   </Target>
 
 </Project>
