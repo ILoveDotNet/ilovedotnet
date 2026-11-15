@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Components.Infrastructure;
+﻿using Microsoft.AspNetCore.Components.Infrastructure;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using OpenTelemetry;
