@@ -15,12 +15,20 @@
 @code {
     private IJSObjectReference? module;
     [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
+    [Inject] private ILogger<JavascriptAlert> Logger { get; set; } = default!;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./jsinterop.js");
+            try
+            {
+                module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./jsinterop.js");
+            }
+            catch (JSException exception)
+            {
+                Logger.LogWarning(exception, "Unable to initialize alert interop");
+            }
         }
     }
 
@@ -28,7 +36,14 @@
     {
         if (module is not null)
         {
-            await module.InvokeVoidAsync("displayAlert", "I ❤️ DotNet");
+            try
+            {
+                await module.InvokeVoidAsync("displayAlert", "I ❤️ DotNet");
+            }
+            catch (JSException exception)
+            {
+                Logger.LogWarning(exception, "Unable to display browser alert");
+            }
         }
     }
 

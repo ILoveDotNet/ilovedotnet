@@ -16,12 +16,20 @@
 @code {
     private IJSObjectReference? module;
     [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
+    [Inject] private ILogger<DotNetStaticMethodFromJavascript> Logger { get; set; } = default!;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./jsinterop.js");
+            try
+            {
+                module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./jsinterop.js");
+            }
+            catch (JSException exception)
+            {
+                Logger.LogWarning(exception, "Unable to initialize static method interop");
+            }
         }
     }
 
@@ -29,7 +37,14 @@
     {
         if (module is not null)
         {
-            await module.InvokeVoidAsync("callDotNetStaticFromJs");
+            try
+            {
+                await module.InvokeVoidAsync("callDotNetStaticFromJs");
+            }
+            catch (JSException exception)
+            {
+                Logger.LogWarning(exception, "Unable to call the .NET static method from JavaScript");
+            }
         }
     }
 

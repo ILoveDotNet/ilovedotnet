@@ -26,6 +26,7 @@
     [Inject] private TableOfContents TableOfContents { get; set; } = default!;
     [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
     [Inject] private HttpClient HttpClient { get; set; } = default!;
+    [Inject] private ILogger<ComplexClosedXMLDemo> Logger { get; set; } = default!;
 
     protected override async Task OnInitializedAsync()
     {
@@ -80,7 +81,14 @@
     {
         if (firstRender)
         {
-            module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./excel-download.js");
+            try
+            {
+                module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./excel-download.js");
+            }
+            catch (JSException exception)
+            {
+                Logger.LogWarning(exception, "Unable to initialize Excel download interop");
+            }
         }
     }
 
@@ -88,7 +96,14 @@
     {
         if (module is not null)
         {
-            await module.InvokeVoidAsync("saveAsFile", "TableOfContents.xlsx", base64String);
+            try
+            {
+                await module.InvokeVoidAsync("saveAsFile", "TableOfContents.xlsx", base64String);
+            }
+            catch (JSException exception)
+            {
+                Logger.LogWarning(exception, "Unable to download complex Excel report");
+            }
         }
     }
 

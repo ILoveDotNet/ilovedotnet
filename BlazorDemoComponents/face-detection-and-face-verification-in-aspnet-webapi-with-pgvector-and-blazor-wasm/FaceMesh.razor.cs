@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
 
 namespace BlazorDemoComponents;
@@ -7,6 +8,7 @@ namespace BlazorDemoComponents;
 public partial class FaceMesh : IAsyncDisposable
 {
   [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
+  [Inject] private ILogger<FaceMesh> Logger { get; set; } = default!;
 
   private bool _initialized;
   private IJSObjectReference? _jsModule;
@@ -22,24 +24,50 @@ public partial class FaceMesh : IAsyncDisposable
   public bool IsCapturing { get; private set; }
   public FeatureVectorResult? LatestVector { get; set; }
 
-  public void SetLivenessMode(string mode)
+  public async Task SetLivenessMode(string mode)
   {
     if (_initialized && _jsModule != null)
-      _ = _jsModule.InvokeVoidAsync("setLivenessMode", mode);
+    {
+      try
+      {
+        await _jsModule.InvokeVoidAsync("setLivenessMode", mode);
+      }
+      catch (JSException exception)
+      {
+        Logger.LogWarning(exception, "Unable to set face liveness mode");
+      }
+    }
   }
 
-  public void ResetLiveness()
+  public async Task ResetLiveness()
   {
     if (_initialized && _jsModule != null)
-      _ = _jsModule.InvokeVoidAsync("resetLiveness");
+    {
+      try
+      {
+        await _jsModule.InvokeVoidAsync("resetLiveness");
+      }
+      catch (JSException exception)
+      {
+        Logger.LogWarning(exception, "Unable to reset face liveness");
+      }
+    }
   }
 
   public bool WebcamEnabled { get; private set; }
 
   protected override async Task OnInitializedAsync()
   {
-    _jsModule = await JSRuntime.InvokeAsync<IJSObjectReference>("import",
-        "/face-detection-and-face-verification-in-aspnet-webapi-with-pgvector-and-blazor-wasm/FaceMesh.razor.js");
+    try
+    {
+      _jsModule = await JSRuntime.InvokeAsync<IJSObjectReference>("import",
+          "/face-detection-and-face-verification-in-aspnet-webapi-with-pgvector-and-blazor-wasm/FaceMesh.razor.js");
+    }
+    catch (JSException exception)
+    {
+      Logger.LogError(exception, "Unable to initialize face mesh interop");
+    }
+
     _dotNetRef = DotNetObjectReference.Create(this);
     // Camera is NOT started automatically — user must click Enable Camera.
   }
@@ -54,9 +82,13 @@ public partial class FaceMesh : IAsyncDisposable
       WebcamEnabled = true;
       StateHasChanged();
     }
-    catch (Exception ex) when (ex.Message.Contains("NotAllowedError") || ex.Message.Contains("Permission denied"))
+    catch (JSException exception) when (exception.Message.Contains("NotAllowedError") || exception.Message.Contains("Permission denied"))
     {
-      // Camera permission denied — user can retry.
+      Logger.LogInformation(exception, "Camera permission denied; the user can retry");
+    }
+    catch (JSException exception)
+    {
+      Logger.LogError(exception, "Unable to start face mesh camera");
     }
   }
 
@@ -72,7 +104,7 @@ public partial class FaceMesh : IAsyncDisposable
     IsCapturing = false;
     StateHasChanged();
     try { await _jsModule.InvokeVoidAsync("dispose"); }
-    catch (Exception ex) { Console.WriteLine($"FaceMesh.StopCamera: {ex.Message}"); }
+    catch (JSException exception) { Logger.LogWarning(exception, "Unable to stop face mesh camera"); }
   }
 
   public async Task CaptureFeatureVector()
@@ -81,8 +113,16 @@ public partial class FaceMesh : IAsyncDisposable
     {
       IsCapturing = true;
       StateHasChanged();
-      await _jsModule.InvokeVoidAsync("captureFeatureVector", _dotNetRef);
-      // IsCapturing is reset inside OnFeatureVectorReady
+      try
+      {
+        await _jsModule.InvokeVoidAsync("captureFeatureVector", _dotNetRef);
+      }
+      catch (JSException exception)
+      {
+        IsCapturing = false;
+        Logger.LogError(exception, "Unable to capture face feature vector");
+      }
+      // IsCapturing is reset inside OnFeatureVectorReady after a successful capture.
     }
   }
 
@@ -99,7 +139,7 @@ public partial class FaceMesh : IAsyncDisposable
         }
         await _jsModule.DisposeAsync();
       }
-      catch (Exception ex) { Console.WriteLine($"FaceMesh.DisposeAsync: {ex.Message}"); }
+      catch (JSException exception) { Logger.LogWarning(exception, "Unable to dispose face mesh interop"); }
       _dotNetRef?.Dispose();
     }
   }

@@ -57,9 +57,15 @@ public class CodeSnippetBase : ComponentBase, IAsyncDisposable
   {
     if (firstRender)
     {
-      module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./highlight.js");
-
-      await module.InvokeVoidAsync("highlightCode", Id);
+      try
+      {
+        module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./highlight.js");
+        await module.InvokeVoidAsync("highlightCode", Id);
+      }
+      catch (JSException exception)
+      {
+        Logger.LogWarning(exception, "Unable to initialize code snippet {SnippetId}", Id);
+      }
 
       StateHasChanged();
     }
