@@ -1,4 +1,5 @@
 @page "/blogs/configuring-authentication-in-functional-testing-in-asp-net-webapi"
+@using BaseComponents
 @inherits BasePage
 
 <Content FileName=@nameof(ConfiguringAuthenticationInFunctionalTestingInASPNET)>
@@ -31,14 +32,27 @@
         </p>
 
         <CodeSnippet CssClass="language-csharp">
-builder.Services.AddControllers();
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
-builder.Services.AddAuthentication().AddJwtBearer();
+builder.Services.AddControllers();
+builder.Services.AddAuthorization();
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer();
 
 var app = builder.Build();
 
+app.UseAuthentication();
 app.UseAuthorization();
+app.MapControllers();
+app.Run();
         </CodeSnippet>
+
+        <p>
+            Configure the real JWT bearer options for your issuer and audience in the application.
+            The test-only handler below replaces authentication in the test host; it does not validate JWT signatures,
+            issuers, audiences, or expiration. Keep real-token validation covered separately.
+        </p>
 
         <p>
             Now we need to decorate the endpoints with <Highlight>[Authorize]</Highlight> attribute as shown below.
@@ -86,7 +100,10 @@ app.UseAuthorization();
 
         <p>
             Setting up <Highlight>Authentication</Highlight> in <Highlight>Functional Test</Highlight> is a bit tricky as it cannot be 
-            mocked like unit tests. But here is plan as per <NavLink href="https://learn.microsoft.com/en-us/aspnet/core/test/integration-tests?view=aspnetcore-8.0#mock-authentication" class="[ underline ]" target="_blank">official documentation</NavLink>. 
+            mocked like unit tests. We replace the authentication scheme in the test host as shown in the
+            <NavLink href="https://learn.microsoft.com/en-us/aspnet/core/test/integration-tests?view=aspnetcore-11.0#mock-authentication" class="[ underline ]" target="_blank">official documentation</NavLink>.
+            Keep the <Highlight>xUnit.net v3 AppFixture</Highlight> and per-test <Highlight>BaseTest</Highlight> from the previous article.
+            Do not add a separate class or collection fixture.
         </p>
 
         <ol>
@@ -118,7 +135,9 @@ public class AuthClaimsProvider
             </li>
             <li>
                 <p>
-                    Next, we need to add <Highlight>AuthenticationHandler</Highlight>.
+                    Next, add <Highlight>TestAuthHandler</Highlight> and the <Highlight>ClaimDto</Highlight> record shown below.
+                    Claims from a request header override the default provider. Empty claims represent an anonymous request;
+                    malformed headers fail authentication rather than falling back to an authenticated default user.
                 </p>
 
                 <CodeSnippet CssClass="language-csharp">
@@ -145,26 +164,47 @@ public class TestAuthHandler(
     {
         IList&lt;Claim&gt; claims;
 
-        if (Request.Headers.TryGetValue(ClaimsHeader, out var headerValue)
-            &amp;&amp; !string.IsNullOrWhiteSpace(headerValue))
+        if (Request.Headers.TryGetValue(ClaimsHeader, out var headerValue))
         {
-            var json = Encoding.UTF8.GetString(Convert.FromBase64String(headerValue.ToString()));
-            var dtos = JsonSerializer.Deserialize&lt;ClaimDto[]&gt;(json) ?? [];
-            claims = dtos.Select(d =&gt; new Claim(d.Type, d.Value)).ToList();
+            if (headerValue.Count != 1 || string.IsNullOrWhiteSpace(headerValue[0]))
+            {
+                return Task.FromResult(AuthenticateResult.Fail("Invalid test claims header."));
+            }
+
+            try
+            {
+                var json = Encoding.UTF8.GetString(Convert.FromBase64String(headerValue[0]!));
+                var dtos = JsonSerializer.Deserialize&lt;ClaimDto[]&gt;(json);
+                if (dtos is null || dtos.Any(d =&gt;
+                    d is null || string.IsNullOrWhiteSpace(d.Type) || d.Value is null))
+                {
+                    return Task.FromResult(AuthenticateResult.Fail("Invalid test claims payload."));
+                }
+
+                claims = dtos.Select(d =&gt; new Claim(d.Type, d.Value)).ToList();
+            }
+            catch (FormatException)
+            {
+                return Task.FromResult(AuthenticateResult.Fail("Test claims must be Base64 encoded."));
+            }
+            catch (JsonException)
+            {
+                return Task.FromResult(AuthenticateResult.Fail("Test claims must contain valid JSON."));
+            }
         }
         else
         {
             claims = _claims;
         }
 
+        if (claims.Count == 0)
+        {
+            return Task.FromResult(AuthenticateResult.NoResult());
+        }
+
         var identity = new ClaimsIdentity(claims, SchemeName);
         var principal = new ClaimsPrincipal(identity);
         var ticket = new AuthenticationTicket(principal, SchemeName);
-
-        // If needed to add anything in HttpContext to be available inside app, then we can do it below.
-        // the below example uses claims to set value. But it can be anything. 
-        // Just Inject _httpContextAccessor in this class and use.
-        // _httpContextAccessor.HttpContext.Items[key] = principal.Claims.First(claim =&gt; claim.Type == key)?.Value;
 
         var result = AuthenticateResult.Success(ticket);
 
@@ -176,34 +216,32 @@ public class TestAuthHandler(
             </li>
             <li>
                 <p>
-                    When application is started in test host add new authentication scheme (let's call it <Highlight>Test</Highlight>).
+                    Add the following callback inside the existing <Highlight>AppFixture.ConfigureWebHost</Highlight>.
+                    Keep its database registrations and WireMock configuration unchanged. Add the authentication, test-host,
+                    dependency-injection, and claims namespaces shown here to <Highlight>AppFixture.cs</Highlight>.
                 </p>
 
                 <CodeSnippet CssClass="language-csharp">
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
+using System.Security.Claims;
 
-namespace FunctionalTest;
-public class CustomWebApiFactory(SharedFixture fixture) : WebApplicationFactory&lt;Program&gt;
+// Inside AppFixture.ConfigureWebHost, after the existing configuration:
+builder.ConfigureTestServices(services =&gt;
 {
-    public SharedFixture SharedFixture =&gt; fixture;
-
-    protected override void ConfigureWebHost(IWebHostBuilder builder)
-    {
-        builder.UseEnvironment("Test");
-        
-        builder.ConfigureTestServices(services =&gt;
+    services.AddAuthentication(options =&gt;
         {
-            services.AddAuthentication(TestAuthHandler.SchemeName)
-                .AddScheme&lt;AuthenticationSchemeOptions, TestAuthHandler&gt;(TestAuthHandler.SchemeName, _ =&gt; { });
+            options.DefaultScheme = TestAuthHandler.SchemeName;
+            options.DefaultAuthenticateScheme = TestAuthHandler.SchemeName;
+            options.DefaultChallengeScheme = TestAuthHandler.SchemeName;
+            options.DefaultForbidScheme = TestAuthHandler.SchemeName;
+        })
+        .AddScheme&lt;AuthenticationSchemeOptions, TestAuthHandler&gt;(TestAuthHandler.SchemeName, _ =&gt; { });
 
-            services.AddScoped(_ =&gt; new AuthClaimsProvider());
-        });
-    }
-}
+    services.AddScoped(_ =&gt; new AuthClaimsProvider(
+        [new Claim(ClaimTypes.NameIdentifier, "default-test-user")]));
+});
                 </CodeSnippet>
 
             </li>
@@ -218,6 +256,13 @@ public class CustomWebApiFactory(SharedFixture fixture) : WebApplicationFactory&
         </ol>
 
         <p>
+            Explicit defaults override applications that already set separate bearer authenticate or challenge schemes.
+            They do not override an <Highlight>[Authorize(AuthenticationSchemes = "Bearer")]</Highlight> attribute or a policy
+            that explicitly selects bearer authentication. Such endpoints need a matching test-host policy configuration
+            or real test tokens. Register this handler only in the functional test project, never in the production host.
+        </p>
+
+        <p>
             That's it now if we run our tests, it should pass. Here is the output of the test after adding the above code.
         </p>
 
@@ -229,10 +274,9 @@ public class CustomWebApiFactory(SharedFixture fixture) : WebApplicationFactory&
         <h4 id="setup-authorization">Setup Authorization</h4>
 
         <p>
-            So far so good. Now the problem with the above <Highlight>TestHandler</Highlight> is that it provides static set of claims for all the 
-            tests. This will not be the case in real world applications. The handler provides web application with static set of claims. No matter what is the 
-            request claims are always the same. This way it is not possible to test application with different users and roles. We need to validate 
-            <Highlight>Authorization</Highlight> for endpoints which require different set of claims. So we need to configure claims for each test. Here is the plan.
+            The default provider supplies the same identity to clients without a claims header. The handler already supports
+            per-request overrides; now we will create clients with different users and roles. This keeps claims local to each client
+            without mutating the assembly fixture or starting another application host.
         </p>
 
         <ol>
@@ -284,6 +328,12 @@ public class AuthClaimsProvider
 }
                 </CodeSnippet>
 
+                <p>
+                    Replace the <Highlight>AuthClaimsProvider</Highlight> registration above with
+                    <Highlight>services.AddScoped(_ =&gt; AuthClaimsProvider.WithGuestClaims());</Highlight>
+                    to make ordinary clients authenticated guests. An empty provider passed to the client extension still sends
+                    an empty claims array, which explicitly overrides the default and produces an anonymous request.
+                </p>
             </li>
             <li>
                 <p>
@@ -307,21 +357,17 @@ using System.Text.Json;
 
 namespace FunctionalTest;
 
-/// &lt;summary&gt;
-/// Stamps an &lt;c&gt;X-Test-Claims&lt;/c&gt; header on every outgoing request so that
-/// &lt;see cref="TestAuthHandler"/&gt; can resolve per-request claims without
-/// spinning up a new &lt;c&gt;TestServer&lt;/c&gt; via &lt;c&gt;WithWebHostBuilder&lt;/c&gt;.
-/// &lt;/summary&gt;
 internal sealed class ClaimsInjectionHandler(IList&lt;Claim&gt; claims) : DelegatingHandler
 {
+    private readonly string _encoded = Convert.ToBase64String(Encoding.UTF8.GetBytes(
+        JsonSerializer.Serialize(claims.Select(c =&gt; new ClaimDto(c.Type, c.Value)).ToArray())));
+
     protected override Task&lt;HttpResponseMessage&gt; SendAsync(
         HttpRequestMessage request,
         CancellationToken cancellationToken)
     {
-        var dtos = claims.Select(c =&gt; new ClaimDto(c.Type, c.Value));
-        var json = JsonSerializer.Serialize(dtos);
-        var encoded = Convert.ToBase64String(Encoding.UTF8.GetBytes(json));
-        request.Headers.TryAddWithoutValidation(TestAuthHandler.ClaimsHeader, encoded);
+        request.Headers.Remove(TestAuthHandler.ClaimsHeader);
+        request.Headers.Add(TestAuthHandler.ClaimsHeader, _encoded);
         return base.SendAsync(request, cancellationToken);
     }
 }
@@ -348,7 +394,9 @@ public static class WebApplicationFactoryExtensions
 
         <p>
             Now lets try to test the <Highlight>Admin</Highlight> role on <Highlight CssClasses="[ break-all ]">GetWeatherForecastFromDatabase</Highlight> 
-            endpoint. For this we need to use the extension method to create <Highlight>HttpClient</Highlight> with <Highlight>Admin</Highlight> claims.
+            endpoint. Decorate that controller action with <Highlight>[Authorize(Roles = "Admin")]</Highlight>;
+            plain <Highlight>[Authorize]</Highlight> accepts any authenticated user and does not test role enforcement.
+            Use the extension method to create <Highlight>HttpClient</Highlight> with <Highlight>Admin</Highlight> claims.
         </p>
 
         <CodeSnippet CssClass="language-csharp">
@@ -358,14 +406,13 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
-using Xunit.Abstractions;
+using Xunit;
 
 namespace FunctionalTest;
 [ExcludeFromCodeCoverage]
-[Collection(nameof(FunctionalTestCollection))]
 public class WeatherForecastControllerShouldTests(
-    CustomWebApiFactory factory,
-    ITestOutputHelper outputHelper) : BaseTest(factory), IClassFixture&lt;CustomWebApiFactory&gt;
+    AppFixture fixture,
+    ITestOutputHelper outputHelper) : BaseTest(fixture)
 {
     [Fact]
     public async Task ReturnExpectedResponse_From_Database()
@@ -377,6 +424,27 @@ public class WeatherForecastControllerShouldTests(
         result.Count.Should().Be(1);
         result[0].Should().BeEquivalentTo(expectedWeatherForecast);
     }
+
+    [Fact]
+    public async Task RejectGuest_And_AnonymousRequests()
+    {
+        using var guest = Factory.CreateClientWithClaim(AuthClaimsProvider.WithGuestClaims());
+        using var guestResponse = await guest.GetAsync("/weatherforecast/fromdatabase");
+        guestResponse.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+
+        using var anonymous = Factory.CreateClientWithClaim(new AuthClaimsProvider());
+        using var anonymousResponse = await anonymous.GetAsync("/weatherforecast/fromdatabase");
+        anonymousResponse.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task RejectMalformedClaims()
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/weatherforecast/fromdatabase");
+        request.Headers.Add(TestAuthHandler.ClaimsHeader, "not-base64");
+        using var response = await Client.SendAsync(request);
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
 }
         </CodeSnippet>
 
@@ -385,14 +453,16 @@ public class WeatherForecastControllerShouldTests(
         </p>
 
         <ol>
-            <li>Start Test Method.</li>
-            <li>Create WebApplicationFactory.</li>
+            <li>Create the assembly's AppFixture and start its external services once.</li>
             <li>Run Program.cs.</li>
             <li>Add Default Authentication.</li>
             <li>Service Registration.</li>
             <li>Build Web Application.</li>
+            <li>Apply migrations and seed data once.</li>
+            <li>Create each test with the shared AppFixture and its own database scope.</li>
             <li>Create HTTP Client with required Claims.</li>
             <li>Test Code Execution.</li>
+            <li>Dispose each test's clients and scope; dispose the fixture after all tests finish.</li>
         </ol>
 
         <p>
@@ -403,7 +473,11 @@ public class WeatherForecastControllerShouldTests(
             <img src="./image/blogs/webapi/configuring-authentication-in-functional-testing-in-asp-net-webapi/all-passing-test.png" alt="all-passing-test" class="[ w-full ]" />
         </figure>
 
-        <p>We can do the same for <Highlight>Guest Claims</Highlight> for another test.</p>
+        <p>
+            The expected results are <Highlight>200</Highlight> for an admin, <Highlight>403</Highlight> for an authenticated guest,
+            and <Highlight>401</Highlight> for anonymous or malformed requests. These checks exercise the real authorization
+            middleware with a test identity, not the production token-validation handler.
+        </p>
 
         </How>
 

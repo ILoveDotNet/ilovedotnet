@@ -1,4 +1,5 @@
 @page "/blogs/faking-dependencies-in-functional-testing-in-asp-net-webapi"
+@using BaseComponents
 @inherits BasePage
 
 <Content FileName=@nameof(FakingDependenciesInFunctionalTestingInASPNET)>
@@ -57,13 +58,13 @@ using API;
 using FluentAssertions;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
-using Xunit.Abstractions;
+using Xunit;
 
 namespace FunctionalTest;
 [ExcludeFromCodeCoverage]
 public class WeatherForecastControllerShouldTests(
-    CustomWebApiFactory factory,
-    ITestOutputHelper outputHelper) : BaseTest(factory), IClassFixture&lt;CustomWebApiFactory&gt;
+    AppFixture fixture,
+    ITestOutputHelper outputHelper) : BaseTest(fixture)
 {
     [Fact]
     public async Task ReturnExpectedResponse_From_Database()
@@ -97,6 +98,16 @@ public class WeatherForecastControllerShouldTests(
             </figure>
 
             <h4>Faking Database</h4>
+
+            <p>
+                These examples use <Highlight>xUnit.net v3</Highlight> (the <Highlight>xunit.v3</Highlight> package).
+                Replace the v2 <Highlight>xunit</Highlight> package and change <Highlight>using Xunit.Abstractions;</Highlight>
+                to <Highlight>using Xunit;</Highlight> in tests and HTTP helpers. The v3 <Highlight>IAsyncLifetime</Highlight>
+                methods return <Highlight>ValueTask</Highlight>, not <Highlight>Task</Highlight>.
+                Assembly fixtures are not available in xUnit.net v2. Unlike the introductory article's class fixture,
+                an <NavLink href="https://xunit.net/docs/shared-context#assembly-fixtures" target="_blank">assembly fixture</NavLink>
+                shares one application host across every test class in the assembly.
+            </p>
 
             <p>
                 In this example in our API, we are going to use <Highlight>EntityFramework</Highlight> to connect to cloud database. We can fake the 
@@ -149,168 +160,126 @@ public static class DatabaseHelper
                 </li>
                 <li>
                     <p>
-                        Now we need to setup <Highlight>IAsyncLifetime</Highlight> using <Highlight>SharedFixture</Highlight> to 
-                        <Highlight>Initialize</Highlight> <strong>database only once for all tests</strong>. This is shown in the below code.
-                    </p>
-
-                    <CodeSnippet CssClass="language-csharp">
-using API.DbContexts;
-using Microsoft.Data.Sqlite;
-using Microsoft.EntityFrameworkCore;
-
-namespace FunctionalTest;
-public class SharedFixture : IAsyncLifetime
-{
-    public const string DatabaseName = "InMemoryTestDb";
-    public WeatherForecastDbContext DbContext = default!;
-
-    public async Task InitializeAsync()
-    {
-        // Sqlite
-        var connectionStringBuilder = new SqliteConnectionStringBuilder
-        {
-            DataSource = DatabaseName,
-            Mode = SqliteOpenMode.Memory,
-            Cache = SqliteCacheMode.Shared
-        };
-        var connection = new SqliteConnection(connectionStringBuilder.ToString());
-
-        var dbContextOptions = new DbContextOptionsBuilder&lt;WeatherForecastDbContext&gt;()
-            .UseSqlite(connection)
-            .Options;
-
-        DbContext = new WeatherForecastDbContext(dbContextOptions);
-
-        try
-        {
-            await DbContext.Database.EnsureDeletedAsync();
-            await DbContext.Database.OpenConnectionAsync();
-            await DbContext.Database.EnsureCreatedAsync();
-            await DatabaseHelper.ResetDbForTestsAsync(DbContext);
-            await DatabaseHelper.InitializeDbForTestsAsync(DbContext);
-        }
-        catch (Exception)
-        {
-            throw;
-        }
-    }
-
-    public async Task DisposeAsync()
-    {
-        if (DbContext is not null)
-        {
-            await DbContext.DisposeAsync();
-        }
-    }
-}
-                    </CodeSnippet>
-                </li>
-                <li>
-                    <p>
-                        Next we need to setup <Highlight>CollectionDefinition</Highlight> using 
-                        <Highlight>ICollectionFixture&lt;TFixture&gt;</Highlight> to make sure our fixture is initialized only once just before 
-                        running first test in collection. This is shown in the below code.
-                    </p>
-
-                    <CodeSnippet CssClass="language-csharp">
-namespace FunctionalTest;
-
-[CollectionDefinition(nameof(FunctionalTestCollection))]
-public class FunctionalTestCollection : ICollectionFixture&lt;SharedFixture&gt;
-{
-    // This class has no code, and is never created. Its purpose is simply to be the place
-    // to apply [CollectionDefinition] and all the ICollectionFixture&lt;&gt; interfaces.
-}
-                    </CodeSnippet>
-                </li>
-                <li>
-                    <p>
-                        Finally we need to configure in memory sqlite db in <Highlight>ConfigureServices</Highlight> inside 
-                        <Highlight>ConfigureWebHost</Highlight> to <Highlight>override</Highlight> the <Highlight>Service 
-                        Registration</Highlight> in <Highlight>CustomWebApiFactory</Highlight> from <Highlight>Program.cs</Highlight>. 
-                    </p>
-
-                    <p>
-                        We need to find <Highlight>WeatherForecastDbContext</Highlight> and <Highlight>remove</Highlight> and then 
-                        <Highlight>create a sqlite in-memory connection and re-register WeatherForecastDbContext</Highlight> with the sqlite in-memory 
-                        connection. We can inject <Highlight>SharedFixture</Highlight> to get Sqlite in memory database connection string. This is 
-                        shown in the below code.
+                        Combine the database lifetime and <Highlight>WebApplicationFactory</Highlight> in <Highlight>AppFixture</Highlight>.
+                        Register it with <Highlight>[assembly: AssemblyFixture(typeof(AppFixture))]</Highlight> before the namespace.
+                        xUnit initializes the database once before any tests run and disposes the host and database after all tests finish.
                     </p>
 
                     <CodeSnippet CssClass="language-csharp">
 using API.DbContexts;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Xunit;
 
+[assembly: AssemblyFixture(typeof(FunctionalTest.AppFixture))]
 namespace FunctionalTest;
-public class CustomWebApiFactory(SharedFixture fixture) : WebApplicationFactory&lt;Program&gt;
+public class AppFixture : WebApplicationFactory&lt;Program&gt;, IAsyncLifetime
 {
-    public SharedFixture SharedFixture =&gt; fixture;
+    private readonly SqliteConnection _connection = new(
+        $"Data Source={Guid.NewGuid():N};Mode=Memory;Cache=Shared");
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Test");
 
-        builder.ConfigureServices(services =&gt;
+        builder.ConfigureTestServices(services =&gt;
         {
-            var ctx = services.SingleOrDefault(d =&gt; d.ServiceType == typeof(WeatherForecastDbContext));
-            services.Remove(ctx!);
+            services.RemoveAll&lt;WeatherForecastDbContext&gt;();
+            services.RemoveAll&lt;DbContextOptions&lt;WeatherForecastDbContext&gt;&gt;();
+            services.RemoveAll&lt;IDbContextOptionsConfiguration&lt;WeatherForecastDbContext&gt;&gt;();
 
-            var connectionStringBuilder = new SqliteConnectionStringBuilder
-            {
-                DataSource = SharedFixture.DatabaseName,
-                Mode = SqliteOpenMode.Memory,
-                Cache = SqliteCacheMode.Shared
-            };
-            var connection = new SqliteConnection(connectionStringBuilder.ToString());
-
-            // SQLite
             services.AddDbContext&lt;WeatherForecastDbContext&gt;(opts =&gt;
-                opts.UseSqlite(connectionStringBuilder.ToString()));
+                opts.UseSqlite(_connection.ConnectionString));
         });
+    }
+
+    public async ValueTask InitializeAsync()
+    {
+        await _connection.OpenAsync();
+        await using var scope = Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService&lt;WeatherForecastDbContext&gt;();
+        await db.Database.EnsureCreatedAsync();
+        await DatabaseHelper.InitializeDbForTestsAsync(db);
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+        await _connection.DisposeAsync();
     }
 }
                     </CodeSnippet>
+                    <p>
+                        The open keeper connection preserves the named in-memory database while each request uses its own connection.
+                        <Highlight>ConfigureTestServices</Highlight> replaces both the context and its original provider configuration
+                        after the application's registrations. Remove the old <Highlight>SharedFixture</Highlight>,
+                        <Highlight>CustomWebApiFactory</Highlight>, and <Highlight>FunctionalTestCollection</Highlight> classes.
+                    </p>
                 </li>
             </ol>            <p>
                 Thats it. We are done with setup. Now the tests will run in the following flow.
             </p>
 
             <ol>
-                <li>Start Test Method.</li>
-                <li>Create WebApplicationFactory.</li>
+                <li>Create the assembly's AppFixture.</li>
+                <li>Open the SQLite keeper connection.</li>
                 <li>Run Program.cs.</li>
                 <li>Service Registration.</li>
-                <li>Overriding Service Registration with ConfigureServices.</li>
+                <li>Override service registration with ConfigureTestServices.</li>
                 <li>Build Web Application.</li>
+                <li>Create and seed the database once.</li>
+                <li>Create a test instance with the shared AppFixture.</li>
                 <li>Create HTTP Client.</li>
                 <li>Test Code Execution.</li>
             </ol>
 
             <p>
-                Before we run the test, we need to modify <Highlight>BastTest</Highlight> to expose <Highlight>DatabaseContext</Highlight> 
-                to test methods to assert values from Database with API result. This is shown in the below code.
+                Give each test its own <Highlight>HttpClient</Highlight> and DI scope in <Highlight>BaseTest</Highlight>.
+                Never share a <Highlight>DbContext</Highlight> between tests: it is not thread-safe.
+                Dispose test-owned resources, but leave disposal of the shared <Highlight>AppFixture</Highlight> to xUnit.
             </p>
 
             <CodeSnippet CssClass="language-csharp">
 using API.DbContexts;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace FunctionalTest;
 
-public abstract class BaseTest(CustomWebApiFactory factory)
+public abstract class BaseTest : IDisposable
 {
-    protected CustomWebApiFactory Factory =&gt; factory;
-    protected HttpClient Client =&gt; factory.CreateClient();
-    protected WeatherForecastDbContext Database =&gt; factory.SharedFixture.DbContext;
+    private readonly IServiceScope _scope;
+
+    protected BaseTest(AppFixture fixture)
+    {
+        Factory = fixture;
+        Client = fixture.CreateClient();
+        _scope = fixture.Services.CreateScope();
+        Database = _scope.ServiceProvider.GetRequiredService&lt;WeatherForecastDbContext&gt;();
+    }
+
+    protected AppFixture Factory { get; }
+    protected HttpClient Client { get; }
+    protected WeatherForecastDbContext Database { get; }
+
+    public void Dispose()
+    {
+        Client.Dispose();
+        _scope.Dispose();
+    }
 }
             </CodeSnippet>
 
             <p>
-                Now we need to decorate the test class with <Highlight CssClasses="[ break-all ]">[Collection(nameof(FunctionalTestCollection))]</Highlight> 
-                and modify the test as shown below to get values from database and assert it with API result as shown below. Lets run the test and see the result.
+                Inject <Highlight>AppFixture</Highlight> directly into the test constructor. No <Highlight>[Collection]</Highlight>
+                or <Highlight>IClassFixture</Highlight> is needed. Assembly fixtures do not serialize test classes:
+                these examples only read shared seed data. Tests that change data need isolated records or databases;
+                do not reset shared data while other tests are using it.
             </p>
 
             <CodeSnippet CssClass="language-csharp">
@@ -319,14 +288,13 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
-using Xunit.Abstractions;
+using Xunit;
 
 namespace FunctionalTest;
 [ExcludeFromCodeCoverage]
-[Collection(nameof(FunctionalTestCollection))]
 public class WeatherForecastControllerShouldTests(
-    CustomWebApiFactory factory,
-    ITestOutputHelper outputHelper) : BaseTest(factory), IClassFixture&lt;CustomWebApiFactory&gt;
+    AppFixture fixture,
+    ITestOutputHelper outputHelper) : BaseTest(fixture)
 {
     [Fact]
     public async Task ReturnExpectedResponse_From_Database()

@@ -1,5 +1,6 @@
 ﻿@page "/blogs/using-docker-test-containers-in-functional-testing-in-asp-net-webapi"
 @inherits BasePage
+@using BaseComponents
 
 <Content FileName=@nameof(UsingDockerTestContainersInFunctionalTestingInASPNET)>
     <ContentBody>
@@ -73,55 +74,69 @@
         </p>
 
         <ol>
-            <li>Install <Highlight>Testcontainers.PostgreSql</Highlight> in your Functional Test Project</li>
+            <li>
+                Install <Highlight>Testcontainers.PostgreSql</Highlight> and <Highlight>Npgsql.EntityFrameworkCore.PostgreSQL</Highlight>
+                in your functional test project. Match the PostgreSQL provider's supported EF Core major version to the API's EF Core packages.
+                Use <Highlight>xunit.v3</Highlight>; assembly fixtures require xUnit.net v3.
+            </li>
             <li>
                 <p>
-                    Setup <Highlight>SharedFixture</Highlight> as shown below
+                    Replace the SQLite <Highlight>AppFixture</Highlight> from the
+                    <NavLink href="blogs/faking-dependencies-in-functional-testing-in-asp-net-webapi">faking dependencies article</NavLink>
+                    with the assembly fixture below. Keep that article's <Highlight>BaseTest</Highlight>, which owns a client and
+                    database scope per test. The fixture now owns both the application host and the PostgreSQL container.
                 </p>
 
                 <CodeSnippet CssClass="language-csharp">
 using API.DbContexts;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Testcontainers.PostgreSql;
+using Xunit;
 
+[assembly: AssemblyFixture(typeof(FunctionalTest.AppFixture))]
 namespace FunctionalTest;
-public class SharedFixture : IAsyncLifetime
+public class AppFixture : WebApplicationFactory&lt;Program&gt;, IAsyncLifetime
 {
-    public WeatherForecastDbContext DbContext = default!;
     public string PostgresConnectionString =&gt; _dbContainer.GetConnectionString();
     private readonly PostgreSqlContainer _dbContainer =
-        new PostgreSqlBuilder()
+        new PostgreSqlBuilder("postgres:17-alpine")
         .WithDatabase("ILoveDotNet")
         .WithUsername("postgres")
         .WithPassword("postgres")
         .Build();
 
-    public async Task InitializeAsync()
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        await _dbContainer.StartAsync();
-
-        var dbContextOptions = new DbContextOptionsBuilder&lt;WeatherForecastDbContext&gt;()
-                                .UseNpgsql(PostgresConnectionString)
-                                .Options;
-
-        DbContext = new WeatherForecastDbContext(dbContextOptions);
-
-        await DbContext.Database.MigrateAsync();
+        builder.UseEnvironment("Test");
+        builder.ConfigureTestServices(services =&gt;
+        {
+            services.RemoveAll&lt;WeatherForecastDbContext&gt;();
+            services.RemoveAll&lt;DbContextOptions&lt;WeatherForecastDbContext&gt;&gt;();
+            services.RemoveAll&lt;IDbContextOptionsConfiguration&lt;WeatherForecastDbContext&gt;&gt;();
+            services.AddDbContext&lt;WeatherForecastDbContext&gt;(opts =&gt;
+                opts.UseNpgsql(PostgresConnectionString));
+        });
     }
 
-    public async Task DisposeAsync()
+    public async ValueTask InitializeAsync()
     {
-        if (DbContext is not null)
-        {
-            await DbContext.DisposeAsync();
-        }
+        await _dbContainer.StartAsync();
+        await using var scope = Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService&lt;WeatherForecastDbContext&gt;();
+        await db.Database.MigrateAsync();
+        await DatabaseHelper.InitializeDbForTestsAsync(db);
+    }
 
-        if (_dbContainer is not null)
-        {
-            await _dbContainer.StopAsync();
-            await _dbContainer.DisposeAsync();
-        }
-
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+        await _dbContainer.DisposeAsync();
     }
 }
                 </CodeSnippet>
@@ -131,46 +146,12 @@ public class SharedFixture : IAsyncLifetime
                 <p>
                     In the above code, we are <Highlight>initializing</Highlight> the database container and getting the 
                     <Highlight>connection string</Highlight> from the container and exposing it to be used in 
-                    <Highlight>ConfigureServices</Highlight> in <Highlight>CustomWebApiFactory</Highlight>. We are then applying 
-                    migrations to make sure schema is applied and created. We can also initialize database with <Highlight>initial seed data</Highlight> 
-                    here. We are also <Highlight>disposing</Highlight> the container after all tests are run.
+                    <Highlight>ConfigureTestServices</Highlight> in <Highlight>AppFixture</Highlight>. Only access
+                    <Highlight>Services</Highlight> after the container starts: this builds the shared application host.
+                    We then apply migrations and initialize seed data using a short-lived scope.
+                    Use PostgreSQL-compatible migrations from the API project, not migrations generated for a different provider.
+                    The application host is disposed before the container after all tests finish.
                 </p>
-            </li>
-            <li>
-                <p>
-                    Update <Highlight>CustomWebApiFactory</Highlight> to replace <Highlight>WeatherForecastDbContext</Highlight> 
-                    connection string with <Highlight>Test Container Connection String</Highlight> as shown below
-                </p>
-                
-                <CodeSnippet CssClass="language-csharp">
-using API.DbContexts;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-
-namespace FunctionalTest;
-public class CustomWebApiFactory(SharedFixture fixture) : WebApplicationFactory&lt;Program&gt;
-{
-    public SharedFixture SharedFixture =&gt; fixture;
-
-    protected override void ConfigureWebHost(IWebHostBuilder builder)
-    {
-        builder.UseEnvironment("Test");
-
-        builder.ConfigureServices(services =&gt;
-        {
-            var ctx = services.SingleOrDefault(d =&gt; d.ServiceType == typeof(WeatherForecastDbContext));
-            services.Remove(ctx!);
-
-            services.AddDbContext&lt;WeatherForecastDbContext&gt;(opts =&gt;
-                opts.UseNpgsql(SharedFixture.PostgresConnectionString));
-        });
-    }
-}
-                </CodeSnippet>
-                
-                
             </li>
             <li>
                 <p>
@@ -184,14 +165,13 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
-using Xunit.Abstractions;
+using Xunit;
 
 namespace FunctionalTest;
 [ExcludeFromCodeCoverage]
-[Collection(nameof(FunctionalTestCollection))]
 public class WeatherForecastControllerShouldTests(
-    CustomWebApiFactory factory,
-    ITestOutputHelper outputHelper) : BaseTest(factory), IClassFixture&lt;CustomWebApiFactory&gt;
+    AppFixture fixture,
+    ITestOutputHelper outputHelper) : BaseTest(fixture)
 {
     [Fact]
     public async Task ReturnExpectedResponse_From_Database()
@@ -210,19 +190,22 @@ public class WeatherForecastControllerShouldTests(
         </ol>
 
         <p>
-            Thats it. We are done with setup. Now the tests will run in the following flow.
+            xUnit injects the registered assembly fixture directly, without <Highlight>[Collection]</Highlight> or
+            <Highlight>IClassFixture</Highlight>. Assembly fixtures do not disable parallel execution.
+            Keep shared seed data read-only, and isolate any test that writes data. The lifetime is now:
         </p>
 
         <ol>
-            <li>Start Test Method.</li>
-            <li>TestContainers Setup.</li>
-            <li>Create WebApplicationFactory.</li>
+            <li>Create the assembly's AppFixture.</li>
+            <li>Start the PostgreSQL container once.</li>
             <li>Run Program.cs.</li>
             <li>Service Registration.</li>
             <li>Overriding Configuration.</li>
             <li>Build Web Application.</li>
-            <li>Create HTTP Client.</li>
+            <li>Apply migrations and seed data once.</li>
+            <li>Create each test with its own client and database scope.</li>
             <li>Test Code Execution.</li>
+            <li>Dispose the shared application host, then the container, after all tests finish.</li>
         </ol>
 
         <figure>

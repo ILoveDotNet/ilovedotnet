@@ -158,7 +158,7 @@ public class WebAPILearningPath
                 Channel = "Web API",
                 Type = "blogs",
                 CreatedOn = new DateTime(2023, 7, 23, 22, 30, 0, DateTimeKind.Utc),
-                ModifiedOn = new DateTime(2024, 6, 30, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2026, 11, 15, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Faking Dependencies", "Replace Services", "Functional Test", "Integration Test"]
             },
             new ContentMetaData
@@ -175,7 +175,7 @@ public class WebAPILearningPath
                 Channel = "Web API",
                 Type = "blogs",
                 CreatedOn = new DateTime(2023, 7, 30, 22, 30, 0, DateTimeKind.Utc),
-                ModifiedOn = new DateTime(2024, 7, 14, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2026, 11, 15, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["WireMock.Net", "Functional Test", "Integration Test"]
             },
             new ContentMetaData
@@ -192,7 +192,7 @@ public class WebAPILearningPath
                 Channel = "Web API",
                 Type = "blogs",
                 CreatedOn = new DateTime(2023, 8, 6, 22, 30, 0, DateTimeKind.Utc),
-                ModifiedOn = new DateTime(2024, 7, 21, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2026, 11, 15, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Authentication", "Authorization", "Functional Test", "Integration Test"]
             },
             new ContentMetaData
@@ -277,7 +277,7 @@ public class WebAPILearningPath
                 Channel = "Web API",
                 Type = "blogs",
                 CreatedOn = new DateTime(2023, 11, 19, 22, 30, 0, DateTimeKind.Utc),
-                ModifiedOn = new DateTime(2024, 7, 7, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2026, 11, 15, 22, 30, 0, DateTimeKind.Utc),
                 Keywords = ["Docker", "Test Containers", "Functional Testing"]
             },
             new ContentMetaData
