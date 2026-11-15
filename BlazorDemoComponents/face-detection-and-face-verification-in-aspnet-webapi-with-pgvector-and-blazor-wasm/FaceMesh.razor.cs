@@ -80,7 +80,6 @@ public partial class FaceMesh : IAsyncDisposable
       await _jsModule.InvokeVoidAsync("onInit", _dotNetRef, Mode, LivenessMode);
       _initialized = true;
       WebcamEnabled = true;
-      StateHasChanged();
     }
     catch (JSException exception) when (exception.Message.Contains("NotAllowedError") || exception.Message.Contains("Permission denied"))
     {
@@ -102,7 +101,6 @@ public partial class FaceMesh : IAsyncDisposable
     DepthConfirmed = false;
     CurrentVector = null;
     IsCapturing = false;
-    StateHasChanged();
     try { await _jsModule.InvokeVoidAsync("dispose"); }
     catch (JSException exception) { Logger.LogWarning(exception, "Unable to stop face mesh camera"); }
   }
@@ -112,7 +110,6 @@ public partial class FaceMesh : IAsyncDisposable
     if (_initialized && !IsCapturing && _jsModule != null)
     {
       IsCapturing = true;
-      StateHasChanged();
       try
       {
         await _jsModule.InvokeVoidAsync("captureFeatureVector", _dotNetRef);
