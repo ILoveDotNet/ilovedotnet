@@ -1,17 +1,29 @@
 <Project>
+  <!-- SDK projects import this file automatically. Projects opt into channel
+       generation through ContentGenerationChannel and their asset paths.
+       Design rationale: docs/adr-0001-incremental-build-time-content-generation.md. -->
   <PropertyGroup>
     <ContentGeneratorRoot>$(MSBuildThisFileDirectory)</ContentGeneratorRoot>
+    <!-- Share compiled tools across callers. Debug preserves the previous
+         dotnet run default, independently of the application's configuration. -->
     <ContentGeneratorOutput>$([System.IO.Path]::Combine('bin', 'ContentGenerators', 'Debug', '$(ContentGeneratorTargetFramework)'))</ContentGeneratorOutput>
     <SitemapGeneratorAssembly>$([System.IO.Path]::Combine('$(ContentGeneratorRoot)', 'SitemapGenerator', '$(ContentGeneratorOutput)', 'SitemapGenerator.dll'))</SitemapGeneratorAssembly>
     <PosterGeneratorAssembly>$([System.IO.Path]::Combine('$(ContentGeneratorRoot)', 'PosterGenerator', '$(ContentGeneratorOutput)', 'PosterGenerator.dll'))</PosterGeneratorAssembly>
     <RSSFeedGeneratorAssembly>$([System.IO.Path]::Combine('$(ContentGeneratorRoot)', 'RSSFeedGenerator', '$(ContentGeneratorOutput)', 'RSSFeedGenerator.dll'))</RSSFeedGeneratorAssembly>
     <VectorSearchGeneratorAssembly>$([System.IO.Path]::Combine('$(ContentGeneratorRoot)', 'VectorSearchIndexGenerator', '$(ContentGeneratorOutput)', 'VectorSearchIndexGenerator.dll'))</VectorSearchGeneratorAssembly>
+    <!-- Generation state belongs to each calling project/configuration,
+         unlike the shared generator binaries above. -->
     <ContentGenerationState>$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '$(IntermediateOutputPath)', 'content-generation'))</ContentGenerationState>
+    <!-- A new UTC day rechecks posters whose scheduled metadata is now eligible. -->
     <_PosterGenerationDate>$([System.DateTime]::UtcNow.ToString('yyyy-MM-dd'))</_PosterGenerationDate>
+    <!-- NormalizePath avoids trailing backslashes escaping closing quotes
+         when these paths are passed to Windows command-line tools. -->
     <SitemapXmlFullPath Condition="'$(SitemapXmlFilePath)' != ''">$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '$(SitemapXmlFilePath)'))</SitemapXmlFullPath>
     <PosterFullPath Condition="'$(PosterOutputPath)' != ''">$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '$(PosterOutputPath)'))</PosterFullPath>
     <RSSFeedXmlFullPath Condition="'$(RSSFeedXmlFilePath)' != ''">$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '$(RSSFeedXmlFilePath)'))</RSSFeedXmlFullPath>
     <ContentGeneratorProperties>Configuration=Debug;Platform=AnyCPU;TargetFramework=$(ContentGeneratorTargetFramework);BuildScope=ContentGenerators</ContentGeneratorProperties>
+    <!-- Caller MAUI/WASM/publish settings must not retarget console tools;
+         output overrides must not redirect DLLs away from the paths above. -->
     <ContentGeneratorRemoveProperties>TargetFrameworks;RuntimeIdentifier;RuntimeIdentifiers;SelfContained;PublishAot;PublishTrimmed;WasmBuildingForNestedPublish;WasmBuildNative;GHPages;BuildProjectReferences;OutputPath;BaseOutputPath;OutDir;ContentGenerationChannel;SitemapXmlFilePath;PosterOutputPath;RSSFeedXmlFilePath;_PosterGenerationDate</ContentGeneratorRemoveProperties>
   </PropertyGroup>
 
@@ -19,7 +31,9 @@
     <ContentGeneratorProject Include="$(ContentGeneratorRoot)SitemapGenerator\SitemapGenerator.csproj;$(ContentGeneratorRoot)PosterGenerator\PosterGenerator.csproj;$(ContentGeneratorRoot)RSSFeedGenerator\RSSFeedGenerator.csproj;$(ContentGeneratorRoot)VectorSearchIndexGenerator\VectorSearchIndexGenerator.csproj" />
   </ItemGroup>
 
-  <!-- Separate restore/build evaluations so a clean checkout imports newly restored package targets. -->
+  <!-- Called inside generation bodies, so skipped generation does not build tools.
+       Separate restore/build evaluations let a clean checkout import newly
+       restored package targets. -->
   <Target Name="BuildContentGenerators">
     <MSBuild Projects="@(ContentGeneratorProject)" Targets="Restore"
              Properties="$(ContentGeneratorProperties);ExcludeRestorePackageImports=true"
@@ -29,6 +43,8 @@
              RemoveProperties="$(ContentGeneratorRemoveProperties)" BuildInParallel="false" />
   </Target>
 
+  <!-- Topic channels track shared models and their own learning path.
+       The aggregate Channel sitemap needs every learning path. -->
   <ItemGroup Condition="'$(ContentGenerationChannel)' != ''">
     <ChannelModelInput Include="@(ContentModelInput)"
                        Exclude="$(ContentGeneratorRoot)SharedModels\*LearningPath.cs"
@@ -40,6 +56,9 @@
     <PosterInput Include="@(ChannelModelInput);@(ContentBuildInput);$(MSBuildProjectFullPath);$(ContentGeneratorRoot)PosterGenerator\*.cs;$(ContentGeneratorRoot)PosterGenerator\PosterGenerator.csproj" />
   </ItemGroup>
 
+  <!-- Run before incremental checks: inventories detect added/removed inputs
+       and settings changes without rewriting unchanged lists. Missing expected
+       outputs remove success stamps so generation can recover them. -->
   <Target Name="PrepareChannelGeneration" Condition="'$(ContentGenerationChannel)' != ''">
     <MakeDir Directories="$(ContentGenerationState)" />
     <WriteLinesToFile File="$(ContentGenerationState)sitemap.inputs" Lines="@(SitemapInput->'%(FullPath)');$(ContentGenerationChannel);$(SitemapXmlFilePath)"
@@ -54,6 +73,10 @@
     <Delete Files="$(ContentGenerationState)poster.stamp" Condition="'@(PosterOutput)' != '' And !Exists('%(PosterOutput.Identity)')" />
   </Target>
 
+  <!-- Both generation targets compare Inputs against a success stamp.
+       A generator may leave unchanged output timestamps alone; the stamp still
+       records completed processing, preventing repeated runs for newer inputs.
+       Only successful execution and output checks reach the final Touch. -->
   <Target Name="GenerateSitemapXml" BeforeTargets="PreBuildEvent"
           Condition="'$(Configuration)' != 'Release' And '$(ContentGenerationChannel)' != ''"
           DependsOnTargets="PrepareChannelGeneration"
@@ -79,6 +102,8 @@
     <Touch Files="$(ContentGenerationState)poster.stamp" AlwaysCreate="true" />
   </Target>
 
+  <!-- Include assets even when generation skipped. Newly generated files may
+       also have been absent from the SDK's initial Content glob evaluation. -->
   <Target Name="IncludeChannelAssets" BeforeTargets="ResolveProjectStaticWebAssets"
           DependsOnTargets="GenerateSitemapXml;GeneratePoster"
           Condition="'$(Configuration)' != 'Release' And '$(ContentGenerationChannel)' != ''">
