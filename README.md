@@ -161,6 +161,9 @@ Publishing still performs its build and publish-specific processing; do not add
 `--no-build` unless the publish configuration has separately been verified.
 CI caches dependency downloads and embeddings, not generated deployment assets.
 
+For the rationale and implementation details, see
+[ADR 0001: Incremental build-time content generation](docs/adr-0001-incremental-build-time-content-generation.md).
+
 Our continuous integration and deployment pipeline automates building, testing, and deploying the ILoveDotNet application. 
 The pipeline is implemented using GitHub Actions and is defined in `.github/workflows/build-blazor-app.yml`.
 
