@@ -124,7 +124,7 @@ public class BlazorLearningPath
                 Channel = "Blazor",
                 Type = "blogs",
                 CreatedOn = new DateTime(2022, 6, 5, 22, 30, 0, DateTimeKind.Utc),
-                ModifiedOn = new DateTime(2022, 6, 5, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2026, 11, 16, 19, 9, 0, DateTimeKind.Utc),
                 Keywords = ["Forms", "Validation", "Fluent Validation"]
             },
             new ContentMetaData
