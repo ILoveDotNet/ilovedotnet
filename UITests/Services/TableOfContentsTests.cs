@@ -75,6 +75,39 @@ public class TableOfContentsTests
     Assert.All(types, type => Assert.False(string.IsNullOrWhiteSpace(type)));
   }
 
+  [Fact]
+  public void AspireLearningPath_IsPublishedAndLinksItsTutorials()
+  {
+    var toc = new TableOfContents(new FixedTimeProvider(new DateTimeOffset(2027, 2, 21, 0, 0, 0, TimeSpan.Zero)));
+    var tutorials = toc.GetContentsByChannel("Aspire").OrderBy(content => content.Order).ToArray();
+
+    Assert.Contains("Aspire", toc.AvailableContentTypes);
+    Assert.Equal(
+        ["getting-started-with-aspire-in-dotnet", "distributed-testing-with-aspire-and-playwright-in-dotnet"],
+        tutorials.Select(content => content.Slug).ToArray());
+    Assert.All(tutorials, content =>
+    {
+      Assert.Contains(content, toc.Contents);
+      Assert.Equal($"blogs/{content.Slug}/", content.ContentUrl);
+      Assert.Equal("blogs", content.Type);
+    });
+    Assert.Equal(tutorials.Reverse(), toc.FilteredAndPagedContents("Aspire", 0, 12));
+    Assert.Equal([tutorials[1]], toc.GetRelatedContents(tutorials[0].Slug));
+  }
+
+  [Theory]
+  [InlineData("2027-02-13T18:29:59Z", 0)]
+  [InlineData("2027-02-13T18:30:00Z", 1)]
+  [InlineData("2027-02-20T18:30:00Z", 2)]
+  public void AspireLearningPath_RespectsScheduledPublicationDates(string utcNow, int expectedCount)
+  {
+    var clock = new FixedTimeProvider(DateTimeOffset.Parse(utcNow, System.Globalization.CultureInfo.InvariantCulture));
+    var toc = new TableOfContents(clock);
+
+    Assert.Equal(expectedCount, toc.SelectedContentTypeTotalCount("Aspire"));
+    Assert.Equal(expectedCount, toc.FilteredAndPagedContents("Aspire", 0, 12).Count);
+  }
+
   private sealed class FixedTimeProvider(DateTimeOffset utcNow) : TimeProvider
   {
     public override DateTimeOffset GetUtcNow() => utcNow;

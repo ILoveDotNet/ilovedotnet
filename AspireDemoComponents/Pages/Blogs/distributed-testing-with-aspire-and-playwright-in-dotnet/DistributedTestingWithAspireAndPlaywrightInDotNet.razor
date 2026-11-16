@@ -1,0 +1,491 @@
+@page "/blogs/distributed-testing-with-aspire-and-playwright-in-dotnet"
+@using SharedModels
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(DistributedTestingWithAspireAndPlaywrightInDotNet)>
+    <ContentBody>
+        <What>
+            <p>
+                A green test can still leave the most important question unanswered: did your API,
+                database, and UI work together? <Highlight>Aspire</Highlight> can start the real
+                application resources for a test, while <Highlight>Playwright</Highlight> drives a
+                real browser against the running UI.
+            </p>
+            <p>
+                This walkthrough extends the
+                <a class="underline" href="/blogs/getting-started-with-aspire-in-dotnet/">Aspire catalog sample</a>.
+                You will configure a distributed test project, start an isolated AppHost with a
+                bounded lifetime, check the API and database-backed behavior, and use browser
+                assertions to verify a record reaches the rendered catalog.
+            </p>
+        </What>
+
+        <Why>
+            <p>
+                Unit tests can verify an API handler and a Blazor component separately, yet miss a
+                broken service address, a missing database reference, or a UI that calls the wrong
+                route. In manual testing those failures often appear only after several services
+                start, so the failing boundary is hard to locate.
+            </p>
+            <p>
+                A process being <Highlight>running</Highlight> only means it started; a resource
+                becoming <Highlight>healthy</Highlight> means its health check passed; and being
+                <Highlight>business-ready</Highlight> means the operation you care about succeeds.
+                Treating these states as interchangeable leads to flaky tests that race startup,
+                hide real failures behind arbitrary waits, or pass while the UI still shows stale data.
+            </p>
+            <p>
+                Aspire gives the test a repeatable resource graph, and Playwright checks the user
+                contract at its real browser boundary. We will make the test prove an API write and
+                read, then confirm that the web application displays that same unique record.
+            </p>
+        </Why>
+
+        <How>
+            <h4>1. Reference the AppHost from a dedicated distributed test project</h4>
+            <p>
+                Complete the preceding catalog walkthrough first, then stop its AppHost. Allow
+                roughly 30–60 minutes plus browser and image downloads. Work from the
+                <Highlight>Store</Highlight> directory, with the container runtime running.
+                Create the <Highlight>Store.Tests</Highlight> directory and
+                <Highlight>Store.Tests/Store.Tests.csproj</Highlight> beside the AppHost with
+                the following content. Its AppHost reference lets Aspire discover the generated
+                project type. Keep all test package versions aligned
+                with the .NET and Aspire versions used by the sample. On Windows, install
+                PowerShell 7 so you can run the generated <Highlight>playwright.ps1</Highlight>
+                browser-install script with <Highlight>pwsh</Highlight>.
+            </p>
+            <CodeSnippet CssClass="language-xml">
+&lt;Project Sdk="Microsoft.NET.Sdk"&gt;
+    &lt;PropertyGroup&gt;
+        &lt;TargetFramework&gt;net11.0&lt;/TargetFramework&gt;
+        &lt;OutputType&gt;Exe&lt;/OutputType&gt;
+        &lt;IsPackable&gt;false&lt;/IsPackable&gt;
+        &lt;IsTestProject&gt;true&lt;/IsTestProject&gt;
+        &lt;Nullable&gt;enable&lt;/Nullable&gt;
+        &lt;ImplicitUsings&gt;enable&lt;/ImplicitUsings&gt;
+    &lt;/PropertyGroup&gt;
+
+    &lt;ItemGroup&gt;
+        &lt;PackageReference Include="Aspire.Hosting.Testing" Version="13.6.5" /&gt;
+        &lt;PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.12.0" /&gt;
+        &lt;PackageReference Include="Microsoft.Playwright.Xunit.v3" Version="1.64.1" /&gt;
+        &lt;PackageReference Include="xunit.v3" Version="4.0.3" /&gt;
+        &lt;PackageReference Include="xunit.runner.visualstudio" Version="4.0.1"&gt;
+            &lt;PrivateAssets&gt;all&lt;/PrivateAssets&gt;
+            &lt;IncludeAssets&gt;runtime; build; native; contentfiles; analyzers; buildtransitive&lt;/IncludeAssets&gt;
+        &lt;/PackageReference&gt;
+    &lt;/ItemGroup&gt;
+
+    &lt;ItemGroup&gt;
+        &lt;ProjectReference Include="..\Store.AppHost\Store.AppHost.csproj" /&gt;
+    &lt;/ItemGroup&gt;
+&lt;/Project&gt;
+            </CodeSnippet>
+            <p>
+                Replace the relative project path if your test project lives elsewhere. The
+                <Highlight>Aspire.Hosting.Testing</Highlight> package supplies the test host APIs;
+                <Highlight>Microsoft.Playwright.Xunit.v3</Highlight> supplies the browser test base
+                for xUnit v3. Pin compatible versions in your repository rather than letting CI
+                silently select newer dependencies.
+            </p>
+
+            <h4>2. Start one isolated AppHost with bounded startup and safe cleanup</h4>
+            <p>
+                Copy all three blocks below in order into one file,
+                <Highlight>Store.Tests/AspireFixture.cs</Highlight>. Part 1 declares the fixture
+                and starts its AppHost.
+                Use an assembly fixture when multiple tests can share one expensive application
+                startup. The linked cancellation token bounds container pulls, resource startup, and
+                readiness checks; disposing the AppHost tears down its ephemeral resources.
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+using Aspire.Hosting;
+using Aspire.Hosting.Testing;
+using Xunit;
+
+[assembly: AssemblyFixture(typeof(AspireFixture))]
+
+public sealed class AspireFixture : IAsyncLifetime
+{
+    private static readonly TimeSpan StartupLimit = TimeSpan.FromSeconds(120);
+    private readonly CancellationTokenSource _shutdown = new();
+    private IDistributedApplicationTestingBuilder? _builder;
+    private DistributedApplication? _app;
+    private HttpClient? _apiClient;
+
+    public HttpClient ApiClient =&gt;
+        _apiClient ?? throw new InvalidOperationException("The AppHost has not started.");
+
+    public Uri WebUrl { get; private set; } = null!;
+
+    public async ValueTask InitializeAsync()
+    {
+        using var startup = CancellationTokenSource.CreateLinkedTokenSource(
+            _shutdown.Token, TestContext.Current.CancellationToken);
+        startup.CancelAfter(StartupLimit);
+
+        try
+        {
+            _builder = await DistributedApplicationTestingBuilder
+                .CreateAsync&lt;Projects.Store_AppHost&gt;(startup.Token);
+            _app = await _builder.BuildAsync(startup.Token);
+            </CodeSnippet>
+            <p>Part 2 waits for health and checks actual HTTP operations:</p>
+            <CodeSnippet CssClass="language-csharp">
+            await _app.StartAsync(startup.Token);
+            await _app.ResourceNotifications.WaitForResourceHealthyAsync(
+                "catalog-api",
+                startup.Token);
+            await _app.ResourceNotifications.WaitForResourceHealthyAsync(
+                "store-web",
+                startup.Token);
+
+            _apiClient = _app.CreateHttpClient("catalog-api");
+            WebUrl = _app.GetEndpoint("store-web", "https");
+
+            using var apiResponse = await ApiClient.GetAsync(
+                "/products",
+                startup.Token);
+            apiResponse.EnsureSuccessStatusCode();
+
+            using var webClient = new HttpClient();
+            using var webResponse = await webClient.GetAsync(
+                WebUrl,
+                startup.Token);
+            webResponse.EnsureSuccessStatusCode();
+        }
+        catch
+        {
+            await DisposeAsync();
+            throw;
+        }
+    }
+            </CodeSnippet>
+            <p>Part 3 finishes the same class and cleans up its resources:</p>
+            <CodeSnippet CssClass="language-csharp">
+    private bool _disposed;
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+        _disposed = true;
+        _shutdown.Cancel();
+        try
+        {
+            _apiClient?.Dispose();
+            if (_app is not null)
+            {
+                await _app.DisposeAsync();
+            }
+            else if (_builder is not null)
+            {
+                await _builder.DisposeAsync();
+            }
+        }
+        finally
+        {
+            _shutdown.Dispose();
+        }
+    }
+}
+            </CodeSnippet>
+            <p>
+                The resource notifications wait for the AppHost health checks; the
+                <Highlight>GET /products</Highlight> request then checks an API operation, and the
+                web request checks that its endpoint responds. The fixture does not assume that a
+                running container is ready, and it does not use a fixed port or an unbounded
+                <Highlight>Task.Delay</Highlight>. The testing builder randomizes proxied resource
+                ports by default; explicitly configured non-proxied ports can still conflict.
+                The startup token also observes xUnit's test-run cancellation. Cleanup is
+                idempotent if startup fails and the runner subsequently disposes the fixture.
+            </p>
+            <p>
+                Keep the AppHost database ephemeral and omit a persistent volume for this test
+                environment, so each fixture run starts with clean state. The shared fixture may
+                hold one database for its test classes, but unique records keep concurrent tests
+                independent for these append-only assertions. An assembly fixture does not
+                serialize test classes; tests that count, delete, or mutate shared data need
+                stronger isolation or explicit synchronization.
+            </p>
+            <p>
+                The AppHost must expose the same <Highlight>/health</Highlight> checks configured
+                for <Highlight>catalog-api</Highlight> and <Highlight>store-web</Highlight> in the
+                getting-started article. ServiceDefaults commonly exposes health endpoints in the
+                Development environment; keep the test launch configuration consistent with that
+                setup. Health means infrastructure readiness, not proof that every business workflow
+                works.
+            </p>
+
+            <h4>3. Verify that an API write survives a database-backed read</h4>
+            <p>
+                Copy both blocks below in order into one file,
+                <Highlight>Store.Tests/CatalogApiTests.cs</Highlight>.
+                Give every test its own product name so parallel tests do not depend on execution
+                order or overwrite shared records. This test posts a product, reads the catalog
+                again, and checks both its generated identifier and its value.
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+using System.Net;
+using System.Net.Http.Json;
+using Xunit;
+
+public sealed class CatalogApiTests(AspireFixture fixture)
+{
+    [Fact]
+    public async Task Post_product_then_read_it_from_catalog()
+    {
+        var name = $"api-{Guid.NewGuid():N}";
+        var ct = TestContext.Current.CancellationToken;
+
+        using var postResponse = await fixture.ApiClient.PostAsJsonAsync(
+            "/products",
+            new { name }, ct);
+        Assert.Equal(HttpStatusCode.OK, postResponse.StatusCode);
+
+        var created = await postResponse.Content.ReadFromJsonAsync&lt;Product&gt;(ct);
+        Assert.NotNull(created);
+        Assert.Equal(name, created.Name);
+            </CodeSnippet>
+            <p>Continue the same method to read and compare the created record:</p>
+            <CodeSnippet CssClass="language-csharp">
+        using var getResponse = await fixture.ApiClient.GetAsync("/products", ct);
+        getResponse.EnsureSuccessStatusCode();
+        var products = await getResponse.Content.ReadFromJsonAsync&lt;Product[]&gt;(ct);
+
+        Assert.NotNull(products);
+        Assert.Contains(products, product =&gt;
+            product.Id == created.Id &amp;&amp; product.Name == name);
+    }
+
+    public sealed record Product(Guid Id, string Name);
+}
+            </CodeSnippet>
+            <p>
+                The API inserts the record into PostgreSQL and the subsequent request retrieves it
+                through the API. Comparing the same identifier and name makes this stronger than
+                checking only for an HTTP success code, without coupling the test to database
+                internals or credentials.
+            </p>
+            <CodeSnippet CssClass="language-text">
+API assertion:
+    test client --POST /products--&gt; catalog-api --&gt; catalog-db
+    test client --GET  /products--&gt; catalog-api --&gt; catalog-db
+
+Browser assertion:
+    Playwright --HTTPS--&gt; store-web --service discovery--&gt; catalog-api --&gt; catalog-db
+            </CodeSnippet>
+            <CodeSnippet CssClass="language-text">
+At fixture startup:
+    products = [] (fresh database)
+
+After this test's POST /products and GET /products (other tests may also add rows):
+    id                                    name
+    ------------------------------------  -------------------------
+    generated for this test               api-&lt;unique-guid&gt;
+            </CodeSnippet>
+
+            <h4>4. Verify the same API-created product in a real browser</h4>
+            <p>
+                Save this snippet as <Highlight>Store.Tests/CatalogBrowserTests.cs</Highlight>.
+                A browser test should use the actual HTTPS endpoint allocated by the AppHost, not
+                a developer's remembered localhost port. Create the record through the API first,
+                then navigate Playwright to the real UI and assert through accessible roles and
+                labels.
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+using System.Net.Http.Json;
+using Microsoft.Playwright;
+using Microsoft.Playwright.Xunit.v3;
+using Xunit;
+
+public sealed class CatalogBrowserTests(AspireFixture fixture) : PageTest
+{
+    [Fact]
+    public async Task Catalog_displays_a_product_created_through_the_api()
+    {
+        var name = $"browser-{Guid.NewGuid():N}";
+        var ct = TestContext.Current.CancellationToken;
+        using var response = await fixture.ApiClient.PostAsJsonAsync(
+            "/products",
+            new { name }, ct);
+        response.EnsureSuccessStatusCode();
+
+        var catalogUrl = new Uri(fixture.WebUrl, "/catalog");
+        await Page.GotoAsync(catalogUrl.ToString());
+
+        await Expect(Page.GetByRole(
+            AriaRole.Heading,
+            new() { Name = "Catalog" })).ToBeVisibleAsync();
+
+        var productList = Page.GetByRole(
+            AriaRole.List,
+            new() { Name = "Products" });
+        await Expect(productList.GetByText(name)).ToBeVisibleAsync();
+    }
+}
+            </CodeSnippet>
+            <p>
+                <Highlight>PageTest</Highlight> manages the Playwright browser and page for the
+                test. Role-based locators follow the accessible page structure, and Playwright
+                assertions auto-wait for the expected element instead of racing a fixed sleep.
+                Navigation and assertions have their own timeouts; the startup deadline does not
+                bound the whole suite, so also bound the CI job. The
+                API write followed by the UI read proves the user-visible path through the API and
+                its database; it does not claim that the test directly inspected PostgreSQL.
+            </p>
+
+            <h4>5. Run the tests locally and prepare CI for browsers and containers</h4>
+            <p>
+                Build the test project before installing its matching Playwright browser. On Windows,
+                first trust the development certificate, then install Chromium from the generated
+                script. These commands run from <Highlight>Store</Highlight>:
+            </p>
+            <CodeSnippet CssClass="language-powershell">
+dotnet dev-certs https --trust
+dotnet dev-certs https --check --trust
+dotnet build .\Store.Tests\Store.Tests.csproj
+pwsh .\Store.Tests\bin\Debug\net11.0\playwright.ps1 install chromium
+dotnet test .\Store.Tests\Store.Tests.csproj --no-build
+            </CodeSnippet>
+            <p>
+                A successful run discovers and passes two tests: the API round-trip and the
+                browser catalog assertion. If none are discovered, check the xUnit v3 runner and
+                project reference. If startup times out, inspect container-runtime access and
+                resource logs; if navigation fails, check the actual HTTPS endpoint and browser
+                certificate trust. Downloads and hosted CI minutes may incur charges.
+            </p>
+            <p>
+                For an Ubuntu GitHub-hosted CI runner, the following is a complete workflow for
+                a repository that already contains your reader-created <Highlight>Store</Highlight>
+                projects at its root. This article does not provide those projects as a repository
+                demo. Copy both blocks in order into one workflow file; adjust paths if your
+                projects live in a subdirectory. Part 1 sets up the job:
+            </p>
+            <CodeSnippet CssClass="language-yaml">
+name: Catalog distributed tests
+'on': [push, pull_request]
+jobs:
+  aspire-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@@v6
+      - uses: actions/setup-dotnet@@v5
+        with:
+          dotnet-version: 11.0.x
+      - name: Trust local HTTPS and run tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y libnss3-tools
+          dotnet tool install Aspire.Cli --tool-path "$RUNNER_TEMP/aspire" --version 13.6.5
+          export PATH="$RUNNER_TEMP/aspire:$PATH"
+          docker info
+            </CodeSnippet>
+            <p>Part 2 continues the same <Highlight>run</Highlight> block:</p>
+            <CodeSnippet CssClass="language-yaml">
+          mkdir -p "$HOME/.pki/nssdb"
+          if [ ! -f "$HOME/.pki/nssdb/cert9.db" ]; then
+            certutil -N -d "sql:$HOME/.pki/nssdb" --empty-password
+          fi
+          export SSL_CERT_DIR="$HOME/.aspnet/dev-certs/trust:/etc/ssl/certs"
+          dotnet dev-certs https --trust
+          dotnet dev-certs https --check --trust
+          dotnet build ./Store.Tests/Store.Tests.csproj
+          pwsh ./Store.Tests/bin/Debug/net11.0/playwright.ps1 install --with-deps chromium
+          dotnet test ./Store.Tests/Store.Tests.csproj --no-build
+            </CodeSnippet>
+            <p>
+                The runner needs Docker, PowerShell, OpenSSL, and permission to install browser
+                dependencies. The job creates the Chromium NSS database before trusting the
+                per-user ASP.NET Core development certificate. It also exposes the user trust
+                directory to OpenSSL while retaining Ubuntu's system certificates. The web and
+                API projects run locally in Development and use that certificate; the test's
+                HTTPS navigation checks browser trust without disabling validation. The trust
+                check must pass before tests start.
+            </p>
+            <p>
+                Use a disposable runner: this procedure changes its user certificate stores.
+                Other distributions, browsers, and self-hosted runners may use different trust
+                locations and need their own setup. Do not retry the whole test to hide readiness
+                or contract failures.
+            </p>
+            <p>
+                Capture screenshots, traces, and logs only when useful for a failure, limit their
+                retention, and review them for secrets or personal data before upload. Never publish
+                container environment variables, connection strings, browser storage state, or
+                production credentials as test artifacts.
+            </p>
+
+            <h4>6. Orchestrate multiple repositories without pretending Aspire checks them out</h4>
+            <p>
+                Aspire models resources; your source-control or image pipeline obtains their code.
+                For project references, have CI check out the API, worker, and web repositories at
+                controlled commits into a known workspace, then let the AppHost reference those
+                projects. Alternatively, publish versioned container images and have the AppHost
+                start pinned image tags. In both cases, keep endpoints reachable from the test
+                machine and use ephemeral databases rather than production data or credentials.
+            </p>
+            <p>
+                A multi-repository test is meaningful only when it verifies a contract across those
+                repositories. Keep the write-API/read-UI check above as the user-facing boundary;
+                add a separate assertion for another service only when that service's observable
+                behavior matters to the contract.
+            </p>
+
+            <h4>7. Extend the graph to Kafka only when you assert message delivery</h4>
+            <p>
+                The following is an optional AppHost sketch, not part of the runnable catalog
+                sample. It starts a Kafka resource and gives a worker its connection information;
+                it does not configure a consumer or prove that a message was delivered.
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+var events = builder.AddKafka("events");
+
+builder.AddProject&lt;Projects.Store_Worker&gt;("catalog-worker")
+    .WithReference(events)
+    .WaitFor(events);
+            </CodeSnippet>
+            <p>
+                To test messaging, publish a uniquely identified event and assert an observable
+                consumer result, such as a persisted status or a documented API response. Waiting
+                for the Kafka broker to become healthy proves only that the broker passed its health
+                check. Use a bounded, event-based or condition-polling assertion for the consumer
+                result; do not add an arbitrary sleep or retry the entire test to hide delivery bugs.
+            </p>
+
+            <h4>References</h4>
+            <ul>
+                <li><a class="underline" href="https://aspire.dev/testing/write-your-first-test/">Write your first Aspire test</a></li>
+                <li><a class="underline" href="https://aspire.dev/get-started/first-app/">Build your first Aspire app</a></li>
+                <li><a class="underline" href="https://aspire.dev/integrations/databases/postgres/postgres-get-started/">PostgreSQL hosting and client integrations</a></li>
+                <li><a class="underline" href="https://learn.microsoft.com/aspnet/core/security/enforcing-ssl#trust-the-aspnet-core-https-development-certificate">Trust the ASP.NET Core HTTPS development certificate</a></li>
+                <li><a class="underline" href="https://playwright.dev/dotnet/docs/test-runners">Playwright test runners and browser isolation</a></li>
+                <li><a class="underline" href="https://xunit.net/docs/shared-context">xUnit shared fixtures and parallelism</a></li>
+                <li><a class="underline" href="https://learn.microsoft.com/dotnet/core/tools/dotnet-dev-certs">Development certificate creation and trust</a></li>
+                <li><a class="underline" href="https://chromium.googlesource.com/chromium/src/+/main/docs/linux/cert_management.md">Chromium certificate stores on Linux</a></li>
+            </ul>
+        </How>
+
+        <Summary>
+            <ul>
+                <li>Reference the AppHost and start one isolated resource graph for distributed tests.</li>
+                <li>Bound startup with cancellation, wait for health, and verify an actual business operation.</li>
+                <li>Use generated endpoints, unique test data, and Playwright's auto-waiting locators.</li>
+                <li>Prove API-to-database-to-UI behavior without relying on fixed ports or production data.</li>
+                <li>For Kafka or multiple repositories, test observable contracts rather than resource startup alone.</li>
+            </ul>
+            <p>
+                <strong>What to read next:</strong> revisit
+                <a class="underline" href="/blogs/getting-started-with-aspire-in-dotnet/">getting started with Aspire in .NET</a>
+                to adjust the AppHost resource graph before expanding your test suite.
+            </p>
+        </Summary>
+    </ContentBody>
+</Content>

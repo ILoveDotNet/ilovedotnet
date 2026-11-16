@@ -1,0 +1,374 @@
+@page "/blogs/getting-started-with-aspire-in-dotnet"
+@using SharedModels
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(GettingStartedWithAspireInDotNet)>
+    <ContentBody>
+        <What>
+            <p>
+                Your application needs an API, a UI, a database, and a handful of background services.
+                Why does starting work require a checklist of terminals? <Highlight>Aspire</Highlight>
+                lets you describe those resources and their connections in code, then launch the
+                application from one <Highlight>AppHost</Highlight>.
+            </p>
+            <p>
+                A small .NET catalog makes the Aspire resource model concrete: it connects a
+                PostgreSQL database, an API, and a Blazor UI. You will see how resource references,
+                startup dependencies, service discovery, and the dashboard fit together. The
+                companion article uses this same application for
+                <a class="underline" href="/blogs/distributed-testing-with-aspire-and-playwright-in-dotnet/">distributed testing with Aspire and Playwright</a>.
+            </p>
+        </What>
+
+        <Why>
+            <p>
+                Starting a multi-service application by hand means remembering which database,
+                containers, and supporting tools must run first, then matching each process to the
+                right address. With around <Highlight>30 resources</Highlight>, one missed dependency
+                can turn into a connection error or timeout that looks like an application bug.
+            </p>
+            <p>
+                Repeating that checklist across a team invites different local topologies and
+                difficult-to-reproduce failures. Aspire lets a production application's development
+                environment start its .NET projects, Docker images, databases, Kafka, UIs, and
+                supporting tools together; this does not deploy production resources by pressing F5.
+            </p>
+            <p>
+                A versioned resource graph, runtime service addresses, and one place for logs and
+                traces reduce that setup drift. The steps below turn the startup checklist into an
+                explicit AppHost while keeping production deployment and operations separate.
+            </p>
+        </Why>
+
+        <How>
+            <h4>1. Create a .NET application with an AppHost</h4>
+            <p>
+                Allow roughly 45–75 minutes for this article, plus image download time. You should
+                be comfortable editing C#, running terminal commands, and making HTTP requests.
+                Install the .NET 11 SDK, a compatible
+                <a class="underline" href="https://aspire.dev/get-started/install-cli/">Aspire CLI</a>,
+                such as version 13.6.5, and a supported container runtime such as Docker Desktop.
+                Start the runtime and
+                trust your local ASP.NET Core HTTPS certificate before running the sample.
+            </p>
+            <CodeSnippet CssClass="language-powershell">
+dotnet dev-certs https --trust
+aspire new aspire-starter --version 13.6.5 -n Store -o Store
+Set-Location Store
+            </CodeSnippet>
+            <p>
+                If prompted, use standard localhost URLs, keep HTTPS enabled, and skip optional
+                Redis and test projects. The companion article creates its own test project.
+                You create these sample files in your own workspace; this article does not ship a
+                runnable demo project.
+                This walkthrough uses
+                <Highlight>.NET 11 and Aspire 13.6.5</Highlight>; Aspire has its own versioning and
+                is not version 11 just because the application targets .NET 11. The template
+                version is pinned so its generated project layout matches the steps below.
+                In each of the four generated project files, change
+                <Highlight>&lt;TargetFramework&gt;net10.0&lt;/TargetFramework&gt;</Highlight> to
+                <Highlight>&lt;TargetFramework&gt;net11.0&lt;/TargetFramework&gt;</Highlight>.
+                Run the remaining commands from the <Highlight>Store</Highlight> directory.
+            </p>
+            <p>
+                The generated <Highlight>Store.AppHost</Highlight> describes the application,
+                <Highlight>Store.ServiceDefaults</Highlight> shares telemetry, health, discovery, and resilience
+                configuration, <Highlight>Store.ApiService</Highlight> serves HTTP endpoints, and
+                <Highlight>Store.Web</Highlight> renders the UI. The AppHost is a separate process, not a
+                library embedded into every service.
+            </p>
+            <CodeSnippet CssClass="language-powershell">
+dotnet add .\Store.AppHost\Store.AppHost.csproj package Aspire.Hosting.PostgreSQL --version 13.6.5
+dotnet add .\Store.ApiService\Store.ApiService.csproj package Aspire.Npgsql --version 13.6.5
+            </CodeSnippet>
+            <p>
+                Ensure <Highlight>Store.AppHost.csproj</Highlight> uses
+                <Highlight>&lt;Project Sdk="Aspire.AppHost.Sdk/13.6.5"&gt;</Highlight>.
+                The starter already references the API and web projects from the AppHost and
+                ServiceDefaults from both services. Those references generate the
+                <Highlight>Projects.Store_ApiService</Highlight> and <Highlight>Projects.Store_Web</Highlight> types below.
+            </p>
+
+            <h4>2. Describe resources, connections, and readiness</h4>
+            <p>Replace <Highlight>Store.AppHost/AppHost.cs</Highlight> with this application model:</p>
+            <CodeSnippet CssClass="language-csharp">
+var builder = DistributedApplication.CreateBuilder(args);
+
+var postgres = builder.AddPostgres("postgres");
+var catalogDb = postgres.AddDatabase("catalog-db");
+
+var api = builder.AddProject&lt;Projects.Store_ApiService&gt;(
+        "catalog-api", launchProfileName: "https")
+    .WithReference(catalogDb)
+    .WaitFor(catalogDb)
+    .WithHttpHealthCheck("/health");
+
+builder.AddProject&lt;Projects.Store_Web&gt;(
+        "store-web", launchProfileName: "https")
+    .WithExternalHttpEndpoints()
+    .WithReference(api)
+    .WaitFor(api)
+    .WithHttpHealthCheck("/health");
+
+await builder.Build().RunAsync();
+            </CodeSnippet>
+            <p>
+                <Highlight>WithReference</Highlight> supplies connection information. For a database,
+                this includes a named connection string; for a service, endpoint configuration supports
+                service discovery. It does not change application code to use those settings.
+                <Highlight>WaitFor</Highlight> controls startup ordering: it waits for health checks
+                when available, otherwise for the dependency's running state. A running process is
+                not automatically ready to serve business requests.
+            </p>
+            <p>
+                There is deliberately no persistent data volume in this introductory model.
+                The managed PostgreSQL container gives the tests a fresh database on each AppHost run.
+                A developer can opt into a named volume for local convenience, but tests must not
+                accidentally reuse it. Resource names such as <Highlight>catalog-api</Highlight> are identifiers
+                shared by configuration, discovery, and tests; do not casually rename only one side.
+                Both projects use the generated <Highlight>https</Highlight> launch profile, which
+                also sets Development. This matters: the starter's first profile can be HTTP-only,
+                while the browser test explicitly requests the HTTPS endpoint.
+            </p>
+
+            <h4>3. Implement a small database-backed API</h4>
+            <p>
+                Replace <Highlight>Store.ApiService/Program.cs</Highlight> by copying all three
+                blocks below into that one file, in order. Part 1 sets up the database:
+                <Highlight>AddNpgsqlDataSource</Highlight> consumes the <Highlight>catalog-db</Highlight> connection string
+                supplied by the AppHost and integrates the client with health checks and telemetry.
+                No password or database port belongs in source control.
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+using Npgsql;
+
+var builder = WebApplication.CreateBuilder(args);
+builder.AddServiceDefaults();
+builder.AddNpgsqlDataSource("catalog-db");
+
+var app = builder.Build();
+app.MapDefaultEndpoints();
+
+await using (var connection = await app.Services
+    .GetRequiredService&lt;NpgsqlDataSource&gt;().OpenConnectionAsync())
+{
+    await using var command = connection.CreateCommand();
+    command.CommandText = """
+        CREATE TABLE IF NOT EXISTS products (
+            id uuid PRIMARY KEY,
+            name text NOT NULL
+        );
+        """;
+    await command.ExecuteNonQueryAsync();
+}
+            </CodeSnippet>
+            <p>Part 2 maps the database-backed read endpoint:</p>
+            <CodeSnippet CssClass="language-csharp">
+app.MapGet("/products", async (NpgsqlDataSource db, CancellationToken ct) =&gt;
+{
+    var products = new List&lt;Product&gt;();
+    await using var command = db.CreateCommand(
+        "SELECT id, name FROM products ORDER BY name");
+    await using var reader = await command.ExecuteReaderAsync(ct);
+    while (await reader.ReadAsync(ct))
+    {
+        products.Add(new Product(reader.GetGuid(0), reader.GetString(1)));
+    }
+    return products;
+});
+            </CodeSnippet>
+            <p>Part 3 adds the write endpoint and starts the API:</p>
+            <CodeSnippet CssClass="language-csharp">
+app.MapPost("/products", async (NewProduct input, NpgsqlDataSource db,
+    CancellationToken ct) =&gt;
+{
+    if (string.IsNullOrWhiteSpace(input.Name) || input.Name.Length &gt; 100)
+    {
+        return Results.BadRequest("Name must contain 1 to 100 characters.");
+    }
+
+    var product = new Product(Guid.NewGuid(), input.Name.Trim());
+    await using var command = db.CreateCommand(
+        "INSERT INTO products (id, name) VALUES ($1, $2)");
+    command.Parameters.Add(new NpgsqlParameter { Value = product.Id });
+    command.Parameters.Add(new NpgsqlParameter { Value = product.Name });
+    await command.ExecuteNonQueryAsync(ct);
+    return Results.Ok(product);
+});
+
+app.Run();
+
+public sealed record NewProduct(string Name);
+public sealed record Product(Guid Id, string Name);
+            </CodeSnippet>
+            <p>
+                The SQL values are positional parameters: their order matches
+                <Highlight>$1</Highlight> and <Highlight>$2</Highlight>. Startup schema creation keeps this small sample
+                self-contained; use versioned migrations and a controlled migration step for a
+                production database. These unauthenticated endpoints are for an isolated local
+                tutorial only. Add authentication, authorization, paging, and production-grade
+                validation before exposing an application to real users.
+            </p>
+
+            <h4>4. Connect the Blazor UI through service discovery</h4>
+            <p>
+                In <Highlight>Store.Web/Program.cs</Highlight>, keep the generated ServiceDefaults,
+                Razor component registrations, middleware, and <Highlight>MapDefaultEndpoints()</Highlight>.
+                Add this named client before <Highlight>builder.Build()</Highlight>:
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+builder.Services.AddHttpClient("catalog", client =&gt;
+{
+    client.BaseAddress = new Uri("https+http://catalog-api");
+});
+            </CodeSnippet>
+            <p>
+                Remove the starter's unused <Highlight>WeatherApiClient</Highlight> registration and
+                <Highlight>Components/Pages/Weather.razor</Highlight> page, since the API no longer serves weather.
+                Remove its navigation link too. Create <Highlight>Components/Pages/Catalog.razor</Highlight>
+                by copying both blocks below into the same file, in order. Part 1 renders the list:
+            </p>
+            <CodeSnippet CssClass="language-razor">
+@@page "/catalog"
+@@using System.Net.Http.Json
+@@inject IHttpClientFactory ClientFactory
+
+&lt;PageTitle&gt;Catalog&lt;/PageTitle&gt;
+&lt;h1&gt;Catalog&lt;/h1&gt;
+
+@@if (products is null)
+{
+    &lt;p&gt;Loading catalog...&lt;/p&gt;
+}
+else
+{
+    &lt;ul aria-label="Products"&gt;
+        @@foreach (var product in products)
+        {
+            &lt;li&gt;@@product.Name&lt;/li&gt;
+        }
+    &lt;/ul&gt;
+}
+            </CodeSnippet>
+            <p>Part 2 loads products from the API:</p>
+            <CodeSnippet CssClass="language-razor">
+@@code {
+    private Product[]? products;
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var client = ClientFactory.CreateClient("catalog");
+        products = await client.GetFromJsonAsync&lt;Product[]&gt;("/products")
+            ?? throw new InvalidOperationException("The catalog response was null.");
+    }
+
+    public sealed record Product(Guid Id, string Name);
+}
+            </CodeSnippet>
+            <p>
+                This is a <Highlight>server-rendered Blazor page</Highlight>. The web server resolves
+                <Highlight>catalog-api</Highlight> using ServiceDefaults; the browser only visits the web UI.
+                A standalone WebAssembly or JavaScript client cannot resolve Aspire's internal
+                service names directly. Give it a browser-reachable URL and appropriate CORS,
+                or route requests through a backend-for-frontend.
+            </p>
+            <p>
+                The starter's <Highlight>MapDefaultEndpoints()</Highlight> normally exposes
+                <Highlight>/health</Highlight> and <Highlight>/alive</Highlight> in Development. Both AppHost health checks
+                depend on those routes, so keep that environment for this sample. Readiness should
+                include required dependencies; liveness should not trigger restart loops just
+                because an external dependency is temporarily unavailable.
+            </p>
+
+            <h4>5. Run once and inspect the whole application</h4>
+            <CodeSnippet CssClass="language-powershell">
+dotnet run --project .\Store.AppHost\Store.AppHost.csproj
+            </CodeSnippet>
+            <p>
+                Alternatively, set the AppHost as the startup project and press F5. Follow the
+                dashboard URL printed by the host. You should see PostgreSQL, the logical
+                <Highlight>catalog-db</Highlight> resource, <Highlight>catalog-api</Highlight>, and <Highlight>store-web</Highlight>.
+                Open the web endpoint and navigate to <Highlight>/catalog</Highlight>; the empty list is expected.
+                You can enter the path directly; the new page does not add a navigation link.
+            </p>
+            <p>
+                To exercise persistence, use the API's actual HTTPS endpoint from the dashboard:
+            </p>
+            <CodeSnippet CssClass="language-powershell">
+$api = Read-Host "Paste the catalog-api HTTPS endpoint from the dashboard"
+Invoke-RestMethod "$api/products" -Method Post -ContentType "application/json" -Body '{"name":"Notebook"}'
+Invoke-RestMethod "$api/products"
+            </CodeSnippet>
+            <p>
+                Refresh <Highlight>/catalog</Highlight> and find Notebook. Explore structured logs, metrics,
+                and traces for the web-to-API call. If the API is unhealthy, check the database
+                and API logs before changing timeouts. First-run container pulls can take longer
+                than a warm restart. The dashboard is diagnostic infrastructure; do not expose
+                its authenticated development session publicly.
+            </p>
+            <p>
+                Stop the AppHost with Ctrl+C before starting the companion tests. This local sample
+                uses synthetic data and no cloud services; there is no cloud-resource charge, but
+                image downloads, storage, and your container-runtime license may have costs.
+                When the AppHost removes its temporary container, its sample database is discarded.
+            </p>
+
+            <h4>6. Grow the model without growing the startup checklist</h4>
+            <p>
+                A larger system might add an identity service, workers, Kafka, and existing images.
+                For example, install <Highlight>Aspire.Hosting.Kafka</Highlight> on the AppHost at the same
+                compatible Aspire version, then add a broker before <Highlight>Build()</Highlight>:
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+var events = builder.AddKafka("events");
+api.WithReference(events).WaitFor(events);
+            </CodeSnippet>
+            <p>
+                This adds the broker and supplies connection configuration. It does
+                <Highlight>not</Highlight> publish messages or create a consumer in your API.
+                Add the corresponding client integration and application behavior deliberately.
+                For an existing Docker image, use <Highlight>AddContainer</Highlight>, define its endpoints
+                and health check, and supply configuration in the shape that image expects.
+                Register a worker with <Highlight>AddProject</Highlight> and reference only the resources
+                it actually needs.
+            </p>
+            <p>
+                Keep database initialization separate from service readiness, avoid dependency
+                cycles, and remember that a resource count includes supporting containers and
+                logical resources, not just independently deployed services. Thirty resources
+                are manageable because the connections are explicit, not because Aspire removes
+                all distributed-system complexity.
+            </p>
+            <p>
+                Code can also live in multiple repositories. An AppHost can reference projects
+                from a controlled checkout layout or orchestrate prebuilt, versioned images.
+                Aspire does not fetch private repositories, build arbitrary missing code, or
+                guarantee compatible versions for you. The next article tests this single-repository
+                sample and explains how to extend its assertions across repository boundaries.
+            </p>
+
+            <h4>References</h4>
+            <ul>
+                <li><a class="underline" href="https://aspire.dev/get-started/first-app/">Build your first Aspire app</a></li>
+                <li><a class="underline" href="https://aspire.dev/get-started/csharp-service-defaults/">C# ServiceDefaults</a></li>
+                <li><a class="underline" href="https://aspire.dev/integrations/databases/postgres/postgres-get-started/">PostgreSQL hosting and client integrations</a></li>
+            </ul>
+        </How>
+
+        <Summary>
+            <ul>
+                <li>The AppHost declares the API, PostgreSQL database, UI, and their dependencies.</li>
+                <li><Highlight>WithReference</Highlight> supplies service configuration; <Highlight>WaitFor</Highlight> coordinates startup.</li>
+                <li>Health checks help establish readiness, while an HTTP request verifies business behavior.</li>
+                <li>Service discovery keeps internal service addresses out of application code.</li>
+                <li>Keep local orchestration separate from production deployment and protect real data.</li>
+            </ul>
+            <p>
+                <strong>What to read next:</strong> continue with
+                <a class="underline" href="/blogs/distributed-testing-with-aspire-and-playwright-in-dotnet/">distributed testing with Aspire and Playwright</a>
+                to verify the API, database, and UI as one system.
+            </p>
+        </Summary>
+    </ContentBody>
+</Content>

@@ -4,7 +4,7 @@ public class TableOfContents
 {
   public const int PageSize = 12;
   private readonly TimeProvider _timeProvider;
-  private readonly List<ContentMetaData> _fullContents = new(225);
+  private readonly List<ContentMetaData> _fullContents = new(227);
   private readonly List<AuthorMetaData> _fullAuthors = new(1);
   private readonly List<SponsorMetaData> _fullSponsors = new(1);
 
@@ -81,6 +81,7 @@ public class TableOfContents
     ArgumentNullException.ThrowIfNull(timeProvider);
     _timeProvider = timeProvider;
     _fullContents.AddRange(new AILearningPath().FullContents);
+    _fullContents.AddRange(new AspireLearningPath().FullContents);
     _fullContents.AddRange(new BlazorLearningPath().FullContents);
     _fullContents.AddRange(new CachingLearningPath().FullContents);
     _fullContents.AddRange(new DatabaseLearningPath().FullContents);
