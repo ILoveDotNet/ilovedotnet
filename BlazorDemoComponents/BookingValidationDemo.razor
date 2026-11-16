@@ -33,9 +33,34 @@
     </div>
 
     <div class="mb-4">
+        <fieldset>
+            <legend>Nested contact details</legend>
+            <label for="contact-email">Email</label>
+            <InputText id="contact-email" @bind-Value="booking.Contact.Email" />
+            <ValidationMessage For="@(() => booking.Contact.Email)" />
+
+            <label for="contact-phone">Phone</label>
+            <InputText id="contact-phone" @bind-Value="booking.Contact.Phone" />
+            <ValidationMessage For="@(() => booking.Contact.Phone)" />
+        </fieldset>
+    </div>
+
+    <div class="mb-4">
         <label for="notes">Notes</label>
         <InputTextArea id="notes" @bind-Value="booking.Notes" />
         <ValidationMessage For="@(() => booking.Notes)" />
+    </div>
+
+    <div class="mb-4">
+        <p>Catalogue preview (lookup data, excluded with SkipValidation):</p>
+        @foreach (var lookupItem in booking.AvailableItems)
+        {
+            <p>@lookupItem.Name: quantity @lookupItem.Quantity, no staff assigned.</p>
+        }
+        <p>
+            This partial catalogue entry intentionally has no valid booking quantity or staff.
+            It doesn't block submission. Items added below must pass those rules.
+        </p>
     </div>
 
     <ValidationMessage For="@(() => booking.BookingItems)" />
@@ -73,7 +98,10 @@
     private readonly Guid customerId = Guid.NewGuid();
     private readonly Guid roomId = Guid.NewGuid();
     private readonly Guid staffId = Guid.NewGuid();
-    private BookingValidationModel booking = new();
+    private BookingValidationModel booking = new()
+    {
+        AvailableItems = [new() { Name = "Consultation" }]
+    };
     private string? message;
 
     private void AddBookingItem()

@@ -21,8 +21,11 @@ public sealed class BookingValidationModel
   [MaxLength(500, ErrorMessage = "Notes too long (500 character limit).")]
   public string? Notes { get; set; }
 
+  [Required]
+  public BookingContactValidationModel Contact { get; set; } = new();
+
   [SkipValidation]
-  public Dictionary<Guid, string> AvailableItems { get; set; } = [];
+  public List<BookingItemValidationModel> AvailableItems { get; set; } = [];
 
   [CustomValidation(typeof(BookingValidationModel), nameof(ValidateBookingItems))]
   public List<BookingItemValidationModel> BookingItems { get; set; } = [new()];
@@ -57,6 +60,17 @@ public sealed class BookingValidationModel
     value.Count == 0
       ? new("At least one booking item is required.", [nameof(BookingItems)])
       : ValidationResult.Success;
+}
+
+public sealed class BookingContactValidationModel
+{
+  [Required(ErrorMessage = "Contact email is required.")]
+  [EmailAddress(ErrorMessage = "Enter a valid contact email.")]
+  public string? Email { get; set; }
+
+  [Required(ErrorMessage = "Contact phone is required.")]
+  [StringLength(20, MinimumLength = 6, ErrorMessage = "Contact phone must be 6 - 20 characters.")]
+  public string? Phone { get; set; }
 }
 
 public sealed class BookingItemValidationModel

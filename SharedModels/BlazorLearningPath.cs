@@ -114,7 +114,7 @@ public class BlazorLearningPath
             {
                 Order = 7,
                 Title = "Blazor WASM Forms Validation",
-                Description = "In this post I will teach how to validate data collected in forms in your Blazor applications. All with live working demo.",
+                Description = "Learn built-in Blazor form validation with data annotations, source-generated nested and collection validation, and SkipValidation. Includes live demos.",
                 Author = "Abdul Rahman",
                 Slug = "blazor-wasm-forms-validation",
                 PosterUrl = "image/blogs/blazor/wasm/blazor-wasm-forms-validation.webp",
@@ -124,8 +124,8 @@ public class BlazorLearningPath
                 Channel = "Blazor",
                 Type = "blogs",
                 CreatedOn = new DateTime(2022, 6, 5, 22, 30, 0, DateTimeKind.Utc),
-                ModifiedOn = new DateTime(2026, 11, 16, 19, 9, 0, DateTimeKind.Utc),
-                Keywords = ["Forms", "Validation", "Fluent Validation"]
+                ModifiedOn = new DateTime(2026, 11, 16, 19, 46, 0, DateTimeKind.Utc),
+                Keywords = ["Forms", "Validation", "Data Annotations", "DataAnnotationsValidator", "Nested Validation", "SkipValidation"]
             },
             new ContentMetaData
             {

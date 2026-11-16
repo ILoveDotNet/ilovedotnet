@@ -13,21 +13,23 @@
             </p>
             <p>
                 Start with a small client form, then build an Anybills-inspired booking form with custom rules and
-                collection items. The complex example uses validation metadata generated at build time in .NET 10 and later.
+                collection items, nested contact details, and lookup-only data that should skip validation.
+                The complex example uses validation metadata generated at build time in .NET 10 and later.
             </p>
         </What>
 
         <Why>
             <p>
-                A booking can have a valid customer but an invalid item quantity or an end time before its start.
-                If you only check the top-level fields, a form submission can miss invalid collection items.
+                A booking can have a valid customer but an invalid item quantity, contact email, or end time before its start.
+                If you only check the top-level fields, a form submission can miss invalid nested objects and collection items.
                 Without generated metadata, <Highlight>DataAnnotationsValidator</Highlight> falls back to top-level
                 model validation on submit; missing metadata doesn't produce a runtime error.
             </p>
             <p>
                 Field messages help users correct input where they entered it, while a summary shows errors across the form.
-                The examples below show how to apply both, without a separate FluentValidation integration.
+                A partial catalogue record has a different purpose: treating it as a booking item could block an otherwise valid form.
                 Client-side checks improve feedback, but your server must independently validate submitted data before processing it.
+                The examples below show how to validate user input while excluding lookup-only data, without a separate FluentValidation integration.
             </p>
         </Why>
 
@@ -92,12 +94,12 @@ Taylor           | HandleValidSubmit called
                 </div>
             </DemoSnippet>
 
-            <h4 id="enable-generated-validation">Enable generated validation for booking items</h4>
+            <h4 id="enable-generated-validation">Enable generated validation for nested objects and booking items</h4>
             <p>
                 Register <Highlight>AddValidation</Highlight> in the assembly that declares the booking model.
                 The call registers validation services and activates a source generator, which produces metadata at build time.
-                Put the root and item model types in a <Highlight>.cs</Highlight> file, not a Razor component, and mark the root
-                with <Highlight>ValidatableType</Highlight>; the generator discovers reachable item types.
+                Put the root and child model types in a <Highlight>.cs</Highlight> file, not a Razor component, and mark the root
+                with <Highlight>ValidatableType</Highlight>; the generator discovers reachable child types.
             </p>
             <CodeSnippet CssClass="language-csharp">
 builder.Services.AddValidation();
@@ -162,9 +164,6 @@ public sealed class BookingValidationModel
     [CustomValidation(typeof(BookingValidationModel), nameof(ValidateEnd))]
     public DateTimeOffset EndAt { get; set; } = new(DateTime.Today.AddDays(1).AddHours(10));
 
-    [SkipValidation]
-    public Dictionary&lt;Guid, string&gt; AvailableItems { get; set; } = [];
-
     [CustomValidation(
         typeof(BookingValidationModel), nameof(ValidateBookingItems))]
     public List&lt;BookingItemValidationModel&gt; BookingItems { get; set; } =
@@ -214,11 +213,6 @@ public static ValidationResult? ValidateBookingItems(
                 For a cross-field rule, changing the start alone doesn't guarantee that the end field is immediately revalidated:
                 submit the form to recheck the complete model, or explicitly revalidate dependent fields in a production form.
             </p>
-            <p>
-                <Highlight>SkipValidation</Highlight> excludes <Highlight>AvailableItems</Highlight>, a lookup dictionary rather
-                than submitted booking items, from generated validation. Don't apply it to
-                <Highlight>BookingItems</Highlight>, whose contents must be checked.
-            </p>
             <CodeSnippet CssClass="language-csharp">
 public static ValidationResult? ValidateEnd(
     DateTimeOffset value, ValidationContext context)
@@ -232,10 +226,101 @@ public static ValidationResult? ValidateEnd(
         : ValidationResult.Success;
 }
             </CodeSnippet>
+
+            <h4 id="validate-nested-contact">Validate contact fields through the root model</h4>
+            <p>
+                Add an initialized <Highlight>Contact</Highlight> property to <Highlight>BookingValidationModel</Highlight>.
+                These excerpts belong in <Highlight>SharedModels/ValidationModels.cs</Highlight>, alongside the existing rules;
+                keep <Highlight>ValidatableType</Highlight> on the root.
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+// Inside BookingValidationModel:
+[Required]
+public BookingContactValidationModel Contact { get; set; } = new();
+
+// Separate child class in the same file:
+public sealed class BookingContactValidationModel
+{
+    [Required(ErrorMessage = "Contact email is required.")]
+    [EmailAddress(ErrorMessage = "Enter a valid contact email.")]
+    public string? Email { get; set; }
+
+    [Required(ErrorMessage = "Contact phone is required.")]
+    [StringLength(20, MinimumLength = 6,
+        ErrorMessage = "Contact phone must be 6 - 20 characters.")]
+    public string? Phone { get; set; }
+}
+            </CodeSnippet>
+            <p>
+                The child needs no <Highlight>ValidatableType</Highlight> attribute because the generator reaches it through
+                the annotated root. <Highlight>Required</Highlight> on <Highlight>Contact</Highlight> rejects a null reference;
+                it doesn't recursively validate the child's properties on its own.
+                Generated metadata enables that traversal on whole-form submission.
+            </p>
+            <p>
+                Bind each contact message to the nested property, not the root's <Highlight>Contact</Highlight> reference.
+                Insert this markup inside the booking <Highlight>EditForm</Highlight>, after its validator and summary:
+            </p>
+            <CodeSnippet CssClass="language-razor">
+&lt;label for="contact-email"&gt;Email&lt;/label&gt;
+&lt;InputText id="contact-email" @@bind-Value="booking.Contact.Email" /&gt;
+&lt;ValidationMessage For="@@(() =&gt; booking.Contact.Email)" /&gt;
+
+&lt;label for="contact-phone"&gt;Phone&lt;/label&gt;
+&lt;InputText id="contact-phone" @@bind-Value="booking.Contact.Phone" /&gt;
+&lt;ValidationMessage For="@@(() =&gt; booking.Contact.Phone)" /&gt;
+            </CodeSnippet>
+            <p>
+                Submit with blank contact fields to see both required messages beside the inputs and in the summary.
+                Then submit with <Highlight>not-an-email</Highlight> and phone <Highlight>123</Highlight> to see the format and
+                length errors. Use <Highlight>taylor@example.com</Highlight> and <Highlight>123456</Highlight> to satisfy these rules;
+                the phone rule checks length, not whether the number exists.
+            </p>
+
+            <h4 id="skip-lookup-validation">Skip lookup data without skipping actual booking items</h4>
+            <p>
+                Apply <Highlight>SkipValidation</Highlight> to <Highlight>AvailableItems</Highlight> on the root model.
+                The attribute comes from <Highlight>Microsoft.Extensions.Validation</Highlight>, alongside
+                <Highlight>ValidatableType</Highlight>; the rule attributes come from
+                <Highlight>System.ComponentModel.DataAnnotations</Highlight>.
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+// Inside BookingValidationModel:
+[SkipValidation]
+public List&lt;BookingItemValidationModel&gt; AvailableItems { get; set; } = [];
+            </CodeSnippet>
+            <p>
+                Anybills stores lookup items in a dictionary. This smaller demo uses a list and deliberately reuses
+                <Highlight>BookingItemValidationModel</Highlight> so both collections have the same traversable item type:
+                one is skipped, and the other is validated. A production catalogue can use a separate item view model.
+                Its read-only catalogue preview contains this intentionally incomplete entry:
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+using SharedModels;
+
+var booking = new BookingValidationModel
+{
+    AvailableItems = [new() { Name = "Consultation" }]
+};
+// Lookup value defaults: Quantity = 0, StaffId = Guid.Empty.
+            </CodeSnippet>
+            <p>
+                This list is lookup-only: users don't edit it, and the demo doesn't submit it to a server.
+                Generated validation skips the list and its items, so the incomplete catalogue entry doesn't block
+                <Highlight>OnValidSubmit</Highlight>. Keep <Highlight>BookingItems</Highlight> validated: actual items still
+                require a name, quantity from 1 to 100, and a staff selection.
+            </p>
+            <p>
+                <Highlight>SkipValidation</Highlight> is not a trust, sanitization, or security boundary.
+                It doesn't remove data from serialization or exempt submitted data from server validation.
+                In a real application, send only the intended booking data and independently validate it on the server.
+            </p>
             <CodeSnippet CssClass="language-text">
 BookingValidationModel
   |-- CustomerId, RoomId, StartAt, EndAt, Notes
-  |-- AvailableItems       [SkipValidation]
+  |-- Contact             [Required] rejects null
+  |    `-- Email, Phone   child rules via generated traversal
+  |-- AvailableItems      [SkipValidation]: no value traversal
   `-- BookingItems         list rule
        `-- each item       Name, Quantity, StaffId rules
             </CodeSnippet>
@@ -247,7 +332,7 @@ BookingValidationModel
                 <Highlight>BookingValidationDemo.razor</Highlight>.
             </p>
             <CodeSnippet CssClass="language-razor">
-@@using BlazorDemoComponents
+@@using SharedModels
 
 &lt;EditForm Model="@@booking" OnValidSubmit="@@HandleValidSubmit"&gt;
     &lt;DataAnnotationsValidator /&gt;
@@ -283,19 +368,42 @@ No customer                     | Customer is required.
 No booking items                | At least one booking item is required.
 Item quantity 0                 | Quantity must be between 1 and 100.
 End at or before start          | End must be after Start.
-All fields valid                | Booking passed validation.
+Contact email empty             | Contact email is required.
+Contact email not-an-email      | Enter a valid contact email.
+Contact phone empty             | Contact phone is required.
+Contact phone 123               | Contact phone must be 6 - 20 characters.
+Lookup quantity 0, no staff     | No lookup errors (SkipValidation).
+All editable fields valid       | Booking passed validation.
             </CodeSnippet>
             <DemoSnippet Title="Complex booking validation">
                 <p class="[ text-black ] [ dark:text-white ]">
-                    Try an empty customer, remove all items, or enter an invalid quantity. Add a valid item and select
-                    a customer, room, and staff member before submitting again.
+                    Use Save booking after each change below to observe whole-form validation.
                 </p>
+                <ul>
+                    <li>Leave Email and Phone blank and submit. Check both the nested field messages and the summary.</li>
+                    <li>
+                        Enter <Highlight>not-an-email</Highlight> and phone <Highlight>123</Highlight>, then submit.
+                        Replace them with <Highlight>taylor@example.com</Highlight> and <Highlight>123456</Highlight>.
+                    </li>
+                    <li>
+                        Select a customer and room, keep End after Start, and give the booking item a name,
+                        quantity <Highlight>1</Highlight>, and a staff member. Submit: expect
+                        <Highlight>Booking passed validation.</Highlight> even though the catalogue preview still shows
+                        quantity <Highlight>0</Highlight> and no staff.
+                    </li>
+                    <li>
+                        Change the editable booking item's quantity to <Highlight>0</Highlight> or clear its staff selection
+                        and submit. Errors now appear for that item, not the lookup entry.
+                        Remove all items and submit to see the list-level rule; add and complete an item to restore validity.
+                    </li>
+                </ul>
                 <div>
                     <BookingValidationDemo></BookingValidationDemo>
                 </div>
             </DemoSnippet>
             <p>
-                The booking shape is inspired by the Anybills <Highlight>net11</Highlight> branch's client and booking forms.
+                These examples adapt patterns from the Anybills <Highlight>net11</Highlight> branch:
+                the branch form's nested contact, and the booking form's separation of lookup data from editable items.
                 For framework details, see Microsoft's
                 <NavLink href="https://learn.microsoft.com/en-us/aspnet/core/blazor/forms/validation?view=aspnetcore-10.0" target="_blank">Blazor validation documentation</NavLink>.
             </p>
@@ -304,8 +412,9 @@ All fields valid                | Booking passed validation.
         <Summary>
             <ul>
                 <li>Use <Highlight>DataAnnotationsValidator</Highlight> and field messages for a simple form.</li>
-                <li>Generate metadata for root models in <Highlight>.cs</Highlight> files to validate nested items.</li>
-                <li>Use <Highlight>CustomValidation</Highlight> for model rules and skip only lookup data that needs no validation.</li>
+                <li>Generate metadata from the root to validate nested contact fields and collection items; reachable children need no extra <Highlight>ValidatableType</Highlight>.</li>
+                <li>Use <Highlight>CustomValidation</Highlight> for cross-property and collection rules.</li>
+                <li>Use <Highlight>SkipValidation</Highlight> only for lookup-only data, never to bypass checks on actual booking items.</li>
                 <li>Recheck dependent fields and enforce business rules independently on the server.</li>
             </ul>
             <p>
