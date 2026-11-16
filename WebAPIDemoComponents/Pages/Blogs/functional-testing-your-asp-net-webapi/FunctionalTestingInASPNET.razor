@@ -118,95 +118,10 @@ app.Run();
 
             <h4 id="assembly-fixture">2. Share one host and manage external resources with an assembly fixture</h4>
             <p>
-                Register one xUnit v3 assembly fixture. It starts PostgreSQL and WireMock before building the test host,
-                replaces the database registration, applies migrations, and seeds stable reference data once. The host is shared;
-                clients and database scopes belong to individual tests. Assembly fixtures do not disable parallel execution.
-                If business data and Identity use separate databases, give each store its own container and test-owned scope.
+                Use one xUnit v3 assembly fixture to own the host and external resources. It starts PostgreSQL and WireMock before
+                building the host, applies migrations, and seeds shared reference data once. The host is shared; clients and
+                database scopes belong to individual tests. Assembly fixtures do not disable parallel execution.
             </p>
-            <p>
-                These are focused fragments of one <Highlight>AppFixture</Highlight> class. Add the shown members to that class and
-                include the corresponding framework, EF Core, Testcontainers, and WireMock usings.
-            </p>
-            <CodeSnippet CssClass="language-csharp">
-using Bogus;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Shared.Features.Clients;
-using Testcontainers.PostgreSql;
-using WireMock.Server;
-using Xunit;
-
-[assembly: AssemblyFixture(typeof(FunctionalTest.AppFixture))]
-namespace FunctionalTest;
-
-public sealed class AppFixture : WebApplicationFactory&lt;Program&gt;, IAsyncLifetime
-{
-    private readonly PostgreSqlContainer _database =
-        new PostgreSqlBuilder("pgvector/pgvector:pg16")
-            .WithDatabase("functional_tests")
-            .WithUsername("postgres")
-            .WithPassword("postgres")
-            .Build();
-
-    private readonly WireMockServer _partnerApi = WireMockServer.Start();
-    public WireMockServer PartnerApi =&gt; _partnerApi;
-}
-            </CodeSnippet>
-            <p>
-                Replace the production database registration in <Highlight>ConfigureWebHost</Highlight> and point the API's
-                outbound HTTP client at WireMock:
-            </p>
-            <CodeSnippet CssClass="language-csharp">
-protected override void ConfigureWebHost(IWebHostBuilder builder)
-{
-    builder.UseEnvironment("Test");
-    builder.ConfigureAppConfiguration((_, config) =&gt;
-        config.AddInMemoryCollection(new Dictionary&lt;string, string?&gt;
-        {
-            ["PartnerApi:BaseUrl"] = _partnerApi.Url
-        }));
-
-    builder.ConfigureTestServices(services =&gt;
-    {
-        services.RemoveAll&lt;AppDbContext&gt;();
-        services.RemoveAll&lt;DbContextOptions&lt;AppDbContext&gt;&gt;();
-        services.RemoveAll&lt;IDbContextOptionsConfiguration&lt;AppDbContext&gt;&gt;();
-        services.AddDbContext&lt;AppDbContext&gt;(options =&gt;
-            options.UseNpgsql(_database.GetConnectionString()));
-    });
-}
-            </CodeSnippet>
-            <p>
-                Start external resources before accessing <Highlight>Services</Highlight>, because that access builds the host.
-                Apply migrations and seed shared prerequisite data once in the fixture:
-            </p>
-            <CodeSnippet CssClass="language-csharp">
-public async ValueTask InitializeAsync()
-{
-    await _database.StartAsync(TestContext.Current.CancellationToken);
-
-    _partnerApi.Given(Request.Create().WithPath("/partner/clients").UsingPost())
-        .RespondWith(Response.Create()
-            .WithStatusCode(201)
-            .WithHeader("Content-Type", "application/json")
-            .WithBody("{\"id\":\"test-partner-client\"}"));
-
-    await using var scope = Services.CreateAsyncScope();
-    var db = scope.ServiceProvider.GetRequiredService&lt;AppDbContext&gt;();
-    await db.Database.MigrateAsync(TestContext.Current.CancellationToken);
-    await DatabaseSeeder.SeedAsync(db, TestContext.Current.CancellationToken);
-}
-            </CodeSnippet>
-            <p>
-                Stop resources when the shared fixture is disposed:
-            </p>
-            <CodeSnippet CssClass="language-csharp">
-public override async ValueTask DisposeAsync()
-{
-    await base.DisposeAsync();
-    await _database.DisposeAsync();
-    _partnerApi.Dispose();
-}
-            </CodeSnippet>
             <p>
                 The stub lets the API's configured HTTP client make a real request to the controlled server. When the partner call
                 is part of the behavior under test, verify a unique per-test value in the matching WireMock request-log entry;
@@ -218,67 +133,11 @@ public override async ValueTask DisposeAsync()
                 <Highlight>public partial class Program</Highlight>.
                 Use the same database provider and required extensions as production. This example uses
                 <Highlight>pgvector/pgvector:pg16</Highlight> to provide the pgvector extension; choose an image that provides
-                the extensions your migrations need. The following optional pattern adds a separate Identity database and a
-                test-owned scope when your application stores Client records there.
+                the extensions your migrations need. The complete fixture appears after the authentication helpers in section 4.
+                It includes a separate Identity database for the Client persistence example. If your application uses one database,
+                remove the Identity container, connection-string override, test-owned provider and scope, and Identity migration
+                and assertion.
             </p>
-            <CodeSnippet CssClass="language-csharp">
-// Add these members to AppFixture when Identity uses a separate database.
-private readonly PostgreSqlContainer _identityDatabase =
-    new PostgreSqlBuilder("pgvector/pgvector:pg16")
-        .WithDatabase("identity_tests")
-        .WithUsername("postgres")
-        .WithPassword("postgres")
-        .Build();
-
-private ServiceProvider? _identityServices;
-
-internal IServiceScope CreateIdentityScope() =&gt;
-    (_identityServices ?? throw new InvalidOperationException(
-        "The fixture has not been initialized.")).CreateScope();
-            </CodeSnippet>
-            <p>
-                Replace <Highlight>IdentityDbContext</Highlight> and the connection-string key with your API's Identity store types.
-                Configure the API to use the second container, then register that context in the test-owned provider:
-            </p>
-            <CodeSnippet CssClass="language-csharp">
-// Add the connection-string override inside ConfigureWebHost.
-builder.ConfigureAppConfiguration((_, configuration) =&gt;
-    configuration.AddInMemoryCollection(
-        new Dictionary&lt;string, string?&gt;
-        {
-            ["ConnectionStrings:Identity"] =
-                _identityDatabase.GetConnectionString()
-        }));
-
-// In InitializeAsync, start both containers before building either service provider.
-await _identityDatabase.StartAsync(TestContext.Current.CancellationToken);
-
-var identityServices = new ServiceCollection();
-identityServices.AddDbContext&lt;IdentityDbContext&gt;(options =&gt;
-    options.UseNpgsql(_identityDatabase.GetConnectionString()));
-_identityServices = identityServices.BuildServiceProvider();
-
-await using var identityScope = _identityServices.CreateAsyncScope();
-var identityDb = identityScope.ServiceProvider
-    .GetRequiredService&lt;IdentityDbContext&gt;();
-await identityDb.Database.MigrateAsync(TestContext.Current.CancellationToken);
-            </CodeSnippet>
-            <p>
-                Add the second provider and container to fixture disposal, and create an Identity scope per test. Run a separate
-                initializer after migrations if your Identity store requires lookup or prerequisite data; migrations alone do not
-                seed application-level data. Register any additional Identity services or options this test-owned provider needs.
-            </p>
-            <CodeSnippet CssClass="language-csharp">
-public override async ValueTask DisposeAsync()
-{
-    await base.DisposeAsync();
-    await _database.DisposeAsync();
-    if (_identityServices is not null)
-        await _identityServices.DisposeAsync();
-    await _identityDatabase.DisposeAsync();
-    _partnerApi.Dispose();
-}
-            </CodeSnippet>
 
             <h4 id="seed-data">3. Seed only shared prerequisite data</h4>
             <p>
@@ -308,22 +167,6 @@ internal static class DatabaseSeeder
                 Use the claim type your application actually authorizes against. If production explicitly names a bearer scheme
                 in an attribute or policy, configure that policy for tests or use real test tokens: changing defaults alone will not replace it.
             </p>
-            <p>
-                Register the handler and the default claims provider inside <Highlight>ConfigureTestServices</Highlight>:
-            </p>
-            <CodeSnippet CssClass="language-csharp">
-services.AddAuthentication(options =&gt;
-    {
-        options.DefaultScheme = TestAuthHandler.SchemeName;
-        options.DefaultAuthenticateScheme = TestAuthHandler.SchemeName;
-        options.DefaultChallengeScheme = TestAuthHandler.SchemeName;
-        options.DefaultForbidScheme = TestAuthHandler.SchemeName;
-    })
-    .AddScheme&lt;AuthenticationSchemeOptions, TestAuthHandler&gt;(
-        TestAuthHandler.SchemeName, _ =&gt; { });
-
-services.AddScoped(_ =&gt; AuthClaimsProvider.WithMasterClaims());
-            </CodeSnippet>
             <p>
                 Keep claims per client so parallel tests cannot leak identities. Add provider helpers for the roles and tenant claims
                 your API uses:
@@ -442,6 +285,123 @@ public static class TestClientExtensions
                 equivalent providers with your application's required tenant claims. Avoid changing shared
                 <Highlight>DefaultRequestHeaders</Highlight> so parallel tests cannot leak claims into one another.
             </p>
+            <p>
+                The complete fixture below registers this test scheme, redirects the API to the test containers and WireMock,
+                applies migrations and shared seeding, and disposes its resources. Replace the sample API types and connection-string
+                keys. Migrations do not seed application-level Identity data; call your Identity initializer at the marked line if
+                the application requires it. The other marked placeholder is where you can remove a production service and register
+                a fake when needed.
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+using API.Data;
+using API.Identity; // Replace with your Identity context namespace.
+using Bogus;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Shared.Features.Clients;
+using Testcontainers.PostgreSql;
+using WireMock.RequestBuilders;
+using WireMock.ResponseBuilders;
+using WireMock.Server;
+using Xunit;
+
+[assembly: AssemblyFixture(typeof(FunctionalTest.AppFixture))]
+namespace FunctionalTest;
+
+public sealed class AppFixture : WebApplicationFactory&lt;Program&gt;, IAsyncLifetime
+{
+    private readonly PostgreSqlContainer _database = new PostgreSqlBuilder("pgvector/pgvector:pg16")
+        .WithDatabase("functional_tests").WithUsername("postgres").WithPassword("postgres").Build();
+    private readonly PostgreSqlContainer _identityDatabase = new PostgreSqlBuilder("pgvector/pgvector:pg16")
+        .WithDatabase("identity_tests").WithUsername("postgres").WithPassword("postgres").Build();
+    private readonly WireMockServer _partnerApi = WireMockServer.Start();
+    private ServiceProvider? _identityServices;
+    public WireMockServer PartnerApi =&gt; _partnerApi;
+
+    public Faker&lt;CreateClientCommand&gt; ClientCommand =&gt; new Faker&lt;CreateClientCommand&gt;()
+        .RuleFor(command =&gt; command.Name,
+            faker =&gt; $"{faker.Company.CompanyName()}-{faker.Random.AlphaNumeric(8)}");
+
+    internal IServiceScope CreateIdentityScope() =&gt;
+        (_identityServices ?? throw new InvalidOperationException("Fixture is not initialized.")).CreateScope();
+
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    {
+        builder.UseEnvironment("Test");
+        builder.ConfigureAppConfiguration((_, config) =&gt; config.AddInMemoryCollection(new Dictionary&lt;string, string?&gt;
+        {
+            ["PartnerApi:BaseUrl"] = _partnerApi.Url,
+            ["ConnectionStrings:Identity"] = _identityDatabase.GetConnectionString()
+        }));
+        builder.ConfigureTestServices(services =&gt;
+        {
+            services.RemoveAll&lt;AppDbContext&gt;();
+            services.RemoveAll&lt;DbContextOptions&lt;AppDbContext&gt;&gt;();
+            services.RemoveAll&lt;IDbContextOptionsConfiguration&lt;AppDbContext&gt;&gt;();
+            services.AddDbContext&lt;AppDbContext&gt;(options =&gt;
+                options.UseNpgsql(_database.GetConnectionString()));
+
+            services.AddAuthentication(options =&gt;
+            {
+                options.DefaultScheme = TestAuthHandler.SchemeName;
+                options.DefaultAuthenticateScheme = TestAuthHandler.SchemeName;
+                options.DefaultChallengeScheme = TestAuthHandler.SchemeName;
+                options.DefaultForbidScheme = TestAuthHandler.SchemeName;
+            }).AddScheme&lt;AuthenticationSchemeOptions, TestAuthHandler&gt;(
+                TestAuthHandler.SchemeName, _ =&gt; { });
+            services.AddScoped(_ =&gt; AuthClaimsProvider.WithMasterClaims());
+
+            // Optional: remove a production service and register a focused fake.
+            // services.RemoveAll&lt;IYourService&gt;();
+            // services.AddScoped&lt;IYourService, FakeYourService&gt;();
+        });
+    }
+
+    public async ValueTask InitializeAsync()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await _database.StartAsync(cancellationToken);
+        await _identityDatabase.StartAsync(cancellationToken);
+        _partnerApi.Given(Request.Create().WithPath("/partner/clients").UsingPost())
+            .RespondWith(Response.Create().WithStatusCode(201)
+                .WithHeader("Content-Type", "application/json")
+                .WithBody("{\"id\":\"test-partner-client\"}"));
+
+        var identityServices = new ServiceCollection();
+        identityServices.AddDbContext&lt;IdentityDbContext&gt;(options =&gt;
+            options.UseNpgsql(_identityDatabase.GetConnectionString()));
+        _identityServices = identityServices.BuildServiceProvider();
+        await using (var identityScope = _identityServices.CreateAsyncScope())
+        {
+            var identityDb = identityScope.ServiceProvider.GetRequiredService&lt;IdentityDbContext&gt;();
+            await identityDb.Database.MigrateAsync(cancellationToken);
+            // Run an Identity initializer here if the application requires lookup or prerequisite data.
+        }
+
+        await using var scope = Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService&lt;AppDbContext&gt;();
+        await db.Database.MigrateAsync(cancellationToken);
+        await DatabaseSeeder.SeedAsync(db, cancellationToken);
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+        await _database.DisposeAsync();
+        if (_identityServices is not null)
+            await _identityServices.DisposeAsync();
+        await _identityDatabase.DisposeAsync();
+        _partnerApi.Dispose();
+    }
+}
+            </CodeSnippet>
 
             <h4 id="http-helpers">5. Add a small HTTP helper for status and response diagnostics</h4>
             <p>
@@ -483,27 +443,15 @@ internal static class HttpClientExtensions
             <p>
                 For outbound HTTP, prefer WireMock so the real HTTP client, serialization, and request configuration still run.
                 If a dependency is not HTTP or its implementation is irrelevant to the scenario, remove its production registration
-                and add a focused fake in the same <Highlight>ConfigureTestServices</Highlight> callback:
-            </p>
-            <CodeSnippet CssClass="language-csharp">
-services.RemoveAll&lt;IPartnerService&gt;();
-services.AddScoped&lt;IPartnerService, FakePartnerService&gt;();
-            </CodeSnippet>
-            <p>
-                Implement <Highlight>FakePartnerService</Highlight> in the test project and keep its behavior explicit.
-                Do not silently fake the database in a test intended to verify database integration.
+                and add a focused fake at the marked placeholder in the full <Highlight>AppFixture</Highlight> above.
+                Keep fake behavior explicit, and do not replace the database in a test intended to verify database integration.
             </p>
 
             <h4 id="faker-data">7. Generate unique request data with Bogus</h4>
             <p>
-                The fixture's <Highlight>Faker&lt;CreateClientCommand&gt;</Highlight> creates a fresh request for each test.
-                Keep deterministic reference data in the seeder and randomized entity data in the test.
+                The <Highlight>AppFixture.ClientCommand</Highlight> property creates a fresh request for each test. Keep deterministic
+                reference data in the seeder and randomized entity data in the test.
             </p>
-            <CodeSnippet CssClass="language-csharp">
-public Faker&lt;CreateClientCommand&gt; ClientCommand =&gt; new Faker&lt;CreateClientCommand&gt;()
-    .RuleFor(command =&gt; command.Name,
-        faker =&gt; $"{faker.Company.CompanyName()}-{faker.Random.AlphaNumeric(8)}");
-            </CodeSnippet>
 
             <h4 id="complete-test">8. Complete example: create a Client and verify Identity persistence</h4>
             <p>
