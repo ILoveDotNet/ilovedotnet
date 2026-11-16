@@ -180,6 +180,7 @@ using System.Security.Claims;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using Xunit;
 
 namespace FunctionalTest;
 
@@ -201,6 +202,16 @@ public sealed class AuthClaimsProvider(IList&lt;Claim&gt; claims)
         new Claim(ClaimTypes.NameIdentifier, "functional-test-user"),
         new Claim(ClaimTypes.Role, role)
     ]);
+}
+
+public sealed class ClaimsBelowMasterClaim : TheoryData&lt;AuthClaimsProvider&gt;
+{
+    public ClaimsBelowMasterClaim()
+    {
+        Add(AuthClaimsProvider.WithRole("Owner"));
+        Add(AuthClaimsProvider.WithRole("Manager"));
+        Add(AuthClaimsProvider.WithRole("Cashier"));
+    }
 }
             </CodeSnippet>
             <p>
@@ -436,6 +447,17 @@ internal static class HttpClientExtensions
         Assert.NotNull(result);
         return result;
     }
+
+    public static async Task PostAsync(
+        this HttpClient client,
+        string path,
+        object request,
+        HttpStatusCode expectedStatus)
+    {
+        using var response = await client.PostAsJsonAsync(
+            path, request, TestContext.Current.CancellationToken);
+        Assert.Equal(expectedStatus, response.StatusCode);
+    }
 }
             </CodeSnippet>
 
@@ -489,7 +511,11 @@ public abstract class BaseTest(AppFixture fixture) : IDisposable
 }
             </CodeSnippet>
             <p>
-                In <Highlight>ClientTests.cs</Highlight>, use the fixture client and assert both the response and the Identity row:
+                In <Highlight>ClientTests.cs</Highlight>, use the fixture client to verify successful creation and Identity persistence.
+                For an endpoint restricted to the <Highlight>Master</Highlight> role, the theory also submits valid requests as
+                <Highlight>Owner</Highlight>, <Highlight>Manager</Highlight>, and <Highlight>Cashier</Highlight> users and expects
+                <Highlight>403 Forbidden</Highlight>: they are authenticated but lack permission. Replace these roles with roles
+                from your API's policy.
             </p>
             <CodeSnippet CssClass="language-csharp">
 using Microsoft.EntityFrameworkCore;
@@ -516,6 +542,15 @@ public sealed class ClientTests(AppFixture fixture, ITestOutputHelper output)
             client =&gt; client.Name == result.Name, TestContext.Current.CancellationToken);
         Assert.Equal(result.Name, saved.Name);
         Assert.True(saved.Active);
+    }
+
+    [Theory]
+    [ClassData(typeof(ClaimsBelowMasterClaim))]
+    public async Task Create_Returns_ForbiddenResponse(AuthClaimsProvider claims)
+    {
+        using var client = Factory.CreateClientWithClaims(claims);
+        await client.PostAsync(
+            "/api/clients", Fixture.ClientCommand.Generate(), HttpStatusCode.Forbidden);
     }
 }
             </CodeSnippet>
