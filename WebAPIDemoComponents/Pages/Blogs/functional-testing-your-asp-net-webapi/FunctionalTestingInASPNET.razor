@@ -162,14 +162,13 @@ internal static class DatabaseSeeder
 
             <h4 id="test-authentication">4. Replace authentication and inject per-test claims</h4>
             <p>
-                Register a test-only scheme in <Highlight>ConfigureTestServices</Highlight>. The default provider authenticates a
-                representative administrator; a per-client header overrides those claims for role/policy tests.
-                Use the claim type your application actually authorizes against. If production explicitly names a bearer scheme
-                in an attribute or policy, configure that policy for tests or use real test tokens: changing defaults alone will not replace it.
+                Replace authentication only in the test host. This example's policy requires the lowercase
+                <Highlight>role=master</Highlight> claim; each client can supply different claims for role tests. Match the claim
+                type and values to your API's policy. If production explicitly names a bearer scheme in an attribute or policy,
+                changing the default scheme will not replace it; configure that policy for tests or use real test tokens.
             </p>
             <p>
-                Keep claims per client so parallel tests cannot leak identities. Add provider helpers for the roles and tenant claims
-                your API uses:
+                Keep claims per client to prevent parallel tests from leaking identities. Add the role and tenant claims your API needs:
             </p>
             <CodeSnippet CssClass="language-csharp">
 using Microsoft.AspNetCore.Authentication;
@@ -188,19 +187,20 @@ internal sealed record ClaimDto(string Type, string Value);
 
 public sealed class AuthClaimsProvider(IList&lt;Claim&gt; claims)
 {
+    public const string RoleClaimType = "role";
     public IList&lt;Claim&gt; Claims { get; } = claims;
 
     public static AuthClaimsProvider WithMasterClaims() =&gt; new(
     [
         new Claim(ClaimTypes.NameIdentifier, "functional-test-master"),
         new Claim(ClaimTypes.Name, "Test Master"),
-        new Claim(ClaimTypes.Role, "Master")
+        new Claim(RoleClaimType, "master")
     ]);
 
     public static AuthClaimsProvider WithRole(string role) =&gt; new(
     [
         new Claim(ClaimTypes.NameIdentifier, "functional-test-user"),
-        new Claim(ClaimTypes.Role, role)
+        new Claim(RoleClaimType, role)
     ]);
 }
 
@@ -208,9 +208,9 @@ public sealed class ClaimsBelowMasterClaim : TheoryData&lt;AuthClaimsProvider&gt
 {
     public ClaimsBelowMasterClaim()
     {
-        Add(AuthClaimsProvider.WithRole("Owner"));
-        Add(AuthClaimsProvider.WithRole("Manager"));
-        Add(AuthClaimsProvider.WithRole("Cashier"));
+        Add(AuthClaimsProvider.WithRole("owner"));
+        Add(AuthClaimsProvider.WithRole("manager"));
+        Add(AuthClaimsProvider.WithRole("cashier"));
     }
 }
             </CodeSnippet>
@@ -239,7 +239,8 @@ public sealed class TestAuthHandler(
             catch (FormatException) { return Fail("Claims header must be Base64 encoded."); }
             catch (JsonException) { return Fail("Claims header must contain valid JSON."); }
         }
-        var identity = new ClaimsIdentity(claims, SchemeName, ClaimTypes.Name, ClaimTypes.Role);
+        var identity = new ClaimsIdentity(
+            claims, SchemeName, ClaimTypes.Name, AuthClaimsProvider.RoleClaimType);
         var ticket = new AuthenticationTicket(new ClaimsPrincipal(identity), SchemeName);
         return Task.FromResult(AuthenticateResult.Success(ticket));
     }
@@ -297,11 +298,11 @@ public static class TestClientExtensions
                 <Highlight>DefaultRequestHeaders</Highlight> so parallel tests cannot leak claims into one another.
             </p>
             <p>
-                The complete fixture below registers this test scheme, redirects the API to the test containers and WireMock,
-                applies migrations and shared seeding, and disposes its resources. Replace the sample API types and connection-string
-                keys. Migrations do not seed application-level Identity data; call your Identity initializer at the marked line if
-                the application requires it. The other marked placeholder is where you can remove a production service and register
-                a fake when needed.
+                The complete fixture below ties the pieces together: <Highlight>ConfigureWebHost</Highlight> redirects the API to
+                the test services, <Highlight>InitializeAsync</Highlight> starts containers and applies migrations/seeding, and
+                <Highlight>DisposeAsync</Highlight> cleans up. Replace the sample API types and connection-string keys. Migrations
+                do not seed application-level Identity data; call your Identity initializer at the marked line if needed. The other
+                marked placeholder is where you can remove a production service and register a fake.
             </p>
             <CodeSnippet CssClass="language-csharp">
 using API.Data;
@@ -475,7 +476,7 @@ internal static class HttpClientExtensions
                 reference data in the seeder and randomized entity data in the test.
             </p>
 
-            <h4 id="complete-test">8. Complete example: create a Client and verify Identity persistence</h4>
+            <h4 id="complete-test">8. Test Client creation, persistence, and role-based authorization</h4>
             <p>
                 This example follows a common Client creation flow: generate a command, send it as an authorized user, assert the
                 HTTP response, then verify persistence in the Identity database. Replace the request, response, context names, and
@@ -511,11 +512,11 @@ public abstract class BaseTest(AppFixture fixture) : IDisposable
 }
             </CodeSnippet>
             <p>
-                In <Highlight>ClientTests.cs</Highlight>, use the fixture client to verify successful creation and Identity persistence.
-                For an endpoint restricted to the <Highlight>Master</Highlight> role, the theory also submits valid requests as
-                <Highlight>Owner</Highlight>, <Highlight>Manager</Highlight>, and <Highlight>Cashier</Highlight> users and expects
-                <Highlight>403 Forbidden</Highlight>: they are authenticated but lack permission. Replace these roles with roles
-                from your API's policy.
+                In <Highlight>ClientTests.cs</Highlight>, the first test verifies creation and Identity persistence. The second assumes
+                <Highlight>/api/clients</Highlight> requires <Highlight>role=master</Highlight> and sends valid requests as
+                <Highlight>Owner</Highlight>, <Highlight>Manager</Highlight>, and <Highlight>Cashier</Highlight>. These users are
+                authenticated but lack permission, so the expected result is <Highlight>403 Forbidden</Highlight>. Replace the sample
+                roles with those from your API's policy.
             </p>
             <CodeSnippet CssClass="language-csharp">
 using Microsoft.EntityFrameworkCore;
