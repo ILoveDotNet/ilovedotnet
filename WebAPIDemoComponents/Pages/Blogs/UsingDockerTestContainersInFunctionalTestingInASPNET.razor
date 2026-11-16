@@ -69,25 +69,32 @@
             <h4 id="steps-to-do-functional-test-using-test-containers">Steps to do Functional Test using Test Containers</h4>
 
         <p>
-            Let's learn how to do functional test using Test Containers in ASP.NET Web API. We will be using the same project we used in the previous article 
-            and <Highlight>try using test containers for database instead of in-memory database</Highlight>.
+            Continue from the introductory functional-testing article and use <Highlight>Testcontainers for the database</Highlight>.
+            You can skip the historical SQLite walkthrough: the database fixture, seed helper, and test base needed here are shown below.
         </p>
 
         <ol>
-            <li>
+            <li id="functional-test-prerequisites">
                 Install <Highlight>Testcontainers.PostgreSql</Highlight> and <Highlight>Npgsql.EntityFrameworkCore.PostgreSQL</Highlight>
                 in your functional test project. Match the PostgreSQL provider's supported EF Core major version to the API's EF Core packages.
                 These examples target <Highlight>.NET 11</Highlight> and use <Highlight>EF Core 11.0.0</Highlight>,
                 rather than the linked sample's older configuration.
-                Complete the <NavLink href="blogs/faking-dependencies-in-functional-testing-in-asp-net-webapi#functional-test-prerequisites">coordinated package and xUnit v3 migration</NavLink>
-                first, including executable test-project output and a compatible Visual Studio adapter.
+                Set both the API and test projects to <Highlight>net11.0</Highlight>, and upgrade the API's
+                <Highlight>Microsoft.EntityFrameworkCore</Highlight> and <Highlight>Microsoft.EntityFrameworkCore.Tools</Highlight>
+                packages to <Highlight>11.0.0</Highlight>. Use a PostgreSQL provider version explicitly supporting EF Core 11
+                in both projects, then restore them together and resolve version conflicts.
+                Follow the <NavLink href="blogs/functional-testing-your-asp-net-webapi">introductory article's xUnit v3 setup</NavLink>:
+                use <Highlight>xunit.v3</Highlight>, executable test-project output, <Highlight>using Xunit;</Highlight>
+                for <Highlight>ITestOutputHelper</Highlight>, and <Highlight>xunit.runner.visualstudio 3.0.0 or later</Highlight>
+                with <Highlight>Microsoft.NET.Test.Sdk</Highlight> for Visual Studio or VSTest.
+                A Docker-compatible container runtime must be running before you execute the tests.
             </li>
             <li>
                 <p>
-                    Replace the SQLite <Highlight>AppFixture</Highlight> from the
-                    <NavLink href="blogs/faking-dependencies-in-functional-testing-in-asp-net-webapi">faking dependencies article</NavLink>
-                    with the assembly fixture below. Keep that article's <Highlight>BaseTest</Highlight>, which owns a client and
-                    database scope per test. The fixture now owns both the application host and the PostgreSQL container.
+                    The API is assumed to expose <Highlight>/weatherforecast/fromdatabase</Highlight> backed by
+                    <Highlight>WeatherForecastDbContext.WeatherForecasts</Highlight>, with PostgreSQL migrations in the API project.
+                    Replace the introductory article's <Highlight>AppFixture</Highlight> with the assembly fixture below.
+                    Keep only one assembly-fixture registration. The fixture owns both the application host and the PostgreSQL container.
                 </p>
 
                 <CodeSnippet CssClass="language-csharp">
@@ -155,6 +162,70 @@ public class AppFixture : WebApplicationFactory&lt;Program&gt;, IAsyncLifetime
                     Use PostgreSQL-compatible migrations from the API project, not migrations generated for a different provider.
                     The application host is disposed before the container after all tests finish.
                 </p>
+            </li>
+            <li>
+                <p>
+                    Add <Highlight>DatabaseHelper.cs</Highlight> to seed the database once during fixture initialization.
+                    Keep this shared seed data read-only while tests run.
+                </p>
+
+                <CodeSnippet CssClass="language-csharp">
+using API;
+using API.DbContexts;
+
+namespace FunctionalTest;
+
+public static class DatabaseHelper
+{
+    public static async Task InitializeDbForTestsAsync(WeatherForecastDbContext db)
+    {
+        await db.WeatherForecasts.AddAsync(new WeatherForecast
+        {
+            Id = 1,
+            Date = DateOnly.FromDateTime(DateTime.Now.AddDays(1)),
+            TemperatureC = 1,
+            Summary = "Freezing from database"
+        });
+        await db.SaveChangesAsync();
+    }
+}
+                </CodeSnippet>
+
+                <p>
+                    Replace the introductory article's <Highlight>BaseTest</Highlight> with this version.
+                    Each test owns a client and a database scope; never share a <Highlight>DbContext</Highlight> between tests.
+                    xUnit owns disposal of the shared <Highlight>AppFixture</Highlight>.
+                </p>
+
+                <CodeSnippet CssClass="language-csharp">
+using API.DbContexts;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace FunctionalTest;
+
+public abstract class BaseTest : IDisposable
+{
+    private readonly IServiceScope _scope;
+
+    protected BaseTest(AppFixture fixture)
+    {
+        Factory = fixture;
+        Client = fixture.CreateClient();
+        _scope = fixture.Services.CreateScope();
+        Database = _scope.ServiceProvider.GetRequiredService&lt;WeatherForecastDbContext&gt;();
+    }
+
+    protected AppFixture Factory { get; }
+    protected HttpClient Client { get; }
+    protected WeatherForecastDbContext Database { get; }
+
+    public void Dispose()
+    {
+        Client.Dispose();
+        _scope.Dispose();
+    }
+}
+                </CodeSnippet>
             </li>
             <li>
                 <p>
