@@ -1,4 +1,4 @@
-@using System.Text.Json.Nodes
+@using System.Text.Json
 @using Microsoft.AspNetCore.Components.Web
 @inject IConfiguration Configuration
 
@@ -27,28 +27,30 @@
     [Parameter] public string? ParentTitle { get; set; }
     [Parameter] public string? ParentUrl { get; set; }
 
-    private string JsonLd => new JsonObject
+    private string JsonLd => JsonSerializer.Serialize(new Dictionary<string, object?>
     {
         ["@context"] = "https://schema.org",
         ["@type"] = "BreadcrumbList",
         ["itemListElement"] = BuildItems()
-    }.ToJsonString();
+    });
 
-    private JsonArray BuildItems()
+    private object[] BuildItems()
     {
-        var items = new JsonArray();
-        items.Add((JsonNode?)new JsonObject
+        var items = new List<object>
         {
-            ["@type"] = "ListItem",
-            ["position"] = 1,
-            ["name"] = "Home",
-            ["item"] = AbsoluteUrl("/")
-        });
+            new Dictionary<string, object?>
+            {
+                ["@type"] = "ListItem",
+                ["position"] = 1,
+                ["name"] = "Home",
+                ["item"] = AbsoluteUrl("/")
+            }
+        };
 
         var position = 2;
         if (!string.IsNullOrWhiteSpace(ParentTitle) && !string.IsNullOrWhiteSpace(ParentUrl))
         {
-            items.Add((JsonNode?)new JsonObject
+            items.Add(new Dictionary<string, object?>
             {
                 ["@type"] = "ListItem",
                 ["position"] = position,
@@ -58,7 +60,7 @@
             position++;
         }
 
-        items.Add((JsonNode?)new JsonObject
+        items.Add(new Dictionary<string, object?>
         {
             ["@type"] = "ListItem",
             ["position"] = position,
@@ -66,7 +68,7 @@
             ["item"] = AbsoluteUrl(CurrentUrl)
         });
 
-        return items;
+        return [.. items];
     }
 
     private string AbsoluteUrl(string path)
