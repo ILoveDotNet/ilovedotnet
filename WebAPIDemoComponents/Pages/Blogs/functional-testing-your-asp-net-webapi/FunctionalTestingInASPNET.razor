@@ -6,28 +6,31 @@
     <ContentBody>
         <What>
             <p>
-                A functional test sends a request through the real ASP.NET Core pipeline and checks the result across
-                application components such as routing, authorization, dependency injection, persistence, and outbound HTTP.
-                Unlike a unit test, it keeps the application behavior real and replaces only external boundaries that need control.
+                A passing unit test answers a narrow question: does this piece of code work by itself? A
+                <Highlight>functional test</Highlight> sends an HTTP request through the ASP.NET Core application pipeline and
+                checks how the configured components work together.
             </p>
             <p>
-                This guide consolidates the ASP.NET Core functional-testing setup into one .NET 11 and xUnit v3 example.
-                The names such as <Highlight>AppDbContext</Highlight> and <Highlight>CreateClientCommand</Highlight> are placeholders:
-                map them to your API. The test flow follows patterns used by the
-                <NavLink href="https://github.com/fingers10/anybills/tree/cd4fff560acbd8b5322a3594fd75cca52cf05916/AnyBills.FunctionalTest" target="_blank">AnyBills functional tests</NavLink>.
+                This guide builds one .NET 11 and xUnit v3 setup using the real application host, a disposable database, and a
+                controlled outbound HTTP service. Names such as <Highlight>AppDbContext</Highlight> and
+                <Highlight>CreateClientCommand</Highlight> are placeholders to map to your API. The examples follow patterns from
+                the AnyBills .NET 11 functional-test setup.
             </p>
         </What>
 
         <Why>
             <p>
-                Functional tests catch integration problems that isolated unit tests cannot, such as incorrect service registration,
-                middleware order, database mappings, authorization policies, and HTTP contracts. They are slower and need more setup,
-                so keep unit tests for logic that does not need the application host and reserve functional tests for important request flows.
+                A handler can pass its unit tests while the running API has a broken service registration, authorization policy,
+                database mapping, or middleware order. Those failures only appear when the request uses the configured host.
             </p>
             <p>
-                Use the same database engine as production when provider-specific behavior matters. Testcontainers starts a disposable
-                real database; WireMock controls HTTP services outside your process. These tests are not a substitute for validating
-                production JWT signatures, issuer, audience, and expiration with real-token tests.
+                The result can be a 401 instead of the expected response, a 500 during a database write, or an outbound call sent to
+                the wrong URL. A mock database also hides provider-specific behavior, while shared mutable test data makes failures
+                harder to reproduce. Functional tests take longer than unit tests, so reserve them for important request flows.
+            </p>
+            <p>
+                The approach here keeps the ASP.NET Core pipeline and database behavior real, controls external HTTP with WireMock,
+                and isolates test authentication; use separate real-token tests to validate JWT signatures, issuer, audience, and expiration.
             </p>
         </Why>
 
@@ -41,7 +44,18 @@
             <p>
                 The API needs EF Core, its PostgreSQL provider, and JWT bearer authentication if the API uses JWTs.
                 The test project needs xUnit v3, the ASP.NET Core test host, Testcontainers, WireMock.NET, and Bogus.
-                Use a current xUnit Visual Studio adapter (3.x) with <Highlight>Microsoft.NET.Test.Sdk</Highlight> when running through VSTest.
+                The AnyBills .NET 11 project uses the Microsoft Testing Platform (MTP) runner. To run xUnit tests with MTP, merge
+                this setting into the repository's root <Highlight>global.json</Highlight> and use the matching project setting below.
+                For VSTest, omit both MTP settings and use a current xUnit Visual Studio adapter (3.x) with
+                <Highlight>Microsoft.NET.Test.Sdk</Highlight>. See the
+                <NavLink href="https://learn.microsoft.com/dotnet/core/testing/microsoft-testing-platform-intro" target="_blank">MTP overview</NavLink>.
+            </p>
+            <p>
+                The version values below are deliberate placeholders, not a tested package matrix. Choose stable package versions
+                compatible with your target framework, EF Core version, and database provider. Testcontainers also requires a running
+                Docker-compatible container engine. Run the tests with
+                <Highlight>dotnet test --project FunctionalTest/FunctionalTest.csproj</Highlight>; a passing run reports the test
+                count and confirms the fixture started successfully.
             </p>
             <CodeSnippet CssClass="language-xml">
 &lt;!-- API project: use only the packages your application needs. --&gt;
@@ -59,6 +73,13 @@
 &lt;PackageReference Include="WireMock.Net" Version="&lt;current-version&gt;" /&gt;
 &lt;PackageReference Include="Bogus" Version="&lt;current-version&gt;" /&gt;
             </CodeSnippet>
+            <CodeSnippet CssClass="language-json">
+{
+  "test": {
+    "runner": "Microsoft.Testing.Platform"
+  }
+}
+            </CodeSnippet>
             <p>
                 xUnit v3 test projects are executables. Add this to the test project and reference the API project.
                 For an API without PostgreSQL or JWT authentication, omit the corresponding packages and setup below.
@@ -67,6 +88,10 @@
 &lt;PropertyGroup&gt;
   &lt;TargetFramework&gt;net11.0&lt;/TargetFramework&gt;
   &lt;OutputType&gt;Exe&lt;/OutputType&gt;
+  &lt;ImplicitUsings&gt;enable&lt;/ImplicitUsings&gt;
+  &lt;Nullable&gt;enable&lt;/Nullable&gt;
+  &lt;IsTestProject&gt;true&lt;/IsTestProject&gt;
+  &lt;UseMicrosoftTestingPlatformRunner&gt;true&lt;/UseMicrosoftTestingPlatformRunner&gt;
 &lt;/PropertyGroup&gt;
             </CodeSnippet>
             <p>
@@ -96,23 +121,18 @@ app.Run();
                 Register one xUnit v3 assembly fixture. It starts PostgreSQL and WireMock before building the test host,
                 replaces the database registration, applies migrations, and seeds stable reference data once. The host is shared;
                 clients and database scopes belong to individual tests. Assembly fixtures do not disable parallel execution.
+                If business data and Identity use separate databases, give each store its own container and test-owned scope, as in
+                AnyBills.
+            </p>
+            <p>
+                These are focused fragments of one <Highlight>AppFixture</Highlight> class. Add the shown members to that class and
+                include the corresponding framework, EF Core, Testcontainers, and WireMock usings.
             </p>
             <CodeSnippet CssClass="language-csharp">
-using API.Data;
 using Bogus;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.AspNetCore.TestHost;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Shared.Features.Clients;
 using Testcontainers.PostgreSql;
-using WireMock.RequestBuilders;
-using WireMock.ResponseBuilders;
 using WireMock.Server;
 using Xunit;
 
@@ -122,88 +142,143 @@ namespace FunctionalTest;
 public sealed class AppFixture : WebApplicationFactory&lt;Program&gt;, IAsyncLifetime
 {
     private readonly PostgreSqlContainer _database =
-        new PostgreSqlBuilder("postgres:17-alpine")
+        new PostgreSqlBuilder("pgvector/pgvector:pg16")
             .WithDatabase("functional_tests")
             .WithUsername("postgres")
             .WithPassword("postgres")
             .Build();
 
     private readonly WireMockServer _partnerApi = WireMockServer.Start();
-
     public WireMockServer PartnerApi =&gt; _partnerApi;
-
-    // Replace these placeholder API types with your request model.
-    public Faker&lt;CreateClientCommand&gt; ClientCommand =&gt; new Faker&lt;CreateClientCommand&gt;()
-        .RuleFor(command =&gt; command.Name,
-            faker =&gt; $"{faker.Company.CompanyName()}-{faker.Random.AlphaNumeric(8)}");
-
-    protected override void ConfigureWebHost(IWebHostBuilder builder)
-    {
-        builder.UseEnvironment("Test");
-        builder.ConfigureAppConfiguration((_, configuration) =&gt;
-            configuration.AddInMemoryCollection(new Dictionary&lt;string, string?&gt;
-            {
-                ["PartnerApi:BaseUrl"] = _partnerApi.Url
-            }));
-
-        builder.ConfigureTestServices(services =&gt;
-        {
-            services.RemoveAll&lt;AppDbContext&gt;();
-            services.RemoveAll&lt;DbContextOptions&lt;AppDbContext&gt;&gt;();
-            services.RemoveAll&lt;IDbContextOptionsConfiguration&lt;AppDbContext&gt;&gt;();
-            services.AddDbContext&lt;AppDbContext&gt;(options =&gt;
-                options.UseNpgsql(_database.GetConnectionString()));
-
-            services.AddAuthentication(options =&gt;
-                {
-                    options.DefaultScheme = TestAuthHandler.SchemeName;
-                    options.DefaultAuthenticateScheme = TestAuthHandler.SchemeName;
-                    options.DefaultChallengeScheme = TestAuthHandler.SchemeName;
-                    options.DefaultForbidScheme = TestAuthHandler.SchemeName;
-                })
-                .AddScheme&lt;AuthenticationSchemeOptions, TestAuthHandler&gt;(
-                    TestAuthHandler.SchemeName, _ =&gt; { });
-
-            services.AddScoped(_ =&gt; AuthClaimsProvider.WithMasterClaims());
-
-            // If an outbound dependency is not HTTP, replace its production registration here.
-            // services.RemoveAll&lt;IPartnerService&gt;();
-            // services.AddScoped&lt;IPartnerService, FakePartnerService&gt;();
-        });
-    }
-
-    public async ValueTask InitializeAsync()
-    {
-        await _database.StartAsync();
-
-        // Stub the exact route your API's typed HTTP client calls.
-        _partnerApi.Given(Request.Create().WithPath("/partner/clients").UsingPost())
-            .RespondWith(Response.Create()
-                .WithStatusCode(201)
-                .WithHeader("Content-Type", "application/json")
-                .WithBody("{\"id\":\"test-partner-client\"}"));
-
-        // Accessing Services builds the host, so start external resources first.
-        await using var scope = Services.CreateAsyncScope();
-        var db = scope.ServiceProvider.GetRequiredService&lt;AppDbContext&gt;();
-        await db.Database.MigrateAsync();
-        await DatabaseSeeder.SeedAsync(db);
-    }
-
-    public override async ValueTask DisposeAsync()
-    {
-        await base.DisposeAsync();
-        await _database.DisposeAsync();
-        _partnerApi.Dispose();
-    }
 }
             </CodeSnippet>
             <p>
-                The generated <Highlight>Program</Highlight> entry point is public for ASP.NET Core apps using top-level statements
-                on .NET 10 and later; do not add <Highlight>public partial class Program</Highlight>.
-                Use the same provider as production. If your app has a separate Identity database, start and configure a second
-                container and create a test-owned scope for that store, as AnyBills does for Client persistence.
+                Replace the production database registration in <Highlight>ConfigureWebHost</Highlight> and point the API's
+                outbound HTTP client at WireMock:
             </p>
+            <CodeSnippet CssClass="language-csharp">
+protected override void ConfigureWebHost(IWebHostBuilder builder)
+{
+    builder.UseEnvironment("Test");
+    builder.ConfigureAppConfiguration((_, config) =&gt;
+        config.AddInMemoryCollection(new Dictionary&lt;string, string?&gt;
+        {
+            ["PartnerApi:BaseUrl"] = _partnerApi.Url
+        }));
+
+    builder.ConfigureTestServices(services =&gt;
+    {
+        services.RemoveAll&lt;AppDbContext&gt;();
+        services.RemoveAll&lt;DbContextOptions&lt;AppDbContext&gt;&gt;();
+        services.RemoveAll&lt;IDbContextOptionsConfiguration&lt;AppDbContext&gt;&gt;();
+        services.AddDbContext&lt;AppDbContext&gt;(options =&gt;
+            options.UseNpgsql(_database.GetConnectionString()));
+    });
+}
+            </CodeSnippet>
+            <p>
+                Start external resources before accessing <Highlight>Services</Highlight>, because that access builds the host.
+                Apply migrations and seed shared prerequisite data once in the fixture:
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+public async ValueTask InitializeAsync()
+{
+    await _database.StartAsync(TestContext.Current.CancellationToken);
+
+    _partnerApi.Given(Request.Create().WithPath("/partner/clients").UsingPost())
+        .RespondWith(Response.Create()
+            .WithStatusCode(201)
+            .WithHeader("Content-Type", "application/json")
+            .WithBody("{\"id\":\"test-partner-client\"}"));
+
+    await using var scope = Services.CreateAsyncScope();
+    var db = scope.ServiceProvider.GetRequiredService&lt;AppDbContext&gt;();
+    await db.Database.MigrateAsync(TestContext.Current.CancellationToken);
+    await DatabaseSeeder.SeedAsync(db, TestContext.Current.CancellationToken);
+}
+            </CodeSnippet>
+            <p>
+                Stop resources when the shared fixture is disposed:
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+public override async ValueTask DisposeAsync()
+{
+    await base.DisposeAsync();
+    await _database.DisposeAsync();
+    _partnerApi.Dispose();
+}
+            </CodeSnippet>
+            <p>
+                The stub lets the API's configured HTTP client make a real request to the controlled server. When the partner call
+                is part of the behavior under test, verify a unique per-test value in the matching WireMock request-log entry;
+                checking only a shared method and path can match another parallel test. Isolate or serialize tests that change
+                shared mappings.
+            </p>
+            <p>
+                For this .NET 11 app, the generated <Highlight>Program</Highlight> entry point is public; do not add
+                <Highlight>public partial class Program</Highlight>.
+                Use the same database provider and required extensions as production. The linked AnyBills tests use
+                <Highlight>pgvector/pgvector:pg16</Highlight>; use an image that provides the extensions your migrations need.
+                The following optional pattern adds a separate Identity database and a test-owned scope, as AnyBills does for Client persistence.
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+// Add these members to AppFixture when Identity uses a separate database.
+private readonly PostgreSqlContainer _identityDatabase =
+    new PostgreSqlBuilder("pgvector/pgvector:pg16")
+        .WithDatabase("identity_tests")
+        .WithUsername("postgres")
+        .WithPassword("postgres")
+        .Build();
+
+private ServiceProvider? _identityServices;
+
+internal IServiceScope CreateIdentityScope() =&gt;
+    (_identityServices ?? throw new InvalidOperationException(
+        "The fixture has not been initialized.")).CreateScope();
+            </CodeSnippet>
+            <p>
+                Replace <Highlight>IdentityDbContext</Highlight> and the connection-string key with your API's Identity store types.
+                Configure the API to use the second container, then register that context in the test-owned provider:
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+// Add the connection-string override inside ConfigureWebHost.
+builder.ConfigureAppConfiguration((_, configuration) =&gt;
+    configuration.AddInMemoryCollection(
+        new Dictionary&lt;string, string?&gt;
+        {
+            ["ConnectionStrings:Identity"] =
+                _identityDatabase.GetConnectionString()
+        }));
+
+// In InitializeAsync, start both containers before building either service provider.
+await _identityDatabase.StartAsync(TestContext.Current.CancellationToken);
+
+var identityServices = new ServiceCollection();
+identityServices.AddDbContext&lt;IdentityDbContext&gt;(options =&gt;
+    options.UseNpgsql(_identityDatabase.GetConnectionString()));
+_identityServices = identityServices.BuildServiceProvider();
+
+await using var identityScope = _identityServices.CreateAsyncScope();
+var identityDb = identityScope.ServiceProvider
+    .GetRequiredService&lt;IdentityDbContext&gt;();
+await identityDb.Database.MigrateAsync(TestContext.Current.CancellationToken);
+            </CodeSnippet>
+            <p>
+                Add the second provider and container to fixture disposal, and create an Identity scope per test. Run a separate
+                initializer after migrations if your Identity store requires lookup or prerequisite data; migrations alone do not
+                seed application-level data. Register any additional Identity services or options this test-owned provider needs.
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+public override async ValueTask DisposeAsync()
+{
+    await base.DisposeAsync();
+    await _database.DisposeAsync();
+    if (_identityServices is not null)
+        await _identityServices.DisposeAsync();
+    await _identityDatabase.DisposeAsync();
+    _partnerApi.Dispose();
+}
+            </CodeSnippet>
 
             <h4 id="seed-data">3. Seed only shared prerequisite data</h4>
             <p>
@@ -217,11 +292,11 @@ namespace FunctionalTest;
 
 internal static class DatabaseSeeder
 {
-    public static async Task SeedAsync(AppDbContext db)
+    public static async Task SeedAsync(AppDbContext db, CancellationToken cancellationToken)
     {
         // Add deterministic lookup data required by handlers, if any.
         // Example: db.ClientTypes.Add(new ClientType { Name = "Standard" });
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(cancellationToken);
     }
 }
             </CodeSnippet>
@@ -233,15 +308,35 @@ internal static class DatabaseSeeder
                 Use the claim type your application actually authorizes against. If production explicitly names a bearer scheme
                 in an attribute or policy, configure that policy for tests or use real test tokens: changing defaults alone will not replace it.
             </p>
+            <p>
+                Register the handler and the default claims provider inside <Highlight>ConfigureTestServices</Highlight>:
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+services.AddAuthentication(options =&gt;
+    {
+        options.DefaultScheme = TestAuthHandler.SchemeName;
+        options.DefaultAuthenticateScheme = TestAuthHandler.SchemeName;
+        options.DefaultChallengeScheme = TestAuthHandler.SchemeName;
+        options.DefaultForbidScheme = TestAuthHandler.SchemeName;
+    })
+    .AddScheme&lt;AuthenticationSchemeOptions, TestAuthHandler&gt;(
+        TestAuthHandler.SchemeName, _ =&gt; { });
+
+services.AddScoped(_ =&gt; AuthClaimsProvider.WithMasterClaims());
+            </CodeSnippet>
+            <p>
+                Keep claims per client so parallel tests cannot leak identities. Add provider helpers for the roles and tenant claims
+                your API uses:
+            </p>
             <CodeSnippet CssClass="language-csharp">
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc.Testing;
-using System.Security.Claims;
-using System.Text;
-using System.Text.Json;
-using System.Text.Encodings.Web;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System.Security.Claims;
+using System.Text;
+using System.Text.Encodings.Web;
+using System.Text.Json;
 
 namespace FunctionalTest;
 
@@ -257,52 +352,68 @@ public sealed class AuthClaimsProvider(IList&lt;Claim&gt; claims)
         new Claim(ClaimTypes.Name, "Test Master"),
         new Claim(ClaimTypes.Role, "Master")
     ]);
-}
 
+    public static AuthClaimsProvider WithRole(string role) =&gt; new(
+    [
+        new Claim(ClaimTypes.NameIdentifier, "functional-test-user"),
+        new Claim(ClaimTypes.Role, role)
+    ]);
+}
+            </CodeSnippet>
+            <p>
+                The handler authenticates with the fixture defaults unless the request includes the per-client claims header.
+                Malformed headers fail authentication instead of silently falling back to an elevated identity:
+            </p>
+            <CodeSnippet CssClass="language-csharp">
 public sealed class TestAuthHandler(
     IOptionsMonitor&lt;AuthenticationSchemeOptions&gt; options,
     ILoggerFactory logger,
     UrlEncoder encoder,
-    AuthClaimsProvider defaults)
-    : AuthenticationHandler&lt;AuthenticationSchemeOptions&gt;(options, logger, encoder)
+    AuthClaimsProvider defaults) : AuthenticationHandler&lt;AuthenticationSchemeOptions&gt;(options, logger, encoder)
 {
     public const string SchemeName = "Test";
     public const string ClaimsHeader = "X-Test-Claims";
-
     protected override Task&lt;AuthenticateResult&gt; HandleAuthenticateAsync()
     {
-        var claims = defaults.Claims;
+        IList&lt;Claim&gt; claims = defaults.Claims;
         if (Request.Headers.TryGetValue(ClaimsHeader, out var header))
         {
             try
             {
-                if (header.Count != 1 || string.IsNullOrWhiteSpace(header[0]))
-                    return Task.FromResult(AuthenticateResult.Fail("Expected one claims header."));
-
-                var json = Encoding.UTF8.GetString(Convert.FromBase64String(header[0]!));
-                var values = JsonSerializer.Deserialize&lt;ClaimDto[]&gt;(json);
-                if (values is null || values.Any(value =&gt;
-                    value is null || string.IsNullOrWhiteSpace(value.Type) || value.Value is null))
-                    return Task.FromResult(AuthenticateResult.Fail("Invalid test claims."));
-
-                claims = values.Select(value =&gt; new Claim(value.Type, value.Value)).ToList();
+                claims = TestClaimsParser.ReadHeaderClaims(header.ToString());
             }
-            catch (FormatException)
-            {
-                return Task.FromResult(AuthenticateResult.Fail("Claims header must be Base64 encoded."));
-            }
-            catch (JsonException)
-            {
-                return Task.FromResult(AuthenticateResult.Fail("Claims header must contain JSON."));
-            }
+            catch (FormatException) { return Fail("Claims header must be Base64 encoded."); }
+            catch (JsonException) { return Fail("Claims header must contain valid JSON."); }
         }
-
         var identity = new ClaimsIdentity(claims, SchemeName, ClaimTypes.Name, ClaimTypes.Role);
         var ticket = new AuthenticationTicket(new ClaimsPrincipal(identity), SchemeName);
         return Task.FromResult(AuthenticateResult.Success(ticket));
     }
-}
 
+    private static Task&lt;AuthenticateResult&gt; Fail(string message) =&gt;
+        Task.FromResult(AuthenticateResult.Fail(message));
+}
+            </CodeSnippet>
+            <CodeSnippet CssClass="language-csharp">
+internal static class TestClaimsParser
+{
+    public static IList&lt;Claim&gt; ReadHeaderClaims(string header)
+    {
+        var json = Encoding.UTF8.GetString(Convert.FromBase64String(header));
+        var values = JsonSerializer.Deserialize&lt;ClaimDto[]&gt;(json);
+        if (values is null || values.Any(value =&gt;
+            value is null || string.IsNullOrWhiteSpace(value.Type) || value.Value is null))
+            throw new JsonException("Invalid test claims.");
+
+        return values.Select(value =&gt; new Claim(value.Type, value.Value)).ToList();
+    }
+}
+            </CodeSnippet>
+            <p>
+                A delegating handler stamps the selected claims on every request from that test client. Do not mutate shared
+                <Highlight>DefaultRequestHeaders</Highlight>:
+            </p>
+            <CodeSnippet CssClass="language-csharp">
 internal sealed class ClaimsInjectionHandler(IList&lt;Claim&gt; claims) : DelegatingHandler
 {
     private readonly string _header = Convert.ToBase64String(Encoding.UTF8.GetBytes(
@@ -326,7 +437,10 @@ public static class TestClientExtensions
             </CodeSnippet>
             <p>
                 The handler is only for the test host. It must not be registered by the production application.
-                It establishes an identity for authorization tests; it does not validate real bearer tokens.
+                It establishes an identity for authorization tests; it does not validate real bearer tokens. Use
+                <Highlight>Factory.CreateClientWithClaims(AuthClaimsProvider.WithRole("Guest"))</Highlight> for role tests; define
+                equivalent providers with your application's required tenant claims. Avoid changing shared
+                <Highlight>DefaultRequestHeaders</Highlight> so parallel tests cannot leak claims into one another.
             </p>
 
             <h4 id="http-helpers">5. Add a small HTTP helper for status and response diagnostics</h4>
@@ -350,12 +464,15 @@ internal static class HttpClientExtensions
         HttpStatusCode expectedStatus,
         ITestOutputHelper output)
     {
-        using var response = await client.PostAsJsonAsync(path, request);
+        using var response = await client.PostAsJsonAsync(
+            path, request, TestContext.Current.CancellationToken);
         if (response.StatusCode != expectedStatus)
-            output.WriteLine(await response.Content.ReadAsStringAsync());
+            output.WriteLine(await response.Content.ReadAsStringAsync(
+                TestContext.Current.CancellationToken));
 
         Assert.Equal(expectedStatus, response.StatusCode);
-        var result = await response.Content.ReadFromJsonAsync&lt;TResponse&gt;();
+        var result = await response.Content.ReadFromJsonAsync&lt;TResponse&gt;(
+            cancellationToken: TestContext.Current.CancellationToken);
         Assert.NotNull(result);
         return result;
     }
@@ -388,15 +505,16 @@ public Faker&lt;CreateClientCommand&gt; ClientCommand =&gt; new Faker&lt;CreateC
         faker =&gt; $"{faker.Company.CompanyName()}-{faker.Random.AlphaNumeric(8)}");
             </CodeSnippet>
 
-            <h4 id="complete-test">8. Complete example: create and verify a Client</h4>
+            <h4 id="complete-test">8. Complete example: create a Client and verify Identity persistence</h4>
             <p>
-                This example follows the AnyBills Client creation pattern: generate a command, send it as an authorized user,
-                assert the HTTP response, and query the database to verify persistence. Replace the example request/response/context
-                names and route with those from your API.
+                This example follows the AnyBills Client creation flow: generate a command, send it as an authorized user, assert the
+                HTTP response, then verify persistence in the Identity database. Replace the request, response, context names, and
+                route with those from your API. This endpoint stores Client records in the Identity database, so the assertion
+                reads that store through a test-owned scope.
             </p>
             <CodeSnippet CssClass="language-csharp">
-using API.Data;
-using Microsoft.EntityFrameworkCore;
+using API.Identity; // Replace with the namespace for your Identity context.
+using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Shared.Features.Clients;
 using System.Net;
@@ -406,13 +524,32 @@ namespace FunctionalTest;
 
 public abstract class BaseTest(AppFixture fixture) : IDisposable
 {
-    private readonly IServiceScope _scope = fixture.Services.CreateScope();
-    protected AppFixture Fixture { get; } = fixture;
-    protected AppDbContext Database =&gt;
-        _scope.ServiceProvider.GetRequiredService&lt;AppDbContext&gt;();
+    private readonly IServiceScope _identityScope = fixture.CreateIdentityScope();
+    private readonly HttpClient _client = fixture.CreateClient();
 
-    public void Dispose() =&gt; _scope.Dispose();
+    protected AppFixture Fixture { get; } = fixture;
+    protected HttpClient Client =&gt; _client;
+    protected WebApplicationFactory&lt;Program&gt; Factory =&gt; Fixture;
+    protected IdentityDbContext IdentityDatabase =&gt;
+        _identityScope.ServiceProvider.GetRequiredService&lt;IdentityDbContext&gt;();
+
+    public void Dispose()
+    {
+        _client.Dispose();
+        _identityScope.Dispose();
+    }
 }
+            </CodeSnippet>
+            <p>
+                In <Highlight>ClientTests.cs</Highlight>, use the fixture client and assert both the response and the Identity row:
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+using Microsoft.EntityFrameworkCore;
+using Shared.Features.Clients;
+using System.Net;
+using Xunit;
+
+namespace FunctionalTest;
 
 public sealed class ClientTests(AppFixture fixture, ITestOutputHelper output)
     : BaseTest(fixture)
@@ -421,34 +558,38 @@ public sealed class ClientTests(AppFixture fixture, ITestOutputHelper output)
     public async Task Create_ReturnsAndPersistsClient()
     {
         var command = Fixture.ClientCommand.Generate();
-        using var client = Fixture.CreateClientWithClaims(AuthClaimsProvider.WithMasterClaims());
-
-        var result = await client.PostForJsonResultAsync&lt;ClientDto&gt;(
+        var result = await Client.PostForJsonResultAsync&lt;ClientDto&gt;(
             "/api/clients", command, HttpStatusCode.Created, output);
 
         Assert.Equal(command.Name, result.Name);
         Assert.True(result.Active);
 
-        var saved = await Database.Clients.SingleAsync(client =&gt; client.Name == result.Name);
+        var saved = await IdentityDatabase.Clients.SingleAsync(
+            client =&gt; client.Name == result.Name, TestContext.Current.CancellationToken);
         Assert.Equal(result.Name, saved.Name);
         Assert.True(saved.Active);
     }
 }
             </CodeSnippet>
             <p>
-                AnyBills keeps Client records in a separate Identity database. In that architecture, use a second container and
-                test-owned Identity database scope, then verify the persisted Client there. Use unique generated records so parallel
-                tests do not share mutable rows. If tests mutate shared WireMock mappings, isolate the server or serialize those tests;
-                xUnit assembly fixtures alone do not provide that isolation.
+                The example gives each test its own scopes while sharing the containers and host. Use unique generated records so
+                parallel tests do not share mutable rows. If tests mutate shared WireMock mappings, isolate the server or serialize
+                those tests; xUnit assembly fixtures alone do not provide that isolation.
             </p>
         </How>
 
         <Summary>
+            <ul>
+                <li>Use functional tests to verify important requests through the configured ASP.NET Core host.</li>
+                <li>Run database tests against the production database engine when provider-specific behavior matters.</li>
+                <li>Share expensive fixture infrastructure, but give each test its own client, scope, claims, and mutable data.</li>
+                <li>Stub outbound HTTP at the network boundary and keep test authentication out of production registration.</li>
+            </ul>
             <p>
-                A maintainable functional test shares one application fixture, uses production behavior for the request pipeline,
-                runs database tests against the production database engine, stubs outbound HTTP at the network boundary, and gives
-                each test its own client, scope, claims, and generated data. Keep test authentication isolated from production and
-                use separate tests for real JWT validation.
+                <Highlight>What to read next:</Highlight> learn how to
+                <NavLink href="/blogs/testing-aspnet-webapi-with-http-repl-and-http-files">test an ASP.NET Web API with HTTP REPL and HTTP files</NavLink>,
+                or review
+                <NavLink href="/blogs/securing-aspnet-webapi-with-jwt-bearer-token-authentication">JWT bearer authentication in ASP.NET Web API</NavLink>.
             </p>
         </Summary>
     </ContentBody>
