@@ -13,8 +13,8 @@
             <p>
                 This guide builds one .NET 11 and xUnit v3 setup using the real application host, a disposable database, and a
                 controlled outbound HTTP service. Names such as <Highlight>AppDbContext</Highlight> and
-                <Highlight>CreateClientCommand</Highlight> are placeholders to map to your API. The examples follow patterns from
-                the AnyBills .NET 11 functional-test setup.
+                <Highlight>CreateClientCommand</Highlight> are placeholders to map to your API. The examples follow established
+                .NET 11 functional-testing patterns.
             </p>
         </What>
 
@@ -44,8 +44,8 @@
             <p>
                 The API needs EF Core, its PostgreSQL provider, and JWT bearer authentication if the API uses JWTs.
                 The test project needs xUnit v3, the ASP.NET Core test host, Testcontainers, WireMock.NET, and Bogus.
-                The AnyBills .NET 11 project uses the Microsoft Testing Platform (MTP) runner. To run xUnit tests with MTP, merge
-                this setting into the repository's root <Highlight>global.json</Highlight> and use the matching project setting below.
+                To run xUnit tests with the Microsoft Testing Platform (MTP) runner, merge this setting into the repository's root
+                <Highlight>global.json</Highlight> and use the matching project setting below.
                 For VSTest, omit both MTP settings and use a current xUnit Visual Studio adapter (3.x) with
                 <Highlight>Microsoft.NET.Test.Sdk</Highlight>. See the
                 <NavLink href="https://learn.microsoft.com/dotnet/core/testing/microsoft-testing-platform-intro" target="_blank">MTP overview</NavLink>.
@@ -121,8 +121,7 @@ app.Run();
                 Register one xUnit v3 assembly fixture. It starts PostgreSQL and WireMock before building the test host,
                 replaces the database registration, applies migrations, and seeds stable reference data once. The host is shared;
                 clients and database scopes belong to individual tests. Assembly fixtures do not disable parallel execution.
-                If business data and Identity use separate databases, give each store its own container and test-owned scope, as in
-                AnyBills.
+                If business data and Identity use separate databases, give each store its own container and test-owned scope.
             </p>
             <p>
                 These are focused fragments of one <Highlight>AppFixture</Highlight> class. Add the shown members to that class and
@@ -217,9 +216,10 @@ public override async ValueTask DisposeAsync()
             <p>
                 For this .NET 11 app, the generated <Highlight>Program</Highlight> entry point is public; do not add
                 <Highlight>public partial class Program</Highlight>.
-                Use the same database provider and required extensions as production. The linked AnyBills tests use
-                <Highlight>pgvector/pgvector:pg16</Highlight>; use an image that provides the extensions your migrations need.
-                The following optional pattern adds a separate Identity database and a test-owned scope, as AnyBills does for Client persistence.
+                Use the same database provider and required extensions as production. This example uses
+                <Highlight>pgvector/pgvector:pg16</Highlight> to provide the pgvector extension; choose an image that provides
+                the extensions your migrations need. The following optional pattern adds a separate Identity database and a
+                test-owned scope when your application stores Client records there.
             </p>
             <CodeSnippet CssClass="language-csharp">
 // Add these members to AppFixture when Identity uses a separate database.
@@ -507,7 +507,7 @@ public Faker&lt;CreateClientCommand&gt; ClientCommand =&gt; new Faker&lt;CreateC
 
             <h4 id="complete-test">8. Complete example: create a Client and verify Identity persistence</h4>
             <p>
-                This example follows the AnyBills Client creation flow: generate a command, send it as an authorized user, assert the
+                This example follows a common Client creation flow: generate a command, send it as an authorized user, assert the
                 HTTP response, then verify persistence in the Identity database. Replace the request, response, context names, and
                 route with those from your API. This endpoint stores Client records in the Identity database, so the assertion
                 reads that store through a test-owned scope.
