@@ -4,20 +4,28 @@
 
 <Content FileName=@nameof(UsingWireMockNetInFunctionalTestingInASPNET)>
     <ContentBody>
+        <ArticleNotice Title="Deprecated: use the consolidated functional testing guide">
+            <p>
+                This walkthrough is retained for historical reference. For the current .NET 11 and xUnit v3 approach,
+                including WireMock setup, see the
+                <NavLink href="blogs/functional-testing-your-asp-net-webapi">complete ASP.NET Core functional testing guide</NavLink>.
+            </p>
+        </ArticleNotice>
+
         <What>
         <p>
             In this article, let's learn about how to use <Highlight>WireMock.NET</Highlight> in 
-            <Highlight>Functional Test</Highlight> in <Highlight>WebAPI</Highlight> in ASP.NET Core on <Highlight>.NET 11</Highlight>.
+            <Highlight>Functional Test</Highlight> in <Highlight>WebAPI</Highlight> in ASP.NET Core.
         </p>
 
         <p>
             <strong>Note:</strong> If you have not done so already, I recommend you read the article on
-            <NavLink href="blogs/using-docker-test-containers-in-functional-testing-in-asp-net-webapi" Match="NavLinkMatch.All">Using Docker Test Containers in Functional Testing in ASP.NET Web API</NavLink>.
+            <NavLink href="blogs/faking-dependencies-in-functional-testing-in-asp-net-webapi" Match="NavLinkMatch.All">Faking Dependencies in Functional testing in ASP.NET WEB API</NavLink>.
         </p>
 
         <p>
-            In the previous article we used Testcontainers for database dependencies. External HTTP dependencies need a different approach:
-            writing fake services for every possible scenario adds unnecessary code. We can simplify this by using
+            In our previous article we saw how to replace services in functional test and that approach has a drawback of writing lot of code to test all the 
+            possible scenarios especially if you are writing fake services for sake of tests. We can overcome this drawback by using 
             <Highlight>WireMock.NET</Highlight>. It helps us to simplify the test code and also helps us to test all the possible scenarios. 
             In this article, we'll learn about how to use <Highlight>WireMock.NET</Highlight> in functional test.
         </p>
@@ -183,83 +191,38 @@ public class CurrentWeather
             </li>
             <li>
                 <p>
-                    Extend the <Highlight>xUnit.net v3 AppFixture</Highlight> from the
-                    <NavLink href="blogs/using-docker-test-containers-in-functional-testing-in-asp-net-webapi">Testcontainers article</NavLink>
-                    to own the WireMock server as well as PostgreSQL. Replace the previous fixture with this combined version,
-                    keeping only one assembly-fixture registration.
-                </p>
-                <p>
-                    The examples below target <Highlight>.NET 11</Highlight> and use <Highlight>EF Core 11.0.0</Highlight>.
-                    If starting from the linked sample's older configuration, first complete the
-                    <NavLink href="blogs/using-docker-test-containers-in-functional-testing-in-asp-net-webapi#functional-test-prerequisites">coordinated package and xUnit v3 migration</NavLink>
-                    for the API and test projects.
+                    Setup <Highlight>SharedFixture</Highlight> as shown below
                 </p>
 
                 <CodeSnippet CssClass="language-csharp">
-using API.DbContexts;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.AspNetCore.TestHost;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using Testcontainers.PostgreSql;
 using WireMock.Server;
 using WireMock.Settings;
-using Xunit;
 
-[assembly: AssemblyFixture(typeof(FunctionalTest.AppFixture))]
-[assembly: CollectionBehavior(DisableTestParallelization = true)]
 namespace FunctionalTest;
-public class AppFixture : WebApplicationFactory&lt;Program&gt;, IAsyncLifetime
+public class SharedFixture : IAsyncLifetime
 {
-    private readonly PostgreSqlContainer _dbContainer =
-        new PostgreSqlBuilder("postgres:17-alpine")
-        .WithDatabase("ILoveDotNet")
-        .WithUsername("postgres")
-        .WithPassword("postgres")
-        .Build();
+    public WireMockServer WeatherService = default!;
 
-    public string PostgresConnectionString =&gt; _dbContainer.GetConnectionString();
-    public WireMockServer WeatherService { get; private set; } = null!;
-    public string WeatherServiceUrl =&gt; WeatherService.Urls[0];
+    // WireMock for Weather Service --------------------
+    public string WeatherServiceUrl { get; private set; } = null!;
 
-    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    private string StartWireMockForWeatherService()
     {
-        builder.UseEnvironment("Test");
-        builder.ConfigureAppConfiguration((_, conf) =&gt;
+        WeatherService = WireMockServer.Start(new WireMockServerSettings
         {
-            conf.AddInMemoryCollection(new Dictionary&lt;string, string?&gt;
-            {
-                ["WeatherAPIUrl"] = $"{WeatherServiceUrl}/"
-            });
+            UseSSL = false
         });
-        builder.ConfigureTestServices(services =&gt;
-        {
-            services.RemoveAll&lt;WeatherForecastDbContext&gt;();
-            services.RemoveAll&lt;DbContextOptions&lt;WeatherForecastDbContext&gt;&gt;();
-            services.RemoveAll&lt;IDbContextOptionsConfiguration&lt;WeatherForecastDbContext&gt;&gt;();
-            services.AddDbContext&lt;WeatherForecastDbContext&gt;(opts =&gt;
-                opts.UseNpgsql(PostgresConnectionString));
-        });
+
+        return WeatherService.Urls[0];
     }
 
-    public async ValueTask InitializeAsync()
+    public async Task InitializeAsync()
     {
-        WeatherService = WireMockServer.Start(new WireMockServerSettings { UseSSL = false });
-        await _dbContainer.StartAsync();
-        await using var scope = Services.CreateAsyncScope();
-        var db = scope.ServiceProvider.GetRequiredService&lt;WeatherForecastDbContext&gt;();
-        await db.Database.MigrateAsync();
-        await DatabaseHelper.InitializeDbForTestsAsync(db);
+        WeatherServiceUrl = StartWireMockForWeatherService();
     }
 
-    public override async ValueTask DisposeAsync()
+    public async Task DisposeAsync()
     {
-        await base.DisposeAsync();
-        await _dbContainer.DisposeAsync();
         if (WeatherService is not null)
         {
             WeatherService.Stop();
@@ -274,52 +237,61 @@ public class AppFixture : WebApplicationFactory&lt;Program&gt;, IAsyncLifetime
                 <p>
                     In the above code, we are <Highlight>initializing</Highlight> the <Highlight>WireMockServer</Highlight> and 
                     getting the <Highlight>Server Base URL</Highlight> from the WireMockServer and exposing it to be used in 
-                    <Highlight>ConfigureAppConfiguration</Highlight> in <Highlight>AppFixture</Highlight> to
+                    <Highlight>ConfigureAppConfiguration</Highlight> in <Highlight>CustomWebApiFactory</Highlight> to 
                     <Highlight>override</Highlight> with this URL. We can also configure <Highlight>SSL</Highlight>, 
                     <Highlight>port</Highlight>, etc during initialization here. We are also <Highlight>disposing</Highlight> the 
                     WireMockServer after all tests are run.
                 </p>
-                <p>
-                    Assembly fixtures do not serialize test classes. Because these examples change mappings on one shared WireMock
-                    server, <Highlight>DisableTestParallelization = true</Highlight> deliberately preserves sequential execution.
-                    Reset mappings before each test. To run in parallel instead, isolate servers or match requests using a
-                    unique per-test value; a thread-safe server alone does not prevent conflicting mappings.
-                </p>
             </li>
             <li>
-                Extend <Highlight>BaseTest</Highlight> to expose the shared <Highlight>WireMockServer</Highlight>,
-                while retaining a client and database scope owned by each test.
+                <p>
+                    Now override the <Highlight>Configuration</Highlight> in <Highlight>WebHostBuilder</Highlight> inside 
+                    <Highlight>CustomWebApiFactory</Highlight> in <Highlight>FunctionalTest.cs</Highlight> as shown below.
+                </p>
+
+                <CodeSnippet CssClass="language-csharp">
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.Configuration;
+
+namespace FunctionalTest;
+public class CustomWebApiFactory(SharedFixture fixture) : WebApplicationFactory&lt;Program&gt;
+{
+    public SharedFixture SharedFixture =&gt; fixture;
+
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    {
+        builder.UseEnvironment("Test");
+
+        builder.ConfigureAppConfiguration((context, conf) =&gt;
+        {
+            conf.AddInMemoryCollection(new Dictionary&lt;string, string&gt;
+            {
+                ["WeatherAPIUrl"] = $"{SharedFixture.WeatherServiceUrl}/"
+            }!);
+        });
+    }
+}
+                </CodeSnippet>
+
+                
+            </li>
+            <li>
+                Before we run the test, we need to modify <Highlight>BastTest</Highlight> to expose <Highlight>WireMockServer</Highlight> 
+                to setup HTTP response for ExtrenalAPI result. This is shown in the below code.
 
                 <CodeSnippet CssClass="language-csharp">
 using API.DbContexts;
-using Microsoft.Extensions.DependencyInjection;
 using WireMock.Server;
 
 namespace FunctionalTest;
 
-public abstract class BaseTest : IDisposable
+public abstract class BaseTest(CustomWebApiFactory factory)
 {
-    private readonly IServiceScope _scope;
-
-    protected BaseTest(AppFixture fixture)
-    {
-        Factory = fixture;
-        Client = fixture.CreateClient();
-        _scope = fixture.Services.CreateScope();
-        Database = _scope.ServiceProvider.GetRequiredService&lt;WeatherForecastDbContext&gt;();
-        WeatherService.Reset();
-    }
-
-    protected AppFixture Factory { get; }
-    protected HttpClient Client { get; }
-    protected WeatherForecastDbContext Database { get; }
-    protected WireMockServer WeatherService =&gt; Factory.WeatherService;
-
-    public void Dispose()
-    {
-        Client.Dispose();
-        _scope.Dispose();
-    }
+    protected CustomWebApiFactory Factory =&gt; factory;
+    protected HttpClient Client =&gt; factory.CreateClient();
+    protected WeatherForecastDbContext Database =&gt; factory.SharedFixture.DbContext;
+    protected WireMockServer WeatherService =&gt; factory.SharedFixture.WeatherService;
 }
                 </CodeSnippet>
             </li>
@@ -355,17 +327,19 @@ WeatherService
                 <CodeSnippet CssClass="language-csharp">
 using API;
 using API.Services;
+using FluentAssertions;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using WireMock.RequestBuilders;
 using WireMock.ResponseBuilders;
-using Xunit;
+using Xunit.Abstractions;
 
 namespace FunctionalTest;
 [ExcludeFromCodeCoverage]
+[Collection(nameof(FunctionalTestCollection))]
 public class WeatherForecastControllerShouldTests(
-    AppFixture fixture,
-    ITestOutputHelper outputHelper) : BaseTest(fixture)
+    CustomWebApiFactory factory,
+    ITestOutputHelper outputHelper) : BaseTest(factory), IClassFixture&lt;CustomWebApiFactory&gt;
 {
     [Fact]
     public async Task ReturnExpectedResponse_From_API()
@@ -377,9 +351,9 @@ public class WeatherForecastControllerShouldTests(
 
         var result = await Client.GetJsonResultAsync&lt;WeatherForecast&gt;("/weatherforecast/fromapi", HttpStatusCode.OK, outputHelper);
         
-        Assert.NotNull(result);
-        Assert.Equal((int)expectedWeather.Current_Weather.Temperature, result.TemperatureC);
-        Assert.Equal(DateOnly.FromDateTime(DateTime.Now), result.Date);
+        result.Should().NotBeNull();
+        result.TemperatureC.Should().Be((int)expectedWeather.Current_Weather.Temperature);
+        result.Date.Should().Be(DateOnly.FromDateTime(DateTime.Now));
     }
 }
                 </CodeSnippet>
@@ -399,16 +373,15 @@ public class WeatherForecastControllerShouldTests(
         </p>
 
         <ol>
-            <li>Create the assembly's AppFixture.</li>
-            <li>Start WireMock and PostgreSQL once.</li>
+            <li>Start Test Method.</li>
+            <li>WireMockServer Setup.</li>
+            <li>Create WebApplicationFactory.</li>
             <li>Run Program.cs.</li>
             <li>Service Registration.</li>
             <li>Overriding Configuration.</li>
             <li>Build Web Application.</li>
-            <li>Apply migrations and seed data once.</li>
-            <li>Create each test's client and database scope, then reset WireMock mappings.</li>
+            <li>Create HTTP Client.</li>
             <li>Test Code Execution.</li>
-            <li>Dispose the shared application host and external services after all tests finish.</li>
         </ol>
 
         

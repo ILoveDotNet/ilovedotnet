@@ -4,10 +4,18 @@
 
 <Content FileName=@nameof(UsingDockerTestContainersInFunctionalTestingInASPNET)>
     <ContentBody>
+        <ArticleNotice Title="Deprecated: use the consolidated functional testing guide">
+            <p>
+                This walkthrough is retained for historical reference. For the current .NET 11 and xUnit v3 approach,
+                including Testcontainers and database seeding, see the
+                <NavLink href="blogs/functional-testing-your-asp-net-webapi">complete ASP.NET Core functional testing guide</NavLink>.
+            </p>
+        </ArticleNotice>
+
         <What>
         <p>
             In this article, let's learn about testing with <Highlight>real database</Highlight> using 
-            <Highlight>Docker Test Containers</Highlight> in <Highlight>Web API</Highlight> in ASP.NET Core on <Highlight>.NET 11</Highlight>.
+            <Highlight>Docker Test Containers</Highlight> in <Highlight>Web API</Highlight> in ASP.NET Core.
         </p>
 
         <p>
@@ -69,84 +77,60 @@
             <h4 id="steps-to-do-functional-test-using-test-containers">Steps to do Functional Test using Test Containers</h4>
 
         <p>
-            Continue from the introductory functional-testing article and use <Highlight>Testcontainers for the database</Highlight>.
-            You can skip the historical SQLite walkthrough: the database fixture, seed helper, and test base needed here are shown below.
+            Let's learn how to do functional test using Test Containers in ASP.NET Web API. We will be using the same project we used in the previous article 
+            and <Highlight>try using test containers for database instead of in-memory database</Highlight>.
         </p>
 
         <ol>
-            <li id="functional-test-prerequisites">
-                Install <Highlight>Testcontainers.PostgreSql</Highlight> and <Highlight>Npgsql.EntityFrameworkCore.PostgreSQL</Highlight>
-                in your functional test project. Match the PostgreSQL provider's supported EF Core major version to the API's EF Core packages.
-                These examples target <Highlight>.NET 11</Highlight> and use <Highlight>EF Core 11.0.0</Highlight>,
-                rather than the linked sample's older configuration.
-                Set both the API and test projects to <Highlight>net11.0</Highlight>, and upgrade the API's
-                <Highlight>Microsoft.EntityFrameworkCore</Highlight> and <Highlight>Microsoft.EntityFrameworkCore.Tools</Highlight>
-                packages to <Highlight>11.0.0</Highlight>. Use a PostgreSQL provider version explicitly supporting EF Core 11
-                in both projects, then restore them together and resolve version conflicts.
-                Follow the <NavLink href="blogs/functional-testing-your-asp-net-webapi">introductory article's xUnit v3 setup</NavLink>:
-                use <Highlight>xunit.v3</Highlight>, executable test-project output, <Highlight>using Xunit;</Highlight>
-                for <Highlight>ITestOutputHelper</Highlight>, and <Highlight>xunit.runner.visualstudio 3.0.0 or later</Highlight>
-                with <Highlight>Microsoft.NET.Test.Sdk</Highlight> for Visual Studio or VSTest.
-                A Docker-compatible container runtime must be running before you execute the tests.
-            </li>
+            <li>Install <Highlight>Testcontainers.PostgreSql</Highlight> in your Functional Test Project</li>
             <li>
                 <p>
-                    The API is assumed to expose <Highlight>/weatherforecast/fromdatabase</Highlight> backed by
-                    <Highlight>WeatherForecastDbContext.WeatherForecasts</Highlight>, with PostgreSQL migrations in the API project.
-                    Replace the introductory article's <Highlight>AppFixture</Highlight> with the assembly fixture below.
-                    Keep only one assembly-fixture registration. The fixture owns both the application host and the PostgreSQL container.
+                    Setup <Highlight>SharedFixture</Highlight> as shown below
                 </p>
 
                 <CodeSnippet CssClass="language-csharp">
 using API.DbContexts;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Testcontainers.PostgreSql;
-using Xunit;
 
-[assembly: AssemblyFixture(typeof(FunctionalTest.AppFixture))]
 namespace FunctionalTest;
-public class AppFixture : WebApplicationFactory&lt;Program&gt;, IAsyncLifetime
+public class SharedFixture : IAsyncLifetime
 {
+    public WeatherForecastDbContext DbContext = default!;
     public string PostgresConnectionString =&gt; _dbContainer.GetConnectionString();
     private readonly PostgreSqlContainer _dbContainer =
-        new PostgreSqlBuilder("postgres:17-alpine")
+        new PostgreSqlBuilder()
         .WithDatabase("ILoveDotNet")
         .WithUsername("postgres")
         .WithPassword("postgres")
         .Build();
 
-    protected override void ConfigureWebHost(IWebHostBuilder builder)
-    {
-        builder.UseEnvironment("Test");
-        builder.ConfigureTestServices(services =&gt;
-        {
-            services.RemoveAll&lt;WeatherForecastDbContext&gt;();
-            services.RemoveAll&lt;DbContextOptions&lt;WeatherForecastDbContext&gt;&gt;();
-            services.RemoveAll&lt;IDbContextOptionsConfiguration&lt;WeatherForecastDbContext&gt;&gt;();
-            services.AddDbContext&lt;WeatherForecastDbContext&gt;(opts =&gt;
-                opts.UseNpgsql(PostgresConnectionString));
-        });
-    }
-
-    public async ValueTask InitializeAsync()
+    public async Task InitializeAsync()
     {
         await _dbContainer.StartAsync();
-        await using var scope = Services.CreateAsyncScope();
-        var db = scope.ServiceProvider.GetRequiredService&lt;WeatherForecastDbContext&gt;();
-        await db.Database.MigrateAsync();
-        await DatabaseHelper.InitializeDbForTestsAsync(db);
+
+        var dbContextOptions = new DbContextOptionsBuilder&lt;WeatherForecastDbContext&gt;()
+                                .UseNpgsql(PostgresConnectionString)
+                                .Options;
+
+        DbContext = new WeatherForecastDbContext(dbContextOptions);
+
+        await DbContext.Database.MigrateAsync();
     }
 
-    public override async ValueTask DisposeAsync()
+    public async Task DisposeAsync()
     {
-        await base.DisposeAsync();
-        await _dbContainer.DisposeAsync();
+        if (DbContext is not null)
+        {
+            await DbContext.DisposeAsync();
+        }
+
+        if (_dbContainer is not null)
+        {
+            await _dbContainer.StopAsync();
+            await _dbContainer.DisposeAsync();
+        }
+
     }
 }
                 </CodeSnippet>
@@ -156,76 +140,46 @@ public class AppFixture : WebApplicationFactory&lt;Program&gt;, IAsyncLifetime
                 <p>
                     In the above code, we are <Highlight>initializing</Highlight> the database container and getting the 
                     <Highlight>connection string</Highlight> from the container and exposing it to be used in 
-                    <Highlight>ConfigureTestServices</Highlight> in <Highlight>AppFixture</Highlight>. Only access
-                    <Highlight>Services</Highlight> after the container starts: this builds the shared application host.
-                    We then apply migrations and initialize seed data using a short-lived scope.
-                    Use PostgreSQL-compatible migrations from the API project, not migrations generated for a different provider.
-                    The application host is disposed before the container after all tests finish.
+                    <Highlight>ConfigureServices</Highlight> in <Highlight>CustomWebApiFactory</Highlight>. We are then applying 
+                    migrations to make sure schema is applied and created. We can also initialize database with <Highlight>initial seed data</Highlight> 
+                    here. We are also <Highlight>disposing</Highlight> the container after all tests are run.
                 </p>
             </li>
             <li>
                 <p>
-                    Add <Highlight>DatabaseHelper.cs</Highlight> to seed the database once during fixture initialization.
-                    Keep this shared seed data read-only while tests run.
+                    Update <Highlight>CustomWebApiFactory</Highlight> to replace <Highlight>WeatherForecastDbContext</Highlight> 
+                    connection string with <Highlight>Test Container Connection String</Highlight> as shown below
                 </p>
-
-                <CodeSnippet CssClass="language-csharp">
-using API;
-using API.DbContexts;
-
-namespace FunctionalTest;
-
-public static class DatabaseHelper
-{
-    public static async Task InitializeDbForTestsAsync(WeatherForecastDbContext db)
-    {
-        await db.WeatherForecasts.AddAsync(new WeatherForecast
-        {
-            Id = 1,
-            Date = DateOnly.FromDateTime(DateTime.Now.AddDays(1)),
-            TemperatureC = 1,
-            Summary = "Freezing from database"
-        });
-        await db.SaveChangesAsync();
-    }
-}
-                </CodeSnippet>
-
-                <p>
-                    Replace the introductory article's <Highlight>BaseTest</Highlight> with this version.
-                    Each test owns a client and a database scope; never share a <Highlight>DbContext</Highlight> between tests.
-                    xUnit owns disposal of the shared <Highlight>AppFixture</Highlight>.
-                </p>
-
+                
                 <CodeSnippet CssClass="language-csharp">
 using API.DbContexts;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace FunctionalTest;
-
-public abstract class BaseTest : IDisposable
+public class CustomWebApiFactory(SharedFixture fixture) : WebApplicationFactory&lt;Program&gt;
 {
-    private readonly IServiceScope _scope;
+    public SharedFixture SharedFixture =&gt; fixture;
 
-    protected BaseTest(AppFixture fixture)
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        Factory = fixture;
-        Client = fixture.CreateClient();
-        _scope = fixture.Services.CreateScope();
-        Database = _scope.ServiceProvider.GetRequiredService&lt;WeatherForecastDbContext&gt;();
-    }
+        builder.UseEnvironment("Test");
 
-    protected AppFixture Factory { get; }
-    protected HttpClient Client { get; }
-    protected WeatherForecastDbContext Database { get; }
+        builder.ConfigureServices(services =&gt;
+        {
+            var ctx = services.SingleOrDefault(d =&gt; d.ServiceType == typeof(WeatherForecastDbContext));
+            services.Remove(ctx!);
 
-    public void Dispose()
-    {
-        Client.Dispose();
-        _scope.Dispose();
+            services.AddDbContext&lt;WeatherForecastDbContext&gt;(opts =&gt;
+                opts.UseNpgsql(SharedFixture.PostgresConnectionString));
+        });
     }
 }
                 </CodeSnippet>
+                
+                
             </li>
             <li>
                 <p>
@@ -235,16 +189,18 @@ public abstract class BaseTest : IDisposable
                 
                 <CodeSnippet CssClass="language-csharp">
 using API;
+using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
-using Xunit;
+using Xunit.Abstractions;
 
 namespace FunctionalTest;
 [ExcludeFromCodeCoverage]
+[Collection(nameof(FunctionalTestCollection))]
 public class WeatherForecastControllerShouldTests(
-    AppFixture fixture,
-    ITestOutputHelper outputHelper) : BaseTest(fixture)
+    CustomWebApiFactory factory,
+    ITestOutputHelper outputHelper) : BaseTest(factory), IClassFixture&lt;CustomWebApiFactory&gt;
 {
     [Fact]
     public async Task ReturnExpectedResponse_From_Database()
@@ -252,7 +208,8 @@ public class WeatherForecastControllerShouldTests(
         var expectedWeatherForecast = await Database.WeatherForecasts.FirstAsync();
 
         var result = await Client.GetJsonResultAsync&lt;List&lt;WeatherForecast&gt;&gt;("/weatherforecast/fromdatabase", HttpStatusCode.OK, outputHelper);
-        Assert.Equivalent(expectedWeatherForecast, Assert.Single(result));
+        result.Count.Should().Be(1);
+        result[0].Should().BeEquivalentTo(expectedWeatherForecast);
     }
 }
                 </CodeSnippet>
@@ -262,22 +219,19 @@ public class WeatherForecastControllerShouldTests(
         </ol>
 
         <p>
-            xUnit injects the registered assembly fixture directly, without <Highlight>[Collection]</Highlight> or
-            <Highlight>IClassFixture</Highlight>. Assembly fixtures do not disable parallel execution.
-            Keep shared seed data read-only, and isolate any test that writes data. The lifetime is now:
+            Thats it. We are done with setup. Now the tests will run in the following flow.
         </p>
 
         <ol>
-            <li>Create the assembly's AppFixture.</li>
-            <li>Start the PostgreSQL container once.</li>
+            <li>Start Test Method.</li>
+            <li>TestContainers Setup.</li>
+            <li>Create WebApplicationFactory.</li>
             <li>Run Program.cs.</li>
             <li>Service Registration.</li>
             <li>Overriding Configuration.</li>
             <li>Build Web Application.</li>
-            <li>Apply migrations and seed data once.</li>
-            <li>Create each test with its own client and database scope.</li>
+            <li>Create HTTP Client.</li>
             <li>Test Code Execution.</li>
-            <li>Dispose the shared application host, then the container, after all tests finish.</li>
         </ol>
 
         <figure>
