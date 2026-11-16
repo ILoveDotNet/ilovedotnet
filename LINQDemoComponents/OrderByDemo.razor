@@ -93,89 +93,13 @@
     {
         try
         {
-            products = OrderProducts(products, queryModel.Query!).ToList();
+            products = products.AsQueryable().OrderBy(queryModel.Query!).ToDynamicList<Product>();
         }
         catch (Exception ex) 
         {
             errorMessage = ex.Message;
             throw;
         }
-    }
-
-    private static IOrderedEnumerable<Product> OrderProducts(IEnumerable<Product> source, string ordering)
-    {
-        IOrderedEnumerable<Product>? orderedProducts = null;
-
-        foreach (var clause in SplitOrderingClauses(ordering))
-        {
-            var lastSpace = clause.LastIndexOf(' ');
-            var direction = lastSpace >= 0 ? clause[(lastSpace + 1)..] : string.Empty;
-            var descending = direction.Equals("desc", StringComparison.OrdinalIgnoreCase)
-                || direction.Equals("descending", StringComparison.OrdinalIgnoreCase);
-            var ascending = direction.Equals("asc", StringComparison.OrdinalIgnoreCase)
-                || direction.Equals("ascending", StringComparison.OrdinalIgnoreCase);
-            var keyExpression = (descending || ascending ? clause[..lastSpace] : clause).Trim();
-            var keySelector = DynamicExpressionParser
-                .ParseLambda<Product, object>(new ParsingConfig(), true, keyExpression)
-                .Compile();
-
-            if (orderedProducts is null)
-            {
-                orderedProducts = descending
-                    ? source.OrderByDescending(keySelector)
-                    : source.OrderBy(keySelector);
-            }
-            else
-            {
-                orderedProducts = descending
-                    ? orderedProducts.ThenByDescending(keySelector)
-                    : orderedProducts.ThenBy(keySelector);
-            }
-        }
-
-        return orderedProducts ?? throw new ArgumentException("At least one ordering expression is required.", nameof(ordering));
-    }
-
-    private static IEnumerable<string> SplitOrderingClauses(string ordering)
-    {
-        var start = 0;
-        var parenthesisDepth = 0;
-        var quote = '\0';
-
-        for (var index = 0; index < ordering.Length; index++)
-        {
-            var character = ordering[index];
-
-            if (quote != '\0')
-            {
-                if (character == quote && (index == 0 || ordering[index - 1] != '\\'))
-                {
-                    quote = '\0';
-                }
-
-                continue;
-            }
-
-            if (character is '\'' or '"')
-            {
-                quote = character;
-            }
-            else if (character == '(')
-            {
-                parenthesisDepth++;
-            }
-            else if (character == ')')
-            {
-                parenthesisDepth--;
-            }
-            else if (character == ',' && parenthesisDepth == 0)
-            {
-                yield return ordering[start..index].Trim();
-                start = index + 1;
-            }
-        }
-
-        yield return ordering[start..].Trim();
     }
 
     private void ResetProducts()
