@@ -131,16 +131,12 @@ public class QuestPDFDemoBase : ComponentBase
           });
     });
 
-    document.WithSettings(new DocumentSettings
-    {
-      PDFA_Conformance = PDFA_Conformance.PDFA_3B
-    });
-
     document.WithMetadata(new DocumentMetadata
     {
       Title = "Articles Summary",
       Author = "Abdul Rahman",
-      Creator = "I Love .NET"
+      Creator = "I Love .NET",
+      PdfA = true
     });
 
     Base64String = Convert.ToBase64String(document.GeneratePdf());

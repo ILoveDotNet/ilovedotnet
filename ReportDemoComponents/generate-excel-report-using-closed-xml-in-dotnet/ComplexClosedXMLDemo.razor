@@ -26,7 +26,6 @@
     [Inject] private TableOfContents TableOfContents { get; set; } = default!;
     [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
     [Inject] private HttpClient HttpClient { get; set; } = default!;
-    [Inject] private ILogger<ComplexClosedXMLDemo> Logger { get; set; } = default!;
 
     protected override async Task OnInitializedAsync()
     {
@@ -59,8 +58,9 @@
                        }).ToList()
         };
 
-        await using var file = await HttpClient.GetStreamAsync("./files/ILoveDotNetContentTemplate.xlsx");
-        var template = new XLTemplate(file);
+        var file = await HttpClient.GetStreamAsync("./files/ILoveDotNetContentTemplate.xlsx");
+        
+        @* var template = new XLTemplate(file);
 
         template.AddVariable(complexData);
         template.Generate();
@@ -73,21 +73,14 @@
         template.SaveAs(stream);
 
         var bytes = stream.ToArray();
-        base64String = Convert.ToBase64String(bytes);
+        base64String = Convert.ToBase64String(bytes); *@
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            try
-            {
-                module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./excel-download.js");
-            }
-            catch (JSException exception)
-            {
-                Logger.LogWarning(exception, "Unable to initialize Excel download interop");
-            }
+            module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./excel-download.js");
         }
     }
 
@@ -95,14 +88,7 @@
     {
         if (module is not null)
         {
-            try
-            {
-                await module.InvokeVoidAsync("saveAsFile", "TableOfContents.xlsx", base64String);
-            }
-            catch (JSException exception)
-            {
-                Logger.LogWarning(exception, "Unable to download complex Excel report");
-            }
+            await module.InvokeVoidAsync("saveAsFile", "TableOfContents.xlsx", base64String);
         }
     }
 

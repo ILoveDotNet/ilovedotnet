@@ -16,20 +16,12 @@
     private IJSObjectReference? module;
     
     [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
-    [Inject] private ILogger<HTMLtoPdfDemo> Logger { get; set; } = default!;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            try
-            {
-                module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./print.js");
-            }
-            catch (JSException exception)
-            {
-                Logger.LogWarning(exception, "Unable to initialize PDF print interop");
-            }
+            module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./print.js");
         }
     }
 
@@ -42,14 +34,7 @@
     {
         if (module is not null)
         {
-            try
-            {
-                await module.InvokeVoidAsync("printWindow");
-            }
-            catch (JSException exception)
-            {
-                Logger.LogWarning(exception, "Unable to print PDF report");
-            }
+            await module.InvokeVoidAsync("printWindow");
         }
     }
 
