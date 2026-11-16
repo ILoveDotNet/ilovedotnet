@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using Microsoft.Extensions.Validation;
 
-namespace BlazorDemoComponents;
+namespace SharedModels;
 
 [ValidatableType]
 public sealed class BookingValidationModel

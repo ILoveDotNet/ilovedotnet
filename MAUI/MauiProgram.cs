@@ -1,5 +1,4 @@
 ﻿using Blazor.Analytics;
-using BlazorDemoComponents;
 using CommonComponents.Models;
 using CommonComponents.Services;
 using MAUI.Services;
@@ -26,7 +25,7 @@ public static class MauiProgram
         });
 
     builder.Services.AddMauiBlazorWebView();
-    builder.Services.AddBlazorDemoValidation();
+    builder.Services.AddSharedModelValidation();
 
 #if DEBUG
     builder.Services.AddBlazorWebViewDeveloperTools();

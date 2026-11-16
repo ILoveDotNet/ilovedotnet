@@ -104,24 +104,33 @@ builder.Services.AddValidation();
             </CodeSnippet>
             <p>
                 The one-line registration works when the model and the call live in the same project.
-                If models live in a Razor class library, put the following extension in that library and call
-                <Highlight>builder.Services.AddBlazorDemoValidation()</Highlight> from the WebAssembly host.
-                This is how the accompanying demo registers its library's metadata.
+                If models live in a separate assembly, put an extension there to run the source generator,
+                then call that extension from the host before building the service provider. In this demo,
+                the model and registration extension live in the eagerly loaded <Highlight>SharedModels</Highlight>
+                assembly. The UI remains in the lazy-loaded <Highlight>BlazorDemoComponents</Highlight> assembly;
+                calling its extension during host startup would fail because that assembly hasn't been loaded yet.
             </p>
             <CodeSnippet CssClass="language-csharp">
 using Microsoft.Extensions.DependencyInjection;
 
-namespace BlazorDemoComponents;
+namespace SharedModels;
 
 public static class ValidationServiceCollectionExtensions
 {
-    public static IServiceCollection AddBlazorDemoValidation(
+    public static IServiceCollection AddSharedModelValidation(
         this IServiceCollection services)
     {
         services.AddValidation();
         return services;
     }
 }
+            </CodeSnippet>
+
+            <p>
+                The WebAssembly host calls the extension before building its service provider:
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+builder.Services.AddSharedModelValidation();
             </CodeSnippet>
             <p>
                 Add a reference to <Highlight>Microsoft.Extensions.Validation</Highlight> if it isn't available in the
