@@ -1,0 +1,307 @@
+@page "/blogs/blazor-wasm-forms-validation"
+@using BaseComponents
+@using BlazorDemoComponents
+@inherits BasePage
+
+<Content FileName=@nameof(Validation)>
+    <ContentBody>
+        <What>
+            <p>
+                Can your Blazor form catch an invalid booking item as well as an empty customer name?
+                <Highlight>Data annotations</Highlight> let you declare validation rules on a model, and
+                <Highlight>DataAnnotationsValidator</Highlight> connects those rules to a Blazor WebAssembly form.
+            </p>
+            <p>
+                Start with a small client form, then build an Anybills-inspired booking form with custom rules and
+                collection items. The complex example uses validation metadata generated at build time in .NET 10 and later.
+            </p>
+        </What>
+
+        <Why>
+            <p>
+                A booking can have a valid customer but an invalid item quantity or an end time before its start.
+                If you only check the top-level fields, a form submission can miss invalid collection items.
+                Without generated metadata, <Highlight>DataAnnotationsValidator</Highlight> falls back to top-level
+                model validation on submit; missing metadata doesn't produce a runtime error.
+            </p>
+            <p>
+                Field messages help users correct input where they entered it, while a summary shows errors across the form.
+                The examples below show how to apply both, without a separate FluentValidation integration.
+                Client-side checks improve feedback, but your server must independently validate submitted data before processing it.
+            </p>
+        </Why>
+
+        <How>
+            <h4 id="validate-a-client-name">Validate a client name with built-in attributes</h4>
+            <p>
+                Add <Highlight>Required</Highlight> and <Highlight>MaxLength</Highlight> to the name, then put
+                <Highlight>DataAnnotationsValidator</Highlight> inside the <Highlight>EditForm</Highlight>.
+                This self-contained example follows the simple demo; it needs no generated metadata for its top-level field.
+            </p>
+            <CodeSnippet CssClass="language-razor">
+@@using System.ComponentModel.DataAnnotations
+
+&lt;EditForm Model="@@exampleModel" OnValidSubmit="@@HandleValidSubmit"&gt;
+    &lt;DataAnnotationsValidator /&gt;
+    &lt;ValidationSummary /&gt;
+
+    &lt;label for="name"&gt;Name&lt;/label&gt;
+    &lt;InputText id="name" @@bind-Value="exampleModel.Name" /&gt;
+    &lt;ValidationMessage For="@@(() =&gt; exampleModel.Name)" /&gt;
+
+    &lt;button type="submit"&gt;Submit&lt;/button&gt;
+    &lt;p&gt;@@message&lt;/p&gt;
+&lt;/EditForm&gt;
+
+@@code {
+    public class ExampleModel
+    {
+        [Required(ErrorMessage = "Name is required.")]
+        [MaxLength(50, ErrorMessage = "Name too long (50 character limit).")]
+        public string? Name { get; set; }
+    }
+
+    private ExampleModel exampleModel = new();
+    private string? message;
+
+    private void HandleValidSubmit()
+    {
+        message = "HandleValidSubmit called";
+    }
+}
+            </CodeSnippet>
+            <p>
+                <Highlight>ValidationMessage</Highlight> displays errors for the named field; <Highlight>ValidationSummary</Highlight>
+                displays form-wide errors. Field validation runs when the field changes, and
+                <Highlight>OnValidSubmit</Highlight> runs only after full-form validation succeeds.
+                The success text in this demo remains visible after a later invalid submission; it isn't a live validity indicator.
+            </p>
+            <CodeSnippet CssClass="language-text">
+Name input       | Submit result
+-----------------+---------------------------------
+empty            | Name is required.
+51 characters    | Name too long (50 character limit).
+Taylor           | HandleValidSubmit called
+            </CodeSnippet>
+            <DemoSnippet Title="Simple data annotations validation">
+                <p class="[ text-black ] [ dark:text-white ]">
+                    Submit an empty name, enter more than 50 characters, then try a valid name.
+                </p>
+                <div>
+                    <ValidationDemo></ValidationDemo>
+                </div>
+            </DemoSnippet>
+
+            <h4 id="enable-generated-validation">Enable generated validation for booking items</h4>
+            <p>
+                Register <Highlight>AddValidation</Highlight> in the assembly that declares the booking model.
+                The call registers validation services and activates a source generator, which produces metadata at build time.
+                Put the root and item model types in a <Highlight>.cs</Highlight> file, not a Razor component, and mark the root
+                with <Highlight>ValidatableType</Highlight>; the generator discovers reachable item types.
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+builder.Services.AddValidation();
+            </CodeSnippet>
+            <p>
+                The one-line registration works when the model and the call live in the same project.
+                If models live in a Razor class library, put the following extension in that library and call
+                <Highlight>builder.Services.AddBlazorDemoValidation()</Highlight> from the WebAssembly host.
+                This is how the accompanying demo registers its library's metadata.
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+using Microsoft.Extensions.DependencyInjection;
+
+namespace BlazorDemoComponents;
+
+public static class ValidationServiceCollectionExtensions
+{
+    public static IServiceCollection AddBlazorDemoValidation(
+        this IServiceCollection services)
+    {
+        services.AddValidation();
+        return services;
+    }
+}
+            </CodeSnippet>
+            <p>
+                Add a reference to <Highlight>Microsoft.Extensions.Validation</Highlight> if it isn't available in the
+                model project; use a version appropriate for your target framework. In .NET 10,
+                <Highlight>ValidatableType</Highlight> and <Highlight>SkipValidation</Highlight> are experimental package APIs.
+                Web and Razor SDK projects containing Razor components provide embedded alternatives; plain class libraries
+                need the documented workaround or diagnostic suppression. See Microsoft's
+                <NavLink href="https://learn.microsoft.com/en-us/aspnet/core/fundamentals/validation?view=aspnetcore-10.0#experimental-api-in-apps-that-target-net-10" target="_blank">.NET 10 guidance</NavLink>.
+            </p>
+
+            <h4 id="express-booking-rules">Express booking and item rules in the model</h4>
+            <p>
+                Put the model in <Highlight>ValidationModels.cs</Highlight> in the same assembly as the registration call.
+                These focused excerpts show the root model, its collection, and the item rules; the live demo contains the complete
+                model. Initialize a <Highlight>DateTimeOffset</Highlight> from <Highlight>DateTime.Today</Highlight>, not
+                <Highlight>DateTimeOffset.Today</Highlight>, which doesn't exist. The end-date method below demonstrates
+                cross-property validation.
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+[ValidatableType]
+public sealed class BookingValidationModel
+{
+    [CustomValidation(typeof(BookingValidationModel), nameof(ValidateCustomer))]
+    public Guid CustomerId { get; set; }
+
+    [CustomValidation(typeof(BookingValidationModel), nameof(ValidateStart))]
+    public DateTimeOffset StartAt { get; set; } = new(DateTime.Today.AddDays(1).AddHours(9));
+
+    [CustomValidation(typeof(BookingValidationModel), nameof(ValidateEnd))]
+    public DateTimeOffset EndAt { get; set; } = new(DateTime.Today.AddDays(1).AddHours(10));
+
+    [SkipValidation]
+    public Dictionary&lt;Guid, string&gt; AvailableItems { get; set; } = [];
+
+    [CustomValidation(
+        typeof(BookingValidationModel), nameof(ValidateBookingItems))]
+    public List&lt;BookingItemValidationModel&gt; BookingItems { get; set; } =
+        [new()];
+}
+            </CodeSnippet>
+            <p>
+                The full model also validates the room, notes, and each collection item. Its
+                <Highlight>BookingItemValidationModel</Highlight> applies these rules to every item:
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+public sealed class BookingItemValidationModel
+{
+    [Required]
+    public string? Name { get; set; }
+
+    [Range(1, 100, ErrorMessage = "Quantity must be between 1 and 100.")]
+    public int Quantity { get; set; }
+
+    [CustomValidation(
+        typeof(BookingItemValidationModel), nameof(ValidateStaff))]
+    public Guid StaffId { get; set; }
+}
+            </CodeSnippet>
+            <p>
+                <Highlight>CustomValidation</Highlight> calls a static method when a built-in attribute doesn't express a rule.
+                The customer, room, and staff checks reject <Highlight>Guid.Empty</Highlight>; a nonempty identifier alone does
+                not prove that the selected record exists or is authorized.
+                The list rule requires at least one item, while generated metadata enables validation of each item's properties.
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+public static ValidationResult? ValidateCustomer(Guid value) =&gt;
+    value == Guid.Empty
+        ? new("Customer is required.", [nameof(CustomerId)])
+        : ValidationResult.Success;
+
+public static ValidationResult? ValidateBookingItems(
+    List&lt;BookingItemValidationModel&gt; value) =&gt;
+    value.Count == 0
+        ? new("At least one booking item is required.",
+            [nameof(BookingItems)])
+        : ValidationResult.Success;
+            </CodeSnippet>
+            <p>
+                <Highlight>ValidationContext.ObjectInstance</Highlight> gives the end-date rule access to the booking's start.
+                Returning member names with <Highlight>ValidationResult</Highlight> associates errors with their fields.
+                For a cross-field rule, changing the start alone doesn't guarantee that the end field is immediately revalidated:
+                submit the form to recheck the complete model, or explicitly revalidate dependent fields in a production form.
+            </p>
+            <p>
+                <Highlight>SkipValidation</Highlight> excludes <Highlight>AvailableItems</Highlight>, a lookup dictionary rather
+                than submitted booking items, from generated validation. Don't apply it to
+                <Highlight>BookingItems</Highlight>, whose contents must be checked.
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+public static ValidationResult? ValidateEnd(
+    DateTimeOffset value, ValidationContext context)
+{
+    if (value == DateTimeOffset.MinValue)
+        return new("End date is required.", [nameof(EndAt)]);
+
+    var booking = (BookingValidationModel)context.ObjectInstance;
+    return booking.StartAt != DateTimeOffset.MinValue &amp;&amp; value &lt;= booking.StartAt
+        ? new("End must be after Start.", [nameof(EndAt)])
+        : ValidationResult.Success;
+}
+            </CodeSnippet>
+            <CodeSnippet CssClass="language-text">
+BookingValidationModel
+  |-- CustomerId, RoomId, StartAt, EndAt, Notes
+  |-- AvailableItems       [SkipValidation]
+  `-- BookingItems         list rule
+       `-- each item       Name, Quantity, StaffId rules
+            </CodeSnippet>
+
+            <h4 id="display-booking-errors">Show collection and field errors in the booking form</h4>
+            <p>
+                Bind each message to the same model instance and property as its input. This focused excerpt shows a collection
+                item; the complete runnable component, including the customer and date fields, is
+                <Highlight>BookingValidationDemo.razor</Highlight>.
+            </p>
+            <CodeSnippet CssClass="language-razor">
+@@using BlazorDemoComponents
+
+&lt;EditForm Model="@@booking" OnValidSubmit="@@HandleValidSubmit"&gt;
+    &lt;DataAnnotationsValidator /&gt;
+    &lt;ValidationSummary /&gt;
+
+    &lt;ValidationMessage For="@@(() =&gt; booking.BookingItems)" /&gt;
+    @@foreach (var item in booking.BookingItems)
+    {
+        &lt;div @@key="item"&gt;
+            &lt;InputText @@bind-Value="item.Name" /&gt;
+            &lt;ValidationMessage For="@@(() =&gt; item.Name)" /&gt;
+            &lt;InputNumber @@bind-Value="item.Quantity" /&gt;
+            &lt;ValidationMessage For="@@(() =&gt; item.Quantity)" /&gt;
+            &lt;InputSelect @@bind-Value="item.StaffId"&gt;
+                &lt;option value="@@Guid.Empty"&gt;Select staff&lt;/option&gt;
+                &lt;option value="@@staffId"&gt;Alex Kim&lt;/option&gt;
+            &lt;/InputSelect&gt;
+            &lt;ValidationMessage For="@@(() =&gt; item.StaffId)" /&gt;
+        &lt;/div&gt;
+    }
+    &lt;button type="submit"&gt;Save booking&lt;/button&gt;
+&lt;/EditForm&gt;
+            </CodeSnippet>
+            <p>
+                Submit after adding or removing items to recheck the list and its contents. As in the simple demo,
+                the success text records a previous successful submission rather than the current validity state.
+                The local identifiers and the callback are illustrative: they don't load records or save a booking.
+            </p>
+            <CodeSnippet CssClass="language-text">
+Input                           | Expected result on submit
+--------------------------------+---------------------------------
+No customer                     | Customer is required.
+No booking items                | At least one booking item is required.
+Item quantity 0                 | Quantity must be between 1 and 100.
+End at or before start          | End must be after Start.
+All fields valid                | Booking passed validation.
+            </CodeSnippet>
+            <DemoSnippet Title="Complex booking validation">
+                <p class="[ text-black ] [ dark:text-white ]">
+                    Try an empty customer, remove all items, or enter an invalid quantity. Add a valid item and select
+                    a customer, room, and staff member before submitting again.
+                </p>
+                <div>
+                    <BookingValidationDemo></BookingValidationDemo>
+                </div>
+            </DemoSnippet>
+            <p>
+                The booking shape is inspired by the Anybills <Highlight>net11</Highlight> branch's client and booking forms.
+                For framework details, see Microsoft's
+                <NavLink href="https://learn.microsoft.com/en-us/aspnet/core/blazor/forms/validation?view=aspnetcore-10.0" target="_blank">Blazor validation documentation</NavLink>.
+            </p>
+        </How>
+
+        <Summary>
+            <ul>
+                <li>Use <Highlight>DataAnnotationsValidator</Highlight> and field messages for a simple form.</li>
+                <li>Generate metadata for root models in <Highlight>.cs</Highlight> files to validate nested items.</li>
+                <li>Use <Highlight>CustomValidation</Highlight> for model rules and skip only lookup data that needs no validation.</li>
+                <li>Recheck dependent fields and enforce business rules independently on the server.</li>
+            </ul>
+            <p>
+                What to read next: revisit <NavLink href="blogs/blazor-wasm-forms">Blazor WebAssembly forms</NavLink>.
+            </p>
+        </Summary>
+    </ContentBody>
+</Content>
