@@ -131,7 +131,7 @@ public class WebAPILearningPath
             {
                 Order = 11,
                 Title = "Functional testing your ASP.NET WEB API",
-                Description = "In this post I will teach how to do functional testing in ASP.NET web api. All with live working demo.",
+                Description = "A complete ASP.NET Core functional-testing guide for .NET 11 with xUnit v3, Testcontainers, WireMock, authentication, and claims.",
                 Author = "Abdul Rahman",
                 Slug = "functional-testing-your-asp-net-webapi",
                 PosterUrl = "image/blogs/webapi/functional-testing-your-asp-net-webapi.webp",
@@ -141,14 +141,14 @@ public class WebAPILearningPath
                 Channel = "Web API",
                 Type = "blogs",
                 CreatedOn = new DateTime(2023, 7, 16, 22, 30, 0, DateTimeKind.Utc),
-                ModifiedOn = new DateTime(2024, 6, 23, 22, 30, 0, DateTimeKind.Utc),
+                ModifiedOn = new DateTime(2026, 11, 17, 18, 47, 0, DateTimeKind.Utc),
                 Keywords = ["Functional Test", "Integration Test"]
             },
             new ContentMetaData
             {
                 Order = 12,
                 Title = "Faking Dependencies in Functional testing in ASP.NET WEB API",
-                Description = "In this post I will teach how to fake dependencies in functional testing in ASP.NET web api. All with live working demo.",
+                Description = "Deprecated walkthrough. Read the consolidated .NET 11 ASP.NET Core functional-testing guide for current examples.",
                 Author = "Abdul Rahman",
                 Slug = "faking-dependencies-in-functional-testing-in-asp-net-webapi",
                 PosterUrl = "image/blogs/webapi/faking-dependencies-in-functional-testing-in-asp-net-webapi.webp",
@@ -165,7 +165,7 @@ public class WebAPILearningPath
             {
                 Order = 14,
                 Title = "Using WireMock.NET in Functional testing in ASP.NET WEB API",
-                Description = "In this post I will teach how to use wiremock.net in functional testing in ASP.NET web api. All with live working demo.",
+                Description = "Deprecated walkthrough. Read the consolidated .NET 11 ASP.NET Core functional-testing guide for current examples.",
                 Author = "Abdul Rahman",
                 Slug = "using-wiremock-net-in-functional-testing-in-asp-net-webapi",
                 PosterUrl = "image/blogs/webapi/using-wiremock-net-in-functional-testing-in-asp-net-webapi.webp",
@@ -182,7 +182,7 @@ public class WebAPILearningPath
             {
                 Order = 15,
                 Title = "Configuring Authentication in Functional testing in ASP.NET WEB API",
-                Description = "In this post I will teach how to configure authentication in functional testing in ASP.NET web api. All with live working demo.",
+                Description = "Deprecated walkthrough. Read the consolidated .NET 11 ASP.NET Core functional-testing guide for current examples.",
                 Author = "Abdul Rahman",
                 Slug = "configuring-authentication-in-functional-testing-in-asp-net-webapi",
                 PosterUrl = "image/blogs/webapi/configuring-authentication-in-functional-testing-in-asp-net-webapi.webp",
@@ -267,7 +267,7 @@ public class WebAPILearningPath
             {
                 Order = 13,
                 Title = "Using Docker Test Containers in Functional Testing in ASP.NET WEB API",
-                Description = "In this post I will teach how to test with real database using Docker Test Containers in functional testing in ASP.NET Web API. All with live working demo.",
+                Description = "Deprecated walkthrough. Read the consolidated .NET 11 ASP.NET Core functional-testing guide for current examples.",
                 Author = "Abdul Rahman",
                 Slug = "using-docker-test-containers-in-functional-testing-in-asp-net-webapi",
                 PosterUrl = "image/blogs/webapi/using-docker-test-containers-in-functional-testing-in-asp-net-webapi.webp",
