@@ -1,0 +1,116 @@
+<EditForm Model="@booking" OnValidSubmit="@HandleValidSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-4">
+        <label for="customer-id">Customer</label>
+        <InputSelect id="customer-id" @bind-Value="booking.CustomerId">
+            <option value="@Guid.Empty">Select a customer</option>
+            <option value="@customerId">Taylor Morgan</option>
+        </InputSelect>
+        <ValidationMessage For="@(() => booking.CustomerId)" />
+    </div>
+
+    <div class="mb-4">
+        <label for="room-id">Room</label>
+        <InputSelect id="room-id" @bind-Value="booking.RoomId">
+            <option value="@Guid.Empty">Select a room</option>
+            <option value="@roomId">Room 1</option>
+        </InputSelect>
+        <ValidationMessage For="@(() => booking.RoomId)" />
+    </div>
+
+    <div class="mb-4">
+        <label for="start-at">Start</label>
+        <InputDate id="start-at" Type="InputDateType.DateTimeLocal" @bind-Value="booking.StartAt" />
+        <ValidationMessage For="@(() => booking.StartAt)" />
+    </div>
+
+    <div class="mb-4">
+        <label for="end-at">End</label>
+        <InputDate id="end-at" Type="InputDateType.DateTimeLocal" @bind-Value="booking.EndAt" />
+        <ValidationMessage For="@(() => booking.EndAt)" />
+    </div>
+
+    <div class="mb-4">
+        <fieldset>
+            <legend>Nested contact details</legend>
+            <label for="contact-email">Email</label>
+            <InputText id="contact-email" @bind-Value="booking.Contact.Email" />
+            <ValidationMessage For="@(() => booking.Contact.Email)" />
+
+            <label for="contact-phone">Phone</label>
+            <InputText id="contact-phone" @bind-Value="booking.Contact.Phone" />
+            <ValidationMessage For="@(() => booking.Contact.Phone)" />
+        </fieldset>
+    </div>
+
+    <div class="mb-4">
+        <label for="notes">Notes</label>
+        <InputTextArea id="notes" @bind-Value="booking.Notes" />
+        <ValidationMessage For="@(() => booking.Notes)" />
+    </div>
+
+    <div class="mb-4">
+        <p>Catalogue preview (lookup data, excluded with SkipValidation):</p>
+        @foreach (var lookupItem in booking.AvailableItems)
+        {
+            <p>@lookupItem.Name: quantity @lookupItem.Quantity, no staff assigned.</p>
+        }
+        <p>
+            This partial catalogue entry intentionally has no valid booking quantity or staff.
+            It doesn't block submission. Items added below must pass those rules.
+        </p>
+    </div>
+
+    <ValidationMessage For="@(() => booking.BookingItems)" />
+    @foreach (var (item, index) in booking.BookingItems.Select((item, index) => (item, index)))
+    {
+        <div class="mb-4" @key="item">
+            <label for="@($"item-name-{index}")">Item</label>
+            <InputText id="@($"item-name-{index}")" @bind-Value="item.Name" />
+            <ValidationMessage For="@(() => item.Name)" />
+
+            <label for="@($"quantity-{index}")">Quantity</label>
+            <InputNumber id="@($"quantity-{index}")" @bind-Value="item.Quantity" />
+            <ValidationMessage For="@(() => item.Quantity)" />
+
+            <label for="@($"staff-id-{index}")">Staff</label>
+            <InputSelect id="@($"staff-id-{index}")" @bind-Value="item.StaffId">
+                <option value="@Guid.Empty">Select staff</option>
+                <option value="@staffId">Alex Kim</option>
+            </InputSelect>
+            <ValidationMessage For="@(() => item.StaffId)" />
+
+            <button type="button" class="mb-4" @onclick="() => booking.BookingItems.Remove(item)">Remove item</button>
+        </div>
+    }
+
+    <button type="button" class="mr-2" @onclick="AddBookingItem">Add item</button>
+
+    <button type="submit"
+            class="[ bg-fuchsia-500 ] [ px-4 py-2 ] [ inline-block ] [ rounded-md ]">Save booking</button>
+
+    <p>@message</p>
+</EditForm>
+
+@code {
+    private readonly Guid customerId = Guid.NewGuid();
+    private readonly Guid roomId = Guid.NewGuid();
+    private readonly Guid staffId = Guid.NewGuid();
+    private BookingValidationModel booking = new()
+    {
+        AvailableItems = [new() { Name = "Consultation" }]
+    };
+    private string? message;
+
+    private void AddBookingItem()
+    {
+        booking.BookingItems.Add(new());
+    }
+
+    private void HandleValidSubmit()
+    {
+        message = "Booking passed validation.";
+    }
+}

@@ -49,6 +49,8 @@ await host.RunAsync();
 
 static void ConfigureServices(IServiceCollection services, IWebAssemblyHostEnvironment webHostEnv, IConfiguration configuration)
 {
+  services.AddSharedModelValidation();
+
   services.AddScoped<LazyLoaderService>();
 
   services.AddScoped<IContentSearchService, VectorContentSearchService>();

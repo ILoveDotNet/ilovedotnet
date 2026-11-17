@@ -25,6 +25,7 @@ public static class MauiProgram
         });
 
     builder.Services.AddMauiBlazorWebView();
+    builder.Services.AddSharedModelValidation();
 
 #if DEBUG
     builder.Services.AddBlazorWebViewDeveloperTools();
