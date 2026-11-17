@@ -110,11 +110,8 @@ app.MapGet("/health", () =&gt; Results.Ok(new { status = "Healthy" }))
             <p>
                 The assertion targets the externally visible result: an unauthenticated request to the public route succeeds and
                 returns the expected status. If you already have a health endpoint, change the path and response assertion to match
-                its contract. This is an intermediate smoke test: after registering the assembly fixture below, xUnit initializes
-                that fixture for the test assembly as well. Use <Highlight>AppFixture</Highlight> for the final test host, or keep
-                this lightweight test in a separate assembly if it must run without containers. In this .NET 11 example, the
-                generated <Highlight>Program</Highlight> entry point is public, so you do not need to add
-                <Highlight>public partial class Program</Highlight>.
+                its contract. This is an intermediate smoke test; the assembly-fixture section below explains how to use the shared
+                host in the final test assembly.
             </p>
             <CodeSnippet CssClass="language-csharp">
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -147,12 +144,52 @@ public sealed class HealthTests : IClassFixture&lt;WebApplicationFactory&lt;Prog
                 Use an xUnit v3 assembly fixture to own the shared application host and external resources. Its asynchronous
                 initialization starts dependencies before the host creates services; its disposal tears them down after the tests.
                 Each test should still own its own <Highlight>HttpClient</Highlight>, database scope, claims, and mutable records.
+                Once the assembly fixture is registered, xUnit initializes it for the whole test assembly. Change the health test
+                to inject <Highlight>AppFixture</Highlight> and call <Highlight>fixture.CreateClient()</Highlight>, or keep that
+                smoke test in a separate assembly if it must run without containers.
             </p>
             <p>
                 An assembly fixture does <strong>not</strong> disable xUnit parallel execution. Avoid shared mutable test state,
                 use unique rows, and serialize or isolate tests that change shared resources. In particular, a WireMock server
                 shared by parallel tests needs concurrency-safe mappings and request assertions.
             </p>
+            <CodeSnippet CssClass="language-csharp">
+using Microsoft.AspNetCore.Mvc.Testing;
+using System.Net;
+using Xunit;
+
+[assembly: AssemblyFixture(typeof(FunctionalTest.AppFixture))]
+
+namespace FunctionalTest;
+
+public sealed class AppFixture : WebApplicationFactory&lt;Program&gt;, IAsyncLifetime
+{
+    public ValueTask InitializeAsync()
+    {
+        // Start shared dependencies before the test host uses them.
+        return ValueTask.CompletedTask;
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        // Dispose the host and shared dependencies after the tests.
+        return ValueTask.CompletedTask;
+    }
+}
+
+public sealed class HealthTests(AppFixture fixture)
+{
+    [Fact]
+    public async Task GetHealth_ReturnsOkWithoutAuthentication()
+    {
+        using var client = fixture.CreateClient();
+        using var response = await client.GetAsync(
+            "/health", TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+}
+            </CodeSnippet>
 
             <h4 id="testcontainers">4. Run the real database in Testcontainers</h4>
             <p>
@@ -166,6 +203,17 @@ public sealed class HealthTests : IClassFixture&lt;WebApplicationFactory&lt;Prog
                 Identity database. If your application uses one database, remove the Identity container, its connection-string
                 override, the test-owned Identity provider and scope, and the Identity migration and assertion shown later.
             </p>
+            <CodeSnippet CssClass="language-csharp">
+private readonly PostgreSqlContainer _database =
+    new PostgreSqlBuilder("pgvector/pgvector:pg16")
+        .WithDatabase("functional_tests")
+        .WithUsername("postgres")
+        .WithPassword("postgres")
+        .Build();
+
+await _database.StartAsync(cancellationToken);
+var connectionString = _database.GetConnectionString();
+            </CodeSnippet>
 
             <h4 id="migrations-seeding">5. Apply migrations and seed stable prerequisites</h4>
             <p>
@@ -190,6 +238,15 @@ internal static class DatabaseSeeder
     }
 }
             </CodeSnippet>
+            <p>
+                Run the migration and seeder after the container starts and before requests reach the host:
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+await using var scope = Services.CreateAsyncScope();
+var db = scope.ServiceProvider.GetRequiredService&lt;AppDbContext&gt;();
+await db.Database.MigrateAsync(cancellationToken);
+await DatabaseSeeder.SeedAsync(db, cancellationToken);
+            </CodeSnippet>
 
             <h4 id="wiremock">6. Control outbound HTTP with WireMock</h4>
             <p>
@@ -202,6 +259,16 @@ internal static class DatabaseSeeder
                 and verify that value in the matching WireMock request-log entry. Isolate or serialize tests that modify shared
                 mappings; the assembly fixture itself does not make WireMock state thread-safe.
             </p>
+            <CodeSnippet CssClass="language-csharp">
+var partnerApi = WireMockServer.Start();
+partnerApi.Given(Request.Create()
+        .WithPath("/partner/clients")
+        .UsingPost())
+    .RespondWith(Response.Create()
+        .WithStatusCode(201)
+        .WithHeader("Content-Type", "application/json")
+        .WithBody("{\"id\":\"test-partner-client\"}"));
+            </CodeSnippet>
 
             <h4 id="bogus">7. Generate unique test data with Bogus</h4>
             <p>
@@ -209,6 +276,14 @@ internal static class DatabaseSeeder
                 <Highlight>ClientCommand</Highlight> factory adds a random suffix to each generated name so parallel persistence
                 tests do not collide.
             </p>
+            <CodeSnippet CssClass="language-csharp">
+var clientCommand = new Faker&lt;CreateClientCommand&gt;().RuleFor(
+    command =&gt; command.Name,
+    faker =&gt; $"{faker.Company.CompanyName()}-"
+        + faker.Random.AlphaNumeric(8));
+
+var command = clientCommand.Generate();
+            </CodeSnippet>
 
             <h4 id="base-test-http">8. Add a base test and focused HTTP extensions</h4>
             <p>
@@ -611,7 +686,7 @@ public sealed class ClientTests(AppFixture fixture, ITestOutputHelper output)
         Assert.Equal(command.Name, result.Name);
         Assert.True(result.Active);
 
-        var saved = await IdentityDatabase.Clients.SingleAsync(
+        var saved = await IdentityDatabase.Clients.FirstAsync(
             client => client.Name == result.Name,
             TestContext.Current.CancellationToken);
         Assert.Equal(result.Name, saved.Name);
