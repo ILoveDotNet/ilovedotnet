@@ -1,0 +1,440 @@
+@page "/blogs/distributed-testing-with-aspire-and-playwright-in-dotnet"
+@using SharedModels
+@using BaseComponents
+@inherits BasePage
+
+<Content FileName=@nameof(DistributedTestingWithAspireAndPlaywrightInDotNet)>
+    <ContentBody>
+        <What>
+            <p>
+                An operator can generate an order successfully and the owner can still open an
+                empty dashboard. A passing API test won't tell you whether both users can finish
+                their part of the job.
+            </p>
+            <p>
+                <Highlight>Aspire.Hosting.Testing</Highlight> starts the services defined by your
+                AppHost, the project that describes how they run together.
+                <Highlight>Playwright</Highlight> drives the browser. We'll use them to follow
+                one cash order from a new branch to the owner's dashboard.
+            </p>
+        </What>
+
+        <Why>
+            <p>
+                An order endpoint test can tell you whether the API accepts a valid request.
+                It won't catch a login redirect that drops the operator at the wrong screen
+                or a dashboard that reads orders for the wrong branch.
+            </p>
+            <p>
+                Keep the focused tests for service rules: they're cheaper to run and narrow
+                down failures faster. Save browser tests for critical handoffs like this one:
+                the operator records the sale, and the owner relies on it to track the day.
+            </p>
+        </Why>
+
+        <How>
+            <h4>Follow one order across three roles</h4>
+            <p>
+                An admin creates an isolated client and branch with an owner and an operator.
+                The owner configures the branch, adds a category, item, and supplier, then
+                records a purchase to stock the item. The operator creates a customer and
+                generates a cash order; the owner signs back in to check the dashboard.
+            </p>
+            <CodeSnippet CssClass="language-plaintext">
+xUnit assembly fixture --&gt; AppHost --&gt; landing (health probe)
+Playwright browser --&gt; web --&gt; api --&gt; PostgreSQL (application DB)
+                        \--&gt; identity --&gt; PostgreSQL (identity DB)
+            </CodeSnippet>
+            <p>
+                The test uses the same service names as the
+                <a class="underline" href="/blogs/getting-started-with-aspire-in-dotnet/">companion AppHost walkthrough</a>.
+                This map shows the main browser path and the fixture's landing probe, not every
+                AppHost dependency.
+            </p>
+
+            <h4>Generate a cash order and check both screens</h4>
+            <p>
+                Use xUnit v3, <Highlight>Aspire.Hosting.Testing</Highlight>, and
+                <Highlight>Microsoft.Playwright.Xunit.v3</Highlight> in a distributed-test
+                project that references your AppHost. These excerpts leave admin and branch
+                setup, sign-in, and cleanup to your application.
+            </p>
+            <p>
+                <Highlight>CreateBranchAndUsersAsync</Highlight> signs in as an admin and
+                returns the branch and user details along with unique test data for the
+                customer and item. <Highlight>SignInAsAsync</Highlight> replaces the current
+                login using your app's test configuration. Match the locators to your screens'
+                accessible names.
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+using System;
+using System.Threading.Tasks;
+using Aspire.Hosting;
+using Microsoft.Playwright;
+using Xunit;
+
+public sealed partial class E2ETests(AppFixture fixture) : DistributedPageTest
+{
+    [Fact]
+    public async Task Cash_order_appears_in_orders_and_owner_dashboard()
+    {
+        var runId = Guid.NewGuid().ToString("N");
+        await Page.GotoAsync(fixture.App.GetEndpoint("web", "https").ToString());
+        try
+        {
+            var branch = await CreateBranchAndUsersAsync(runId);
+            await SignInAsAsync(branch.Owner);
+            await StockItemThroughUiAsync(branch);
+            await SignInAsAsync(branch.Operator);
+            await CreateCustomerAsync(branch.CustomerName, branch.CustomerMobile);
+            await GenerateCashOrderAsync(branch.CustomerName, branch.CustomerMobile,
+                branch.CategoryName, branch.ItemName);
+
+            await Page.ReloadAsync();
+            await Expect(Page.GetByRole(AriaRole.Row)
+                .Filter(new() { HasText = branch.CustomerName })).ToBeVisibleAsync();
+
+            await SignInAsAsync(branch.Owner);
+            await Page.GetByRole(AriaRole.Link, new() { Name = "Dashboard" }).ClickAsync();
+            await Expect(WidgetValue("Today's Orders")).ToHaveTextAsync("1");
+            await Expect(WidgetValue("This Month's Top Selling"))
+                .ToHaveTextAsync(branch.ItemName);
+        }
+        finally
+        {
+            await RemoveBranchScenarioAsync(runId);
+        }
+    }
+}
+            </CodeSnippet>
+            <p>
+                The customer you save is the customer you select on the order form. Add these
+                helpers to the same test class. The dashboard helper finds a card by its heading
+                and reads its value; adjust the card and value selectors to your markup.
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+private async Task CreateCustomerAsync(string name, string mobile)
+{
+    await Page.GetByRole(AriaRole.Link, new() { Name = "Customer" }).ClickAsync();
+    await Page.GetByRole(AriaRole.Button, new() { Name = "New Customer" }).ClickAsync();
+    await Page.GetByRole(AriaRole.Textbox, new() { Name = "First Name" }).FillAsync(name);
+    await Page.GetByRole(AriaRole.Textbox, new() { Name = "Mobile Number" }).FillAsync(mobile);
+    await Page.GetByRole(AriaRole.Button, new() { Name = "Save changes" }).ClickAsync();
+    await Expect(Page.GetByRole(AriaRole.Row)
+        .Filter(new() { HasText = name })).ToBeVisibleAsync();
+}
+
+private async Task GenerateCashOrderAsync(
+    string customer, string mobile, string category, string item)
+{
+    await Page.GetByRole(AriaRole.Link, new() { Name = "Order", Exact = true })
+        .ClickAsync();
+    await Page.GetByRole(AriaRole.Searchbox,
+        new() { Name = "type customer name or mobile" }).FillAsync(mobile[..3]);
+    await Page.GetByText($"{customer} ({mobile})", new() { Exact = true }).ClickAsync();
+    await Page.GetByRole(AriaRole.Cell, new() { Name = category, Exact = true })
+        .ClickAsync();
+    await Page.GetByRole(AriaRole.Cell, new() { Name = item, Exact = true })
+        .ClickAsync();
+    await Page.GetByLabel("Payment Mode").SelectOptionAsync(["Cash"]);
+    await Page.GetByRole(AriaRole.Button, new() { Name = "Generate" }).ClickAsync();
+    await Expect(Page.GetByRole(AriaRole.Row)
+        .Filter(new() { HasText = customer })).ToBeVisibleAsync();
+}
+
+private ILocator WidgetValue(string title) =&gt;
+    Page.Locator("div.card")
+        .Filter(new()
+        {
+            Has = Page.GetByRole(AriaRole.Heading, new() { Name = title, Exact = true })
+        })
+        .Locator("p.text-xl");
+            </CodeSnippet>
+
+            <h4>Share the AppHost, not the browser session</h4>
+            <p>
+                xUnit injects one <Highlight>AppFixture</Highlight> into the test classes that
+                need it. Playwright's <Highlight>PageTest</Highlight> gives each test a fresh
+                browser context, so cookies and local storage don't carry over. The database
+                <em>does</em> carry over between tests in the assembly, which is why the order test
+                uses unique records and cleans up its own branch.
+            </p>
+            <p>
+                Start with a disposable PostgreSQL instance for each run. Your application's
+                migrations and seed code prepare the schema and baseline data; Aspire doesn't
+                supply the seed data. That's how you get a useful starting point
+                without filling a shared staging database with test orders.
+            </p>
+            <p>
+                Put the following fixture excerpts in one class, using your generated AppHost
+                type in place of <Highlight>Projects.AppHost</Highlight>. A startup timeout
+                names the stage that stalled, so you know which service to investigate before
+                looking for a browser failure.
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+using System;
+using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
+using Aspire.Hosting;
+using Aspire.Hosting.Testing;
+using Xunit;
+
+[assembly: CaptureConsole]
+[assembly: AssemblyFixture(typeof(AppFixture))]
+
+public sealed class AppFixture : IAsyncLifetime
+{
+    private static readonly TimeSpan StartupLimit =
+        TimeSpan.FromSeconds(120);
+    private static readonly TimeSpan ShutdownLimit =
+        TimeSpan.FromSeconds(30);
+    private readonly CancellationTokenSource _shutdown = new();
+    private IDistributedApplicationTestingBuilder? _builder;
+    private DistributedApplication? _app;
+    private bool _disposed;
+
+    public DistributedApplication App =&gt;
+        _app ?? throw new InvalidOperationException("AppHost is not ready.");
+            </CodeSnippet>
+            <CodeSnippet CssClass="language-csharp">
+    public async ValueTask InitializeAsync()
+    {
+        var testCancellation = TestContext.Current.CancellationToken;
+        using var startup = CancellationTokenSource.CreateLinkedTokenSource(
+            _shutdown.Token, testCancellation);
+        startup.CancelAfter(StartupLimit);
+        var stage = "create AppHost";
+        try
+        {
+            _builder = await DistributedApplicationTestingBuilder
+                .CreateAsync&lt;Projects.AppHost&gt;(startup.Token);
+            stage = "build AppHost";
+            _app = await _builder.BuildAsync(startup.Token);
+            stage = "start AppHost";
+            await _app.StartAsync(startup.Token);
+            stage = "landing health";
+            await App.ResourceNotifications.WaitForResourceHealthyAsync(
+                "landing", startup.Token);
+            stage = "identity discovery";
+            using var identity = App.CreateHttpClient("identity", "https");
+            await WaitForSuccessAsync(
+                identity, "/.well-known/openid-configuration", startup.Token);
+            stage = "API ping";
+            using var api = App.CreateHttpClient("api", "https");
+            await WaitForSuccessAsync(api, "/api/ping", startup.Token);
+        }
+        catch (Exception startupError)
+        {
+            Exception failure = startupError;
+            if (startupError is OperationCanceledException &&
+                startup.IsCancellationRequested && !testCancellation.IsCancellationRequested)
+            {
+                failure = new TimeoutException($"AppHost timed out at: {stage}.", startupError);
+            }
+            try
+            {
+                await DisposeAsync();
+            }
+            catch (Exception cleanupError)
+            {
+                throw new AggregateException(
+                    "AppHost startup and cleanup both failed.",
+                    failure, cleanupError);
+            }
+            if (failure != startupError) throw failure;
+            throw;
+        }
+    }
+            </CodeSnippet>
+            <p>
+                One two-minute deadline covers startup and all three readiness checks. The
+                probe retries connection and server errors. If your client uses a resilience
+                timeout, also treat its <Highlight>TimeoutRejectedException</Highlight> as
+                retryable within that same deadline.
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+    private static async Task WaitForSuccessAsync(
+        HttpClient client, string path, CancellationToken cancellationToken)
+    {
+        while (true)
+        {
+            try
+            {
+                using var response = await client.GetAsync(path, cancellationToken);
+                response.EnsureSuccessStatusCode();
+                return;
+            }
+            catch (HttpRequestException ex) when (
+                ex.StatusCode is null || (int)ex.StatusCode.Value &gt;= 500)
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken);
+            }
+        }
+    }
+            </CodeSnippet>
+            <p>
+                The fixture owns environment teardown, even if startup fails before the host
+                exists. Stop the host with a separate deadline so a canceled startup token
+                doesn't cancel cleanup.
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+    public async ValueTask DisposeAsync()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        _shutdown.Cancel();
+        using var shutdown = new CancellationTokenSource(ShutdownLimit);
+        try
+        {
+            if (_app is not null)
+            {
+                try { await _app.StopAsync(shutdown.Token); }
+                finally { await _app.DisposeAsync(); }
+            }
+            else if (_builder is not null)
+            {
+                await _builder.DisposeAsync();
+            }
+        }
+        finally
+        {
+            _shutdown.Dispose();
+        }
+    }
+}
+            </CodeSnippet>
+
+            <h4>Save a recording you can match to the test</h4>
+            <p>
+                When the dashboard check fails, the assertion tells you which value was wrong.
+                The recording shows how the browser got there: for example, which branch the
+                owner was viewing. Keep the timeouts in the shared base class and opt in to
+                video in <Highlight>E2ETests</Highlight> before Playwright creates the context.
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+using System.Threading.Tasks;
+using Microsoft.Playwright;
+using Microsoft.Playwright.Xunit.v3;
+
+public abstract class DistributedPageTest : PageTest
+{
+    public override async ValueTask InitializeAsync()
+    {
+        await base.InitializeAsync();
+        Assertions.SetDefaultExpectTimeout(30_000);
+        Context.SetDefaultTimeout(60_000);
+        Context.SetDefaultNavigationTimeout(60_000);
+    }
+}
+            </CodeSnippet>
+            <p>
+                Close the context to finish the video, then save it with the test name. The
+                suffix keeps repeat runs from overwriting each other, and the original goes
+                away only after the named copy is saved.
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+using System;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.Playwright;
+using Xunit;
+
+public sealed partial class E2ETests
+{
+    private static readonly string VideoDirectory = Path.GetFullPath("videos/e2e-tests");
+
+    public override BrowserNewContextOptions ContextOptions() =&gt; new()
+    {
+        RecordVideoDir = VideoDirectory,
+        RecordVideoSize = new() { Width = 1280, Height = 720 },
+        ViewportSize = new() { Width = 1280, Height = 720 }
+    };
+
+    public override async ValueTask DisposeAsync()
+    {
+        try
+        {
+            var video = Page?.Video;
+            if (video is null) return;
+            var displayName = TestContext.Current.Test!.TestDisplayName;
+
+            await Context.CloseAsync();
+            var invalid = Path.GetInvalidFileNameChars();
+            var testName = string.Concat(displayName.Split('.').Last()
+                .Select(c =&gt; invalid.Contains(c) ? '_' : c));
+            await video.SaveAsAsync(Path.Combine(
+                VideoDirectory, $"{testName}-{Guid.NewGuid():N}.webm"));
+            await video.DeleteAsync();
+        }
+        finally
+        {
+            await base.DisposeAsync();
+        }
+    }
+}
+            </CodeSnippet>
+
+            <h4>Run the test and read the evidence</h4>
+            <p>
+                From your distributed-test project's directory, run:
+            </p>
+            <CodeSnippet CssClass="language-powershell">
+dotnet test
+            </CodeSnippet>
+            <p>
+                The Orders row after a reload checks that the operator can still find the saved
+                order. In a new branch, <strong>Today's Orders = 1</strong> checks that
+                the order reached the owner's dashboard, and <strong>This Month's Top Selling</strong>
+                ties that result to the item the owner stocked. Playwright's retrying
+                <Highlight>Expect</Highlight> assertions wait for those values within the
+                configured timeout, without guessing how long the page takes to update.
+            </p>
+            <p>
+                On a failed run, start with the assertion and captured console output. If a
+                recording was saved, look in <Highlight>videos/e2e-tests</Highlight> under the
+                test process's working directory for the file starting with the test name.
+            </p>
+            <p>
+                Give a coding agent that same loop: implement the change, run
+                <Highlight>dotnet test</Highlight>, read the failing assertion and output,
+                fix the issue, then rerun the test. Ask it to hand over the named recording
+                so you can review the flow yourself.
+            </p>
+
+            <h4>Extend the same test across teams</h4>
+            <p>
+                In a larger system, your AppHost can run another team's published container
+                alongside your local projects. Pin the image to a version or digest so you know
+                which contract you're testing.
+            </p>
+            <p>
+                If that workflow uses messaging, wait for both the broker and the consumer
+                to be ready before starting the journey. Match the downstream effect to the
+                unique order or event ID, then assert the final state in the UI. A broker is
+                an optional extension, not part of this order example. Use test-owned brokers
+                and data, just as with PostgreSQL.
+            </p>
+
+            <h4>References</h4>
+            <ul>
+                <li><a class="underline" href="https://aspire.dev/testing/write-your-first-test/" target="_blank" rel="noopener noreferrer">Write your first Aspire test</a></li>
+                <li><a class="underline" href="https://playwright.dev/dotnet/docs/test-runners" target="_blank" rel="noopener noreferrer">Playwright test runners and browser isolation</a></li>
+            </ul>
+        </How>
+
+        <Summary>
+            <ul>
+                <li>Test the handoff: the operator sees the cash order, and the owner sees it reflected on the dashboard.</li>
+                <li>Share one AppHost and disposable database per test assembly, but use a fresh browser context and unique records per test.</li>
+                <li>Use the failed assertion and a test-named recording to work out what went wrong after a run.</li>
+            </ul>
+            <p>
+                <strong>What to read next:</strong> for the topology this fixture starts, revisit
+                <a class="underline" href="/blogs/getting-started-with-aspire-in-dotnet/">getting started with Aspire in .NET</a>
+                before adapting its resource names and dependencies to your application.
+            </p>
+        </Summary>
+    </ContentBody>
+</Content>

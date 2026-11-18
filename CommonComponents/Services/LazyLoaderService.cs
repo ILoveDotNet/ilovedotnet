@@ -41,6 +41,11 @@ public class LazyLoaderService(
           await LoadAssembliesAsync("AIDemoComponents.wasm");
         }
 
+        if (path.Contains("aspire", StringComparison.OrdinalIgnoreCase))
+        {
+          await LoadAssembliesAsync("AspireDemoComponents.wasm");
+        }
+
         if (path.Contains("blazor", StringComparison.OrdinalIgnoreCase))
         {
           await LoadAssembliesAsync("BlazorDemoComponents.wasm");

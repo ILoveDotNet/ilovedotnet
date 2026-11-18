@@ -5,6 +5,7 @@ public class Sitemaps
   public IReadOnlyList<string> Files => [
       "sitemap-authors.xml",
       "sitemap-blog-ai.xml",
+      "sitemap-blog-aspire.xml",
       "sitemap-blog-blazor-wasm.xml",
       "sitemap-blog-caching.xml",
       "sitemap-blog-database.xml",
