@@ -60,9 +60,11 @@ aspire --version
                 team's approved local secret store, not in source files.
             </p>
             <CodeSnippet CssClass="language-powershell">
-aspire init --language csharp
+aspire init
             </CodeSnippet>
             <p>
+                Let the CLI discover the workspace and guide you through its prompts; choose C#
+                if it asks for the AppHost language.
                 In a <Highlight>.sln</Highlight> or <Highlight>.slnx</Highlight> workspace,
                 <Highlight>aspire init</Highlight> scaffolds a project-based AppHost with project
                 references and strongly typed <Highlight>AddProject</Highlight> calls for solution
@@ -90,8 +92,8 @@ aspire add postgres
             <h4>2. Describe the existing production topology in the AppHost</h4>
             <p>
                 An AppHost is a separate development-time process, not a new business service.
-                Copy both blocks below into its entry point in order, replacing generated project
-                types with the existing roles in your solution.
+                For the production application described here, the AppHost looks something like
+                this, with project and resource names anonymized:
             </p>
             <CodeSnippet CssClass="language-csharp">
 var builder = DistributedApplication.CreateBuilder(args);
@@ -114,9 +116,7 @@ var api = builder.AddProject&lt;Projects.Api&gt;("api")
     .WithReference(identity)
     .WaitFor(identity)
     .WaitFor(appDb);
-            </CodeSnippet>
-            <p>Part 2 connects the web and landing services to that graph:</p>
-            <CodeSnippet CssClass="language-csharp">
+
 var web = builder.AddProject&lt;Projects.Web&gt;("web")
     .WithReference(api)
     .WithReference(identity)
@@ -190,21 +190,22 @@ app.MapDefaultEndpoints();
 
             <h4>5. Launch once, inspect the graph, and isolate worktrees</h4>
             <p>
-                Run the AppHost from the solution or its project directory:
+                From the AppHost project directory, start the application with:
             </p>
             <CodeSnippet CssClass="language-powershell">
-aspire run
+dotnet run
             </CodeSnippet>
             <p>
-                Aspire starts the modeled resources and opens its dashboard, where the team can
-                inspect endpoints, health, logs, and traces together. In an IDE, choosing the
+                The AppHost starts the modeled resources. Open the dashboard URL shown in its
+                output to inspect endpoints, health, logs, and traces together. In an IDE, choosing the
                 AppHost as the startup project gives the same one-click local launch. Press
                 Ctrl+C to stop the session and its managed resources; this is local orchestration,
                 not a production deployment.
             </p>
             <p>
-                For concurrent Git worktrees, start each instance with
-                <Highlight>aspire run --isolated</Highlight>. Aspire randomizes dashboard and
+                When an AI coding agent works in a different Git worktree, use
+                <Highlight>aspire run --isolated</Highlight> from that worktree to run its
+                application alongside your own. Aspire randomizes dashboard and
                 service endpoint ports, including configured predictable ports, and isolates
                 instance user secrets. Application code and external tools that hard-code URLs,
                 shared volumes or container names, and remote databases remain shared resources;
@@ -216,13 +217,13 @@ aspire run --isolated
 
             <h4>References</h4>
             <ul>
-                <li><a class="underline" href="https://aspire.dev/get-started/install-cli/">Install the Aspire CLI</a></li>
-                <li><a class="underline" href="https://aspire.dev/get-started/add-aspire-existing-app/">Add Aspire to an existing application</a></li>
-                <li><a class="underline" href="https://aspire.dev/reference/cli/commands/aspire-init/">Initialize an Aspire AppHost</a></li>
-                <li><a class="underline" href="https://aspire.dev/reference/cli/commands/aspire-run/">Run an Aspire AppHost</a></li>
-                <li><a class="underline" href="https://devblogs.microsoft.com/aspire/aspire-isolated-mode-parallel-development/">Run multiple AppHosts concurrently with isolated mode</a></li>
-                <li><a class="underline" href="https://aspire.dev/get-started/csharp-service-defaults/">C# ServiceDefaults</a></li>
-                <li><a class="underline" href="https://aspire.dev/integrations/databases/postgres/postgres-get-started/">PostgreSQL integrations across language clients</a></li>
+                <li><a class="underline" href="https://aspire.dev/get-started/install-cli/" target="_blank" rel="noopener noreferrer">Install the Aspire CLI</a></li>
+                <li><a class="underline" href="https://aspire.dev/get-started/add-aspire-existing-app/" target="_blank" rel="noopener noreferrer">Add Aspire to an existing application</a></li>
+                <li><a class="underline" href="https://aspire.dev/reference/cli/commands/aspire-init/" target="_blank" rel="noopener noreferrer">Initialize an Aspire AppHost</a></li>
+                <li><a class="underline" href="https://aspire.dev/reference/cli/commands/aspire-run/" target="_blank" rel="noopener noreferrer">Run an Aspire AppHost</a></li>
+                <li><a class="underline" href="https://devblogs.microsoft.com/aspire/aspire-isolated-mode-parallel-development/" target="_blank" rel="noopener noreferrer">Run multiple AppHosts concurrently with isolated mode</a></li>
+                <li><a class="underline" href="https://aspire.dev/get-started/csharp-service-defaults/" target="_blank" rel="noopener noreferrer">C# ServiceDefaults</a></li>
+                <li><a class="underline" href="https://aspire.dev/integrations/databases/postgres/postgres-get-started/" target="_blank" rel="noopener noreferrer">PostgreSQL integrations across language clients</a></li>
             </ul>
         </How>
 
@@ -231,8 +232,9 @@ aspire run --isolated
                 <li>Initialize Aspire in the existing solution; keep service behavior and business code intact.</li>
                 <li>The AppHost maps services, databases, dependencies, and runtime endpoints in one graph.</li>
                 <li>ServiceDefaults centralizes shared observability, discovery, and service conventions.</li>
+                <li>Use <Highlight>dotnet run</Highlight> from the AppHost project directory for a normal local launch.</li>
                 <li>The application owns schema changes and seed data; new ephemeral database hosts provide a repeatable baseline.</li>
-                <li>Use <Highlight>aspire run --isolated</Highlight> to work in parallel worktrees without managed port conflicts.</li>
+                <li>Use <Highlight>aspire run --isolated</Highlight> when an AI agent runs the application in another worktree.</li>
                 <li>Use the dashboard as a shared system map for developers and AI coding agents.</li>
             </ul>
             <p>
