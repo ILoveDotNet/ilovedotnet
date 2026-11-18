@@ -15,7 +15,9 @@
             <p>
                 A small .NET catalog makes the Aspire resource model concrete: it connects a
                 PostgreSQL database, an API, and a Blazor UI. You will see how resource references,
-                startup dependencies, service discovery, and the dashboard fit together. The
+                startup dependencies, service discovery, and the dashboard fit together. You can
+                use the same approach to add Aspire to an existing application, without rebuilding
+                it around a starter template. The
                 companion article uses this same application for
                 <a class="underline" href="/blogs/distributed-testing-with-aspire-and-playwright-in-dotnet/">distributed testing with Aspire and Playwright</a>.
             </p>
@@ -29,10 +31,11 @@
                 can turn into a connection error or timeout that looks like an application bug.
             </p>
             <p>
-                Repeating that checklist across a team invites different local topologies and
-                difficult-to-reproduce failures. Aspire lets a production application's development
-                environment start its .NET projects, Docker images, databases, Kafka, UIs, and
-                supporting tools together; this does not deploy production resources by pressing F5.
+                Repeating that checklist across a team makes onboarding and troubleshooting harder:
+                each developer must know which terminals, settings, and startup order to reproduce.
+                Aspire lets a development environment start .NET projects, container images,
+                databases, UIs, and supporting tools together; pressing F5 runs that local graph,
+                not a production deployment.
             </p>
             <p>
                 A versioned resource graph, runtime service addresses, and one place for logs and
@@ -42,15 +45,51 @@
         </Why>
 
         <How>
-            <h4>1. Create a .NET application with an AppHost</h4>
+            <h4>1. Add Aspire to your existing solution</h4>
             <p>
-                Allow roughly 45–75 minutes for this article, plus image download time. You should
-                be comfortable editing C#, running terminal commands, and making HTTP requests.
-                Install the .NET 11 SDK, a compatible
+                Start from your team's existing repository; a starter template is optional.
+                Install the .NET SDK and runtime supported by your application, a compatible
                 <a class="underline" href="https://aspire.dev/get-started/install-cli/">Aspire CLI</a>,
-                such as version 13.6.5, and a supported container runtime such as Docker Desktop.
-                Start the runtime and
-                trust your local ASP.NET Core HTTPS certificate before running the sample.
+                and a supported container runtime such as Docker Desktop. Clone the repository,
+                follow its normal local configuration process, and obtain secrets from the team's
+                approved local secret store or environment—not from committed files. Start the
+                container runtime before launching the graph.
+            </p>
+            <CodeSnippet CssClass="language-powershell">
+Set-Location path\to\existing-solution
+aspire init --language csharp
+            </CodeSnippet>
+            <p>
+                When the directory contains a <Highlight>.sln</Highlight> or
+                <Highlight>.slnx</Highlight>, the CLI can create a project-based AppHost and add
+                references to selected projects. Review the generated project references and
+                resource names; they become the AppHost's handles for your existing services.
+                Aspire adds an orchestration layer around your applications. It does not require
+                replacing their endpoints, business logic, or normal project files.
+            </p>
+            <p>
+                Keep onboarding repeatable: document the SDK and container-runtime prerequisites,
+                the required local settings, and the command or IDE launch profile for the
+                AppHost. A new teammate clones the repository, supplies local secrets, starts one
+                AppHost, and uses the dashboard to inspect the whole graph instead of remembering
+                a sequence of service-specific terminals. In Visual Studio or a compatible IDE,
+                set the AppHost as the startup project and press F5; from a terminal, run
+                <Highlight>dotnet run</Highlight> in its project directory.
+            </p>
+            <p>
+                The AppHost is a separate process that references service projects; it is not a
+                library embedded into every service. Add the database and API first, confirm they
+                start together, then add UI, workers, and containers one at a time. The
+                <Highlight>WithReference</Highlight> and <Highlight>WaitFor</Highlight> calls in
+                the next section connect resource configuration and startup readiness.
+            </p>
+
+            <h4>Optional: Create the catalog sample used in this walkthrough</h4>
+            <p>
+                If you do not already have an application to wire, create this small example in a
+                separate workspace. Allow roughly 45–75 minutes plus image download time. Choose
+                the Blazor and Minimal API starter, use standard localhost URLs, keep HTTPS enabled,
+                and leave its test project for the companion article.
             </p>
             <CodeSnippet CssClass="language-powershell">
 dotnet dev-certs https --trust
@@ -58,40 +97,40 @@ aspire new aspire-starter --version 13.6.5 -n Store -o Store
 Set-Location Store
             </CodeSnippet>
             <p>
-                If prompted, use standard localhost URLs, keep HTTPS enabled, and skip optional
-                Redis and test projects. The companion article creates its own test project.
-                You create these sample files in your own workspace; this article does not ship a
-                runnable demo project.
-                This walkthrough uses
-                <Highlight>.NET 11 and Aspire 13.6.5</Highlight>; Aspire has its own versioning and
-                is not version 11 just because the application targets .NET 11. The template
-                version is pinned so its generated project layout matches the steps below.
-                In each of the four generated project files, change
-                <Highlight>&lt;TargetFramework&gt;net10.0&lt;/TargetFramework&gt;</Highlight> to
-                <Highlight>&lt;TargetFramework&gt;net11.0&lt;/TargetFramework&gt;</Highlight>.
-                Run the remaining commands from the <Highlight>Store</Highlight> directory.
+                The trust command works on Windows and macOS. On Linux, follow the platform-specific
+                steps in Microsoft's
+                <a class="underline" href="https://learn.microsoft.com/aspnet/core/security/enforcing-ssl#trust-the-aspnet-core-https-development-certificate">HTTPS development-certificate guide</a>
+                and ensure both .NET clients and your browser trust the certificate before using
+                the HTTPS endpoints.
             </p>
             <p>
-                The generated <Highlight>Store.AppHost</Highlight> describes the application,
-                <Highlight>Store.ServiceDefaults</Highlight> shares telemetry, health, discovery, and resilience
-                configuration, <Highlight>Store.ApiService</Highlight> serves HTTP endpoints, and
-                <Highlight>Store.Web</Highlight> renders the UI. The AppHost is a separate process, not a
-                library embedded into every service.
+                The sample files in this article are reader-created; no runnable demo project is
+                shipped here. This walkthrough uses <Highlight>Aspire 13.6.5</Highlight> so the
+                generated project layout matches the steps below. The <Highlight>AppHost</Highlight>
+                describes the application,
+                <Highlight>ServiceDefaults</Highlight> shares telemetry, health, discovery, and resilience
+                configuration, the <Highlight>API service</Highlight> serves HTTP endpoints, and
+                the <Highlight>web project</Highlight> renders the UI.
             </p>
+            <h4>Add the database integrations</h4>
+            <p>Run this command from the AppHost project directory:</p>
             <CodeSnippet CssClass="language-powershell">
-dotnet add .\Store.AppHost\Store.AppHost.csproj package Aspire.Hosting.PostgreSQL --version 13.6.5
-dotnet add .\Store.ApiService\Store.ApiService.csproj package Aspire.Npgsql --version 13.6.5
+dotnet add package Aspire.Hosting.PostgreSQL --version 13.6.5
+            </CodeSnippet>
+            <p>Then run this command from the API project directory:</p>
+            <CodeSnippet CssClass="language-powershell">
+dotnet add package Aspire.Npgsql --version 13.6.5
             </CodeSnippet>
             <p>
-                Ensure <Highlight>Store.AppHost.csproj</Highlight> uses
+                Ensure the AppHost project file uses
                 <Highlight>&lt;Project Sdk="Aspire.AppHost.Sdk/13.6.5"&gt;</Highlight>.
-                The starter already references the API and web projects from the AppHost and
-                ServiceDefaults from both services. Those references generate the
-                <Highlight>Projects.Store_ApiService</Highlight> and <Highlight>Projects.Store_Web</Highlight> types below.
+                Its references to the starter's API and web projects generate the
+                <Highlight>Projects.Store_ApiService</Highlight> and <Highlight>Projects.Store_Web</Highlight>
+                types below. For an existing application, use the generated types for your own projects.
             </p>
 
             <h4>2. Describe resources, connections, and readiness</h4>
-            <p>Replace <Highlight>Store.AppHost/AppHost.cs</Highlight> with this application model:</p>
+            <p>In the AppHost, use this application model in <Highlight>AppHost.cs</Highlight>:</p>
             <CodeSnippet CssClass="language-csharp">
 var builder = DistributedApplication.CreateBuilder(args);
 
@@ -115,11 +154,29 @@ await builder.Build().RunAsync();
             </CodeSnippet>
             <p>
                 <Highlight>WithReference</Highlight> supplies connection information. For a database,
-                this includes a named connection string; for a service, endpoint configuration supports
-                service discovery. It does not change application code to use those settings.
+                this includes a named connection string, which the existing service can read through
+                its usual configuration mechanism. If existing code expects
+                <Highlight>GetConnectionString("Catalog")</Highlight>, pair
+                <Highlight>WithReference(catalogDb, "Catalog")</Highlight> with that key, or use
+                <Highlight>AddNpgsqlDataSource("Catalog")</Highlight> when adopting the Aspire
+                PostgreSQL client integration. For a service, endpoint configuration
+                supports service discovery, so the existing client can use the resource name rather
+                than a hard-coded local port. Aspire does not change application code to consume
+                settings it never reads.
                 <Highlight>WaitFor</Highlight> controls startup ordering: it waits for health checks
                 when available, otherwise for the dependency's running state. A running process is
                 not automatically ready to serve business requests.
+            </p>
+            <p>
+                Preserve configuration contracts that already work. Keep secrets in the existing
+                secret provider, and use AppHost endpoint references when supplying environment-
+                specific URLs to a UI or identity client. For example, derive an identity callback
+                URL from <Highlight>api.GetEndpoint("https")</Highlight> instead of copying a
+                machine-specific port. Do not copy credentials into source files. Add
+                <Highlight>ServiceDefaults</Highlight> only if you want to adopt
+                its shared health, telemetry, resilience, and discovery setup. If a service has
+                its own health route, configure the AppHost to check that route instead of assuming
+                <Highlight>/health</Highlight>.
             </p>
             <p>
                 There is deliberately no persistent data volume in this introductory model.
@@ -227,48 +284,95 @@ builder.Services.AddHttpClient("catalog", client =&gt;
                 Remove the starter's unused <Highlight>WeatherApiClient</Highlight> registration and
                 <Highlight>Components/Pages/Weather.razor</Highlight> page, since the API no longer serves weather.
                 Remove its navigation link too. Create <Highlight>Components/Pages/Catalog.razor</Highlight>
-                by copying both blocks below into the same file, in order. Part 1 renders the list:
+                by copying all three blocks below into one file, in order. Its named form works
+                with static server-side rendering.
             </p>
             <CodeSnippet CssClass="language-razor">
 @@page "/catalog"
 @@using System.Net.Http.Json
+@@using Microsoft.AspNetCore.Components.Forms
+@@using System.ComponentModel.DataAnnotations
 @@inject IHttpClientFactory ClientFactory
 
 &lt;PageTitle&gt;Catalog&lt;/PageTitle&gt;
 &lt;h1&gt;Catalog&lt;/h1&gt;
 
-@@if (products is null)
-{
-    &lt;p&gt;Loading catalog...&lt;/p&gt;
-}
-else
-{
-    &lt;ul aria-label="Products"&gt;
-        @@foreach (var product in products)
-        {
-            &lt;li&gt;@@product.Name&lt;/li&gt;
-        }
-    &lt;/ul&gt;
-}
+&lt;EditForm Model="Form" FormName="AddProduct" OnValidSubmit="CreateProduct"&gt;
+    &lt;DataAnnotationsValidator /&gt;
+    &lt;ValidationSummary /&gt;
+    &lt;label for="product-name"&gt;Product name&lt;/label&gt;
+    &lt;InputText id="product-name" @@bind-Value="Form.Name" /&gt;
+    &lt;ValidationMessage For="() =&gt; Form.Name" /&gt;
+    &lt;button type="submit"&gt;Add product&lt;/button&gt;
+&lt;/EditForm&gt;
+
+&lt;p role="status"&gt;@@status&lt;/p&gt;
+&lt;ul aria-label="Products"&gt;
+    @@foreach (var product in products)
+    {
+        &lt;li&gt;@@product.Name&lt;/li&gt;
+    }
+&lt;/ul&gt;
             </CodeSnippet>
-            <p>Part 2 loads products from the API:</p>
+            <p>Part 2 binds the posted form model and handles submission:</p>
             <CodeSnippet CssClass="language-razor">
 @@code {
-    private Product[]? products;
+    [SupplyParameterFromForm]
+    private NewProduct? form { get; set; }
+    private NewProduct Form => form ??= new NewProduct();
+
+    private Product[] products = [];
+    private string? status;
 
     protected override async Task OnInitializedAsync()
+    {
+        form ??= new NewProduct();
+        await LoadProducts();
+    }
+
+    private async Task CreateProduct()
+    {
+        using var client = ClientFactory.CreateClient("catalog");
+        using var response = await client.PostAsJsonAsync("/products", Form);
+        if (!response.IsSuccessStatusCode)
+        {
+            status = "The API rejected the product.";
+            return;
+        }
+        var created = await response.Content.ReadFromJsonAsync&lt;Product&gt;()
+            ?? throw new InvalidOperationException("The API returned no product.");
+        await LoadProducts();
+        form = new NewProduct();
+        status = $"Added {created.Name}";
+    }
+            </CodeSnippet>
+            <p>Part 3 reloads the catalog and declares the sample models:</p>
+            <CodeSnippet CssClass="language-razor">
+    private async Task LoadProducts()
     {
         using var client = ClientFactory.CreateClient("catalog");
         products = await client.GetFromJsonAsync&lt;Product[]&gt;("/products")
             ?? throw new InvalidOperationException("The catalog response was null.");
     }
 
-    public sealed record Product(Guid Id, string Name);
+    public sealed class NewProduct
+    {
+        [Required]
+        [StringLength(100)]
+        public string Name { get; set; } = string.Empty;
+    }
+
+    private sealed record Product(Guid Id, string Name);
 }
             </CodeSnippet>
             <p>
-                This is a <Highlight>server-rendered Blazor page</Highlight>. The web server resolves
-                <Highlight>catalog-api</Highlight> using ServiceDefaults; the browser only visits the web UI.
+                <Highlight>FormName</Highlight> and <Highlight>SupplyParameterFromForm</Highlight>
+                let a static server-rendered page accept the browser's form POST without requiring
+                an interactive connection. Data-annotation validation blocks empty or overlong
+                names, and an API rejection is shown in the status region. The web server resolves <Highlight>catalog-api</Highlight>
+                using ServiceDefaults; the browser only visits the web UI. The UI posts through the
+                API and then reloads the list, so you can test the complete browser-to-database
+                path without adding a separate client-side API call.
                 A standalone WebAssembly or JavaScript client cannot resolve Aspire's internal
                 service names directly. Give it a browser-reachable URL and appropriate CORS,
                 or route requests through a backend-for-frontend.
@@ -282,8 +386,9 @@ else
             </p>
 
             <h4>5. Run once and inspect the whole application</h4>
+            <p>From the AppHost project directory, run:</p>
             <CodeSnippet CssClass="language-powershell">
-dotnet run --project .\Store.AppHost\Store.AppHost.csproj
+dotnet run
             </CodeSnippet>
             <p>
                 Alternatively, set the AppHost as the startup project and press F5. Follow the
@@ -351,6 +456,7 @@ api.WithReference(events).WaitFor(events);
             <h4>References</h4>
             <ul>
                 <li><a class="underline" href="https://aspire.dev/get-started/first-app/">Build your first Aspire app</a></li>
+                <li><a class="underline" href="https://aspire.dev/get-started/add-aspire-existing-app/">Add Aspire to an existing application</a></li>
                 <li><a class="underline" href="https://aspire.dev/get-started/csharp-service-defaults/">C# ServiceDefaults</a></li>
                 <li><a class="underline" href="https://aspire.dev/integrations/databases/postgres/postgres-get-started/">PostgreSQL hosting and client integrations</a></li>
             </ul>
@@ -359,6 +465,7 @@ api.WithReference(events).WaitFor(events);
         <Summary>
             <ul>
                 <li>The AppHost declares the API, PostgreSQL database, UI, and their dependencies.</li>
+                <li>Add Aspire to an existing application incrementally; a new starter is not required.</li>
                 <li><Highlight>WithReference</Highlight> supplies service configuration; <Highlight>WaitFor</Highlight> coordinates startup.</li>
                 <li>Health checks help establish readiness, while an HTTP request verifies business behavior.</li>
                 <li>Service discovery keeps internal service addresses out of application code.</li>

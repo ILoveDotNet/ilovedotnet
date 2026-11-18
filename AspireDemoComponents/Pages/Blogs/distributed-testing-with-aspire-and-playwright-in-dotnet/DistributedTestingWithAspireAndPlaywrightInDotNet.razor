@@ -23,22 +23,26 @@
 
         <Why>
             <p>
-                Unit tests can verify an API handler and a Blazor component separately, yet miss a
-                broken service address, a missing database reference, or a UI that calls the wrong
-                route. In manual testing those failures often appear only after several services
-                start, so the failing boundary is hard to locate.
+                API functional tests and browser tests answer different questions. A functional
+                test can use <Highlight>WebApplicationFactory</Highlight> to send in-process
+                requests through an API pipeline, and it can use a real database if configured;
+                it is usually faster and isolates one service boundary.
+            </p>
+            <p>
+                An Aspire-backed browser test starts separate service processes and exercises the
+                real UI, service discovery, endpoint settings, and database connection together.
+                It catches integration failures that an in-process test may not cover, but startup,
+                containers, and a real browser make it slower and more operationally demanding.
+                Neither approach replaces the other, and a test that uses a fake dependency should
+                say so rather than imply full-system coverage.
             </p>
             <p>
                 A process being <Highlight>running</Highlight> only means it started; a resource
                 becoming <Highlight>healthy</Highlight> means its health check passed; and being
                 <Highlight>business-ready</Highlight> means the operation you care about succeeds.
-                Treating these states as interchangeable leads to flaky tests that race startup,
-                hide real failures behind arbitrary waits, or pass while the UI still shows stale data.
-            </p>
-            <p>
-                Aspire gives the test a repeatable resource graph, and Playwright checks the user
-                contract at its real browser boundary. We will make the test prove an API write and
-                read, then confirm that the web application displays that same unique record.
+                The walkthrough uses a fast API round-trip test and a slower Playwright flow that
+                submits the form in the browser, then verifies the saved record through the
+                database-backed API.
             </p>
         </Why>
 
@@ -51,10 +55,10 @@
                 Create the <Highlight>Store.Tests</Highlight> directory and
                 <Highlight>Store.Tests/Store.Tests.csproj</Highlight> beside the AppHost with
                 the following content. Its AppHost reference lets Aspire discover the generated
-                project type. Keep all test package versions aligned
-                with the .NET and Aspire versions used by the sample. On Windows, install
-                PowerShell 7 so you can run the generated <Highlight>playwright.ps1</Highlight>
-                browser-install script with <Highlight>pwsh</Highlight>.
+                project type. Keep package versions aligned with the .NET and Aspire versions
+                used by the sample. Install PowerShell 7 if <Highlight>pwsh</Highlight> is not
+                already available; the generated <Highlight>playwright.ps1</Highlight> script
+                uses it on Windows, macOS, and Linux.
             </p>
             <CodeSnippet CssClass="language-xml">
 &lt;Project Sdk="Microsoft.NET.Sdk"&gt;
@@ -87,8 +91,9 @@
                 Replace the relative project path if your test project lives elsewhere. The
                 <Highlight>Aspire.Hosting.Testing</Highlight> package supplies the test host APIs;
                 <Highlight>Microsoft.Playwright.Xunit.v3</Highlight> supplies the browser test base
-                for xUnit v3. Pin compatible versions in your repository rather than letting CI
-                silently select newer dependencies.
+                for xUnit v3. Set the test project's <Highlight>TargetFramework</Highlight> to
+                match the AppHost's target framework; this sample uses <Highlight>net11.0</Highlight>.
+                Pin compatible package versions in your repository so updates stay deliberate.
             </p>
 
             <h4>2. Start one isolated AppHost with bounded startup and safe cleanup</h4>
@@ -130,10 +135,10 @@ public sealed class AspireFixture : IAsyncLifetime
         {
             _builder = await DistributedApplicationTestingBuilder
                 .CreateAsync&lt;Projects.Store_AppHost&gt;(startup.Token);
-            _app = await _builder.BuildAsync(startup.Token);
             </CodeSnippet>
-            <p>Part 2 waits for health and checks actual HTTP operations:</p>
+            <p>Part 2 builds and starts the AppHost, waits for health, and checks HTTP operations:</p>
             <CodeSnippet CssClass="language-csharp">
+            _app = await _builder.BuildAsync(startup.Token);
             await _app.StartAsync(startup.Token);
             await _app.ResourceNotifications.WaitForResourceHealthyAsync(
                 "catalog-api",
@@ -203,6 +208,15 @@ public sealed class AspireFixture : IAsyncLifetime
                 ports by default; explicitly configured non-proxied ports can still conflict.
                 The startup token also observes xUnit's test-run cancellation. Cleanup is
                 idempotent if startup fails and the runner subsequently disposes the fixture.
+            </p>
+            <p>
+                <Highlight>AssemblyFixture</Highlight> makes xUnit create this
+                <Highlight>AspireFixture</Highlight> once for the test assembly and inject it into
+                test-class constructors. Both the API test and the Playwright test below receive
+                the same running AppHost and <Highlight>ApiClient</Highlight>; the latter derives
+                from <Highlight>PageTest</Highlight>, which still gives each test its own browser
+                context. Use an xUnit collection fixture instead if only a group of related test
+                classes should share an application.
             </p>
             <p>
                 Keep the AppHost database ephemeral and omit a persistent volume for this test
@@ -289,13 +303,13 @@ After this test's POST /products and GET /products (other tests may also add row
     generated for this test               api-&lt;unique-guid&gt;
             </CodeSnippet>
 
-            <h4>4. Verify the same API-created product in a real browser</h4>
+            <h4>4. Submit the form in a browser and verify the saved product</h4>
             <p>
                 Save this snippet as <Highlight>Store.Tests/CatalogBrowserTests.cs</Highlight>.
-                A browser test should use the actual HTTPS endpoint allocated by the AppHost, not
-                a developer's remembered localhost port. Create the record through the API first,
-                then navigate Playwright to the real UI and assert through accessible roles and
-                labels.
+                Use the actual HTTPS endpoint allocated by the AppHost, not a remembered localhost
+                port. Copy both blocks in order into that file. The test drives the accessible
+                form, waits for the UI's confirmation, then checks the database-backed API for the
+                same unique product.
             </p>
             <CodeSnippet CssClass="language-csharp">
 using System.Net.Http.Json;
@@ -306,131 +320,97 @@ using Xunit;
 public sealed class CatalogBrowserTests(AspireFixture fixture) : PageTest
 {
     [Fact]
-    public async Task Catalog_displays_a_product_created_through_the_api()
+    public async Task Browser_form_saves_a_product_to_the_catalog()
     {
         var name = $"browser-{Guid.NewGuid():N}";
         var ct = TestContext.Current.CancellationToken;
-        using var response = await fixture.ApiClient.PostAsJsonAsync(
-            "/products",
-            new { name }, ct);
-        response.EnsureSuccessStatusCode();
 
         var catalogUrl = new Uri(fixture.WebUrl, "/catalog");
         await Page.GotoAsync(catalogUrl.ToString());
+        await Page.GetByLabel("Product name").FillAsync(name);
+        await Page.GetByRole(
+            AriaRole.Button,
+            new() { Name = "Add product" }).ClickAsync();
 
-        await Expect(Page.GetByRole(
-            AriaRole.Heading,
-            new() { Name = "Catalog" })).ToBeVisibleAsync();
+        await Expect(Page.GetByRole(AriaRole.Status))
+            .ToHaveTextAsync($"Added {name}");
+            </CodeSnippet>
+            <p>Part 2 verifies the rendered item and reads the saved record through the API:</p>
+            <CodeSnippet CssClass="language-csharp">
 
         var productList = Page.GetByRole(
             AriaRole.List,
             new() { Name = "Products" });
         await Expect(productList.GetByText(name)).ToBeVisibleAsync();
+
+        using var response = await fixture.ApiClient.GetAsync("/products", ct);
+        response.EnsureSuccessStatusCode();
+        var products = await response.Content.ReadFromJsonAsync&lt;Product[]&gt;(ct);
+
+        Assert.NotNull(products);
+        Assert.Contains(products, product =&gt; product.Name == name);
     }
+
+    private sealed record Product(Guid Id, string Name);
 }
             </CodeSnippet>
             <p>
                 <Highlight>PageTest</Highlight> manages the Playwright browser and page for the
                 test. Role-based locators follow the accessible page structure, and Playwright
                 assertions auto-wait for the expected element instead of racing a fixed sleep.
-                Navigation and assertions have their own timeouts; the startup deadline does not
-                bound the whole suite, so also bound the CI job. The
-                API write followed by the UI read proves the user-visible path through the API and
-                its database; it does not claim that the test directly inspected PostgreSQL.
+                The submitted form calls the API, which persists the record in PostgreSQL. The
+                browser sees the rendered confirmation and list item, and the independent API
+                read proves the database-backed record still exists. This tests UI-to-API-to-
+                database behavior without querying the database directly; the API test above
+                remains a separate, faster service-level check.
             </p>
 
-            <h4>5. Run the tests locally and prepare CI for browsers and containers</h4>
+            <h4>5. Run the tests locally</h4>
             <p>
-                Build the test project before installing its matching Playwright browser. On Windows,
-                first trust the development certificate, then install Chromium from the generated
-                script. These commands run from <Highlight>Store</Highlight>:
+                Start the container runtime and build the test project before installing its
+                matching Playwright browser. On Windows and macOS, trust the local HTTPS
+                development certificate with the first command. Keep <Highlight>$tfm</Highlight>
+                aligned with the test project's target framework (and the AppHost's target
+                framework); these commands run from <Highlight>Store</Highlight>:
             </p>
             <CodeSnippet CssClass="language-powershell">
 dotnet dev-certs https --trust
-dotnet dev-certs https --check --trust
 dotnet build .\Store.Tests\Store.Tests.csproj
-pwsh .\Store.Tests\bin\Debug\net11.0\playwright.ps1 install chromium
+$tfm = "net11.0"
+pwsh ".\Store.Tests\bin\Debug\$tfm\playwright.ps1" install chromium
 dotnet test .\Store.Tests\Store.Tests.csproj --no-build
             </CodeSnippet>
+            <p>
+                The first command is for Windows and macOS. On Linux, don't rely on
+                <Highlight>dotnet dev-certs https --trust</Highlight>; follow the distribution-
+                and browser-specific certificate steps in Microsoft's
+                <a class="underline" href="https://learn.microsoft.com/aspnet/core/security/enforcing-ssl#trust-the-aspnet-core-https-development-certificate">HTTPS development-certificate guide</a>;
+                both the fixture's .NET HTTP client and Playwright's browser must trust the
+                certificate. Don't bypass certificate checks to make the test pass.
+            </p>
             <p>
                 A successful run discovers and passes two tests: the API round-trip and the
                 browser catalog assertion. If none are discovered, check the xUnit v3 runner and
                 project reference. If startup times out, inspect container-runtime access and
-                resource logs; if navigation fails, check the actual HTTPS endpoint and browser
-                certificate trust. Downloads and hosted CI minutes may incur charges.
+                resource logs; if an HTTPS request or navigation fails, check the actual endpoint
+                and the trust stores used by both clients. Playwright's browser install downloads
+                local browser binaries; refresh them after changing the Playwright package version.
             </p>
             <p>
-                For an Ubuntu GitHub-hosted CI runner, the following is a complete workflow for
-                a repository that already contains your reader-created <Highlight>Store</Highlight>
-                projects at its root. This article does not provide those projects as a repository
-                demo. Copy both blocks in order into one workflow file; adjust paths if your
-                projects live in a subdirectory. Part 1 sets up the job:
-            </p>
-            <CodeSnippet CssClass="language-yaml">
-name: Catalog distributed tests
-'on': [push, pull_request]
-jobs:
-  aspire-tests:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@@v6
-      - uses: actions/setup-dotnet@@v5
-        with:
-          dotnet-version: 11.0.x
-      - name: Trust local HTTPS and run tests
-        shell: bash
-        run: |
-          set -euo pipefail
-          sudo apt-get update
-          sudo apt-get install -y libnss3-tools
-          dotnet tool install Aspire.Cli --tool-path "$RUNNER_TEMP/aspire" --version 13.6.5
-          export PATH="$RUNNER_TEMP/aspire:$PATH"
-          docker info
-            </CodeSnippet>
-            <p>Part 2 continues the same <Highlight>run</Highlight> block:</p>
-            <CodeSnippet CssClass="language-yaml">
-          mkdir -p "$HOME/.pki/nssdb"
-          if [ ! -f "$HOME/.pki/nssdb/cert9.db" ]; then
-            certutil -N -d "sql:$HOME/.pki/nssdb" --empty-password
-          fi
-          export SSL_CERT_DIR="$HOME/.aspnet/dev-certs/trust:/etc/ssl/certs"
-          dotnet dev-certs https --trust
-          dotnet dev-certs https --check --trust
-          dotnet build ./Store.Tests/Store.Tests.csproj
-          pwsh ./Store.Tests/bin/Debug/net11.0/playwright.ps1 install --with-deps chromium
-          dotnet test ./Store.Tests/Store.Tests.csproj --no-build
-            </CodeSnippet>
-            <p>
-                The runner needs Docker, PowerShell, OpenSSL, and permission to install browser
-                dependencies. The job creates the Chromium NSS database before trusting the
-                per-user ASP.NET Core development certificate. It also exposes the user trust
-                directory to OpenSSL while retaining Ubuntu's system certificates. The web and
-                API projects run locally in Development and use that certificate; the test's
-                HTTPS navigation checks browser trust without disabling validation. The trust
-                check must pass before tests start.
-            </p>
-            <p>
-                Use a disposable runner: this procedure changes its user certificate stores.
-                Other distributions, browsers, and self-hosted runners may use different trust
-                locations and need their own setup. Do not retry the whole test to hide readiness
-                or contract failures.
-            </p>
-            <p>
-                Capture screenshots, traces, and logs only when useful for a failure, limit their
-                retention, and review them for secrets or personal data before upload. Never publish
-                container environment variables, connection strings, browser storage state, or
-                production credentials as test artifacts.
+                Keep local test data synthetic and ephemeral, and never put production credentials
+                or connection strings in source control. Do not retry the whole test to hide a
+                readiness or contract failure.
             </p>
 
             <h4>6. Orchestrate multiple repositories without pretending Aspire checks them out</h4>
             <p>
                 Aspire models resources; your source-control or image pipeline obtains their code.
-                For project references, have CI check out the API, worker, and web repositories at
-                controlled commits into a known workspace, then let the AppHost reference those
-                projects. Alternatively, publish versioned container images and have the AppHost
-                start pinned image tags. In both cases, keep endpoints reachable from the test
-                machine and use ephemeral databases rather than production data or credentials.
+                For project references, have your build pipeline check out the API, worker, and web
+                repositories at controlled commits into a known workspace, then let the AppHost
+                reference those projects. Alternatively, publish versioned container images and
+                have the AppHost start pinned image tags. In both cases, keep endpoints reachable
+                from the test machine and use ephemeral databases rather than production data or
+                credentials.
             </p>
             <p>
                 A multi-repository test is meaningful only when it verifies a contract across those
@@ -465,7 +445,6 @@ builder.AddProject&lt;Projects.Store_Worker&gt;("catalog-worker")
                 <li><a class="underline" href="https://aspire.dev/testing/write-your-first-test/">Write your first Aspire test</a></li>
                 <li><a class="underline" href="https://aspire.dev/get-started/first-app/">Build your first Aspire app</a></li>
                 <li><a class="underline" href="https://aspire.dev/integrations/databases/postgres/postgres-get-started/">PostgreSQL hosting and client integrations</a></li>
-                <li><a class="underline" href="https://learn.microsoft.com/aspnet/core/security/enforcing-ssl#trust-the-aspnet-core-https-development-certificate">Trust the ASP.NET Core HTTPS development certificate</a></li>
                 <li><a class="underline" href="https://playwright.dev/dotnet/docs/test-runners">Playwright test runners and browser isolation</a></li>
                 <li><a class="underline" href="https://xunit.net/docs/shared-context">xUnit shared fixtures and parallelism</a></li>
                 <li><a class="underline" href="https://learn.microsoft.com/dotnet/core/tools/dotnet-dev-certs">Development certificate creation and trust</a></li>

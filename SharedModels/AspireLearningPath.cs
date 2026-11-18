@@ -12,7 +12,7 @@ public class AspireLearningPath
         {
             Order = 1,
             Title = "Getting Started with Aspire in .NET",
-            Description = "Run a .NET API, UI, and PostgreSQL with one AppHost. Learn resource references, health checks, service defaults, and how the same model scales to dozens of resources.",
+            Description = "Add Aspire to an existing .NET application. Wire APIs, a UI, and PostgreSQL for simpler onboarding, one-launch startup, and observable local development.",
             Author = "Abdul Rahman",
             Slug = "getting-started-with-aspire-in-dotnet",
             PosterUrl = "image/blogs/aspire/getting-started-with-aspire-in-dotnet.webp",
@@ -29,7 +29,7 @@ public class AspireLearningPath
         {
             Order = 2,
             Title = "Distributed Testing with Aspire and Playwright in .NET",
-            Description = "Test real APIs, PostgreSQL, and a Blazor UI with Aspire and Playwright. Learn bounded startup, isolated data, and how to extend the harness to multi-repository systems.",
+            Description = "Share an Aspire distributed fixture with Playwright, test a real UI-to-database flow, and learn how distributed tests complement API functional tests.",
             Author = "Abdul Rahman",
             Slug = "distributed-testing-with-aspire-and-playwright-in-dotnet",
             PosterUrl = "image/blogs/aspire/distributed-testing-with-aspire-and-playwright-in-dotnet.webp",
@@ -40,7 +40,7 @@ public class AspireLearningPath
             Type = "blogs",
             CreatedOn = new DateTime(2027, 2, 21, 22, 30, 0, DateTimeKind.Utc),
             ModifiedOn = new DateTime(2027, 2, 21, 22, 30, 0, DateTimeKind.Utc),
-            Keywords = ["Aspire", "Distributed Testing", "Playwright", "xUnit", "Integration Testing", "End-to-End Testing", "PostgreSQL", "CI", "Multi-Repository"]
+            Keywords = ["Aspire", "Distributed Testing", "Distributed Fixture", "Playwright", "xUnit", "Functional Testing", "Integration Testing", "End-to-End Testing", "PostgreSQL", "Multi-Repository"]
         }
     ];
   }
