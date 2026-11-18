@@ -184,33 +184,15 @@ public sealed class AppFixture : IAsyncLifetime
 }
             </CodeSnippet>
             <p>
-                The resource notification waits for the landing service's health check. The
-                identity discovery document and API ping then verify useful HTTP contracts before
-                the fixture exposes the browser endpoint. In your app, use its existing health
-                routes and a small unauthenticated readiness probe where one is available; give
-                each wait and probe the same startup deadline.
+                The fixture waits for the landing service to become healthy, then checks the
+                identity service and API. All three checks share a two-minute startup timeout.
+                Use the health routes and readiness endpoints that your own application exposes.
             </p>
             <p>
-                The failure path attempts awaited cleanup of anything already created, and xUnit
-                later disposes the assembly fixture after the suite. Normal disposal stops the
-                AppHost and awaits cleanup of its managed test resources. This keeps test writes
-                out of shared staging only when the graph targets its own disposable database;
-                Aspire does not enforce that boundary. Treat "fire and forget" as a disposable
-                test run whose startup and cleanup are still awaited—not detached work. Teardown
-                cannot clean an external database or persistent volume, and cannot run after
-                forced termination.
-            </p>
-            <p>
-                Aspire's test builder assigns endpoints at runtime. Always retrieve the URL with
-                <Highlight>GetEndpoint</Highlight> or create a resource-specific
-                <Highlight>HttpClient</Highlight>; do not bake a port number into the test.
-                Random ports do not isolate explicitly shared databases, volumes, or other
-                external dependencies. Before running browser tests, trust the local ASP.NET
-                development certificate on supported desktop platforms with
-                <Highlight>dotnet dev-certs https --trust</Highlight>. On platforms where that
-                command does not install trust for the browser, add the certificate to the
-                browser/OS trust store or set <Highlight>IgnoreHTTPSErrors</Highlight> only on
-                the isolated Playwright context; never disable certificate validation globally.
+                After the suite finishes, xUnit disposes the fixture, which stops the AppHost and
+                its resources. Cleanup also runs if startup fails. Use a disposable database for
+                this AppHost so test data goes away with the environment instead of piling up in
+                staging.
             </p>
 
             <h4>3. Inject the fixture into a Playwright PageTest</h4>
@@ -275,18 +257,14 @@ public abstract class DistributedPageTest : PageTest
 }
             </CodeSnippet>
             <p>
-                The representative real workflow has an administrator create an isolated client
-                and branch plus owner/operator users. The owner configures settings and creates
-                category, item, supplier, and purchase prerequisites; the operator creates a
-                customer, saves a draft, edits it, and finalizes the order. The Orders table shows
-                the result before and after reload, exercising persistence through the web, API,
-                and database processes.
+                Below is a simplified example based on a production order-entry test. It sets up
+                a branch and users, completes an order through the UI, and reloads the Orders page
+                to check that the order was saved.
             </p>
             <p>
-                The following is an illustrative test excerpt, not a standalone test application.
-                Its page-object calls are application-specific Playwright code, not Aspire or
-                Playwright APIs. Map them to existing screens and accessible labels; obtain test
-                identities from secure test configuration, never hard-code credentials.
+                Write similar tests for your own business flows. The helper methods represent
+                Playwright steps you implement for your screens, such as signing in, filling
+                forms, and removing test records.
             </p>
             <CodeSnippet CssClass="language-csharp">
 using System;
@@ -330,30 +308,17 @@ public sealed class E2ETests(AppFixture fixture) : DistributedPageTest
                 fixed delays or <Highlight>NetworkIdle</Highlight> as a readiness guarantee.
             </p>
 
-            <h4>4. Run the existing suite against its own resources</h4>
+            <h4>4. Run the tests</h4>
             <p>
-                Replace the project path with the existing distributed-test project. These
-                PowerShell commands build it, install the matching Chromium browser through the
-                generated Playwright script, then run the suite. The example output path assumes
-                the project targets <Highlight>net11.0</Highlight>; use its actual target framework
-                if different. Run each line in PowerShell and proceed only after it exits with
-                code zero; a passing test run reports zero failures.
+                Open a terminal in your distributed-test project's directory and run:
             </p>
             <CodeSnippet CssClass="language-powershell">
-$project = "path\to\DistributedTests\DistributedTests.csproj"
-dotnet build $project
-& "path\to\DistributedTests\bin\Debug\net11.0\playwright.ps1" install chromium
-dotnet test $project
+dotnet test
             </CodeSnippet>
             <p>
-                Each test host begins with the application's normal schema and seed baseline, but
-                the assembly fixture shares that database across the suite. Tests should use
-                unique records because xUnit may run methods in parallel, and must not assume a
-                reset between methods. At normal suite
-                teardown, disposing the fixture removes its managed database and services. This
-                only prevents accumulation in shared staging if the test graph actually targets
-                its own local database; never point the fixture at production or a shared
-                persistent test database.
+                Each new AppHost uses the application's normal schema and seed setup. Tests
+                sharing the fixture also share its database, so use unique records rather than
+                expecting a reset between tests.
             </p>
 
             <h4>5. Extend the same test boundary across repositories</h4>
@@ -391,9 +356,7 @@ dotnet test $project
             <h4>References</h4>
             <ul>
                 <li><a class="underline" href="https://aspire.dev/testing/write-your-first-test/" target="_blank" rel="noopener noreferrer">Write your first Aspire test</a></li>
-                <li><a class="underline" href="https://aspire.dev/testing/overview/" target="_blank" rel="noopener noreferrer">Aspire testing overview</a></li>
                 <li><a class="underline" href="https://playwright.dev/dotnet/docs/test-runners" target="_blank" rel="noopener noreferrer">Playwright test runners and browser isolation</a></li>
-                <li><a class="underline" href="https://xunit.net/docs/shared-context" target="_blank" rel="noopener noreferrer">xUnit shared fixtures and parallelism</a></li>
             </ul>
         </How>
 
