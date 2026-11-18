@@ -7,546 +7,237 @@
     <ContentBody>
         <What>
             <p>
-                Your application needs an API, a UI, a database, and a handful of background services.
-                Why does starting work require a checklist of terminals? <Highlight>Aspire</Highlight>
-                lets you describe those resources and their connections in code, then launch the
-                application from one <Highlight>AppHost</Highlight>.
+                A new developer should not need a map of terminals just to start the application.
+                <Highlight>Aspire</Highlight> gives an existing distributed system one
+                code-defined <Highlight>AppHost</Highlight> that describes its services,
+                databases, tools, and connections, then starts them together.
             </p>
             <p>
-                A small .NET catalog makes the Aspire resource model concrete: it connects a
-                PostgreSQL database, an API, and a Blazor UI. You will see how resource references,
-                startup dependencies, service discovery, and the dashboard fit together. You can
-                use the same approach to add Aspire to an existing application, without rebuilding
-                it around a starter template. The
-                companion article uses this same application for
-                <a class="underline" href="/blogs/distributed-testing-with-aspire-and-playwright-in-dotnet/">distributed testing with Aspire and Playwright</a>.
+                This article shows how to add that orchestration layer to an existing production
+                application, what <Highlight>ServiceDefaults</Highlight> contributes, and how to
+                use the dashboard, database resources, and isolated worktree runs. It focuses on
+                application wiring; your services keep their existing business logic.
             </p>
         </What>
 
         <Why>
             <p>
-                Starting a multi-service application by hand means remembering which database,
-                containers, and supporting tools must run first, then matching each process to the
-                right address. With around <Highlight>30 resources</Highlight>, one missed dependency
-                can turn into a connection error or timeout that looks like an application bug;
-                the number describes a resource graph, not 30 containers or production services.
+                Starting a system with many services by hand means remembering container runtimes,
+                environment settings, startup order, and which terminal owns each process. In a
+                real application, a local graph may contain around <Highlight>30 resources</Highlight>:
+                projects, databases, message brokers, user interfaces, and supporting tools.
+                That count describes a development graph, not 30 containers or a production rollout.
             </p>
             <p>
-                Repeating that checklist across a team makes onboarding and troubleshooting harder:
-                each developer must know which terminals, settings, and startup order to reproduce.
-                Aspire lets a development environment start .NET projects, container images,
-                other-language services, databases, UIs, and supporting tools together. Pressing
-                F5 runs that local graph, not a production deployment.
+                Recreating that graph for every teammate makes onboarding slow and local setups
+                inconsistent. A shared AppHost gives developers and AI coding agents an
+                end-to-end view of the system, while one launch and one dashboard replace the
+                startup checklist.
             </p>
             <p>
-                Stale local database rows also make a new developer's results depend on who ran
-                what before. Aspire does not reset or seed a database automatically; this sample
-                pairs an ephemeral database lifecycle with an application-owned deterministic seed.
-                A versioned resource graph, runtime service addresses, and one dashboard give a
-                new developer an end-to-end map and a single local launch, while keeping production
-                deployment and operations separate.
-            </p>
-            <p>
-                That <Highlight>shared system context</Highlight> also helps AI coding agents.
-                Instead of treating one repository as the whole application, an agent can read
-                the AppHost to see how services, databases, and messaging resources connect.
-                With access to the relevant repositories and Aspire's runtime tooling, it can
-                follow a workflow across service boundaries, correlate logs and traces, and
-                check a change against the running system rather than guessing from one project.
-                The graph explains the wiring; source code and end-to-end tests still establish
-                the business behavior.
+                Stale data also makes a clean checkout behave differently from a long-lived
+                workstation. A fresh database resource plus the application's existing migration
+                and seed process gives each new local run a predictable baseline; Aspire itself
+                does not reset or seed business data. Point tests at disposable local resources;
+                Aspire does not prevent an AppHost from connecting to shared staging data.
             </p>
         </Why>
 
         <How>
-            <h4>1. Add Aspire to your existing solution</h4>
+            <h4>1. Initialize Aspire in the solution you already have</h4>
             <p>
-                Start from your team's existing repository; a starter template is optional.
-                Install the .NET SDK and runtime supported by your application, a compatible
-                <a class="underline" href="https://aspire.dev/get-started/install-cli/">Aspire CLI</a>,
-                and a supported container runtime such as Docker Desktop. Clone the repository,
-                follow its normal local configuration process, and obtain secrets from the team's
-                approved local secret store or environment—not from committed files. Start the
-                container runtime before launching the graph.
+                Use the existing solution's required .NET SDK, a running container runtime, and
+                the Aspire CLI. If the CLI is not installed, the .NET global tool is one supported
+                option:
             </p>
             <CodeSnippet CssClass="language-powershell">
-Set-Location path\to\existing-solution
+dotnet tool install -g Aspire.Cli
+aspire --version
+            </CodeSnippet>
+            <p>
+                Run the version command to verify installation, then clone or open the existing
+                solution and follow its local configuration process. Keep credentials in the
+                team's approved local secret store, not in source files.
+            </p>
+            <CodeSnippet CssClass="language-powershell">
 aspire init --language csharp
             </CodeSnippet>
             <p>
-                When the directory contains a <Highlight>.sln</Highlight> or
-                <Highlight>.slnx</Highlight>, the CLI can create a project-based AppHost and add
-                references to selected projects. Review the generated project references and
-                resource names; they become the AppHost's handles for your existing services.
-                Aspire adds an orchestration layer around your applications. It does not require
-                replacing their endpoints, business logic, or normal project files.
+                In a <Highlight>.sln</Highlight> or <Highlight>.slnx</Highlight> workspace,
+                <Highlight>aspire init</Highlight> scaffolds a project-based AppHost with project
+                references and strongly typed <Highlight>AddProject</Highlight> calls for solution
+                projects. It establishes the orchestration entry point; it does not infer every
+                application-specific resource, dependency, or service setting.
             </p>
             <p>
-                Keep onboarding repeatable: document the SDK and container-runtime prerequisites,
-                the required local settings, and the command or IDE launch profile for the
-                AppHost. A new teammate clones the repository, supplies local secrets, starts one
-                AppHost, and uses the dashboard to inspect the whole graph instead of remembering
-                a sequence of service-specific terminals. In Visual Studio or a compatible IDE,
-                set the AppHost as the startup project and press F5; from a terminal, run
-                <Highlight>dotnet run</Highlight> in its project directory.
-            </p>
-            <p>
-                If developers use separate Git worktrees, start each graph with the CLI's
-                <Highlight>aspire run --isolated</Highlight> command. Aspire isolates user secrets
-                and randomizes dashboard and service endpoint ports for concurrent instances,
-                including ports that look predictable in AppHost configuration. It cannot fix
-                application code or external tools that hard-code URLs instead of using endpoint
-                discovery, isolate custom shared container or volume names, or make a remote
-                database private to one worktree. Set up any worktree-specific secrets and avoid
-                pointing development worktrees at the same mutable external resource.
+                Add an infrastructure integration with the CLI instead of hand-editing package
+                files. This adds PostgreSQL hosting support to the AppHost; it does not create
+                application data:
             </p>
             <CodeSnippet CssClass="language-powershell">
-aspire run --isolated
+aspire add postgres
             </CodeSnippet>
             <p>
-                The AppHost is a separate process that references service projects; it is not a
-                library embedded into every service. Add the database and API first, confirm they
-                start together, then add UI, workers, and containers one at a time. The
-                <Highlight>WithReference</Highlight> and <Highlight>WaitFor</Highlight> calls in
-                the next section connect resource configuration and startup readiness.
+                If the CLI offers agent setup, enable it for your coding agent and ask it to run
+                the installed <Highlight>aspireify</Highlight> skill. The skill can inspect the
+                solution, ask you to confirm the proposed resources, wire dependencies, configure
+                ServiceDefaults and telemetry, then smoke-test with
+                <Highlight>aspire start</Highlight>. Review the proposed graph and settings
+                before accepting them; initialization alone does not know every application
+                contract.
             </p>
 
-            <h4>Optional: Create the catalog sample used in this walkthrough</h4>
+            <h4>2. Describe the existing production topology in the AppHost</h4>
             <p>
-                If you do not already have an application to wire, create this small example in a
-                separate workspace. Allow roughly 45–75 minutes plus image download time. Choose
-                the Blazor and Minimal API starter, use standard localhost URLs, keep HTTPS enabled,
-                and leave its test project for the companion article.
+                An AppHost is a separate development-time process, not a new business service.
+                Copy both blocks below into its entry point in order, replacing generated project
+                types with the existing roles in your solution.
             </p>
-            <CodeSnippet CssClass="language-powershell">
-dotnet dev-certs https --trust
-aspire new aspire-starter --version 13.6.5 -n Store -o Store
-Set-Location Store
-            </CodeSnippet>
-            <p>
-                The trust command works on Windows and macOS. On Linux, follow the platform-specific
-                steps in Microsoft's
-                <a class="underline" href="https://learn.microsoft.com/aspnet/core/security/enforcing-ssl#trust-the-aspnet-core-https-development-certificate">HTTPS development-certificate guide</a>
-                and ensure both .NET clients and your browser trust the certificate before using
-                the HTTPS endpoints.
-            </p>
-            <p>
-                The sample files in this article are reader-created; no runnable demo project is
-                shipped here. This walkthrough uses <Highlight>Aspire 13.6.5</Highlight> so the
-                generated project layout matches the steps below. The <Highlight>AppHost</Highlight>
-                describes the application,
-                <Highlight>ServiceDefaults</Highlight> shares telemetry, health, discovery, and resilience
-                configuration, the <Highlight>API service</Highlight> serves HTTP endpoints, and
-                the <Highlight>web project</Highlight> renders the UI.
-            </p>
-            <h4>Add the database integrations</h4>
-            <p>Run this command from the AppHost project directory:</p>
-            <CodeSnippet CssClass="language-powershell">
-dotnet add package Aspire.Hosting.PostgreSQL --version 13.6.5
-            </CodeSnippet>
-            <p>Then run this command from the API project directory:</p>
-            <CodeSnippet CssClass="language-powershell">
-dotnet add package Aspire.Npgsql --version 13.6.5
-            </CodeSnippet>
-            <p>
-                Ensure the AppHost project file uses
-                <Highlight>&lt;Project Sdk="Aspire.AppHost.Sdk/13.6.5"&gt;</Highlight>.
-                Its references to the starter's API and web projects generate the
-                <Highlight>Projects.Store_ApiService</Highlight> and <Highlight>Projects.Store_Web</Highlight>
-                types below. For an existing application, use the generated types for your own projects.
-            </p>
-
-            <h4>2. Describe resources, connections, and readiness</h4>
-            <p>In the AppHost, use this application model in <Highlight>AppHost.cs</Highlight>:</p>
             <CodeSnippet CssClass="language-csharp">
 var builder = DistributedApplication.CreateBuilder(args);
 
-var postgres = builder.AddPostgres("postgres");
-var catalogDb = postgres.AddDatabase("catalog-db");
+var postgres = builder.AddPostgres("postgres")
+    .WithImage("pgvector/pgvector", "pg16")
+    .WithPgAdmin();
 
-var api = builder.AddProject&lt;Projects.Store_ApiService&gt;(
-        "catalog-api", launchProfileName: "https")
-    .WithReference(catalogDb)
-    .WaitFor(catalogDb)
-    .WithHttpHealthCheck("/health");
+var identityDb = postgres.AddDatabase("identity-db");
+var appDb = postgres.AddDatabase("application-db");
 
-builder.AddProject&lt;Projects.Store_Web&gt;(
-        "store-web", launchProfileName: "https")
-    .WithExternalHttpEndpoints()
+var identity = builder.AddProject&lt;Projects.IdentityService&gt;("identity")
+    .WithReference(identityDb, "IdentityConnectionString")
+    .WaitFor(identityDb);
+
+var api = builder.AddProject&lt;Projects.Api&gt;("api")
+    .WithReference(identityDb, "IdentityConnectionString")
+    .WithReference(appDb, "CommandsConnectionString")
+    .WithReference(appDb, "QueriesConnectionString")
+    .WithReference(identity)
+    .WaitFor(identity)
+    .WaitFor(appDb);
+            </CodeSnippet>
+            <p>Part 2 connects the web and landing services to that graph:</p>
+            <CodeSnippet CssClass="language-csharp">
+var web = builder.AddProject&lt;Projects.Web&gt;("web")
     .WithReference(api)
+    .WithReference(identity)
     .WaitFor(api)
-    .WithHttpHealthCheck("/health");
+    .WaitFor(identity);
+
+builder.AddProject&lt;Projects.Landing&gt;("landing")
+    .WaitFor(web);
 
 await builder.Build().RunAsync();
             </CodeSnippet>
             <p>
-                <Highlight>WithReference</Highlight> supplies connection information. For a database,
-                this includes a named connection string, which the existing service can read through
-                its usual configuration mechanism. If existing code expects
-                <Highlight>GetConnectionString("Catalog")</Highlight>, pair
-                <Highlight>WithReference(catalogDb, "Catalog")</Highlight> with that key, or use
-                <Highlight>AddNpgsqlDataSource("Catalog")</Highlight> when adopting the Aspire
-                PostgreSQL client integration. For a service, endpoint configuration
-                supports service discovery, so the existing client can use the resource name rather
-                than a hard-coded local port. Aspire injects PostgreSQL connection properties in
-                a format that works for C#, TypeScript, Python, Go, and other consumers; each app
-                still reads that configuration with its own client library. Aspire does not change
-                application code to consume settings it never reads.
-                <Highlight>WaitFor</Highlight> controls startup ordering: it waits for health checks
-                when available, otherwise for the dependency's running state. A running process is
-                not automatically ready to serve business requests.
+                <Highlight>WithReference</Highlight> supplies service-discovery endpoints or a
+                database connection string under the name the existing service expects.
+                <Highlight>WaitFor</Highlight> declares startup dependencies; it waits for a
+                dependency's health check when one is configured, or its running state otherwise.
+                Add health checks that match each service's real readiness contract instead of
+                treating a started process as proof that a business workflow works.
             </p>
             <p>
-                Preserve configuration contracts that already work. Keep secrets in the existing
-                secret provider, and use AppHost endpoint references when supplying environment-
-                specific URLs to a UI or identity client. For example, derive an identity callback
-                URL from <Highlight>api.GetEndpoint("https")</Highlight> instead of copying a
-                machine-specific port. Do not copy credentials into source files. Add
-                <Highlight>ServiceDefaults</Highlight> only if you want to adopt
-                its shared health, telemetry, resilience, and discovery setup. If a service has
-                its own health route, configure the AppHost to check that route instead of assuming
-                <Highlight>/health</Highlight>.
-            </p>
-            <p>
-                There is deliberately no persistent data volume in this introductory model.
-                Do not add <Highlight>WithDataVolume</Highlight> or a data bind mount to this sample.
-                A newly created PostgreSQL container starts with no rows, and the API seeds a small
-                fixed catalog before it begins serving requests. Each newly created ephemeral
-                AppHost gets that baseline. This is not a reset on every test: the running test
-                fixture shares one database, and persistent volumes or external databases keep
-                their state.
-                Resource names such as <Highlight>catalog-api</Highlight> are identifiers
-                shared by configuration, discovery, and tests; do not casually rename only one side.
-                Both projects use the generated <Highlight>https</Highlight> launch profile, which
-                also sets Development. This matters: the starter's first profile can be HTTP-only,
-                while the browser test explicitly requests the HTTPS endpoint.
+                The three connection-string names show how one database resource can preserve
+                existing Identity, Commands, and Queries configuration. In the production-shaped
+                graph, the AppHost derives OpenID Connect redirect and logout callbacks from the
+                web HTTPS endpoint at runtime instead of hard-coding a machine port. Aspire's
+                PostgreSQL connection properties can also be consumed by C#, TypeScript, Python,
+                Go, and other apps using their own database clients.
             </p>
 
-            <h4>3. Implement a small database-backed API</h4>
+            <h4>3. Use ServiceDefaults for shared service configuration</h4>
             <p>
-                Replace <Highlight>Store.ApiService/Program.cs</Highlight> by copying all four
-                blocks below into that one file, in order. Part 1 configures the client and creates
-                the schema:
-                <Highlight>AddNpgsqlDataSource</Highlight> consumes the <Highlight>catalog-db</Highlight> connection string
-                supplied by the AppHost and integrates the client with health checks and telemetry.
-                No password or database port belongs in source control.
+                <Highlight>ServiceDefaults</Highlight> is shared configuration used by participating
+                application projects; the AppHost does not replace it. Aspire templates use it as
+                a central place for OpenTelemetry logging, metrics and distributed traces,
+                runtime and HTTP instrumentation, service discovery, and shared
+                <Highlight>HttpClient</Highlight> defaults. The generated extension also provides
+                conventions for <Highlight>/health</Highlight> and <Highlight>/alive</Highlight>.
             </p>
             <CodeSnippet CssClass="language-csharp">
-using Npgsql;
-
 var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
-builder.AddNpgsqlDataSource("catalog-db");
 
 var app = builder.Build();
 app.MapDefaultEndpoints();
-
-await using (var connection = await app.Services
-    .GetRequiredService&lt;NpgsqlDataSource&gt;().OpenConnectionAsync())
-{
-    await using var command = connection.CreateCommand();
-    command.CommandText = """
-        CREATE TABLE IF NOT EXISTS products (
-            id uuid PRIMARY KEY,
-            name text NOT NULL
-        );
-        """;
-    await command.ExecuteNonQueryAsync();
-}
-            </CodeSnippet>
-            <p>Part 2 inserts the deterministic seed rows before the API starts:</p>
-            <CodeSnippet CssClass="language-csharp">
-await using (var connection = await app.Services
-    .GetRequiredService&lt;NpgsqlDataSource&gt;().OpenConnectionAsync())
-{
-    await using var command = connection.CreateCommand();
-    command.CommandText = """
-        INSERT INTO products (id, name) VALUES
-            ('11111111-1111-4111-8111-111111111111', 'Sample notebook'),
-            ('22222222-2222-4222-8222-222222222222', 'Sample pen')
-        ON CONFLICT (id) DO NOTHING;
-        """;
-    await command.ExecuteNonQueryAsync();
-}
             </CodeSnippet>
             <p>
-                The API owns this deterministic seed and completes it before
-                <Highlight>app.Run()</Highlight> starts listening. The fixed IDs make inserting the
-                sample rows idempotent; <Highlight>ON CONFLICT</Highlight> prevents duplicates if
-                someone opts into persistent storage. It does not erase other records from a
-                persistent database. Use migrations and an explicit, environment-appropriate
-                seeding strategy for a production schema.
-            </p>
-            <p>Part 3 maps the database-backed read endpoint:</p>
-            <CodeSnippet CssClass="language-csharp">
-app.MapGet("/products", async (NpgsqlDataSource db, CancellationToken ct) =&gt;
-{
-    var products = new List&lt;Product&gt;();
-    await using var command = db.CreateCommand(
-        "SELECT id, name FROM products ORDER BY name");
-    await using var reader = await command.ExecuteReaderAsync(ct);
-    while (await reader.ReadAsync(ct))
-    {
-        products.Add(new Product(reader.GetGuid(0), reader.GetString(1)));
-    }
-    return products;
-});
-            </CodeSnippet>
-            <p>Part 4 adds the write endpoint and starts the API:</p>
-            <CodeSnippet CssClass="language-csharp">
-app.MapPost("/products", async (NewProduct input, NpgsqlDataSource db,
-    CancellationToken ct) =&gt;
-{
-    if (string.IsNullOrWhiteSpace(input.Name) || input.Name.Length &gt; 100)
-    {
-        return Results.BadRequest("Name must contain 1 to 100 characters.");
-    }
-
-    var product = new Product(Guid.NewGuid(), input.Name.Trim());
-    await using var command = db.CreateCommand(
-        "INSERT INTO products (id, name) VALUES ($1, $2)");
-    command.Parameters.Add(new NpgsqlParameter { Value = product.Id });
-    command.Parameters.Add(new NpgsqlParameter { Value = product.Name });
-    await command.ExecuteNonQueryAsync(ct);
-    return Results.Ok(product);
-});
-
-app.Run();
-
-public sealed record NewProduct(string Name);
-public sealed record Product(Guid Id, string Name);
-            </CodeSnippet>
-            <p>
-                The SQL values are positional parameters: their order matches
-                <Highlight>$1</Highlight> and <Highlight>$2</Highlight>. Startup schema creation keeps this small sample
-                self-contained; use versioned migrations and a controlled migration step for a
-                production database. These unauthenticated endpoints are for an isolated local
-                tutorial only. Add authentication, authorization, paging, and production-grade
-                validation before exposing an application to real users.
+                Keep the shared behavior consistent across services, then customize it centrally
+                for your application. Defaults are not a promise that every production service
+                uses identical health checks or retries: teams can disable or adjust particular
+                registrations to match their reliability and readiness requirements. The
+                production-shaped setup here customizes standard health and resilience
+                registrations; the snippet shows common template integration points, not a claim
+                that every template default is active in that system.
             </p>
 
-            <h4>4. Connect the Blazor UI through service discovery</h4>
+            <h4>4. Add databases, brokers, and non-.NET resources as needed</h4>
             <p>
-                In <Highlight>Store.Web/Program.cs</Highlight>, keep the generated ServiceDefaults,
-                Razor component registrations, middleware, and <Highlight>MapDefaultEndpoints()</Highlight>.
-                Add this named client before <Highlight>builder.Build()</Highlight>:
-            </p>
-            <CodeSnippet CssClass="language-csharp">
-builder.Services.AddHttpClient("catalog", client =&gt;
-{
-    client.BaseAddress = new Uri("https+http://catalog-api");
-});
-            </CodeSnippet>
-            <p>
-                Remove the starter's unused <Highlight>WeatherApiClient</Highlight> registration and
-                <Highlight>Components/Pages/Weather.razor</Highlight> page, since the API no longer serves weather.
-                Remove its navigation link too. Create <Highlight>Components/Pages/Catalog.razor</Highlight>
-                by copying all three blocks below into one file, in order. Its named form works
-                with static server-side rendering.
-            </p>
-            <CodeSnippet CssClass="language-razor">
-@@page "/catalog"
-@@using System.Net.Http.Json
-@@using Microsoft.AspNetCore.Components.Forms
-@@using System.ComponentModel.DataAnnotations
-@@inject IHttpClientFactory ClientFactory
-
-&lt;PageTitle&gt;Catalog&lt;/PageTitle&gt;
-&lt;h1&gt;Catalog&lt;/h1&gt;
-
-&lt;EditForm Model="Form" FormName="AddProduct" OnValidSubmit="CreateProduct"&gt;
-    &lt;DataAnnotationsValidator /&gt;
-    &lt;ValidationSummary /&gt;
-    &lt;label for="product-name"&gt;Product name&lt;/label&gt;
-    &lt;InputText id="product-name" @@bind-Value="Form.Name" /&gt;
-    &lt;ValidationMessage For="() =&gt; Form.Name" /&gt;
-    &lt;button type="submit"&gt;Add product&lt;/button&gt;
-&lt;/EditForm&gt;
-
-&lt;p role="status"&gt;@@status&lt;/p&gt;
-&lt;ul aria-label="Products"&gt;
-    @@foreach (var product in products)
-    {
-        &lt;li&gt;@@product.Name&lt;/li&gt;
-    }
-&lt;/ul&gt;
-            </CodeSnippet>
-            <p>Part 2 binds the posted form model and handles submission:</p>
-            <CodeSnippet CssClass="language-razor">
-@@code {
-    [SupplyParameterFromForm]
-    private NewProduct? form { get; set; }
-    private NewProduct Form => form ??= new NewProduct();
-
-    private Product[] products = [];
-    private string? status;
-
-    protected override async Task OnInitializedAsync()
-    {
-        form ??= new NewProduct();
-        await LoadProducts();
-    }
-
-    private async Task CreateProduct()
-    {
-        using var client = ClientFactory.CreateClient("catalog");
-        using var response = await client.PostAsJsonAsync("/products", Form);
-        if (!response.IsSuccessStatusCode)
-        {
-            status = "The API rejected the product.";
-            return;
-        }
-        var created = await response.Content.ReadFromJsonAsync&lt;Product&gt;()
-            ?? throw new InvalidOperationException("The API returned no product.");
-        await LoadProducts();
-        form = new NewProduct();
-        status = $"Added {created.Name}";
-    }
-            </CodeSnippet>
-            <p>Part 3 reloads the catalog and declares the sample models:</p>
-            <CodeSnippet CssClass="language-razor">
-    private async Task LoadProducts()
-    {
-        using var client = ClientFactory.CreateClient("catalog");
-        products = await client.GetFromJsonAsync&lt;Product[]&gt;("/products")
-            ?? throw new InvalidOperationException("The catalog response was null.");
-    }
-
-    public sealed class NewProduct
-    {
-        [Required]
-        [StringLength(100)]
-        public string Name { get; set; } = string.Empty;
-    }
-
-    private sealed record Product(Guid Id, string Name);
-}
-            </CodeSnippet>
-            <p>
-                <Highlight>FormName</Highlight> and <Highlight>SupplyParameterFromForm</Highlight>
-                let a static server-rendered page accept the browser's form POST without requiring
-                an interactive connection. Data-annotation validation blocks empty or overlong
-                names, and an API rejection is shown in the status region. The web server resolves <Highlight>catalog-api</Highlight>
-                using ServiceDefaults; the browser only visits the web UI. The UI posts through the
-                API and then reloads the list, so you can test the complete browser-to-database
-                path without adding a separate client-side API call.
-                A standalone WebAssembly or JavaScript client cannot resolve Aspire's internal
-                service names directly. Give it a browser-reachable URL and appropriate CORS,
-                or route requests through a backend-for-frontend.
+                Add integrations such as PostgreSQL or Kafka with the CLI, then model each
+                resource and reference it from its consumers. The graph can also include
+                non-.NET services, existing images, and administration tools. A broker reference
+                supplies configuration and startup coordination; application code still owns
+                migrations, seed data, message handling, and business behavior.
             </p>
             <p>
-                The starter's <Highlight>MapDefaultEndpoints()</Highlight> normally exposes
-                <Highlight>/health</Highlight> and <Highlight>/alive</Highlight> in Development. Both AppHost health checks
-                depend on those routes, so keep that environment for this sample. Readiness should
-                include required dependencies; liveness should not trigger restart loops just
-                because an external dependency is temporarily unavailable.
+                For a new local run, use a session-lifetime database container without a persistent
+                volume. The existing application startup or migration process should create its
+                schema and seed the expected development data before the service reports ready.
+                That gives a new AppHost run a clean baseline without asking Aspire to invent
+                business data. A persistent volume or remote database keeps its state; Aspire does
+                not clean it or guarantee isolation from shared environments.
             </p>
 
-            <h4>5. Run once and inspect the whole application</h4>
-            <p>From the AppHost project directory, run:</p>
-            <CodeSnippet CssClass="language-powershell">
-dotnet run
-            </CodeSnippet>
+            <h4>5. Launch once, inspect the graph, and isolate worktrees</h4>
             <p>
-                Alternatively, set the AppHost as the startup project and press F5. Follow the
-                dashboard URL printed by the host. You should see PostgreSQL, the logical
-                <Highlight>catalog-db</Highlight> resource, <Highlight>catalog-api</Highlight>, and <Highlight>store-web</Highlight>.
-                Open the web endpoint and navigate to <Highlight>/catalog</Highlight>; the two seeded
-                sample items should appear.
-                You can enter the path directly; the new page does not add a navigation link.
-            </p>
-            <p>
-                To exercise persistence, use the API's actual HTTPS endpoint from the dashboard:
+                Run the AppHost from the solution or its project directory:
             </p>
             <CodeSnippet CssClass="language-powershell">
-$api = Read-Host "Paste the catalog-api HTTPS endpoint from the dashboard"
-Invoke-RestMethod "$api/products" -Method Post -ContentType "application/json" -Body '{"name":"Travel mug"}'
-Invoke-RestMethod "$api/products"
+aspire run
             </CodeSnippet>
             <p>
-                Refresh <Highlight>/catalog</Highlight> and find Travel mug alongside the seed items. Explore structured logs, metrics,
-                and traces for the web-to-API call. If the API is unhealthy, check the database
-                and API logs before changing timeouts. First-run container pulls can take longer
-                than a warm restart. The dashboard is diagnostic infrastructure; do not expose
-                its authenticated development session publicly.
+                Aspire starts the modeled resources and opens its dashboard, where the team can
+                inspect endpoints, health, logs, and traces together. In an IDE, choosing the
+                AppHost as the startup project gives the same one-click local launch. Press
+                Ctrl+C to stop the session and its managed resources; this is local orchestration,
+                not a production deployment.
             </p>
             <p>
-                Stop the AppHost with Ctrl+C before starting the companion tests. This local sample
-                uses synthetic data and no cloud services; there is no cloud-resource charge, but
-                image downloads, storage, and your container-runtime license may have costs.
-                When the AppHost removes its temporary container, its rows—including test-created
-                rows—are discarded. Existing data in persistent volumes or external databases is
-                outside that cleanup boundary.
+                For concurrent Git worktrees, start each instance with
+                <Highlight>aspire run --isolated</Highlight>. Aspire randomizes dashboard and
+                service endpoint ports, including configured predictable ports, and isolates
+                instance user secrets. Application code and external tools that hard-code URLs,
+                shared volumes or container names, and remote databases remain shared resources;
+                configure those separately when worktrees must not affect each other.
             </p>
-
-            <h4>6. Grow the model without growing the startup checklist</h4>
-            <p>
-                A larger system can combine .NET projects, other-language apps launched as
-                processes or containers, identity, workers, Kafka, databases, and existing tools
-                in one graph. Choose a resource type or integration that fits how each service
-                runs; Aspire does not require rewriting its business code.
-            </p>
-            <p>
-                To add a Kafka broker, install <Highlight>Aspire.Hosting.Kafka</Highlight> on the AppHost at the same
-                compatible Aspire version, then add a broker before <Highlight>Build()</Highlight>:
-            </p>
-            <CodeSnippet CssClass="language-csharp">
-var events = builder.AddKafka("events");
-api.WithReference(events).WaitFor(events);
+            <CodeSnippet CssClass="language-powershell">
+aspire run --isolated
             </CodeSnippet>
-            <p>
-                This adds the broker and supplies connection configuration. It does
-                <Highlight>not</Highlight> publish messages or create a consumer in your API.
-                Add the corresponding client integration and application behavior deliberately.
-                A resource integration wires local infrastructure; each application still needs
-                its own client library and configuration.
-                For an existing Docker image, use <Highlight>AddContainer</Highlight>, define its endpoints
-                and health check, and supply configuration in the shape that image expects.
-                Register a worker with <Highlight>AddProject</Highlight> and reference only the resources
-                it actually needs.
-            </p>
-            <p>
-                Keep database initialization separate from service readiness, avoid dependency
-                cycles, and remember that a resource count includes supporting containers and
-                logical resources, not just independently deployed services. Thirty resources
-                are manageable because the connections are explicit, not because Aspire removes
-                all distributed-system complexity.
-            </p>
-            <p>
-                Code can also live in multiple repositories. An AppHost can reference projects
-                from a controlled checkout layout or orchestrate prebuilt, versioned images.
-                Aspire does not fetch private repositories, build arbitrary missing code, or
-                guarantee compatible versions for you. The next article tests this single-repository
-                sample and explains how to extend its assertions across repository boundaries.
-            </p>
 
             <h4>References</h4>
             <ul>
-                <li><a class="underline" href="https://aspire.dev/get-started/first-app/">Build your first Aspire app</a></li>
+                <li><a class="underline" href="https://aspire.dev/get-started/install-cli/">Install the Aspire CLI</a></li>
                 <li><a class="underline" href="https://aspire.dev/get-started/add-aspire-existing-app/">Add Aspire to an existing application</a></li>
-                <li><a class="underline" href="https://aspire.dev/reference/cli/commands/aspire-run/">Run Aspire in an isolated worktree</a></li>
+                <li><a class="underline" href="https://aspire.dev/reference/cli/commands/aspire-init/">Initialize an Aspire AppHost</a></li>
+                <li><a class="underline" href="https://aspire.dev/reference/cli/commands/aspire-run/">Run an Aspire AppHost</a></li>
                 <li><a class="underline" href="https://devblogs.microsoft.com/aspire/aspire-isolated-mode-parallel-development/">Run multiple AppHosts concurrently with isolated mode</a></li>
                 <li><a class="underline" href="https://aspire.dev/get-started/csharp-service-defaults/">C# ServiceDefaults</a></li>
-                <li><a class="underline" href="https://aspire.dev/integrations/databases/postgres/postgres-get-started/">PostgreSQL hosting and client integrations</a></li>
-                <li><a class="underline" href="https://aspire.dev/integrations/databases/postgres/postgres-connect/">Connect C#, TypeScript, Python, and Go apps to PostgreSQL</a></li>
+                <li><a class="underline" href="https://aspire.dev/integrations/databases/postgres/postgres-get-started/">PostgreSQL integrations across language clients</a></li>
             </ul>
         </How>
 
         <Summary>
             <ul>
-                <li>The AppHost declares the API, PostgreSQL database, UI, and their dependencies.</li>
-                <li>Add Aspire to an existing application incrementally; a new starter is not required.</li>
-                <li><Highlight>WithReference</Highlight> supplies service configuration; <Highlight>WaitFor</Highlight> coordinates startup.</li>
-                <li>An application-owned seed gives each new ephemeral database host a known baseline; it does not reset a database per test.</li>
-                <li>Use <Highlight>aspire run --isolated</Highlight> for concurrent worktrees; keep external resources isolated separately.</li>
-                <li>Use service discovery and the dashboard to understand the live graph without hard-coded local ports.</li>
-                <li>Give developers and AI coding agents a shared system map instead of isolated repository context.</li>
-                <li>Keep local orchestration separate from production deployment and protect real data.</li>
+                <li>Initialize Aspire in the existing solution; keep service behavior and business code intact.</li>
+                <li>The AppHost maps services, databases, dependencies, and runtime endpoints in one graph.</li>
+                <li>ServiceDefaults centralizes shared observability, discovery, and service conventions.</li>
+                <li>The application owns schema changes and seed data; new ephemeral database hosts provide a repeatable baseline.</li>
+                <li>Use <Highlight>aspire run --isolated</Highlight> to work in parallel worktrees without managed port conflicts.</li>
+                <li>Use the dashboard as a shared system map for developers and AI coding agents.</li>
             </ul>
             <p>
-                <strong>What to read next:</strong> continue with
-                <a class="underline" href="/blogs/distributed-testing-with-aspire-and-playwright-in-dotnet/">distributed testing with Aspire and Playwright</a>
-                to verify the API, database, and UI as one system.
+                <strong>What to read next:</strong> see
+                <a class="underline" href="/blogs/distributed-testing-with-aspire-and-playwright-in-dotnet/">how to test an Aspire application across its UI and services</a>.
             </p>
         </Summary>
     </ContentBody>

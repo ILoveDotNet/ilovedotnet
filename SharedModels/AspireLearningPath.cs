@@ -12,7 +12,7 @@ public class AspireLearningPath
         {
             Order = 1,
             Title = "Getting Started with Aspire in .NET",
-            Description = "Add Aspire to an existing app for simpler onboarding, one-launch startup, seeded disposable databases, polyglot integrations, and isolated worktrees.",
+            Description = "Add Aspire to an existing production application with CLI commands. Understand AppHost, ServiceDefaults, one-launch startup, and isolated worktrees.",
             Author = "Abdul Rahman",
             Slug = "getting-started-with-aspire-in-dotnet",
             PosterUrl = "image/blogs/aspire/getting-started-with-aspire-in-dotnet.webp",
@@ -40,7 +40,7 @@ public class AspireLearningPath
             Type = "blogs",
             CreatedOn = new DateTime(2027, 2, 21, 22, 30, 0, DateTimeKind.Utc),
             ModifiedOn = new DateTime(2027, 2, 21, 22, 30, 0, DateTimeKind.Utc),
-            Keywords = ["Aspire", "Distributed Testing", "Distributed Fixture", "Playwright", "xUnit", "Functional Testing", "Integration Testing", "End-to-End Testing", "UI Testing", "PostgreSQL", "Disposable Environments", "Multi-Repository"]
+            Keywords = ["Aspire", "Distributed Testing", "Distributed Fixture", "Playwright", "xUnit", "Functional Testing", "Integration Testing", "End-to-End Testing", "UI Testing", "PostgreSQL", "Disposable Environments", "Multi-Repository", "Containers", "Message Brokers"]
         }
     ];
   }
