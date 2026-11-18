@@ -12,7 +12,7 @@ public class AspireLearningPath
         {
             Order = 1,
             Title = "Getting Started with Aspire in .NET",
-            Description = "Add Aspire to an existing .NET application. Wire APIs, a UI, and PostgreSQL for simpler onboarding, one-launch startup, and observable local development.",
+            Description = "Add Aspire to an existing app for simpler onboarding, one-launch startup, seeded disposable databases, polyglot integrations, and isolated worktrees.",
             Author = "Abdul Rahman",
             Slug = "getting-started-with-aspire-in-dotnet",
             PosterUrl = "image/blogs/aspire/getting-started-with-aspire-in-dotnet.webp",
@@ -23,13 +23,13 @@ public class AspireLearningPath
             Type = "blogs",
             CreatedOn = new DateTime(2027, 2, 14, 22, 30, 0, DateTimeKind.Utc),
             ModifiedOn = new DateTime(2027, 2, 14, 22, 30, 0, DateTimeKind.Utc),
-            Keywords = ["Aspire", ".NET", "AppHost", "Service Defaults", "PostgreSQL", "Service Discovery", "OpenTelemetry", "Docker", "Kafka"]
+            Keywords = ["Aspire", ".NET", "AppHost", "Service Defaults", "PostgreSQL", "Service Discovery", "OpenTelemetry", "Docker", "Kafka", "Polyglot", "Database Seeding", "Git Worktrees"]
         },
         new ContentMetaData
         {
             Order = 2,
             Title = "Distributed Testing with Aspire and Playwright in .NET",
-            Description = "Share an Aspire distributed fixture with Playwright, test a real UI-to-database flow, and learn how distributed tests complement API functional tests.",
+            Description = "Use shared Aspire fixtures and Playwright to run disposable end-to-end tests, verify results in the UI, and avoid test-data buildup in shared environments.",
             Author = "Abdul Rahman",
             Slug = "distributed-testing-with-aspire-and-playwright-in-dotnet",
             PosterUrl = "image/blogs/aspire/distributed-testing-with-aspire-and-playwright-in-dotnet.webp",
@@ -40,7 +40,7 @@ public class AspireLearningPath
             Type = "blogs",
             CreatedOn = new DateTime(2027, 2, 21, 22, 30, 0, DateTimeKind.Utc),
             ModifiedOn = new DateTime(2027, 2, 21, 22, 30, 0, DateTimeKind.Utc),
-            Keywords = ["Aspire", "Distributed Testing", "Distributed Fixture", "Playwright", "xUnit", "Functional Testing", "Integration Testing", "End-to-End Testing", "PostgreSQL", "Multi-Repository"]
+            Keywords = ["Aspire", "Distributed Testing", "Distributed Fixture", "Playwright", "xUnit", "Functional Testing", "Integration Testing", "End-to-End Testing", "UI Testing", "PostgreSQL", "Disposable Environments", "Multi-Repository"]
         }
     ];
   }

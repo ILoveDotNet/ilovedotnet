@@ -15,9 +15,11 @@
             <p>
                 This walkthrough extends the
                 <a class="underline" href="/blogs/getting-started-with-aspire-in-dotnet/">Aspire catalog sample</a>.
-                You will configure a distributed test project, start an isolated AppHost with a
-                bounded lifetime, check the API and database-backed behavior, and use browser
-                assertions to verify a record reaches the rendered catalog.
+                For copy-and-run steps, create that article's optional reader-built sample first;
+                if you wired an existing application instead, substitute its project, resource,
+                and endpoint names. You will start a disposable AppHost, submit through the UI,
+                reload the page, and verify the seeded and newly saved items are still rendered.
+                An API round-trip is included as a narrower, optional check.
             </p>
         </What>
 
@@ -40,9 +42,9 @@
                 A process being <Highlight>running</Highlight> only means it started; a resource
                 becoming <Highlight>healthy</Highlight> means its health check passed; and being
                 <Highlight>business-ready</Highlight> means the operation you care about succeeds.
-                The walkthrough uses a fast API round-trip test and a slower Playwright flow that
-                submits the form in the browser, then verifies the saved record through the
-                database-backed API.
+                The walkthrough keeps a fast API round-trip as a lower-level companion, then uses
+                Playwright to submit through the UI and prove the saved item is still visible after
+                a browser reload.
             </p>
         </Why>
 
@@ -220,11 +222,21 @@ public sealed class AspireFixture : IAsyncLifetime
             </p>
             <p>
                 Keep the AppHost database ephemeral and omit a persistent volume for this test
-                environment, so each fixture run starts with clean state. The shared fixture may
-                hold one database for its test classes, but unique records keep concurrent tests
+                environment, so each new fixture run starts with the same seeded baseline from the
+                API startup step. The fixture shares that database for the whole test assembly; it
+                does not reset state between test methods. Unique records keep concurrent tests
                 independent for these append-only assertions. An assembly fixture does not
                 serialize test classes; tests that count, delete, or mutate shared data need
                 stronger isolation or explicit synchronization.
+            </p>
+            <p>
+                At normal suite teardown, xUnit calls the fixture's asynchronous disposal, which
+                stops the AppHost and removes its managed test resources. This disposable local
+                host keeps test rows out of shared staging databases. Cleanup is not guaranteed if
+                the process or machine is forcibly terminated, and it cannot remove data from a
+                persistent volume or external database; point the test graph only at disposable
+                resources. Think start-use-dispose, not an unawaited background task or a promise
+                that cleanup survives a machine crash.
             </p>
             <p>
                 The AppHost must expose the same <Highlight>/health</Highlight> checks configured
@@ -235,13 +247,14 @@ public sealed class AspireFixture : IAsyncLifetime
                 works.
             </p>
 
-            <h4>3. Verify that an API write survives a database-backed read</h4>
+            <h4>3. Add an optional API check for a narrower failure signal</h4>
             <p>
                 Copy both blocks below in order into one file,
                 <Highlight>Store.Tests/CatalogApiTests.cs</Highlight>.
                 Give every test its own product name so parallel tests do not depend on execution
-                order or overwrite shared records. This test posts a product, reads the catalog
-                again, and checks both its generated identifier and its value.
+                order or overwrite shared records. This focused test posts a product, reads the
+                catalog again, and checks its generated identifier and value. It complements the
+                browser journey; it does not replace the user-visible assertion below.
             </p>
             <CodeSnippet CssClass="language-csharp">
 using System.Net;
@@ -286,33 +299,38 @@ public sealed class CatalogApiTests(AspireFixture fixture)
                 internals or credentials.
             </p>
             <CodeSnippet CssClass="language-text">
-API assertion:
+Optional API-level assertion:
     test client --POST /products--&gt; catalog-api --&gt; catalog-db
     test client --GET  /products--&gt; catalog-api --&gt; catalog-db
 
-Browser assertion:
-    Playwright --HTTPS--&gt; store-web --service discovery--&gt; catalog-api --&gt; catalog-db
+Browser journey:
+    Playwright submits form --&gt; store-web --&gt; catalog-api --&gt; catalog-db
+    Browser reloads /catalog --&gt; store-web --&gt; catalog-api --&gt; catalog-db
+    Rendered page shows the persisted product
             </CodeSnippet>
             <CodeSnippet CssClass="language-text">
-At fixture startup:
-    products = [] (fresh database)
-
-After this test's POST /products and GET /products (other tests may also add rows):
+Fresh ephemeral host:
     id                                    name
     ------------------------------------  -------------------------
-    generated for this test               api-&lt;unique-guid&gt;
+    11111111-1111-4111-8111-111111111111  Sample notebook
+    22222222-2222-4222-8222-222222222222  Sample pen
+
+After browser submission and reload:
+    id                                    name
+    ------------------------------------  -------------------------
+    the same two seeded IDs               seed names still visible
+    generated for this test               browser-&lt;unique-guid&gt;
             </CodeSnippet>
 
-            <h4>4. Submit the form in a browser and verify the saved product</h4>
+            <h4>4. Submit, revisit, and verify the saved product in the browser</h4>
             <p>
                 Save this snippet as <Highlight>Store.Tests/CatalogBrowserTests.cs</Highlight>.
                 Use the actual HTTPS endpoint allocated by the AppHost, not a remembered localhost
-                port. Copy both blocks in order into that file. The test drives the accessible
-                form, waits for the UI's confirmation, then checks the database-backed API for the
-                same unique product.
+                port. Copy both blocks in order into that file. The test observes the seeded
+                baseline, submits a uniquely named item through the accessible form, and verifies
+                that the UI still renders it after a fresh page request.
             </p>
             <CodeSnippet CssClass="language-csharp">
-using System.Net.Http.Json;
 using Microsoft.Playwright;
 using Microsoft.Playwright.Xunit.v3;
 using Xunit;
@@ -323,10 +341,15 @@ public sealed class CatalogBrowserTests(AspireFixture fixture) : PageTest
     public async Task Browser_form_saves_a_product_to_the_catalog()
     {
         var name = $"browser-{Guid.NewGuid():N}";
-        var ct = TestContext.Current.CancellationToken;
 
         var catalogUrl = new Uri(fixture.WebUrl, "/catalog");
         await Page.GotoAsync(catalogUrl.ToString());
+        var productList = Page.GetByRole(
+            AriaRole.List,
+            new() { Name = "Products" });
+        await Expect(productList.GetByText("Sample notebook")).ToBeVisibleAsync();
+        await Expect(productList.GetByText("Sample pen")).ToBeVisibleAsync();
+
         await Page.GetByLabel("Product name").FillAsync(name);
         await Page.GetByRole(
             AriaRole.Button,
@@ -335,34 +358,24 @@ public sealed class CatalogBrowserTests(AspireFixture fixture) : PageTest
         await Expect(Page.GetByRole(AriaRole.Status))
             .ToHaveTextAsync($"Added {name}");
             </CodeSnippet>
-            <p>Part 2 verifies the rendered item and reads the saved record through the API:</p>
+            <p>Part 2 requests the catalog again and verifies the persisted item is still rendered:</p>
             <CodeSnippet CssClass="language-csharp">
-
-        var productList = Page.GetByRole(
-            AriaRole.List,
-            new() { Name = "Products" });
+        await Page.GotoAsync(catalogUrl.ToString());
+        await Expect(productList.GetByText("Sample notebook")).ToBeVisibleAsync();
+        await Expect(productList.GetByText("Sample pen")).ToBeVisibleAsync();
         await Expect(productList.GetByText(name)).ToBeVisibleAsync();
-
-        using var response = await fixture.ApiClient.GetAsync("/products", ct);
-        response.EnsureSuccessStatusCode();
-        var products = await response.Content.ReadFromJsonAsync&lt;Product[]&gt;(ct);
-
-        Assert.NotNull(products);
-        Assert.Contains(products, product =&gt; product.Name == name);
     }
-
-    private sealed record Product(Guid Id, string Name);
 }
             </CodeSnippet>
             <p>
                 <Highlight>PageTest</Highlight> manages the Playwright browser and page for the
                 test. Role-based locators follow the accessible page structure, and Playwright
                 assertions auto-wait for the expected element instead of racing a fixed sleep.
-                The submitted form calls the API, which persists the record in PostgreSQL. The
-                browser sees the rendered confirmation and list item, and the independent API
-                read proves the database-backed record still exists. This tests UI-to-API-to-
-                database behavior without querying the database directly; the API test above
-                remains a separate, faster service-level check.
+                The submitted form makes the web service call the API and PostgreSQL; a fresh page
+                request makes the UI fetch the list again. Seeing both the seeded item and this
+                test's unique item after that request proves the full browser-to-web-to-API-to-
+                database-to-rendered-UI round trip. The separate API test remains useful for
+                precise service-level failures, but it is not the proof of this user-facing flow.
             </p>
 
             <h4>5. Run the tests locally</h4>
@@ -414,9 +427,17 @@ dotnet test .\Store.Tests\Store.Tests.csproj --no-build
             </p>
             <p>
                 A multi-repository test is meaningful only when it verifies a contract across those
-                repositories. Keep the write-API/read-UI check above as the user-facing boundary;
+                repositories. Keep the UI-submit, reload, and UI-verification flow above as the user-facing boundary;
                 add a separate assertion for another service only when that service's observable
                 behavior matters to the contract.
+            </p>
+            <p>
+                The AppHost also gives <Highlight>AI coding agents</Highlight> a cross-repository
+                system map. When an agent has access to the relevant code and runtime diagnostics,
+                it can connect a failing browser step to downstream services, inspect their logs
+                and traces, and rerun the complete workflow after a fix. That is stronger context
+                than changing one repository without knowing the distributed system it belongs to;
+                the browser assertions remain the evidence that the user journey works.
             </p>
 
             <h4>7. Extend the graph to Kafka only when you assert message delivery</h4>
@@ -455,9 +476,9 @@ builder.AddProject&lt;Projects.Store_Worker&gt;("catalog-worker")
         <Summary>
             <ul>
                 <li>Reference the AppHost and start one isolated resource graph for distributed tests.</li>
-                <li>Bound startup with cancellation, wait for health, and verify an actual business operation.</li>
-                <li>Use generated endpoints, unique test data, and Playwright's auto-waiting locators.</li>
-                <li>Prove API-to-database-to-UI behavior without relying on fixed ports or production data.</li>
+                <li>Seed the fresh database at host startup; use unique test data because tests share that host's state.</li>
+                <li>Use a shared, bounded fixture and dispose its local resources at normal test-run teardown.</li>
+                <li>Let Playwright submit through the UI, reload, and confirm the persisted result in the UI.</li>
                 <li>For Kafka or multiple repositories, test observable contracts rather than resource startup alone.</li>
             </ul>
             <p>
