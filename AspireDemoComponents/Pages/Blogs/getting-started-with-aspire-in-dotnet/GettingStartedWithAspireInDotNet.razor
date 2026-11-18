@@ -118,12 +118,14 @@ var api = builder.AddProject&lt;Projects.Api&gt;("api")
     .WaitFor(appDb);
 
 var web = builder.AddProject&lt;Projects.Web&gt;("web")
+    .WithHttpHealthCheck("/health")
     .WithReference(api)
     .WithReference(identity)
     .WaitFor(api)
     .WaitFor(identity);
 
 builder.AddProject&lt;Projects.Landing&gt;("landing")
+    .WithHttpHealthCheck("/health")
     .WaitFor(web);
 
 await builder.Build().RunAsync();
@@ -133,8 +135,10 @@ await builder.Build().RunAsync();
                 database connection string under the name the existing service expects.
                 <Highlight>WaitFor</Highlight> declares startup dependencies; it waits for a
                 dependency's health check when one is configured, or its running state otherwise.
-                Add health checks that match each service's real readiness contract instead of
-                treating a started process as proof that a business workflow works.
+                Both <Highlight>web</Highlight> and <Highlight>landing</Highlight> must expose
+                <Highlight>/health</Highlight> in the test environment, using the ServiceDefaults
+                setup below. These AppHost checks make the companion fixture wait for HTTP
+                readiness rather than just running processes.
             </p>
             <p>
                 The three connection-string names show how one database resource can preserve
