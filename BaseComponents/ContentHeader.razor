@@ -10,6 +10,7 @@
         <time datetime="@Metadata.ModifiedOn.ToString("yyyy-MM-dd")">Updated @Metadata.ModifiedOn.ToString("d MMM yyyy", System.Globalization.CultureInfo.InvariantCulture)</time>
         <a href="@($"https://github.com/ILoveDotNet/ilovedotnet/blob/main/{Metadata.Channel.Replace(" ", string.Empty)}DemoComponents/Pages/Blogs/{FileName}.razor")" target="_blank" rel="noopener noreferrer" class="[ inline-flex min-h-11 items-center underline ]">Edit on GitHub <span class="sr-only">(opens in a new tab)</span></a>
     </div>
+    <a href="@($"/{Metadata.ContentUrl.Trim('/')}/{new Uri(NavigationManager.Uri).Query}#{Uri.EscapeDataString(ImplementationId)}")" class="[ inline-flex min-h-11 items-center rounded-lg border border-stone-300 px-4 py-2 font-semibold underline focus-visible:outline-2 focus-visible:outline-indigo-500 dark:border-stone-600 ]">Jump to implementation</a>
     @if (!string.IsNullOrWhiteSpace(Metadata.VideoUrl))
     {
         <iframe src="@Metadata.VideoUrl" title="@($"{Metadata.Title} video")"
@@ -18,16 +19,13 @@
                 allowfullscreen>
         </iframe>
     }
-    else
-    {
-        <figure class="[ aspect-video overflow-hidden rounded-xl ]">
-            <img src="@Metadata.PosterUrl.ToLowerInvariant()" alt="@Metadata.Title" class="[ h-full w-full object-contain ]" fetchpriority="high" width="1265" height="827" />
-        </figure>
-    }
 </header>
+
+@inject NavigationManager NavigationManager
 
 @code {
     [Parameter, EditorRequired] public ContentMetaData Metadata { get; set; } = default!;
     [Parameter, EditorRequired] public string FileName { get; set; } = default!;
     [Parameter, EditorRequired] public int PublishedCount { get; set; }
+    [Parameter] public string ImplementationId { get; set; } = "how";
 }

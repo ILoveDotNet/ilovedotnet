@@ -1,6 +1,11 @@
 @inject SlugService SlugService
 @inject TableOfContents TableOfContents
 @inject IConfiguration Configuration
+@inject Microsoft.JSInterop.IJSRuntime JSRuntime
+@inject Microsoft.Extensions.Logging.ILogger<Content> Logger
+@using Microsoft.JSInterop
+@using Microsoft.Extensions.Logging
+@implements IAsyncDisposable
 
 <ContentHead Metadata="@contentMetaData" />
 
@@ -10,15 +15,23 @@
                      CurrentUrl="@($"/{contentMetaData.ContentUrl.Trim('/')}/")"
                      ParentTitle="@contentMetaData.Channel"
                      ParentUrl="@ChannelUrl" />
-        <ContentHeader Metadata="@contentMetaData" FileName="@FileName" PublishedCount="@channelContents.Count" />
+        <ContentHeader Metadata="@contentMetaData" FileName="@FileName" PublishedCount="@channelContents.Count" ImplementationId="@ImplementationId" />
+        @if (Introduction is not null)
+        {
+            <section aria-label="Before you begin" class="[ min-w-0 space-y-3 border-y border-stone-200 py-5 leading-relaxed [overflow-wrap:anywhere] dark:border-stone-700 [&_p]:max-w-[75ch] [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-5 ]">
+                @Introduction
+            </section>
+        }
         <details class="[ rounded-xl border border-indigo-200 bg-indigo-50 p-4 dark:border-indigo-900 dark:bg-indigo-950 xl:hidden ]">
             <summary class="[ min-h-11 cursor-pointer content-center font-semibold ]">On this page</summary>
-            <ContentNavigation Slug="@contentMetaData.Slug" />
+            <ContentNavigation Slug="@contentMetaData.Slug" Headings="@headings" DetailedContentsUnavailable="@outlineFailed" />
         </details>
-        <section class="[ prose max-w-none min-w-0 [overflow-wrap:anywhere] dark:prose-invert [&_p]:max-w-[75ch] [&_ul]:max-w-[75ch] [&_ol]:max-w-[75ch] [&_h3]:scroll-mt-24 [&_h4]:scroll-mt-24 ]" aria-label="Article body">
-            @ContentBody
-            <GoogleAdSense Type="GoogleAdSenseAdType.InArticle" Format="GoogleAdSenseAdFormat.Fluid" Style="text-align:center;" Slot="3914293965" />
+        <section @ref="articleBody" class="[ article-body prose max-w-none min-w-0 [overflow-wrap:anywhere] dark:prose-invert [&_p]:max-w-[75ch] [&_ul]:max-w-[75ch] [&_ol]:max-w-[75ch] ]" aria-label="Article body">
+            <CascadingValue Value="@articleAds">
+                @ContentBody
+            </CascadingValue>
         </section>
+        <ArticleAd Position="ArticleAdPosition.EndOfArticle" />
         <footer class="[ min-w-0 space-y-6 border-t border-stone-200 pt-6 dark:border-stone-700 ]">
             <nav aria-label="Continue this learning path" class="[ space-y-3 ]">
                 <h2 class="[ text-xl font-semibold ]">Continue this learning path</h2>
@@ -55,12 +68,23 @@
             </ul>
         </footer>
     </article>
-    <aside aria-label="Article resources" class="[ min-w-0 space-y-6 ]">
+    <aside aria-label="Article resources" class="[ flex min-w-0 flex-col gap-6 ]">
         <div class="[ hidden rounded-xl border border-indigo-200 bg-indigo-50 p-3 dark:border-indigo-900 dark:bg-indigo-950 xl:block ]">
             <h2 class="[ font-semibold ]">On this page</h2>
-            <ContentNavigation Slug="@contentMetaData.Slug" />
+            <ContentNavigation Slug="@contentMetaData.Slug" Headings="@headings" DetailedContentsUnavailable="@outlineFailed" />
         </div>
+        <ArticleAd Position="ArticleAdPosition.Sidebar" />
         <ContentRecommendation @key="contentMetaData.Slug" Metadata="@contentMetaData" />
+        <div class="[ article-sponsor-space hidden min-h-0 flex-1 flex-col justify-end xl:flex ]">
+            <section aria-label="Sponsorship enquiries" class="[ article-sponsor-panel space-y-3 rounded-xl border border-stone-300 bg-white p-4 dark:border-stone-700 dark:bg-stone-800 ]">
+                <h2 class="[ text-lg font-semibold text-stone-900 dark:text-white ]">Sponsor I ❤️ .NET</h2>
+                <p class="[ text-sm leading-relaxed text-stone-600 dark:text-stone-300 ]">Interested in promoting your developer tool or service here?</p>
+                <a href="https://www.linkedin.com/in/thebhai" target="_blank" rel="noopener noreferrer"
+                   class="[ inline-flex min-h-11 items-center rounded-lg bg-indigo-700 px-3 py-2 text-sm font-semibold text-white no-underline hover:bg-indigo-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ]">
+                    Discuss on LinkedIn <span class="sr-only">(opens in a new tab)</span>
+                </a>
+            </section>
+        </div>
     </aside>
 </section>
 
@@ -69,10 +93,20 @@
     private List<ContentMetaData> channelContents = [];
     private ContentMetaData? previous;
     private ContentMetaData? next;
+    private ElementReference articleBody;
+    private IJSObjectReference? outlineModule;
+    private IReadOnlyList<ArticleHeading> headings = [];
+    private string? outlinedSlug;
+    private bool outlineFailed;
+    private bool disposed;
+    private bool restoreFragmentPending;
+    private ArticleAdContext articleAds = new(null);
     private string ChannelUrl => $"/channels/{contentMetaData.Channel.ToLowerInvariant().ApplyHyphen()}/";
 
     [Parameter, EditorRequired] public RenderFragment ContentBody { get; set; } = default!;
     [Parameter, EditorRequired] public string FileName { get; set; } = default!;
+    [Parameter] public RenderFragment? Introduction { get; set; }
+    [Parameter] public string ImplementationId { get; set; } = "how";
 
     protected override void OnParametersSet()
     {
@@ -83,5 +117,106 @@
         var index = channelContents.FindIndex(content => content.Slug == contentMetaData.Slug);
         previous = index > 0 ? channelContents[index - 1] : null;
         next = index >= 0 && index + 1 < channelContents.Count ? channelContents[index + 1] : null;
+        if (outlinedSlug != contentMetaData.Slug)
+        {
+            headings = [];
+            outlineFailed = false;
+            articleAds = new(null);
+            restoreFragmentPending = false;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (restoreFragmentPending && outlineModule is not null)
+        {
+            restoreFragmentPending = false;
+            try
+            {
+                await outlineModule.InvokeVoidAsync("restoreFragment", articleBody);
+            }
+            catch (JSDisconnectedException) when (disposed)
+            {
+                return;
+            }
+            catch (JSException exception)
+            {
+                Logger.LogWarning(exception, "Unable to open the requested section for article {Slug}", contentMetaData.Slug);
+            }
+        }
+
+        if (outlinedSlug == contentMetaData.Slug)
+        {
+            return;
+        }
+
+        var slug = contentMetaData.Slug;
+        outlinedSlug = slug;
+        try
+        {
+            var module = outlineModule ?? await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./article.js");
+            if (disposed)
+            {
+                await module.DisposeAsync();
+                return;
+            }
+
+            outlineModule = module;
+            var entries = await module.InvokeAsync<ArticleHeading[]>("getHeadings", articleBody);
+            string? midArticleId = null;
+            try
+            {
+                midArticleId = await module.InvokeAsync<string?>("getMidArticleAdId", articleBody);
+            }
+            catch (JSDisconnectedException) when (disposed)
+            {
+                return;
+            }
+            catch (JSException exception)
+            {
+                Logger.LogWarning(exception, "Unable to select a mid-article advertisement for {Slug}", slug);
+            }
+            if (disposed || slug != contentMetaData.Slug)
+            {
+                return;
+            }
+
+            headings = entries;
+            articleAds = new(midArticleId);
+            restoreFragmentPending = true;
+        }
+        catch (JSDisconnectedException) when (disposed)
+        {
+            return;
+        }
+        catch (JSException exception)
+        {
+            Logger.LogWarning(exception, "Unable to load detailed contents for article {Slug}", slug);
+            if (disposed || slug != contentMetaData.Slug)
+            {
+                return;
+            }
+
+            outlineFailed = true;
+            headings = [];
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        disposed = true;
+        if (outlineModule is not null)
+        {
+            try
+            {
+                await outlineModule.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+                // The native web view or browser circuit has already closed.
+            }
+        }
     }
 }

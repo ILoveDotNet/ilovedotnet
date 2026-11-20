@@ -20,6 +20,8 @@ public class CodeSnippetBase : ComponentBase, IAsyncDisposable
     "xml" => "XML",
     "css" => "CSS",
     "sql" => "SQL",
+    "text" or "plaintext" => "Text",
+    "bash" or "shell" or "powershell" => "Shell",
     { } value => value,
     null => "Code"
   };
@@ -31,6 +33,8 @@ public class CodeSnippetBase : ComponentBase, IAsyncDisposable
 
   [Parameter, EditorRequired] public string CssClass { get; set; } = default!;
   [Parameter, EditorRequired] public RenderFragment ChildContent { get; set; } = default!;
+  [Parameter] public string? FileName { get; set; }
+  [Parameter] public string? Context { get; set; }
 
   protected async Task CopyAsync()
   {

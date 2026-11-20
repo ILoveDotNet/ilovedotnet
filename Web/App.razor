@@ -1,13 +1,10 @@
 ﻿@using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 @using Microsoft.AspNetCore.Components.WebAssembly.Services;
-@using Microsoft.Extensions.Logging;
 @using System.Reflection;
-@implements IAsyncDisposable;
 @inject IWebAssemblyHostEnvironment Environment;
 @inject LazyLoaderService LazyLoader;
-@inject ILogger<App> Logger;
 
-<CascadingValue Value="SmallDevice">
+<ResponsiveViewport>
     <Router AppAssembly="@typeof(Program).Assembly" 
             AdditionalAssemblies="@LazyLoader.AdditionalAssemblies" 
             OnNavigateAsync="@OnNavigateAsync"
@@ -25,48 +22,11 @@
     {    
         <Blazor.Analytics.Components.NavigationTracker />
     }
-</CascadingValue>
+</ResponsiveViewport>
 
 @code {
-    const ushort SMALLDEVICEWIDTH = 640;
-
-    private ushort viewPortWidth;
-    private IJSObjectReference? module;
-    private bool SmallDevice = true;
-
-    [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            try
-            {
-                module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/viewport.js");
-
-                viewPortWidth = await module.InvokeAsync<ushort>("getViewPortWidth");
-
-                SmallDevice = viewPortWidth < SMALLDEVICEWIDTH;
-
-                await InvokeAsync(StateHasChanged);
-            }
-            catch (JSException exception)
-            {
-                Logger.LogWarning(exception, "Unable to determine viewport width; retaining the small-device layout.");
-            }
-        }
-    }
-
     private async Task OnNavigateAsync(NavigationContext args)
     {
         await LazyLoader.OnNavigateAsync(args);
-    }
-
-    async ValueTask IAsyncDisposable.DisposeAsync()
-    {
-        if (module is not null)
-        {
-            await module.DisposeAsync();
-        }
     }
 }

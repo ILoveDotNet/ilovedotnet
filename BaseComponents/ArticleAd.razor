@@ -1,0 +1,25 @@
+@inject IHostEnvironment HostEnvironment
+
+@if (HostEnvironment.IsProduction() || HostEnvironment.IsDevelopment() || HostEnvironment.IsPrerendering())
+{
+    <section aria-label="Advertisements" data-article-ad="@Placement" class="@($"[ article-ad not-prose space-y-2 ] {(Position == ArticleAdPosition.Sidebar ? "[ hidden xl:block ]" : "")}")">
+        <p class="[ m-0 text-xs text-stone-600 dark:text-stone-300 ]">Advertisements</p>
+        <GoogleAdSense Type="@(Position == ArticleAdPosition.Sidebar ? GoogleAdSenseAdType.InFeed : GoogleAdSenseAdType.InArticle)"
+                       Format="GoogleAdSenseAdFormat.Fluid"
+                       LayoutKey="@(Position == ArticleAdPosition.Sidebar ? "-7m+de+1z+n+3" : string.Empty)"
+                       Style="text-align:center;"
+                       Slot="@(Position == ArticleAdPosition.Sidebar ? "2741354693" : "3914293965")" />
+    </section>
+}
+
+@code {
+    [Parameter, EditorRequired] public ArticleAdPosition Position { get; set; }
+
+    private string Placement => Position switch
+    {
+        ArticleAdPosition.Sidebar => "sidebar",
+        ArticleAdPosition.MidArticle => "mid-article",
+        ArticleAdPosition.EndOfArticle => "end-of-article",
+        _ => throw new ArgumentOutOfRangeException(nameof(Position))
+    };
+}

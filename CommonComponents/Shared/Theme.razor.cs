@@ -8,6 +8,8 @@ public class ThemeBase : ComponentBase, IAsyncDisposable
 {
   private IJSObjectReference? module;
 
+  [Parameter] public bool Inline { get; set; }
+  protected string ThemeGroupName { get; } = $"theme-{Guid.NewGuid():N}";
   internal DisplayMode DisplayMode { get; private set; }
   internal bool MenuCollapsed { get; private set; } = true;
 

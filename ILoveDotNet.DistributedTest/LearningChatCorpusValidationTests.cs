@@ -6,6 +6,8 @@ namespace ILoveDotNet.DistributedTest;
 
 public class LearningChatCorpusValidationTests(AppFixture fixture) : DistributedPageTest
 {
+  private ILocator ChatStatus => Page.GetByRole(AriaRole.Region, new() { Name = "Learning chat", Exact = true }).GetByRole(AriaRole.Status);
+
   public override BrowserNewContextOptions ContextOptions() => new() { IgnoreHTTPSErrors = true };
 
   [Theory]
@@ -79,7 +81,7 @@ public class LearningChatCorpusValidationTests(AppFixture fixture) : Distributed
     await Expect(Page.GetByRole(AriaRole.Alert)).ToContainTextAsync(expectedError);
     Assert.Equal(0, modelRequests);
     await Page.GetByRole(AriaRole.Button, new() { Name = "Retry loading article search" }).ClickAsync();
-    await Expect(Page.GetByRole(AriaRole.Status)).ToHaveTextAsync("Local article search is ready. Questions stay in this browser.");
+    await Expect(ChatStatus).ToHaveTextAsync("Local article search is ready. Questions stay in this browser.");
     Assert.Equal(1, modelRequests);
     await Expect(Page.GetByRole(AriaRole.Alert)).ToHaveCountAsync(0);
   }

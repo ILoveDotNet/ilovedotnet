@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
+using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
 using CommonComponents.Services;
 using SharedModels;
@@ -9,254 +10,350 @@ namespace CommonComponents.Shared;
 
 public class SearchBase : ComponentBase, IAsyncDisposable
 {
-  private IJSObjectReference? module;
-  private short _selectedListItemIndex = -1;
-  private string _searchText = string.Empty;
-  private List<ContentMetaData> _filteredContents = [];
+  protected enum SearchState { Idle, Loading, Results, Empty, Failed }
+
+  private IJSObjectReference? _module;
+  private HotKeysContext? _hotKeysContext;
+  private int _selectedIndex = -1;
   private int _searchVersion;
-  private CancellationTokenSource? _searchCancellationTokenSource;
-  private readonly CancellationTokenSource _lifetimeCancellationTokenSource = new();
-  private readonly CancellationTokenSource _warmUpDelayCancellationTokenSource = new();
-  private HotKeysContext? HotKeysContext;
+  private int _focusVersion;
+  private bool _hasFocus;
+  private bool _focusInputRequested;
+  private bool _focusButtonRequested;
   private bool _disposed;
+  private CancellationTokenSource? _searchCancellation;
+  private readonly CancellationTokenSource _lifetimeCancellation = new();
+  private readonly CancellationTokenSource _warmUpDelayCancellation = new();
+  private readonly string _componentId = $"search-{Guid.NewGuid():N}";
+  private List<ContentMetaData> _filteredContents = [];
 
-  protected bool HideNonSearchItems;
-  protected Guid _componentId = Guid.NewGuid();
+  protected ElementReference SearchRoot;
   protected ElementReference SearchInput;
-  protected string SearchText
+  protected ElementReference SearchButton;
+  protected bool HideNonSearchItems;
+  protected bool ShowSuggestions;
+  protected string SearchText { get; private set; } = string.Empty;
+  protected SearchState State { get; private set; }
+  protected string SearchError { get; private set; } = string.Empty;
+  protected IReadOnlyList<ContentMetaData> FilteredContents => _filteredContents;
+  protected string ResultsId => $"{_componentId}-results";
+  protected string StatusId => $"{_componentId}-status";
+  protected string OptionId(int index) => $"{_componentId}-{index}";
+  protected bool IsSelected(int index) => index == _selectedIndex;
+  protected string? ActiveOptionId => ShowSuggestions && _selectedIndex >= 0
+      && _selectedIndex < _filteredContents.Count ? OptionId(_selectedIndex) : null;
+  protected string StatusMessage => !ShowSuggestions ? string.Empty : State switch
   {
-    get { return _searchText; }
-    set
-    {
-      _searchText = value;
-
-      if (value.Length == 0)
-      {
-        _selectedListItemIndex = -1;
-      }
-    }
-  }
-  protected bool ShowSuggestions { get; set; }
+    SearchState.Loading => "Searching articles...",
+    SearchState.Empty => "No matching tutorials. Try another topic or browse learning paths.",
+    SearchState.Failed => SearchError,
+    SearchState.Results => $"{_filteredContents.Count} {(_filteredContents.Count == 1 ? "suggestion" : "suggestions")}. Use Up and Down arrow keys to choose, then Enter to open.",
+    _ => string.Empty
+  };
 
   [Inject] private IContentSearchService ContentSearchService { get; set; } = default!;
   [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
   [Inject] private NavigationManager NavigationManager { get; set; } = default!;
   [Inject] private HotKeys HotKeys { get; set; } = default!;
+  [Inject] private ILogger<SearchBase> Logger { get; set; } = default!;
 
   [Parameter, EditorRequired] public EventCallback<bool> ToggleNonSearchItems { get; set; }
   [CascadingParameter] public bool SmallDevice { get; set; }
+
+  protected override async Task OnParametersSetAsync()
+  {
+    if (!SmallDevice && HideNonSearchItems)
+    {
+      HideNonSearchItems = false;
+      await ToggleNonSearchItems.InvokeAsync(false);
+    }
+  }
 
   protected override async Task OnAfterRenderAsync(bool firstRender)
   {
     if (firstRender)
     {
-      var importedModule = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/search.js");
-      if (_disposed)
+      try
       {
-        await importedModule.DisposeAsync();
-        return;
+        var module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/search.js");
+        if (_disposed)
+        {
+          await module.DisposeAsync();
+          return;
+        }
+
+        _module = module;
+        await module.InvokeVoidAsync("initializeSearch", SearchInput);
+        _hotKeysContext = HotKeys.CreateContext().Add(Key.Slash, () => FocusSearchAsync());
+      }
+      catch (JSException exception)
+      {
+        Logger.LogWarning(exception, "Unable to initialize search keyboard enhancements.");
       }
 
-      module = importedModule;
-      HotKeysContext = HotKeys.CreateContext()
-                              .Add(Key.Slash, () => SearchInput.FocusAsync());
-      _ = WarmUpSearchAsync();
+      if (!_disposed) _ = WarmUpSearchAsync();
+    }
+
+    if (_disposed) return;
+    if (_focusInputRequested)
+    {
+      _focusInputRequested = false;
+      await FocusControlAsync(SearchInput);
+    }
+    if (_focusButtonRequested)
+    {
+      _focusButtonRequested = false;
+      await FocusControlAsync(SearchButton);
     }
   }
 
-  protected IReadOnlyList<ContentMetaData> FilteredContents => _filteredContents;
-
-  protected async Task SearchTextChangedAsync(ChangeEventArgs eventArgs)
+  protected Task SearchTextChangedAsync(ChangeEventArgs args)
   {
-    SearchText = eventArgs.Value?.ToString() ?? string.Empty;
-    var searchText = SearchText;
-    var searchVersion = ++_searchVersion;
-    var cancellationTokenSource = new CancellationTokenSource();
-    var cancellationToken = cancellationTokenSource.Token;
-    var previousCancellationTokenSource = Interlocked.Exchange(ref _searchCancellationTokenSource, cancellationTokenSource);
-    if (previousCancellationTokenSource is not null)
-    {
-      await previousCancellationTokenSource.CancelAsync();
-      previousCancellationTokenSource.Dispose();
-    }
+    SearchText = args.Value?.ToString() ?? string.Empty;
+    return RunSearchAsync(debounce: true);
+  }
 
-    if (string.IsNullOrWhiteSpace(SearchText))
-    {
-      _filteredContents = [];
-      ShowSuggestions = false;
-      return;
-    }
+  private async Task RunSearchAsync(bool debounce)
+  {
+    if (_disposed) return;
+    var version = ++_searchVersion;
+    var cancellation = CancellationTokenSource.CreateLinkedTokenSource(_lifetimeCancellation.Token);
+    cancellation.CancelAfter(TimeSpan.FromSeconds(30));
+    var token = cancellation.Token;
+    var previous = Interlocked.Exchange(ref _searchCancellation, cancellation);
+    if (previous is not null) await previous.CancelAsync();
 
+    _selectedIndex = -1;
+    _filteredContents = [];
+    SearchError = string.Empty;
+    State = string.IsNullOrWhiteSpace(SearchText) ? SearchState.Idle : SearchState.Loading;
+    ShowSuggestions = _hasFocus && State != SearchState.Idle;
+    var query = SearchText.Trim();
     try
     {
-      await Task.Delay(400, cancellationToken);
-      var results = await ContentSearchService.SearchAsync(searchText, cancellationToken);
-      if (searchVersion != _searchVersion || !searchText.Equals(SearchText, StringComparison.Ordinal))
-      {
-        return;
-      }
+      if (State == SearchState.Idle) return;
+      if (debounce) await Task.Delay(400, token);
+      var results = await ContentSearchService.SearchAsync(query, token).WaitAsync(token);
+      if (_disposed || version != _searchVersion || token.IsCancellationRequested) return;
 
       _filteredContents = [.. results];
-      ShowSuggestions = _filteredContents.Count > 0;
+      State = _filteredContents.Count == 0 ? SearchState.Empty : SearchState.Results;
     }
-    catch (OperationCanceledException)
+    catch (OperationCanceledException) when (token.IsCancellationRequested)
     {
-      return;
+      if (!_disposed && version == _searchVersion)
+      {
+        SearchError = "Search took too long. Try again or browse learning paths.";
+        State = SearchState.Failed;
+        Logger.LogWarning("Article search timed out.");
+      }
     }
     catch (Exception exception)
     {
-      if (searchVersion == _searchVersion)
+      Logger.LogWarning(exception, "Unable to search articles.");
+      if (!_disposed && version == _searchVersion)
       {
-        _filteredContents = [];
-        ShowSuggestions = false;
+        SearchError = "Search couldn't load. Check your connection and try again, or browse learning paths.";
+        State = SearchState.Failed;
       }
-      System.Diagnostics.Debug.WriteLine(exception.Message);
+    }
+    finally
+    {
+      Interlocked.CompareExchange(ref _searchCancellation, null, cancellation);
+      cancellation.Dispose();
     }
   }
 
   protected async Task FocusHandlerAsync()
   {
-    await _warmUpDelayCancellationTokenSource.CancelAsync();
+    if (_disposed) return;
+    ++_focusVersion;
+    _hasFocus = true;
+    ShowSuggestions = State != SearchState.Idle;
+    await _warmUpDelayCancellation.CancelAsync();
+  }
+
+  protected async Task FocusOutHandlerAsync()
+  {
+    var version = ++_focusVersion;
+    try
+    {
+      if (_module is not null && await _module.InvokeAsync<bool>("containsFocus", SearchRoot)) return;
+    }
+    catch (JSException exception)
+    {
+      Logger.LogWarning(exception, "Unable to determine search focus.");
+    }
+    if (!_disposed && version == _focusVersion)
+    {
+      _hasFocus = false;
+      CloseSuggestions();
+    }
   }
 
   private async Task WarmUpSearchAsync()
   {
     try
     {
-      await Task.Delay(TimeSpan.FromSeconds(1), _warmUpDelayCancellationTokenSource.Token);
-    }
-    catch (OperationCanceledException)
-    {
-      if (_lifetimeCancellationTokenSource.IsCancellationRequested)
+      var lifetimeToken = _lifetimeCancellation.Token;
+      try
       {
-        return;
+        await Task.Delay(TimeSpan.FromSeconds(1), _warmUpDelayCancellation.Token);
       }
-
-      System.Diagnostics.Debug.WriteLine("Vector search warm-up started early because the search box received focus.");
+      catch (OperationCanceledException) when (!lifetimeToken.IsCancellationRequested)
+      {
+        // Focusing search starts the warm-up immediately.
+      }
+      if (!_disposed) await ContentSearchService.WarmUpAsync(lifetimeToken);
     }
-
-    try
+    catch (OperationCanceledException) when (_lifetimeCancellation.IsCancellationRequested)
     {
-      await ContentSearchService.WarmUpAsync(_lifetimeCancellationTokenSource.Token);
     }
     catch (Exception exception)
     {
-      System.Diagnostics.Debug.WriteLine(exception.Message);
+      Logger.LogWarning(exception, "Search warm-up failed; a search will retry initialization.");
     }
+  }
+
+  private async Task FocusSearchAsync()
+  {
+    if (_disposed) return;
+    if (SmallDevice)
+    {
+      HideNonSearchItems = true;
+      await ToggleNonSearchItems.InvokeAsync(true);
+    }
+    _focusInputRequested = true;
+    await InvokeAsync(StateHasChanged);
   }
 
   protected async Task SearchAsync()
   {
-    if (SmallDevice)
-    {
-      HideNonSearchItems = true;
-    }
+    await FocusSearchAsync();
+    if (State != SearchState.Loading && !string.IsNullOrWhiteSpace(SearchText))
+      await RunSearchAsync(debounce: false);
+  }
 
-    await ToggleNonSearchItemAsync();
+  protected async Task RetrySearchAsync()
+  {
+    if (State == SearchState.Loading) return;
+    await FocusControlAsync(SearchInput);
+    _hasFocus = true;
+    await RunSearchAsync(debounce: false);
   }
 
   protected async Task ExitSearchAsync()
   {
-    if (!SmallDevice) return;
-
+    await CancelSearchAsync();
+    State = SearchState.Idle;
+    _filteredContents = [];
+    CloseSuggestions();
     HideNonSearchItems = false;
-
-    await ToggleNonSearchItemAsync();
+    _focusButtonRequested = true;
+    await ToggleNonSearchItems.InvokeAsync(false);
   }
 
-  protected async Task KeyUpHandlerAsync(KeyboardEventArgs eventArgs)
+  protected async Task KeyDownHandlerAsync(KeyboardEventArgs args)
   {
-    await KeyDownHandlerAsync(eventArgs);
-  }
-
-  protected async Task KeyDownHandlerAsync(KeyboardEventArgs eventArgs)
-  {
-    switch (eventArgs.Key)
+    switch (args.Key)
     {
-      case "Enter":
-        OnEnterKey();
-        break;
       case "ArrowDown":
-        await SelectNextItemAsync(+1);
+        await SelectNextItemAsync(1);
         break;
       case "ArrowUp":
         await SelectNextItemAsync(-1);
         break;
+      case "Enter":
+        if (ShowSuggestions && _selectedIndex >= 0 && _selectedIndex < _filteredContents.Count)
+          await OnSelectAsync(_filteredContents[_selectedIndex]);
+        else if (State != SearchState.Loading)
+          await SearchAsync();
+        break;
       case "Escape":
-        await SearchInput.FocusAsync();
-        break;
-      default:
+        if (ShowSuggestions) CloseSuggestions();
+        else if (SmallDevice && HideNonSearchItems) await ExitSearchAsync();
         break;
     }
   }
 
-  protected async Task FocusOutHandlerAsync()
+  private async Task SelectNextItemAsync(int increment)
   {
-    // to avoid race between mouse click of item in suggestion with OnSelect. without this delay OnSelect
-    // is not getting executed when item is clicked from mouse
-    await Task.Delay(250, CancellationToken.None);
-    ShowSuggestions = _selectedListItemIndex != -1;
-    if (!ShowSuggestions)
+    if (State != SearchState.Results || _filteredContents.Count == 0) return;
+    ShowSuggestions = true;
+    _selectedIndex = _selectedIndex < 0
+        ? increment > 0 ? 0 : _filteredContents.Count - 1
+        : Math.Clamp(_selectedIndex + increment, 0, _filteredContents.Count - 1);
+    if (_module is not null)
     {
-      _selectedListItemIndex = -1;
+      try
+      {
+        await _module.InvokeVoidAsync("scrollOptionIntoView", OptionId(_selectedIndex));
+      }
+      catch (JSException exception)
+      {
+        Logger.LogWarning(exception, "Unable to scroll the selected search suggestion into view.");
+      }
     }
   }
 
-  protected void OnSelect(ContentMetaData content)
+  protected async Task OnSelectAsync(ContentMetaData content)
   {
-    SearchText = content.Title.ToLower();
+    await CancelSearchAsync();
+    SearchText = content.Title;
     _filteredContents = [];
-    _selectedListItemIndex = -1;
-    ShowSuggestions = false;
+    State = SearchState.Idle;
+    CloseSuggestions();
+    HideNonSearchItems = false;
+    await ToggleNonSearchItems.InvokeAsync(false);
     NavigationManager.NavigateTo(content.ContentUrl);
   }
 
-  private void OnEnterKey()
+  private void CloseSuggestions()
   {
-    if (!ShowSuggestions)
-      return;
-    if (FilteredContents.Count == 0)
-      return;
-    if (_selectedListItemIndex >= 0 && _selectedListItemIndex < FilteredContents.Count)
-      OnSelect(FilteredContents[_selectedListItemIndex]);
+    ShowSuggestions = false;
+    _selectedIndex = -1;
   }
 
-  private async Task SelectNextItemAsync(short increment)
+  private async Task FocusControlAsync(ElementReference element)
   {
-    if (FilteredContents.Count == 0)
-      return;
-    _selectedListItemIndex = (short)Math.Max(0, Math.Min(FilteredContents.Count - 1, _selectedListItemIndex + increment));
-    var elementIdToFocus = $"{_componentId}_{_selectedListItemIndex}";
-    await module!.InvokeVoidAsync("focusElement", elementIdToFocus);
+    try
+    {
+      await element.FocusAsync();
+    }
+    catch (JSException exception)
+    {
+      Logger.LogWarning(exception, "Unable to focus a search control.");
+    }
   }
 
-  private async Task ToggleNonSearchItemAsync()
+  private async Task CancelSearchAsync()
   {
-    await ToggleNonSearchItems.InvokeAsync(HideNonSearchItems);
+    ++_searchVersion;
+    var cancellation = Interlocked.Exchange(ref _searchCancellation, null);
+    if (cancellation is not null) await cancellation.CancelAsync();
   }
 
   async ValueTask IAsyncDisposable.DisposeAsync()
   {
     _disposed = true;
-    ++_searchVersion;
-    await _lifetimeCancellationTokenSource.CancelAsync();
-    await _warmUpDelayCancellationTokenSource.CancelAsync();
-    _warmUpDelayCancellationTokenSource.Dispose();
-    _lifetimeCancellationTokenSource.Dispose();
-    var searchCancellationTokenSource = Interlocked.Exchange(ref _searchCancellationTokenSource, null);
-    if (searchCancellationTokenSource is not null)
+    ++_focusVersion;
+    await CancelSearchAsync();
+    await _lifetimeCancellation.CancelAsync();
+    await _warmUpDelayCancellation.CancelAsync();
+    _warmUpDelayCancellation.Dispose();
+    _lifetimeCancellation.Dispose();
+    if (_hotKeysContext is not null) await _hotKeysContext.DisposeAsync();
+    if (_module is not null)
     {
-      await searchCancellationTokenSource.CancelAsync();
-      searchCancellationTokenSource.Dispose();
-    }
-    if (HotKeysContext is not null)
-    {
-      await HotKeysContext.DisposeAsync();
-    }
-
-    if (module is not null)
-    {
-      await module.DisposeAsync();
+      try
+      {
+        await _module.InvokeVoidAsync("disposeSearch", SearchInput);
+        await _module.DisposeAsync();
+      }
+      catch (JSDisconnectedException exception)
+      {
+        Logger.LogDebug(exception, "Search disconnected during disposal.");
+      }
     }
   }
 }
