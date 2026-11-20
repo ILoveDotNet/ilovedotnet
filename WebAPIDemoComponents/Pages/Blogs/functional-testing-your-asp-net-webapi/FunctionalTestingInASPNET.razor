@@ -6,55 +6,49 @@
     <ContentBody>
         <What>
             <p>
-                A health check can return <Highlight>200 OK</Highlight> while the API's most important request flow is still broken.
-                A <Highlight>functional test</Highlight> sends a request through the ASP.NET Core application pipeline and checks
+                A health check can return <Highlight>200 OK</Highlight> while an important API request flow is broken.
+                A <Highlight>functional test</Highlight> sends a request through the ASP.NET Core pipeline and checks
                 observable behavior across routing, middleware, services, and persistence.
             </p>
             <p>
-                We will start with the smallest observable behavior: an unauthenticated public health endpoint. Then we will build
-                the shared test infrastructure and extend the same approach to a protected Client endpoint, including a
-                <Highlight>403 Forbidden</Highlight> authorization test. The examples target .NET 11 and xUnit v3; replace sample
-                API types and routes with your own.
+                The examples start with a public health endpoint, then add shared test infrastructure and tests for a protected
+                Client endpoint, including a <Highlight>403 Forbidden</Highlight> authorization check. They target .NET 11 and
+                xUnit v3; replace the sample API types and routes with your own.
             </p>
         </What>
 
         <Why>
             <p>
-                A handler can pass its unit tests while the running API has a broken service registration, authorization policy,
-                database mapping, or middleware order. Only a request through the configured host can expose those integration
-                failures.
+                A handler can pass unit tests while the running API has a broken service registration, authorization policy,
+                database mapping, or middleware order. A request through the configured host exposes these integration failures.
             </p>
             <p>
-                The symptoms are concrete: a health route returns 404, a database write fails with 500, or a request that should be
-                forbidden succeeds. Mocking the database also hides provider-specific behavior, while shared mutable rows and
-                WireMock mappings can make parallel test failures difficult to reproduce. Functional tests take longer than unit
-                tests, so focus them on important request behavior and keep each test's mutable data isolated.
-            </p>
-            <p>
-                We will begin with a public endpoint that needs no identity, then layer in real persistence, controlled outbound
-                HTTP, and test-only claims so each new source of complexity has a clear purpose.
+                A health route might return 404, a database write might fail with 500, or a forbidden request might succeed.
+                Database mocks hide provider-specific behavior, and shared mutable rows or WireMock mappings make parallel
+                failures harder to reproduce. Functional tests take longer than unit tests, so focus them on important request
+                behavior and isolate mutable data.
             </p>
         </Why>
 
         <How>
             <h4 id="project-setup">1. Set up .NET 11 and xUnit v3</h4>
             <p>
-                Target the API and functional-test project at <Highlight>net11.0</Highlight>. Keep ASP.NET Core and EF Core packages
-                on version <Highlight>11.0.0</Highlight>; select a PostgreSQL provider version that explicitly supports EF Core 11
-                and keep the provider and EF Core major versions compatible.
+                Target both projects at <Highlight>net11.0</Highlight>. Use ASP.NET Core and EF Core
+                <Highlight>11.0.0</Highlight>, plus a PostgreSQL provider that supports EF Core 11 and has a compatible major
+                version.
             </p>
             <p>
-                The test project uses xUnit v3, ASP.NET Core's test host, Testcontainers, WireMock.NET, and Bogus. To use the
-                Microsoft Testing Platform (MTP) runner, merge the root <Highlight>global.json</Highlight> setting below and enable
-                the matching project property. For VSTest, omit both MTP settings and use a current xUnit Visual Studio adapter
-                (3.x) with <Highlight>Microsoft.NET.Test.Sdk</Highlight>. See the
+                The test project uses xUnit v3, ASP.NET Core's test host, Testcontainers, WireMock.NET, and Bogus. For the
+                Microsoft Testing Platform (MTP) runner, merge the root <Highlight>global.json</Highlight> setting below and
+                enable the matching project property. For VSTest, omit both MTP settings and use a current xUnit Visual Studio
+                adapter (3.x) with <Highlight>Microsoft.NET.Test.Sdk</Highlight>. See the
                 <NavLink href="https://learn.microsoft.com/dotnet/core/testing/microsoft-testing-platform-intro" target="_blank">MTP overview</NavLink>.
             </p>
             <p>
-                These are version placeholders, not a tested package matrix. Choose stable versions compatible with your target
-                framework, EF Core, and provider. Testcontainers also needs a running Docker-compatible container engine. Run
-                <Highlight>dotnet test --project FunctionalTest/FunctionalTest.csproj</Highlight> to execute the project.
-                If your API does not use PostgreSQL or JWT bearer authentication, omit the corresponding packages and setup.
+                The versions below are placeholders, not a tested package matrix. Choose stable versions compatible with your
+                framework, EF Core, and provider. Testcontainers needs a running Docker-compatible engine. Run
+                <Highlight>dotnet test --project FunctionalTest/FunctionalTest.csproj</Highlight> to execute the project. Omit
+                PostgreSQL or JWT bearer packages and setup if your API does not use them.
             </p>
             <CodeSnippet CssClass="language-xml">
 &lt;!-- API: include only packages used by the application. --&gt;
@@ -96,10 +90,9 @@
 
             <h4 id="public-endpoint">2. Test an unauthenticated public health endpoint first</h4>
             <p>
-                Before adding the assembly fixture, start with a route that is intentionally public so the first test checks
-                routing and the application host without introducing identity or database setup. Use an existing unauthenticated
-                health or ping endpoint if your API has one. Otherwise, add a minimal endpoint such as this to the sample
-                application; do not remove authorization from an existing protected endpoint to make the test pass.
+                Start with a public route to test routing and the application host without identity or database setup. Use an
+                existing unauthenticated health or ping endpoint, or add a minimal endpoint like this to the sample application.
+                Do not remove authorization from a protected endpoint to make the test pass.
             </p>
             <CodeSnippet CssClass="language-csharp">
 using Microsoft.AspNetCore.Authorization;
@@ -108,10 +101,9 @@ app.MapGet("/health", () =&gt; Results.Ok(new { status = "Healthy" }))
     .AllowAnonymous();
             </CodeSnippet>
             <p>
-                The assertion targets the externally visible result: an unauthenticated request to the public route succeeds and
-                returns the expected status. If you already have a health endpoint, change the path and response assertion to match
-                its contract. This is an intermediate smoke test; the assembly-fixture section below explains how to use the shared
-                host in the final test assembly.
+                The assertion checks that an unauthenticated request succeeds with the expected status. Match the path and
+                response to your health endpoint's contract. This is an intermediate smoke test; the assembly-fixture section
+                shows how to share the host in the final test assembly.
             </p>
             <CodeSnippet CssClass="language-csharp">
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -142,16 +134,16 @@ public sealed class HealthTests : IClassFixture&lt;WebApplicationFactory&lt;Prog
             <h4 id="fixture-lifecycle">3. Share expensive infrastructure with an assembly fixture</h4>
             <p>
                 Use an xUnit v3 assembly fixture to own the shared application host and external resources. Its asynchronous
-                initialization starts dependencies before the host creates services; its disposal tears them down after the tests.
-                Each test should still own its own <Highlight>HttpClient</Highlight>, database scope, claims, and mutable records.
-                Once the assembly fixture is registered, xUnit initializes it for the whole test assembly. Change the health test
-                to inject <Highlight>AppFixture</Highlight> and call <Highlight>fixture.CreateClient()</Highlight>, or keep that
-                smoke test in a separate assembly if it must run without containers.
+                initialization starts dependencies before the host creates services, and disposal tears them down after testing.
+                Each test still owns its <Highlight>HttpClient</Highlight>, database scope, claims, and mutable records. Once
+                registered, xUnit initializes the fixture for the assembly. Inject <Highlight>AppFixture</Highlight> into the
+                health test and call <Highlight>fixture.CreateClient()</Highlight>, or keep the smoke test in a separate assembly
+                if it must run without containers.
             </p>
             <p>
-                An assembly fixture does <strong>not</strong> disable xUnit parallel execution. Avoid shared mutable test state,
-                use unique rows, and serialize or isolate tests that change shared resources. In particular, a WireMock server
-                shared by parallel tests needs concurrency-safe mappings and request assertions.
+                An assembly fixture does <strong>not</strong> disable xUnit parallel execution. Avoid shared mutable state, use
+                unique rows, and serialize or isolate tests that change shared resources. A WireMock server shared by parallel
+                tests needs concurrency-safe mappings and request assertions.
             </p>
             <CodeSnippet CssClass="language-csharp">
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -193,15 +185,14 @@ public sealed class HealthTests(AppFixture fixture)
 
             <h4 id="testcontainers">4. Run the real database in Testcontainers</h4>
             <p>
-                Testcontainers starts a disposable PostgreSQL container, so requests exercise the production database provider
-                rather than an in-memory substitute. Use the same provider and required database extensions as production. This
-                example uses <Highlight>pgvector/pgvector:pg16</Highlight>; choose an image that supplies every extension your
-                migrations require.
+                Testcontainers starts a disposable PostgreSQL container so requests exercise the production provider, not an
+                in-memory substitute. Use the same provider and extensions as production. This example uses
+                <Highlight>pgvector/pgvector:pg16</Highlight>; choose an image with every extension your migrations require.
             </p>
             <p>
-                The example gives the API and Identity separate PostgreSQL databases because the Client record is stored in the
-                Identity database. If your application uses one database, remove the Identity container, its connection-string
-                override, the test-owned Identity provider and scope, and the Identity migration and assertion shown later.
+                The example uses separate PostgreSQL databases for the API and Identity because Identity stores the Client
+                record. If your application uses one database, remove the Identity container, connection-string override,
+                test-owned Identity provider and scope, and the Identity migration and assertion shown later.
             </p>
             <CodeSnippet CssClass="language-csharp">
 private readonly PostgreSqlContainer _database =
@@ -217,10 +208,9 @@ var connectionString = _database.GetConnectionString();
 
             <h4 id="migrations-seeding">5. Apply migrations and seed stable prerequisites</h4>
             <p>
-                Apply migrations after the container starts, then seed only deterministic lookup or reference rows that requests
-                need. Keep shared seed data read-only and let each test create its own entities. EF migrations do not populate
-                application-level Identity users, roles, or other prerequisite data; call your Identity initializer explicitly
-                when your application requires it.
+                After the container starts, apply migrations and seed only deterministic lookup rows that requests need. Keep
+                shared seed data read-only; let each test create its own entities. EF migrations do not populate Identity users,
+                roles, or other application prerequisites, so call your Identity initializer when needed.
             </p>
             <CodeSnippet CssClass="language-csharp">
 using API.Data;
@@ -250,14 +240,13 @@ await DatabaseSeeder.SeedAsync(db, cancellationToken);
 
             <h4 id="wiremock">6. Control outbound HTTP with WireMock</h4>
             <p>
-                WireMock lets the API's configured HTTP client make a real HTTP request to a controlled partner endpoint. Stub a
-                stable response during fixture initialization, then verify the matching request when the partner call is part of
-                the behavior under test.
+                WireMock lets the API's configured HTTP client call a controlled partner endpoint. Stub a stable response during
+                fixture initialization, then verify the request when the partner call is part of the behavior under test.
             </p>
             <p>
-                A shared method and path can match another parallel test's request. Include a unique per-test value in the request
-                and verify that value in the matching WireMock request-log entry. Isolate or serialize tests that modify shared
-                mappings; the assembly fixture itself does not make WireMock state thread-safe.
+                A shared method and path can match another parallel test's request. Include a unique value per test and verify it
+                in the WireMock request log. Isolate or serialize tests that modify shared mappings; the assembly fixture does
+                not make WireMock state thread-safe.
             </p>
             <CodeSnippet CssClass="language-csharp">
 var partnerApi = WireMockServer.Start();
@@ -272,9 +261,9 @@ partnerApi.Given(Request.Create()
 
             <h4 id="bogus">7. Generate unique test data with Bogus</h4>
             <p>
-                Use Bogus for per-test entity data and keep prerequisite lookup data deterministic. The fixture's
-                <Highlight>ClientCommand</Highlight> factory adds a random suffix to each generated name so parallel persistence
-                tests do not collide.
+                Use Bogus for per-test entities and deterministic data for prerequisite lookups. The fixture's
+                <Highlight>ClientCommand</Highlight> factory adds a random suffix to each name to prevent collisions in parallel
+                persistence tests.
             </p>
             <CodeSnippet CssClass="language-csharp">
 var clientCommand = new Faker&lt;CreateClientCommand&gt;().RuleFor(
@@ -287,9 +276,8 @@ var command = clientCommand.Generate();
 
             <h4 id="base-test-http">8. Add a base test and focused HTTP extensions</h4>
             <p>
-                A small base test can expose the fixture, a default client, and a test-owned Identity scope. HTTP extensions can
-                centralize response disposal, expected-status assertions, cancellation, and response-body diagnostics without
-                hiding the behavior each test verifies.
+                A base test can expose the fixture, a default client, and a test-owned Identity scope. HTTP extensions centralize
+                response disposal, status assertions, cancellation, and body diagnostics without hiding the behavior under test.
             </p>
             <CodeSnippet CssClass="language-csharp">
 using API.Identity; // Replace with your Identity context namespace.
@@ -349,17 +337,16 @@ internal static class HttpClientExtensions
 }
             </CodeSnippet>
             <p>
-                For an outbound HTTP dependency, prefer WireMock so the real client, serialization, and request configuration still
-                run. For a non-HTTP dependency whose implementation is irrelevant to the scenario, replace only that registration
-                with a focused fake in the fixture placeholder below. Keep the database real when testing database integration.
+                Use WireMock for outbound HTTP so the real client, serialization, and request configuration still run. For an
+                irrelevant non-HTTP dependency, replace only that registration with a focused fake in the fixture below. Keep
+                the database real when testing database integration.
             </p>
 
             <h4 id="production-auth">9. Define production authentication and the Client authorization policy</h4>
             <p>
-                Keep real authentication and authorization in the API. This JWT bearer example validates tokens against configured
-                issuer and audience values; use your application's actual configuration and policies. Here, the Client policy
-                requires the lowercase claim <Highlight>role=master</Highlight>, so the claim type and value are explicit rather
-                than relying on a framework role-name mapping.
+                Keep real authentication and authorization in the API. This JWT bearer example validates configured issuer and
+                audience values; use your application's settings and policies. The Client policy requires the lowercase
+                <Highlight>role=master</Highlight> claim, avoiding reliance on framework role-name mapping.
             </p>
             <CodeSnippet CssClass="language-csharp">
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -383,21 +370,22 @@ app.Run();
             </CodeSnippet>
             <p>
                 Protect the Client action with <Highlight>[Authorize(Policy = "ManageClients")]</Highlight>. The test-only handler
-                introduced next will not validate JWT signatures, issuer, audience, or expiration; keep separate tests using real
-                test tokens for those checks.
+                does not validate JWT signatures, issuer, audience, or expiration; use real test tokens in separate tests for
+                those checks.
             </p>
 
             <h4 id="test-auth">10. Replace authentication only inside the test host</h4>
             <p>
-                A test authentication scheme gives each test client an identity without minting production tokens. The master test
-                identity carries <Highlight>role=master</Highlight>; the lower-role theory uses authenticated
+                A test authentication scheme gives each client an identity without minting production tokens. The master identity
+                carries <Highlight>role=master</Highlight>; the theory tests authenticated
                 <Highlight>role=owner</Highlight>, <Highlight>role=manager</Highlight>, and
-                <Highlight>role=cashier</Highlight> identities. All claim values are lowercase and the identity sets
+                <Highlight>role=cashier</Highlight> identities. Claims are lowercase, and the identity sets
                 <Highlight>RoleClaimType = "role"</Highlight>.
             </p>
             <p>
-                Pass claims per client in a request header instead of mutating shared <Highlight>DefaultRequestHeaders</Highlight>.
-                A malformed header fails authentication instead of silently falling back to the fixture's elevated default identity.
+                Pass claims per client in a request header instead of changing shared
+                <Highlight>DefaultRequestHeaders</Highlight>. A malformed header fails authentication rather than falling back to
+                the fixture's elevated default identity.
             </p>
             <CodeSnippet CssClass="language-csharp">
 using System.Security.Claims;
@@ -437,8 +425,8 @@ public sealed class ClaimsBelowMasterClaim : TheoryData&lt;AuthClaimsProvider&gt
 }
             </CodeSnippet>
             <p>
-                The handler uses fixture defaults when a request has no claims header. The parser accepts only valid Base64 JSON
-                claims, and the delegating handler stamps the selected claims on every request from that client.
+                Without a claims header, the handler uses fixture defaults. The parser accepts only valid Base64 JSON claims, and
+                the delegating handler adds the selected claims to each request from that client.
             </p>
             <CodeSnippet CssClass="language-csharp">
 using Microsoft.AspNetCore.Authentication;
@@ -521,23 +509,23 @@ public static class TestClientExtensions
             </CodeSnippet>
             <p>
                 Register this handler only in the functional-test host. It establishes a test identity, not a production bearer
-                token. Changing the default schemes does not replace a scheme explicitly named by an
+                token. Changing default schemes does not replace one explicitly named by an
                 <Highlight>[Authorize(AuthenticationSchemes = "...")]</Highlight> attribute or policy. Configure those endpoints
-                to use a test-compatible scheme/policy, or use real test tokens; otherwise the named production handler still
-                processes the request. Add the tenant or other claims your policy requires, and create a fresh client for each
-                claims set.
+                to use a compatible test scheme and policy, or use real test tokens; otherwise the named production handler still
+                processes requests. Add required tenant or other claims, and create a client for each claims set.
             </p>
 
             <h4 id="app-fixture">11. Assemble the shared AppFixture</h4>
             <p>
-                This complete fixture connects the pieces: the assembly attribute selects its lifecycle, Testcontainers supplies
-                both databases, WireMock stands in for the partner, and initialization applies migrations and seeds prerequisites.
-                Replace sample contexts, connection-string keys, and seed logic with your API's equivalents.
+                This fixture combines the assembly lifecycle, Testcontainers databases, WireMock partner, and migration and seed
+                setup before starting the web host. This keeps database-dependent hosted services from starting against an
+                unmigrated schema. Replace the sample contexts, connection-string keys, and seed logic with your API's
+                equivalents, and include any additional DbContext configuration your app needs.
             </p>
             <p>
-                The marked service-registration placeholder is optional: remove a production service and register a focused fake
-                only when that service is outside the behavior being tested. If your app has one database, remove the Identity
-                container and its test-owned services as described above.
+                The service-registration placeholder is optional. Replace a production service with a focused fake only when the
+                service is outside the behavior under test. If your app has one database, remove the Identity container and its
+                test-owned services as described above.
             </p>
             <CodeSnippet CssClass="language-csharp">
 using API.Data;
@@ -640,8 +628,12 @@ public sealed class AppFixture : WebApplicationFactory&lt;Program&gt;, IAsyncLif
             // Run your Identity initializer here if lookup/prerequisite data is needed.
         }
 
-        await using var scope = Services.CreateAsyncScope();
-        var db = scope.ServiceProvider.GetRequiredService&lt;AppDbContext&gt;();
+        var appDbServices = new ServiceCollection();
+        appDbServices.AddDbContext&lt;AppDbContext&gt;(options =>
+            options.UseNpgsql(_database.GetConnectionString()));
+        await using var appDbProvider = appDbServices.BuildServiceProvider();
+        await using var appDbScope = appDbProvider.CreateAsyncScope();
+        var db = appDbScope.ServiceProvider.GetRequiredService&lt;AppDbContext&gt;();
         await db.Database.MigrateAsync(cancellationToken);
         await DatabaseSeeder.SeedAsync(db, cancellationToken);
     }
@@ -660,9 +652,8 @@ public sealed class AppFixture : WebApplicationFactory&lt;Program&gt;, IAsyncLif
 
             <h4 id="client-tests">12. Test Client persistence and reject lower roles</h4>
             <p>
-                Now extend the walkthrough from the public health route to the protected Client endpoint. This sample creates a
-                Client as a master user and verifies the saved row in the Identity database; adapt its command, DTO, context, and
-                route to your API. Then send authenticated lower-role users and verify the policy returns
+                This sample creates a Client as a master user and verifies the row in the Identity database. Adapt its command,
+                DTO, context, and route to your API, then verify authenticated lower-role users receive
                 <Highlight>403 Forbidden</Highlight>.
             </p>
             <CodeSnippet CssClass="language-csharp">
@@ -705,9 +696,9 @@ public sealed class ClientTests(AppFixture fixture, ITestOutputHelper output)
 }
             </CodeSnippet>
             <p>
-                The forbidden theory's identities authenticate successfully but lack the exact
-                <Highlight>role=master</Highlight> claim required by the policy. Keep records unique across parallel tests, and
-                isolate or serialize tests that mutate shared WireMock mappings.
+                The forbidden theory's identities authenticate but lack the exact
+                <Highlight>role=master</Highlight> claim. Keep records unique across parallel tests, and isolate or serialize
+                tests that mutate shared WireMock mappings.
             </p>
         </How>
 

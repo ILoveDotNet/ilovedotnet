@@ -7,93 +7,77 @@
     <ContentBody>
         <What>
             <p>
-                A new developer should not need a map of terminals just to start the application.
-                <Highlight>Aspire</Highlight> gives an existing distributed system one
-                code-defined <Highlight>AppHost</Highlight> that describes its services,
-                databases, tools, and connections, then starts them together.
+                <Highlight>Aspire</Highlight> starts an existing distributed system through one code-defined
+                <Highlight>AppHost</Highlight>, which describes its services, databases, tools, and connections.
             </p>
             <p>
-                This article shows how to add that orchestration layer to an existing production
-                application, what <Highlight>ServiceDefaults</Highlight> contributes, and how to
-                use the dashboard, database resources, and isolated worktree runs. It focuses on
-                application wiring; your services keep their existing business logic.
+                This article covers adding Aspire to an existing application, using
+                <Highlight>ServiceDefaults</Highlight>, the dashboard and database resources, and isolated worktree runs. It
+                focuses on wiring; services keep their existing business logic.
             </p>
         </What>
 
         <Why>
             <p>
-                Starting a system with many services by hand means remembering container runtimes,
-                environment settings, startup order, and which terminal owns each process. In a
-                real application, a local graph may contain around <Highlight>30 resources</Highlight>:
-                projects, databases, message brokers, user interfaces, and supporting tools.
-                That count describes a development graph, not 30 containers or a production rollout.
+                Starting many services by hand means managing container runtimes, environment settings, startup order, and
+                terminals. A local graph may contain around <Highlight>30 resources</Highlight>, including projects, databases,
+                brokers, user interfaces, and tools. This describes the development graph, not 30 containers or a production
+                rollout.
             </p>
             <p>
-                Recreating that graph for every teammate makes onboarding slow and local setups
-                inconsistent. A shared AppHost gives developers and AI coding agents an
-                end-to-end view of the system, while one launch and one dashboard replace the
-                startup checklist.
+                Recreating the graph for each teammate slows onboarding and creates inconsistent setups. A shared AppHost gives
+                developers and AI coding agents an end-to-end view, replacing the startup checklist with one launch and dashboard.
             </p>
             <p>
-                Stale data also makes a clean checkout behave differently from a long-lived
-                workstation. A fresh database resource plus the application's existing migration
-                and seed process gives each new local run a predictable baseline; Aspire itself
-                does not reset or seed business data. Point tests at disposable local resources;
-                Aspire does not prevent an AppHost from connecting to shared staging data.
+                Stale data can make a clean checkout behave differently from a long-lived workstation. A fresh database resource
+                and the application's migration and seed process provide a predictable baseline; Aspire does not reset or seed
+                business data. Use disposable local resources for tests: Aspire does not prevent an AppHost from connecting to
+                shared staging data.
             </p>
         </Why>
 
         <How>
             <h4>1. Initialize Aspire in the solution you already have</h4>
             <p>
-                Use the existing solution's required .NET SDK, a running container runtime, and
-                the Aspire CLI. If the CLI is not installed, the .NET global tool is one supported
-                option:
+                Use the solution's required .NET SDK, a running container runtime, and the Aspire CLI. Install the CLI as a .NET
+                global tool if needed:
             </p>
             <CodeSnippet CssClass="language-powershell">
 dotnet tool install -g Aspire.Cli
 aspire --version
             </CodeSnippet>
             <p>
-                Run the version command to verify installation, then clone or open the existing
-                solution and follow its local configuration process. Keep credentials in the
-                team's approved local secret store, not in source files.
+                Verify the installation with the version command, then open the solution and follow its local configuration
+                process. Keep credentials in the team's approved local secret store, not source files.
             </p>
             <CodeSnippet CssClass="language-powershell">
 aspire init
             </CodeSnippet>
             <p>
-                Let the CLI discover the workspace and guide you through its prompts; choose C#
-                if it asks for the AppHost language.
-                In a <Highlight>.sln</Highlight> or <Highlight>.slnx</Highlight> workspace,
-                <Highlight>aspire init</Highlight> scaffolds a project-based AppHost with project
-                references and strongly typed <Highlight>AddProject</Highlight> calls for solution
-                projects. It establishes the orchestration entry point; it does not infer every
-                application-specific resource, dependency, or service setting.
+                Let the CLI discover the workspace and follow its prompts; choose C# if asked for the AppHost language. In a
+                <Highlight>.sln</Highlight> or <Highlight>.slnx</Highlight> workspace, <Highlight>aspire init</Highlight>
+                scaffolds a project-based AppHost with project references and strongly typed
+                <Highlight>AddProject</Highlight> calls. It does not infer every application-specific resource, dependency, or
+                service setting.
             </p>
             <p>
-                Add an infrastructure integration with the CLI instead of hand-editing package
-                files. This adds PostgreSQL hosting support to the AppHost; it does not create
-                application data:
+                Add PostgreSQL hosting support to the AppHost with the CLI; this does not create application data:
             </p>
             <CodeSnippet CssClass="language-powershell">
 aspire add postgres
             </CodeSnippet>
             <p>
-                If the CLI offers agent setup, enable it for your coding agent and ask it to run
-                the installed <Highlight>aspireify</Highlight> skill. The skill can inspect the
-                solution, ask you to confirm the proposed resources, wire dependencies, configure
-                ServiceDefaults and telemetry, then smoke-test with
-                <Highlight>aspire start</Highlight>. Review the proposed graph and settings
-                before accepting them; initialization alone does not know every application
+                If offered, enable agent setup and ask your coding agent to run the installed
+                <Highlight>aspireify</Highlight> skill. It can inspect the solution, propose resources for your review, wire
+                dependencies, configure ServiceDefaults and telemetry, and smoke-test with
+                <Highlight>aspire start</Highlight>. Review the graph and settings; initialization cannot infer every application
                 contract.
             </p>
 
             <h4>2. Describe the existing production topology in the AppHost</h4>
             <p>
-                An AppHost is a separate development-time process, not a new business service.
-                For the production application described here, the AppHost looks something like
-                this, with project and resource names anonymized:
+                The AppHost is a separate development-time process, not a business service. This production-shaped example
+                anonymizes project and resource names:
             </p>
             <CodeSnippet CssClass="language-csharp">
 var builder = DistributedApplication.CreateBuilder(args);
@@ -132,31 +116,27 @@ await builder.Build().RunAsync();
             </CodeSnippet>
             <p>
                 <Highlight>WithReference</Highlight> supplies service-discovery endpoints or a
-                database connection string under the name the existing service expects.
-                <Highlight>WaitFor</Highlight> declares startup dependencies; it waits for a
-                dependency's health check when one is configured, or its running state otherwise.
+                database connection string under the name the service expects.
+                <Highlight>WaitFor</Highlight> declares startup dependencies and waits for a
+                configured health check, or otherwise for the dependency to run.
                 Both <Highlight>web</Highlight> and <Highlight>landing</Highlight> must expose
                 <Highlight>/health</Highlight> in the test environment, using the ServiceDefaults
-                setup below. These AppHost checks make the companion fixture wait for HTTP
-                readiness rather than just running processes.
+                setup below. This lets the companion fixture wait for HTTP readiness rather than just running processes.
             </p>
             <p>
-                The three connection-string names show how one database resource can preserve
-                existing Identity, Commands, and Queries configuration. In the production-shaped
-                graph, the AppHost derives OpenID Connect redirect and logout callbacks from the
-                web HTTPS endpoint at runtime instead of hard-coding a machine port. Aspire's
-                PostgreSQL connection properties can also be consumed by C#, TypeScript, Python,
-                Go, and other apps using their own database clients.
+                The AppHost maps the existing Identity, Commands, and Queries connection-string names to two databases on one
+                PostgreSQL server resource. It derives OpenID Connect redirect and logout callbacks from the web HTTPS endpoint
+                at runtime instead of hard-coding a machine port. Apps in C#, TypeScript, Python, Go, and other languages can
+                consume Aspire's PostgreSQL connection properties with their own database clients.
             </p>
 
             <h4>3. Use ServiceDefaults for shared service configuration</h4>
             <p>
                 <Highlight>ServiceDefaults</Highlight> is shared configuration used by participating
-                application projects; the AppHost does not replace it. Aspire templates use it as
-                a central place for OpenTelemetry logging, metrics and distributed traces,
-                runtime and HTTP instrumentation, service discovery, and shared
-                <Highlight>HttpClient</Highlight> defaults. The generated extension also provides
-                conventions for <Highlight>/health</Highlight> and <Highlight>/alive</Highlight>.
+                application projects; the AppHost does not replace it. Aspire templates use it for OpenTelemetry logging,
+                metrics and distributed traces, runtime and HTTP instrumentation, service discovery, and shared
+                <Highlight>HttpClient</Highlight> defaults. Its generated extension also provides conventions for
+                <Highlight>/health</Highlight> and <Highlight>/alive</Highlight>.
             </p>
             <CodeSnippet CssClass="language-csharp">
 var builder = WebApplication.CreateBuilder(args);
@@ -166,30 +146,24 @@ var app = builder.Build();
 app.MapDefaultEndpoints();
             </CodeSnippet>
             <p>
-                Keep the shared behavior consistent across services, then customize it centrally
-                for your application. Defaults are not a promise that every production service
-                uses identical health checks or retries: teams can disable or adjust particular
-                registrations to match their reliability and readiness requirements. The
-                production-shaped setup here customizes standard health and resilience
-                registrations; the snippet shows common template integration points, not a claim
-                that every template default is active in that system.
+                Keep shared behavior consistent, then customize it centrally. Services need not use identical health checks or
+                retries; adjust registrations to meet reliability and readiness requirements. The production-shaped setup
+                customizes standard health and resilience registrations. The snippet shows common integration points, not every
+                active template default.
             </p>
 
             <h4>4. Add databases, brokers, and non-.NET resources as needed</h4>
             <p>
-                Add integrations such as PostgreSQL or Kafka with the CLI, then model each
-                resource and reference it from its consumers. The graph can also include
-                non-.NET services, existing images, and administration tools. A broker reference
-                supplies configuration and startup coordination; application code still owns
-                migrations, seed data, message handling, and business behavior.
+                Add integrations such as PostgreSQL or Kafka with the CLI, then model each resource and reference it from its
+                consumers. The graph can include non-.NET services, existing images, and administration tools. A broker
+                reference supplies configuration and startup coordination; application code still owns migrations, seed data,
+                message handling, and business behavior.
             </p>
             <p>
-                For a new local run, use a session-lifetime database container without a persistent
-                volume. The existing application startup or migration process should create its
-                schema and seed the expected development data before the service reports ready.
-                That gives a new AppHost run a clean baseline without asking Aspire to invent
-                business data. A persistent volume or remote database keeps its state; Aspire does
-                not clean it or guarantee isolation from shared environments.
+                For a clean local run, use a session-lifetime database container without a persistent volume. The application's
+                startup or migration process should create the schema and seed development data before the service reports ready.
+                A persistent volume or remote database retains its state; Aspire does not clean it or guarantee isolation from
+                shared environments.
             </p>
 
             <h4>5. Launch once, inspect the graph, and isolate worktrees</h4>
@@ -200,20 +174,16 @@ app.MapDefaultEndpoints();
 dotnet run
             </CodeSnippet>
             <p>
-                The AppHost starts the modeled resources. Open the dashboard URL shown in its
-                output to inspect endpoints, health, logs, and traces together. In an IDE, choosing the
-                AppHost as the startup project gives the same one-click local launch. Press
-                Ctrl+C to stop the session and its managed resources; this is local orchestration,
-                not a production deployment.
+                The AppHost starts the modeled resources. Open the dashboard URL in its output to inspect endpoints, health, logs,
+                and traces. In an IDE, select the AppHost as the startup project for a one-click launch. Press Ctrl+C to stop the
+                session and its managed resources; this is local orchestration, not a production deployment.
             </p>
             <p>
-                When an AI coding agent works in a different Git worktree, use
-                <Highlight>aspire run --isolated</Highlight> from that worktree to run its
-                application alongside your own. Aspire randomizes dashboard and
-                service endpoint ports, including configured predictable ports, and isolates
-                instance user secrets. Application code and external tools that hard-code URLs,
-                shared volumes or container names, and remote databases remain shared resources;
-                configure those separately when worktrees must not affect each other.
+                To run an AI coding agent's application alongside yours in another Git worktree, run
+                <Highlight>aspire run --isolated</Highlight> there. Aspire randomizes dashboard and service endpoint ports,
+                including configured predictable ports, and isolates instance user secrets. Hard-coded URLs, shared volumes or
+                container names, and remote databases remain shared resources; configure them separately when worktrees must not
+                affect each other.
             </p>
             <CodeSnippet CssClass="language-powershell">
 aspire run --isolated
