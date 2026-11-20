@@ -16,6 +16,41 @@ public class LearningChatTests(AppFixture fixture) : DistributedPageTest
     IgnoreHTTPSErrors = true,
   };
 
+  [Theory]
+  [InlineData(390)]
+  [InlineData(767)]
+  [InlineData(768)]
+  public async Task LearningChat_ComposerAndStatusFitAboveNavigationWithoutPageScrollingAsync(int width)
+  {
+    await Page.SetViewportSizeAsync(width, 844);
+    await Context.RouteAsync("**/lib/transformers/transformers.min.js", route =>
+        route.FulfillAsync(new()
+        {
+          ContentType = "text/javascript",
+          Body = "export const env = {}; export async function pipeline() { return async () => {}; }",
+        }));
+    await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, "chat/");
+    await Expect(ChatStatus).ToContainTextAsync("Local article search is ready");
+
+    var navigation = Page.GetByRole(AriaRole.Navigation, new() { Name = "Primary", Exact = true });
+    await Expect(navigation).ToBeVisibleAsync();
+    var chat = Page.GetByRole(AriaRole.Region, new() { Name = "Learning chat", Exact = true });
+    foreach (var control in new[] { chat.GetByRole(AriaRole.Textbox), ChatStatus })
+    {
+      Assert.True(await control.EvaluateAsync<bool>("""
+          element => {
+            const bounds = element.getBoundingClientRect();
+            const header = document.querySelector('#header').getBoundingClientRect();
+            const navigation = document.querySelector('nav[aria-label="Primary"]').getBoundingClientRect();
+            const limit = innerWidth < 768 ? navigation.top : innerHeight;
+            return bounds.top >= header.bottom && bounds.bottom <= limit + 1;
+          }
+          """), "The composer and status must stay above fixed navigation without scrolling the page.");
+    }
+    Assert.True(await Page.EvaluateAsync<bool>(
+        "() => document.documentElement.scrollHeight <= innerHeight + 1"));
+  }
+
   [Fact]
   public async Task LearningChatPage_HasMetadataStructuredDataAndStaticSitemapEntryAsync()
   {

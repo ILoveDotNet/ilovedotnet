@@ -54,7 +54,7 @@ public class VectorSearchTests(AppFixture fixture) : DistributedPageTest
   public async Task SearchBox_ReturnsTheClosestArticleAsync()
   {
     const string expectedSlug = "using-github-copilot-ai-for-navigating-new-codebase";
-    var expectedTitle = new SharedModels.TableOfContents().Contents.Single(content => content.Slug == expectedSlug).Title;
+    var expectedArticle = new SharedModels.TableOfContents().Contents.Single(content => content.Slug == expectedSlug);
 
     var metadata = await GetSuccessfulResponseAsync("search/index.json");
     var index = JsonSerializer.Deserialize<SearchIndexFile>(await metadata.TextAsync());
@@ -102,7 +102,7 @@ public class VectorSearchTests(AppFixture fixture) : DistributedPageTest
       await input.FillAsync("find an article about navigating a new codebase with copilot");
 
       var firstResult = Page.GetByRole(AriaRole.Option).First;
-      await Expect(firstResult).ToHaveTextAsync(expectedTitle, new() { Timeout = 15_000 });
+      await Expect(firstResult).ToHaveTextAsync(expectedArticle.Title, new() { Timeout = 15_000 });
       await Expect(input).ToHaveAttributeAsync("role", "combobox");
       await Expect(input).ToHaveAttributeAsync("aria-expanded", "true");
       await input.PressAsync("ArrowDown");
@@ -133,7 +133,7 @@ public class VectorSearchTests(AppFixture fixture) : DistributedPageTest
       else
       {
         await input.PressAsync("Enter");
-        await Expect(Page).ToHaveURLAsync(new Uri(WebBaseUrl, $"blogs/{expectedSlug}/").AbsoluteUri);
+        await Expect(Page).ToHaveURLAsync(new Uri(WebBaseUrl, expectedArticle.ContentUrl).AbsoluteUri);
       }
     }
   }
