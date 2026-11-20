@@ -6,28 +6,26 @@
     <ContentBody>
         <What>
             <p>
-                There is a silent killer lurking in many domain models. It does not crash on day one. It does not throw exceptions. 
-                It quietly strips away information every time data is saved&mdash;until the day a business requirement arrives that 
-                your model simply cannot answer.
+                This article shows how to model domain data so that useful distinctions and precision survive storage. It applies
+                the idea to names, rates, addresses, audit records, and loyalty points, then derives display values and balances
+                from the stored facts.
             </p>
 
             <p>
-                That killer is <Highlight>information loss through premature reduction</Highlight>. It happens when a domain model 
-                stores a <Highlight>derived</Highlight> or <Highlight>formatted</Highlight> value instead of the original, specific 
-                data it was computed from. The concept of <Highlight>storing data in its richest form</Highlight> is a DDD principle 
-                that says: <em>always prefer storing the most atomic, detailed representation of a fact</em>, because you can 
-                always derive a simpler form from rich data&mdash;but you can never reconstruct rich data from a simplified form.
+                <Highlight>Storing data in its richest form</Highlight> is a domain-driven design (DDD) modeling guideline:
+                preserve the source facts and distinctions that the domain needs, rather than storing only a formatted or
+                derived value. A model can derive a simpler value when it retains the required facts and rules; it cannot
+                reliably recover distinctions that were discarded.
             </p>
 
             <p>
-                In this article, we walk through five real-world scenarios where this trap appears in .NET codebases,
-                why each causes long-term pain, and how <Highlight>well-designed Value Objects</Highlight> lock in
-                the richest form of every piece of information from the moment it enters your system.
+                The examples use <Highlight>Value Objects</Highlight> and entity design to preserve domain-relevant data.
+                Choose the fields to match the facts your application actually receives and the rules it must support.
             </p>
         </What>
 
         <Why>
-            <h4>Information Loss Is a One-Way Door</h4>
+            <h4>A Full Name Does Not Preserve Name Parts</h4>
 
             <p>
                 Consider how a team stores a person's name for a Customer entity:
@@ -42,17 +40,14 @@ public class Customer
             </CodeSnippet>
 
             <p>
-                Looks harmless. Then the marketing team asks for personalised emails that begin with 
-                "Hi Abdul,". Then the reporting team needs to sort customers by last name. 
-                Then the payments team needs the legal first name on invoices. Suddenly the team is 
-                writing fragile string-splitting logic: <Highlight>FullName.Split(' ')[0]</Highlight>&mdash;which 
-                fails catastrophically for "Mary Jane Watson" or "José García López".
+                A single string cannot answer queries about name parts unless the application retained those parts
+                separately. Splitting on spaces is unreliable: a name can contain multiple given or family names, or
+                follow a different naming convention. Do not infer fields by splitting a display name.
             </p>
 
             <p>
-                The original data <em>had</em> a first name and a last name. By collapsing them into one string, 
-                that distinction was permanently erased. There is no reliable way to reconstruct what was intentionally 
-                separate.
+                If the source supplied separate name fields and the model collapsed them, that distinction is lost.
+                If the source supplied only a display name, the model cannot safely invent the missing boundaries.
             </p>
 
             <h4>The Percentage Trap</h4>
@@ -76,9 +71,8 @@ var discount = new Discount { Rate = 1m / 3m }; // 0.3333333333...
 
             <p>
                 The original intent was "one-third". Once you store it as a <Highlight>decimal</Highlight>, 
-                the fraction <Highlight>1/3</Highlight> cannot be represented exactly — 
-                <Highlight>decimal</Highlight> gives you 28 significant digits but never an infinite repeating mantissa. 
-                Across thousands of multi-step calculations this tiny representation error compounds:
+                the fraction <Highlight>1/3</Highlight> cannot be represented exactly as a finite
+                <Highlight>decimal</Highlight>. Repeated operations can carry that approximation forward:
             </p>
 
             <CodeSnippet CssClass="language-csharp">
@@ -90,8 +84,9 @@ decimal fullTax = partialTax * 3m;     // 99.999999999999999999999999990
             </CodeSnippet>
 
             <p>
-                Small error per transaction. Significant discrepancy across thousands of ledger entries. 
-                And you can never recover the exact original fraction from the stored representation.
+                The example shows how the stored decimal approximation affects later arithmetic. The impact depends on
+                the calculation and its rounding policy; retaining the numerator and denominator preserves the original
+                rate, while monetary results still need an explicit rounding rule.
             </p>
 
             <h4>The Formatted Address Problem</h4>
@@ -110,11 +105,11 @@ public class Order
 
             <p>
                 One day the logistics system needs to group shipments by city. Another day the tax 
-                engine needs the country code. Regex against a free-text field is not a domain model&mdash;it 
-                is a maintenance nightmare.
+                engine needs the country code. Extracting those values from a formatted address requires fragile,
+                region-specific parsing.
             </p>
 
-            <h4>The Audit Trail That Cannot Be Queried</h4>
+            <h4>Unstructured Audit Messages Are Hard to Query</h4>
 
             <p>
                 A team logs changes as human-readable sentences:
@@ -129,34 +124,33 @@ public class AuditEntry
             </CodeSnippet>
 
             <p>
-                Works fine for displaying in a changelog. Then compliance asks: "Show me every price 
-                change greater than &pound;20 in Q1 2026." There is no way to query that from an unstructured 
-                message string without parsing text&mdash;and text parsing breaks on the first typo.
+                A display string is difficult to query reliably. To find price changes greater than &pound;20 in Q1 2026,
+                the application would have to parse the message and account for variations in wording, dates, and currency.
             </p>
 
             <h4>The Loyalty Points Balance Trap</h4>
 
             <p>
-                This is the most instructive example. Consider a <Highlight>Customer</Highlight> entity in 
-                a loyalty programme with two business use cases:
+                Consider a <Highlight>Customer</Highlight> entity in a loyalty programme with two business use cases:
             </p>
 
             <CodeSnippet CssClass="language-csharp">
 public class Customer : Entity
 {
-    public LoyaltyPoints Points { get; private set; }
+    public LoyaltyPoints Points { get; private set; } = LoyaltyPoints.Zero;
 
-    // Use case 1: customer places an order — earn points
+    // Earn points when a customer places an order.
     public void AddLoyaltyPoints(LoyaltyPoints points)
     {
         Points += points;
     }
 
-    // Use case 2: customer redeems points — minimum balance of 250 required
+    // Redemption is allowed only when the current balance is at least 250.
     public void RedeemLoyaltyPoints(LoyaltyPoints points)
     {
+        // This sketch assumes comparisons between LoyaltyPoints and integer thresholds.
         if (Points &lt; 250 || points &gt; Points)
-            throw new Exception();
+            throw new InvalidOperationException("The customer cannot redeem this amount.");
 
         Points -= points;
     }
@@ -164,40 +158,34 @@ public class Customer : Entity
             </CodeSnippet>
 
             <p>
-                The code addresses both use cases perfectly&mdash;until a new requirement arrives. When a customer 
-                removes an item from an existing order, the <Highlight>Order</Highlight> entity must subtract the 
-                difference in loyalty points. Three approaches come to mind and all three fail:
+                A later order adjustment may require removing points earned for that order, even when the customer's
+                current balance is below 250. Reusing the redemption operation applies the wrong rule; passing a
+                negative amount violates the value object's non-negative invariant. An unqualified subtract method
+                also hides whether the change represents an order adjustment or a redemption.
             </p>
 
             <ul class="[ list-disc ] [ ml-4 ]">
-                <li>
-                    Reuse <Highlight>RedeemLoyaltyPoints</Highlight>&mdash;but it validates a minimum of 250 points 
-                    and throws for customers with a zero balance.
-                </li>
+                <li>Reuse <Highlight>RedeemLoyaltyPoints</Highlight>, but it applies the redemption eligibility rule.</li>
                 <li>
                     Pass a negative value to <Highlight>AddLoyaltyPoints</Highlight>&mdash;but 
                     <Highlight>LoyaltyPoints</Highlight> cannot be negative by business rule. Allowing it here 
                     violates the always-valid domain model principle.
                 </li>
                 <li>
-                    Add a new <Highlight>SubtractLoyaltyPoints</Highlight> method without the 250-point guard&mdash;but 
-                    now two public methods perform point subtraction and neither name reveals which business use case 
-                    it serves.
+                    Add a generic <Highlight>SubtractLoyaltyPoints</Highlight> method without the redemption guard,
+                    but its name does not express which business operation it represents.
                 </li>
             </ul>
 
             <p>
-                The inability to find a method name that maps cleanly to the new use case is a red flag. The single 
-                <Highlight>Points</Highlight> field is too crude: it cannot distinguish between 
-                <em>removing earned points</em> (order adjustment) and <em>adding to the redeemed total</em> 
-                (customer redemption)&mdash;two operations with completely different validation rules.
+                A single balance also hides the distinction between points earned and points redeemed. Those facts have
+                different sources and validation rules, so a balance alone cannot answer questions about either total.
             </p>
 
             <p>
-                In each case above, the rich data existed at the time of capture. The model just failed 
-                to preserve it. <Highlight>DDD Value Objects</Highlight> and disciplined entity design 
-                are the mechanisms that fix this by making the richest form the only form your domain 
-                will accept.
+                The model should preserve distinctions that arrive from its input or that its business rules need.
+                Value Objects and explicit entity operations help represent those distinctions without assuming that
+                every input already contains more detail than it does.
             </p>
         </Why>
 
@@ -205,7 +193,8 @@ public class Customer : Entity
             <h4>Step 1: Replace Full Name with a PersonName Value Object</h4>
 
             <p>
-                Instead of a single string, capture first and last name as separate, validated components:
+                When the domain receives given and family names as separate facts, represent those fields directly.
+                Do not use this shape for a domain that receives only an unstructured display name.
             </p>
 
             <CodeSnippet CssClass="language-csharp">
@@ -257,18 +246,19 @@ Console.WriteLine(customer.Name.Full);   // Abdul Rahman
             </CodeSnippet>
 
             <p>
-                <Highlight>Full</Highlight> is a computed property. It is never stored. You can always derive 
-                the formatted name from the structured data, but you can never go the other way.
+                <Highlight>Full</Highlight> is a display convenience derived from the two fields. Real name formats
+                vary, so use a formatter that matches the domain's requirements rather than treating this concatenation
+                as a universal name format.
             </p>
 
             <p>
-                Because the properties use <Highlight>&#123; get; &#125;</Highlight> rather than <Highlight>init</Highlight>, 
-                the record is fully immutable — <Highlight>with</Highlight> expressions are intentionally disabled. 
-                To update a name, create a fresh <Highlight>PersonName</Highlight> via <Highlight>PersonName.Of(...)</Highlight>.
+                The get-only properties cannot be changed through a <Highlight>with</Highlight> expression. Create a
+                new <Highlight>PersonName</Highlight> with <Highlight>PersonName.Of(...)</Highlight> when the name changes.
             </p>
 
             <p>
-                EF Core maps this cleanly using <Highlight>OwnsOne</Highlight>:
+                A basic EF Core owned-type mapping can configure separate columns with <Highlight>OwnsOne</Highlight>.
+                Verify the generated migration and materialization with your EF Core version and database provider:
             </p>
 
             <CodeSnippet CssClass="language-csharp">
@@ -295,15 +285,15 @@ public record Fraction
     public int Denominator { get; }
 
     // Derive the decimal representation only when needed
-    // (Constructor already validates Denominator != 0; guard is defensive)
+    // The constructor ensures the denominator is positive.
     public decimal AsDecimal =&gt;
-        Denominator == 0 ? 0m : (decimal)Numerator / Denominator;
+        (decimal)Numerator / Denominator;
 
     private Fraction(int numerator, int denominator)
     {
-        if (denominator == 0)
-            throw new ArgumentException(
-                "Denominator cannot be zero.", nameof(denominator));
+        if (denominator &lt;= 0)
+            throw new ArgumentOutOfRangeException(
+                nameof(denominator), "Denominator must be positive.");
 
         // This Fraction models a proportion (0 &lt;= n &lt;= d), not a general rational number.
         // e.g. Fraction.Of(1, 3) = valid discount rate; Fraction.Of(4, 3) = invalid (&gt; 100%).
@@ -327,7 +317,8 @@ public record Fraction
             </CodeSnippet>
 
             <p>
-                The <Highlight>Discount</Highlight> entity now stores the fraction, and applies it without precision loss:
+                The <Highlight>Discount</Highlight> retains the exact numerator and denominator. It divides when applying
+                the rate, then rounds the monetary result to two decimal places using the chosen midpoint rule:
             </p>
 
             <CodeSnippet CssClass="language-csharp">
@@ -343,17 +334,19 @@ public class Discount
             MidpointRounding.AwayFromZero);
 }
 
-// Usage
+// Usage: amount taken off, not the remaining amount due
 var discount = Discount.Create(1, 3);
-var discounted = discount.Apply(300m); // Exactly 100.00, not 99.99999990
-Console.WriteLine(discounted);         // 100.00
+var discountAmount = discount.Apply(10m); // Rounded to 3.33
+Console.WriteLine(discountAmount);         // 3.33
 
 Console.WriteLine(discount.Rate);      // 1/3  — the intent is preserved
             </CodeSnippet>
 
             <p>
-                The difference is significant in regulated financial domains. Divide first, lose precision forever. 
-                Store the fraction, calculate precisely on each use.
+                Storing the fraction preserves the rate's intent; it does not make every decimal result exact. Choose
+                the rounding scale and midpoint rule to match the business and currency requirements. The two decimal
+                places and <Highlight>AwayFromZero</Highlight> rule here illustrate one policy for a two-decimal currency;
+                other currencies and domains may require a different policy.
             </p>
 
             <h4>Step 3: Replace Formatted Address with an Address Value Object</h4>
@@ -369,18 +362,31 @@ public record Address
     public string? Line2 { get; }
     public string City { get; }
     public string PostCode { get; }
-    public string CountryCode { get; }  // ISO 3166-1 alpha-2, e.g. "GB"
+    public string CountryCode { get; }  // ISO 3166-1 alpha-2 format, e.g. "GB"
 
     private Address(
         string line1, string? line2,
         string city, string postCode, string countryCode)
     {
-        // Guards: Line1, City, PostCode non-empty; CountryCode exactly 2 chars (ISO 3166-1)
+        if (string.IsNullOrWhiteSpace(line1))
+            throw new ArgumentException("Address line 1 is required.", nameof(line1));
+        if (string.IsNullOrWhiteSpace(city))
+            throw new ArgumentException("City is required.", nameof(city));
+        if (string.IsNullOrWhiteSpace(postCode))
+            throw new ArgumentException("Post code is required.", nameof(postCode));
+        var normalizedCountryCode = countryCode?.Trim();
+        if (normalizedCountryCode is null ||
+            normalizedCountryCode.Length != 2 ||
+            normalizedCountryCode.Any(c =&gt;
+                !((c &gt;= 'A' &amp;&amp; c &lt;= 'Z') || (c &gt;= 'a' &amp;&amp; c &lt;= 'z'))))
+            throw new ArgumentException(
+                "Country code must contain two ASCII letters.", nameof(countryCode));
+
         Line1       = line1.Trim();
         Line2       = line2?.Trim();
         City        = city.Trim();
-        PostCode    = postCode.Trim().ToUpperInvariant();
-        CountryCode = countryCode?.Trim().ToUpperInvariant() ?? string.Empty;
+        PostCode    = postCode.Trim();
+        CountryCode = normalizedCountryCode.ToUpperInvariant();
     }
 
     public static Address Of(
@@ -416,11 +422,23 @@ var addressLine = order.ShippingAddress.Formatted;
 // "14 Baker Street, London, NW1 6XE, GB"
             </CodeSnippet>
 
+            <p>
+                Uppercasing the post code is a normalization policy for supported postal systems, not a universal
+                address rule. Apply country-specific normalization only where the relevant postal rules allow it.
+            </p>
+
+            <p>
+                The factory validates the country-code format, not membership in the ISO 3166-1 alpha-2 list.
+                Validate membership against an authoritative list when the domain requires a recognized code.
+            </p>
+
             <h4>Step 4: Replace Audit Messages with Structured Audit Entries</h4>
 
             <p>
-                Store the precise before and after values as typed fields, not as a pre-rendered string.
-                Here <Highlight>Money</Highlight> represents a Value Object encapsulating an amount and currency:
+                Store before and after prices, the actor, and the timestamp as fields rather than a pre-rendered string.
+                Here <Highlight>Money</Highlight> represents an amount and currency. The query below assumes both prices
+                use the same currency. This example assumes <Highlight>Money</Highlight> exposes an amount and a
+                string <Highlight>CurrencyCode</Highlight>:
             </p>
 
             <CodeSnippet CssClass="language-csharp">
@@ -434,7 +452,7 @@ public record PriceChangeAudit
     // Derive the human-readable message on-demand
     public string Summary =&gt;
         $"Price changed from {OldPrice} to {NewPrice} " +
-        $"by {ChangedBy} at {ChangedAt:yyyy-MM-dd HH:mm}";
+        $"by {ChangedBy} at {ChangedAt:O}";
 
     private PriceChangeAudit(
         Guid changedBy,
@@ -449,22 +467,41 @@ public record PriceChangeAudit
     }
 
     public static PriceChangeAudit Record(
-        Guid changedBy, Money oldPrice, Money newPrice) =&gt;
-        new(changedBy, oldPrice, newPrice, DateTimeOffset.UtcNow);
+        Guid changedBy, Money oldPrice, Money newPrice)
+    {
+        if (!string.Equals(
+                oldPrice.CurrencyCode,
+                newPrice.CurrencyCode,
+                StringComparison.Ordinal))
+            throw new InvalidOperationException(
+                "A price change must use the same currency.");
+
+        return new(
+            changedBy, oldPrice, newPrice, DateTimeOffset.UtcNow);
+    }
 }
             </CodeSnippet>
 
             <p>
-                With structured fields, the compliance query that was previously impossible is now trivial:
+                The query uses a half-open UTC interval: include the start instant and exclude the next quarter's
+                start. If the business defines quarters in a local time zone, calculate those boundaries in that
+                time zone before converting them to UTC. The GBP assumption must also hold when recording each price
+                change; do not subtract raw amounts from different currencies.
+            </p>
+
+            <p>
+                With structured fields, the compliance query is direct:
             </p>
 
             <CodeSnippet CssClass="language-csharp">
-// Compliance: price changes greater than £20 in Q1 2026
+// Compliance: changes greater than £20 during Q1 2026.
+// This query defines Q1 in UTC and assumes both prices use GBP.
 var q1Start = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
-var q1End   = new DateTimeOffset(2026, 3, 31, 23, 59, 59, TimeSpan.Zero);
+var q2Start = new DateTimeOffset(2026, 4, 1, 0, 0, 0, TimeSpan.Zero);
 
 var significantChanges = auditLog
-    .Where(a =&gt; a.ChangedAt &gt;= q1Start &amp;&amp; a.ChangedAt &lt;= q1End)
+    .Where(a =&gt; a.ChangedAt &gt;= q1Start &amp;&amp; a.ChangedAt &lt; q2Start)
+    .Where(a =&gt; a.OldPrice.CurrencyCode == "GBP")
     .Where(a =&gt; Math.Abs(a.NewPrice.Amount - a.OldPrice.Amount) &gt; 20m)
     .OrderByDescending(a =&gt; a.ChangedAt)
     .ToList();
@@ -477,18 +514,20 @@ foreach (var entry in significantChanges)
             <h4>Step 5: Replace the Single Loyalty Points Balance with Its Source Data</h4>
 
             <p>
-                The root cause is storing the <em>remainder</em>&mdash;a derived value&mdash;instead of the 
-                two source values that produce it. Splitting <Highlight>Points</Highlight> into 
+                Store earned and redeemed totals separately, then calculate the balance from them. Splitting
+                <Highlight>Points</Highlight> into
                 <Highlight>PointsEarned</Highlight> and <Highlight>PointsRedeemed</Highlight>
                 (both <Highlight>LoyaltyPoints</Highlight> Value Objects supporting arithmetic and comparison operators)
-                and computing the balance on-demand dissolves every ambiguity:
+                and computing the balance on-demand makes the current totals explicit. These illustrative comparisons
+                assume <Highlight>LoyaltyPoints</Highlight> defines the required operators and an implicit conversion
+                from integers. Alternatively, represent 250 as a named <Highlight>LoyaltyPoints</Highlight> value.
             </p>
 
             <CodeSnippet CssClass="language-csharp">
 public class Customer : Entity
 {
-    public LoyaltyPoints PointsEarned   { get; private set; }
-    public LoyaltyPoints PointsRedeemed { get; private set; }
+    public LoyaltyPoints PointsEarned   { get; private set; } = LoyaltyPoints.Zero;
+    public LoyaltyPoints PointsRedeemed { get; private set; } = LoyaltyPoints.Zero;
 
     // Derive the balance — never store it
     public LoyaltyPoints Points =&gt; PointsEarned - PointsRedeemed;
@@ -500,13 +539,18 @@ public class Customer : Entity
 
     public void ReduceEarnedPoints(LoyaltyPoints points)
     {
+        if (points &gt; Points)
+            throw new InvalidOperationException(
+                "Cannot remove points that have already been redeemed.");
+
         PointsEarned -= points;
     }
 
     public void RedeemPoints(LoyaltyPoints points)
     {
         if (Points &lt; 250 || points &gt; Points)
-            throw new Exception(); // use a domain-specific exception in production
+            throw new InvalidOperationException(
+                "The customer cannot redeem this amount.");
 
         PointsRedeemed += points;
     }
@@ -514,18 +558,17 @@ public class Customer : Entity
             </CodeSnippet>
 
             <p>
-                Each method now maps to exactly one business use case. 
+                Each method now expresses a distinct business operation.
                 <Highlight>IncreaseEarnedPoints</Highlight> and <Highlight>ReduceEarnedPoints</Highlight> 
-                handle order lifecycle changes without the 250-point guard. 
+                handle order adjustments without the redemption eligibility rule. This example rejects an adjustment
+                that would make the balance negative; a system with a different policy should model that explicitly.
                 <Highlight>RedeemPoints</Highlight> handles customer redemption with full validation. 
-                The problematic <Highlight>SubtractLoyaltyPoints</Highlight> was never needed&mdash;the 
-                design problem dissolved when the data was stored in its richest form.
+                The separate totals make those operations and their rules explicit.
             </p>
 
             <p>
-                As a bonus, <Highlight>PointsEarned</Highlight> and <Highlight>PointsRedeemed</Highlight> 
-                can now each be displayed to the customer separately&mdash;information that was invisible 
-                when only the remainder was stored.
+                The model can also display earned and redeemed totals separately. The balance alone did not retain
+                either total.
             </p>
 
             <p>
@@ -537,17 +580,21 @@ public class Customer : Entity
             <CodeSnippet CssClass="language-csharp">
 public class Customer : Entity
 {
-    public Order[] Orders               { get; private set; }  // simplified; use IReadOnlyList&lt;Order&gt; in production
-    public LoyaltyPoints PointsRedeemed { get; private set; }
+    public Order[] Orders               { get; private set; } = Array.Empty&lt;Order&gt;();
+    public LoyaltyPoints PointsRedeemed { get; private set; } = LoyaltyPoints.Zero;
 
     // Both are derived — neither is stored
-    public LoyaltyPoints PointsEarned =&gt; Orders.Sum(x =&gt; x.LoyaltyPoints);
+    public LoyaltyPoints PointsEarned =&gt;
+        Orders.Aggregate(
+            LoyaltyPoints.Zero,
+            (total, order) =&gt; total + order.LoyaltyPoints);
     public LoyaltyPoints Points        =&gt; PointsEarned - PointsRedeemed;
 
     public void RedeemPoints(LoyaltyPoints points)
     {
         if (Points &lt; 250 || points &gt; Points)
-            throw new Exception(); // use a domain-specific exception in production
+            throw new InvalidOperationException(
+                "The customer cannot redeem this amount.");
 
         PointsRedeemed += points;
     }
@@ -555,13 +602,17 @@ public class Customer : Entity
             </CodeSnippet>
 
             <p>
-                Earned points are now controlled by the <Highlight>Order</Highlight> class, so 
-                <Highlight>IncreaseEarnedPoints</Highlight> and <Highlight>ReduceEarnedPoints</Highlight> 
-                are no longer needed on <Highlight>Customer</Highlight>. Taken to the logical extreme, 
-                this progression leads to Event Sourcing&mdash;where individual events are the highest 
-                possible form of information. How far to go depends on project needs: for most systems, 
-                <Highlight>PointsEarned</Highlight> + <Highlight>PointsRedeemed</Highlight> is the 
-                right balance.
+                Because <Highlight>LoyaltyPoints</Highlight> is a custom type, this aggregate calculation assumes it
+                defines <Highlight>Zero</Highlight> and an addition operator. It also assumes the array contains all
+                relevant orders before the balance is calculated and that LINQ is in scope. This is an in-memory
+                sketch; persisted models can calculate the total with a database query instead of loading every order.
+            </p>
+
+            <p>
+                This version derives earned points from the associated orders, so changes to order points become the
+                source of that total. Event Sourcing is a separate architectural choice that stores a sequence of
+                domain events; it is not a required endpoint of this modeling approach. Choose the simplest model that
+                preserves the facts and history your application needs.
             </p>
 
             <h4>Step 6: Apply the Richest Form Checklist Before Finalising a Value Object</h4>
@@ -574,9 +625,9 @@ public class Customer : Entity
 Richest Form Checklist
 ======================
 
-1. Can any stored property be derived from other stored properties?
+1. Can a stored property be derived from other stored properties?
    - YES → consider removing the derived property and computing it.
-   - NO  → you are already in the richest form.
+   - NO  → continue.
 
 2. Is any stored property a concatenation or aggregation of smaller facts?
    - YES → split those facts into individual typed properties.
@@ -592,7 +643,11 @@ Richest Form Checklist
 
 5. Is any stored property a derived total of upstream source values?
    - YES → store the source values separately; derive the total on-demand.
-   - NO  → you are recording the richest available form.
+   - NO  → continue.
+
+6. Would a derived value need to be persisted for performance or snapshot consistency?
+   - YES → persist it deliberately and define how it stays consistent.
+   - NO  → derive it from its source facts.
             </CodeSnippet>
 
             <p>
@@ -610,16 +665,17 @@ Loyalty Points      | int Points (remainder)      | PointsEarned + PointsRedeeme
             </CodeSnippet>
 
             <p>
-                In every case, the derived or formatted string can be computed from the rich data. 
-                But the rich data can never be reliably reconstructed from the simplified string.
+                Preserve the source facts and distinctions that the domain needs. Derive presentation values when the
+                source facts and formatting rules are available, and persist calculated values deliberately when the
+                application requires them.
             </p>
         </How>
 
         <Summary>
             <p>
-                <Highlight>Storing data in its richest form</Highlight> is a foundational discipline in 
-                Domain-Driven Design. It is not about over-engineering&mdash;it is about preserving the 
-                full intent and precision of every fact that enters your system.
+                <Highlight>Storing data in its richest form</Highlight> means preserving the domain-relevant facts
+                needed for decisions, queries, and future changes. It does not mean modeling every possible detail
+                or avoiding all derived values.
             </p>
 
             <p>
@@ -628,31 +684,31 @@ Loyalty Points      | int Points (remainder)      | PointsEarned + PointsRedeeme
 
             <ul class="[ list-disc ] [ ml-4 ]">
                 <li>
-                    <Highlight>Derived data is always computable</Highlight>: Format, concatenate, and 
-                    compute on-demand as properties&mdash;never store the result.
+                    <Highlight>Derive values when practical</Highlight>: Format and calculate from source facts when
+                    the rules are available. Persist derived values deliberately when performance or snapshot
+                    consistency requires it.
                 </li>
                 <li>
-                    <Highlight>Collapsed data is unrecoverable</Highlight>: Once you store "Abdul Rahman" 
-                    as a single string, the first-name/last-name boundary is gone forever.
+                    <Highlight>Discarded distinctions cannot be inferred reliably</Highlight>: Do not assume a
+                    display name contains recoverable first-name and last-name boundaries.
                 </li>
                 <li>
-                    <Highlight>Fractions beat decimals</Highlight>: Store numerator and denominator; 
-                    divide only at the point of rendering or calculation.
+                    <Highlight>Preserve rates when precision matters</Highlight>: Store a numerator and denominator
+                    when the rate is rational, then apply the required rounding policy to monetary results.
                 </li>
                 <li>
-                    <Highlight>Strings are not structured data</Highlight>: If a string contains multiple 
-                    facts, split those facts into typed value object properties.
+                    <Highlight>Strings do not preserve structure by themselves</Highlight>: Model known,
+                    domain-relevant components as typed fields instead of trying to infer them from display text.
                 </li>
                 <li>
-                    <Highlight>Value Objects enforce the discipline</Highlight>: A <Highlight>record</Highlight>-based 
-                    Value Object with a private constructor and factory method makes the richest form the 
-                    only form your domain will accept.
+                    <Highlight>Value Objects represent domain rules</Highlight>: Use a <Highlight>record</Highlight>
+                    with a controlled factory when it helps keep valid, domain-specific values together.
                 </li>
             </ul>
 
             <p>
-                Apply the <Highlight>Richest Form Checklist</Highlight> before finalising every Value Object. 
-                Your future self&mdash;and the compliance team&mdash;will thank you.
+                Use the <Highlight>Richest Form Checklist</Highlight> to review whether your model retains the facts
+                the application needs and whether derived values have an explicit consistency policy.
             </p>
         </Summary>
     </ContentBody>

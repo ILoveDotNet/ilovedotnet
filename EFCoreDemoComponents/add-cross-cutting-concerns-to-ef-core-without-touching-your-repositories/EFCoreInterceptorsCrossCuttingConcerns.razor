@@ -6,42 +6,42 @@
     <ContentBody>
         <What>
             <p>
-                Open five repositories in a typical <Highlight>EF Core</Highlight> codebase and you'll usually find the same three lines copy-pasted into every single one: a log line before saving, a check for who made the change, and a silent hope that nobody forgets to add it to repository number six. <Highlight>EF Core interceptors</Highlight> let you delete all of that duplication by plugging directly into the <Highlight>DbContext</Highlight> pipeline itself.
+                <Highlight>EF Core interceptors</Highlight> hook into selected points in the <Highlight>DbContext</Highlight> pipeline, including connection operations, query compilation, commands, and saves. This article shows how to use them for connection diagnostics, query limits, save-result logging, and basic audit events.
             </p>
             <p>
-                An interceptor is just a class that EF Core calls at a specific point in its lifecycle - when a connection opens, when a query compiles, when changes are saved. Register it once, and every <Highlight>DbContext</Highlight> instance in your app picks up the behavior automatically, whether the call came from a repository, a background job, or a minimal API endpoint.
+                An interceptor runs only for operations that pass through a configured EF Core context. It does not automatically observe direct ADO.NET calls or operations that bypass <Highlight>SaveChanges</Highlight>.
             </p>
         </What>
 
         <Why>
             <p>
-                Picture a growing order-management API. Every repository that touches <Highlight>SaveChangesAsync</Highlight> also needs to write an audit row saying what changed and who changed it. So each repository method ends up with a near-identical block: build an audit entry, attach it to the context, save. Twelve repositories, twelve nearly-identical blocks.
+                Repeating logging and audit setup in every repository makes behavior easy to apply inconsistently. A new code path can omit the shared logic even though it compiles and appears to work.
             </p>
             <p>
-                Now someone adds repository thirteen and forgets the audit block. Nobody notices for weeks, because the code compiles fine and the happy path works. The gap only shows up when compliance asks for a full history of who deleted a record and that data simply doesn't exist. The same story repeats for connection diagnostics and for guarding against a repository method that silently returns without saving anything - each concern is duplicated everywhere it's needed, and each duplicate is a place it can be forgotten.
-            </p>
-            <p>
-                <Highlight>EF Core interceptors</Highlight> move that logic out of every repository and into one place that <Highlight>DbContext</Highlight> itself is guaranteed to call, so the behavior can't be skipped by accident.
+                Interceptors centralize behavior for EF Core operations, but they do not guarantee a complete audit history by themselves. The application still needs to decide which changes to record and account for raw SQL, bulk operations, and other paths that do not call <Highlight>SaveChanges</Highlight>.
             </p>
         </Why>
 
         <How>
             <h4>Where interceptors fit in the DbContext lifecycle</h4>
             <p>
-                A <Highlight>DbContext</Highlight> moves through a predictable lifecycle on every unit of work, and each stage has a matching family of interceptors:
+                Interceptors attach to specific EF Core operations; they are not stages in one fixed <Highlight>DbContext</Highlight> lifecycle:
             </p>
             <CodeSnippet CssClass="language-text">
-Initialize DbContext  --&gt;  Track Changes  --&gt;  Execute &amp; Save  --&gt;  Dispose
-      (Connection)          (Query)            (SaveChanges,          (Connection)
-                                                 Command)
+DbContext operations
+  |-- Query compilation: IQueryExpressionInterceptor
+  |-- Connection events: DbConnectionInterceptor
+  |-- Commands: DbCommandInterceptor
+  |-- Saves: SaveChangesInterceptor
+  `-- Connection disposal: DbConnectionInterceptor
             </CodeSnippet>
             <p>
-                Because <Highlight>DbContext</Highlight> should be treated as a short-lived unit of work rather than a long-running singleton, most interceptors are registered with the <Highlight>same scoped lifetime</Highlight> as the context. A few - the ones that don't depend on any single context instance - must be registered as singletons instead, and EF Core marks those with the <Highlight>ISingletonInterceptor</Highlight> interface. We'll call that out for each example below.
+                Choose an interceptor lifetime based on its state. A stateless, thread-safe interceptor can be shared as a singleton; an interceptor that holds request- or context-specific state should use a scoped lifetime. Follow EF Core's lifetime requirements for interceptor interfaces that require singleton registration.
             </p>
 
             <h4>Log connection activity with a DbConnectionInterceptor</h4>
             <p>
-                The simplest interceptor watches the raw ADO.NET connection underneath <Highlight>DbContext</Highlight> - when it's created, opened, closed, and disposed. This is useful for diagnosing connection-pool exhaustion or unexpected reconnects without adding logging calls anywhere near your business logic.
+                This example logs connection creation synchronously and closure and disposal asynchronously. Add the synchronous close and dispose callbacks too if the application uses synchronous database operations; override the opened callbacks to measure connection-open events.
             </p>
             <CodeSnippet CssClass="language-csharp">
 public class OrderConnectionDiagnosticsInterceptor(
@@ -67,12 +67,12 @@ public class OrderConnectionDiagnosticsInterceptor(
 }
             </CodeSnippet>
             <p>
-                <Highlight>DbConnectionInterceptor</Highlight> doesn't implement <Highlight>ISingletonInterceptor</Highlight>, so it's safe - and correct - to register it with the same scoped lifetime as your <Highlight>DbContext</Highlight>.
+                This interceptor holds no context-specific state, so it can be shared as a singleton if the logger and any added state remain thread-safe. Scoped registration is also appropriate when you need request-specific dependencies.
             </p>
 
             <h4>Cap unbounded result sets with a query expression interceptor</h4>
             <p>
-                A repository method like <Highlight>GetAllOrdersAsync</Highlight> looks harmless in development with a handful of test rows. In production, with three years of order history, that same method can pull hundreds of thousands of rows into memory. A query expression interceptor lets you rewrite the query itself before EF Core compiles it, so every query gets a safety net automatically.
+                A query expression interceptor can add a limit before EF Core compiles a query. Applying the same limit to every query can also truncate reports or change pagination results, so use a global limit only when that behavior is valid for every affected query.
             </p>
             <CodeSnippet CssClass="language-csharp">
 public class MaxRowLimitInterceptor : IQueryExpressionInterceptor
@@ -81,8 +81,10 @@ public class MaxRowLimitInterceptor : IQueryExpressionInterceptor
 
     private static readonly MethodInfo TakeMethodInfo = typeof(Queryable)
         .GetMethods()
-        .Where(m => m.Name == nameof(Queryable.Take))
-        .First();
+        .Where(m => m.Name == nameof(Queryable.Take)
+            &amp;&amp; m.GetParameters().Length == 2
+            &amp;&amp; m.GetParameters()[1].ParameterType == typeof(int))
+        .Single();
 
     public Expression QueryCompilationStarting(Expression queryExpression, QueryExpressionEventData eventData)
     {
@@ -98,12 +100,12 @@ public class MaxRowLimitInterceptor : IQueryExpressionInterceptor
 }
             </CodeSnippet>
             <p>
-                This one derives from <Highlight>ISingletonInterceptor</Highlight>, because it's stateless and relies on reflection metadata that's expensive to rebuild - register it once as a singleton, and EF Core reuses the same instance for every context.
+                This interceptor has no per-context state and can be registered as a singleton. Keep it thread-safe if multiple contexts use the same instance.
             </p>
 
-            <h4>Guard against silent no-op saves with a SaveChangesInterceptor</h4>
+            <h4>Log zero-entry saves with a SaveChangesInterceptor</h4>
             <p>
-                <Highlight>SaveChangesAsync</Highlight> returns an integer: the number of rows written. A repository method that calls it after a bug wipes out its own change tracking will still "succeed" while writing zero rows - and nothing about that looks like a failure unless you're specifically checking for it.
+                <Highlight>SaveChangesAsync</Highlight> returns the number of state entries written. A zero result can be expected, so this interceptor reports it for review rather than treating it as an error.
             </p>
             <CodeSnippet CssClass="language-csharp">
 public class NoOpSaveGuardInterceptor(ILogger&lt;NoOpSaveGuardInterceptor&gt; logger) : SaveChangesInterceptor
@@ -115,7 +117,7 @@ public class NoOpSaveGuardInterceptor(ILogger&lt;NoOpSaveGuardInterceptor&gt; lo
     {
         if (result &lt; 1)
         {
-            logger.LogWarning("SaveChangesAsync completed but modified zero rows");
+            logger.LogWarning("SaveChangesAsync completed but wrote zero state entries");
         }
 
         return await base.SavedChangesAsync(eventData, result, cancellationToken);
@@ -125,10 +127,10 @@ public class NoOpSaveGuardInterceptor(ILogger&lt;NoOpSaveGuardInterceptor&gt; lo
 
             <h4>Write audit rows automatically with the same interceptor type</h4>
             <p>
-                Because a <Highlight>SaveChangesInterceptor</Highlight> sees the change tracker right before it saves, it's also the right place to generate audit rows for every insert, update, and delete - without a single repository method knowing that auditing exists. <Highlight>Thread.CurrentPrincipal</Highlight> below exposes the current user's name, and <Highlight>AuditEntry</Highlight> is a plain entity with <Highlight>EntityName</Highlight>, <Highlight>Action</Highlight>, <Highlight>ChangedBy</Highlight>, and <Highlight>ChangedOnUtc</Highlight> properties.
+                A <Highlight>SaveChangesInterceptor</Highlight> can add audit entities from tracked changes before the save. This example records the entity type, operation, user name, and time; it does not record keys or property values and is not a complete audit history. In an ASP.NET Core application, use the request's user identity rather than <Highlight>Thread.CurrentPrincipal</Highlight>. Background jobs need an explicit actor identity.
             </p>
             <CodeSnippet CssClass="language-csharp">
-public class AuditTrailInterceptor() : SaveChangesInterceptor
+public class AuditTrailInterceptor(IHttpContextAccessor httpContextAccessor) : SaveChangesInterceptor
 {
     public override async ValueTask&lt;InterceptionResult&lt;int&gt;&gt; SavingChangesAsync(
         DbContextEventData eventData,
@@ -151,18 +153,18 @@ public class AuditTrailInterceptor() : SaveChangesInterceptor
             {
                 EntityName = entry.Entity.GetType().Name,
                 Action = entry.State.ToString(),
-                ChangedBy = Thread.CurrentPrincipal?.Identity?.Name ?? "User Unknown",
+                ChangedBy = httpContextAccessor.HttpContext?.User.Identity?.Name ?? "Unknown",
                 ChangedOnUtc = DateTime.UtcNow
             })];
 }
             </CodeSnippet>
             <p>
-                Notice there's no explicit call to <Highlight>SaveChangesAsync</Highlight> here - the audit rows just get added to the same change tracker, so they're written in the very same transaction as the data change they're describing.
+                The audit entities join the context's pending changes and are saved with them. With EF Core's normal transactional save behavior, both sets of rows commit or roll back together.
             </p>
 
             <h4>Register every interceptor and get the lifetime right</h4>
             <p>
-                Add each interceptor to dependency injection, then pull them all into the context through <Highlight>IEnumerable&lt;IInterceptor&gt;</Highlight> and wire them up in <Highlight>OnConfiguring</Highlight>:
+                Register the interceptors with the lifetimes their state requires, then pass them to <Highlight>AddInterceptors</Highlight> from the context configuration:
             </p>
             <CodeSnippet CssClass="language-csharp">
 // Program.cs
@@ -170,6 +172,7 @@ builder.Services.AddScoped&lt;IInterceptor, OrderConnectionDiagnosticsIntercepto
 builder.Services.AddScoped&lt;IInterceptor, NoOpSaveGuardInterceptor&gt;();
 builder.Services.AddScoped&lt;IInterceptor, AuditTrailInterceptor&gt;();
 builder.Services.AddSingleton&lt;IInterceptor, MaxRowLimitInterceptor&gt;();
+builder.Services.AddHttpContextAccessor();
 
 // OrderContext.cs
 public class OrderContext(
@@ -181,7 +184,7 @@ public class OrderContext(
 }
             </CodeSnippet>
             <p>
-                Every repository that injects <Highlight>OrderContext</Highlight> now gets connection diagnostics, a query row cap, zero-row-save warnings, and a full audit trail - without a single one of those repositories knowing any of these interceptors exist.
+                Every operation through this configured context uses these interceptors. Review the query limit, audit scope, and logging policy before applying the same configuration to every context.
             </p>
         </How>
 
@@ -190,11 +193,11 @@ public class OrderContext(
                 Key takeaways from this article:
             </p>
             <ul>
-                <li><Highlight>Interceptors</Highlight> plug into specific stages of the <Highlight>DbContext</Highlight> lifecycle - connection, query, and save - so cross-cutting logic lives in one place instead of every repository</li>
+                <li><Highlight>Interceptors</Highlight> observe selected EF Core operations through configured contexts; they do not cover direct ADO.NET or every bulk-operation path</li>
                 <li>A <Highlight>DbConnectionInterceptor</Highlight> gives you visibility into connection open/close/dispose events for diagnostics</li>
                 <li>An <Highlight>IQueryExpressionInterceptor</Highlight> can rewrite a query's expression tree before it compiles - useful for guardrails like row limits</li>
-                <li>A <Highlight>SaveChangesInterceptor</Highlight> can both validate the result of a save and generate audit rows in the same transaction</li>
-                <li>Match the interceptor's lifetime to whether it implements <Highlight>ISingletonInterceptor</Highlight> - most are scoped, a few must be singletons</li>
+                <li>A <Highlight>SaveChangesInterceptor</Highlight> can log save results or add audit entities, but a complete audit design needs keys, values, and coverage for non-<Highlight>SaveChanges</Highlight> operations</li>
+                <li>Use singleton registration only for thread-safe interceptors whose state can be shared; otherwise scope their state appropriately</li>
             </ul>
             <p>
                 Explore the <NavLink href="channels/efcore/">EF Core tutorial and learning path</NavLink> for the full Entity Framework Core series. What to read next: now that cross-cutting concerns are handled, learn how to <Highlight>enforce schema standards automatically</Highlight> in <NavLink href="blogs/enforce-database-schema-standards-automatically-with-ef-core-conventions/">EF Core conventions for Code First schema standards</NavLink>, or jump ahead to <NavLink href="blogs/catch-slow-queries-and-rewrite-them-on-the-fly-with-ef-core-command-interceptors/">EF Core command interceptors for slow SQL</NavLink> to see interception at the raw ADO.NET command layer.

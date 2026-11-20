@@ -7,31 +7,27 @@
     <ContentBody>
         <What>
             <p>
-                A security alert lands in your inbox. A NuGet package your team added six months ago just received
-                a high-severity <Highlight>CVE</Highlight> (Common Vulnerabilities and Exposures). Your first instinct is to update the version — but the package is referenced
-                in twelve different classes, the API changed between versions, and your tests cover maybe half the
-                usage. Sound familiar?
+                When a NuGet advisory affects a package in your dependency graph, you need to assess the affected
+                version, identify a supported fix, and verify that the update preserves required behavior.
             </p>
             <p>
-                The problem is not the vulnerability itself. The problem is that the NuGet dependency has leaked
-                directly into your domain code. Every file that imports the package's namespace is a file you have
-                to touch when you need to change that dependency. Without a seam to swap implementations, every
-                replacement becomes a big-bang refactoring.
+                If domain services depend directly on package-specific types, a replacement can touch many
+                call sites and business rules at once. An application-owned interface and adapter provide a seam
+                for changing the implementation while keeping later package-specific changes out of domain code.
             </p>
             <p>
-                There are three structured strategies for safely dealing with problematic NuGet dependencies:
+                This article compares three strategies for a problematic NuGet dependency:
                 <Highlight>Wrap</Highlight>, <Highlight>Replace</Highlight>, and <Highlight>Rewrite</Highlight>.
-                Together they form a progressive risk ladder — each building on the last — that lets you isolate,
-                swap, and eliminate any NuGet dependency without ever touching your domain code again. In this
-                article, you will learn how each strategy works, when to apply it, and how to implement all
-                three using a concrete .NET example.
+                You will see how to isolate a package behind an interface, select a replacement, or remove the
+                dependency when owning the behavior is practical. The examples distinguish architectural
+                isolation from security remediation.
             </p>
         </What>
 
         <Why>
             <h4>When a NuGet Package Leaks Into Your Domain, Every Change Becomes Risky</h4>
             <p>
-                Consider this production code found in an order processing service. The
+                Consider an order-processing service where a
                 <Highlight>ShippingCalculator</Highlight> type from a third-party package is injected directly
                 into the domain service:
             </p>
@@ -53,78 +49,65 @@ public class OrderService
 }
             </CodeSnippet>
             <p>
-                To replace <Highlight>LegacyShippingLib</Highlight>, you must change
-                <Highlight>OrderService</Highlight> — and <Highlight>QuoteService</Highlight>,
-                <Highlight>CheckoutService</Highlight>, and every other class that holds the same direct
-                reference. In a mature codebase, that can mean dozens of files, all touching
-                production-critical domain logic simultaneously.
+                To replace <Highlight>LegacyShippingLib</Highlight>, this service and every other direct consumer
+                must change.
             </p>
 
-            <h4>The Cost of Inaction Compounds Too</h4>
+            <h4>Isolation Does Not Remediate a Vulnerability</h4>
             <p>
-                Not acting on a vulnerability carries its own cost. A high-severity CVE left unaddressed
-                exposes your application to active exploits — and when an incident does occur, an emergency
-                2 a.m. patch typically costs three to five times more than the same work done as a planned
-                sprint task. There are also slower-burning costs: packages with active CVEs draw scrutiny
-                during compliance audits, stall enterprise procurement deals, and signal technical debt
-                to candidates who inspect your stack before they accept an offer.
+                An adapter does not remove or fix a vulnerable package. Continue remediation according to the
+                advisory, your exposure assessment, and your organization's response policy while you prepare
+                the replacement. Do not treat isolation as evidence that the finding is resolved.
             </p>
             <p>
-                Beyond security, NuGet packages become liabilities for other reasons too — a maintainer
-                abandons the project with no further security patches, licensing terms shift from open
-                source to commercial, or the package falls so far behind its own dependencies that
-                transitive vulnerabilities begin to accumulate. In every case, having a structured exit
-                strategy costs far less than reacting to a crisis without one.
+                A package can also need replacement because it is unmaintained, incompatible, or unsuitable
+                for licensing or product requirements. Those concerns call for their own review; they are not
+                equivalent to a confirmed vulnerability.
             </p>
 
-            <h4>Three Strategies, Ordered by Risk and Effort</h4>
+            <h4>Three Strategies for a Dependency Change</h4>
             <p>
-                The three strategies scale with the severity of the problem and the investment available:
+                The strategies describe different implementation choices. Choose based on remediation needs,
+                compatibility, maintenance, licensing, and the cost of owning the behavior—not severity alone:
             </p>
             <ul>
                 <li>
-                    <strong>Wrap</strong> — Create an abstraction (an <Highlight>Anti-Corruption Layer</Highlight>)
-                    around the existing dependency. The problematic package is not upgraded or removed — it is
-                    isolated behind an interface so the problem stops spreading and you gain a seam for future
-                    replacement. Use this when the vulnerability is low to medium severity, when no drop-in
-                    replacement exists yet, or when you are on a constrained timeline.
+                    <strong>Wrap</strong> — Put an application-owned interface and adapter around the existing
+                    dependency. This reduces coupling and creates a replacement seam, but leaves the package
+                    and any vulnerability in the dependency graph. Use it as a refactoring step, not as a
+                    vulnerability fix.
                 </li>
                 <li>
-                    <strong>Replace</strong> — With the abstraction already in place, swap in a new adapter
-                    backed by a safer NuGet package. Your domain code does not change — only one line in
-                    your DI registration. Use this when a suitable replacement exists and the vulnerability
-                    is high or critical.
+                    <strong>Replace</strong> — Implement the interface with a supported alternative and remove
+                    the old package reference where no longer needed. Update dependency-injection registration
+                    and verify the resulting graph and behavior.
                 </li>
                 <li>
-                    <strong>Rewrite</strong> — Implement the behavior yourself, entirely without a
-                    third-party package. Use this when the package has been abandoned with no successor,
-                    the feature scope is small and well-understood, or the licensing risk outweighs the
-                    implementation cost.
+                    <strong>Rewrite</strong> — Own a small, well-specified behavior when its maintenance,
+                    correctness, and support costs are acceptable. Reimplementing complex or regulated behavior
+                    can increase risk rather than reduce it.
                 </li>
             </ul>
             <p>
-                Each strategy depends on the one before it. <strong>Replace</strong> requires a Wrap
-                already in place. <strong>Rewrite</strong> benefits from the same abstraction.
-                You can always start with Wrap, buy time, and move to Replace or Rewrite later —
-                without going back to touch domain code a second time.
+                These are options, not mandatory stages. A direct update may be simpler than adding an
+                abstraction. If you introduce a seam first, the initial refactoring still changes consumers;
+                later implementations can change without revisiting those consumers, provided the interface
+                continues to express the required behavior.
             </p>
         </Why>
 
         <How>
             <h4>The Scenario: A Vulnerable Shipping Cost Calculator</h4>
             <p>
-                Your <Highlight>OrderService</Highlight>, <Highlight>QuoteService</Highlight>, and
-                <Highlight>CheckoutService</Highlight> all calculate shipping costs by directly consuming
-                <Highlight>LegacyShippingLib</Highlight>, a third-party NuGet package just flagged with
-                a high-severity CVE. Your goal: isolate the package, then replace it — without touching
-                any of those three services.
+                In this example, three services consume a shipping package directly. The refactoring moves
+                those consumers to an application-owned interface, then lets an adapter translate to each
+                package API. A real advisory still requires a separate, verified remediation.
             </p>
 
             <h4>Step 1 — Wrap: Define the Abstraction and Create an Adapter</h4>
             <p>
-                Create an <Highlight>IShippingCostCalculator</Highlight> interface in a project that has
-                <strong>no NuGet references at all</strong>. The interface is defined entirely in your
-                application's own language — no types from the external package appear here:
+                Define an <Highlight>IShippingCostCalculator</Highlight> interface in an application
+                abstractions project. Keep package-specific types out of its signatures:
             </p>
             <CodeSnippet CssClass="language-csharp">
 // Project: OrderManagement.Application.Abstractions
@@ -138,9 +121,9 @@ public interface IShippingCostCalculator
 }
             </CodeSnippet>
             <p>
-                Next, create a dedicated adapter project. This project is the
-                <strong>only</strong> one allowed to reference <Highlight>LegacyShippingLib</Highlight>.
-                Everything else in your solution depends on the interface — not on this project:
+                Create an adapter that implements the interface and translates the external API. Restrict
+                package references to the infrastructure that needs them, and enforce that dependency rule
+                with your project structure and architecture checks:
             </p>
             <CodeSnippet CssClass="language-csharp">
 // Project: OrderManagement.Infrastructure.Shipping.Legacy
@@ -163,8 +146,9 @@ public sealed class LegacyShippingAdapter : IShippingCostCalculator
             </CodeSnippet>
             <p>
                 Update every service that previously referenced <Highlight>ShippingCalculator</Highlight>
-                directly to inject <Highlight>IShippingCostCalculator</Highlight> instead. This is a
-                one-time change — after it, your domain code never mentions the NuGet package again:
+                directly to inject <Highlight>IShippingCostCalculator</Highlight> instead. The initial
+                refactoring updates existing consumers; later package API changes can remain in the adapter
+                while the application contract stays suitable:
             </p>
             <CodeSnippet CssClass="language-csharp">
 // ✅ Domain code now depends only on the abstraction
@@ -191,17 +175,17 @@ public class OrderService
 builder.Services.AddScoped&lt;IShippingCostCalculator, LegacyShippingAdapter&gt;();
             </CodeSnippet>
             <p>
-                The CVE is still present in <Highlight>LegacyShippingLib</Highlight>, but it is now
-                contained to a single adapter project. It cannot spread further. You have bought yourself
-                time to find and validate a replacement without breaking anything.
+                This step reduces coupling; it does not remediate an advisory. Continue with the package
+                update or replacement promptly under your response policy. The initial refactoring also
+                requires updating each existing consumer to use the interface.
             </p>
 
             <h4>Step 2 — Replace: Swap in a Safer Package</h4>
             <p>
-                With the abstraction in place, replacing the underlying package requires zero changes
-                to <Highlight>OrderService</Highlight>, <Highlight>QuoteService</Highlight>, or
-                <Highlight>CheckoutService</Highlight>. Create a new adapter project — isolated the same
-                way — backed by the replacement NuGet package:
+                With consumers depending on the interface, add an adapter for the supported replacement
+                package. The package APIs here are illustrative; this replacement accepts a
+                <Highlight>double</Highlight> weight, so validate units, precision, and rounding against the
+                real provider's API before using a conversion like this:
             </p>
             <CodeSnippet CssClass="language-csharp">
 // Project: OrderManagement.Infrastructure.Shipping.Modern
@@ -213,8 +197,7 @@ using OrderManagement.Application.Abstractions;
 namespace OrderManagement.Infrastructure.Shipping.Modern;
 
 // The adapter instantiates the third-party type internally.
-// The cast to double adapts this package's API shape to our interface —
-// your domain contract uses decimal; you should not have to change it.
+// Illustrative API conversion only: verify precision and rounding requirements.
 public sealed class ModernShippingAdapter : IShippingCostCalculator
 {
     private readonly ShipmentRateEngine _rateEngine = new();
@@ -224,8 +207,8 @@ public sealed class ModernShippingAdapter : IShippingCostCalculator
 }
             </CodeSnippet>
             <p>
-                To switch the entire application to the new package, change exactly one line in
-                <Highlight>Program.cs</Highlight>:
+                Select the new implementation in the composition root. The exact changes depend on how your
+                adapters and projects are registered:
             </p>
             <CodeSnippet CssClass="language-csharp">
 // Program.cs — Replace: swap to the safe adapter (one-line change)
@@ -233,17 +216,17 @@ public sealed class ModernShippingAdapter : IShippingCostCalculator
 builder.Services.AddScoped&lt;IShippingCostCalculator, ModernShippingAdapter&gt;();
             </CodeSnippet>
             <p>
-                Before making this change in production, write <strong>characterization tests</strong>
-                (tests that record the exact input-output pairs the legacy code produces today, making
-                observed behavior the contract rather than assumed correctness) against
-                <Highlight>IShippingCostCalculator</Highlight> using real data. Run those same tests
-                against the new adapter to prove the outputs match before you deploy.
+                Before switching, capture representative, privacy-safe outputs from the old implementation
+                and run regression tests against both adapters. Passing tests show that the tested cases
+                match; they do not prove equivalence for every possible input or establish that the old
+                behavior was correct.
             </p>
 
             <h4>Step 3 — Rewrite: Remove the External Dependency Entirely</h4>
             <p>
-                If the package has been abandoned, or the shipping calculation logic is straightforward
-                enough to own directly, you can eliminate the external dependency altogether. Implement
+                If the behavior is small, well specified, and practical for your team to maintain, you can
+                implement it without the external package. This simplified example is illustrative only;
+                shipping prices and postcode rules need product-specific validation:
                 <Highlight>IShippingCostCalculator</Highlight> using only built-in .NET types:
             </p>
             <CodeSnippet CssClass="language-csharp">
@@ -288,17 +271,15 @@ public sealed class FlatRateShippingCalculator : IShippingCostCalculator
 builder.Services.AddScoped&lt;IShippingCostCalculator, FlatRateShippingCalculator&gt;();
             </CodeSnippet>
             <p>
-                At this point, the <Highlight>PackageReference</Highlight> to
-                <Highlight>LegacyShippingLib</Highlight> can be removed from your project entirely.
-                The vulnerability is no longer present in your dependency tree.
+                Remove the old <Highlight>PackageReference</Highlight> only after checking that no other
+                project or package still requires it. Confirm the resolved graph and rerun audit and
+                regression tests before closing the finding.
             </p>
 
             <h4>How the Three Strategies Relate</h4>
             <p>
-                The consistent thread across all three strategies is the
-                <Highlight>abstraction → adapter → DI registration</Highlight> pattern. The domain code
-                always depends on <Highlight>IShippingCostCalculator</Highlight>. The implementation
-                behind it is interchangeable:
+                When these strategies share an application-owned contract, the domain services can depend on
+                <Highlight>IShippingCostCalculator</Highlight> while the implementation behind it can vary:
             </p>
             <CodeSnippet CssClass="language-plaintext">
 ┌──────────────────────────────────────────────────────────────────┐
@@ -318,69 +299,62 @@ builder.Services.AddScoped&lt;IShippingCostCalculator, FlatRateShippingCalculato
   │  Wrap      │ │  Replace       │ │  Rewrite                 │
   │  Legacy    │ │  Modern        │ │  FlatRate                │
   │  Adapter   │ │  Adapter       │ │  Calculator              │
-  │ (CVE pkg)  │ │  (safe pkg)    │ │  (zero NuGet deps)       │
+  │ (old pkg)  │ │ (new package)  │ │  (zero NuGet deps)       │
   └────────────┘ └────────────────┘ └──────────────────────────┘
             </CodeSnippet>
             <p>
-                Moving between strategies is a single-line change in
-                <Highlight>Program.cs</Highlight>. You can ship the Wrap this sprint, run the Replace
-                next sprint after characterization tests pass, and schedule the Rewrite for a later
-                quarter when you have the capacity — all without touching domain code again.
+                The abstraction can keep later implementation changes out of the services, but project
+                references, adapter code, registrations, and tests may also need updates. Keep the focus
+                on removing the affected package and validating the replacement.
             </p>
 
             <h4>Quick Reference: When to Apply Each Strategy</h4>
             <CodeSnippet CssClass="language-plaintext">
-Strategy  | Best Applied When                               | Prerequisites
+Strategy  | Best Applied When                               | Important Limit
 ----------|-------------------------------------------------|-----------------------------
-Wrap      | CVE is low or medium severity                   | None
-          | No replacement package available yet            |
-          | Constrained timeline; no ACL in place           |
+Wrap      | Consumers are coupled to a package API          | Does not fix an advisory
+          | A seam is needed before changing implementations |
 ----------|-------------------------------------------------|-----------------------------
-Replace   | CVE is high or critical                         | Anti-Corruption Layer (ACL)
-          | Drop-in replacement package is available        | Characterization tests
+Replace   | A supported alternative fits the required API    | Audit graph and regression
+          | Compatibility can be validated                   | tests after the change
 ----------|-------------------------------------------------|-----------------------------
-Rewrite   | Package is abandoned (no more security patches) | Anti-Corruption Layer (ACL)
-          | Feature scope is small and fully understood     | Behavior fully specified
-          | Licensing risk outweighs implementation cost    |
+Rewrite   | Behavior is small and well specified             | Team owns correctness and
+          | Owning it costs less than keeping the dependency | ongoing maintenance
             </CodeSnippet>
         </How>
 
         <Summary>
             <p>
-                Vulnerable NuGet dependencies are inevitable in long-lived .NET applications. The key
-                is not to panic — and not to ignore them. The Wrap-Replace-Rewrite pattern gives you a
-                structured ladder to work through any dependency problem at a pace that matches both
-                the severity of the risk and the capacity of your team.
+                Choose a dependency strategy that addresses the actual finding and keeps the replacement
+                behavior testable. An abstraction can reduce future coupling, but only a verified update
+                or removal resolves the affected package version.
             </p>
             <ul>
                 <li>
-                    When a NuGet type leaks directly into domain code, every replacement becomes a
-                    risky, wide-impact refactoring across many files.
+                    Direct use of package types in domain code increases the number of consumers that may
+                    need changes during a replacement.
                 </li>
                 <li>
-                    <strong>Wrap</strong>: create a domain interface (such as
+                    <strong>Wrap</strong>: create an application-owned interface (such as
                     <Highlight>IShippingCostCalculator</Highlight>) and an adapter project that is the
-                    <em>only</em> project allowed to reference the problematic package. This creates an
-                    <Highlight>Anti-Corruption Layer</Highlight> and stops the problem from spreading —
-                    even before you have a replacement.
+                    package-specific implementation boundary. This reduces coupling but does not remediate
+                    a vulnerable version.
                 </li>
                 <li>
-                    <strong>Replace</strong>: with the abstraction in place, create a new adapter backed
-                    by a safer package. Swap implementations by changing one DI registration line —
-                    domain code is untouched.
+                    <strong>Replace</strong>: implement the interface with a supported package and verify
+                    dependency resolution, audit results, and regression tests.
                 </li>
                 <li>
-                    <strong>Rewrite</strong>: if no suitable replacement exists, implement the behavior
-                    yourself using only built-in .NET types. The interface makes this just as swappable
-                    as any external package.
+                    <strong>Rewrite</strong>: own the implementation only when behavior is bounded,
+                    specified, and maintainable by your team.
                 </li>
                 <li>
-                    Cover the interface with <strong>characterization tests</strong> before swapping
-                    implementations — they are the contract that the new behavior matches the old.
+                    Test representative old and new behavior. A passing test suite supports the cases it
+                    exercises; add explicit assertions for the intended contract and important edge cases.
                 </li>
             </ul>
             <p>
-                To identify which of your NuGet packages have known CVEs before applying these strategies,
+                To identify known advisories in the resolved package graph before choosing a remediation,
                 read <NavLink href="blogs/how-to-find-nuget-dependency-vulnerabilities-before-they-find-you-in-dotnet">How to Find NuGet Dependency Vulnerabilities Before They Find You in .NET</NavLink> —
                 it covers <Highlight>dotnet list package --vulnerable</Highlight>,
                 <Highlight>NuGet Audit</Highlight>, and CI pipeline configuration to catch dependency

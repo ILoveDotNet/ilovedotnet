@@ -7,19 +7,14 @@
   <ContentBody>
     <What>
       <p>
-        What if your search box could explain the articles it finds, instead of leaving you with six tabs to read?
-        <Highlight>Browser-local AI chat</Highlight> combines a search helper with a writing helper.
-        The search helper finds useful passages; the writing helper turns those passages into a short answer with references.
+        <Highlight>Browser-local AI chat</Highlight> retrieves relevant passages from published articles and asks a local language model to explain them with references.
       </p>
       <p>
-        Think of a library with a librarian and a storyteller.
-        The librarian finds the right pages, and the storyteller explains them in simpler words.
-        This pattern is called <Highlight>retrieval-augmented generation (RAG)</Highlight>: find information first, then give it to a model to help write an answer.
+        This pattern is called <Highlight>retrieval-augmented generation (RAG)</Highlight>: retrieve relevant information first, then provide it to a model as evidence for an answer.
       </p>
       <p>
         This article walks through the actual <a class="[ underline ]" href="chat/" target="_blank" rel="noopener noreferrer">Learn with AI</a> implementation on this site.
-        You will see how C#, Blazor and JavaScript turn published articles into a local learning assistant.
-        You only need basic C# and an understanding that JavaScript runs in the browser; we will unpack the AI vocabulary as we go.
+        It covers how C#, Blazor, and JavaScript build the article corpus, retrieve passages, generate answers, and validate citations.
       </p>
     </What>
 
@@ -35,18 +30,18 @@
         Giving the model every article is not a solution either; the input will exceed its reading limit and waste memory.
       </p>
       <p>
-        Our answer is an open-book explanation: find a few relevant passages, let the model explain them, and keep the original pages easy to check.
-        Running the work in the browser avoids a chat inference server, but it does not make the download small or every answer correct.
+        The implementation retrieves a small set of relevant passages, asks the model to explain them, and keeps the original pages available for verification.
+        Browser inference avoids a chat inference server, but it still requires model downloads and does not guarantee correct answers.
         The implementation below keeps those trade-offs visible instead of hiding them behind a chat bubble.
       </p>
     </Why>
 
     <How>
-      <h4>Step 1: Prepare the books before the reader arrives</h4>
+      <h4>Step 1: Generate the corpus at build time</h4>
       <p>
         Split the work into <Highlight>build time</Highlight> and <Highlight>question time</Highlight>.
-        At build time, the generator prepares the library once.
-        At question time, each reader's browser searches that prepared library and writes an explanation.
+        At build time, the generator extracts published article text and creates passages and embeddings.
+        At question time, the browser retrieves relevant passages and generates an answer.
       </p>
       <CodeSnippet CssClass="language-text">
 BUILD TIME: the developer's machine or build pipeline
@@ -67,10 +62,10 @@ QUESTION TIME: the reader's browser
 Question --&gt; find passages --&gt; write answer --&gt; show references
       </CodeSnippet>
       <p>
-        Header search and chat use different reading material.
+        Header search and chat use different data.
         The <a class="[ underline ]" href="blogs/building-local-ai-vector-search-in-dotnet/" target="_blank" rel="noopener noreferrer">vector-search implementation</a>
         indexes article metadata; chat needs the article bodies too.
-        We keep header search unchanged and build a separate chat <Highlight>corpus</Highlight>, meaning a collection of searchable passages.
+        Header search remains unchanged; chat uses a separate <Highlight>corpus</Highlight>, a collection of searchable passages.
       </p>
       <p>
         This site's publication rule uses the catalogue's <Highlight>ModifiedOn</Highlight> date, not a separate published flag.
@@ -93,9 +88,8 @@ var eligibleArticles = new TableOfContents().AllContents
 
       <h4>Step 2: Cut pages into small pieces without losing their labels</h4>
       <p>
-        A <Highlight>chunk</Highlight> is a small piece of article text.
-        Keep its article, section and heading attached, like a bookmark identifying the book and chapter.
-        The chunker groups related content under a parent heading, then creates smaller searchable children.
+        A <Highlight>chunk</Highlight> is a piece of article text with its article, section, and heading metadata.
+        The chunker groups related content under a parent heading, then creates smaller searchable passages.
       </p>
       <CodeSnippet CssClass="language-text">
 Article: Introducing TDD
@@ -117,24 +111,24 @@ Do not grab a paragraph from another chapter.
       </p>
       <p>
         The output is a passage file, a vector file and a manifest describing them.
-        A <Highlight>SHA-256 hash</Highlight> acts like a fingerprint so the browser can detect a mismatch against the manifest.
+        A <Highlight>SHA-256 hash</Highlight> lets the browser detect whether a file differs from the value recorded in the manifest.
         This checks file consistency, not whether an article's explanation is true.
       </p>
 
-      <h4>Step 3: Give searching and writing different jobs</h4>
+      <h4>Step 3: Separate retrieval from answer generation</h4>
       <p>
-        Use one small model to find passages and another model to explain them.
+        Use an embedding model to find passages and a language model to explain them.
         An <Highlight>embedding</Highlight> is a list of numbers representing text for similarity comparison.
-        It is a search address, not a written answer.
+        It supports similarity comparisons; it is not a written answer.
       </p>
       <CodeSnippet CssClass="language-text">
-Helper       Model                         Job
+Stage        Model                         Job
 -----------  ----------------------------  -------------------------
-Librarian    all-MiniLM-L6-v2               Find related passages
-Storyteller  Qwen3-4B-q4f16_1-MLC           Explain supplied passages
+Retrieval    all-MiniLM-L6-v2               Find related passages
+Generation   Qwen3-4B-q4f16_1-MLC           Explain supplied passages
 
-The librarian cannot write the answer.
-The storyteller does not search the whole website.
+The retrieval model does not write answers.
+The generation model receives selected passages, not the entire website.
       </CodeSnippet>
       <p>
         MiniLM produces 384-number vectors for both passages and questions.
@@ -148,11 +142,10 @@ The storyteller does not search the whole website.
         This is a simple heuristic, not full conversation understanding or model training.
       </p>
 
-      <h4>Step 4: Pack a small open-book exam for the model</h4>
+      <h4>Step 4: Bound the model input</h4>
       <p>
-        A model's <Highlight>context window</Highlight> is its limited reading desk.
-        Put only the question, instructions, bounded prior questions and selected evidence on that desk.
-        The complete articles stay on the shelf.
+        A model's <Highlight>context window</Highlight> limits how much input it can process.
+        Include the question, instructions, bounded prior questions, and selected evidence rather than complete articles.
       </p>
       <CodeSnippet CssClass="language-text">
 INSTRUCTIONS
@@ -241,11 +234,11 @@ const answer = validateAnswer(text, prompt.sources, finishReason);
         Request IDs prevent late updates from changing a stopped or newly opened conversation.
       </p>
 
-      <h4>Step 6: Explain first, then reveal source references</h4>
+      <h4>Step 6: Display answers with source references</h4>
       <p>
         Show the streamed explanation as a provisional draft, not a completed answer.
         Once generation finishes, validate the result and reveal clickable citations and source cards below it.
-        Internally retrieval still happens first; this is the display order, not a reversal of the pipeline.
+        Retrieval still happens first; this is only the display order.
       </p>
       <p>
         The Razor visibility check is small.
@@ -280,7 +273,7 @@ No supported GPU     Skip generation               Article search
 
       <h4>Step 7: Make downloads and saved chats the reader's choice</h4>
       <p>
-        Local inference still has a download bill, paid in bandwidth and memory.
+        Local inference still requires a substantial download and memory.
         The current pinned Qwen3 model has about 2.26 GB of weights, plus runtime files, and needs several GB of GPU memory with browser overhead.
         The page checks capabilities, requests explicit generation-download consent and remembers it for that immutable model URL.
       </p>
@@ -292,7 +285,7 @@ No supported GPU     Skip generation               Article search
       <p>
         Saved chats live in this browser profile's <Highlight>localStorage</Highlight> until deleted, not in a server account.
         The sidebar supports switching and deletion; deleting chats is separate from clearing the model cache.
-        Anyone sharing the profile can read them, storage can fail, and local inference does not replace a site-wide telemetry audit.
+        Anyone sharing the browser profile can read them, and browser storage can fail.
       </p>
       <p>
         Keep scrolling under the reader's control and make Stop cancel actual worker work.
@@ -340,9 +333,9 @@ dotnet run --no-build --project Web/Web.csproj --launch-profile Web
         These are results from that run, not a guarantee for future content or devices.
       </p>
       <p>
-        The development run also passed the TDD acceptance checks in the <a class="[ underline ]" href="https://github.com/ILoveDotNet/ilovedotnet/blob/e150059fcf53cb0ef6b3e46ead08880a83cc83ed/ILoveDotNet.DistributedTest/LearningChatGenerationBenchmarkTests.cs" target="_blank" rel="noopener noreferrer">production generation benchmark</a>; its other questions provide diagnostics, not general factuality approval.
+        The development run also passed the TDD acceptance checks in the <a class="[ underline ]" href="https://github.com/ILoveDotNet/ilovedotnet/blob/e150059fcf53cb0ef6b3e46ead08880a83cc83ed/ILoveDotNet.DistributedTest/LearningChatGenerationBenchmarkTests.cs" target="_blank" rel="noopener noreferrer">generation benchmark</a>; its other questions provide diagnostics, not general factuality approval.
         To reproduce the automated evaluations, follow the explicit real-model test commands in the <a class="[ underline ]" href="https://github.com/ILoveDotNet/ilovedotnet/blob/e150059fcf53cb0ef6b3e46ead08880a83cc83ed/docs/browser-local-learning-chat-implementation-plan.md" target="_blank" rel="noopener noreferrer">implementation plan</a>, including its network, browser and GPU requirements.
-        The manual checklist above does not run that full evaluation, and a green build cannot tell you whether the storyteller misunderstood the book.
+        The manual checklist above does not run that full evaluation, and a green build cannot tell you whether the model misunderstood a source.
       </p>
       <p>
         For the underlying APIs, see the
@@ -356,7 +349,7 @@ dotnet run --no-build --project Web/Web.csproj --launch-profile Web
     <Summary>
       <ul>
         <li><Highlight>Search first, explain second:</Highlight> the model receives selected article passages, not the whole website.</li>
-        <li><Highlight>Use two helpers:</Highlight> embeddings find evidence; WebLLM turns it into a readable answer.</li>
+        <li><Highlight>Separate retrieval and generation:</Highlight> embeddings find evidence; WebLLM turns it into an answer.</li>
         <li><Highlight>Keep the browser honest:</Highlight> bound inputs, validate citations, cancel work and retain original sources on failure.</li>
         <li><Highlight>Make limits visible:</Highlight> local inference still needs downloads, memory and human fact-checking.</li>
         <li><Highlight>Protect the reading experience:</Highlight> stream the explanation first, reveal references afterward and let readers control scrolling and saved chats.</li>
@@ -364,7 +357,7 @@ dotnet run --no-build --project Web/Web.csproj --launch-profile Web
       <p>
         What to read next:
         <a class="[ underline ]" href="blogs/building-local-ai-vector-search-in-dotnet/" target="_blank" rel="noopener noreferrer">Building Local AI Vector Search in .NET</a>
-        explains the librarian, while
+        explains the retrieval index, while
         <a class="[ underline ]" href="blogs/building-ai-chat-applications-in-dotnet-with-microsoft-extensions-ai/" target="_blank" rel="noopener noreferrer">Building AI Chat Applications in .NET with Microsoft.Extensions.AI</a>
         explores a different, .NET-provider-based chat approach.
       </p>

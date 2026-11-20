@@ -16,7 +16,7 @@ Make sure to call the "Do a Technical Review" handoff after generating the artic
 
 **EVERY blog article MUST have these four components or it will not build:**
 
-1. `<What>` - Introduction with engaging hook
+1. `<What>` - Introduction to the topic and scope
 2. `<Why>` - Why it matters and problems solved  
 3. `<How>` - Implementation details and code examples
 4. `<Summary>` - Key takeaways and conclusion
@@ -29,82 +29,22 @@ Your goal is to follow the blog generation guidelines in `copilot/blog-generatio
 
 ---
 
-## Writing for Developer Engagement — Persuasive Blog Principles
+## Writing Style
 
-Every article must earn the reader's attention at each stage: **the title earns the click, the opening earns the scroll, each section earns the next.** Apply these principles so developers actively choose to read — and share — rather than skip.
+Write like a knowledgeable developer explaining the topic to a colleague: clear, natural, and direct. Keep the prose concise without losing technical meaning or context.
 
-### Title as a Click-Worthy Headline
+- Start with the topic and the reader's practical goal. Do not invent a dramatic hook, rhetorical question, surprise, or personal story.
+- Use accurate, descriptive titles. Do not use clickbait, urgency, exaggerated promises, or generic filler.
+- Explain each idea once. Remove repeated introductions, summaries, transitions, and conclusions.
+- Prefer short sentences and paragraphs. Keep only details that help the reader understand, apply, or verify the solution.
+- Use active voice and concrete nouns. Avoid vague claims, canned phrases, inflated language, and empty transitions such as "Here's the thing" or "Let's dive in."
+- Vary sentence length naturally. Do not make every paragraph follow the same pattern or claim first-hand experience unless the source supports it.
+- Define unfamiliar terms when the reader needs them; do not explain common terms just to add length.
+- Keep examples and caveats that affect correctness. Cut optional digressions and repeated warnings.
+- Use headings that name the task or result. Use lists only when they make steps or choices easier to follow.
+- End with the actual takeaway. Add a related link only when it is useful; never force a call to action.
 
-The article title (and its derived slug) is the first and most important hook. Treat it like a subject line for a high-stakes cold email.
-
-**Title checklist:**
-- [ ] Names a specific pain, outcome, or surprise — not just the topic
-- [ ] Creates curiosity or signals an immediate, concrete gain for a developer
-- [ ] Avoids generic patterns: "Introduction to X", "A Guide to X", "Overview of X"
-- [ ] Is specific enough that a developer scanning a list of articles stops and clicks
-
-| ❌ Weak title | ✅ Click-worthy title |
-|--------------|----------------------|
-| `Introduction to Dependency Injection` | `Why Your DI Container Breaks Silently (And How to Fix It in Minutes)` |
-| `LINQ Performance Tips` | `5 LINQ Patterns That Are Quietly Slowing Down Your App` |
-| `Blazor State Management` | `Stop Prop-Drilling in Blazor: One Pattern That Scales` |
-
-### Hook-Driven `<What>` Section
-
-Do **NOT** open with "In this article, we will cover...". The `<What>` introduction must open with a hook — a line that names a real developer pain or a surprising truth — before zooming out to define the concept.
-
-**Opening hook patterns (pick one per article):**
-- **Problem hook**: "Every .NET developer has hit this wall: *[paint the relatable scenario in one line]*."
-- **Surprise hook**: "The standard advice about X is wrong — and your production app may already be paying the cost."
-- **Question hook**: "What does your app do when the database is temporarily unavailable? If you are not sure, keep reading."
-
-### PAS Arc in `<Why>` Section
-
-The `<Why>` must follow the **Problem → Agitate → Solution-tease** arc. This is what makes a developer feel the urgency to read `<How>`.
-
-| PAS Stage | What to write | Length |
-|-----------|--------------|--------|
-| **Problem** | Name the exact pain in concrete terms — a real code scenario, not abstract description | 1–2 sentences |
-| **Agitate** | Expand the cost — what breaks, how often, how painful to debug, what it costs in production. **Use code evidence or real symptoms, NOT emotional exaggeration** — developers distrust FUD and will stop reading if it feels like marketing. | 2–3 sentences |
-| **Solution tease** | One sentence promising what the article delivers, without giving away the how | 1 sentence |
-
-### `<Summary>` as a CTA — Keep Developers on the Site
-
-The summary is not just takeaways — it is the handoff to the developer's next read. A developer who finishes an article and finds a clear "what to do next" link is far more likely to stay on ilovedotnet.org than one who hits a dead end.
-
-- List 3–5 bullet-point key takeaways (skim-friendly)
-- End with a **"What to read next"** sentence that links to one or two related articles already on the site
-
-### Skim-First Formatting
-
-Developers scan before they read. If the value is not visible in a 1-second scan, they leave.
-
-- **First sentence of every paragraph must deliver the main point** — support and elaboration follow
-- Sub-headers describe outcomes: `"Register services with AddScoped for request-scoped lifetime"` not `"Service Registration"`
-- Keep individual prose paragraphs to 3–4 sentences maximum
-- Use numbered or bulleted lists for any multi-step or multi-item concept
-
-### Voice and Tone
-
-Apply these consistently throughout every article:
-
-- **Active voice**: "The function processes data" — not "Data is processed by the function"
-- **Direct address**: Use "you" when instructing
-- **Inclusive language**: "We discovered" not "I discovered" (unless sharing a personal story)
-- **Confident but humble**: "This approach works well" — not "This is the best approach ever"
-- **Define jargon on first use**: Never assume familiarity with acronyms or specialized terms
-
-### Audience Calibration
-
-Identify the primary audience before writing and calibrate accordingly:
-
-| Audience | What to emphasise |
-|----------|------------------|
-| **Junior developers** | More context, definitions, and explanations of "why" before "how" |
-| **Senior engineers** | Direct technical details, implementation patterns, performance tradeoffs |
-| **Technical leads** | Architectural implications, team impact, migration considerations |
-
-For iLoveDotNet, the default audience is **mid-level .NET developers**. Err toward more context rather than less — a senior developer can skim past definitions, but a junior developer cannot fill in missing context.
+The default audience is mid-level .NET developers. Give enough context to use the example correctly, but do not pad explanations for hypothetical readers.
 
 ### Blog Series Guidance
 
@@ -137,7 +77,7 @@ Work through these phases in order. Do not skip phases — especially technical 
 ### 1. Planning Phase
 - Identify the target audience and what they need to walk away with
 - Define the single core learning objective (what can the reader do after reading this?)
-- Sketch the outline with section targets: What (intro + hook), Why (problem + code evidence), How (implementation), Summary (takeaways + CTA)
+- Sketch the outline with section targets: What (topic and scope), Why (practical reason), How (implementation), Summary (takeaways)
 - Gather technical references, official docs, and real code examples before writing prose
 
 ### 2. Drafting Phase
@@ -250,7 +190,7 @@ Follow these steps in order:
    Before completing, verify ALL of these:
    
    ✅ **Structure Verification:**
-   - [ ] Article has `<What>` section with clear definition and introduction (NO problem examples)
+   - [ ] Article has `<What>` section with a clear topic and scope (NO problem examples)
    - [ ] Article has `<Why>` section with concrete problems and benefits (NO implementation)
    - [ ] Article has `<How>` section starting directly with solution implementation (NO introduction or problem repetition)
    - [ ] Article has `<Summary>` section with key takeaways
@@ -272,13 +212,12 @@ Follow these steps in order:
    - [ ] Slug is derived directly from title (lowercase, hyphens, remove punctuation like `-` and `.`) and includes category keyword
    - [ ] Publish date is a Sunday at 22:30 UTC
    
-   ✅ **Persuasion & Engagement:**
-   - [ ] Title names a specific pain, outcome, or surprise — no generic "Introduction to X" or "Overview of Y"
-   - [ ] `<What>` opens with a problem, surprise, or question hook — NOT "In this article, we will..."
-   - [ ] `<Why>` follows Problem → Agitate → Solution-tease arc
-   - [ ] `<Summary>` includes a "What to read next" CTA linking to one or two related articles on the site
-   - [ ] Each paragraph's first sentence delivers the main point independently
-   - [ ] Sub-headers describe outcomes, not just topics
+   ✅ **Clear Writing:**
+   - [ ] Title accurately describes the article without clickbait or exaggerated promises
+   - [ ] Opening states the topic and practical scope without a forced hook
+   - [ ] Each idea is explained once; remove filler, repetition, and empty transitions
+   - [ ] Prose is direct and concise without losing steps, caveats, or technical context
+   - [ ] Links and calls to action are included only when useful
 
    ✅ **Build Verification:**
    - [ ] Run `dotnet format --verbosity quiet whitespace --folder`

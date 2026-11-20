@@ -6,55 +6,39 @@
     <ContentBody>
         <What>
             <p>
-                Your characterization tests passed. The golden master matches. You committed the verified
-                snapshots and swapped the NuGet reference. Everything looks green — right up until a
-                colleague updates the replacement implementation to fix a minor formatting detail, the
-                snapshot regenerates, and you realize the golden master was protecting output bytes, not
-                behavioral correctness. A change that has zero effect on what the replacement
-                <em>does</em> still causes the snapshot to fail.
+                Characterization snapshots compare selected outputs with an accepted baseline. Contract tests
+                add explicit assertions for the behaviors an interface promises, using inputs selected to
+                exercise those requirements.
             </p>
             <p>
-                Snapshot tests answer one question only: "does this produce identical bytes to the last
-                accepted run?" They cannot answer whether a replacement satisfies every
-                behavioral obligation of the interface it implements — including obligations that were
-                never exercised during snapshot recording: <Highlight>null</Highlight> fields that
-                happen to be non-null in production, <Highlight>enum</Highlight> values added after the
-                snapshot was committed, or empty collections your test fixture never constructed.
-                That is the job of <Highlight>contract tests</Highlight>.
+                A passing contract suite does not prove equivalence for every possible input. It shows that the
+                assertions pass for the cases and implementation versions exercised by that suite. Keep cases
+                for nulls, enum values, boundaries, and empty collections where those behaviors matter to
+                consumers.
             </p>
             <p>
-                A contract test suite is written against an interface, not a concrete class. It encodes
-                every behavioral obligation that interface implies — what output a given input must
-                produce, what invariants must hold across a round trip, what edge cases every valid
-                implementation must handle — and runs that full obligation set against every implementation
-                you register. Any implementation that fails is not a valid replacement. In this article
-                you will learn how contract tests differ from characterization tests, how to build an
-                abstract contract test base in xUnit, and how to combine it with
-                <Highlight>BenchmarkDotNet</Highlight> and a rollback criteria test to gate both
-                correctness and performance before any NuGet replacement ships.
+                An interface contract suite can share assertions across implementations, helping compare
+                documented requirements consistently. This article builds an xUnit abstract base class for a
+                serializer and discusses performance measurement separately. The examples demonstrate a
+                test strategy, not an exhaustive proof that a replacement is identical or defect-free.
             </p>
         </What>
 
         <Why>
             <h4>Snapshot Drift Is Not the Same as Behavioral Failure</h4>
             <p>
-                Consider the <Highlight>IInvoiceSerializer</Highlight> from the previous article in this
-                series. Your characterization test recorded the golden master output of the legacy
-                serializer as it handled one representative invoice. It passed. You replaced the library,
-                the snapshot matched, so you shipped.
+                Consider the <Highlight>IInvoiceSerializer</Highlight> from the previous article. A snapshot
+                records output only for the fixtures that were actually run. Any input omitted from those
+                fixtures remains unexamined by that snapshot.
             </p>
             <p>
-                Three weeks later your application starts receiving invoices from a partner where the
-                <Highlight>Notes</Highlight> field is populated with multi-line text containing Unicode
-                characters. The replacement serializer encodes those characters as Unicode escape
-                sequences (<Highlight>\u30C6\u30B9\u30C8</Highlight>) rather than literal UTF-8, which
-                your downstream PDF renderer does not handle. Your snapshot test never caught this
-                because your test fixture always set <Highlight>Notes</Highlight> to
-                <Highlight>null</Highlight>.
+                For example, if no fixture gives <Highlight>Notes</Highlight> a value, a snapshot says
+                nothing about how the replacement handles populated notes. JSON may represent equivalent
+                Unicode strings with literal characters or escape sequences; compare the parsed value unless
+                the consumer contract specifically requires a byte-level representation.
             </p>
             <CodeSnippet CssClass="language-csharp">
-// This is the invoice your characterization test recorded.
-// Notes is always null — so the snapshot can never detect a Unicode handling difference.
+// This fixture leaves Notes null, so it says nothing about populated Notes values.
 var invoice = new Invoice(
     Id: 1,
     CustomerName: "Acme Corp",
@@ -65,35 +49,49 @@ var invoice = new Invoice(
     LineItems: null);
             </CodeSnippet>
             <p>
-                The snapshot test was not wrong — it was simply doing a different job. It guaranteed
-                that for <em>this specific fixture</em> the output bytes did not change. It was never
-                designed to enumerate the complete behavioral contract.
+                The snapshot has a narrow scope: its fixture and comparison. It does not enumerate the full
+                behavioral contract or automatically cover omitted cases.
             </p>
 
-            <h4>A Contract Violation Your Snapshot Test Will Never Detect</h4>
+            <h4>An Untested Case Can Remain Undetected</h4>
             <p>
-                Here is a concrete example of a behavioral gap that passes snapshot testing but breaks
-                production. Suppose your replacement serializer serializes an empty
-                <Highlight>LineItems</Highlight> collection as <Highlight>null</Highlight> instead of
-                an empty JSON array. Any downstream consumer that checks
-                <Highlight>invoice.LineItems?.Count</Highlight> behaves correctly — but any consumer
-                that calls <Highlight>invoice.LineItems.Sum(i =&gt; i.UnitPrice)</Highlight> throws a
-                <Highlight>NullReferenceException</Highlight>:
+                An untested distinction can matter to consumers. For example, the contract may require a missing
+                collection to remain <Highlight>null</Highlight> and an empty collection to remain empty. Add
+                fixtures for both states; the test below checks the empty state:
             </p>
             <CodeSnippet CssClass="language-csharp">
-// Legacy serializer output for an invoice with zero line items:
-// { "LineItems": [] }
-//
-// Replacement serializer output for the same invoice:
-// { "LineItems": null }
-//
-// Your snapshot test used a fixture with LineItems: null from the start,
-// so both outputs match the golden master — and both tests pass.
-// The bug is invisible until it reaches production.
+using System;
+using InvoiceQueue.Domain;
+using InvoiceQueue.Infrastructure;
+using Xunit;
+
+public sealed class InvoiceLineItemsTests
+{
+    [Fact]
+    public void Empty_line_items_round_trip_as_empty()
+    {
+        var serializer = new SystemTextJsonInvoiceSerializer();
+        var invoice = new Invoice(
+            Id: 1,
+            CustomerName: "Example",
+            Amount: 0m,
+            IssuedAt: DateTimeOffset.UtcNow,
+            Status: InvoiceStatus.Draft,
+            Notes: null,
+            LineItems: Array.Empty&lt;InvoiceLineItem&gt;());
+
+        var restored = serializer.Deserialize(
+            serializer.Serialize(invoice));
+
+        Assert.NotNull(restored.LineItems);
+        Assert.Empty(restored.LineItems);
+    }
+}
             </CodeSnippet>
             <p>
-                This category of bug — behavioral divergence on inputs not covered by the snapshot
-                fixture — is exactly what contract tests are built to catch.
+                These assertions check a specific round-trip requirement. They do not prove every JSON shape
+                or downstream behavior; add separate checks for wire-format requirements such as property
+                names or omitted fields.
             </p>
 
             <h4>Contract Tests vs Characterization Tests: A Direct Comparison</h4>
@@ -105,39 +103,37 @@ var invoice = new Invoice(
   ┌─────────────────────────┬──────────────────────────────┬──────────────────────────────────┐
   │                         │ Characterization test        │ Contract test                    │
   ├─────────────────────────┼──────────────────────────────┼──────────────────────────────────┤
-  │ Written when?           │ Before the ACL is built      │ After the ACL, before ship       │
-  │ Asserts what?           │ Exact output bytes           │ Behavioral obligations           │
-  │ Fails when?             │ Any output byte changes      │ An obligation is violated        │
-  │ Targets?                │ One concrete implementation  │ The interface; runs on all impls │
+  │ Written when?           │ Before or during a change    │ When requirements are identified │
+  │ Asserts what?           │ Selected output snapshots    │ Explicit behavioral assertions   │
+  │ Fails when?             │ Compared output differs      │ A tested assertion fails         │
+  │ Targets?                │ One selected implementation  │ Registered implementations       │
   │ Tools?                  │ Verify (snapshot library)    │ xUnit direct assertions          │
   │ Purpose?                │ Safety net / audit trail     │ Acceptance gate for replacement  │
-  │ Retired?                │ Yes — after rollout          │ No — permanent regression guard  │
+  │ Retained?               │ If snapshots remain useful   │ If requirements remain relevant  │
   └─────────────────────────┴──────────────────────────────┴──────────────────────────────────┘
             </CodeSnippet>
             <p>
-                Characterization tests are a one-time audit tool. Contract tests are a permanent
-                acceptance gate. Both protect you at different points in the replacement lifecycle.
+                Both approaches can remain useful after migration. Snapshots flag changes in selected outputs;
+                contract tests assert selected requirements across implementations.
             </p>
 
-            <h4>Performance Is a Behavioral Obligation Too</h4>
+            <h4>Performance Is a Separate Acceptance Requirement</h4>
             <p>
-                A replacement that is functionally correct but three times slower is not an acceptable
-                replacement. Performance is behavior — it is a non-functional obligation that every
-                implementation must satisfy. Without a repeatable, quantified baseline, you have no
-                defensible way to reject a replacement that regresses throughput. Contract tests
-                verify correctness. <Highlight>BenchmarkDotNet</Highlight> gives you authoritative
-                throughput numbers. Rollback criteria tests enforce the threshold in CI so a slow
-                replacement cannot ship undetected.
+                Performance can be a separate acceptance requirement, but a microbenchmark is not a
+                correctness test. Use <Highlight>BenchmarkDotNet</Highlight> to compare representative work
+                under controlled conditions, then interpret results in the context of production workloads.
+                Timing assertions in ordinary unit tests are sensitive to machine load and runtime conditions,
+                so they are not a reliable general-purpose CI gate.
             </p>
         </Why>
 
         <How>
             <h4>The Domain Model</h4>
             <p>
-                The previous article introduced <Highlight>Invoice</Highlight> and
-                <Highlight>InvoiceLineItem</Highlight>. For this article the record is extended to
-                include an enum, a nullable string, and the renamed date field — giving the contract
-                test suite meaningful coverage across every data kind a serializer must handle:
+                This example revises the earlier <Highlight>Invoice</Highlight> model: it renames
+                <Highlight>DueDate</Highlight> to <Highlight>IssuedAt</Highlight>, makes
+                <Highlight>LineItems</Highlight> nullable, and adds a status enum and nullable notes.
+                These are selected data shapes for the contract tests, not exhaustive serializer coverage:
             </p>
             <CodeSnippet CssClass="language-csharp">
 // Domain/Invoice.cs — extended to support enum, nullable, and Unicode contract clauses
@@ -173,13 +169,13 @@ public sealed record InvoiceLineItem(
   ✓ Scalar values survive a serialize → deserialize round trip
   ✓ Decimal precision is not truncated (e.g., 99.999m stays 99.999m, not 100m)
   ✓ DateTimeOffset preserves UTC offset after round trip
-  ✓ Enum values serialize and deserialize by name (not as integer)
+  ✓ Enum values round-trip; assert names if the wire format requires them
   ✓ Null optional fields round-trip as null
   ✓ Non-null optional fields round-trip with their value intact
-  ✓ Empty collections serialize as [] — not as null (or vice versa, whichever is correct)
-  ✓ Unicode strings are not escaped or mangled
+  ✓ Empty collections round-trip as empty when required by the contract
+  ✓ Unicode strings round-trip without data loss
   ✓ Nested object graphs are fully preserved
-  ✓ Large decimal values (e.g., 1_000_000.00m) are not represented in scientific notation
+  ✓ Large decimal values (e.g., 1_000_000.00m) round-trip without precision loss
             </CodeSnippet>
 
             <h4>Step 2 — Build the Abstract Contract Test Base Class</h4>
@@ -236,17 +232,18 @@ public abstract class InvoiceSerializerContractTests
     }
 
     [Fact]
-    public void DateTimeOffset_preserves_UTC_offset_after_round_trip()
+    public void DateTimeOffset_preserves_offset_after_round_trip()
     {
         var sut = CreateSerializer();
-        var issued = new DateTimeOffset(2026, 6, 1, 14, 30, 0, TimeSpan.Zero);
+        var issued = new DateTimeOffset(
+            2026, 6, 1, 14, 30, 0, TimeSpan.FromHours(5.5));
         var invoice = new Invoice(2, "Initech", 500m,
             issued, InvoiceStatus.Paid, null, null);
 
         var result = sut.Deserialize(sut.Serialize(invoice));
 
         Assert.Equal(issued, result.IssuedAt);
-        Assert.Equal(TimeSpan.Zero, result.IssuedAt.Offset);
+        Assert.Equal(TimeSpan.FromHours(5.5), result.IssuedAt.Offset);
     }
 
     [Fact]
@@ -289,7 +286,7 @@ public abstract class InvoiceSerializerContractTests
     }
 
     [Fact]
-    public void Unicode_in_customer_name_is_not_escaped_or_corrupted()
+    public void Unicode_in_customer_name_round_trips_without_data_loss()
     {
         var sut = CreateSerializer();
         var invoice = new Invoice(6, "株式会社テスト", 300m,
@@ -349,7 +346,7 @@ public abstract class InvoiceSerializerContractTests
     }
 
     [Fact]
-    public void Large_decimal_is_not_serialized_in_scientific_notation()
+    public void Large_decimal_round_trips_without_precision_loss()
     {
         var sut = CreateSerializer();
         var invoice = new Invoice(10, "Enterprise Corp", 1_000_000.00m,
@@ -370,6 +367,9 @@ public abstract class InvoiceSerializerContractTests
             </p>
             <CodeSnippet CssClass="language-csharp">
 // Tests/InvoiceSerializerContractTests.Legacy.cs
+using InvoiceQueue.Application;
+using InvoiceQueue.Infrastructure;
+
 namespace InvoiceQueue.Tests;
 
 public sealed class LegacyJsonSerializerContractTests : InvoiceSerializerContractTests
@@ -380,6 +380,9 @@ public sealed class LegacyJsonSerializerContractTests : InvoiceSerializerContrac
             </CodeSnippet>
             <CodeSnippet CssClass="language-csharp">
 // Tests/InvoiceSerializerContractTests.Modern.cs
+using InvoiceQueue.Application;
+using InvoiceQueue.Infrastructure;
+
 namespace InvoiceQueue.Tests;
 
 public sealed class SystemTextJsonSerializerContractTests : InvoiceSerializerContractTests
@@ -398,65 +401,55 @@ public sealed class SystemTextJsonSerializerContractTests : InvoiceSerializerCon
 
             <h4>Step 4 — Run the Suite and Interpret Failures as Contract Gaps</h4>
             <p>
-                Run both groups. The legacy group must pass entirely — every fact it fails is a
-                bug in your test, not in the serializer. Once the legacy group is green, you have
-                your behavioral baseline. Now run the replacement group. Every failure is a contract
-                gap you must close before shipping. A common example: the empty collection test
-                fails because the modern serializer maps an empty list to <Highlight>null</Highlight>
-                during deserialization:
+                Run both groups and interpret failures against the documented requirements. A failing
+                assertion can expose an implementation difference, an unsuitable expectation, or a test
+                defect. Review the specific output before deciding whether to change the implementation or
+                the contract.
             </p>
             <CodeSnippet CssClass="language-csharp">
-// Fix: write a custom converter that preserves the null-vs-empty distinction
-// on both the read and write path.
-// In SystemTextJsonInvoiceSerializer.cs:
+// Add assertions for each required state using the declared collection type.
+var serializer = CreateSerializer();
+var invoice = new Invoice(
+    Id: 1,
+    CustomerName: "Example",
+    Amount: 0m,
+    IssuedAt: DateTimeOffset.UtcNow,
+    Status: InvoiceStatus.Draft,
+    Notes: null,
+    LineItems: null);
 
-private static readonly JsonSerializerOptions Options = new()
+var empty = invoice with
 {
-    PropertyNameCaseInsensitive = true,
-    Converters = { new NullableListConverter&lt;InvoiceLineItem&gt;() }
+    LineItems = Array.Empty&lt;InvoiceLineItem&gt;()
 };
+var restoredEmpty = serializer.Deserialize(
+    serializer.Serialize(empty));
 
-// Preserves the contract: null LineItems stays null; empty LineItems stays [].
-public sealed class NullableListConverter&lt;T&gt; : JsonConverter&lt;List&lt;T&gt;?&gt;
-{
-    public override List&lt;T&gt;? Read(
-        ref Utf8JsonReader reader,
-        Type typeToConvert,
-        JsonSerializerOptions options)
-    {
-        if (reader.TokenType == JsonTokenType.Null)
-        {
-            return null; // explicit JSON null → null reference
-        }
-        return JsonSerializer.Deserialize&lt;List&lt;T&gt;&gt;(ref reader, options);
-    }
+Assert.NotNull(restoredEmpty.LineItems);
+Assert.Empty(restoredEmpty.LineItems);
 
-    public override void Write(
-        Utf8JsonWriter writer,
-        List&lt;T&gt;? value,
-        JsonSerializerOptions options)
-    {
-        if (value is null) writer.WriteNullValue();
-        else JsonSerializer.Serialize(writer, value, options);
-    }
-}
+var absent = invoice with { LineItems = null };
+var restoredAbsent = serializer.Deserialize(
+    serializer.Serialize(absent));
 
-// Note: register a converter whose type argument matches the exact declared property type.
-// If Invoice.LineItems is IReadOnlyList&lt;InvoiceLineItem&gt;?, derive from
-// JsonConverter&lt;IReadOnlyList&lt;InvoiceLineItem&gt;?&gt; instead of JsonConverter&lt;List&lt;InvoiceLineItem&gt;?&gt;.
+Assert.Null(restoredAbsent.LineItems);
             </CodeSnippet>
             <p>
-                The workflow is: fix the gap, re-run the contract suite, repeat until
-                <Highlight>SystemTextJsonSerializerContractTests</Highlight> is fully green. A green
-                contract suite is your ship signal for behavioral correctness.
+                Use failures to identify differences that matter to the declared contract. A green suite shows
+                that its current assertions pass for the tested cases; it does not prove complete behavioral
+                parity or replace integration tests for downstream consumers.
             </p>
 
             <h4>Step 5 — Establish a Performance Baseline With BenchmarkDotNet</h4>
             <p>
-                Contract tests tell you the replacement is behaviorally correct. They say nothing
-                about performance. Before you commit to the replacement, you need authoritative
-                throughput numbers. Add the <Highlight>BenchmarkDotNet</Highlight> NuGet package to
+                Contract tests assess the specified behavior for tested cases; they do not measure performance.
+                Use <Highlight>BenchmarkDotNet</Highlight> to compare representative workloads. Add the package to
                 a dedicated benchmarks project and annotate a class with the metrics you care about:
+            </p>
+            <p>
+                For deserialization, benchmark a shared wire format accepted by both implementations. This
+                example uses the replacement's camel-case output; contract tests should confirm that both
+                deserializers reconstruct the expected values before you compare timings.
             </p>
             <CodeSnippet CssClass="language-csharp">
 // Benchmarks/InvoiceSerializerBenchmarks.cs
@@ -468,7 +461,6 @@ using InvoiceQueue.Infrastructure;
 namespace InvoiceQueue.Benchmarks;
 
 [MemoryDiagnoser]
-[RankColumn]
 public class InvoiceSerializerBenchmarks
 {
     private IInvoiceSerializer _legacy = null!;
@@ -500,13 +492,15 @@ public class InvoiceSerializerBenchmarks
                           unitPrice: 100m * i))
                       .ToList());
 
-        _smallJson = _legacy.Serialize(_smallInvoice);
-        _largeJson = _legacy.Serialize(_largeInvoice);
+        // Use the replacement's camel-case wire format for both deserializers.
+        // Contract tests must verify both implementations accept these shared fixtures.
+        _smallJson = _modern.Serialize(_smallInvoice);
+        _largeJson = _modern.Serialize(_largeInvoice);
     }
 
     // ── Serialization ─────────────────────────────────────────────────────────
 
-    [Benchmark(Baseline = true)]
+    [Benchmark]
     public string Legacy_Serialize_Small() =&gt; _legacy.Serialize(_smallInvoice);
 
     [Benchmark]
@@ -534,53 +528,54 @@ public class InvoiceSerializerBenchmarks
 }
             </CodeSnippet>
             <p>
-                Run the benchmarks project in <Highlight>Release</Highlight> configuration from the
-                terminal — never <Highlight>Debug</Highlight>, which skews results significantly:
+                This is a source fragment for a dedicated project that references the application, domain,
+                and infrastructure projects and a current <Highlight>BenchmarkDotNet</Highlight> package.
+                Add a <Highlight>Program.cs</Highlight> entry point to run the benchmark class:
+            </p>
+            <CodeSnippet CssClass="language-csharp">
+using BenchmarkDotNet.Running;
+using InvoiceQueue.Benchmarks;
+
+BenchmarkRunner.Run&lt;InvoiceSerializerBenchmarks&gt;();
+            </CodeSnippet>
+            <p>
+                Run the dedicated project in <Highlight>Release</Highlight> configuration. BenchmarkDotNet
+                performs warmup and measurement iterations; results depend on hardware, runtime, configuration,
+                workload, and package versions.
             </p>
             <CodeSnippet CssClass="language-bash">
 dotnet run --project Benchmarks/InvoiceQueue.Benchmarks.csproj -c Release
             </CodeSnippet>
-            <p>
-                BenchmarkDotNet runs each method through a statistical warmup and measurement cycle
-                and produces a table similar to this:
-            </p>
             <CodeSnippet CssClass="language-bash">
-// Ratio column is relative to the single Baseline = true method (Legacy_Serialize_Small).
-// Smaller ratios are faster. Values below 1.00 mean the method is faster than the baseline.
-| Method                    | Mean       | Ratio | Allocated |
-|-------------------------- |-----------:|------:|----------:|
-| Legacy_Serialize_Small    |  4.81 µs   |  1.00 |   1.8 KB  |  &lt;-- baseline
-| Modern_Serialize_Small    |  1.23 µs   |  0.26 |   0.4 KB  |
-| Legacy_Serialize_Large    | 98.40 µs   | 20.45 |  42.3 KB  |
-| Modern_Serialize_Large    | 21.60 µs   |  4.49 |   9.1 KB  |
-| Legacy_Deserialize_Small  |  6.02 µs   |  1.25 |   2.1 KB  |
-| Modern_Deserialize_Small  |  1.55 µs   |  0.32 |   0.5 KB  |
-| Legacy_Deserialize_Large  | 112.70 µs  | 23.43 |  48.6 KB  |
-| Modern_Deserialize_Large  |  28.30 µs  |  5.88 |  11.2 KB  |
+// Illustrative values; compare only equivalent operations and payload sizes.
+| Method                    | Mean       | Allocated |
+|-------------------------- |-----------:|----------:|
+| Legacy_Serialize_Small    |  4.81 µs   |   1.8 KB  |
+| Modern_Serialize_Small    |  1.23 µs   |   0.4 KB  |
+| Legacy_Serialize_Large    | 98.40 µs   |  42.3 KB  |
+| Modern_Serialize_Large    | 21.60 µs   |   9.1 KB  |
+| Legacy_Deserialize_Small  |  6.02 µs   |   2.1 KB  |
+| Modern_Deserialize_Small  |  1.55 µs   |   0.5 KB  |
+| Legacy_Deserialize_Large  | 112.70 µs  |  48.6 KB  |
+| Modern_Deserialize_Large  |  28.30 µs  |  11.2 KB  |
             </CodeSnippet>
             <p>
-                All ratios are relative to <Highlight>Legacy_Serialize_Small</Highlight>, the single
-                <Highlight>Baseline = true</Highlight> method. A ratio below 1.00 means the method
-                is faster than the baseline; above 1.00 means slower. To get per-category ratios
-                (each legacy method as its own baseline), add
-                <Highlight>[GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory)]</Highlight>
-                and tag each method with <Highlight>[BenchmarkCategory]</Highlight>. For most
-                replacement decisions the absolute numbers in <Highlight>Mean</Highlight> and
-                <Highlight>Allocated</Highlight> are sufficient — carry those forward into your
-                rollback criteria test tolerance. In this example the modern serializer is
-                consistently faster and allocates less: a clear go signal.
+                The illustrative table omits ratios because a single baseline would mix different operations
+                and payload sizes. Compare matching serializer, operation, and payload pairs; verify correctness
+                with contract tests outside the benchmark. Measurements inform a decision but do not guarantee
+                production performance.
             </p>
 
-            <h4>Step 6 — Write a Rollback Criteria Test to Enforce the Performance Threshold in CI</h4>
+            <h4>Keep Performance Checks Separate From Unit-Test Assertions</h4>
             <p>
-                BenchmarkDotNet is thorough but slow — typically several minutes per run. It is
-                not suitable for pull request pipelines. A <Highlight>rollback criteria test</Highlight>
-                solves this: a standard xUnit test that runs a fixed number of timed iterations,
-                computes a ratio against the legacy baseline, and fails if the candidate exceeds
-                your accepted tolerance. It runs in two to five seconds — fast enough for every
-                pull request:
+                Avoid enforcing strict elapsed-time ratios with <Highlight>Stopwatch</Highlight> inside an
+                ordinary xUnit test. JIT compilation, garbage collection, machine load, and shared CI
+                resources can make such a test unstable. The following illustrates a brittle approach,
+                not a recommended performance gate:
             </p>
             <CodeSnippet CssClass="language-csharp">
+// Anti-pattern: wall-clock assertions are sensitive to runtime and CI conditions.
+// Prefer controlled benchmarks and investigate meaningful changes in context.
 // Tests/InvoiceSerializerRollbackCriteriaTests.cs
 using System.Diagnostics;
 using InvoiceQueue.Application;
@@ -665,56 +660,50 @@ public sealed class InvoiceSerializerRollbackCriteriaTests
 }
             </CodeSnippet>
 
-            <h4>How the Three Test Types Work Together in Your CI Pipeline</h4>
+            <h4>Use Each Check for the Question It Can Answer</h4>
             <p>
-                Each test type protects a different phase of the replacement lifecycle. Run them in
-                this order — each gate must pass before the next one matters:
+                Each check covers a different part of a replacement. A passing result is limited to the
+                assertions, fixtures, and measurement environment it used:
             </p>
             <CodeSnippet CssClass="language-csharp">
-  ┌────────────────────────────────────────────────────────────────────────────┐
-  │ NuGet Replacement Testing Pipeline                                         │
-  ├──────────────────┬────────────────────────────┬───────────────────────────-┤
-  │ Phase            │ Test type                  │ Signal on pass             │
-  ├──────────────────┼────────────────────────────┼───────────────────────────-┤
-  │ 1. Before swap   │ Characterization tests     │ Golden master committed    │
-  │ 2. After swap    │ Contract tests (both impls)│ Behavioral parity proven   │
-  │ 3. On every PR   │ Rollback criteria tests    │ Performance within bounds  │
-  │ 4. Pre-release   │ BenchmarkDotNet (manual)   │ Authoritative throughput   │
-  └──────────────────┴────────────────────────────┴───────────────────────────-┘
+  ┌───────────────────┬─────────────────────────────────────────────────────────┐
+  │ Check             │ What a pass indicates                                   │
+  ├───────────────────┼─────────────────────────────────────────────────────────┤
+  │ Snapshot tests    │ Selected outputs match accepted snapshots               │
+  │ Contract tests    │ Current assertions pass for the tested cases            │
+  │ Integration tests │ Selected consumers work with the tested implementation │
+  │ Benchmarks        │ Measurements for the workload and environment tested    │
+  └───────────────────┴─────────────────────────────────────────────────────────┘
 
-  Contract test suite should be run in CI on every PR that touches:
+Contract tests should run in CI when a change touches:
   - The interface definition
   - Any implementation of the interface
-  - The DI registration that selects which implementation to use
-
-  If any contract test fails, the PR is blocked regardless of unit test results.
+  - The DI registration that selects the implementation
             </CodeSnippet>
             <p>
-                Contract tests and rollback criteria tests run fast enough for every pull request.
-                BenchmarkDotNet runs are reserved for when you need to establish or revise thresholds —
-                typically once when you first write the replacement implementation and once before you
-                retire the characterization tests.
+                Use CI failures to review whether tested requirements still hold.
+                Benchmark results complement correctness tests; neither a successful benchmark nor a green
+                test suite proves behavior for every input or production condition.
             </p>
         </How>
 
         <Summary>
             <p>
-                Contract tests are the acceptance gate that characterization tests are not designed
-                to be. They prove that a replacement satisfies every behavioral obligation of the
-                interface it implements — across all inputs, not just the snapshot fixture. Here are
-                the key takeaways:
+                Contract tests make selected interface requirements executable and reusable across
+                implementations. A passing suite is evidence for its tested cases, not proof of equivalence
+                across all possible inputs. Key points:
             </p>
             <ul>
                 <li>
-                    <Highlight>Characterization tests</Highlight> capture output bytes for a specific
-                    fixture. They are a one-time audit tool, retired after rollout. They cannot protect
-                    you against behavioral gaps in inputs not covered by the fixture.
+                    <Highlight>Characterization tests</Highlight> compare selected outputs with accepted
+                    snapshots. Review snapshots against the intended format and retain useful cases as
+                    regression coverage.
                 </li>
                 <li>
-                    <Highlight>Contract tests</Highlight> encode behavioral obligations (round-trip
+                    <Highlight>Contract tests</Highlight> encode specified behaviors (round-trip
                     correctness, null handling, enum fidelity, Unicode, empty collections) in an
-                    abstract base class and run them against every registered implementation. They are
-                    permanent regression guards.
+                    abstract base class and run them against the implementations you register. Add cases
+                    for important wire-format requirements and downstream behavior as needed.
                 </li>
                 <li>
                     Use an abstract base class with one <Highlight>[Fact]</Highlight> per behavioral
@@ -722,23 +711,21 @@ public sealed class InvoiceSerializerRollbackCriteriaTests
                     and executes all subclasses automatically.
                 </li>
                 <li>
-                    Run <Highlight>BenchmarkDotNet</Highlight> in Release configuration once to get
-                    authoritative throughput numbers and use those numbers to set the
-                    <Highlight>MaxSlowdownRatio</Highlight> in your rollback criteria test.
+                    Use <Highlight>BenchmarkDotNet</Highlight> in Release configuration for controlled
+                    comparisons of representative workloads; results vary by environment.
                 </li>
                 <li>
-                    A <Highlight>rollback criteria test</Highlight> is a normal xUnit test that
-                    enforces the performance threshold on every pull request in two to five seconds —
-                    without the ten-minute BenchmarkDotNet run.
+                    Avoid strict timing assertions in ordinary xUnit tests. Shared CI machines and runtime
+                    conditions can make elapsed-time thresholds unreliable.
                 </li>
                 <li>
-                    A green contract suite is your ship signal for behavioral correctness. A green
-                    rollback criteria test is your ship signal for performance. Both must pass before
-                    the replacement ships.
+                    A green contract suite means its current assertions pass for the tested cases. Pair it
+                    with integration tests, NuGet Audit, and review of the resolved package graph before
+                    completing a dependency replacement.
                 </li>
             </ul>
             <p>
-                This is the fifth and final article in the NuGet package replacement series. Start
+                This is the fifth article in the six-part NuGet package replacement series. Start
                 from
                 <NavLink href="blogs/how-to-find-nuget-dependency-vulnerabilities-before-they-find-you-in-dotnet">
                     How to Find NuGet Dependency Vulnerabilities Before They Find You in .NET
@@ -749,6 +736,10 @@ public sealed class InvoiceSerializerRollbackCriteriaTests
                 </NavLink>
                 for the golden master workflow that feeds directly into the contract clauses you
                 write here.
+                The final article covers ongoing dependency review and ownership:
+                <NavLink href="blogs/from-debt-to-discipline-managing-nuget-dependency-technical-debt-in-dotnet">
+                    Managing NuGet Dependency Technical Debt in .NET
+                </NavLink>.
             </p>
         </Summary>
     </ContentBody>

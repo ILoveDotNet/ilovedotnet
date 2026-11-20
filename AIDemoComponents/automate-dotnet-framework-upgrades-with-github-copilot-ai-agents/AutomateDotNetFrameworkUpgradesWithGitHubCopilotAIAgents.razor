@@ -7,48 +7,46 @@
     <ContentBody>
         <What>
             <p>
-                What if your next .NET upgrade started with one prompt and a checklist already in your repository?
+                Upgrade .NET with a repository-owned <Highlight>dotnet-upgrade skill</Highlight> and a single prompt.
             </p>
             <p>
-                My approach to .NET upgrades is a repository-owned <Highlight>dotnet-upgrade skill</Highlight>
-                with a straightforward sequence:
+                The skill follows this sequence:
                 <strong>update all in-scope target frameworks to the latest stable .NET version, run
                     <Highlight>dotnet outdated -u</Highlight>, update Dockerfiles, update workflow pipelines,
                     then fix upgrade-related failures until all required builds and tests pass.</strong>
             </p>
             <p>
-                Store the instructions in <Highlight>.github/skills/dotnet-upgrade/SKILL.md</Highlight>.
-                Copilot can load this skill for upgrade requests, giving it the same workflow each time.
-                This article contains the actual skill used in this repository.
+                Store the instructions in <Highlight>.github/skills/dotnet-upgrade/SKILL.md</Highlight> so Copilot can reuse the
+                workflow. The article includes this repository's skill.
             </p>
         </What>
 
         <Why>
             <p>
-                The order matters. Updating <Highlight>TFMs</Highlight> first lets package tooling evaluate updates against the new framework.
-                Updating Docker and pipelines then brings deployment and CI into line with the application.
-                Passing builds and tests are the completion criteria, not merely a set of edited project files.
+                Update <Highlight>TFMs</Highlight> first so package tooling evaluates updates against the new framework, then align
+                Docker and pipelines with the application. The upgrade is complete when required builds and tests pass, not when
+                project files have merely changed.
             </p>
             <p>
-                Keeping that sequence in source control makes the workflow explicit and reviewable.
-                Repository-specific instructions cover shared framework settings, <Highlight>MAUI</Highlight> targets, central package versions,
-                and test suites that a one-line upgrade prompt could miss.
+                Source-controlled instructions make the workflow reviewable and capture repository-specific details, including
+                shared framework settings, <Highlight>MAUI</Highlight> targets, central package versions, and test suites a prompt
+                could miss.
             </p>
         </Why>
 
         <How>
             <h4>Step 1: Add the Skill File</h4>
             <p>
-                Create <Highlight>.github/skills/dotnet-upgrade/SKILL.md</Highlight> with the following content.
-                It is tailored to this repository's Blazor WebAssembly and .NET MAUI solution.
-                If you use it elsewhere, replace the solution paths, platform requirements, and test projects with your own.
+                Create <Highlight>.github/skills/dotnet-upgrade/SKILL.md</Highlight> with the content below. It targets this
+                repository's Blazor WebAssembly and .NET MAUI solution. For another repository, replace the solution paths,
+                platform requirements, and test projects.
             </p>
             <p>
-                See GitHub's
+                See
                 <a href="https://docs.github.com/en/copilot/concepts/customizations/agent-skills" target="_blank" rel="noopener noreferrer">agent skills documentation</a>
-                for skill support and setup, and the
+                for setup, and
                 <a href="https://github.com/dotnet-outdated/dotnet-outdated#upgrading-packages" target="_blank" rel="noopener noreferrer">dotnet-outdated documentation</a>
-                for package upgrade behavior. The skill also points Copilot to Microsoft's support policy and migration guidance.
+                for package upgrade behavior. The skill also links to Microsoft's support policy and migration guidance.
             </p>
 
             <CodeSnippet CssClass="language-markdown">
@@ -141,26 +139,23 @@ Planning or assessment alone does not authorize implementation or Git changes.
 
             <h4>Step 2: Run the Upgrade with a Simple Prompt</h4>
             <p>
-                With the skill in the repository, open Copilot in an environment that supports agent skills.
-                Use this prompt with your desired .NET version:
+                In an environment that supports agent skills, ask Copilot:
             </p>
             <CodeSnippet CssClass="language-plaintext">
 Upgrade the solution to .NET &lt;version&gt;
 </CodeSnippet>
             <p>
-                Replace <Highlight>&lt;version&gt;</Highlight> with your target version, such as <Highlight>11</Highlight>.
-                For my .NET 11 upgrade, Copilot handled the remaining steps using the repository skill.
-                Review the resulting changes and validation results before merging.
+                Replace <Highlight>&lt;version&gt;</Highlight> with your target, such as <Highlight>11</Highlight>. Copilot used
+                the skill for this repository's .NET 11 upgrade. Review the changes and validation results before merging.
             </p>
         </How>
 
         <Summary>
             <p>
-                Keep the upgrade workflow in one skill:
+                Keep the workflow in one skill:
                 <strong>TFMs first, <Highlight>dotnet outdated -u</Highlight>, Dockerfiles, workflow pipelines,
                     then passing builds and all required tests.</strong>
-                The skill records both the sequence and this repository's requirements so Copilot has a clear task
-                and a concrete definition of done.
+                The skill records the sequence and repository requirements, giving Copilot a clear task and definition of done.
             </p>
         </Summary>
     </ContentBody>

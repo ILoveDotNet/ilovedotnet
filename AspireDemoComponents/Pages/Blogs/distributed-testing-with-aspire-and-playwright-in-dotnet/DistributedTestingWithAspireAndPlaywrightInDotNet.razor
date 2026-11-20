@@ -7,38 +7,33 @@
     <ContentBody>
         <What>
             <p>
-                An operator can generate an order successfully and the owner can still open an
-                empty dashboard. A passing API test won't tell you whether both users can finish
-                their part of the job.
+                Test a user flow across services and the browser with
+                <Highlight>Aspire.Hosting.Testing</Highlight> and <Highlight>Playwright</Highlight>. An API test alone cannot
+                confirm that an operator's order appears on the owner's dashboard.
             </p>
             <p>
-                <Highlight>Aspire.Hosting.Testing</Highlight> starts the services defined by your
-                AppHost, the project that describes how they run together.
-                <Highlight>Playwright</Highlight> drives the browser. We'll use them to follow
-                one cash order from a new branch to the owner's dashboard.
+                <Highlight>Aspire.Hosting.Testing</Highlight> starts the services defined by the AppHost, which describes how
+                they run together. Playwright drives the browser through a cash order, from a new branch to the owner's dashboard.
             </p>
         </What>
 
         <Why>
             <p>
-                An order endpoint test can tell you whether the API accepts a valid request.
-                It won't catch a login redirect that drops the operator at the wrong screen
-                or a dashboard that reads orders for the wrong branch.
+                An endpoint test can confirm that the API accepts a valid request, but it won't catch a login redirect to the
+                wrong screen or a dashboard that reads orders for the wrong branch.
             </p>
             <p>
-                Keep the focused tests for service rules: they're cheaper to run and narrow
-                down failures faster. Save browser tests for critical handoffs like this one:
-                the operator records the sale, and the owner relies on it to track the day.
+                Keep focused service tests for rules; they run faster and narrow down failures. Use browser tests for critical
+                handoffs, such as an operator recording a sale that the owner needs to track.
             </p>
         </Why>
 
         <How>
             <h4>Follow one order across three roles</h4>
             <p>
-                An admin creates an isolated client and branch with an owner and an operator.
-                The owner configures the branch, adds a category, item, and supplier, then
-                records a purchase to stock the item. The operator creates a customer and
-                generates a cash order; the owner signs back in to check the dashboard.
+                An admin creates an isolated client and branch with an owner and operator. The owner configures the branch, adds
+                a category, item, and supplier, then records a purchase to stock the item. The operator creates a customer and
+                cash order; the owner signs in again to check the dashboard.
             </p>
             <CodeSnippet CssClass="language-plaintext">
 xUnit assembly fixture --&gt; AppHost --&gt; landing (health probe)
@@ -48,23 +43,20 @@ Playwright browser --&gt; web --&gt; api --&gt; PostgreSQL (application DB)
             <p>
                 The test uses the same service names as the
                 <a class="underline" href="/blogs/getting-started-with-aspire-in-dotnet/">companion AppHost walkthrough</a>.
-                This map shows the main browser path and the fixture's landing probe, not every
-                AppHost dependency.
+                The map shows the browser path and fixture's landing probe, not every AppHost dependency.
             </p>
 
             <h4>Generate a cash order and check both screens</h4>
             <p>
-                Use xUnit v3, <Highlight>Aspire.Hosting.Testing</Highlight>, and
-                <Highlight>Microsoft.Playwright.Xunit.v3</Highlight> in a distributed-test
-                project that references your AppHost. These excerpts leave admin and branch
-                setup, sign-in, and cleanup to your application.
+                In a distributed-test project that references your AppHost, use xUnit v3,
+                <Highlight>Aspire.Hosting.Testing</Highlight>, and
+                <Highlight>Microsoft.Playwright.Xunit.v3</Highlight>. The excerpts leave admin and branch setup, sign-in, and
+                cleanup to your application.
             </p>
             <p>
-                <Highlight>CreateBranchAndUsersAsync</Highlight> signs in as an admin and
-                returns the branch and user details along with unique test data for the
-                customer and item. <Highlight>SignInAsAsync</Highlight> replaces the current
-                login using your app's test configuration. Match the locators to your screens'
-                accessible names.
+                <Highlight>CreateBranchAndUsersAsync</Highlight> signs in as an admin and returns branch and user details plus
+                unique customer and item data. <Highlight>SignInAsAsync</Highlight> replaces the current login using your app's
+                test configuration. Match the locators to your screens' accessible names.
             </p>
             <CodeSnippet CssClass="language-csharp">
 using System;
@@ -108,9 +100,8 @@ public sealed partial class E2ETests(AppFixture fixture) : DistributedPageTest
 }
             </CodeSnippet>
             <p>
-                The customer you save is the customer you select on the order form. Add these
-                helpers to the same test class. The dashboard helper finds a card by its heading
-                and reads its value; adjust the card and value selectors to your markup.
+                Select the customer you saved on the order form. Add these helpers to the test class. The dashboard helper finds
+                a card by its heading and reads its value; adjust the selectors to your markup.
             </p>
             <CodeSnippet CssClass="language-csharp">
 private async Task CreateCustomerAsync(string name, string mobile)
@@ -153,23 +144,18 @@ private ILocator WidgetValue(string title) =&gt;
 
             <h4>Share the AppHost, not the browser session</h4>
             <p>
-                xUnit injects one <Highlight>AppFixture</Highlight> into the test classes that
-                need it. Playwright's <Highlight>PageTest</Highlight> gives each test a fresh
-                browser context, so cookies and local storage don't carry over. The database
-                <em>does</em> carry over between tests in the assembly, which is why the order test
-                uses unique records and cleans up its own branch.
+                xUnit injects one <Highlight>AppFixture</Highlight> into test classes that need it. Playwright's
+                <Highlight>PageTest</Highlight> gives each test a fresh browser context, so cookies and local storage do not
+                carry over. The database persists across tests in the assembly, so the order test uses unique records and removes
+                its branch.
             </p>
             <p>
-                Start with a disposable PostgreSQL instance for each run. Your application's
-                migrations and seed code prepare the schema and baseline data; Aspire doesn't
-                supply the seed data. That's how you get a useful starting point
-                without filling a shared staging database with test orders.
+                Start each run with disposable PostgreSQL. Your application's migrations and seed code prepare the schema and
+                baseline data; Aspire does not provide seed data. This avoids adding test orders to a shared staging database.
             </p>
             <p>
-                Put the following fixture excerpts in one class, using your generated AppHost
-                type in place of <Highlight>Projects.AppHost</Highlight>. A startup timeout
-                names the stage that stalled, so you know which service to investigate before
-                looking for a browser failure.
+                Put these fixture excerpts in one class and replace <Highlight>Projects.AppHost</Highlight> with your generated
+                AppHost type. A startup timeout identifies the stalled stage before you investigate browser failures.
             </p>
             <CodeSnippet CssClass="language-csharp">
 using System;
@@ -248,10 +234,10 @@ public sealed class AppFixture : IAsyncLifetime
     }
             </CodeSnippet>
             <p>
-                One two-minute deadline covers startup and all three readiness checks. The
-                probe retries connection and server errors. If your client uses a resilience
-                timeout, also treat its <Highlight>TimeoutRejectedException</Highlight> as
-                retryable within that same deadline.
+                Replace <Highlight>/.well-known/openid-configuration</Highlight> and <Highlight>/api/ping</Highlight> with
+                successful routes your identity service and API expose. These probes retry connection and server errors, not
+                4xx responses. One two-minute deadline covers startup and all three readiness checks. If the client uses a
+                resilience timeout, also retry its <Highlight>TimeoutRejectedException</Highlight> within that deadline.
             </p>
             <CodeSnippet CssClass="language-csharp">
     private static async Task WaitForSuccessAsync(
@@ -274,9 +260,8 @@ public sealed class AppFixture : IAsyncLifetime
     }
             </CodeSnippet>
             <p>
-                The fixture owns environment teardown, even if startup fails before the host
-                exists. Stop the host with a separate deadline so a canceled startup token
-                doesn't cancel cleanup.
+                The fixture owns teardown, even if startup fails before the host exists. Use a separate shutdown deadline so a
+                canceled startup token does not cancel cleanup.
             </p>
             <CodeSnippet CssClass="language-csharp">
     public async ValueTask DisposeAsync()
@@ -307,10 +292,9 @@ public sealed class AppFixture : IAsyncLifetime
 
             <h4>Save a recording you can match to the test</h4>
             <p>
-                When the dashboard check fails, the assertion tells you which value was wrong.
-                The recording shows how the browser got there: for example, which branch the
-                owner was viewing. Keep the timeouts in the shared base class and opt in to
-                video in <Highlight>E2ETests</Highlight> before Playwright creates the context.
+                A failed dashboard assertion identifies the wrong value; the recording shows how the browser reached it, such as
+                which branch the owner viewed. Set timeouts in the shared base class and enable video in
+                <Highlight>E2ETests</Highlight> before Playwright creates the context.
             </p>
             <CodeSnippet CssClass="language-csharp">
 using System.Threading.Tasks;
@@ -329,9 +313,8 @@ public abstract class DistributedPageTest : PageTest
 }
             </CodeSnippet>
             <p>
-                Close the context to finish the video, then save it with the test name. The
-                suffix keeps repeat runs from overwriting each other, and the original goes
-                away only after the named copy is saved.
+                Close the context to finish the video, then save it with the test name. A unique suffix prevents repeat runs from
+                overwriting each other; the original is deleted only after the named copy is saved.
             </p>
             <CodeSnippet CssClass="language-csharp">
 using System;
@@ -378,43 +361,38 @@ public sealed partial class E2ETests
 
             <h4>Run the test and read the evidence</h4>
             <p>
-                From your distributed-test project's directory, run:
+                From your distributed-test project's directory, build the test project, install Chromium, then run the test.
+                Replace <Highlight>net11.0</Highlight> with your project's target framework if it differs:
             </p>
             <CodeSnippet CssClass="language-powershell">
-dotnet test
+dotnet build
+pwsh bin/Debug/net11.0/playwright.ps1 install chromium
+dotnet test --no-build
             </CodeSnippet>
             <p>
-                The Orders row after a reload checks that the operator can still find the saved
-                order. In a new branch, <strong>Today's Orders = 1</strong> checks that
-                the order reached the owner's dashboard, and <strong>This Month's Top Selling</strong>
-                ties that result to the item the owner stocked. Playwright's retrying
-                <Highlight>Expect</Highlight> assertions wait for those values within the
-                configured timeout, without guessing how long the page takes to update.
+                The Orders row after reload confirms that the operator can find the saved order. In a new branch,
+                <strong>Today's Orders = 1</strong> confirms it reached the owner's dashboard, and
+                <strong>This Month's Top Selling</strong> ties it to the stocked item. Playwright's retrying
+                <Highlight>Expect</Highlight> assertions wait for these values within the configured timeout.
             </p>
             <p>
-                On a failed run, start with the assertion and captured console output. If a
-                recording was saved, look in <Highlight>videos/e2e-tests</Highlight> under the
-                test process's working directory for the file starting with the test name.
+                On failure, check the assertion and captured console output. If a recording was saved, find the file named after
+                the test in <Highlight>videos/e2e-tests</Highlight> under the test process's working directory.
             </p>
             <p>
-                Give a coding agent that same loop: implement the change, run
-                <Highlight>dotnet test</Highlight>, read the failing assertion and output,
-                fix the issue, then rerun the test. Ask it to hand over the named recording
-                so you can review the flow yourself.
+                Give a coding agent the same loop: implement the change, run <Highlight>dotnet test</Highlight>, inspect failures,
+                fix them, and rerun. Ask it to provide the named recording so you can review the flow.
             </p>
 
             <h4>Extend the same test across teams</h4>
             <p>
-                In a larger system, your AppHost can run another team's published container
-                alongside your local projects. Pin the image to a version or digest so you know
-                which contract you're testing.
+                In a larger system, the AppHost can run another team's published container alongside local projects. Pin the image
+                to a version or digest to identify the contract under test.
             </p>
             <p>
-                If that workflow uses messaging, wait for both the broker and the consumer
-                to be ready before starting the journey. Match the downstream effect to the
-                unique order or event ID, then assert the final state in the UI. A broker is
-                an optional extension, not part of this order example. Use test-owned brokers
-                and data, just as with PostgreSQL.
+                For messaging, wait until the broker and consumer are ready. Match the downstream effect to the unique order or
+                event ID, then assert the final UI state. Messaging is an optional extension to this example; use test-owned
+                brokers and data as with PostgreSQL.
             </p>
 
             <h4>References</h4>
