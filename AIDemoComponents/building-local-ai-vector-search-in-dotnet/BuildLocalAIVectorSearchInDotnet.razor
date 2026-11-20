@@ -7,22 +7,18 @@
   <ContentBody>
     <What>
       <p>
-        A search box that only finds the exact words a reader typed makes useful content surprisingly hard to discover.
-        <Highlight>Vector search</Highlight>, also called <Highlight>semantic search</Highlight>, solves that problem by comparing meaning rather than spelling.
+        <Highlight>Vector search</Highlight>, also called <Highlight>semantic search</Highlight>, ranks content by comparing embeddings rather than exact word matches.
         A query such as “how do I make my app search by meaning?” can therefore find content about embeddings even when it never uses that exact sentence.
       </p>
 
       <p>
-        This site replaces traditional keyword matching with a small, local-first <Highlight>AI vector search pipeline</Highlight>.
-        It turns each article’s title, description, keywords, and channel into a <Highlight>384-dimensional embedding</Highlight> at build time,
-        then ranks the static vectors in the reader’s browser when they search.
-        The result is a semantic search experience without a search API, server-side query processing, or a vector database.
+        This site creates a <Highlight>384-dimensional embedding</Highlight> from each article’s title, description, keywords, and channel at build time.
+        The browser embeds each query and ranks those static vectors locally.
+        This implementation does not send queries to a search API or require a vector database.
       </p>
 
       <p>
-        The internet shows sustained interest in <Highlight>what is vector search</Highlight>,
-        <Highlight>semantic search</Highlight>, <Highlight>vector database</Highlight>, and <Highlight>RAG</Highlight> (retrieval-augmented generation).
-        Those terms describe a broad AI retrieval landscape; this article focuses on the deliberately smaller and more controllable static-site pattern used here.
+        This article focuses on a static-site implementation rather than a general-purpose <Highlight>vector database</Highlight> or <Highlight>RAG</Highlight> (retrieval-augmented generation) system.
       </p>
     </What>
 
@@ -34,22 +30,21 @@
       </p>
 
       <p>
-        This mismatch becomes costly as a learning site grows because tags become inconsistent and every new synonym demands another manual keyword.
-        Sending each keystroke to a hosted search service also adds latency, operational cost, and a new place where reader queries can leave the device.
-        For a static catalogue, adding a remote database merely to compare a few hundred documents is often a rather expensive way to solve a small problem.
+        This mismatch can make relevant articles harder to find as a catalogue grows.
+        A hosted search service also sends queries off the device and adds another service to operate.
+        For a small static catalogue, an index downloaded with the site can avoid that dependency.
       </p>
 
       <p>
-        A local <Highlight>vector index</Highlight> gives the browser enough semantic context to rank the existing catalogue itself.
-        The following implementation creates compatible normalized vectors for content and queries, then uses their <Highlight>dot product</Highlight> as a similarity score.
-        In short: it makes search more forgiving while keeping the content index under the site’s deployment control.
+        The browser can rank a local <Highlight>vector index</Highlight> without a request to a search server.
+        The implementation creates normalized content and query vectors, then uses their <Highlight>dot product</Highlight> as a similarity score.
       </p>
 
       <h4>Understand what “local” protects and what it does not</h4>
 
       <p>
         The generated <Highlight>index.json</Highlight> and <Highlight>index.vec</Highlight> files are shipped as static assets, so article vectors and ranking happen locally after download.
-        The index also records the <Highlight>model identifier</Highlight>, immutable <Highlight>model revision</Highlight>, dimensions, entry count, and publish dates; browser code rejects incompatible metadata and invalid vector lengths before ranking.
+        The index also records the <Highlight>model identifier</Highlight>, immutable <Highlight>model revision</Highlight>, dimensions, entry count, and publish dates; browser code checks these fields, metadata count, and vector length before ranking. It does not verify that same-sized metadata and vector files came from the same generation.
       </p>
 
       <p>
@@ -68,6 +63,8 @@
       </p>
 
       <CodeSnippet CssClass="language-csharp">
+using SharedModels;
+
 namespace CommonComponents.Services;
 
 // Keep the UI independent from the concrete keyword or vector-search implementation.
@@ -108,6 +105,7 @@ public interface IContentSearchService
     &lt;!-- Read the shared article catalogue while generating vectors. --&gt;
     &lt;ProjectReference Include="..\SharedModels\SharedModels.csproj" /&gt;
     &lt;!-- Run the pinned embedding model locally during the build. --&gt;
+    &lt;PackageReference Include="AngleSharp" /&gt;
     &lt;PackageReference Include="Microsoft.ML.OnnxRuntime" /&gt;
     &lt;PackageReference Include="Microsoft.ML.Tokenizers" /&gt;
   &lt;/ItemGroup&gt;
@@ -125,7 +123,7 @@ public interface IContentSearchService
       <p>
         Build one searchable string from each article’s title, description, keywords, and channel.
         Normalize whitespace and symbols before <Highlight>tokenization</Highlight> so equivalent metadata produces stable input.
-        The embedder truncates input to 256 tokens, <Highlight>mean-pools</Highlight> the token representations, and normalizes the result to unit length.
+        The generator truncates document input to 256 tokens, <Highlight>mean-pools</Highlight> the token representations, and normalizes the result to unit length.
       </p>
 
       <CodeSnippet CssClass="language-csharp">
@@ -134,13 +132,14 @@ internal sealed class MiniLmEmbedder : IDisposable
   public const int Dimensions = 384;
   public const int MaxTokens = 256;
 
-  private readonly InferenceSession _session;
+  private readonly Lazy&lt;InferenceSession&gt; _session;
   private readonly BertTokenizer _tokenizer;
 
   public MiniLmEmbedder(string onnxModelPath, string vocabularyPath)
   {
     // Load the pinned ONNX model and its matching BERT vocabulary.
-    _session = new InferenceSession(onnxModelPath);
+    _session = new Lazy&lt;InferenceSession&gt;(
+      () =&gt; new InferenceSession(onnxModelPath));
     _tokenizer = BertTokenizer.Create(vocabularyPath, new BertOptions
     {
       LowerCaseBeforeTokenization = true,
@@ -173,7 +172,7 @@ internal sealed class MiniLmEmbedder : IDisposable
     }
 
     // Execute the pinned MiniLM ONNX model.
-    using var results = _session.Run([
+    using var results = _session.Value.Run([
       NamedOnnxValue.CreateFromTensor("input_ids", inputIds),
       NamedOnnxValue.CreateFromTensor("attention_mask", attentionMask),
       NamedOnnxValue.CreateFromTensor("token_type_ids", tokenTypeIds)
@@ -197,19 +196,30 @@ internal sealed class MiniLmEmbedder : IDisposable
 
     var norm = MathF.Sqrt(vector.Sum(value =&gt; value * value));
     // Unit-normalize so the dot product represents cosine similarity.
-    for (var dimension = 0; dimension &lt; Dimensions; dimension++)
+    if (norm &gt; 0)
     {
-      vector[dimension] /= norm;
+      for (var dimension = 0; dimension &lt; Dimensions; dimension++)
+      {
+        vector[dimension] /= norm;
+      }
     }
 
     return vector;
+  }
+
+  public void Dispose()
+  {
+    if (_session.IsValueCreated)
+    {
+      _session.Value.Dispose();
+    }
   }
 }
       </CodeSnippet>
 
       <p>
-        The shortened snippet highlights the algorithm; the complete implementation must populate all three tensors and perform the <Highlight>ONNX inference call</Highlight>.
-        Do not replace mean pooling or normalization independently for documents and queries: both sides must use the same <Highlight>embedding procedure</Highlight>.
+        The code mean-pools the model output and normalizes the resulting vector. The production implementation also skips division when the vector norm is zero.
+        Documents and queries must use compatible tokenization, model revisions, pooling, and normalization.
       </p>
 
       <p>
@@ -231,7 +241,7 @@ static string CreateSearchDocument(ContentMetaData content)
       <p>
         Store vector values as contiguous <Highlight>float32</Highlight> values and store only the slug and publication date in <Highlight>JSON metadata</Highlight>.
         The array position is the join key: entry zero in <Highlight>index.json</Highlight> owns the first 384 floats in <Highlight>index.vec</Highlight>.
-        Temporary files and final moves prevent a partially written index from becoming the deployed asset.
+        Temporary files prevent consumers from reading an incomplete individual file. The two final moves are separate, and the browser checks counts and vector length but cannot detect two same-sized files from different generations. Deploy both files together; use a versioned directory and manifest or another atomic-publish strategy if deployments can expose files from different builds.
       </p>
 
       <CodeSnippet CssClass="language-csharp">
@@ -279,7 +289,7 @@ File.Move(temporaryMetadataPath, metadataPath, true);
 
       <p>
         Add the generator source, project file, metadata sources, package versions, and browser module to the <Highlight>MSBuild input list</Highlight>.
-        The target then reruns whenever one of those inputs changes and includes the generated files as <Highlight>static web assets</Highlight>.
+        This abbreviated target shows the dependency list and generator invocation. The repository's production target also tracks content-generation inputs and <Highlight>Directory.Build.props</Highlight>, builds the generator, runs its assembly, and includes the output files as static web assets.
       </p>
 
       <CodeSnippet CssClass="language-xml">
@@ -348,18 +358,38 @@ async function initializeIndex() {
         || index.Dimensions !== dimensions
       || !Array.isArray(index.Entries)
       || index.Count !== index.Entries.length
+      || !index.Entries.every(isValidEntry)
         || vectors.length !== index.Count * dimensions) {
         throw new Error('The vector index is incompatible.');
     }
 
     return { entries: index.Entries, vectors };
 }
+
+function isValidEntry(entry) {
+    return typeof entry?.Slug === 'string'
+      &amp;&amp; entry.Slug.trim().length &gt; 0
+      &amp;&amp; typeof entry.PublishOn === 'string'
+      &amp;&amp; isValidDate(entry.PublishOn);
+}
+
+function isValidDate(value) {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+    if (!match) return false;
+    const date = new Date(Date.UTC(
+      Number(match[1]),
+      Number(match[2]) - 1,
+      Number(match[3])));
+    return date.getUTCFullYear() === Number(match[1])
+      &amp;&amp; date.getUTCMonth() === Number(match[2]) - 1
+      &amp;&amp; date.getUTCDate() === Number(match[3]);
+}
       </CodeSnippet>
 
       <h4>Step 7: Embed the query and rank the top results</h4>
 
       <p>
-        Embed the normalized query with the same model and options used for the document vectors.
+        Embed the normalized query with the same model revision, mean pooling, and normalization used for the document vectors. The generator explicitly truncates documents to 256 tokens; the browser search code does not perform its own token-count check on queries, so keep search queries concise.
         Filter future publication dates, calculate the <Highlight>dot product</Highlight> against each 384-value slice, discard scores below 0.25,
         sort descending, and return the requested maximum number of slugs.
       </p>
@@ -496,7 +526,7 @@ ShowSuggestions = _filteredContents.Count &gt; 0;
       <h4>Harden the local supply chain before calling it fully offline</h4>
 
       <p>
-        The current repository pins the model revision and <Highlight>package lockfile</Highlight>, but its browser module sets <Highlight>allowRemoteModels</Highlight> to true.
+        The repository pins the model revision and centrally manages NuGet package versions, but its browser module sets <Highlight>allowRemoteModels</Highlight> to true.
         For a fully local runtime, vendor the reviewed model files under the application’s static assets, set <Highlight>allowLocalModels</Highlight> to true,
         set <Highlight>allowRemoteModels</Highlight> to false, verify hashes in CI, and test with the model host blocked.
         Keep the build-time model cache and browser model revision identical so document and query vectors remain compatible.
