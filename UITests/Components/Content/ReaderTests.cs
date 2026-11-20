@@ -20,7 +20,6 @@ public class ReaderTests
     using var ctx = new BunitContext();
     var contents = new TableOfContents();
     var metadata = contents.Contents.First();
-    ctx.Services.GetRequiredService<NavigationManager>().NavigateTo($"/{metadata.ContentUrl}/");
     ctx.Services.AddSingleton(contents);
     ctx.Services.AddSingleton<SlugService>();
     ctx.Services.AddSingleton<IConfiguration>(new ConfigurationBuilder().Build());
@@ -44,6 +43,7 @@ public class ReaderTests
       outline.SetResult([new("cache-key", "Choosing a cache key", 4)]);
     }
 
+    ctx.Services.GetRequiredService<NavigationManager>().NavigateTo($"/{metadata.ContentUrl}/");
     var cut = ctx.Render<ArticleContent>(parameters => parameters
         .Add(component => component.FileName, "Article")
         .Add(component => component.ContentBody,
@@ -158,7 +158,7 @@ public class ReaderTests
     var code = cut.Find("code");
     var region = cut.Find("pre");
     Assert.Equal("Program.cs code", region.GetAttribute("aria-label"));
-    var description = cut.Find($"#{region.GetAttribute("aria-describedby")}");
+    var description = cut.Find($"[id='{region.GetAttribute("aria-describedby")}']");
     Assert.Contains("Partial example", description.TextContent);
     Assert.Equal("builder.Services.AddMemoryCache();", code.TextContent);
     await cut.Find("button").ClickAsync();

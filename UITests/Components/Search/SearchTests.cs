@@ -16,7 +16,7 @@ public class SearchTests
   {
     var pending = new TaskCompletionSource<IReadOnlyList<ContentMetaData>>(TaskCreationOptions.RunContinuationsAsynchronously);
     var service = new SearchService { Handler = (_, _) => pending.Task };
-    using var ctx = CreateContext(service);
+    await using var ctx = CreateContext(service);
     var cut = ctx.Render<SearchComponent>();
     await cut.Find("#search").TriggerEventAsync("onfocusin", new FocusEventArgs());
 
@@ -47,7 +47,7 @@ public class SearchTests
           ? Task.FromException<IReadOnlyList<ContentMetaData>>(new HttpRequestException("offline"))
           : Task.FromResult<IReadOnlyList<ContentMetaData>>([article])
     };
-    using var ctx = CreateContext(service);
+    await using var ctx = CreateContext(service);
     var cut = ctx.Render<SearchComponent>();
     await cut.Find("#search").TriggerEventAsync("onfocusin", new FocusEventArgs());
     const string query = "C# \u7f13\u5b58 \ud83d\ude80";
@@ -82,7 +82,7 @@ public class SearchTests
         return pending.Task;
       }
     };
-    using var ctx = CreateContext(service);
+    await using var ctx = CreateContext(service);
     var cut = ctx.Render<SearchComponent>();
     await cut.Find("#search").TriggerEventAsync("onfocusin", new FocusEventArgs());
     var oldSearch = cut.Find("input").InputAsync(new ChangeEventArgs { Value = "old" });
@@ -107,7 +107,7 @@ public class SearchTests
     var article = new TableOfContents().Contents.First();
     var pending = new TaskCompletionSource<IReadOnlyList<ContentMetaData>>(TaskCreationOptions.RunContinuationsAsynchronously);
     var service = new SearchService { Handler = (_, _) => pending.Task };
-    using var ctx = CreateContext(service);
+    await using var ctx = CreateContext(service);
     var cut = ctx.Render<SearchComponent>();
     await cut.Find("#search").TriggerEventAsync("onfocusin", new FocusEventArgs());
     var search = cut.Find("input").InputAsync(new ChangeEventArgs { Value = "dotnet" });
