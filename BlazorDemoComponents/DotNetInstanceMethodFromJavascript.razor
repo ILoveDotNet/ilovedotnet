@@ -18,12 +18,20 @@
 
     private IJSObjectReference? module;
     [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
+    [Inject] private ILogger<DotNetInstanceMethodFromJavascript> Logger { get; set; } = default!;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./jsinterop.js");
+            try
+            {
+                module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./jsinterop.js");
+            }
+            catch (JSException exception)
+            {
+                Logger.LogWarning(exception, "Unable to initialize instance method interop");
+            }
         }
     }
 
@@ -32,7 +40,14 @@
         if (module is not null)
         {
             objRef = DotNetObjectReference.Create(this);
-            await module.InvokeVoidAsync("callDotNetInstanceFromJs", objRef);
+            try
+            {
+                await module.InvokeVoidAsync("callDotNetInstanceFromJs", objRef);
+            }
+            catch (JSException exception)
+            {
+                Logger.LogWarning(exception, "Unable to call the .NET instance method from JavaScript");
+            }
         }
     }
 

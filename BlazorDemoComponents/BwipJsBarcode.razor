@@ -17,12 +17,20 @@
     private string inputValue = "ilovedotnet.org";
     private IJSObjectReference? module;
     [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
+    [Inject] private ILogger<BwipJsBarcode> Logger { get; set; } = default!;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./generatebwipbarcode.js");
+            try
+            {
+                module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./generatebwipbarcode.js");
+            }
+            catch (JSException exception)
+            {
+                Logger.LogWarning(exception, "Unable to initialize the barcode generator");
+            }
         }
     }
 
@@ -30,7 +38,14 @@
     {
         if (module is not null)
         {
-            await module.InvokeVoidAsync("generateBarcode", inputValue);
+            try
+            {
+                await module.InvokeVoidAsync("generateBarcode", inputValue);
+            }
+            catch (JSException exception)
+            {
+                Logger.LogWarning(exception, "Unable to generate barcode");
+            }
         }
     }
 

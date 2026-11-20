@@ -172,7 +172,13 @@
         _processing         = false;
     }
 
-    private void OnLivenessModeChanged() => _face?.SetLivenessMode(_livenessMode);
+    private async Task OnLivenessModeChanged()
+    {
+        if (_face is not null)
+        {
+            await _face.SetLivenessMode(_livenessMode);
+        }
+    }
 
     // ── Enrollment handlers ────────────────────────────────────────────────────
     private void HandleCapture(FeatureVectorResult result)
@@ -187,7 +193,6 @@
         {
             _statusMessage = "No face detected \u2014 please look at the camera and try again.";
             _statusCss     = "alert-warning";
-            StateHasChanged();
         }
     }
 
@@ -196,7 +201,6 @@
         if (_capturedVector is null || string.IsNullOrWhiteSpace(_personName)) return;
 
         _busy = true;
-        StateHasChanged();
 
         _enrolled.Add(new EnrolledPerson(
             Id:         Guid.NewGuid(),
@@ -226,7 +230,10 @@
 
             if (recognized && match is not null)
             {
-                _face?.ResetLiveness();
+                if (_face is not null)
+                {
+                    await _face.ResetLiveness();
+                }
 
                 // Idempotent: one check-in per person per UTC day
                 var today = DateTime.UtcNow.Date;
@@ -258,7 +265,6 @@
         finally
         {
             _processing = false;
-            StateHasChanged();
         }
     }
 

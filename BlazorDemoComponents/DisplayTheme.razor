@@ -40,12 +40,20 @@
     private IJSObjectReference? module;
 
     [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
+    [Inject] private ILogger<DisplayTheme> Logger { get; set; } = default!;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./displaymode.js");            
+            try
+            {
+                module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./displaymode.js");
+            }
+            catch (JSException exception)
+            {
+                Logger.LogWarning(exception, "Unable to initialize display theme interop");
+            }
         }
     }
 
@@ -53,7 +61,14 @@
     {
         if (module is not null) 
         {
-            await module.InvokeVoidAsync("onDisplayModeChanged", $"{displayMode.ToString().ToLower()}");
+            try
+            {
+                await module.InvokeVoidAsync("onDisplayModeChanged", $"{displayMode.ToString().ToLower()}");
+            }
+            catch (JSException exception)
+            {
+                Logger.LogWarning(exception, "Unable to update display theme");
+            }
         }
     }
 

@@ -59,6 +59,7 @@
 
     private IJSObjectReference? module;
     [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
+    [Inject] private ILogger<PrintingBarcodeDemo> Logger { get; set; } = default!;
 
     protected override void OnInitialized()
     {
@@ -69,7 +70,14 @@
     {
         if (firstRender)
         {
-            module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./printbwipbarcode.js");
+            try
+            {
+                module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./printbwipbarcode.js");
+            }
+            catch (JSException exception)
+            {
+                Logger.LogWarning(exception, "Unable to initialize barcode printing interop");
+            }
         }
     }
 
@@ -77,7 +85,14 @@
     {
         if (module is not null)
         {
-            await module.InvokeVoidAsync("printBarcode");
+            try
+            {
+                await module.InvokeVoidAsync("printBarcode");
+            }
+            catch (JSException exception)
+            {
+                Logger.LogWarning(exception, "Unable to print barcode");
+            }
         }
     }
 
