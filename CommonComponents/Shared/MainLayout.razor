@@ -1,9 +1,12 @@
 ﻿@inherits LayoutComponentBase
 @inject AppState AppState
+@inject NavigationManager NavigationManager
 @implements IDisposable
 
+<a href="@($"{NavigationManager.Uri.Split('#')[0]}#main")" class="skip-to-content"
+   @onclick="SkipToContentAsync" @onclick:preventDefault>Skip to content</a>
 <Header></Header>
-<main id="main" class="[ @(AppState.ShowNavigation ? "[ pb-14 md:pb-0 md:pl-16 ]" : "[ transition-all delay-75 duration-150 ease-in-out ]") ]">
+<main @ref="mainContent" id="main" tabindex="-1" class="site-main [ @(AppState.ShowNavigation ? "has-navigation" : "[ transition-all delay-75 duration-150 ease-in-out ]") ]">
     @Body
 </main>
 @if (AppState.ShowNavigation)
@@ -13,6 +16,14 @@
 <BackToTop></BackToTop>
 
 @code {
+    private ElementReference mainContent;
+
+    private async Task SkipToContentAsync()
+    {
+        NavigationManager.NavigateTo($"{NavigationManager.Uri.Split('#')[0]}#main");
+        await mainContent.FocusAsync();
+    }
+
     protected override void OnInitialized()
     {
         AppState.OnChange += StateHasChanged;

@@ -8,12 +8,48 @@ namespace ILoveDotNet.DistributedTest;
 public class LearningChatTests(AppFixture fixture) : DistributedPageTest
 {
   private readonly Uri WebBaseUrl = fixture.App.GetEndpoint("ILoveDotNet-Web", "https");
+  private ILocator ChatStatus => Page.GetByRole(AriaRole.Region, new() { Name = "Learning chat", Exact = true }).GetByRole(AriaRole.Status);
 
   public override BrowserNewContextOptions ContextOptions() => new()
   {
     ViewportSize = new ViewportSize { Width = 1280, Height = 720 },
     IgnoreHTTPSErrors = true,
   };
+
+  [Theory]
+  [InlineData(390)]
+  [InlineData(767)]
+  [InlineData(768)]
+  public async Task LearningChat_ComposerAndStatusFitAboveNavigationWithoutPageScrollingAsync(int width)
+  {
+    await Page.SetViewportSizeAsync(width, 844);
+    await Context.RouteAsync("**/lib/transformers/transformers.min.js", route =>
+        route.FulfillAsync(new()
+        {
+          ContentType = "text/javascript",
+          Body = "export const env = {}; export async function pipeline() { return async () => {}; }",
+        }));
+    await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, "chat/");
+    await Expect(ChatStatus).ToContainTextAsync("Local article search is ready");
+
+    var navigation = Page.GetByRole(AriaRole.Navigation, new() { Name = "Primary", Exact = true });
+    await Expect(navigation).ToBeVisibleAsync();
+    var chat = Page.GetByRole(AriaRole.Region, new() { Name = "Learning chat", Exact = true });
+    foreach (var control in new[] { chat.GetByRole(AriaRole.Textbox), ChatStatus })
+    {
+      Assert.True(await control.EvaluateAsync<bool>("""
+          element => {
+            const bounds = element.getBoundingClientRect();
+            const header = document.querySelector('#header').getBoundingClientRect();
+            const navigation = document.querySelector('nav[aria-label="Primary"]').getBoundingClientRect();
+            const limit = innerWidth < 768 ? navigation.top : innerHeight;
+            return bounds.top >= header.bottom && bounds.bottom <= limit + 1;
+          }
+          """), "The composer and status must stay above fixed navigation without scrolling the page.");
+    }
+    Assert.True(await Page.EvaluateAsync<bool>(
+        "() => document.documentElement.scrollHeight <= innerHeight + 1"));
+  }
 
   [Fact]
   public async Task LearningChatPage_HasMetadataStructuredDataAndStaticSitemapEntryAsync()
@@ -72,13 +108,13 @@ public class LearningChatTests(AppFixture fixture) : DistributedPageTest
 
     await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, "chat/");
     await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Enable local article search" })).ToHaveCountAsync(0);
-    await Expect(Page.GetByRole(AriaRole.Status)).ToHaveTextAsync(
+    await Expect(ChatStatus).ToHaveTextAsync(
         "Local article search is ready. Questions stay in this browser.", new() { Timeout = 30_000 });
     await Expect(Page.GetByRole(AriaRole.Alert)).ToHaveCountAsync(0);
 
     await Page.GetByRole(AriaRole.Textbox).FillAsync("How does this work?");
     await Page.GetByRole(AriaRole.Button, new() { Name = "Send question" }).ClickAsync();
-    await Expect(Page.GetByRole(AriaRole.Status)).ToHaveTextAsync("Search complete.", new() { Timeout = 15_000 });
+    await Expect(ChatStatus).ToHaveTextAsync("Search complete.", new() { Timeout = 15_000 });
     var sources = Page.GetByRole(AriaRole.List, new() { Name = "Retrieved article sources" }).GetByRole(AriaRole.Link);
     Assert.NotEmpty(await sources.AllAsync());
     foreach (var source in await sources.AllAsync())
@@ -145,7 +181,7 @@ public class LearningChatTests(AppFixture fixture) : DistributedPageTest
       try
       {
         await Page.GetByRole(AriaRole.Button, new() { Name = "Cancel loading" }).ClickAsync();
-        await Expect(Page.GetByRole(AriaRole.Status)).ToHaveTextAsync("Loading cancelled. No question was sent.");
+        await Expect(ChatStatus).ToHaveTextAsync("Loading cancelled. No question was sent.");
       }
       finally
       {
@@ -166,7 +202,7 @@ public class LearningChatTests(AppFixture fixture) : DistributedPageTest
     }
     var savedHistory = await Page.EvaluateAsync<string?>("() => localStorage.getItem('ilovedotnet-learning-chat-history:v1')");
     await Page.GetByRole(AriaRole.Button, new() { Name = "Retry loading article search" }).ClickAsync();
-    await Expect(Page.GetByRole(AriaRole.Status)).ToHaveTextAsync("Local article search is ready. Questions stay in this browser.");
+    await Expect(ChatStatus).ToHaveTextAsync("Local article search is ready. Questions stay in this browser.");
     await Expect(Page.GetByRole(AriaRole.Alert)).ToHaveCountAsync(0);
     await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Retry loading article search" })).ToHaveCountAsync(0);
     Assert.Equal(savedHistory, await Page.EvaluateAsync<string?>("() => localStorage.getItem('ilovedotnet-learning-chat-history:v1')"));
@@ -246,7 +282,7 @@ public class LearningChatTests(AppFixture fixture) : DistributedPageTest
             """,
         }));
     await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, "chat/");
-    await Expect(Page.GetByRole(AriaRole.Status)).ToHaveTextAsync("Local article search is ready. Questions stay in this browser.");
+    await Expect(ChatStatus).ToHaveTextAsync("Local article search is ready. Questions stay in this browser.");
 
     foreach (var (question, expectedExcerpt, expectedCount) in new[]
     {
@@ -260,7 +296,7 @@ public class LearningChatTests(AppFixture fixture) : DistributedPageTest
       await Page.GetByRole(AriaRole.Textbox).FillAsync(question);
       await Page.GetByRole(AriaRole.Button, new() { Name = "Send question" }).ClickAsync();
       await Expect(Page.GetByRole(AriaRole.Textbox)).ToHaveValueAsync("");
-      await Expect(Page.GetByRole(AriaRole.Status)).ToHaveTextAsync("Search complete.");
+      await Expect(ChatStatus).ToHaveTextAsync("Search complete.");
       var sources = Page.GetByRole(AriaRole.List, new() { Name = "Retrieved article sources" }).Last.GetByRole(AriaRole.Listitem);
       await Expect(sources).ToHaveCountAsync(expectedCount);
       await Expect(sources.First).ToContainTextAsync(expectedExcerpt);

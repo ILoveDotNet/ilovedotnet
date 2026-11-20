@@ -15,6 +15,7 @@ public class LearningChatGenerationBenchmarkTests(AppFixture fixture) : Distribu
     await using var cachedContext = profile is null ? null : await BrowserType.LaunchPersistentContextAsync(profile,
       new() { IgnoreHTTPSErrors = true, Headless = Environment.GetEnvironmentVariable("HEADED") != "1" });
     var page = cachedContext is null ? Page : await cachedContext.NewPageAsync();
+    var chatStatus = page.GetByRole(AriaRole.Region, new() { Name = "Learning chat", Exact = true }).GetByRole(AriaRole.Status);
     page.Console += (_, message) => Console.WriteLine($"Browser {message.Type}: {message.Text}");
     page.PageError += (_, error) => Console.WriteLine($"Browser error: {error}");
     await page.AddInitScriptAsync("""
@@ -29,7 +30,7 @@ public class LearningChatGenerationBenchmarkTests(AppFixture fixture) : Distribu
       };
       """);
     await page.GotoAsync(new Uri(fixture.App.GetEndpoint("ILoveDotNet-Web", "https"), "chat/").ToString());
-    await Expect(page.GetByRole(AriaRole.Status)).ToHaveTextAsync(
+    await Expect(chatStatus).ToHaveTextAsync(
       "Local article search is ready. Questions stay in this browser.", new() { Timeout = 240_000 });
     var download = page.GetByRole(AriaRole.Button, new() { Name = "Download local answer model" });
     if (await download.IsVisibleAsync()) await download.ClickAsync();
@@ -73,7 +74,7 @@ public class LearningChatGenerationBenchmarkTests(AppFixture fixture) : Distribu
         """);
       await page.GetByRole(AriaRole.Textbox).FillAsync(question);
       await page.GetByRole(AriaRole.Button, new() { Name = "Send question" }).ClickAsync();
-      await Expect(page.GetByRole(AriaRole.Status)).ToHaveTextAsync(
+      await Expect(chatStatus).ToHaveTextAsync(
         new System.Text.RegularExpressions.Regex(@"^(Search complete\.|No strong article matches found\.)$"),
         new() { Timeout = 180_000 });
       var rendered = await page.EvaluateAsync<JsonElement>("""

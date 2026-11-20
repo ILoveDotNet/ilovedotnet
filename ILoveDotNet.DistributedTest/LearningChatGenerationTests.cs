@@ -4,6 +4,8 @@ namespace ILoveDotNet.DistributedTest;
 
 public class LearningChatGenerationTests(AppFixture fixture) : DistributedPageTest
 {
+  private ILocator ChatStatus => Page.GetByRole(AriaRole.Region, new() { Name = "Learning chat", Exact = true }).GetByRole(AriaRole.Status);
+
   public override BrowserNewContextOptions ContextOptions() => new() { IgnoreHTTPSErrors = true };
 
   [Theory]
@@ -84,7 +86,7 @@ public class LearningChatGenerationTests(AppFixture fixture) : DistributedPageTe
         """
     }));
     await SeoTestHelpers.GotoSuccessfulPageAsync(Page, fixture.App.GetEndpoint("ILoveDotNet-Web", "https"), "chat/");
-    await Expect(Page.GetByRole(AriaRole.Status)).ToContainTextAsync("Local article search is ready");
+    await Expect(ChatStatus).ToContainTextAsync("Local article search is ready");
     await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Download local answer model" })).ToBeVisibleAsync();
     Assert.Equal(0, runtimeRequests);
     await Page.GetByRole(AriaRole.Button, new() { Name = "Download local answer model" }).ClickAsync();
@@ -98,7 +100,7 @@ public class LearningChatGenerationTests(AppFixture fixture) : DistributedPageTe
       await Expect(modelPanel).ToContainTextAsync("worker stopped");
       await Page.GetByRole(AriaRole.Textbox).FillAsync("What is sweeping?");
       await Page.GetByRole(AriaRole.Button, new() { Name = "Send question" }).ClickAsync();
-      await Expect(Page.GetByRole(AriaRole.Status)).ToHaveTextAsync("Search complete.");
+      await Expect(ChatStatus).ToHaveTextAsync("Search complete.");
       await Expect(Page.GetByText("These are search results", new() { Exact = false })).ToBeVisibleAsync();
       await Page.GetByRole(AriaRole.Button, new() { Name = "Download local answer model" }).ClickAsync();
       await Expect(modelPanel).ToContainTextAsync("Active model: Qwen3-4B-q4f16_1-MLC");
@@ -128,7 +130,7 @@ public class LearningChatGenerationTests(AppFixture fixture) : DistributedPageTe
     {
       var writes = await Page.EvaluateAsync<int>("() => window.chatHistoryWrites");
       await Page.GetByRole(AriaRole.Button, new() { Name = "New conversation", Exact = true }).ClickAsync();
-      await Expect(Page.GetByRole(AriaRole.Status)).ToHaveTextAsync("Conversation cleared. Local article search is ready.");
+      await Expect(ChatStatus).ToHaveTextAsync("Conversation cleared. Local article search is ready.");
       Assert.Equal(writes + 1, await Page.EvaluateAsync<int>("() => window.chatHistoryWrites"));
       Assert.True(await Page.EvaluateAsync<bool>("""
         () => {
@@ -148,11 +150,11 @@ public class LearningChatGenerationTests(AppFixture fixture) : DistributedPageTe
     if (mode == "slow")
     {
       await Page.GetByRole(AriaRole.Button, new() { Name = "Stop", Exact = true }).ClickAsync();
-      await Expect(Page.GetByRole(AriaRole.Status)).ToHaveTextAsync("Search stopped.");
+      await Expect(ChatStatus).ToHaveTextAsync("Search stopped.");
     }
     else
     {
-      await Expect(Page.GetByRole(AriaRole.Status)).ToHaveTextAsync("Search complete.");
+      await Expect(ChatStatus).ToHaveTextAsync("Search complete.");
     }
     if (mode == "workererror")
     {
@@ -163,7 +165,7 @@ public class LearningChatGenerationTests(AppFixture fixture) : DistributedPageTe
       await Page.GetByRole(AriaRole.Button, new() { Name = "New conversation", Exact = true }).ClickAsync();
       await Page.GetByRole(AriaRole.Textbox).FillAsync("What is sweeping?");
       await Page.GetByRole(AriaRole.Button, new() { Name = "Send question" }).ClickAsync();
-      await Expect(Page.GetByRole(AriaRole.Status)).ToHaveTextAsync("Search complete.");
+      await Expect(ChatStatus).ToHaveTextAsync("Search complete.");
     }
     if (mode == "valid" || mode == "skipped" || mode == "changed" || mode == "manual" || mode == "workererror" || mode == "idleerror")
     {
@@ -286,7 +288,7 @@ public class LearningChatGenerationTests(AppFixture fixture) : DistributedPageTe
     await Expect(modelPanel).ToContainTextAsync("Test model download failed");
     await Page.GetByRole(AriaRole.Textbox).FillAsync("What is sweeping?");
     await Page.GetByRole(AriaRole.Button, new() { Name = "Send question" }).ClickAsync();
-    await Expect(Page.GetByRole(AriaRole.Status)).ToHaveTextAsync("Search complete.");
+    await Expect(ChatStatus).ToHaveTextAsync("Search complete.");
     await Expect(Page.GetByText("These are search results", new() { Exact = false })).ToBeVisibleAsync();
     await Page.GetByRole(AriaRole.Button, new() { Name = "Download local answer model" }).ClickAsync();
     await Expect(modelPanel).ToContainTextAsync("Local answers ready");
@@ -353,7 +355,7 @@ public class LearningChatGenerationTests(AppFixture fixture) : DistributedPageTe
         """
     }));
     await SeoTestHelpers.GotoSuccessfulPageAsync(Page, fixture.App.GetEndpoint("ILoveDotNet-Web", "https"), "chat/");
-    await Expect(Page.GetByRole(AriaRole.Status)).ToContainTextAsync("Local article search is ready");
+    await Expect(ChatStatus).ToContainTextAsync("Local article search is ready");
     if (citation)
     {
       await Page.GetByRole(AriaRole.Button, new() { Name = "Download local answer model" }).ClickAsync();
@@ -361,7 +363,7 @@ public class LearningChatGenerationTests(AppFixture fixture) : DistributedPageTe
     }
     await Page.GetByRole(AriaRole.Textbox).FillAsync("What is sweeping?");
     await Page.GetByRole(AriaRole.Button, new() { Name = "Send question" }).ClickAsync();
-    await Expect(Page.GetByRole(AriaRole.Status)).ToHaveTextAsync("Search complete.");
+    await Expect(ChatStatus).ToHaveTextAsync("Search complete.");
     var link = citation
       ? Page.GetByRole(AriaRole.Link, new() { Name = "[1]", Exact = true })
       : Page.GetByRole(AriaRole.List, new() { Name = "Retrieved article sources" }).GetByRole(AriaRole.Link);
@@ -372,10 +374,10 @@ public class LearningChatGenerationTests(AppFixture fixture) : DistributedPageTe
     await Page.Locator("nav a[href='/chat/']").ClickAsync();
     await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex(@"/chat/$"));
     await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "Learn with AI", Exact = true })).ToBeVisibleAsync();
-    await Expect(Page.GetByRole(AriaRole.Status)).ToHaveTextAsync("Local article search is ready. Questions stay in this browser.");
+    await Expect(ChatStatus).ToHaveTextAsync("Local article search is ready. Questions stay in this browser.");
     await Page.GetByRole(AriaRole.Textbox).FillAsync("What is sweeping?");
     await Page.GetByRole(AriaRole.Button, new() { Name = "Send question" }).ClickAsync();
-    await Expect(Page.GetByRole(AriaRole.Status)).ToHaveTextAsync("Search complete.");
+    await Expect(ChatStatus).ToHaveTextAsync("Search complete.");
     Assert.Empty(errors);
   }
 
@@ -394,10 +396,10 @@ public class LearningChatGenerationTests(AppFixture fixture) : DistributedPageTe
       """);
     await Page.SetViewportSizeAsync(1280, 800);
     await SeoTestHelpers.GotoSuccessfulPageAsync(Page, fixture.App.GetEndpoint("ILoveDotNet-Web", "https"), "chat/");
-    await Expect(Page.GetByRole(AriaRole.Status)).ToContainTextAsync("Local article search is ready");
+    await Expect(ChatStatus).ToContainTextAsync("Local article search is ready");
     await Page.GetByRole(AriaRole.Textbox).FillAsync("What is sweeping?");
     await Page.GetByRole(AriaRole.Button, new() { Name = "Send question" }).ClickAsync();
-    await Expect(Page.GetByRole(AriaRole.Status)).ToHaveTextAsync("Search complete.");
+    await Expect(ChatStatus).ToHaveTextAsync("Search complete.");
     await Page.GetByText("Read passage", new() { Exact = true }).ClickAsync();
     var region = Page.GetByRole(AriaRole.Region, new() { Name = "Conversation", Exact = true });
     await region.EvaluateAsync("element => element.scrollTop = 40");
@@ -405,7 +407,7 @@ public class LearningChatGenerationTests(AppFixture fixture) : DistributedPageTe
     Assert.True(position > 0);
     await Page.GetByRole(AriaRole.Textbox).FillAsync("How does sweeping reclaim memory?");
     await Page.GetByRole(AriaRole.Button, new() { Name = "Send question" }).ClickAsync();
-    await Expect(Page.GetByRole(AriaRole.Status)).ToHaveTextAsync("Search complete.");
+    await Expect(ChatStatus).ToHaveTextAsync("Search complete.");
     Assert.Equal(position, await region.EvaluateAsync<double>("element => element.scrollTop"));
     var history = Page.GetByRole(AriaRole.Navigation, new() { Name = "Chat history" });
     await Expect(history.GetByRole(AriaRole.Button, new() { Name = "What is sweeping?", Exact = true })).ToHaveCountAsync(1);
@@ -416,9 +418,9 @@ public class LearningChatGenerationTests(AppFixture fixture) : DistributedPageTe
     Assert.True(await Page.EvaluateAsync<bool>("() => JSON.parse(localStorage.getItem('ilovedotnet-learning-chat-history:v1')).ActiveId === null"));
     await Page.GetByRole(AriaRole.Textbox).FillAsync("Explain garbage collection");
     await Page.GetByRole(AriaRole.Button, new() { Name = "Send question" }).ClickAsync();
-    await Expect(Page.GetByRole(AriaRole.Status)).ToHaveTextAsync("Search complete.");
+    await Expect(ChatStatus).ToHaveTextAsync("Search complete.");
     await Page.ReloadAsync();
-    await Expect(Page.GetByRole(AriaRole.Status)).ToContainTextAsync("Local article search is ready");
+    await Expect(ChatStatus).ToContainTextAsync("Local article search is ready");
     await Expect(region.Locator("article")).ToHaveCountAsync(2);
     await history.GetByRole(AriaRole.Button, new() { Name = "What is sweeping?", Exact = true }).ClickAsync();
     await Expect(region.Locator("article")).ToHaveCountAsync(4);
@@ -429,7 +431,7 @@ public class LearningChatGenerationTests(AppFixture fixture) : DistributedPageTe
       .ToHaveAttributeAsync("href", new System.Text.RegularExpressions.Regex(@"/blogs/gc/#how$"));
     await Page.GetByRole(AriaRole.Button, new() { Name = "Delete chat: Explain garbage collection", Exact = true }).ClickAsync();
     await Page.ReloadAsync();
-    await Expect(Page.GetByRole(AriaRole.Status)).ToContainTextAsync("Local article search is ready");
+    await Expect(ChatStatus).ToContainTextAsync("Local article search is ready");
     await Expect(history.GetByRole(AriaRole.Button, new() { Name = "Explain garbage collection", Exact = true })).ToHaveCountAsync(0);
     await Expect(region.Locator("article")).ToHaveCountAsync(4);
     await Page.SetViewportSizeAsync(390, 844);
@@ -445,7 +447,7 @@ public class LearningChatGenerationTests(AppFixture fixture) : DistributedPageTe
     Assert.NotNull(input);
     Assert.True(input.Y + input.Height <= 844);
     await Page.ReloadAsync();
-    await Expect(Page.GetByRole(AriaRole.Status)).ToContainTextAsync("Local article search is ready");
+    await Expect(ChatStatus).ToContainTextAsync("Local article search is ready");
     await Expect(region.Locator("article")).ToHaveCountAsync(0);
   }
 
@@ -472,11 +474,11 @@ public class LearningChatGenerationTests(AppFixture fixture) : DistributedPageTe
       }));
       """);
     await SeoTestHelpers.GotoSuccessfulPageAsync(Page, fixture.App.GetEndpoint("ILoveDotNet-Web", "https"), "chat/");
-    await Expect(Page.GetByRole(AriaRole.Status)).ToContainTextAsync("Local article search is ready");
+    await Expect(ChatStatus).ToContainTextAsync("Local article search is ready");
     if (!storageBlocked) await Expect(Page.GetByRole(AriaRole.Alert)).ToContainTextAsync("Saved chats could not be opened");
     await Page.GetByRole(AriaRole.Textbox).FillAsync("What is sweeping?");
     await Page.GetByRole(AriaRole.Button, new() { Name = "Send question" }).ClickAsync();
-    await Expect(Page.GetByRole(AriaRole.Status)).ToHaveTextAsync("Search complete.");
+    await Expect(ChatStatus).ToHaveTextAsync("Search complete.");
     await Expect(Page.GetByRole(AriaRole.Alert)).ToContainTextAsync(storageBlocked ? "could not be saved on this device" : "will not be overwritten");
     await Expect(Page.GetByRole(AriaRole.Link, new() { Name = "Unsafe", Exact = true })).ToHaveCountAsync(0);
   }

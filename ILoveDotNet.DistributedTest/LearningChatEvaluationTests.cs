@@ -37,7 +37,7 @@ public class LearningChatEvaluationTests(AppFixture fixture) : DistributedPageTe
     }
 
     await Page.GotoAsync(new Uri(baseUrl, "chat/").ToString());
-    await Expect(Page.GetByRole(AriaRole.Status)).ToHaveTextAsync(
+    await Expect(Page.GetByRole(AriaRole.Region, new() { Name = "Learning chat", Exact = true }).GetByRole(AriaRole.Status)).ToHaveTextAsync(
         "Local article search is ready. Questions stay in this browser.", new() { Timeout = 240_000 });
     var results = new List<object>();
     var supportedPassed = 0;

@@ -1,11 +1,10 @@
 ﻿@using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 @using Microsoft.AspNetCore.Components.WebAssembly.Services;
 @using System.Reflection;
-@implements IAsyncDisposable;
 @inject IHostEnvironment Environment;
 @inject LazyLoaderService LazyLoader;
 
-<CascadingValue Value="SmallDevice">
+<CommonComponents.Shared.ResponsiveViewport>
     <Router AppAssembly="@typeof(MauiProgram).Assembly"
             AdditionalAssemblies="@LazyLoader.AdditionalAssemblies" 
             OnNavigateAsync="@OnNavigateAsync"
@@ -23,41 +22,11 @@
     {    
         <Blazor.Analytics.Components.NavigationTracker />
     }
-</CascadingValue>
+</CommonComponents.Shared.ResponsiveViewport>
 
 @code {
-    const ushort SMALLDEVICEWIDTH = 640;
-
-    private ushort viewPortWidth;
-    private IJSObjectReference? module;
-    private bool SmallDevice = true;
-
-    [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/viewport.js");
-
-            viewPortWidth = await module.InvokeAsync<ushort>("getViewPortWidth");
-
-            SmallDevice = viewPortWidth < SMALLDEVICEWIDTH;
-
-            await InvokeAsync(StateHasChanged);
-        }
-    }
-
     private async Task OnNavigateAsync(NavigationContext args)
     {
         await LazyLoader.OnNavigateAsync(args);
-    }
-
-    async ValueTask IAsyncDisposable.DisposeAsync()
-    {
-        if (module is not null)
-        {
-            await module.DisposeAsync();
-        }
     }
 }

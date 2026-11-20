@@ -1,15 +1,30 @@
 @inject NavigationManager NavigationManager
 
-<nav aria-label="On this page">
+<nav aria-label="On this page" class="[ max-h-[60dvh] overflow-y-auto overscroll-contain xl:max-h-56 ]">
+    @if (DetailedContentsUnavailable)
+    {
+        <p role="status" class="[ px-2 py-2 text-sm ]">Detailed contents couldn't load. Use the main sections below.</p>
+    }
     <ol class="[ flex flex-col py-1 text-sm ]">
-        <li><a href="@($"{ArticleUrl}#what")" class="[ flex min-h-11 items-center rounded-md px-2 underline focus-visible:outline-2 focus-visible:outline-indigo-500 ]">What you'll learn</a></li>
-        <li><a href="@($"{ArticleUrl}#why")" class="[ flex min-h-11 items-center rounded-md px-2 underline focus-visible:outline-2 focus-visible:outline-indigo-500 ]">Why it matters</a></li>
-        <li><a href="@($"{ArticleUrl}#how")" class="[ flex min-h-11 items-center rounded-md px-2 underline focus-visible:outline-2 focus-visible:outline-indigo-500 ]">Implementation</a></li>
-        <li><a href="@($"{ArticleUrl}#summary")" class="[ flex min-h-11 items-center rounded-md px-2 underline focus-visible:outline-2 focus-visible:outline-indigo-500 ]">Summary</a></li>
+        @foreach (var heading in Headings.Count > 0 ? Headings : MainSections)
+        {
+            <li>
+                <a href="@($"{ArticleUrl}#{Uri.EscapeDataString(heading.Id)}")" class="@($"[ flex min-h-11 items-center rounded-md py-2 underline [overflow-wrap:anywhere] hover:bg-indigo-100 focus-visible:outline-2 focus-visible:outline-indigo-500 dark:hover:bg-indigo-900 {(heading.Level <= 3 ? "px-2 font-semibold" : heading.Level == 4 ? "pl-4 pr-2" : "pl-6 pr-2")} ]")">@heading.Title</a>
+            </li>
+        }
     </ol>
 </nav>
 
 @code {
     [Parameter, EditorRequired] public string Slug { get; set; } = default!;
+    [Parameter] public IReadOnlyList<ArticleHeading> Headings { get; set; } = [];
+    [Parameter] public bool DetailedContentsUnavailable { get; set; }
+    private static readonly ArticleHeading[] MainSections =
+    [
+        new("what", "What you'll learn", 3),
+        new("why", "Why it matters", 3),
+        new("how", "Implementation", 3),
+        new("summary", "Summary", 3)
+    ];
     private string ArticleUrl => $"/blogs/{Slug}/{new Uri(NavigationManager.Uri).Query}";
 }

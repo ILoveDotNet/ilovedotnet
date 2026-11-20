@@ -12,6 +12,125 @@ public class HomeTests(AppFixture fixture) : DistributedPageTest
     IgnoreHTTPSErrors = true,
   };
 
+  [Theory]
+  [InlineData("")]
+  [InlineData("blogs/dependency-injection-lifetimes-in-dotnet/?source=keyboard#why")]
+  public async Task ReaderShell_SkipLinkFocusesCurrentPageContentAsync(string path)
+  {
+    await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, path);
+    var originalUrl = Page.Url.Split('#')[0];
+    var skip = Page.GetByRole(AriaRole.Link, new() { Name = "Skip to content", Exact = true });
+    await Page.Locator("#header :is(a, button, input):visible").First.FocusAsync();
+    await Page.Keyboard.PressAsync("Shift+Tab");
+    await Expect(skip).ToBeFocusedAsync();
+    Assert.True(await skip.EvaluateAsync<bool>("element => element.getBoundingClientRect().top >= 0"));
+    await Page.Keyboard.PressAsync("Enter");
+    await Expect(Page).ToHaveURLAsync($"{originalUrl}#main");
+    await Expect(Page.Locator("#main")).ToBeFocusedAsync();
+  }
+
+  [Fact]
+  public async Task ReaderShell_ReflowsSearchAndNavigationWithoutReloadAsync()
+  {
+    await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, "");
+    var input = Page.GetByRole(AriaRole.Combobox, new() { Name = "Search articles" });
+    await Expect(input).ToBeVisibleAsync();
+    var viewport = await Page.Locator("meta[name='viewport']").GetAttributeAsync("content");
+    Assert.DoesNotContain("user-scalable", viewport);
+    Assert.DoesNotContain("maximum-scale", viewport);
+    await Page.SetViewportSizeAsync(320, 900);
+    await Expect(input).ToBeHiddenAsync();
+    await Page.GetByRole(AriaRole.Button, new() { Name = "Search", Exact = true }).ClickAsync();
+    await Expect(input).ToBeVisibleAsync();
+    await Expect(Page.Locator("#brand")).ToBeHiddenAsync();
+    await Expect(Page.GetByRole(AriaRole.Link, new() { Name = "Join our WhatsApp channel" })).ToBeHiddenAsync();
+    await Page.SetViewportSizeAsync(1280, 720);
+    await Expect(input).ToBeVisibleAsync();
+    await Expect(Page.Locator("#brand")).ToBeVisibleAsync();
+    await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Exit Search" })).ToBeHiddenAsync();
+    await Page.SetViewportSizeAsync(320, 900);
+    await Expect(input).ToBeHiddenAsync();
+    foreach (var control in await Page.Locator("#header :is(a, button):visible").AllAsync())
+    {
+      Assert.True(await control.EvaluateAsync<bool>(
+          "element => { const bounds = element.getBoundingClientRect(); return bounds.width >= 44 && bounds.height >= 44; }"));
+    }
+    var navigation = Page.GetByRole(AriaRole.Navigation, new() { Name = "Primary", Exact = true });
+    Assert.True(await navigation.EvaluateAsync<bool>(
+        "element => { const bounds = element.getBoundingClientRect(); return Math.abs(bounds.bottom - innerHeight) < 1 && parseFloat(getComputedStyle(document.querySelector('#main')).paddingBottom) >= bounds.height; }"));
+    foreach (var link in await navigation.GetByRole(AriaRole.Link).AllAsync())
+    {
+      Assert.True(await link.EvaluateAsync<bool>(
+          "element => { const bounds = element.getBoundingClientRect(); return bounds.width >= 44 && bounds.height >= 44; }"));
+    }
+    Assert.True(await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= innerWidth"));
+    await Page.SetViewportSizeAsync(1280, 240);
+    var lastLink = navigation.GetByRole(AriaRole.Link).Last;
+    await lastLink.FocusAsync();
+    Assert.True(await lastLink.EvaluateAsync<bool>(
+        "element => { const bounds = element.getBoundingClientRect(); return bounds.top >= document.querySelector('#header').getBoundingClientRect().bottom && bounds.bottom <= innerHeight; }"));
+  }
+
+  [Fact]
+  public async Task MobileTheme_LeavesSupportLinksVisibleAndPersistsAcrossLayoutsAsync()
+  {
+    await Page.SetViewportSizeAsync(320, 700);
+    await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, "");
+    await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Theme Selector" })).ToHaveCountAsync(0);
+    await Expect(Page.GetByRole(AriaRole.Link, new() { Name = "Join our WhatsApp channel" })).ToBeVisibleAsync();
+    await Expect(Page.GetByRole(AriaRole.Link, new() { Name = "Give a Star in GitHub" })).ToBeVisibleAsync();
+    var controls = await Page.Locator("#header :is(a, button):visible").AllAsync();
+    for (var index = 1; index < controls.Count; index++)
+    {
+      var previous = await controls[index - 1].BoundingBoxAsync();
+      var current = await controls[index].BoundingBoxAsync();
+      Assert.NotNull(previous);
+      Assert.NotNull(current);
+      Assert.True(current.X >= previous.X + previous.Width - 1, "Header touch targets must not overlap.");
+    }
+
+    await Page.GetByRole(AriaRole.Button, new() { Name = "Others", Exact = true }).ClickAsync();
+    var options = Page.GetByRole(AriaRole.Region, new() { Name = "More options" });
+    var theme = options.GetByRole(AriaRole.Group, new() { Name = "Theme", Exact = true });
+    await theme.GetByRole(AriaRole.Radio, new() { Name = "Light", Exact = true }).CheckAsync();
+    await Expect(Page.Locator("html")).Not.ToHaveClassAsync(new System.Text.RegularExpressions.Regex(@"\bdark\b"));
+    await theme.GetByRole(AriaRole.Radio, new() { Name = "Light", Exact = true }).PressAsync("ArrowDown");
+    await Expect(theme.GetByRole(AriaRole.Radio, new() { Name = "Dark", Exact = true })).ToBeCheckedAsync();
+    await Expect(options).ToBeVisibleAsync();
+    await Expect(Page.Locator("html")).ToHaveClassAsync(new System.Text.RegularExpressions.Regex(@"\bdark\b"));
+    await Page.GetByRole(AriaRole.Button, new() { Name = "Search", Exact = true }).FocusAsync();
+    await Expect(options).ToBeHiddenAsync();
+
+    await Page.SetViewportSizeAsync(1280, 800);
+    await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Theme Selector" })).ToBeVisibleAsync();
+    await Page.SetViewportSizeAsync(390, 700);
+    await Page.ReloadAsync();
+    await Page.GetByRole(AriaRole.Button, new() { Name = "Others", Exact = true }).ClickAsync();
+    await Expect(Page.GetByRole(AriaRole.Radio, new() { Name = "Dark", Exact = true })).ToBeCheckedAsync();
+  }
+
+  [Fact]
+  public async Task ReaderShell_RespectsReducedMotionAndAnnouncesNavigationStateAsync()
+  {
+    await Page.EmulateMediaAsync(new() { ReducedMotion = ReducedMotion.Reduce });
+    await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, "");
+    foreach (var pulse in await Page.Locator("#header .animate-pulse").AllAsync())
+    {
+      await Expect(pulse).ToHaveCSSAsync("animation-name", "none");
+    }
+
+    var toggle = Page.GetByRole(AriaRole.Button, new() { Name = "Toggle Menu", Exact = true });
+    var navigation = Page.GetByRole(AriaRole.Navigation, new() { Name = "Primary", Exact = true });
+    await Expect(toggle).ToHaveAttributeAsync("aria-expanded", "true");
+    await toggle.ClickAsync();
+    await Expect(navigation).ToBeHiddenAsync();
+    await Expect(toggle).ToHaveAttributeAsync("aria-expanded", "false");
+    await toggle.ClickAsync();
+    await Expect(navigation).ToBeVisibleAsync();
+    await Expect(toggle).ToHaveAttributeAsync("aria-expanded", "true");
+    await Expect(Page.Locator("#main")).ToHaveCSSAsync("transition-duration", "0s");
+  }
+
   [Fact]
   public async Task Navigation_LearningChatIsVisibleOnMobileAndDesktopAsync()
   {

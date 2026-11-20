@@ -54,7 +54,7 @@ public class VectorSearchTests(AppFixture fixture) : DistributedPageTest
   public async Task SearchBox_ReturnsTheClosestArticleAsync()
   {
     const string expectedSlug = "using-github-copilot-ai-for-navigating-new-codebase";
-    var expectedTitle = new SharedModels.TableOfContents().Contents.Single(content => content.Slug == expectedSlug).Title;
+    var expectedArticle = new SharedModels.TableOfContents().Contents.Single(content => content.Slug == expectedSlug);
 
     var metadata = await GetSuccessfulResponseAsync("search/index.json");
     var index = JsonSerializer.Deserialize<SearchIndexFile>(await metadata.TextAsync());
@@ -101,8 +101,26 @@ public class VectorSearchTests(AppFixture fixture) : DistributedPageTest
       }
       await input.FillAsync("find an article about navigating a new codebase with copilot");
 
-      var firstResult = Page.Locator("#dropdown-menu .dropdown-item").First;
-      await Expect(firstResult).ToHaveTextAsync(expectedTitle, new() { Timeout = 15_000 });
+      var firstResult = Page.GetByRole(AriaRole.Option).First;
+      await Expect(firstResult).ToHaveTextAsync(expectedArticle.Title, new() { Timeout = 15_000 });
+      await Expect(input).ToHaveAttributeAsync("role", "combobox");
+      await Expect(input).ToHaveAttributeAsync("aria-expanded", "true");
+      await input.PressAsync("ArrowDown");
+      await Expect(input).ToBeFocusedAsync();
+      await Expect(firstResult).ToHaveAttributeAsync("aria-selected", "true");
+      await Expect(input).ToHaveAttributeAsync("aria-activedescendant", (await firstResult.GetAttributeAsync("id"))!);
+      await input.PressAsync("Escape");
+      await Expect(input).ToHaveAttributeAsync("aria-expanded", "false");
+      await Expect(input).ToHaveValueAsync("find an article about navigating a new codebase with copilot");
+      await input.PressAsync("ArrowDown");
+      await Expect(input).ToHaveAttributeAsync("aria-expanded", "true");
+      if (width == 1280)
+      {
+        await Page.EmulateMediaAsync(new() { ForcedColors = ForcedColors.Active });
+        await Expect(input).ToHaveCSSAsync("outline-style", "solid");
+        await Expect(firstResult).ToHaveCSSAsync("outline-style", "solid");
+        await Page.EmulateMediaAsync(new() { ForcedColors = ForcedColors.None });
+      }
       Assert.True(await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= innerWidth"));
       Assert.True(await Page.Locator("#dropdown-menu").EvaluateAsync<bool>(
           "element => { const bounds = element.getBoundingClientRect(); return bounds.left >= 0 && bounds.right <= innerWidth; }"));
@@ -110,6 +128,12 @@ public class VectorSearchTests(AppFixture fixture) : DistributedPageTest
       {
         await Page.GetByRole(AriaRole.Button, new() { Name = "Exit Search", Exact = true }).ClickAsync();
         await Expect(input).ToBeHiddenAsync();
+        await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Search", Exact = true })).ToBeFocusedAsync();
+      }
+      else
+      {
+        await input.PressAsync("Enter");
+        await Expect(Page).ToHaveURLAsync(new Uri(WebBaseUrl, expectedArticle.ContentUrl).AbsoluteUri);
       }
     }
   }

@@ -75,13 +75,19 @@ public class BlogTests(AppFixture fixture) : DistributedPageTest
   {
     await GotoSuccessfulPageAsync(Page, WebBaseUrl, "blogs/dependency-injection-lifetimes-in-dotnet/");
     await Expect(Page.Locator("#article-title")).ToBeVisibleAsync();
+    var article = Page.Locator("article[aria-labelledby='article-title']");
     var sidebar = Page.Locator("aside[aria-label='Article resources']");
-    var sidebarAd = sidebar.GetByRole(AriaRole.Region, new() { Name = "Advertisement", Exact = true });
-    var stickyAd = Page.GetByRole(AriaRole.Region, new() { Name = "Advertisement", Exact = true });
+    var sidebarAd = sidebar.Locator("[data-article-ad='sidebar']");
+    var endAd = article.Locator("[data-article-ad='end-of-article']");
+    var midAd = article.Locator("[data-article-ad='mid-article']");
+    var mobileContents = article.Locator(":scope > details");
     await Expect(sidebarAd).ToHaveCountAsync(1);
+    await Expect(endAd).ToHaveCountAsync(1);
+    await Expect(sidebarAd).ToHaveAttributeAsync("aria-label", "Advertisements");
     await Expect(sidebarAd).ToContainTextAsync("Ad Space");
-    await Expect(sidebar.Locator("section[aria-labelledby='related-articles'] > section[aria-label='Advertisement']")).ToHaveCountAsync(1);
-    await Expect(sidebar.Locator(":scope > section")).ToHaveAttributeAsync("aria-labelledby", "related-articles");
+    await Expect(endAd).ToContainTextAsync("Ad Space");
+    await Expect(sidebar.Locator("section[aria-labelledby='related-articles'] [data-article-ad], section[aria-labelledby='related-articles'] ins")).ToHaveCountAsync(0);
+    Assert.InRange(await midAd.CountAsync(), 0, 1);
     var card = Page.Locator("section[aria-labelledby='related-articles'] > div[aria-live] > div").First;
     await Expect(card.Locator(":scope > article")).Not.ToHaveClassAsync(new System.Text.RegularExpressions.Regex("md:hover:scale-110"));
     await Expect(card.Locator("img")).ToHaveCountAsync(2);
@@ -97,38 +103,34 @@ public class BlogTests(AppFixture fixture) : DistributedPageTest
             $"Article page must not scroll horizontally at {width}px in {(dark ? "dark" : "light")} mode.");
         Assert.True(await sidebar.EvaluateAsync<bool>(
             "element => { const style = getComputedStyle(element); return style.position === 'static' && style.overflowY === 'visible' && element.scrollHeight <= element.clientHeight + 1; }"));
-        Assert.True(await sidebarAd.EvaluateAsync<bool>(
-            "element => element.getBoundingClientRect().bottom <= document.querySelector('#related-articles').getBoundingClientRect().top"));
+        await Expect(endAd).ToHaveCSSAsync("position", "static");
         if (width >= 1280)
         {
+          await Expect(sidebarAd).ToBeVisibleAsync();
+          await Expect(sidebarAd).ToHaveCSSAsync("position", "static");
+          Assert.True(await sidebarAd.EvaluateAsync<bool>(
+              "element => element.getBoundingClientRect().bottom <= document.querySelector('#related-articles').getBoundingClientRect().top"));
           Assert.True(await sidebar.Locator(":scope > div").First.EvaluateAsync<bool>(
               "element => element.getBoundingClientRect().bottom <= element.nextElementSibling.getBoundingClientRect().top"));
-          Assert.True(await sidebar.Locator(":scope > div").First.EvaluateAsync<bool>(
-              "element => element.getBoundingClientRect().height <= 250"));
+          Assert.True(await sidebar.Locator("nav[aria-label='On this page']").EvaluateAsync<bool>(
+              "element => element.getBoundingClientRect().height <= 14 * parseFloat(getComputedStyle(document.documentElement).fontSize)"));
         }
         else
         {
+          await Expect(sidebarAd).ToBeHiddenAsync();
           Assert.True(await sidebar.EvaluateAsync<bool>(
               "element => element.getBoundingClientRect().top >= document.querySelector('article[aria-labelledby=\"article-title\"]').getBoundingClientRect().bottom"));
-          await Expect(Page.Locator("details")).Not.ToHaveAttributeAsync("open", "");
-          await Page.Locator("details summary").ClickAsync();
-          await Page.GetByRole(AriaRole.Link, new() { Name = "Implementation", Exact = true }).ClickAsync();
+          await Expect(mobileContents).Not.ToHaveAttributeAsync("open", "");
+          await mobileContents.Locator("summary").ClickAsync();
+          await mobileContents.Locator("nav a[href$='#how']").ClickAsync();
           await Expect(Page.Locator("#how")).ToBeInViewportAsync();
-          await Page.Locator("details summary").ClickAsync();
+          await mobileContents.Locator("summary").ClickAsync();
         }
-        await Expect(stickyAd).ToHaveCSSAsync("position", width >= 1024 ? "sticky" : "static");
         Assert.True(await card.EvaluateAsync<bool>("element => { const poster = element.querySelector('header img').getBoundingClientRect(); const title = element.querySelector('h3'); const bounds = title.getBoundingClientRect(); return Math.abs(poster.width - element.getBoundingClientRect().width) < 1 && bounds.top >= poster.bottom && getComputedStyle(title).webkitLineClamp === 'none'; }"));
-        if (width >= 1024)
-        {
-          await stickyAd.EvaluateAsync("element => window.scrollTo(0, element.getBoundingClientRect().top + scrollY + 100)");
-          await Page.WaitForFunctionAsync("() => Math.abs(document.querySelector('section[aria-label=\"Advertisement\"]').getBoundingClientRect().top - 56) < 1");
-          await Page.EvaluateAsync("() => window.scrollTo(0, document.documentElement.scrollHeight)");
-          Assert.True(await stickyAd.EvaluateAsync<bool>(
-              "element => { const ad = element.getBoundingClientRect(); const section = element.parentElement.getBoundingClientRect(); return ad.bottom <= section.bottom + 1; }"));
-        }
       }
     }
-    await Expect(Page.Locator("section[aria-label='Article body']")).ToContainTextAsync("Ad Space");
+    Assert.True(await endAd.EvaluateAsync<bool>(
+        "element => element.previousElementSibling.matches('[aria-label=\"Article body\"]') && element.nextElementSibling.tagName === 'FOOTER'"));
     await Page.SetViewportSizeAsync(320, 900);
     var code = Page.GetByRole(AriaRole.Region, new() { Name = "Razor code", Exact = true }).First;
     await code.FocusAsync();
@@ -155,14 +157,15 @@ public class BlogTests(AppFixture fixture) : DistributedPageTest
     var metadata = contents.Single(content => content.Slug == slug);
     await GotoSuccessfulPageAsync(Page, WebBaseUrl, $"blogs/{slug}/?source=test");
     await Expect(Page.Locator("#article-title")).ToHaveTextAsync(metadata.Title);
-    Assert.True(await Page.Locator("#article-title").EvaluateAsync<bool>(
-        "title => title.getBoundingClientRect().top < title.closest('header').querySelector('figure').getBoundingClientRect().top"));
+    await Expect(Page.Locator("article[aria-labelledby='article-title'] > header figure")).ToHaveCountAsync(0);
     await Expect(Page.Locator("article[aria-labelledby='article-title'] > header time")).ToHaveTextAsync("Updated 13 Oct 2024");
-    await Expect(Page.Locator("article[aria-labelledby='article-title'] > header > a")).ToHaveTextAsync(
+    await Expect(Page.Locator("article[aria-labelledby='article-title'] > header > a[href^='/channels/']")).ToHaveTextAsync(
         $"{metadata.Channel} · {contents.Count(content => content.Channel == metadata.Channel)} published articles");
     await Expect(Page.GetByRole(AriaRole.Link, new() { Name = "Edit on GitHub", Exact = false })).ToHaveAttributeAsync("href",
         "https://github.com/ILoveDotNet/ilovedotnet/blob/main/DependencyInjectionDemoComponents/Pages/Blogs/Lifetimes.razor");
-    await Page.GetByRole(AriaRole.Link, new() { Name = "Implementation", Exact = true }).ClickAsync();
+    var jump = Page.GetByRole(AriaRole.Link, new() { Name = "Jump to implementation", Exact = true });
+    await Expect(jump).ToHaveAttributeAsync("href", $"/blogs/{slug}/?source=test#how");
+    await jump.ClickAsync();
     await Expect(Page.Locator("#how")).ToBeInViewportAsync();
     Assert.Equal(WebBaseUrl.Authority, new Uri(Page.Url).Authority);
     Assert.True(await Page.Locator("#how").EvaluateAsync<bool>("heading => heading.getBoundingClientRect().top >= 56"));
@@ -171,8 +174,8 @@ public class BlogTests(AppFixture fixture) : DistributedPageTest
     var navigation = Page.GetByRole(AriaRole.Navigation, new() { Name = "Continue this learning path", Exact = true });
     var ordered = contents.Where(content => content.Channel == metadata.Channel).OrderBy(content => content.Order).ToArray();
     var index = Array.FindIndex(ordered, content => content.Slug == slug);
-    await Expect(navigation.Locator("a[rel='prev']")).ToHaveAttributeAsync("href", $"/{ordered[index - 1].ContentUrl}");
-    await Expect(navigation.Locator("a[rel='next']")).ToHaveAttributeAsync("href", $"/{ordered[index + 1].ContentUrl}");
+    await Expect(navigation.Locator("a[rel='prev']")).ToHaveAttributeAsync("href", $"/{ordered[index - 1].ContentUrl.Trim('/')}/");
+    await Expect(navigation.Locator("a[rel='next']")).ToHaveAttributeAsync("href", $"/{ordered[index + 1].ContentUrl.Trim('/')}/");
     await navigation.Locator("a[rel='prev']").ClickAsync();
     await Expect(Page.Locator("#article-title")).ToHaveTextAsync(ordered[index - 1].Title);
     await Expect(Page.Locator("link[rel='canonical']")).ToHaveAttributeAsync("href", $"{ExpectedCanonicalBaseUrl}{ordered[index - 1].ContentUrl}");

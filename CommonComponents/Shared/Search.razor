@@ -1,38 +1,61 @@
 ﻿@inherits SearchBase
 
-<section id="search" class="[ flex min-w-0 grow items-center justify-end px-2 md:justify-center md:px-4 ]">
-    <button type="button" aria-label="Exit Search" class="[ @(!(SmallDevice && HideNonSearchItems) ? "hidden" : null) ] [ mr-2 h-10 w-10 shrink-0 rounded-xl text-stone-600 hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 dark:text-stone-200 dark:hover:bg-stone-700 ]"
+<section id="search" role="search" aria-label="Articles" class="[ flex min-w-0 grow items-center justify-end px-0 sm:px-2 md:justify-center md:px-4 ]"
+         @ref="SearchRoot" @onfocusin="FocusHandlerAsync" @onfocusout="FocusOutHandlerAsync">
+    <button type="button" aria-label="Exit Search" class="[ @(!(SmallDevice && HideNonSearchItems) ? "hidden" : null) ] [ mr-2 h-11 w-11 shrink-0 rounded-xl text-stone-600 hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 dark:text-stone-200 dark:hover:bg-stone-700 ]"
             @onclick="ExitSearchAsync">
-        <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-arrow-left ] [ inline ] [ text-gray-500 ] [ stroke-1 ] [ dark:text-white ]" width="25" height="25" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-arrow-left ] [ inline ]" aria-hidden="true" focusable="false" width="25" height="25" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
             <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
             <line x1="5" y1="12" x2="19" y2="12"></line>
             <line x1="5" y1="12" x2="11" y2="18"></line>
             <line x1="5" y1="12" x2="11" y2="6"></line>
         </svg>
     </button>
-    <div class="[ dropdown ] [ @(ShowSuggestions ? "is-active" : null) ] [ min-w-0 w-full max-w-xl ] [ @(SmallDevice && !HideNonSearchItems ? "hidden" : null) ] [ @(SmallDevice && HideNonSearchItems ? "grow" : null) ]">
-        <div class="[ dropdown-trigger ] [ w-full ]">
-            <input type="search" placeholder="Type / to search" class="[ h-10 w-full min-w-0 rounded-l-xl border border-r-0 border-stone-200 bg-stone-100 px-4 text-sm text-stone-900 placeholder:text-stone-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 dark:border-stone-700 dark:bg-stone-900 dark:text-white dark:placeholder:text-stone-400 ]"
-                   autocapitalize="none" autocomplete="off" name="search" autocorrect="off" aria-label="Search articles" aria-haspopup="true" aria-controls="dropdown-menu"
-                     value="@SearchText" @oninput="SearchTextChangedAsync" @onkeyup="KeyUpHandlerAsync" @ref="SearchInput"
-                                     @onfocus="FocusHandlerAsync" @onfocusout="FocusOutHandlerAsync" />
+    <div class="[ relative min-w-0 w-full max-w-xl align-top ] [ @(SmallDevice && !HideNonSearchItems ? "hidden" : "inline-flex") ] [ @(SmallDevice && HideNonSearchItems ? "grow" : null) ]">
+        <div class="[ w-full ]">
+            <input type="search" role="combobox" placeholder="@(SmallDevice ? "Search articles" : "Type / to search")" class="[ h-11 w-full min-w-0 rounded-l-xl border border-r-0 border-stone-200 bg-stone-100 px-4 text-base text-stone-900 placeholder:text-stone-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 dark:border-stone-700 dark:bg-stone-900 dark:text-white dark:placeholder:text-stone-400 ]"
+                   autocapitalize="none" autocomplete="off" name="search" autocorrect="off" dir="auto" aria-label="Search articles"
+                   aria-autocomplete="list" aria-haspopup="listbox" aria-controls="@ResultsId" aria-describedby="@StatusId"
+                   aria-expanded="@(ShowSuggestions ? "true" : "false")" aria-activedescendant="@ActiveOptionId"
+                   value="@SearchText" @oninput="SearchTextChangedAsync" @onkeydown="KeyDownHandlerAsync" @ref="SearchInput" />
         </div>
-        <div class="[ dropdown-menu ] [ w-full min-w-0 pt-2 ]" id="dropdown-menu" role="menu">
-            <div class="[ dropdown-content ] [ max-h-[50dvh] overflow-y-auto rounded-xl border border-stone-200 bg-white p-1 shadow-lg dark:border-stone-700 dark:bg-stone-900 ]">
-                @for (var index = 0; index < FilteredContents.Count; index++)
+        <div class="[ absolute left-0 top-full z-20 w-full min-w-0 pt-2 ] [ @(!ShowSuggestions ? "hidden" : null) ]" id="dropdown-menu">
+            <div class="[ max-h-[50dvh] overflow-y-auto overscroll-contain rounded-xl border border-stone-200 bg-white p-1 shadow-lg dark:border-stone-700 dark:bg-stone-900 ]">
+                <ul id="@ResultsId" role="listbox" aria-label="Article suggestions" aria-busy="@(State == SearchState.Loading ? "true" : "false")">
+                    @for (var index = 0; index < FilteredContents.Count; index++)
+                    {
+                        var content = FilteredContents[index];
+                        <li id="@OptionId(index)" role="option" aria-selected="@(IsSelected(index) ? "true" : "false")"
+                            class="[ min-h-11 cursor-pointer whitespace-normal rounded-lg px-3 py-3 text-sm leading-relaxed [overflow-wrap:anywhere] ] [ @(IsSelected(index) ? "bg-indigo-50 font-semibold text-indigo-900 ring-2 ring-inset ring-indigo-500 dark:bg-stone-800 dark:text-white" : "text-stone-700 hover:bg-indigo-50 hover:text-indigo-900 dark:text-stone-200 dark:hover:bg-stone-800 dark:hover:text-white") ]"
+                            @onmousedown:preventDefault="true" @onclick="() => OnSelectAsync(content)">
+                            @content.Title
+                        </li>
+                    }
+                </ul>
+                @if (State == SearchState.Loading)
                 {
-                    var content = FilteredContents[index];
-                    <div id="@($"{_componentId}_{index}")" tabindex="-1" class="[ dropdown-item ] [ cursor-pointer whitespace-normal rounded-lg px-3 py-3 text-sm leading-relaxed text-stone-700 [overflow-wrap:anywhere] hover:bg-indigo-50 focus:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 dark:text-stone-200 dark:hover:bg-stone-800 dark:focus:bg-stone-800 ]"
-                         @onkeydown="KeyDownHandlerAsync" @onclick="() => OnSelect(content)">
-                        @content.Title
+                    <p class="[ px-3 py-3 text-sm ]">Searching articles...</p>
+                }
+                else if (State == SearchState.Empty || State == SearchState.Failed)
+                {
+                    <div class="[ space-y-2 px-3 py-3 text-sm [overflow-wrap:anywhere] ]">
+                        <p>@(State == SearchState.Failed ? SearchError : "No matching tutorials. Try another topic or browse learning paths.")</p>
+                        <div class="[ flex flex-wrap items-center gap-x-3 gap-y-1 ]">
+                            @if (State == SearchState.Failed)
+                            {
+                                <button type="button" class="[ min-h-11 rounded-md border border-stone-300 px-3 py-2 font-semibold hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 dark:border-stone-600 dark:hover:bg-stone-800 ]" @onclick="RetrySearchAsync">Try again</button>
+                            }
+                            <a href="/learningpath/" class="[ inline-flex min-h-11 items-center rounded-sm underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ]">Browse learning paths</a>
+                        </div>
                     </div>
                 }
             </div>
         </div>
+        <p id="@StatusId" role="status" aria-live="polite" aria-atomic="true" class="sr-only">@StatusMessage</p>
     </div>
-    <button type="button" aria-label="Search" class="[ h-10 w-10 shrink-0 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ] [ @(!SmallDevice || HideNonSearchItems ? "rounded-r-xl border border-l-0 border-stone-200 bg-stone-100 hover:bg-stone-200 dark:border-stone-700 dark:bg-stone-900 dark:hover:bg-stone-700" : "rounded-xl hover:bg-stone-100 dark:hover:bg-stone-700") ]"
-            @onclick="SearchAsync">
-        <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-search ] [ inline ] [ text-gray-500 ] [ stroke-1 ] [ dark:text-white ]" width="25" height="25" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <button type="button" aria-label="Search" class="[ h-11 w-11 shrink-0 text-stone-600 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 disabled:cursor-wait disabled:opacity-60 dark:text-stone-200 ] [ @(!SmallDevice || HideNonSearchItems ? "rounded-r-xl border border-l-0 border-stone-200 bg-stone-100 hover:bg-stone-200 dark:border-stone-700 dark:bg-stone-900 dark:hover:bg-stone-700" : "rounded-xl hover:bg-stone-100 dark:hover:bg-stone-700") ]"
+            disabled="@(State == SearchState.Loading && (!SmallDevice || HideNonSearchItems))" @onclick="SearchAsync" @ref="SearchButton">
+        <svg xmlns="http://www.w3.org/2000/svg" class="[ icon icon-tabler icon-tabler-search ] [ inline ]" aria-hidden="true" focusable="false" width="25" height="25" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
             <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
             <circle cx="10" cy="10" r="7"></circle>
             <line x1="21" y1="21" x2="15" y2="15"></line>
