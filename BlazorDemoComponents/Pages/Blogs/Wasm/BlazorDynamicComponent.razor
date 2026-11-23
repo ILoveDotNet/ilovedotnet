@@ -135,7 +135,7 @@
             </li>
             <li>
                 When the user select's a choice from dropdown, we can get the component type in the <Highlight>@@onchange</Highlight> event 
-                using event args as <Highlight>type = Type.GetType($"BlazorDemoComponents.{eventArgs.Value}");</Highlight>.
+                from a static registry of component types. This avoids resolving a type name at runtime and keeps the selected components available when trimming.
             </li>
             <li>
                 Now <Highlight>&lt;DynamicComponent&gt;</Highlight> will render the selected component and pass the parameters using 
@@ -156,6 +156,8 @@
     &lt;option value="@@(nameof(RadiobuttonComponent))"&gt;Radio Button&lt;/option&gt;
 &lt;/select&gt;
 
+using System.Diagnostics.CodeAnalysis;
+
 @@if(type is not null)
 {
     &lt;DynamicComponent Type="@@type" Parameters="@@components[type.Name].Parameters"&gt;&lt;/DynamicComponent&gt;
@@ -170,6 +172,7 @@
             new ComponentMetadata
             {
                 Name = "Text Box",
+                ComponentType = typeof(TextboxComponent),
                 Parameters = new() { { "Label", "Text Box" } }
             }
         },
@@ -178,6 +181,7 @@
             new ComponentMetadata
             {
                 Name = "Check Box",
+                ComponentType = typeof(CheckboxComponent),
                 Parameters = new() { { "Label", "Check Box" } }
             }
         },
@@ -186,19 +190,27 @@
             new ComponentMetadata
             {
                 Name = "Radio Button",
+                ComponentType = typeof(RadiobuttonComponent),
                 Parameters = new() { { "Label", "Radio Button" } }
             }
         }
     };
 
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties, typeof(TextboxComponent))]
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties, typeof(CheckboxComponent))]
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties, typeof(RadiobuttonComponent))]
     public void RenderComponent(ChangeEventArgs eventArgs)
     {
-        type = Type.GetType($"BlazorDemoComponents.{eventArgs.Value}");
+        type = eventArgs.Value is string componentName
+            &amp;&amp; components.TryGetValue(componentName, out var component)
+                ? component.ComponentType
+                : null;
     }
 
     public class ComponentMetadata
     {
         public string? Name { get; set; }
+        public Type ComponentType { get; set; } = default!;
         public Dictionary&lt;string, object&gt; Parameters { get; set; } = 
             new Dictionary&lt;string, object&gt;();
     }

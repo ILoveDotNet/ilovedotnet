@@ -24,12 +24,20 @@
 
     private IJSObjectReference? module;
     [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
+    [Inject] private ILogger<JavascriptViewportDimensions> Logger { get; set; } = default!;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./jsinterop.js");
+            try
+            {
+                module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./jsinterop.js");
+            }
+            catch (JSException exception)
+            {
+                Logger.LogWarning(exception, "Unable to initialize viewport dimensions interop");
+            }
         }
     }
 
@@ -37,8 +45,15 @@
     {
         if (module is not null)
         {
-            windowDimensions = await module.InvokeAsync<WindowDimensions>("getViewportDimensions");
-            Console.WriteLine(windowDimensions.Height);
+            try
+            {
+                windowDimensions = await module.InvokeAsync<WindowDimensions>("getViewportDimensions");
+                Console.WriteLine(windowDimensions.Height);
+            }
+            catch (JSException exception)
+            {
+                Logger.LogWarning(exception, "Unable to retrieve viewport dimensions");
+            }
         }
     }
 

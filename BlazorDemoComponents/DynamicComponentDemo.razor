@@ -1,4 +1,11 @@
-﻿<select class="[ w-full h-full ] [ px-4 py-2 ] [ border-2 border-gray-200 ] [ focus:outline-hidden focus:border-gray-400 ] [ dark:bg-black dark:border-gray-800 dark:focus:border-b-white dark:md:focus:border-blue-800 dark:caret-white dark:text-white ]" 
+@using System.Diagnostics.CodeAnalysis
+
+@attribute [UnconditionalSuppressMessage(
+    "Trimming",
+    "IL2111",
+    Justification = "DynamicComponent parameter dispatch reflects over its annotated Type setter; the component types are statically rooted in the registry below.")]
+
+<select class="[ w-full h-full ] [ px-4 py-2 ] [ border-2 border-gray-200 ] [ focus:outline-hidden focus:border-gray-400 ] [ dark:bg-black dark:border-gray-800 dark:focus:border-b-white dark:md:focus:border-blue-800 dark:caret-white dark:text-white ]" 
         @onchange="RenderComponent">
     <option>Select</option>
     <option value="@(nameof(TextboxComponent))">Text Box</option>
@@ -20,6 +27,7 @@
             new ComponentMetadata
             {
                 Name = "Text Box",
+                ComponentType = typeof(TextboxComponent),
                 Parameters = new() { { "Label", "Text Box" } }
             }
         },
@@ -28,6 +36,7 @@
             new ComponentMetadata
             {
                 Name = "Check Box",
+                ComponentType = typeof(CheckboxComponent),
                 Parameters = new() { { "Label", "Check Box" } }
             }
         },
@@ -36,19 +45,27 @@
             new ComponentMetadata
             {
                 Name = "Radio Button",
+                ComponentType = typeof(RadiobuttonComponent),
                 Parameters = new() { { "Label", "Radio Button" } }
             }
         }
     };
 
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties, typeof(TextboxComponent))]
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties, typeof(CheckboxComponent))]
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties, typeof(RadiobuttonComponent))]
     public void RenderComponent(ChangeEventArgs eventArgs)
     {
-        type = Type.GetType($"BlazorDemoComponents.{eventArgs.Value}");
+        type = eventArgs.Value is string componentName
+            && components.TryGetValue(componentName, out var component)
+                ? component.ComponentType
+                : null;
     }
 
     public class ComponentMetadata
     {
         public string? Name { get; set; }
+        public Type ComponentType { get; set; } = default!;
         public Dictionary<string, object> Parameters { get; set; } = 
             new Dictionary<string, object>();
     }

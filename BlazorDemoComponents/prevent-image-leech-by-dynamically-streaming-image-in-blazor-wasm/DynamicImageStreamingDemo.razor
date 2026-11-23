@@ -6,19 +6,35 @@
 
     [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
     [Inject] private HttpClient HttpClient { get; set; } = default!;
+    [Inject] private ILogger<DynamicImageStreamingDemo> Logger { get; set; } = default!;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            _jsModule = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./streamImage.js");  
+            try
+            {
+                _jsModule = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./streamImage.js");
+            }
+            catch (JSException exception)
+            {
+                Logger.LogWarning(exception, "Unable to initialize image streaming interop");
+                return;
+            }
 
             var imageStream = await StreamImageAsync();
 
             if (imageStream != null)
             {
                 var dotNetImageStream = new DotNetStreamReference(imageStream);
-                await _jsModule.InvokeVoidAsync("LoadImageThroughStream", _imageReference, dotNetImageStream);
+                try
+                {
+                    await _jsModule.InvokeVoidAsync("LoadImageThroughStream", _imageReference, dotNetImageStream);
+                }
+                catch (JSException exception)
+                {
+                    Logger.LogWarning(exception, "Unable to render streamed image");
+                }
             }
         }
     }

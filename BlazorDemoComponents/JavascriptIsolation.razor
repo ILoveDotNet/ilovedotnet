@@ -17,12 +17,20 @@
     private string? result;
 
     [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
+    [Inject] private ILogger<JavascriptIsolation> Logger { get; set; } = default!;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            module = await JSRuntime.InvokeAsync<IJSObjectReference>("import","./jsisolation.js");
+            try
+            {
+                module = await JSRuntime.InvokeAsync<IJSObjectReference>("import","./jsisolation.js");
+            }
+            catch (JSException exception)
+            {
+                Logger.LogWarning(exception, "Unable to initialize JavaScript isolation");
+            }
         }
     }
 
@@ -35,7 +43,14 @@
     {
         if(module is not null) 
         {
-            return await module.InvokeAsync<string>("showPrompt", message);
+            try
+            {
+                return await module.InvokeAsync<string>("showPrompt", message);
+            }
+            catch (JSException exception)
+            {
+                Logger.LogWarning(exception, "Unable to display browser prompt");
+            }
         }
 
         return null;
