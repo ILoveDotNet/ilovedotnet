@@ -98,6 +98,10 @@ public class InterviewTests(AppFixture fixture) : DistributedPageTest
       await Expect(disclosure.Locator("p")).ToBeHiddenAsync();
     }
 
+    var topics = Page.Locator("#interview-topics");
+    await Expect(topicLinks.First).ToBeHiddenAsync();
+    await topics.Locator("summary").ClickAsync();
+    await Expect(topicLinks.First).ToBeVisibleAsync();
     await topicLinks.Nth(2).ClickAsync();
     Assert.Equal("/interview/", new Uri(Page.Url).AbsolutePath);
     Assert.Equal("#csharp-interview-questions", new Uri(Page.Url).Fragment);
@@ -119,7 +123,7 @@ public class InterviewTests(AppFixture fixture) : DistributedPageTest
     await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "14. Contributions beyond project work" })).ToBeVisibleAsync();
     var readiness = Page.Locator("section[aria-labelledby='interview-readiness']");
     await Expect(readiness.Locator("article")).ToHaveCountAsync(14);
-    await Expect(readiness.Locator("h3")).ToHaveCountAsync(3);
+    await Expect(readiness.Locator("h3")).ToHaveCountAsync(5);
     var guidance = readiness.Locator("details.guide-disclosure");
     await Expect(guidance).ToHaveCountAsync(14);
     foreach (var disclosure in await guidance.AllAsync())
@@ -139,6 +143,14 @@ public class InterviewTests(AppFixture fixture) : DistributedPageTest
       await link.ClickAsync();
       await Expect(Page.Locator(new Uri(Page.Url).Fragment)).ToBeInViewportAsync();
     }
+    await Page.GetByRole(AriaRole.Link, new() { Name = "Next: Seven-session plan" }).ClickAsync();
+    Assert.Equal("/interview/", new Uri(Page.Url).AbsolutePath);
+    Assert.Equal("#preparation-plan", new Uri(Page.Url).Fragment);
+    await Expect(Page.Locator("#preparation-plan")).ToBeInViewportAsync();
+    await Page.GetByRole(AriaRole.Link, new() { Name = "Back to topics" }).First.ClickAsync();
+    Assert.Equal("/interview/", new Uri(Page.Url).AbsolutePath);
+    Assert.Equal("#interview-topics", new Uri(Page.Url).Fragment);
+    await Expect(Page.Locator("#interview-topics")).ToBeInViewportAsync();
     await Expect(Page.Locator("section[aria-labelledby='preparation-plan'] li")).ToHaveCountAsync(7);
     Assert.Equal("interview-readiness", await Page.Locator("h2").First.GetAttributeAsync("id"));
     Assert.Equal("preparation-plan", await Page.Locator("h2").Nth(1).GetAttributeAsync("id"));

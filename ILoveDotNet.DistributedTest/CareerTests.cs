@@ -70,7 +70,7 @@ public class CareerTests(AppFixture fixture) : DistributedPageTest
         }
         Assert.True(await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= innerWidth"),
             $"Expanded career guidance must not widen the page at {width}px.");
-        await Expect(Page.GetByRole(AriaRole.Complementary, new() { Name = "Conversation starter" })).ToBeVisibleAsync();
+        await Expect(Page.Locator("#career-conversation-starter blockquote")).ToBeVisibleAsync();
         foreach (var disclosure in await Page.Locator("details.guide-disclosure").AllAsync())
         {
           await disclosure.Locator("summary").ClickAsync();
@@ -84,6 +84,15 @@ public class CareerTests(AppFixture fixture) : DistributedPageTest
       var target = new Uri(Page.Url).Fragment;
       await Expect(Page.Locator(target)).ToBeInViewportAsync();
     }
+    await Page.GetByRole(AriaRole.Link, new() { Name = "Back to career topics" }).First.ClickAsync();
+    Assert.Equal("/career/", new Uri(Page.Url).AbsolutePath);
+    Assert.Equal("#career-topics", new Uri(Page.Url).Fragment);
+    var topicsBox = await Page.Locator("#career-topics").BoundingBoxAsync();
+    var headerBox = await Page.Locator("#header").BoundingBoxAsync();
+    Assert.NotNull(topicsBox);
+    Assert.NotNull(headerBox);
+    Assert.True(topicsBox.Y >= headerBox.Y + headerBox.Height,
+        "Career topics should not be hidden beneath the sticky header.");
     await Page.GetByRole(AriaRole.Link, new() { Name = "Explore the .NET interview preparation guide" }).ClickAsync();
     await Expect(Page.Locator("h1")).ToHaveTextAsync("C# and .NET Interview Questions and Answers");
   }
