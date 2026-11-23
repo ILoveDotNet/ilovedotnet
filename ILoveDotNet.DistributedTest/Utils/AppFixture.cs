@@ -13,7 +13,7 @@ public class AppFixture : IAsyncLifetime
     var cancellationToken = new CancellationTokenSource(_defaultTimeout).Token;
     var appHost = await DistributedApplicationTestingBuilder
         .CreateAsync<Projects.ILoveDotNet_AppHost>(
-            args: ["DcpPublisher:RandomizePorts=false"],
+            args: ["DcpPublisher:RandomizePorts=false", "Testing:UseStandaloneWeb=true"],
             configureBuilder: (appOptions, hostSettings) =>
             {
               appOptions.DisableDashboard = false;
