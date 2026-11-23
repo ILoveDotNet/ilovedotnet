@@ -1,0 +1,99 @@
+@page "/sponsor"
+@using Toolbelt.Blazor.HeadElement
+@inject IConfiguration configuration
+@inject Sitemaps sitemap
+@inject TableOfContents tableOfContents
+
+<Title>@Title</Title>
+<Meta Name="description" Content="@Description" />
+<Meta Property="og:site_name" Content="I ❤️ DotNet" />
+<Meta Property="og:type" Content="website" />
+<Meta Property="og:title" Content="@Title" />
+<Meta Property="og:description" Content="@Description" />
+<Meta Property="og:url" Content="@PageUrl" />
+<Meta Property="og:image" Content="@($"{BaseUrl}image/brand/mini-logo.png")" />
+<Meta Property="og:image:alt" Content="DotNet bot with heart and DotNet brand" />
+<Meta Property="twitter:card" Content="summary" />
+<Meta Property="twitter:title" Content="@Title" />
+<Meta Property="twitter:description" Content="@Description" />
+<Meta Property="twitter:url" Content="@PageUrl" />
+<Meta Property="twitter:image" Content="@($"{BaseUrl}image/brand/mini-logo.png")" />
+<Meta Property="twitter:image:alt" Content="DotNet bot with heart and DotNet brand" />
+<Link Rel="sitemap" Href="@($"{BaseUrl}{sitemap.IndexFile}")" type="application/xml" title="Sitemap" />
+<Link Rel="alternate" Href="@($"{BaseUrl}atom.xml")" type="application/atom+xml" />
+<Link Rel="alternate" Href="@PageUrl" hreflang="en" />
+<Link Rel="alternate" Href="@PageUrl" hreflang="x-default" />
+<Link Rel="canonical" Href="@PageUrl" />
+<HeadContent>
+    @(new MarkupString(
+        $$""""
+        <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            "publisher": {
+                "@type": "Organization",
+                "name": "I ❤️ DotNet",
+                "url": "{{BaseUrl}}",
+                "logo": {
+                    "@type": "ImageObject",
+                    "url": "{{BaseUrl}}favicon.ico",
+                    "width": 16,
+                    "height": 16
+                }
+            },
+            "url": "{{PageUrl}}",
+            "mainEntityOfPage": {
+                "@type": "WebPage",
+                "@id": "{{PageUrl}}"
+            },
+            "description": "{{Description}}"
+        }
+        </script>
+        """"
+    ))
+</HeadContent>
+
+<div class="[ min-w-0 space-y-8 p-4 sm:p-5 dark:bg-stone-900 dark:text-white ]">
+    <Breadcrumbs CurrentTitle="Sponsor I ❤️ .NET" CurrentUrl="@PageUrl" />
+    <header class="[ grid min-w-0 overflow-hidden rounded-2xl bg-indigo-950 text-white lg:grid-cols-2 ]">
+        <div class="[ flex min-w-0 flex-col items-start justify-center gap-5 p-6 sm:p-10 ]">
+            <h1 class="[ max-w-xl text-4xl font-bold tracking-tight sm:text-5xl ]">Help developers learn. Put your brand in the conversation.</h1>
+            <p class="[ max-w-xl text-lg leading-relaxed text-indigo-100 ]">Partner with I ❤️ .NET to support free, practical learning for .NET developers.</p>
+            <a href="https://www.linkedin.com/in/thebhai" target="_blank" rel="noopener noreferrer"
+               class="[ inline-flex min-h-12 items-center rounded-lg bg-white px-5 py-3 font-bold text-indigo-950 no-underline hover:bg-indigo-100 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white ]">
+                Discuss sponsorship on LinkedIn <span class="sr-only">(opens in a new tab)</span>
+            </a>
+        </div>
+        <div class="[ flex flex-col justify-center gap-4 bg-amber-100 p-6 text-amber-950 sm:p-10 ]">
+            <h2 class="[ text-2xl font-bold ]">A home for practical .NET learning</h2>
+            <p class="[ max-w-lg leading-relaxed ]">Developers come here for tutorials, working examples, interview preparation, and learning paths across the .NET ecosystem.</p>
+            <p class="[ max-w-lg leading-relaxed ]"><strong>@ArticleCount published tutorials</strong> across <strong>@ChannelCount topics</strong>, with content kept free to read.</p>
+        </div>
+    </header>
+
+    <section aria-labelledby="sponsorship-fit" class="[ grid min-w-0 gap-6 lg:grid-cols-2 ]">
+        <div class="[ space-y-3 ]">
+            <h2 id="sponsorship-fit" class="[ text-2xl font-bold ]">A useful fit for developers</h2>
+            <p class="[ max-w-2xl leading-relaxed text-stone-700 dark:text-stone-300 ]">If your product or service helps developers build, test, deploy, or learn, let's discuss whether it is a good fit for this site.</p>
+            <p class="[ max-w-2xl leading-relaxed text-stone-700 dark:text-stone-300 ]">The site includes article advertising and a sponsorship area. Placement, availability, pricing, and reporting can be discussed directly.</p>
+        </div>
+        <div class="[ space-y-3 rounded-xl border border-stone-200 p-6 dark:border-stone-700 ]">
+            <h2 class="[ text-2xl font-bold ]">Start a conversation</h2>
+            <p class="[ leading-relaxed text-stone-700 dark:text-stone-300 ]">Send Abdul a LinkedIn message with your product, intended audience, and what you hope to achieve. Ask for current audience and placement details.</p>
+            <a href="https://www.linkedin.com/in/thebhai" target="_blank" rel="noopener noreferrer"
+               class="[ inline-flex min-h-11 items-center font-bold text-indigo-700 underline underline-offset-4 dark:text-indigo-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ]">
+                Message Abdul on LinkedIn <span class="sr-only">(opens in a new tab)</span>
+            </a>
+        </div>
+    </section>
+</div>
+
+@code {
+    private const string Title = "Sponsor I ❤️ DotNet | Partner with a .NET learning platform";
+    private const string Description = "Explore sponsorship opportunities with I Love .NET and contact Abdul to discuss reaching developers through practical learning content.";
+    private string BaseUrl => configuration.GetValue<string>("baseUrl")!;
+    private string PageUrl => $"{BaseUrl}sponsor/";
+    private int ArticleCount => tableOfContents.Contents.Count;
+    private int ChannelCount => tableOfContents.Contents.Select(content => content.Channel).Distinct(StringComparer.OrdinalIgnoreCase).Count();
+}

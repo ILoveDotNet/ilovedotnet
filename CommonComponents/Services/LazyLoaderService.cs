@@ -200,6 +200,7 @@ public class LazyLoaderService(
 
       if (path.Equals("interview", StringComparison.OrdinalIgnoreCase)
           || path.Equals("career", StringComparison.OrdinalIgnoreCase)
+          || path.Equals("sponsor", StringComparison.OrdinalIgnoreCase)
           || path.Contains("learningpath", StringComparison.OrdinalIgnoreCase))
       {
         await LoadAssembliesAsync("BaseComponents.wasm");

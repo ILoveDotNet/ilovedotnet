@@ -70,15 +70,19 @@
         <div class="[ grid grid-cols-1 gap-4 sm:grid-cols-2 ]">
             @foreach (var suggestion in StartingPoints)
             {
-                <div class="[ flex min-w-0 flex-col gap-2 ]">
-                    <h3 class="[ font-semibold dark:text-white ]">@suggestion.Goal</h3>
-                    <p class="[ flex flex-wrap items-center gap-2 text-sm ]">
-                        @foreach (var topic in suggestion.Topics)
-                        {
-                            <a class="[ min-h-11 inline-flex items-center underline text-indigo-800 dark:text-indigo-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ]" href="@($"channels/{TopicSlug(topic)}/")">@topic</a>
-                        }
-                    </p>
-                </div>
+                var availableTopics = suggestion.Topics.Where(topic => Channels.Any(channel => channel.Key.Equals(topic, StringComparison.OrdinalIgnoreCase))).ToArray();
+                if (availableTopics.Length > 0)
+                {
+                    <div class="[ flex min-w-0 flex-col gap-2 ]">
+                        <h3 class="[ font-semibold dark:text-white ]">@suggestion.Goal</h3>
+                        <div class="[ flex flex-wrap items-center gap-2 text-sm ]">
+                            @foreach (var topic in availableTopics)
+                            {
+                                <a class="[ min-h-11 inline-flex items-center rounded-full border border-indigo-300 bg-white px-3 font-semibold text-indigo-800 no-underline hover:bg-indigo-100 dark:border-indigo-800 dark:bg-indigo-950 dark:text-indigo-200 dark:hover:bg-indigo-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ]" href="@($"channels/{TopicSlug(topic)}/")">@topic <span aria-hidden="true" class="[ ml-2 ]">→</span></a>
+                            }
+                        </div>
+                    </div>
+                }
             }
         </div>
     </section>
@@ -86,9 +90,13 @@
     <section aria-labelledby="browse-topics-title" class="[ flex min-w-0 flex-col gap-3 ]">
         <h2 id="browse-topics-title" class="[ text-xl font-semibold dark:text-white ]">Find a learning path</h2>
         <label for="learning-path-search" class="[ text-sm font-semibold ]">Search topics</label>
-        <input id="learning-path-search" type="search" @bind="TopicSearch" @bind:event="oninput" placeholder="Try LINQ, testing, or Web API"
+        <input id="learning-path-search" type="search" @ref="TopicSearchInput" @bind="TopicSearch" @bind:event="oninput" placeholder="Try LINQ, testing, or Web API"
                class="[ min-h-11 w-full max-w-xl rounded-lg border border-stone-300 bg-white px-3 py-2 dark:border-stone-600 dark:bg-stone-800 dark:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ]" />
         <p aria-live="polite" class="[ text-sm text-stone-600 dark:text-stone-300 ]">@VisibleChannels.Count topics · @VisibleChannels.Sum(channel => channel.Count()) published articles</p>
+        @if (!string.IsNullOrEmpty(TopicSearch))
+        {
+            <button type="button" @onclick="ClearTopicSearchAsync" class="[ min-h-11 self-start font-semibold text-indigo-700 underline underline-offset-4 dark:text-indigo-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ]">Clear topic search</button>
+        }
         <details class="[ rounded-lg border border-stone-200 p-3 dark:border-stone-700 ]">
             <summary class="[ cursor-pointer py-2 font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ]">Browse topics and article counts</summary>
             <nav aria-label="Learning path topics" class="[ mt-3 ]">
@@ -117,7 +125,11 @@
                         <p class="[ text-sm text-stone-600 dark:text-stone-300 ]">@channel.Count() published articles</p>
                     </div>
                 </div>
-                <a href="@($"channels/{TopicSlug(channel.Key)}/")" aria-label="@($"View {channel.Key} channel")" class="[ inline-flex min-h-11 items-center font-semibold underline text-indigo-700 dark:text-indigo-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ]">View channel →</a>
+                <div class="[ flex flex-wrap items-center gap-x-4 gap-y-1 ]">
+                    <a href="@($"/{channel.OrderBy(content => content.Order).First().ContentUrl.Trim('/')}/")" aria-label="@($"Start {channel.Key} learning path")"
+                       class="[ inline-flex min-h-11 items-center rounded-lg bg-indigo-700 px-4 py-2 font-semibold text-white no-underline hover:bg-indigo-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ]">Start this path →</a>
+                    <a href="@($"channels/{TopicSlug(channel.Key)}/")" aria-label="@($"View {channel.Key} channel")" class="[ inline-flex min-h-11 items-center font-semibold underline text-indigo-700 dark:text-indigo-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ]">View channel →</a>
+                </div>
             </header>
             <div role="region" aria-label="@($"{channel.Key} learning sequence")" tabindex="0" class="[ relative min-w-0 overflow-x-auto rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ]">
                 <ol role="list" class="[ grid grid-flow-col auto-cols-[80%] gap-4 p-1 pb-3 snap-x snap-mandatory scroll-p-1 sm:auto-cols-[45%] lg:auto-cols-[30%] xl:auto-cols-[23%] ]">
@@ -147,6 +159,7 @@
     private string BaseUrl => configuration.GetValue<string>("baseUrl")!;
     private string PageUrl => $"{BaseUrl}learningpath/";
     private string TopicSearch = "";
+    private ElementReference TopicSearchInput;
     private List<IGrouping<string, ContentMetaData>> Channels = [];
     private List<IGrouping<string, ContentMetaData>> VisibleChannels =>
         Channels.Where(channel => channel.Key.Contains(TopicSearch.Trim(), StringComparison.OrdinalIgnoreCase)).ToList();
@@ -154,6 +167,12 @@
     protected override void OnInitialized()
     {
         Channels = tableOfContents.Contents.GroupBy(content => content.Channel).OrderBy(channel => channel.Key).ToList();
+    }
+
+    private async Task ClearTopicSearchAsync()
+    {
+        TopicSearch = "";
+        await TopicSearchInput.FocusAsync();
     }
 
     private static string TopicSlug(string topic) => topic.ToLowerInvariant().ApplyHyphen();

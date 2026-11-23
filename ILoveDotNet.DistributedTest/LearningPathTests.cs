@@ -48,6 +48,12 @@ public class LearningPathTests(AppFixture fixture) : DistributedPageTest
 
     var published = new SharedModels.TableOfContents().Contents;
     var channels = published.GroupBy(content => content.Channel).OrderBy(channel => channel.Key).ToArray();
+    var startingPoints = Page.GetByRole(AriaRole.Region, new() { Name = "Not sure where to start?" });
+    foreach (var topic in new[] { "OOPS", "LINQ", "SOLID", "Web API", "Dependency Injection", "EFCore", "Testing", "TDD", "Design Pattern", "AI", "MCP" })
+    {
+      await Expect(startingPoints.GetByRole(AriaRole.Link, new() { Name = topic, Exact = true }))
+          .ToHaveCountAsync(channels.Any(channel => channel.Key.Equals(topic, StringComparison.OrdinalIgnoreCase)) ? 1 : 0);
+    }
     var shelves = Page.Locator("section[aria-labelledby^='path-']");
     await Expect(shelves).ToHaveCountAsync(channels.Length);
     for (var index = 0; index < channels.Length; index++)
@@ -56,6 +62,8 @@ public class LearningPathTests(AppFixture fixture) : DistributedPageTest
       var expected = channels[index].OrderBy(content => content.Order).ToArray();
       await Expect(shelf.Locator("h2")).ToHaveTextAsync(channels[index].Key);
       await Expect(shelf.Locator("header p")).ToHaveTextAsync($"{expected.Length} published articles");
+      await Expect(shelf.GetByRole(AriaRole.Link, new() { Name = $"Start {channels[index].Key} learning path", Exact = true }))
+          .ToHaveAttributeAsync("href", $"/{expected[0].ContentUrl.Trim('/')}/");
       await Expect(shelf.Locator("li")).ToHaveCountAsync(expected.Length);
       await Expect(shelf.Locator("li h3")).ToHaveTextAsync(expected.Select(content => content.Title).ToArray());
       await Expect(shelf.Locator("li span")).ToHaveTextAsync(
@@ -81,7 +89,12 @@ public class LearningPathTests(AppFixture fixture) : DistributedPageTest
     await search.FillAsync("not-a-real-topic");
     await Expect(shelves).ToHaveCountAsync(0);
     await Expect(Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "No matching topics." })).ToBeVisibleAsync();
-    await search.FillAsync("");
+    var clearSearch = Page.GetByRole(AriaRole.Button, new() { Name = "Clear topic search", Exact = true });
+    await clearSearch.FocusAsync();
+    await Page.Keyboard.PressAsync("Enter");
+    await Expect(search).ToHaveValueAsync("");
+    await Expect(search).ToBeFocusedAsync();
+    await Expect(clearSearch).ToHaveCountAsync(0);
     await Expect(shelves).ToHaveCountAsync(channels.Length);
     var lastCard = shelves.Last.Locator("li a").Last;
     var banner = Page.GetByRole(AriaRole.Link, new() { Name = "Start preparing for your C# and .NET interview", Exact = true });
@@ -107,6 +120,9 @@ public class LearningPathTests(AppFixture fixture) : DistributedPageTest
         Assert.True(await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= innerWidth"),
             $"Learning paths should not widen the page at {width}px in {(dark ? "dark" : "light")} mode.");
         Assert.True(await shelf.EvaluateAsync<bool>("element => element.scrollWidth > element.clientWidth"));
+        var start = Page.GetByRole(AriaRole.Link, new() { Name = "Start Web API learning path", Exact = true });
+        Assert.True(await start.EvaluateAsync<bool>(
+            "element => { const bounds = element.getBoundingClientRect(); return bounds.left >= 0 && bounds.right <= innerWidth; }"));
       }
     }
     await Page.SetViewportSizeAsync(390, 844);

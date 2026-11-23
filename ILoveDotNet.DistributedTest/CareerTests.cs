@@ -21,6 +21,15 @@ public class CareerTests(AppFixture fixture) : DistributedPageTest
     await Expect(Page.Locator("main h1")).ToBeVisibleAsync();
     await Expect(Page.Locator("#brand h1, h1#brand")).ToHaveCountAsync(0);
     await SeoTestHelpers.AssertCanonicalMetadataAsync(Page, path);
+    var startingPoints = Page.GetByRole(AriaRole.Navigation, new() { Name = "Career growth starting points" });
+    await Expect(startingPoints.GetByRole(AriaRole.Link)).ToHaveCountAsync(3);
+    await Expect(startingPoints.GetByText("Explore these connected practices in any order.", new() { Exact = true })).ToBeVisibleAsync();
+    await Expect(startingPoints.GetByRole(AriaRole.Link, new() { Name = "Build your skills" }))
+        .ToHaveAttributeAsync("href", "career/#career-foundations-title");
+    await Expect(startingPoints.GetByRole(AriaRole.Link, new() { Name = "Show your impact" }))
+        .ToHaveAttributeAsync("href", "career/#career-growth-title");
+    await Expect(startingPoints.GetByRole(AriaRole.Link, new() { Name = "Take on a new challenge" }))
+        .ToHaveAttributeAsync("href", "career/#career-conversation-starter");
 
     var headingIds = await Page.Locator("h2").EvaluateAllAsync<string[]>(
         "headings => headings.map(heading => heading.id)");
@@ -51,6 +60,9 @@ public class CareerTests(AppFixture fixture) : DistributedPageTest
             $"Career should not overflow at {width}px in {(darkMode ? "dark" : "light")} mode.");
         Assert.True(await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= innerWidth"),
             $"Career content must not widen the page at {width}px.");
+        Assert.True(await startingPoints.EvaluateAsync<bool>(
+            "element => element.scrollWidth <= element.clientWidth && element.getBoundingClientRect().right <= innerWidth"),
+            $"Career starting points must fit at {width}px.");
         var first = await cards.Nth(0).BoundingBoxAsync();
         var second = await cards.Nth(1).BoundingBoxAsync();
         Assert.NotNull(first);
@@ -78,6 +90,11 @@ public class CareerTests(AppFixture fixture) : DistributedPageTest
       }
     }
 
+    foreach (var link in await startingPoints.GetByRole(AriaRole.Link).AllAsync())
+    {
+      await link.ClickAsync();
+      await Expect(Page.Locator(new Uri(Page.Url).Fragment)).ToBeInViewportAsync();
+    }
     foreach (var link in await Page.Locator("nav[aria-label='Career guide topics'] a").AllAsync())
     {
       await link.ClickAsync();

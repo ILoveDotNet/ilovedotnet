@@ -15,7 +15,7 @@
                      CurrentUrl="@($"/{contentMetaData.ContentUrl.Trim('/')}/")"
                      ParentTitle="@contentMetaData.Channel"
                      ParentUrl="@ChannelUrl" />
-        <ContentHeader Metadata="@contentMetaData" FileName="@FileName" PublishedCount="@channelContents.Count" ImplementationId="@ImplementationId" />
+        <ContentHeader Metadata="@contentMetaData" FileName="@FileName" PublishedCount="@channelContents.Count" PathPosition="@pathPosition" ImplementationId="@ImplementationId" />
         @if (Introduction is not null)
         {
             <section aria-label="Before you begin" class="[ min-w-0 space-y-3 border-y border-stone-200 py-5 leading-relaxed [overflow-wrap:anywhere] dark:border-stone-700 [&_p]:max-w-[75ch] [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-5 ]">
@@ -33,31 +33,45 @@
         </section>
         <ArticleAd Position="ArticleAdPosition.EndOfArticle" />
         <footer class="[ min-w-0 space-y-6 border-t border-stone-200 pt-6 dark:border-stone-700 ]">
-            <nav aria-label="Continue this learning path" class="[ space-y-3 ]">
-                <h2 class="[ text-xl font-semibold ]">Continue this learning path</h2>
+            <nav aria-label="Continue this learning path" class="[ min-w-0 space-y-4 ]">
+                <h2 class="[ text-2xl font-bold ]">Continue this learning path</h2>
                 <p class="[ text-sm text-stone-600 dark:text-stone-300 ]">Explore @contentMetaData.Channel in the suggested order, or choose the tutorial you need.</p>
-                <div class="[ grid min-w-0 gap-3 sm:grid-cols-2 ]">
+                @if (next is not null)
+                {
+                    <a href="@($"/{next.ContentUrl.Trim('/')}/")" rel="next" class="[ group flex min-w-0 flex-col gap-2 rounded-xl bg-indigo-950 p-5 text-white no-underline sm:p-6 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ]">
+                        <span class="[ text-sm font-semibold text-indigo-200 ]">Next tutorial →</span>
+                        <span class="[ break-words text-lg font-bold group-hover:underline sm:text-xl ]">@next.Title</span>
+                    </a>
+                }
+                <div class="[ flex flex-wrap items-center gap-x-6 gap-y-1 ]">
                     @if (previous is not null)
                     {
-                        <a href="@($"/{previous.ContentUrl.Trim('/')}/")" rel="prev" class="[ flex min-w-0 flex-col gap-2 rounded-xl border border-stone-200 bg-white p-4 no-underline focus-visible:outline-2 focus-visible:outline-indigo-500 dark:border-stone-700 dark:bg-stone-800 ]">
-                            <span class="[ text-sm text-stone-600 dark:text-stone-300 ]">← Previous tutorial</span>
-                            <span class="[ font-semibold hover:underline ]">@previous.Title</span>
-                        </a>
+                        <a href="@($"/{previous.ContentUrl.Trim('/')}/")" rel="prev" class="[ inline-flex min-h-11 min-w-0 items-center break-words font-semibold text-indigo-700 underline underline-offset-4 dark:text-indigo-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ]">← Previous tutorial: @previous.Title</a>
                     }
-                    @if (next is not null)
-                    {
-                        <a href="@($"/{next.ContentUrl.Trim('/')}/")" rel="next" class="[ flex min-w-0 flex-col gap-2 rounded-xl border border-stone-200 bg-white p-4 no-underline focus-visible:outline-2 focus-visible:outline-indigo-500 dark:border-stone-700 dark:bg-stone-800 ]">
-                            <span class="[ text-sm text-stone-600 dark:text-stone-300 ]">Next tutorial →</span>
-                            <span class="[ font-semibold hover:underline ]">@next.Title</span>
-                        </a>
-                    }
+                    <a href="@ChannelUrl" class="[ inline-flex min-h-11 items-center font-semibold text-indigo-700 underline underline-offset-4 dark:text-indigo-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ]">View all @contentMetaData.Channel tutorials →</a>
                 </div>
-                <a href="@ChannelUrl" class="[ inline-flex min-h-11 items-center font-semibold text-indigo-700 underline dark:text-indigo-300 ]">View all @contentMetaData.Channel tutorials →</a>
             </nav>
+            <section aria-labelledby="article-community-title" class="[ min-w-0 rounded-xl bg-amber-100 p-5 text-amber-950 sm:p-6 ]">
+                <h2 id="article-community-title" class="[ text-xl font-bold ]">Keep learning together</h2>
+                <p class="[ mt-2 max-w-2xl leading-relaxed ]">Get practical .NET tutorials and updates on WhatsApp, or connect with Abdul on LinkedIn to share ideas and ask questions.</p>
+                <div class="[ mt-3 flex flex-wrap items-center gap-x-6 gap-y-1 ]">
+                    <a href="https://whatsapp.com/channel/0029VaAGMV2LtOj5S5MHd23h" target="_blank" rel="noopener noreferrer"
+                       class="[ inline-flex min-h-11 items-center font-bold text-amber-950 underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-950 ]">
+                        Join the WhatsApp channel <span class="sr-only">(opens in a new tab)</span>
+                    </a>
+                    <a href="https://www.linkedin.com/in/thebhai" target="_blank" rel="noopener noreferrer"
+                       class="[ inline-flex min-h-11 items-center font-bold text-amber-950 underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-950 ]">
+                        Follow or message Abdul on LinkedIn <span class="sr-only">(opens in a new tab)</span>
+                    </a>
+                </div>
+            </section>
             <section aria-label="Share and support" class="[ space-y-3 ]">
                 <h2 class="[ text-lg font-semibold ]">Share this article</h2>
                 <SocialShare Title="@contentMetaData.Title" Url="@($"{Configuration["baseUrl"]}{contentMetaData.ContentUrl}")" />
-                <a href="https://github.com/sponsors/fingers10" target="_blank" rel="noopener noreferrer" class="[ inline-flex min-h-11 items-center underline ]">Support the project <span class="sr-only">(opens in a new tab)</span></a>
+                <div class="[ flex flex-wrap items-center gap-x-6 ]">
+                    <a href="https://github.com/sponsors/fingers10" target="_blank" rel="noopener noreferrer" class="[ inline-flex min-h-11 items-center underline ]">Support the project <span class="sr-only">(opens in a new tab)</span></a>
+                    <a href="/sponsor/" class="[ inline-flex min-h-11 items-center underline ]">Sponsorship enquiries</a>
+                </div>
             </section>
             <ul aria-label="Article topics" class="[ flex min-w-0 flex-wrap gap-2 text-sm ]">
                 <li><a href="@ChannelUrl" class="[ inline-flex min-h-11 items-center rounded-lg bg-indigo-50 px-3 py-2 text-indigo-800 underline dark:bg-indigo-950 dark:text-indigo-200 ]">@contentMetaData.Channel</a></li>
@@ -83,6 +97,7 @@
                    class="[ inline-flex min-h-11 items-center rounded-lg bg-indigo-700 px-3 py-2 text-sm font-semibold text-white no-underline hover:bg-indigo-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 ]">
                     Discuss on LinkedIn <span class="sr-only">(opens in a new tab)</span>
                 </a>
+                <a href="/sponsor/" class="[ inline-flex min-h-11 items-center text-sm font-semibold text-indigo-700 underline dark:text-indigo-300 ]">Sponsorship details</a>
             </section>
         </div>
     </aside>
@@ -93,6 +108,7 @@
     private List<ContentMetaData> channelContents = [];
     private ContentMetaData? previous;
     private ContentMetaData? next;
+    private int? pathPosition;
     private ElementReference articleBody;
     private IJSObjectReference? outlineModule;
     private IReadOnlyList<ArticleHeading> headings = [];
@@ -117,6 +133,7 @@
         var index = channelContents.FindIndex(content => content.Slug == contentMetaData.Slug);
         previous = index > 0 ? channelContents[index - 1] : null;
         next = index >= 0 && index + 1 < channelContents.Count ? channelContents[index + 1] : null;
+        pathPosition = index >= 0 && channelContents.Count > 1 ? index + 1 : null;
         if (outlinedSlug != contentMetaData.Slug)
         {
             headings = [];

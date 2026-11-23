@@ -190,6 +190,51 @@ public class BlogTests(AppFixture fixture) : DistributedPageTest
   }
 
   [Fact]
+  public async Task BlogPage_OffersResponsiveNextStepAndCommunityLinksAsync()
+  {
+    var contents = new SharedModels.TableOfContents().Contents;
+    var ordered = contents.Where(content => content.Channel == "Dependency Injection").OrderBy(content => content.Order).ToArray();
+    Assert.True(ordered.Length > 1);
+    await GotoSuccessfulPageAsync(Page, WebBaseUrl, ordered[0].ContentUrl);
+    var navigation = Page.GetByRole(AriaRole.Navigation, new() { Name = "Continue this learning path" });
+    var position = Page.GetByRole(AriaRole.Group, new() { Name = "Position in suggested order" });
+    await Expect(position).ToContainTextAsync($"Article 1 of {ordered.Length} in the suggested order");
+    await Expect(navigation.Locator("a[rel='next']")).ToHaveAttributeAsync("href", $"/{ordered[1].ContentUrl.Trim('/')}/");
+    await Expect(navigation.Locator("a[rel='prev']")).ToHaveCountAsync(0);
+    var community = Page.GetByRole(AriaRole.Region, new() { Name = "Keep learning together" });
+    await Expect(community.GetByRole(AriaRole.Link, new() { Name = "Join the WhatsApp channel" }))
+        .ToHaveAttributeAsync("href", "https://whatsapp.com/channel/0029VaAGMV2LtOj5S5MHd23h");
+    await Expect(community.GetByRole(AriaRole.Link, new() { Name = "Follow or message Abdul on LinkedIn" }))
+        .ToHaveAttributeAsync("href", "https://www.linkedin.com/in/thebhai");
+    foreach (var width in new[] { 320, 390, 768, 1280 })
+    {
+      await Page.SetViewportSizeAsync(width, 900);
+      foreach (var dark in new[] { false, true })
+      {
+        await Page.EvaluateAsync("dark => document.documentElement.classList.toggle('dark', dark)", dark);
+        foreach (var section in new[] { position, navigation, community })
+        {
+          Assert.True(await section.EvaluateAsync<bool>(
+              "element => element.scrollWidth <= element.clientWidth && element.getBoundingClientRect().right <= innerWidth"),
+              $"Article footer must fit at {width}px in {(dark ? "dark" : "light")} mode.");
+        }
+        Assert.True(await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= innerWidth"));
+      }
+    }
+
+    await Page.EvaluateAsync("url => Blazor.navigateTo(url)", $"/{ordered[^1].ContentUrl}");
+    await Expect(Page.Locator("#article-title")).ToHaveTextAsync(ordered[^1].Title);
+    await Expect(position).ToContainTextAsync($"Article {ordered.Length} of {ordered.Length} in the suggested order");
+    await Expect(navigation.Locator("a[rel='next']")).ToHaveCountAsync(0);
+    await Expect(navigation.Locator("a[rel='prev']")).ToHaveAttributeAsync("href", $"/{ordered[^2].ContentUrl.Trim('/')}/");
+    await Expect(navigation.GetByRole(AriaRole.Link, new() { Name = "View all Dependency Injection tutorials" })).ToBeVisibleAsync();
+    var standalone = contents.Single(content => content.Channel == "Talk");
+    await Page.EvaluateAsync("url => Blazor.navigateTo(url)", $"/{standalone.ContentUrl}");
+    await Expect(Page.Locator("#article-title")).ToHaveTextAsync(standalone.Title);
+    await Expect(position).ToHaveCountAsync(0);
+  }
+
+  [Fact]
   public async Task BlogPage_PaginatesOnlyRelatedPublishedArticlesAndHandlesSingleArticleAsync()
   {
     var table = new SharedModels.TableOfContents();

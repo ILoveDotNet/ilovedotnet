@@ -138,6 +138,10 @@ public class InterviewTests(AppFixture fixture) : DistributedPageTest
     }
     var shortcuts = Page.Locator("nav[aria-label='Choose your preparation starting point'] a");
     await Expect(shortcuts).ToHaveCountAsync(3);
+    await Expect(Page.GetByRole(AriaRole.Link, new() { Name = "Check your readiness" }))
+        .ToHaveAttributeAsync("href", "interview/#interview-readiness");
+    await Expect(Page.GetByRole(AriaRole.Link, new() { Name = "Explore the seven-session plan" }))
+        .ToHaveAttributeAsync("href", "interview/#preparation-plan");
     foreach (var link in await shortcuts.AllAsync())
     {
       await link.ClickAsync();
@@ -152,6 +156,24 @@ public class InterviewTests(AppFixture fixture) : DistributedPageTest
     Assert.Equal("#interview-topics", new Uri(Page.Url).Fragment);
     await Expect(Page.Locator("#interview-topics")).ToBeInViewportAsync();
     await Expect(Page.Locator("section[aria-labelledby='preparation-plan'] li")).ToHaveCountAsync(7);
+    await Expect(Page.GetByRole(AriaRole.List, new() { Name = "Seven-session preparation roadmap" }).Locator("li > span"))
+        .ToHaveTextAsync(["1", "2", "3", "4", "5", "6", "7"]);
+    var sessionLinks = Page.Locator("section[aria-labelledby='preparation-plan'] ol a");
+    var sessionHrefs = await sessionLinks.EvaluateAllAsync<string[]>("links => links.map(link => link.getAttribute('href'))");
+    Assert.Equal(new[]
+    {
+      "interview/#csharp-interview-questions",
+      "blogs/understanding-linq-deferred-immediate-streaming-and-non-streaming-executions/",
+      "interview/#dotnet-interview-questions",
+      "blogs/profiling-webapi-with-mini-profiler/",
+      "interview/#system-design-interview",
+      "interview/#interview-readiness",
+      "interview/#csharp-interview-questions",
+    }, sessionHrefs);
+    foreach (var href in sessionHrefs.Where(href => href.StartsWith("interview/#", StringComparison.Ordinal)))
+    {
+      await Expect(Page.Locator(new Uri(WebBaseUrl, href).Fragment)).ToHaveCountAsync(1);
+    }
     Assert.Equal("interview-readiness", await Page.Locator("h2").First.GetAttributeAsync("id"));
     Assert.Equal("preparation-plan", await Page.Locator("h2").Nth(1).GetAttributeAsync("id"));
     var faq = Page.Locator("section[aria-labelledby='interview-faq'] details");
@@ -169,6 +191,12 @@ public class InterviewTests(AppFixture fixture) : DistributedPageTest
             $"Interview should not overflow at {width}px in {(darkMode ? "dark" : "light")} mode.");
         Assert.True(await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= innerWidth"),
             $"Interview content must not widen the page at {width}px.");
+        Assert.True(await shortcuts.First.EvaluateAsync<bool>(
+            "element => { const bounds = element.getBoundingClientRect(); return bounds.left >= 0 && bounds.right <= innerWidth; }"),
+            $"Interview starting points must fit at {width}px.");
+        Assert.True(await sessionLinks.EvaluateAllAsync<bool>(
+            "links => links.every(element => { const bounds = element.getBoundingClientRect(); return bounds.left >= 0 && bounds.right <= innerWidth; })"),
+            $"Preparation links must fit at {width}px.");
         var cards = Page.Locator("section[aria-labelledby='delivery-readiness-title'] article");
         var first = await cards.Nth(0).BoundingBoxAsync();
         var second = await cards.Nth(1).BoundingBoxAsync();

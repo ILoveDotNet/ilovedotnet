@@ -57,6 +57,11 @@ public class SeoTests(AppFixture fixture) : DistributedPageTest
 
       var childDocument = XDocument.Parse(await childResponse.TextAsync());
       Assert.Equal("urlset", childDocument.Root?.Name.LocalName);
+      if (childUri.AbsolutePath.EndsWith("/sitemap-static.xml", StringComparison.Ordinal))
+      {
+        Assert.Contains("https://ilovedotnet.org/sponsor/",
+            childDocument.Descendants(sitemapNamespace + "loc").Select(element => element.Value));
+      }
 
       foreach (var location in childDocument.Descendants(sitemapNamespace + "loc").Select(element => element.Value))
       {
@@ -66,6 +71,58 @@ public class SeoTests(AppFixture fixture) : DistributedPageTest
         Assert.EndsWith("/", uri.AbsolutePath, StringComparison.Ordinal);
       }
     }
+  }
+
+  [Fact]
+  public async Task SponsorshipPage_IsDiscoverableAndResponsiveAsync()
+  {
+    await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, "");
+    var sponsorLink = Page.GetByRole(AriaRole.Link, new() { Name = "Explore sponsorship opportunities" });
+    await Expect(sponsorLink).ToHaveAttributeAsync("href", "/sponsor/");
+    await sponsorLink.ClickAsync();
+    await Expect(Page).ToHaveURLAsync(new Uri(WebBaseUrl, "sponsor/").AbsoluteUri);
+    await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "Help developers learn. Put your brand in the conversation." })).ToBeVisibleAsync();
+    var canonical = await SeoTestHelpers.AssertCanonicalMetadataAsync(Page, "sponsor/");
+    var schemas = await SeoTestHelpers.GetJsonLdDocumentsAsync(Page);
+    try
+    {
+      Assert.Equal(canonical, SeoTestHelpers.GetSchema(schemas, "WebSite").RootElement.GetProperty("url").GetString());
+      SeoTestHelpers.AssertBreadcrumbSchema(SeoTestHelpers.GetSchema(schemas, "BreadcrumbList"));
+    }
+    finally
+    {
+      foreach (var schema in schemas)
+      {
+        schema.Dispose();
+      }
+    }
+    var published = new SharedModels.TableOfContents().Contents;
+    await Expect(Page.Locator("main")).ToContainTextAsync($"{published.Count} published tutorials");
+    await Expect(Page.Locator("main")).ToContainTextAsync($"{published.Select(content => content.Channel).Distinct(StringComparer.OrdinalIgnoreCase).Count()} topics");
+    foreach (var name in new[] { "Discuss sponsorship on LinkedIn", "Message Abdul on LinkedIn" })
+    {
+      await Expect(Page.GetByRole(AriaRole.Link, new() { Name = name }))
+          .ToHaveAttributeAsync("href", "https://www.linkedin.com/in/thebhai");
+    }
+    await Expect(Page.GetByRole(AriaRole.Link, new() { Name = "Discuss sponsorship on LinkedIn" })).ToBeVisibleAsync();
+    foreach (var width in new[] { 320, 390, 768, 1280 })
+    {
+      await Page.SetViewportSizeAsync(width, 900);
+      foreach (var dark in new[] { false, true })
+      {
+        await Page.EvaluateAsync("dark => document.documentElement.classList.toggle('dark', dark)", dark);
+        Assert.True(await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= innerWidth"),
+            $"Sponsorship page must fit at {width}px in {(dark ? "dark" : "light")} mode.");
+      }
+    }
+  }
+
+  [Fact]
+  public async Task SponsorshipPage_LoadsFromDirectUrlAsync()
+  {
+    await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, "sponsor/");
+    await Expect(Page.GetByRole(AriaRole.Heading, new() { Name = "Help developers learn. Put your brand in the conversation." })).ToBeVisibleAsync();
+    await Expect(Page.Locator("nav[aria-label='Breadcrumb']")).ToBeVisibleAsync();
   }
 
   [Fact]

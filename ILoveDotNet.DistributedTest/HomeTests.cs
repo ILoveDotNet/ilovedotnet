@@ -229,6 +229,74 @@ public class HomeTests(AppFixture fixture) : DistributedPageTest
   }
 
   [Fact]
+  public async Task HomePage_LearningJourneysAndWhatsAppAreAccessibleAsync()
+  {
+    await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, "");
+    var journeys = Page.GetByRole(AriaRole.Navigation, new() { Name = "Choose your learning journey" });
+    foreach (var (name, href) in new[]
+    {
+      ("Learn .NET", "/learningpath/"),
+      ("Prepare for interviews", "/interview/"),
+      ("Grow your career", "/career/"),
+    })
+    {
+      await Expect(journeys.GetByRole(AriaRole.Link, new() { Name = name })).ToHaveAttributeAsync("href", href);
+    }
+
+    var whatsapp = Page.GetByRole(AriaRole.Link, new() { Name = "Follow on WhatsApp" });
+    await Expect(whatsapp).ToHaveAttributeAsync("href", "https://whatsapp.com/channel/0029VaAGMV2LtOj5S5MHd23h");
+    var community = Page.GetByRole(AriaRole.Region, new() { Name = "Keep learning beyond the article." });
+    var communityWhatsApp = community.GetByRole(AriaRole.Link, new() { Name = "Join the WhatsApp channel" });
+    await Expect(communityWhatsApp).ToHaveAttributeAsync("href", "https://whatsapp.com/channel/0029VaAGMV2LtOj5S5MHd23h");
+    var linkedIn = community.GetByRole(AriaRole.Link, new() { Name = "Follow or message Abdul on LinkedIn" });
+    await Expect(linkedIn).ToHaveAttributeAsync("href", "https://www.linkedin.com/in/thebhai");
+    foreach (var width in new[] { 320, 390, 768, 1280 })
+    {
+      await Page.SetViewportSizeAsync(width, 900);
+      foreach (var dark in new[] { false, true })
+      {
+        await Page.EvaluateAsync("dark => document.documentElement.classList.toggle('dark', dark)", dark);
+        await Expect(whatsapp).ToBeVisibleAsync();
+        await Expect(communityWhatsApp).ToBeVisibleAsync();
+        await Expect(linkedIn).ToBeVisibleAsync();
+        await Expect(journeys.GetByRole(AriaRole.Link)).ToHaveCountAsync(3);
+        Assert.True(await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= innerWidth"),
+            $"Homepage must not overflow at {width}px in {(dark ? "dark" : "light")} mode.");
+      }
+    }
+  }
+
+  [Fact]
+  public async Task HomePage_FeaturesRecentTutorialAndReflowsAsync()
+  {
+    await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, "");
+    var expected = new SharedModels.TableOfContents().FilteredAndPagedContents().First();
+    var featured = Page.Locator("[data-featured-tutorial]");
+    await Expect(featured.Locator("h3")).ToHaveTextAsync(expected.Title);
+    await Expect(featured.GetByRole(AriaRole.Link)).ToHaveAttributeAsync("href", $"/{expected.ContentUrl.Trim('/')}/");
+    foreach (var width in new[] { 320, 390, 768, 1280 })
+    {
+      await Page.SetViewportSizeAsync(width, 900);
+      foreach (var dark in new[] { false, true })
+      {
+        await Page.EvaluateAsync("dark => document.documentElement.classList.toggle('dark', dark)", dark);
+        foreach (var surface in new[]
+        {
+          featured,
+          Page.GetByRole(AriaRole.Navigation, new() { Name = "Choose your learning journey" }),
+          Page.GetByRole(AriaRole.Region, new() { Name = "Keep learning beyond the article." }),
+        })
+        {
+          Assert.True(await surface.EvaluateAsync<bool>(
+              "element => element.scrollWidth <= element.clientWidth && element.getBoundingClientRect().right <= innerWidth"),
+              $"Homepage section must fit at {width}px in {(dark ? "dark" : "light")} mode.");
+        }
+        Assert.True(await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth <= innerWidth"));
+      }
+    }
+  }
+
+  [Fact]
   public async Task HomePage_FiltersAndPaginatesAccessibleTutorialFeedAsync()
   {
     await SeoTestHelpers.GotoSuccessfulPageAsync(Page, WebBaseUrl, "");

@@ -54,12 +54,14 @@ public class ChannelTests(AppFixture fixture) : DistributedPageTest
     await Expect(results.Locator("article")).ToHaveCountAsync(records.Length);
     await Expect(results.Locator("h3")).ToHaveTextAsync(records.OrderByDescending(content => content.ModifiedOn).Select(content => content.Title).ToArray());
     await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Latest articles", Exact = true })).ToHaveAttributeAsync("aria-pressed", "true");
-    await Page.GetByRole(AriaRole.Link, new() { Name = "Start learning", Exact = false }).ClickAsync();
+    var sequence = records.OrderBy(content => content.Order).ToArray();
+    var firstTutorial = Page.GetByRole(AriaRole.Link, new() { Name = "Start with the first tutorial", Exact = false });
+    await Expect(firstTutorial).ToHaveAttributeAsync("href", $"/{sequence[0].ContentUrl.Trim('/')}/");
+    await Page.GetByRole(AriaRole.Link, new() { Name = "View learning sequence", Exact = false }).ClickAsync();
     Assert.Equal(WebBaseUrl.Authority, new Uri(Page.Url).Authority);
     results = Page.GetByRole(AriaRole.Region, new() { Name = "Learning sequence", Exact = true });
     await Expect(Page.Locator("#channel-results")).ToBeInViewportAsync();
     await Expect(results.Locator("li")).ToHaveCountAsync(records.Length);
-    var sequence = records.OrderBy(content => content.Order).ToArray();
     await Expect(results.Locator("h3")).ToHaveTextAsync(sequence.Select(content => content.Title).ToArray());
     var search = Page.GetByLabel("Search LINQ tutorials", new() { Exact = true });
     var selected = sequence[^1];
@@ -112,6 +114,10 @@ public class ChannelTests(AppFixture fixture) : DistributedPageTest
     await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Latest articles", Exact = true })).ToHaveAttributeAsync("aria-pressed", "true");
     await Page.WaitForFunctionAsync("() => { const image = document.querySelector('img'); return image.complete && image.naturalWidth > 0; }");
     await Expect(Page.Locator("link[rel='canonical']")).ToHaveAttributeAsync("href", $"{canonicalBaseUrl}channels/web-api/");
+    var firstWebApi = new SharedModels.TableOfContents().Contents
+        .Where(content => content.Channel == "Web API").OrderBy(content => content.Order).First();
+    await Expect(Page.GetByRole(AriaRole.Link, new() { Name = "Start with the first tutorial", Exact = false }))
+        .ToHaveAttributeAsync("href", $"/{firstWebApi.ContentUrl.Trim('/')}/");
     await Page.EvaluateAsync("() => Blazor.navigateTo('/channels/efcore/')");
     await Expect(Page.Locator("h1")).ToHaveTextAsync("EFCore");
     var emptyChannel = new SharedModels.TableOfContents().AllContents
@@ -120,9 +126,11 @@ public class ChannelTests(AppFixture fixture) : DistributedPageTest
     {
       await Page.EvaluateAsync("url => Blazor.navigateTo(url)", $"/channels/{emptyChannel.Key.ToLowerInvariant().Replace(" ", "-")}/");
       await Expect(Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "No articles have been published" })).ToBeVisibleAsync();
+      await Expect(Page.GetByRole(AriaRole.Link, new() { Name = "Start with the first tutorial", Exact = false })).ToHaveCountAsync(0);
     }
     await Page.EvaluateAsync("() => Blazor.navigateTo('/channels/not-a-real-channel/')");
     await Expect(Page.GetByRole(AriaRole.Status).Filter(new() { HasText = "This channel was not found." })).ToBeVisibleAsync();
+    await Expect(Page.GetByRole(AriaRole.Link, new() { Name = "Start with the first tutorial", Exact = false })).ToHaveCountAsync(0);
     await Page.GetByRole(AriaRole.Link, new() { Name = "Browse all learning paths", Exact = false }).ClickAsync();
     await Expect(Page.Locator("h1")).ToHaveTextAsync(".NET Tutorial Learning Paths");
   }
